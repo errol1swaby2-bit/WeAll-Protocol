@@ -401,6 +401,11 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="detailFocusValue">Receipts inspectable</div>
               <div className="detailFocusText">Membership changes are signed transactions; use transaction status and this group feed/members view to inspect the public result.</div>
             </article>
+            <article className="detailFocusCard">
+              <div className="detailFocusLabel">Emissary elections</div>
+              <div className="detailFocusValue">Public candidate records</div>
+              <div className="detailFocusText">Candidate lists, candidate votes, term activation, and term expiration must be public group-governance records; the UI should not present admin-only appointment as group authority.</div>
+            </article>
           </div>
         </div>
       </section>

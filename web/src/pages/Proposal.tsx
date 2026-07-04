@@ -686,6 +686,13 @@ export default function Proposal({ id }: Props): JSX.Element {
             Decision edits, withdrawals, and votes are saved first. Later status changes and results remain authoritative backend state.
           </div>
         </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Block-height truth</div>
+          <div className="summaryCardValue mono">{procedureCurrentHeight || "—"} → {procedureDeadlineHeight || "—"}</div>
+          <div className="summaryCardText">
+            Human time labels are estimates; protocol truth uses committed block heights. This page cannot finalize early or override backend lifecycle boundaries.
+          </div>
+        </article>
       </section>
 
       <section className="card">
@@ -810,8 +817,9 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="summaryCardText">{decisionStageHelp(stage)}</div>
             </article>
             <article className="summaryCard">
-              <div className="summaryCardLabel">Next step</div>
+              <div className="summaryCardLabel">What happens next</div>
               <div className="summaryCardValue">{readiness}</div>
+              <div className="summaryCardText">Exact start/end boundaries come from backend state; repeated finalization must remain idempotent.</div>
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Applied changes</div>

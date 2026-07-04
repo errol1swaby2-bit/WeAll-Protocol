@@ -447,6 +447,37 @@ export default function NodeDashboard(): JSX.Element {
         <strong>Validator promotion path:</strong> a fresh observer must sync, reach Tier 2 through protocol PoH, activate node-operator responsibility, explicitly opt into validation, pass validator readiness verification, and only then reboot with production validator service flags. This dashboard displays backend-derived blockers and never flips signing authority locally.
       </div>
 
+      <section className="card" aria-label="Launch evidence still required">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">What happens next</div>
+              <h2 className="cardTitle">Evidence sequence before broader claims</h2>
+              <div className="cardDesc">
+                Operator evidence still required: external observer transcript → cross-machine replay transcript → full local proof bundle. This dashboard helps collect those facts; it does not replace them.
+              </div>
+            </div>
+          </div>
+          <div className="summaryCardGrid">
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Observer claim</div>
+              <div className="summaryCardValue">Bounded until transcripted</div>
+              <div className="summaryCardText">A clean-machine public observer boot transcript is still required before calling the observer experience reviewer-ready.</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Replay claim</div>
+              <div className="summaryCardValue">Cross-machine proof needed</div>
+              <div className="summaryCardText">Two independent machines should replay the same blocks and compare state roots before public beta determinism claims expand.</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Upgrade claim</div>
+              <div className="summaryCardValue">Record-only</div>
+              <div className="summaryCardText">Protocol and constitution upgrade records are scheduled, public, record-only metadata; they do not fetch artifacts, execute migrations, restart nodes, or change economics.</div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section className="card" aria-labelledby="public-observer-discovery-heading">
         <div className="cardBody formStack">
           <div className="sectionHead">

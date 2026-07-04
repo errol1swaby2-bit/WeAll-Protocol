@@ -153,6 +153,37 @@ export default function Home(): JSX.Element {
         <DirectoryCard eyebrow="Economics" title="Locked" body="WeCoin and fees stay locked by default during public observer / closed-testnet review." cta="Check economics status" href="/economics" />
       </section>
 
+      <section className="card" aria-label="Average-user launch-prep walkthrough">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Reviewer path</div>
+              <h2 className="cardTitle">Average-user launch-prep walkthrough</h2>
+              <div className="cardDesc">
+                Use this public-only civic loop when reviewing the product experience: account state → verification state → public feed → groups → decisions → reports → reviews → activity → node → economics.
+              </div>
+            </div>
+          </div>
+          <div className="summaryCardGrid">
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Visibility rule</div>
+              <div className="summaryCardValue">Public-readable civic state</div>
+              <div className="summaryCardText">Every protocol-native social and civic surface is publicly readable; membership gates participation, not visibility.</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Governance rule</div>
+              <div className="summaryCardValue">Same mechanics, scoped down</div>
+              <div className="summaryCardText">Groups, emissary roles, and protocol decisions should read as governance records rather than admin-only shortcuts.</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Safety rule</div>
+              <div className="summaryCardValue">Evidence before claims</div>
+              <div className="summaryCardText">Record-only upgrade and economics-locked surfaces remain last so reviewers cannot mistake them for live activation.</div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section className="card">
         <div className="cardBody formStack">
           <div className="sectionHead">

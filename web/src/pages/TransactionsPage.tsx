@@ -298,6 +298,9 @@ export default function TransactionsPage(): JSX.Element {
             <div className="summaryCallout subtle">
               <strong>Canonical tx catalog:</strong> the backend now exposes transaction surface metadata so frontend work can be explicitly aligned to real protocol tx types, contexts, gate expectations, and concrete public HTTP entrypoints.
             </div>
+            <div className="summaryCallout subtle">
+              <strong>Block confirmation:</strong> a transaction is not treated as a final public result until the backend reports block inclusion and the local observer has synced that confirmed state.
+            </div>
           </div>
         </article>
       </section>

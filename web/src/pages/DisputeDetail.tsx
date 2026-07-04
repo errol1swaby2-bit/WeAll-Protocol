@@ -304,6 +304,11 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             <div className="summaryCardValue mono">{appealCount}</div>
             <div className="summaryCardText">Appeal records are backend state, not frontend-only notes.</div>
           </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Block-height truth</div>
+            <div className="summaryCardValue mono">{disputeProcedureHeight || "—"} → {disputeDeadline || "—"}</div>
+            <div className="summaryCardText">Review windows, appeal windows, missed-vote outcomes, and finalization must follow backend block heights, not browser wall-clock time.</div>
+          </article>
         </div>
       </ProcedureTimeline>
 
@@ -383,6 +388,11 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
           <div className="detailFocusLabel">Current route rule</div>
           <div className="detailFocusValue">No final vote here</div>
           <div className="detailFocusText">This page explains the case. Final reviewer choices are intentionally isolated to the review action route.</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Privacy boundary</div>
+          <div className="detailFocusValue">Public reasoning, protected identity evidence</div>
+          <div className="detailFocusText">Reviewer notes and outcomes may be public, but raw PoH/video/government identity evidence must not be exposed through this route.</div>
         </article>
       </section>
 

@@ -303,7 +303,7 @@ export async function reconcileProposalVisible(proposalId: string, base: string)
 export async function reconcileProposalVote(args: {
   proposalId: string;
   account: string;
-  choice: "yes" | "no" | "abstain";
+  choice: string;
   base: string;
 }): Promise<{ phase: "confirmed" | "submitted" | "failed" | "unknown"; detail?: string } | null> {
   if (!args.proposalId || !args.account) return null;
@@ -311,11 +311,13 @@ export async function reconcileProposalVote(args: {
     const raw: any = await weall.proposalVotes(args.proposalId, args.base);
     const stage = governanceProposalStageOf(raw?.stage);
     const voteMap = asRecord((stage === "poll" ? raw?.poll_votes : raw?.votes) || raw?.votes || raw?.poll_votes);
-    const current = String(voteForAccount(voteMap, args.account)?.vote || "").trim().toLowerCase();
-    if (current === args.choice) {
+    const voteRecord = voteForAccount(voteMap, args.account);
+    const current = String(voteRecord?.option_id || voteRecord?.vote || "").trim();
+    const expected = String(args.choice || "").trim();
+    if (current === expected || current.toLowerCase() === expected.toLowerCase()) {
       return {
         phase: "confirmed",
-        detail: `Proposal ${args.proposalId} now records your ${args.choice.toUpperCase()} vote.`,
+        detail: `Proposal ${args.proposalId} now records your ${expected.toUpperCase()} vote.`,
       };
     }
   } catch {
