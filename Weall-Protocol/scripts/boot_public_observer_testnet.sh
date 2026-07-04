@@ -154,6 +154,25 @@ if [[ -z "${WEALL_NODE_PRIVKEY:-}" && -z "${WEALL_NODE_PUBKEY:-}" && -z "${WEALL
   eval "$(bash scripts/init_prod_node_identity.sh --emit-shell-env)"
 fi
 
+if [[ -z "${WEALL_PEER_ID:-}" ]]; then
+  if [[ -n "${WEALL_NODE_PUBKEY:-}" ]]; then
+    export WEALL_PEER_ID="observer-${WEALL_NODE_PUBKEY:0:24}"
+  elif [[ -n "${WEALL_NODE_PUBKEY_FILE:-}" && -f "$WEALL_NODE_PUBKEY_FILE" ]]; then
+    WEALL_NODE_PUBKEY_FROM_FILE="$(tr -d '[:space:]' < "$WEALL_NODE_PUBKEY_FILE")"
+    if [[ -n "$WEALL_NODE_PUBKEY_FROM_FILE" ]]; then
+      export WEALL_PEER_ID="observer-${WEALL_NODE_PUBKEY_FROM_FILE:0:24}"
+    fi
+  fi
+fi
+
+if [[ -z "${WEALL_PEER_ID:-}" || "$WEALL_PEER_ID" == "default" || "$WEALL_PEER_ID" == "dev" || "$WEALL_PEER_ID" == "weall-node" ]]; then
+  cat >&2 <<'EOF'
+ERROR: public observer boot could not derive a stable non-default peer id.
+Run scripts/init_prod_node_identity.sh or set WEALL_PEER_ID to a stable non-default value.
+EOF
+  exit 2
+fi
+
 cat <<EOF
 Starting WeAll public observer node...
 Backend: http://127.0.0.1:${WEALL_API_PORT:-8000}
