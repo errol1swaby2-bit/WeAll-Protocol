@@ -127,6 +127,11 @@ Stop and file a bug rather than continuing if:
 - private protocol-native messaging or private group read visibility appears;
 - browser state or a copied command appears to grant validator/operator/protocol authority.
 
+
+## Upgrade execution boundary
+
+If you see protocol or constitution upgrade records during the first-run journey, treat them as public governance records only. They may show declaration, scheduled activation height, target version, or ignored execution fields, but they do not fetch artifacts, apply software, execute migrations, roll back migrations, restart nodes, or activate economics. See `docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md` for the future hardening plan that keeps `AUD-618-P0-003` open.
+
 ## Allowed readiness statement after this journey
 
 If the first-run path works locally but external transcripts are still missing, the strongest allowed claim is:

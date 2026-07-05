@@ -57,4 +57,6 @@ Before automatic protocol upgrades can exist, the protocol needs:
 8. operator opt-in/coordination policy;
 9. public incident/rollback runbook.
 
-Until those gates exist, any payload fields such as `auto_apply`, `artifact_url`, `migration`, `execute_migration`, `rollback`, or `restart_node` are audit metadata only and must not execute software changes.
+The full future-hardening checklist is tracked in `docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md` and the generated `generated/protocol_upgrade_execution_hardening_plan_v1_5.json` artifact. That plan keeps `AUD-618-P0-003` open until signed artifacts, compatibility windows, deterministic migration vectors, rollback/forward-repair semantics, operator approval policy, multi-node staged rollout, crash/restart evidence, and strict external transcript validation exist.
+
+Until those gates exist, any payload fields such as `auto_apply`, `artifact_url`, `artifact_cid`, `signed_manifest`, `migration`, `migration_vector_hash`, `execute_migration`, `rollback`, `rollback_vector_hash`, `execute_rollback`, `compatibility_window`, `operator_approval_policy`, `staged_rollout_plan`, or `restart_node` are audit metadata only and must not execute software changes.

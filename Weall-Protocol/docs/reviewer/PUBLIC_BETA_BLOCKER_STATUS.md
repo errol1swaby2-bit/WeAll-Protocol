@@ -25,7 +25,7 @@ external evidence or mainnet-hardening gates are unresolved.
 
 - `AUD-618-P0-001` — independent public validator/operator transcript.
 - `AUD-618-P0-002` — legal/compliance counsel attestation.
-- `AUD-618-P0-003` — executable protocol upgrade staging/rollback proof.
+- `AUD-618-P0-003` — executable protocol upgrade staging/rollback proof. Current repository status is record-only; see `docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md` and `generated/protocol_upgrade_execution_hardening_plan_v1_5.json` for the future hardening checklist.
 - `AUD-618-P1-003` — external machine replay transcript.
 - `AUD-618-P1-004` — real IPFS/storage operator transcript.
 - `AUD-618-P1-005` — production helper topology enablement gate.

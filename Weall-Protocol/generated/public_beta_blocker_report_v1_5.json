@@ -61,15 +61,16 @@
       ],
       "can_be_closed_by_code_only": true,
       "current_behavior": "Protocol upgrades are record-only and auto-apply remains disabled.",
-      "evidence_gate": "signed_protocol_upgrade_staging_gate",
-      "expected_production_behavior": "Signed artifact manifests, deterministic migration vectors, rollback semantics, and staged multi-node rehearsal before execution.",
-      "gate_status": "staging_gate_present_execution_still_disabled",
+      "evidence_gate": "protocol_upgrade_execution_hardening_plan",
+      "expected_production_behavior": "Signed artifact manifests, deterministic migration vectors, rollback semantics, operator approval policy, and staged multi-node rehearsal before execution.",
+      "gate_status": "hardening_plan_present_execution_still_disabled",
       "id": "AUD-618-P0-003",
       "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "future production execution gate",
         "operator approval policy",
-        "multi-node rollback transcript"
+        "multi-node rollback transcript",
+        "strict external upgrade execution transcript"
       ],
       "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
       "safe_to_reduce_before_nlnet_first_round": false,
@@ -373,6 +374,15 @@
       "runbook": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
       "validation_command": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
     },
+    "protocol_upgrade_execution_hardening_plan": {
+      "artifact_digest": "b6e8fb7c28bcaf2b78c2ddc9819524b3ab84ac6daec3f6bfb34c6965bb87ace7",
+      "automatic_protocol_upgrades_ready": false,
+      "blocker": "AUD-618-P0-003",
+      "blocker_status": "open_future_mainnet_hardening",
+      "execution_enabled": false,
+      "ok": true,
+      "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan"
+    },
     "protocol_upgrade_staging": {
       "auto_apply_rejected": true,
       "automatic_protocol_upgrade_enabled": false,
@@ -447,7 +457,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "991bcb7e15ad8fbbd7d941943a3c79a7f6bfe2d0fbae89af65f5f4078879c899",
+      "artifact_digest": "9236a0b3a6ac76eae270ff15388ddb1a75737f9a4e69d345fb85c78e4885171e",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -887,6 +897,22 @@
         "signature_or_controlled_reference"
       ]
     },
+    "protocol_upgrade_execution_hardening_plan": {
+      "must_not_claim": [
+        "automatic_protocol_upgrades",
+        "migration_execution",
+        "rollback_execution",
+        "public_beta_ready"
+      ],
+      "required_fields": [
+        "schema",
+        "blocker",
+        "current_boundary",
+        "future_required_evidence",
+        "rollback_semantics_allowed_future_models",
+        "claim_boundaries"
+      ]
+    },
     "public_validator_operator_transcript": {
       "must_not_claim": [
         "mainnet",
@@ -941,6 +967,7 @@
   "verification_commands": [
     "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
     "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check",
     "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
     "PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check",
     "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",

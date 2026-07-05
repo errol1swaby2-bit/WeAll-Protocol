@@ -213,12 +213,25 @@ _EXECUTION_REQUEST_FIELDS = (
     "apply_patch",
     "apply_package",
     "artifact_url",
+    "artifact_cid",
+    "signed_manifest",
+    "manifest_url",
+    "fetch_artifact",
+    "stage_artifact",
     "migration",
     "migration_steps",
+    "migration_vector",
+    "migration_vector_hash",
     "execute_migration",
     "rollback",
     "rollback_steps",
+    "rollback_vector",
+    "rollback_vector_hash",
+    "execute_rollback",
     "restart_node",
+    "operator_approval_policy",
+    "compatibility_window",
+    "staged_rollout_plan",
     # Explicit economics requests are recorded as ignored upgrade-execution
     # requests. Protocol upgrades must not activate live economics, fees,
     # rewards, or transfers through this record-only path.
@@ -564,18 +577,37 @@ def _validate_constitution_payload_public(payload: Json, *, constitution_id: str
 
 
 def _constitution_record_only_boundary(payload: Json) -> Json:
+    requested = []
+    for key in _EXECUTION_REQUEST_FIELDS + (
+        "fetch_document",
+        "document_url",
+        "apply_document",
+        "execute_constitution_migration",
+        "rollback_constitution",
+    ):
+        if key in payload and payload.get(key) not in (None, "", False, [], {}):
+            requested.append(key)
     return {
         "execution_model": "record_only_no_auto_apply",
         "governance_activation_record_only": True,
         "document_fetched": False,
+        "artifact_fetched": False,
         "document_apply_enabled": False,
+        "software_applied": False,
+        "migration_executed": False,
+        "migration_execution_enabled": False,
+        "rollback_available": False,
+        "rollback_execution_enabled": False,
+        "restart_or_process_control_enabled": False,
         "rights_floor_bypass_allowed": False,
         "private_identity_evidence_allowed": False,
         "operator_action_required": True,
         "automatic_constitution_apply_supported": False,
+        "requested_execution_fields_ignored": requested,
         "truth_boundary": (
             "Constitution upgrade txs record governance-approved version/hash metadata only. "
-            "They do not fetch documents, expose raw identity evidence, or bypass the rights floor."
+            "They do not fetch documents, apply artifacts, execute migrations, restart nodes, "
+            "roll back software, expose raw identity evidence, or bypass the rights floor."
         ),
     }
 

@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "991bcb7e15ad8fbbd7d941943a3c79a7f6bfe2d0fbae89af65f5f4078879c899",
+  "artifact_digest": "9236a0b3a6ac76eae270ff15388ddb1a75737f9a4e69d345fb85c78e4885171e",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -55,6 +55,17 @@
       "sample_templates_are_rejected_in_strict_release": true,
       "template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
+    },
+    "protocol_upgrade_execution_hardening_plan": {
+      "blocker": "AUD-618-P0-003",
+      "current_execution_enabled": false,
+      "keeps_automatic_upgrades_disabled": true,
+      "plan_artifact": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
+      "required_before_executable_upgrade_claims": true,
+      "required_before_public_beta": true,
+      "runbook": "docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md",
+      "template": "docs/proofs/protocol-upgrade-execution-hardening/2026-07-05/PLAN_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check"
     },
     "public_frontend_operator_journey": {
       "required_before_public_observer_launch": true,
@@ -138,11 +149,18 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "e8c77af5d76eded51e948455dc28dcb65a4a57a1374ed826cacd77af7897daaa",
+      "file_sha256": "e607f9a16bc1e5365005212b1a590ca621b58aab13323ea41ec7fd244ba9505f",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.failure_code_registry"
+    },
+    "generated/protocol_upgrade_execution_hardening_plan_v1_5.json": {
+      "file_sha256": "147f2f888a417ecd799348bc182645f84b9bb06e84f1cef3776fd63e73cbbd84",
+      "ok": true,
+      "path": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan"
     },
     "generated/public_discovery_provider_independence_v1_5.json": {
       "file_sha256": "c674e6bc498247d76bb42c1774d56c30b061e6785150ac9ed8eee4279f58dca4",

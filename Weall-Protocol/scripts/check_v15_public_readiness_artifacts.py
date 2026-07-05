@@ -35,6 +35,7 @@ RELEASE_ARTIFACTS = [
     Path("generated/public_validator_endpoint_churn_proof_v1_5.json"),
     Path("generated/public_frontend_operator_journey_v1_5.json"),
     Path("generated/public_registry_signer_operations_v1_5.json"),
+    Path("generated/protocol_upgrade_execution_hardening_plan_v1_5.json"),
     Path("generated/release_evidence_manifest_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
@@ -426,6 +427,28 @@ def _check_public_registry_signer_operations() -> list[str]:
         errors.append("public registry signer operations source checks are not all satisfied")
     return errors
 
+def _check_protocol_upgrade_execution_hardening_plan() -> list[str]:
+    errors: list[str] = []
+    from gen_protocol_upgrade_execution_hardening_plan_v1_5 import build as build_upgrade_hardening_plan
+
+    payload = _load_json(Path("generated/protocol_upgrade_execution_hardening_plan_v1_5.json"))
+    expected = build_upgrade_hardening_plan()
+    if payload != expected:
+        errors.append("protocol_upgrade_execution_hardening_plan_v1_5.json is stale; rerun generator")
+    if payload.get("schema") != "weall.v1_5.protocol_upgrade_execution_hardening_plan":
+        errors.append("protocol upgrade execution hardening plan schema mismatch")
+    if payload.get("blocker") != "AUD-618-P0-003":
+        errors.append("protocol upgrade execution hardening plan must bind AUD-618-P0-003")
+    if payload.get("execution_enabled") is not False:
+        errors.append("protocol upgrade execution hardening plan must keep execution_enabled=false")
+    if payload.get("automatic_protocol_upgrades_ready") is not False:
+        errors.append("protocol upgrade execution hardening plan must keep automatic_protocol_upgrades_ready=false")
+    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    for key in ("public_beta_ready", "mainnet_ready", "automatic_protocol_upgrades", "protocol_migrations", "protocol_rollbacks", "live_economics"):
+        if boundaries.get(key) is not False:
+            errors.append(f"protocol upgrade execution hardening plan must keep {key}=false")
+    return errors
+
 def _check_release_evidence_manifest() -> list[str]:
     errors: list[str] = []
     from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
@@ -542,6 +565,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_public_validator_endpoint_churn_proof())
         errors.extend(_check_public_frontend_operator_journey())
         errors.extend(_check_public_registry_signer_operations())
+        errors.extend(_check_protocol_upgrade_execution_hardening_plan())
         errors.extend(_check_release_evidence_manifest())
         errors.extend(_check_controlled_testnet_go_gate())
         errors.extend(_check_reputation_artifacts())

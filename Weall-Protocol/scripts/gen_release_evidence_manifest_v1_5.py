@@ -41,6 +41,7 @@ _TRACKED_ARTIFACTS = [
     "generated/public_validator_endpoint_churn_proof_v1_5.json",
     "generated/public_frontend_operator_journey_v1_5.json",
     "generated/public_registry_signer_operations_v1_5.json",
+    "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
 ]
 
 
@@ -166,6 +167,17 @@ def build() -> Json:
                 "template": "docs/proofs/real-storage-ipfs-operator/2026-07-05/TRANSCRIPT_TEMPLATE.json",
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind storage_ipfs_operator_transcript --strict-release --path <transcript.json>",
                 "sample_transcripts_are_rejected_in_strict_release": True,
+            },
+            "protocol_upgrade_execution_hardening_plan": {
+                "required_before_public_beta": True,
+                "required_before_executable_upgrade_claims": True,
+                "blocker": "AUD-618-P0-003",
+                "plan_artifact": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
+                "runbook": "docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md",
+                "template": "docs/proofs/protocol-upgrade-execution-hardening/2026-07-05/PLAN_TEMPLATE.json",
+                "validator": "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check",
+                "current_execution_enabled": False,
+                "keeps_automatic_upgrades_disabled": True,
             },
             "legal_compliance_attestation": {
                 "required_before_public_beta": True,

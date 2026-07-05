@@ -1,0 +1,96 @@
+{
+  "artifact_digest": "b6e8fb7c28bcaf2b78c2ddc9819524b3ab84ac6daec3f6bfb34c6965bb87ace7",
+  "automatic_protocol_upgrades_ready": false,
+  "blocker": "AUD-618-P0-003",
+  "blocker_status": "open_future_mainnet_hardening",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "live_economics": false,
+    "mainnet_ready": false,
+    "production_helper_execution": false,
+    "protocol_migrations": false,
+    "protocol_rollbacks": false,
+    "public_beta_ready": false,
+    "public_validator_enabled": false
+  },
+  "current_boundary": {
+    "artifact_fetch_enabled": false,
+    "automatic_protocol_upgrades": false,
+    "constitution_upgrade_records_only": true,
+    "economics_activation_enabled": false,
+    "frontend_state_authority": false,
+    "local_script_authority": false,
+    "migration_execution_enabled": false,
+    "node_restart_enabled": false,
+    "protocol_upgrade_records_only": true,
+    "rollback_execution_enabled": false,
+    "software_apply_enabled": false
+  },
+  "disabled_execution_tests": [
+    "tests/test_protocol_upgrade_record_only_boundary.py",
+    "tests/test_protocol_upgrade_height_scheduled_lifecycle.py",
+    "tests/test_constitution_upgrade_height_scheduled_lifecycle.py",
+    "tests/prod/test_protocol_upgrade_execution_hardening_plan.py"
+  ],
+  "docs": {
+    "hardening_plan": "docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md",
+    "plan_template": "docs/proofs/protocol-upgrade-execution-hardening/2026-07-05/PLAN_TEMPLATE.json",
+    "proof_slot": "docs/proofs/protocol-upgrade-execution-hardening/2026-07-05/README.md",
+    "record_only_boundary": "docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md"
+  },
+  "docs_present": {
+    "hardening_plan": true,
+    "plan_template": true,
+    "proof_slot": true,
+    "record_only_boundary": true
+  },
+  "execution_enabled": false,
+  "future_execution_phases": [
+    "declaration_record",
+    "signed_artifact_staging",
+    "operator_review",
+    "governance_activation_record",
+    "pre_activation_rehearsal",
+    "deterministic_migration_execution",
+    "post_activation_verification",
+    "rollback_or_forward_repair"
+  ],
+  "future_required_evidence": [
+    "signed_artifact_manifest_with_chain_network_version_and_digest_binding",
+    "release_signer_allowlist_and_signature_verification",
+    "compatibility_window_stage_activate_and_old_binary_support_heights",
+    "deterministic_migration_vectors_with_before_after_state_roots",
+    "rollback_or_forward_only_repair_semantics_with_vectors",
+    "explicit_operator_approval_policy",
+    "multi_node_staged_rollout_transcript",
+    "crash_restart_during_staging_and_migration_transcript",
+    "fresh_node_catchup_after_upgrade_transcript",
+    "public_incident_and_rollback_runbook",
+    "strict_release_external_transcript_validation"
+  ],
+  "mainnet_ready": false,
+  "ok": true,
+  "public_beta_ready": false,
+  "required_manifest_fields": [
+    "schema",
+    "chain_id",
+    "network_id",
+    "upgrade_id",
+    "target_version",
+    "artifact_sha256",
+    "tx_index_sha256",
+    "migration_vector_sha256",
+    "rollback_vector_sha256",
+    "compatibility_window",
+    "operator_policy",
+    "signer_id",
+    "signature"
+  ],
+  "rollback_semantics_allowed_future_models": [
+    "deterministic_reverse_rollback_with_vectors",
+    "forward_only_compensating_migration_with_vectors"
+  ],
+  "rollback_semantics_current_model": "disabled_not_available",
+  "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan",
+  "version": "2026-07-pass25-upgrade-execution-hardening-plan"
+}

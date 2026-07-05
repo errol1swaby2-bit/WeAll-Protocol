@@ -23,6 +23,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from gen_api_response_vectors_v1_5 import build as build_api_vectors
 from gen_external_operator_transcript_requirements_v1_5 import build as build_external_transcript_requirements
 from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
+from gen_protocol_upgrade_execution_hardening_plan_v1_5 import build as build_protocol_upgrade_hardening_plan
 from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
 from rehearse_helper_block_path_adversarial_b593_v1_5 import run_harness as run_helper_harness
 from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
@@ -295,6 +296,7 @@ def build() -> Json:
     validator = run_validator_harness()
     storage = run_storage_harness()
     protocol_upgrade = run_protocol_upgrade_harness()
+    protocol_upgrade_hardening = build_protocol_upgrade_hardening_plan()
     helper = run_helper_harness()
     api_vectors = build_api_vectors()
     capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
@@ -341,11 +343,11 @@ def build() -> Json:
             "P0",
             ["public_beta", "mainnet"],
             "Protocol upgrades are record-only and auto-apply remains disabled.",
-            "Signed artifact manifests, deterministic migration vectors, rollback semantics, and staged multi-node rehearsal before execution.",
-            "signed_protocol_upgrade_staging_gate",
-            "staging_gate_present_execution_still_disabled" if protocol_upgrade.get("ok") else "gate_failed",
+            "Signed artifact manifests, deterministic migration vectors, rollback semantics, operator approval policy, and staged multi-node rehearsal before execution.",
+            "protocol_upgrade_execution_hardening_plan",
+            "hardening_plan_present_execution_still_disabled" if protocol_upgrade.get("ok") and protocol_upgrade_hardening.get("ok") else "gate_failed",
             True,
-            ["future production execution gate", "operator approval policy", "multi-node rollback transcript"],
+            ["future production execution gate", "operator approval policy", "multi-node rollback transcript", "strict external upgrade execution transcript"],
         ),
         _blocker(
             "AUD-618-P1-001",
@@ -477,6 +479,10 @@ def build() -> Json:
             "required_fields": ["schema", "review_date", "reviewer_or_counsel_reference", "scope", "approved_public_claims", "restricted_claims", "signature_or_controlled_reference"],
             "must_not_claim": ["legal_clearance_without_review", "token_sale_ready_without_counsel"],
         },
+        "protocol_upgrade_execution_hardening_plan": {
+            "required_fields": ["schema", "blocker", "current_boundary", "future_required_evidence", "rollback_semantics_allowed_future_models", "claim_boundaries"],
+            "must_not_claim": ["automatic_protocol_upgrades", "migration_execution", "rollback_execution", "public_beta_ready"],
+        },
     }
 
     closed_code_gates = [b["id"] for b in blockers if b["can_be_closed_by_code_only"] and b["gate_status"].startswith("closed")]
@@ -484,6 +490,7 @@ def build() -> Json:
         validator.get("ok")
         and storage.get("ok")
         and protocol_upgrade.get("ok")
+        and protocol_upgrade_hardening.get("ok")
         and helper.get("ok")
         and api_vectors.get("ok")
         and api_vector_count >= 24
@@ -569,6 +576,15 @@ def build() -> Json:
             "public_validator": validator,
             "storage_ipfs": storage,
             "protocol_upgrade_staging": protocol_upgrade,
+            "protocol_upgrade_execution_hardening_plan": {
+                "ok": bool(protocol_upgrade_hardening.get("ok")),
+                "schema": protocol_upgrade_hardening.get("schema"),
+                "blocker": protocol_upgrade_hardening.get("blocker"),
+                "blocker_status": protocol_upgrade_hardening.get("blocker_status"),
+                "execution_enabled": protocol_upgrade_hardening.get("execution_enabled"),
+                "automatic_protocol_upgrades_ready": protocol_upgrade_hardening.get("automatic_protocol_upgrades_ready"),
+                "artifact_digest": protocol_upgrade_hardening.get("artifact_digest"),
+            },
             "helper_production_topology": helper,
             "api_response_vectors": {"ok": api_vectors.get("ok"), "vector_count": api_vector_count},
             "testnet_capability_surface": capabilities,
@@ -601,6 +617,7 @@ def build() -> Json:
         "verification_commands": [
             "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
+            "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check",
             "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",
