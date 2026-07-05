@@ -1,129 +1,73 @@
 # Public Beta Blocker Status
 
-This reviewer note explains how to read
-`generated/public_beta_blocker_report_v1_5.json` without confusing the full
-blocker catalog with the still-open public beta blockers.
+Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
 
-## Current count model
+This document preserves blocker truth for reviewer use. It must not be used to imply public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness.
 
-| Count | Meaning | Value |
-| --- | --- | ---: |
-| `blocker_catalog_count` | Full catalog entries preserved for audit continuity. | 14 |
-| `blocker_count` | Compatibility alias for `blocker_catalog_count`. | 14 |
-| `closed_in_repository_count` | Entries closed by tracked repo artifacts, docs, generated gates, or frontend/source evidence. | 7 |
-| `remaining_blocker_count` | Entries still blocking public beta claims. | 7 |
-| `remaining_external_evidence_required_count` | Still-open blockers that need external evidence or attestation before public beta. | 7 |
-| `p0_open_count` | Still-open P0 blockers. | 3 |
-| `p1_open_count` | Still-open P1 blockers. | 4 |
-| `p2_open_count` | Still-open P2 blockers. | 0 |
-| `p3_open_count` | Still-open P3 blockers. | 0 |
+## Current status
 
-`public_beta_ready` must remain `false` while any of the seven still-open
-external evidence or mainnet-hardening gates are unresolved.
+| Field | Current value |
+|---|---:|
+| `public_beta_ready` | `false` |
+| `blocker_catalog_count` | 14 |
+| `closed_in_repository_count` | 7 |
+| `remaining_blocker_count` | 7 |
+| `remaining_external_evidence_required_count` | 7 |
+| `p0_open_count` | 3 |
+| `p1_open_count` | 4 |
+| Current tx canon checkpoint | 236 tx types, version 1.25.0 |
 
-## Still-open P0/P1 blocker list
+Do not hide or soften these values. The closed entries show repository progress; the open entries remain real readiness blockers.
 
-- `AUD-618-P0-001` — independent public validator/operator transcript.
-- `AUD-618-P0-002` — legal/compliance counsel attestation.
-- `AUD-618-P0-003` — executable protocol upgrade staging/rollback proof. Current repository status is record-only; see `docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md` and `generated/protocol_upgrade_execution_hardening_plan_v1_5.json` for the future hardening checklist.
-- `AUD-618-P1-003` — external machine replay transcript.
-- `AUD-618-P1-004` — real IPFS/storage operator transcript.
-- `AUD-618-P1-005` — production helper topology enablement gate.
-- `AUD-628-P1-001` — external public observer open-download/state-sync/rendered journey transcript.
+## Canonical sources
 
-## Closed repository blocker list
+- `generated/public_beta_blocker_report_v1_5.json`
+- `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json`
+- `generated/release_evidence_manifest_v1_5.json`
+- `docs/reviewer/CURRENT_READINESS_STATEMENT.md`
+- `docs/reviewer/EVIDENCE_INDEX.md`
+- `docs/audits/public_observer_testnet_readiness_plan_v1_5.md`
+- `docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md`
 
-- `AUD-618-P1-001` — API response vector expansion gate.
-- `AUD-618-P1-002` — frontend/API launch-disabled blocker snapshot.
-- `AUD-618-P1-006` — release evidence manifest and clean-clone gate.
-- `AUD-618-P2-001` — frontend operator wizard source gate.
-- `AUD-618-P2-002` — transaction propagation lifecycle source gate.
-- `AUD-618-P2-003` — operator incident timeline source gate.
-- `AUD-618-P3-001` — node-mode quickstart docs gate.
+## Closed in repository
 
-## Allowed and forbidden claims
+The 7 closed entries are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.
 
-Allowed: WeAll has a current, conservative blocker inventory and remains a
-controlled testnet candidate with explicit public-beta evidence gates.
+| Count | Meaning |
+|---:|---|
+| 7 | Closed in repository by generated artifacts, release manifest gates, frontend/source gates, or docs gates. |
 
-Forbidden: public beta readiness, mainnet readiness, public multi-validator BFT,
-live economics, automatic protocol upgrades, production helper execution, legal
-clearance, public storage-market readiness, or public validator safety.
+## Remaining open blockers
 
-## Verification
-
-```bash
-cd ~/WeAll-Protocol/Weall-Protocol
-source .venv/bin/activate
-
-PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
-PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
-```
+| Blocker | Severity | Current status | Remaining evidence |
+|---|---:|---|---|
+| `AUD-618-P0-001` | P0 | External evidence required | Independent controlled validator/operator transcript. |
+| `AUD-618-P0-002` | P0 | External evidence required | Real counsel or controlled legal/compliance attestation. |
+| `AUD-618-P0-003` | P0 | Future execution hardening required | Future executable upgrade staging/rollback proof. |
+| `AUD-618-P1-003` | P1 | External evidence required | External/two-machine replay transcript. |
+| `AUD-618-P1-004` | P1 | External evidence required | Real storage/IPFS daemon/operator transcript. |
+| `AUD-618-P1-005` | P1 | Future topology hardening required | Future production helper topology proof. |
+| `AUD-628-P1-001` | P1 | External evidence required | External clean-clone/open-download/state-sync/frontend rendered journey transcript. |
 
 ## Canonical testnet readiness tier mapping
 
-The current readiness plan is maintained in
-`docs/audits/public_observer_testnet_readiness_plan_v1_5.md` and summarized in
-`docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md`.
+| Tier | Label | Meaning |
+|---|---|---|
+| Tier A | Controlled local reviewer testnet | Same-machine/local evidence for reviewer inspection only. |
+| Tier B | Public observer testnet | Requires only an external clean-clone/open-download observer transcript before public observer launch wording can be considered. |
+| Tier C | Controlled validator rehearsal | Can reduce validator evidence risk with invited operators, but it does not claim public validator safety. |
+| Tier D | Public validator beta / mainnet hardening | Requires public validator, BFT, storage, helper, upgrade, legal, and replay evidence before any broader readiness wording. |
 
-| Tier | Scope | Blockers/evidence handled |
-| --- | --- | --- |
-| Tier A | Controlled local reviewer testnet | Local deterministic artifacts, release hygiene, controlled-testnet mechanism gates, source-level UX evidence. |
-| Tier B | Public observer testnet | `AUD-628-P1-001` external open-download/state-sync/rendered journey transcript and `AUD-618-P1-003` external replay transcript. |
-| Tier C | Controlled validator rehearsal | `AUD-618-P0-001` can be reduced by invited operator rehearsal without claiming public validator safety. |
-| Tier D | Public validator beta / mainnet hardening | `AUD-618-P0-002`, `AUD-618-P0-003`, `AUD-618-P1-004`, and `AUD-618-P1-005`; plus any remaining public-validator/storage/helper/economics/legal gates. |
+See `docs/audits/public_observer_testnet_readiness_plan_v1_5.md` and `docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md` for the longer tier mapping.
 
-The current external-evidence targets are:
+## What can safely be said
 
-- `AUD-628-P1-001` — external public observer open-download/state-sync/rendered journey transcript.
-- `AUD-618-P1-003` — external cross-machine replay transcript proving identical state roots, vectors, and tx-index hash.
-- `AUD-618-P1-004` — real storage/IPFS daemon/operator transcript proving publish, pin, retrieval, wrong-CID rejection, corrupt-content rejection, revalidation, and durability evidence.
-- `AUD-618-P0-001` — independent controlled validator/operator transcript proving fresh clone, node registration, operator readiness, validator-candidate path, readiness receipt, controlled activation rehearsal, observer bypass rejection, and restart fail-closed evidence.
+The repository can say that it is a controlled internal/public-observer rehearsal candidate with explicit public beta blockers still open. It can point reviewers to generated artifacts, local gates, and transcript templates.
 
-A local founder-run transcript may improve the runbook, but only external evidence
-from the documented commit can close these blockers.
+## What must not be said
 
-For `AUD-628-P1-001`, only an external clean-clone/open-download state-sync/rendered journey transcript can close the blocker. For `AUD-618-P1-003`, only an external cross-machine replay transcript from the documented commit can close the blocker. For `AUD-618-P1-004`, only a real storage/IPFS daemon/operator transcript with strict-release validation can close the blocker. For `AUD-618-P0-001`, only an invited or independent operator controlled validator transcript with strict-release validation can close the blocker.
+Do not claim public beta readiness, public mainnet readiness, public validator safety, public multi-validator BFT readiness, live economics readiness, automatic protocol upgrade readiness, executable migration readiness, rollback execution readiness, production helper execution readiness, legal/compliance approval, public storage-market readiness, complete anti-Sybil/collusion detection, or complete public identity infrastructure.
 
-## Legal/compliance evidence pack
+## Evidence closure rule
 
-`AUD-618-P0-002` remains open. The counsel-review preparation pack lives at:
-
-- `docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md`;
-- `docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md`;
-- `docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json`.
-
-These files are non-lawyer drafts and templates only. They do not provide legal
-advice, do not mark WeAll legally approved, and do not close the blocker. Closure
-requires a real counsel or controlled external attestation for the exact commit
-that passes strict-release validation:
-
-```bash
-PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py \
-  --kind legal_compliance_attestation \
-  --strict-release \
-  --path <attestation.json>
-```
-
-## Production helper topology hardening status
-
-`AUD-618-P1-005` remains open. Pass 26 adds a production helper topology hardening plan and proof slot, but does not enable helper production execution and does not claim production helper readiness. Closure still requires a future external/multi-node topology package with deterministic helper assignment, deterministic lane partitioning, canonical ordering, verifiable receipts, deterministic merge, serial equivalence, crash/restart replay, Byzantine helper rejection, capacity/backpressure proof, operator policy, and a governance/release gate that explicitly updates the launch matrix.
-
-Reviewer command:
-
-```bash
-PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check
-```
-
-## Final go-gate package
-
-Pass 27 adds the final repository-side bounded testnet package:
-
-- `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json`;
-- `docs/reviewer/EVIDENCE_INDEX.md`;
-- `docs/reviewer/CURRENT_READINESS_STATEMENT.md`;
-- `docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md`;
-- `docs/testnet/TESTNET_LAUNCH_CHECKLIST.md`;
-- `docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md`.
-
-This package is GO for controlled internal/public-observer rehearsal candidate only. It is NO-GO for public beta readiness and does not close any of the seven still-open external evidence or mainnet-hardening blockers.
+Only real evidence closes open blockers. Local scripts can prove that templates and checks exist; they cannot self-certify external operator runs, counsel/control review, cross-machine replay, real storage/IPFS operation, public observer open-download behavior, production helper topology, or executable upgrade/rollback behavior.

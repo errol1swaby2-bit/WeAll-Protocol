@@ -4,6 +4,42 @@ Version: 1.1
 Applies to: WeAll Genesis Node (HotStuff BFT runtime)  
 Status: REQUIRED for public-validator and production deployment
 
+Reviewer current-state boundary after Passes 10–27:
+
+> WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.
+
+This document is a production posture specification and truth boundary. It is not a claim that the repository is public beta ready, public mainnet ready, public validator safe, public multi-validator BFT ready, live-economics ready, automatic-upgrade ready, production-helper ready, legal approval granted, or public storage-market ready.
+
+Current tx canon checkpoint: **236 tx types, version 1.25.0**. Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
+
+## 0. Current Reviewer Go / No-Go Boundary
+
+| Claim area | Status | Production-posture meaning |
+|---|---:|---|
+| Controlled internal/public-observer rehearsal candidate | GO | Local/generated evidence supports the next bounded rehearsal candidate only. |
+| Public beta readiness | NO-GO | `public_beta_ready=false` remains the public-readiness truth boundary. |
+| Public mainnet readiness | NO-GO | Mainnet hardening remains future work. |
+| Public validator/BFT readiness | NO-GO | Independent operator and public multi-validator evidence remains required. |
+| Live economics | NO-GO | Fees, transfers, rewards, treasury spend, and slashing are locked or not live launch claims. |
+| Automatic protocol upgrades | NO-GO | Upgrade records are deterministic metadata; automatic software apply is disabled. |
+| Executable migrations/rollbacks | NO-GO | Migration and rollback execution are not enabled. |
+| Production helper execution | NO-GO | Helper topology remains a future hardening gate. |
+| Legal/compliance approval | NO-GO | Counsel/control attestation remains required. |
+| Public storage-market readiness | NO-GO | Storage/IPFS evidence is not yet a public storage-provider market claim. |
+
+Reviewer verification path for this posture:
+
+```bash
+cd ~/WeAll-Protocol/Weall-Protocol
+source .venv/bin/activate
+
+PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+```
+
 ## 1. Purpose
 
 This document defines the strict production posture for the WeAll Protocol.

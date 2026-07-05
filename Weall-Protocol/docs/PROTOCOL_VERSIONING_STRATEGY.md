@@ -1,5 +1,22 @@
 # Protocol State and Versioning Strategy
 
+Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+
+This document defines versioning and activation boundaries. It does not claim public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness.
+
+## Current status
+
+| Surface | Status | Versioning meaning |
+|---|---:|---|
+| Controlled internal/public-observer rehearsal candidate | GO | Versioned artifacts and docs support the next bounded rehearsal candidate. |
+| Public beta readiness | NO-GO | `public_beta_ready=false` remains authoritative. |
+| Public mainnet readiness | NO-GO | Mainnet hardening remains future work. |
+| Automatic protocol upgrades | NO-GO | Upgrade records are public metadata only; automatic software apply is disabled. |
+| Executable migrations/rollbacks | NO-GO | Migration and rollback execution are disabled. |
+| Live economics | NO-GO | Economics activation is not enabled by upgrade records. |
+
+Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+
 ## Principles
 1. Consensus validity must never depend on undocumented local environment flags.
 2. Consensus messages must carry enough metadata to be self-verifying.

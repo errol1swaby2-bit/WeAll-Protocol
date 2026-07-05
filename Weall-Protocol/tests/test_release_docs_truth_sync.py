@@ -93,3 +93,87 @@ def test_release_docs_include_current_production_safety_gates() -> None:
     snapshot = _read(REPO_ROOT / "docs" / "runtime_consensus_profile_snapshot_2026-03-prod.6.md")
     assert "2026.03-prod.6" in snapshot
     assert re.search(r"\b[a-f0-9]{64}\b", snapshot), "snapshot should include a 64-char profile hash"
+
+
+ALLOWED_REHEARSAL_CLAIM = (
+    "WeAll is ready for controlled internal/public-observer rehearsal candidate, "
+    "with public beta readiness still blocked by explicit external evidence, "
+    "counsel-review, upgrade-execution, storage, validator, replay, observer, "
+    "and helper-topology gates."
+)
+
+
+def test_readmes_and_reviewer_docs_preserve_current_allowed_claim() -> None:
+    docs = [
+        OUTER_ROOT / "README.md",
+        OUTER_ROOT / "RELEASE_CHECKLIST.md",
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "docs" / "reviewer" / "CURRENT_READINESS_STATEMENT.md",
+        REPO_ROOT / "docs" / "reviewer" / "EVIDENCE_INDEX.md",
+        REPO_ROOT / "docs" / "reviewer" / "PUBLIC_BETA_BLOCKER_STATUS.md",
+        REPO_ROOT / "docs" / "testnet" / "FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+        REPO_ROOT / "docs" / "testnet" / "PUBLIC_OBSERVER_QUICKSTART.md",
+        REPO_ROOT / "docs" / "testnet" / "TESTNET_LAUNCH_CHECKLIST.md",
+        REPO_ROOT / "docs" / "PRODUCTION_POSTURE.md",
+        REPO_ROOT / "docs" / "PROTOCOL_VERSIONING_STRATEGY.md",
+    ]
+
+    for path in docs:
+        assert ALLOWED_REHEARSAL_CLAIM in _read(path), f"missing allowed claim: {path}"
+
+
+def test_top_level_readme_has_reviewer_verification_and_evidence_map() -> None:
+    text = _read(OUTER_ROOT / "README.md")
+    for heading in (
+        "## Current status",
+        "## Reviewer verification path",
+        "## Evidence package map",
+        "## Major protocol surfaces",
+        "## What is intentionally disabled",
+    ):
+        assert heading in text
+
+    for required_link in (
+        "Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md",
+        "Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md",
+        "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
+        "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+    ):
+        assert required_link in text
+
+    assert "236 tx types, version 1.25.0" in text
+    assert "public_beta_ready=false" in text or "public_beta_ready` | `false`" in text or "`public_beta_ready=false`" in text
+
+
+def test_readme_forbidden_claim_boundaries_are_explicit() -> None:
+    text = _read(OUTER_ROOT / "README.md").lower()
+    for phrase in (
+        "not a public beta",
+        "public mainnet",
+        "public validator",
+        "public multi-validator bft",
+        "live-economics",
+        "automatic-upgrade",
+        "production-helper",
+        "legal-approval",
+        "public storage-market",
+        "frontend state is not protocol authority",
+        "local scripts are not public-readiness authority",
+    ):
+        assert phrase in text
+
+
+def test_reviewer_docs_preserve_public_beta_blocker_counts() -> None:
+    docs = [
+        REPO_ROOT / "docs" / "reviewer" / "CURRENT_READINESS_STATEMENT.md",
+        REPO_ROOT / "docs" / "reviewer" / "PUBLIC_BETA_BLOCKER_STATUS.md",
+        REPO_ROOT / "docs" / "testnet" / "FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+    ]
+    for path in docs:
+        text = _read(path)
+        assert "14" in text
+        assert "7" in text
+        assert "public_beta_ready" in text
+        assert "false" in text.lower()
+        assert "p0_open_count" in text
+        assert "p1_open_count" in text

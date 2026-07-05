@@ -64,3 +64,38 @@ def test_truth_boundary_checker_still_passes() -> None:
     assert "[truth-boundary] OK" in result.stdout
     assert "reviewer readiness claims" in result.stdout
     assert "reviewert" not in (result.stdout + result.stderr).lower()
+
+
+
+def test_reviewer_readmes_do_not_use_unbounded_readiness_claims() -> None:
+    paths = [
+        ROOT.parent / "README.md",
+        ROOT.parent / "RELEASE_CHECKLIST.md",
+        ROOT / "README.md",
+        ROOT / "docs" / "reviewer" / "CURRENT_READINESS_STATEMENT.md",
+        ROOT / "docs" / "reviewer" / "EVIDENCE_INDEX.md",
+        ROOT / "docs" / "reviewer" / "PUBLIC_BETA_BLOCKER_STATUS.md",
+        ROOT / "docs" / "testnet" / "FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+        ROOT / "docs" / "testnet" / "PUBLIC_OBSERVER_QUICKSTART.md",
+        ROOT / "docs" / "testnet" / "TESTNET_LAUNCH_CHECKLIST.md",
+        ROOT / "docs" / "PRODUCTION_POSTURE.md",
+        ROOT / "docs" / "PROTOCOL_VERSIONING_STRATEGY.md",
+    ]
+    unsafe_regexes = [
+        "weall is public beta ready",
+        "weall is mainnet ready",
+        "weall is production ready",
+        "public validators are safe",
+        "automatic upgrades are ready",
+        "live economics are ready",
+        "legally approved",
+        "decentralized storage ready",
+        "public storage market ready",
+    ]
+    findings: list[str] = []
+    for path in paths:
+        text = path.read_text(encoding="utf-8").lower()
+        for phrase in unsafe_regexes:
+            if phrase in text:
+                findings.append(f"{path}: {phrase}")
+    assert findings == []
