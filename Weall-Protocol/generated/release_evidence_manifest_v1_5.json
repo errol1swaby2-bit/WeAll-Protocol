@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "c2e4b07ca332c85c376f11d6ea90a4874cbf3b160379c8589dc3185c2ba5ada3",
+  "artifact_digest": "eb0616bc576e9d60390d1604131a426212a5d8b4910e1f0a9aa9284df65fa76b",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -151,7 +151,7 @@
       "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript"
     },
     "generated/public_observer_launch_evidence_requirements_v1_5.json": {
-      "file_sha256": "ed5824f3959c891562504541c809f9f51eb4dc4533c0d30d6ba6b4bde97c9b05",
+      "file_sha256": "84e0fac0d16c57c3963820a57fb0a3a52590fee4dffeb09a1cbe0c2f3ca522d8",
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,

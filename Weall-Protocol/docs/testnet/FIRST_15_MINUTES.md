@@ -199,3 +199,7 @@ Open **Personal Node** after checking Transactions. Expected behavior:
 - no frontend state, copied command, seed hint, or environment flag is described as granting protocol authority.
 
 See `docs/testnet/NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md` and `docs/operators/INCIDENT_RESPONSE.md` for the operator journey checklist.
+
+## External transcript capture
+
+When this journey is run by an external public-observer tester, capture the evidence package described in `docs/testnet/PUBLIC_OBSERVER_OPEN_DOWNLOAD_TRANSCRIPT.md`. The capture package prepares `AUD-628-P1-001`, but it does not close the blocker until the transcript is external, complete, and reviewed.

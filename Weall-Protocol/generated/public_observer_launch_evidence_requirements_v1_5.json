@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "10727eeafd0a68c3c576f362091eae4671cae655708e222767c38c9c7048ed26",
+  "artifact_digest": "8ecf144d9858ca365ad06e958e6b260bb9a469b834f0c9de677bd9d186b79052",
   "claim_boundaries": {
     "legal_compliance_ready": false,
     "live_economics": false,
@@ -136,14 +136,20 @@
       "validation_command": "PYTHONPATH=src:scripts python3 scripts/gen_public_registry_signer_operations_v1_5.py --check"
     },
     {
+      "capture_script": "scripts/capture_public_observer_open_download_transcript_v1_5.sh",
       "evidence_type": "static_transcript_contracts_plus_runtime_attachment",
       "id": "tracked_launch_transcript_artifacts",
+      "proof_template": "docs/proofs/public-observer-open-download/2026-07-05/TRANSCRIPT_TEMPLATE.md",
       "required_artifacts": [
         "generated/public_discovery_provider_independence_v1_5.json",
         "generated/public_seed_registry_signature_verification_v1_5.json",
         "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
         "generated/public_observer_auto_discovery_proof_v1_5.json",
-        "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
+        "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
+        "scripts/capture_public_observer_open_download_transcript_v1_5.sh",
+        "docs/testnet/PUBLIC_OBSERVER_OPEN_DOWNLOAD_TRANSCRIPT.md",
+        "docs/proofs/public-observer-open-download/2026-07-05/README.md",
+        "docs/proofs/public-observer-open-download/2026-07-05/TRANSCRIPT_TEMPLATE.md"
       ],
       "required_before_public_observer_launch": true,
       "validation_command": "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_transcript_v1_5.py --check"
@@ -163,7 +169,8 @@
     "generated/public_validator_endpoint_churn_proof_v1_5.json",
     "generated/public_frontend_operator_journey_v1_5.json",
     "generated/public_registry_signer_operations_v1_5.json",
-    "generated/public_observer_launch_runtime_transcript_v1_5.json"
+    "generated/public_observer_launch_runtime_transcript_v1_5.json",
+    "docs/proofs/public-observer-open-download/<date>/<external-operator>/manifest.json"
   ],
   "required_gate_count": 9,
   "schema": "weall.v1_5.public_observer_launch_evidence_requirements",
@@ -171,6 +178,7 @@
     "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
     "PYTHONPATH=src:scripts python3 scripts/gen_public_discovery_provider_independence_v1_5.py --check",
     "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_transcript_v1_5.py --check",
+    "bash scripts/capture_public_observer_open_download_transcript_v1_5.sh --help",
     "PYTHONPATH=src:scripts python3 scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check",
     "PYTHONPATH=src:scripts python3 scripts/gen_public_frontend_operator_journey_v1_5.py --check",
     "PYTHONPATH=src:scripts python3 scripts/gen_public_registry_signer_operations_v1_5.py --check",

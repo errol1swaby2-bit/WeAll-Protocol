@@ -48,3 +48,17 @@ The following artifacts are tracked as contracts/gates, not as launch claims:
 - `generated/public_registry_signer_operations_v1_5.json`
 
 Each keeps `public_observer_launch_ready=false` until the runtime evidence is attached.
+
+## External open-download transcript package
+
+For `AUD-628-P1-001`, use the dedicated external capture wrapper after a clean clone:
+
+```bash
+bash scripts/capture_public_observer_open_download_transcript_v1_5.sh \
+  --api-base https://<public-seed-or-genesis-api> \
+  --registry configs/public_testnet_seed_registry.json \
+  --out-dir docs/proofs/public-observer-open-download/<yyyy-mm-dd>/<operator-or-host>/ \
+  --frontend-url http://127.0.0.1:5173
+```
+
+The template lives at `docs/proofs/public-observer-open-download/2026-07-05/`. It is not completed evidence and must not close `AUD-628-P1-001` until a real external operator transcript is attached and reviewed.
