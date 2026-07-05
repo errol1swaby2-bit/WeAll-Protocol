@@ -307,7 +307,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
       }
       if (reconciled.phase === "submitted") {
         const finalTxId = reconciled.txId || txId;
-        const detail = reconciled.detail || "Done. Updating this page so the result becomes visible.";
+        const detail = reconciled.detail || "Submitted. Updating this page so the result becomes visible.";
         markRefreshing(id, {
           message: detail,
           txId: finalTxId,
@@ -316,7 +316,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
         return false;
       }
       const finalTxId = reconciled.txId || txId;
-      const detail = reconciled.detail || "Done. This page is still updating before the result becomes visible.";
+      const detail = reconciled.detail || "Submitted. This page is still updating before the result becomes visible.";
       markRecorded(id, {
         message: detail,
         txId: finalTxId,
@@ -405,7 +405,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
 
       const detail = sawSubmittedReconcile
         ? "The action is partly visible, but this page has not fully caught up yet. Re-open the affected item before trying again."
-        : "The action appears done, but this page timed out before showing the result. Open the affected item before trying again.";
+        : "The action was submitted, but this page timed out before showing final status evidence. Open the affected item before trying again.";
       markRecorded(args.id, {
         message: detail,
         txId: args.txId,
@@ -468,7 +468,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
         const successMessage =
           typeof args.successMessage === "function"
             ? args.successMessage(result)
-            : args.successMessage || "Done. Updating this page so the result becomes visible.";
+            : args.successMessage || "Submitted. Updating this page so the result becomes visible.";
 
         if (txId) {
           markRecorded(id, { message: successMessage, txId });
@@ -490,7 +490,7 @@ export function TxQueueProvider({ children }: { children: React.ReactNode }): JS
             mutation: args.finality?.mutation,
           });
         } else if (!txId) {
-          const detail = "Done. The affected page should already show the change.";
+          const detail = "No tx id was returned. Check the affected page before treating this as final.";
           markSuccess(id, {
             message: detail,
           });

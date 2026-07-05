@@ -68,7 +68,7 @@ From the frontend:
 9. Open a public group and compare the directory/detail/create flow against [Group flow readiness](GROUP_FLOW_READINESS.md).
 10. Open **Reports** and **Review Center** and compare dispute queue/detail/review behavior against [Dispute and review rendered journey readiness](DISPUTE_REVIEW_RENDERED_JOURNEY.md).
 11. Submit only a low-risk test action if the account state permits it.
-12. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
+12. Open **Transactions** and compare the rendered timeline against [Transaction lifecycle rendered evidence](TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md). Verify the action is not called finalized until backend status shows inclusion/finality or a terminal rejected state.
 
 The user journey should be understandable without opening advanced developer tools.
 
@@ -112,7 +112,7 @@ For an external observer transcript, capture:
 - Decisions queue/detail/timeline screenshot;
 - Reports queue/detail/review-timeline screenshot;
 - Review Center lane and consent-boundary screenshot;
-- Transactions page screenshot after any submitted action or honest fail-closed result;
+- Transactions page screenshot after any submitted action or honest fail-closed result, including the lifecycle timeline and tx id when available;
 - any errors with exact command/output.
 
 ## Stop conditions
@@ -172,3 +172,15 @@ Open **Reports**, a report detail page, **Review Center**, and a report review a
 - no submitted review action is called final until Transactions/read-model reconciliation shows it.
 
 See `docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md` for the dispute/review checklist.
+
+## 8. Inspect transaction lifecycle rendered evidence
+
+Open **Transactions** after any signed action or honest fail-closed result. Expected behavior:
+
+- submitted, locally accepted, queued/pending, forwarded/gossiped, included in block, finalized/confirmed, rejected, removed from mempool, and unknown/unavailable are visibly distinct;
+- mempool acceptance, queueing, and gossip are not labeled final;
+- `/v1/tx/status/{tx_id}` is treated as read-only status evidence;
+- observer-edge upstream accepted/confirmed is separate from local observer state synced;
+- clearing browser history is not described as deleting protocol records.
+
+See `docs/testnet/TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md` for the transaction lifecycle checklist.

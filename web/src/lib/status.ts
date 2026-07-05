@@ -48,12 +48,31 @@ export function normalizeTxStatus(raw: any, txId?: string): NormalizedTxStatus {
   const resolvedTxId = String(raw?.tx_id || txId || "").trim() || undefined;
 
   if (status === "confirmed") {
+    if (raw?.local_state_synced === false) {
+      return {
+        txId: resolvedTxId,
+        phase: "submitted",
+        label: "Upstream confirmed / local sync pending",
+        detail: "Upstream status reports confirmation, but this observer has not synced local state yet; this is not final local confirmation.",
+        terminal: false,
+      };
+    }
     return {
       txId: resolvedTxId,
       phase: "confirmed",
       label: "Confirmed",
-      detail: "This transaction is confirmed by the backend status surface.",
+      detail: "This transaction is confirmed by the backend status surface after local state sync.",
       terminal: true,
+    };
+  }
+
+  if (status === "local_confirmed") {
+    return {
+      txId: resolvedTxId,
+      phase: "submitted",
+      label: "Locally included / upstream sync pending",
+      detail: "This node reports local block inclusion, but upstream synchronization is not complete; keep it separate from final local confirmation.",
+      terminal: false,
     };
   }
 
@@ -67,13 +86,23 @@ export function normalizeTxStatus(raw: any, txId?: string): NormalizedTxStatus {
     };
   }
 
+  if (status === "rejected" || status === "failed") {
+    return {
+      txId: resolvedTxId,
+      phase: "failed",
+      label: "Rejected",
+      detail: "The backend reports a rejected or failed terminal transaction status.",
+      terminal: true,
+    };
+  }
+
   if (status === "unknown") {
     return {
       txId: resolvedTxId,
       phase: "unknown",
-      label: "Unknown",
-      detail: "The backend does not currently report a final lifecycle result for this transaction.",
-      terminal: true,
+      label: "Unknown / unavailable",
+      detail: "The backend does not currently report propagation, inclusion, finality, or rejection evidence for this transaction.",
+      terminal: false,
     };
   }
 

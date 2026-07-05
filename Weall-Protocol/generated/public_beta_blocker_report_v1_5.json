@@ -305,7 +305,7 @@
       "frontend_contract_gate_present": true,
       "ok": true,
       "requires_fresh_checkout_transcript_after_commit": true,
-      "root_gate_executable_in_this_checkout": false,
+      "root_gate_executable_in_this_checkout": true,
       "root_gate_path": "scripts/run_clean_clone_go_gate_v1_5.sh",
       "root_gate_present": true
     },
