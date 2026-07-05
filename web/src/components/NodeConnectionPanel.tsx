@@ -71,6 +71,7 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
             <h2 className="cardTitle">Connection manager</h2>
             <div className="cardDesc">
               Switch the backend this browser reads from without changing your account identity or your local mesh node. P2P peers, validator connectivity, and signing authority remain controlled by the local node and protocol state.
+              Chain mismatch warnings block switching; a browser target change is not a validator or operator role change.
             </div>
           </div>
           <button className="btn" onClick={() => void refresh()} disabled={busy}>
@@ -85,6 +86,9 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
             <strong>Current node may be stale or degraded.</strong> A healthier compatible node is available below.
           </div>
         ) : null}
+        <div className="calloutInfo">
+          <strong>Switching rule:</strong> only healthy compatible nodes may be selected. Incompatible chain id, genesis hash, tx index hash, or protocol profile hash should be treated as a chain mismatch incident, not as a normal fallback.
+        </div>
 
         {probes.length === 0 && !busy ? (
           <div className="emptyPanel">

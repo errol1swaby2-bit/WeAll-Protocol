@@ -32,6 +32,7 @@ export default function OperatorIncidentTimeline({
             <h2 id="operator-incident-timeline-heading" className="cardTitle">Unified diagnostics</h2>
             <p className="cardDesc">
               Read-only timeline for node mode, chain identity, peer and seed status, mempool backlog, block/finalized height, BFT/validator authority, storage/helper/economics/protocol-upgrade blockers, and the next safe diagnostic commands.
+              Treat warnings as evidence to capture first, not as permission to flip local flags.
             </p>
           </div>
           <span className="statusPill">Read-only diagnostics</span>
@@ -55,6 +56,7 @@ export default function OperatorIncidentTimeline({
 
         <div className="calloutInfo">
           This timeline is not a mutating incident action lane. Use it to collect evidence before running existing explicit tools such as <span className="mono">build_operator_incident_report.py</span> or <span className="mono">run_operator_incident_lane.py</span>.
+          Escalate only after capturing mode, chain id, finalized height, peer/seed status, mempool backlog, validator authority, and blocker state.
         </div>
       </div>
     </section>

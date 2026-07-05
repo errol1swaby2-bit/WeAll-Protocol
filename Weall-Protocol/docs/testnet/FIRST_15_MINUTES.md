@@ -59,7 +59,7 @@ From the frontend:
 
 1. Open **Home**.
 2. Confirm the status cards show current node, `chain_id`, height, finalized height or "unknown", account state, and authority level.
-3. Open **Personal Node** and inspect node, seed, peer, chain identity, and safe command guidance.
+3. Open **Personal Node** and inspect node, seed, peer, chain identity, safe command guidance, operator mode matrix, and incident-response packet guidance. Compare it against [Node/operator journey and incident response readiness](NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md).
 4. Create or restore an account from **Login** only if you intend to submit signed test actions.
 5. Open **Account Verification** and confirm the UI explains eligibility without claiming real-world identity certainty.
 6. Open **Account** and compare the account/profile surface against [Account and public profile readiness](ACCOUNT_PROFILE_READINESS.md).
@@ -108,7 +108,7 @@ For an external observer transcript, capture:
 - state sync check;
 - frontend load screenshot;
 - Home status cards screenshot;
-- Personal Node screenshot;
+- Personal Node screenshot, including mode matrix, safe next action, seed/peer status, validator endpoint freshness, mempool/backlog status, and incident timeline;
 - Decisions queue/detail/timeline screenshot;
 - Reports queue/detail/review-timeline screenshot;
 - Review Center lane and consent-boundary screenshot;
@@ -120,7 +120,9 @@ For an external observer transcript, capture:
 Stop and file a bug rather than continuing if:
 
 - the frontend implies public beta, mainnet, public BFT, live economics, automatic upgrade, production helper, legal approval, or public storage readiness;
-- the Home page hides node/chain/authority status from a normal tester;
+- the Home or Personal Node page hides node/chain/authority status from a normal tester;
+- Personal Node implies that local commands, node switching, or environment flags grant validator/operator authority;
+- chain mismatch, stale validator endpoint, missing readyz, or mempool backlog warnings are hidden instead of surfaced as incident evidence;
 - a mutation reports final success without transaction lifecycle evidence;
 - private protocol-native messaging or private group read visibility appears;
 - browser state or a copied command appears to grant validator/operator/protocol authority.
@@ -184,3 +186,16 @@ Open **Transactions** after any signed action or honest fail-closed result. Expe
 - clearing browser history is not described as deleting protocol records.
 
 See `docs/testnet/TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md` for the transaction lifecycle checklist.
+
+## 9. Inspect node/operator journey and incident response
+
+Open **Personal Node** after checking Transactions. Expected behavior:
+
+- current mode is separated into observer, node operator, validator-candidate, and validator authority;
+- the dashboard shows current backend URL, chain identity, height/finalized height if available, readyz, seed/peer state, validator endpoint freshness, NAT/firewall posture, mempool/backlog symptoms, and blocked helper/economics/storage/upgrade gates;
+- safe commands are labeled diagnostic-only, local-only, observer-only, evidence capture, external transcript, or requires protocol state;
+- node switching blocks incompatible chain identity, genesis hash, tx index hash, or protocol profile hash;
+- incident response guidance tells the tester to capture evidence before recovery;
+- no frontend state, copied command, seed hint, or environment flag is described as granting protocol authority.
+
+See `docs/testnet/NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md` and `docs/operators/INCIDENT_RESPONSE.md` for the operator journey checklist.

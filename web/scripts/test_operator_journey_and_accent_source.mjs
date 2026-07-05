@@ -26,7 +26,7 @@ for (const token of ['var(--accent-glow-left)', 'var(--accent-glow-right)', 'var
 for (const token of ['ValidatorReadinessWizard', 'Safe switch command preview', 'Fix readiness blockers in order', 'Helper production remains']) {
   assertIncludes(dashboard + validatorWizard, token, 'validator wizard source');
 }
-for (const token of ['TxPropagationTimeline', 'Gossiped / pending', 'Pending in mempool', 'Removed from mempool', 'peer propagation']) {
+for (const token of ['TxPropagationTimeline', 'forwarded/gossiped', 'queued/pending', 'Removed from mempool', 'peer propagation']) {
   assertIncludes(txPage + txTimeline, token, 'tx propagation timeline source');
 }
 

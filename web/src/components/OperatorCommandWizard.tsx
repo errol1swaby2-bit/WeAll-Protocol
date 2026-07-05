@@ -59,6 +59,18 @@ export default function OperatorCommandWizard({
       note: "Generates help for the signed readiness receipt path. A receipt alone does not grant validator authority unless committed protocol state activates it.",
     },
     {
+      label: "Operator incident evidence bundle",
+      scope: "diagnostic-only / evidence capture",
+      command: "cd ~/WeAll-Protocol/Weall-Protocol && PYTHONPATH=src python scripts/build_operator_incident_report.py --help",
+      note: "Use this before changing settings. It collects the incident packet reviewers need without granting authority or mutating protocol state.",
+    },
+    {
+      label: "Public observer launch transcript helper",
+      scope: "external transcript / read-only",
+      command: "cd ~/WeAll-Protocol/Weall-Protocol && PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --help",
+      note: "Prepares the external observer transcript checklist. A local transcript does not close independent external evidence gates.",
+    },
+    {
       label: "Promoted validator live gate",
       scope: "requires protocol state / fail-closed",
       command: `cd ~/WeAll-Protocol/Weall-Protocol && WEALL_EXPECTED_CHAIN_ID=${chainId || "<chain-id>"} bash scripts/promoted_validator_live_gate.sh`,
@@ -115,7 +127,10 @@ export default function OperatorCommandWizard({
         </div>
 
         <div className="calloutWarn">
-          <strong>Authority boundary:</strong> these are safe command categories, not launch switches. Commands marked local-only, observer-only, diagnostic-only, or requires protocol state must remain inside that scope until backend protocol state proves otherwise.
+          <strong>Authority boundary:</strong> these are safe command categories, not launch switches. Commands marked local-only, observer-only, diagnostic-only, or requires protocol state must remain inside that scope until backend protocol state proves otherwise. Commands marked external transcript or evidence capture also stay non-authoritative until independent evidence is verified.
+        </div>
+        <div className="calloutInfo">
+          <strong>Safe next action:</strong> when the dashboard shows a warning, copy the matching diagnostic command first, save the output in the incident response packet, then decide whether a documented runbook command is appropriate.
         </div>
       </div>
     </section>

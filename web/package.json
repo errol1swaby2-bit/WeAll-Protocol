@@ -35,7 +35,8 @@
     "test:group-flow-readiness-source": "node scripts/test_group_flow_readiness_source.mjs",
     "test:governance-rendered-journey-source": "node scripts/test_governance_rendered_journey_source.mjs",
     "test:dispute-review-rendered-journey-source": "node scripts/test_dispute_review_rendered_journey_source.mjs",
-    "test:transaction-lifecycle-rendered-evidence-source": "node scripts/test_transaction_lifecycle_rendered_evidence_source.mjs"
+    "test:transaction-lifecycle-rendered-evidence-source": "node scripts/test_transaction_lifecycle_rendered_evidence_source.mjs",
+    "test:node-operator-journey-incident-response-source": "node scripts/test_node_operator_journey_incident_response_source.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

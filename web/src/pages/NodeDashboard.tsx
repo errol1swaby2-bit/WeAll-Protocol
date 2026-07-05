@@ -334,6 +334,7 @@ export default function NodeDashboard(): JSX.Element {
   const safeStatusCurl = `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/status | python -m json.tool`;
   const safeMempoolCurl = `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/status/mempool | python -m json.tool`;
   const safeOperatorCurl = `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/status/operator | python -m json.tool`;
+  const safeReadyzCurl = `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/readyz | python -m json.tool`;
   const incidentItems: OperatorIncidentItem[] = [
     {
       label: "Node mode and chain identity",
@@ -346,6 +347,12 @@ export default function NodeDashboard(): JSX.Element {
       status: peerCount > 0 || allValidatorsFresh || observerMode ? "ok" : "warn",
       detail: `${peerCount} peer(s), ${seedNodes.length} seed record(s), ${verifiedFreshEndpointCount}/${activeValidatorCount} fresh validator endpoint(s)`,
       command: `curl -fsS ${(base || "http://127.0.0.1:8000").replace(/\/$/, "")}/v1/nodes/validators | python -m json.tool`,
+    },
+    {
+      label: "Backend readiness endpoint",
+      status: readyz.ok === true || readyz.status === "ok" ? "ok" : "warn",
+      detail: readyz.ok === true || readyz.status === "ok" ? "readyz reports healthy" : "readyz is missing, stale, or not healthy; capture before continuing",
+      command: safeReadyzCurl,
     },
     {
       label: "Mempool and tx propagation",
@@ -485,6 +492,41 @@ export default function NodeDashboard(): JSX.Element {
             </div>
           </div>
         </article>
+      </section>
+
+      <section className="card" aria-labelledby="operator-mode-matrix-heading">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Operator journey</div>
+              <h2 id="operator-mode-matrix-heading" className="cardTitle">Mode matrix and incident response</h2>
+              <p className="cardDesc">
+                Use this matrix before running any operator command. It separates observer, node operator, validator-candidate, and validator authority; shows safe next actions; and records which blocker class still requires external evidence.
+              </p>
+            </div>
+            <span className="statusPill">Bounded testnet only</span>
+          </div>
+          <div className="summaryCardGrid summaryCardGridThree">
+            <article className="summaryCard">
+              <span className="summaryCardLabel">Current mode</span>
+              <div className="summaryCardValue" style={{ fontSize: "1rem" }}>{operatorModeLabel}</div>
+              <div className="summaryCardHint">Displayed from backend/account state. Browser navigation and copied commands cannot upgrade authority.</div>
+            </article>
+            <article className="summaryCard">
+              <span className="summaryCardLabel">Safe next action</span>
+              <div className="summaryCardValue" style={{ fontSize: "1rem" }}>{mempoolSize > 0 || observerQueued > 0 ? "Capture queue evidence" : peerCount === 0 && !observerMode ? "Inspect seed/peer reachability" : validatorOptedIn && !validatorEffective ? "Capture validator blockers" : "Continue read-only checks"}</div>
+              <div className="summaryCardHint">Diagnostics first: capture status, readyz, chain head, mempool, peer/seed, and operator output before changing settings.</div>
+            </article>
+            <article className="summaryCard">
+              <span className="summaryCardLabel">External evidence gate</span>
+              <div className="summaryCardValue" style={{ fontSize: "1rem" }}>{publicBetaRemaining ? `${publicBetaRemaining} blocker(s)` : "Unknown"}</div>
+              <div className="summaryCardHint">Public beta remains blocked by external observer, replay, validator/operator, storage/IPFS, legal, upgrade, and helper gates.</div>
+            </article>
+          </div>
+          <div className="calloutWarn">
+            <strong>Incident boundary:</strong> chain mismatch, stale validator endpoints, mempool backlog, missing readyz, storage/helper/economics/protocol-upgrade blockers, or validator-candidate warnings are evidence-capture events. They are not permission to bypass protocol state or enable local flags.
+          </div>
+        </div>
       </section>
 
       <OperatorCommandWizard
@@ -627,6 +669,9 @@ export default function NodeDashboard(): JSX.Element {
           </div>
           <div className="calloutWarn">
             <strong>Peer / NAT recovery:</strong> if validator endpoint freshness is good but peer count stays low, check outbound firewall rules, published TCP/TLS ports, relay configuration, and the public NAT/firewall recovery runbook before claiming full public observer connectivity.
+          </div>
+          <div className="calloutInfo">
+            <strong>Incident response packet:</strong> for peer, seed, mempool, chain mismatch, or validator-authority issues, capture <span className="mono">/v1/status</span>, <span className="mono">/readyz</span>, <span className="mono">/v1/chain/head</span>, <span className="mono">/v1/status/mempool</span>, <span className="mono">/v1/nodes/seeds</span>, <span className="mono">/v1/nodes/validators</span>, and <span className="mono">/v1/status/operator</span> before attempting recovery.
           </div>
         </div>
       </section>
