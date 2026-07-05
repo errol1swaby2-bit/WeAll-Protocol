@@ -867,6 +867,7 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "node_id": node_id or None,
         "mode": _status_mode_label(ex, state),
         "height": _safe_int(state.get("height"), 0),
+        "finalized_height": _safe_int((state.get("finalized") or {}).get("height") if isinstance(state.get("finalized"), dict) else 0, 0),
         "tip": _safe_str(state.get("tip"), ""),
         "schema_version": _schema_version(ex, state if isinstance(state, dict) else {}),
         "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),

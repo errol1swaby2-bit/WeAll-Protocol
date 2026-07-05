@@ -19,7 +19,9 @@ export type NodeConnectionState = {
   detail: string;
   chainId?: string;
   height?: number;
+  finalizedHeight?: number;
   profile?: string;
+  authorityLevel: string;
 };
 
 export type SessionStateSummary = {
@@ -84,6 +86,17 @@ export function normalizeTxStatus(raw: any, txId?: string): NormalizedTxStatus {
   };
 }
 
+function deriveAuthorityLevel(raw: any, profile?: string): string {
+  const localValidator = raw?.local_is_active_validator === true || raw?.validator_active === true;
+  const profileText = String(profile || raw?.mode || "").toLowerCase();
+  if (localValidator) return "active validator by chain state";
+  if (profileText.includes("validator-candidate")) return "validator candidate / fail-closed";
+  if (profileText.includes("validator")) return "validator-capable node; authority requires chain state";
+  if (profileText.includes("operator")) return "node operator diagnostics";
+  if (profileText.includes("observer")) return "observer / read-sync-forward";
+  return "unknown; treat as read-only until proven by protocol state";
+}
+
 export function summarizeNodeConnection(raw: any, fallbackBase: string): NodeConnectionState {
   const ok = raw?.ok === true;
   if (!raw || typeof raw !== "object") {
@@ -91,33 +104,46 @@ export function summarizeNodeConnection(raw: any, fallbackBase: string): NodeCon
       phase: "offline",
       label: "Offline",
       detail: fallbackBase,
+      authorityLevel: "unknown; treat as read-only until the node responds",
     };
   }
 
   const chainId = raw?.chain_id ? String(raw.chain_id) : undefined;
   const height = Number.isFinite(Number(raw?.height)) ? Number(raw.height) : undefined;
+  const finalizedHeight = Number.isFinite(Number(raw?.finalized_height)) ? Number(raw.finalized_height) : undefined;
   const mode = raw?.mode ? String(raw.mode) : undefined;
   const lifecycle = raw?.node_lifecycle ? String(raw.node_lifecycle) : undefined;
   const profile = lifecycle || mode;
+  const authorityLevel = deriveAuthorityLevel(raw, profile);
+  const detailParts = [
+    chainId,
+    typeof height === "number" ? `h${height}` : null,
+    typeof finalizedHeight === "number" ? `finalized h${finalizedHeight}` : null,
+    profile,
+  ].filter(Boolean);
 
   if (ok) {
     return {
       phase: "online",
       label: "Backend reachable",
-      detail: [chainId, typeof height === "number" ? `h${height}` : null, profile].filter(Boolean).join(" · "),
+      detail: detailParts.join(" · "),
       chainId,
       height,
+      finalizedHeight,
       profile,
+      authorityLevel,
     };
   }
 
   return {
     phase: "degraded",
     label: "Degraded",
-    detail: [chainId, typeof height === "number" ? `h${height}` : null, profile].filter(Boolean).join(" · ") || fallbackBase,
+    detail: detailParts.join(" · ") || fallbackBase,
     chainId,
     height,
+    finalizedHeight,
     profile,
+    authorityLevel,
   };
 }
 
