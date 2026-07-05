@@ -74,7 +74,7 @@ Forbidden before closure:
 legal approval
 legal clearance
 public beta ready
-mainnet ready
+eligible for future mainnet-readiness review
 live economics ready
 public validator safe
 public multi-validator BFT ready
