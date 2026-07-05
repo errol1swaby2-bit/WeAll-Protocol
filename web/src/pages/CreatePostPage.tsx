@@ -229,6 +229,7 @@ export default function CreatePostPage(): JSX.Element {
   const submitInFlightRef = useRef(false);
   const [last, setLast] = useState<any>(null);
   const [createdPostId, setCreatedPostId] = useState<string>("");
+  const [createdPostTxId, setCreatedPostTxId] = useState<string>("");
   const [uploadInfo, setUploadInfo] = useState<any | null>(null);
   const [mediaDurability, setMediaDurability] = useState<any | null>(null);
 
@@ -350,6 +351,7 @@ export default function CreatePostPage(): JSX.Element {
     setErr(null);
     setLast(null);
     setCreatedPostId("");
+    setCreatedPostTxId("");
     setUploadInfo(null);
     setMediaDurability(null);
 
@@ -425,7 +427,7 @@ export default function CreatePostPage(): JSX.Element {
         pendingKey: txPendingKey(["content-post-create", acct, composerGroupId || "root"]),
         pendingMessage: "Uploading media and preparing your post…",
         successMessage: (res: any) =>
-          res?.postId ? `Post submitted: ${res.postId}` : "Post submitted successfully.",
+          res?.postId ? `Post submitted: ${res.postId}. Track confirmation in Transactions.` : "Post submitted. Track confirmation in Transactions.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.postTxId,
         finality: {
@@ -682,8 +684,9 @@ export default function CreatePostPage(): JSX.Element {
       setUploadInfo(result.uploadInfo);
       setMediaDurability(result.mediaDurability);
       setCreatedPostId(result.postId || "");
+      setCreatedPostTxId(result.postTxId || "");
       setLast(result.result);
-      setStatus("Done");
+      setStatus("Submitted");
       setText("");
       setTags("");
       setFile(null);
@@ -807,7 +810,7 @@ export default function CreatePostPage(): JSX.Element {
       label: "Publish",
       state: createdPostId ? "done" : busy ? "active" : canPublish ? "ready" : "pending",
       detail: createdPostId
-        ? createdPostId
+        ? `${createdPostId}${createdPostTxId ? ` · tx ${createdPostTxId}` : ""}`
         : canPublish
           ? signerBusyElsewhere
             ? "Another signed action must finish before this publish can start."
@@ -843,8 +846,8 @@ export default function CreatePostPage(): JSX.Element {
               <div className="eyebrow">Creator flow</div>
               <h1 className="heroTitle heroTitleSm">Create a post</h1>
               <p className="heroText">
-                Compose a public post, optionally attach media, then walk through upload, media
-                declaration, and publish. Durability is observed after upload so the UI stays honest
+                Compose public-readable protocol content, optionally attach media, then walk through upload, media
+                declaration, and signed post submission. Durability is observed after upload so the UI stays honest
                 about what is confirmed now versus what may still be replicating.
               </p>
             </div>
@@ -905,7 +908,7 @@ export default function CreatePostPage(): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Truth model</div>
           <div className="detailFocusValue">Submission ≠ visibility</div>
-          <div className="detailFocusText">The composer reports upload, declaration, and publish separately so the page stays honest about what is confirmed right now.</div>
+          <div className="detailFocusText">The composer reports upload, declaration, submission, and transaction status separately so the page stays honest about what is confirmed right now.</div>
         </article>
       </section>
 
@@ -920,7 +923,7 @@ export default function CreatePostPage(): JSX.Element {
               <div className="statusSummary">
                 <span className="statusPill mono">{base || "(no api base)"}</span>
                 {status ? (
-                  <span className={`statusPill ${status === "Done" ? "ok" : ""}`}>{status}</span>
+                  <span className={`statusPill ${status === "Submitted" ? "ok" : ""}`}>{status}</span>
                 ) : null}
               </div>
             </div>
@@ -1000,7 +1003,7 @@ export default function CreatePostPage(): JSX.Element {
             <div className="actionStateRow">
               <span className="actionStateLabel">Submission model</span>
               <span className="actionStateText">
-                Upload, media preparation, and publishing are separate steps. A submission can succeed before every read surface reflects the final result.
+                Upload, media preparation, and signed submission are separate steps. A submission can be recorded before every read surface reflects the final result.
               </span>
             </div>
 
@@ -1075,7 +1078,7 @@ export default function CreatePostPage(): JSX.Element {
                 <h2 className="cardTitle">Before you submit</h2>
               </div>
               <span className={`statusPill ${createdPostId ? "ok" : canPublish ? "ok" : ""}`}>
-                {createdPostId ? "Published" : signerBusyElsewhere ? "Waiting for another action" : canPublish ? "Ready to publish" : "Draft in progress"}
+                {createdPostId ? "Submitted" : signerBusyElsewhere ? "Waiting for another action" : canPublish ? "Ready to submit" : "Draft in progress"}
               </span>
             </div>
 
@@ -1185,7 +1188,7 @@ export default function CreatePostPage(): JSX.Element {
               </div>
               <div className="infoCardText">
                 Media durability is a storage signal, not a second publish button. Your post can be
-                created once the media reference is declared, while replication may still continue in
+                submitted once the media reference is declared, while replication may still continue in
                 the background.
               </div>
             </div>
@@ -1226,7 +1229,7 @@ export default function CreatePostPage(): JSX.Element {
             ) : null}
 
             {createdPostId ? (
-              <div className="buttonRow buttonRowWide">
+              <div className="buttonRow buttonRowWide" data-testid="post-submission-status-links">
                 <button
                   className="btn btnPrimary"
                   onClick={() => nav(`/thread/${encodeURIComponent(createdPostId)}`)}
@@ -1239,6 +1242,7 @@ export default function CreatePostPage(): JSX.Element {
                 >
                   Open content page
                 </button>
+                <button className="btn" onClick={() => nav("/transactions")}>Track in Transactions</button>
               </div>
             ) : null}
 

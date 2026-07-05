@@ -184,7 +184,7 @@ function summarizeInteractionState(args: {
   return {
     tone: "ok",
     title: "Public reply actions available",
-    text: `You can react and report. Some actions may take a moment to appear everywhere.`,
+    text: `You can submit public reactions and reports. Submission is not final until Transactions or backend tx status shows confirmation.`,
   };
 }
 
@@ -428,7 +428,7 @@ export default function FeedView({
         title: "React to content",
         pendingKey: txPendingKey(["content-reaction", targetId, viewer, "like"]),
         pendingMessage: "Saving your reaction…",
-        successMessage: "Your reaction was saved. Updating the feed…",
+        successMessage: "Reaction submitted. Track confirmation in Transactions while the feed refreshes…",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_REACTION_SET" } },
@@ -465,10 +465,10 @@ export default function FeedView({
         title: "Report content",
         pendingKey: txPendingKey(["content-flag", targetId, viewer]),
         pendingMessage: "Sending your report…",
-        successMessage: "Report sent. Checking community review status…",
+        successMessage: "Report submitted. Track confirmation in Transactions while community review status refreshes…",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
-        finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_REACTION_SET" } },
+        finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_FLAG" } },
         task: async () =>
           submitSignedTx({
             account: viewer,
@@ -483,14 +483,14 @@ export default function FeedView({
       await Promise.allSettled([loadPage({ cursor: null, append: false }), refreshAccountContext()]);
       if (dispute?.id) {
         setReportInfo({
-          msg: `Report sent. This post is now visible in Community Review.`,
+          msg: `Report submitted and this post is now visible in Community Review. Confirmation is still tracked in Transactions.`,
           details: dispute,
           ctaLabel: "Open reports",
           ctaHref: "/reports",
         });
       } else {
         setReportInfo({
-          msg: "Report sent. Community Review may take a moment to appear.",
+          msg: "Report submitted. Community Review may take a moment to appear; confirmation is tracked in Transactions.",
           details: { target_id: String(targetId) },
           ctaLabel: "Open reports",
           ctaHref: "/reports",
@@ -575,6 +575,13 @@ export default function FeedView({
           <div className={`calloutInfo ${interactionSummary.tone === "ok" ? "calloutSuccess" : ""}`}>
             <strong>{interactionSummary.title}</strong>
             <div style={{ marginTop: 6 }}>{interactionSummary.text}</div>
+          </div>
+
+          <div className="calloutInfo" data-testid="public-social-boundary-callout">
+            <strong>Public social boundary</strong>
+            <div style={{ marginTop: 6 }}>
+              Posts, comments, reactions, reports, and group-scoped social activity are public-readable protocol records. Group membership can gate participation, not read visibility.
+            </div>
           </div>
 
           {err ? <div className="inlineError">{err}</div> : null}
@@ -673,7 +680,7 @@ export default function FeedView({
                 <div className="actionStateRow">
                   <span className="actionStateLabel">What happens next</span>
                   <span className="actionStateText">
-                    Reactions and reports may take a moment to show everywhere after you save them.
+                    Reactions and reports submit signed transactions first. They are not final until Transactions or backend tx status reports confirmation.
                   </span>
                 </div>
 
@@ -682,10 +689,10 @@ export default function FeedView({
                     Open thread
                   </button>
                   <button className="btn" onClick={() => void doLike(id)} disabled={!id || likeBusyId === id || signerBusy}>
-                    {likeBusyId === id ? "Liking…" : signerBusy ? "Waiting…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
+                    {likeBusyId === id ? "Submitting reaction…" : signerBusy ? "Waiting…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
                   </button>
                   <button className="btn" onClick={() => void doReport(id)} disabled={!id || flagBusyId === id || signerBusy}>
-                    {flagBusyId === id ? "Reporting…" : signerBusy ? "Waiting…" : "Report"}
+                    {flagBusyId === id ? "Submitting report…" : signerBusy ? "Waiting…" : "Report"}
                   </button>
                 </div>
               </div>

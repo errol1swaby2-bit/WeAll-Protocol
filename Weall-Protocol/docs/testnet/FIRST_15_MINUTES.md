@@ -63,7 +63,7 @@ From the frontend:
 4. Create or restore an account from **Login** only if you intend to submit signed test actions.
 5. Open **Account Verification** and confirm the UI explains eligibility without claiming real-world identity certainty.
 6. Open **Account** and compare the account/profile surface against [Account and public profile readiness](ACCOUNT_PROFILE_READINESS.md).
-7. Browse **Feed**, **Groups**, **Decisions**, **Reports**, and **Review Center**.
+7. Browse **Feed**, **Groups**, **Decisions**, **Reports**, and **Review Center**. Compare Feed/Create Post/Thread behavior against [Public social flow readiness](PUBLIC_SOCIAL_FLOW_READINESS.md).
 8. Submit only a low-risk test action if the account state permits it.
 9. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
 
@@ -84,7 +84,7 @@ A transaction is only final when the backend reports inclusion/finalization or a
 
 ## Public-only civic loop
 
-During this bounded testnet, protocol-native social, group, governance, moderation, dispute, reputation, and operator activity is public-readable. Group membership may gate posting, commenting, voting, moderation, invitation, or administration, but it must not gate read visibility.
+During this bounded testnet, protocol-native social, group, governance, moderation, dispute, reputation, and operator activity is public-readable. Group membership may gate posting, commenting, voting, moderation, invitation, or administration, but it must not gate read visibility. Social actions should be treated as signed submissions until the transaction lifecycle shows confirmation/rejection or the affected read model visibly reconciles.
 
 The first-run reviewer loop is:
 
