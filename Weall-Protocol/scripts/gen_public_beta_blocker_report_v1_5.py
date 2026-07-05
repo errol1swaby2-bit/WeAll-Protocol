@@ -24,6 +24,7 @@ from gen_api_response_vectors_v1_5 import build as build_api_vectors
 from gen_external_operator_transcript_requirements_v1_5 import build as build_external_transcript_requirements
 from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
 from gen_protocol_upgrade_execution_hardening_plan_v1_5 import build as build_protocol_upgrade_hardening_plan
+from gen_production_helper_topology_hardening_plan_v1_5 import build as build_helper_topology_hardening_plan
 from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
 from rehearse_helper_block_path_adversarial_b593_v1_5 import run_harness as run_helper_harness
 from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
@@ -297,6 +298,7 @@ def build() -> Json:
     storage = run_storage_harness()
     protocol_upgrade = run_protocol_upgrade_harness()
     protocol_upgrade_hardening = build_protocol_upgrade_hardening_plan()
+    helper_topology_hardening = build_helper_topology_hardening_plan()
     helper = run_helper_harness()
     api_vectors = build_api_vectors()
     capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
@@ -395,12 +397,12 @@ def build() -> Json:
             "AUD-618-P1-005",
             "P1",
             ["public_beta"],
-            "Production helper execution remains disabled.",
-            "Helper assignment, receipts, merge, crash, Byzantine, and serial equivalence proven under production topology before activation.",
-            "production_helper_topology_gate",
-            "gate_present_execution_still_disabled" if helper.get("ok") else "gate_failed",
+            "Production helper execution remains disabled and future topology evidence is now planned.",
+            "Helper assignment, receipts, merge, crash, Byzantine, capacity/backpressure, operator policy, governance/release gate, and serial equivalence proven under production topology before activation.",
+            "production_helper_topology_hardening_plan",
+            "hardening_plan_present_execution_still_disabled" if helper.get("ok") and helper_topology_hardening.get("ok") else "gate_failed",
             True,
-            ["future helper production enablement governance/release gate"],
+            ["future helper production enablement governance/release gate", "multi-node helper topology transcript", "serial-equivalence corpus", "Byzantine helper rejection matrix"],
         ),
         _blocker(
             "AUD-618-P1-006",
@@ -483,6 +485,10 @@ def build() -> Json:
             "required_fields": ["schema", "blocker", "current_boundary", "future_required_evidence", "rollback_semantics_allowed_future_models", "claim_boundaries"],
             "must_not_claim": ["automatic_protocol_upgrades", "migration_execution", "rollback_execution", "public_beta_ready"],
         },
+        "production_helper_topology_hardening_plan": {
+            "required_fields": ["schema", "blocker", "current_boundary", "future_required_evidence", "launch_matrix_status_by_phase", "claim_boundaries"],
+            "must_not_claim": ["production_helper_execution", "helper_mode_authority", "mainnet_ready", "public_beta_ready"],
+        },
     }
 
     closed_code_gates = [b["id"] for b in blockers if b["can_be_closed_by_code_only"] and b["gate_status"].startswith("closed")]
@@ -491,6 +497,7 @@ def build() -> Json:
         and storage.get("ok")
         and protocol_upgrade.get("ok")
         and protocol_upgrade_hardening.get("ok")
+        and helper_topology_hardening.get("ok")
         and helper.get("ok")
         and api_vectors.get("ok")
         and api_vector_count >= 24
@@ -586,6 +593,15 @@ def build() -> Json:
                 "artifact_digest": protocol_upgrade_hardening.get("artifact_digest"),
             },
             "helper_production_topology": helper,
+            "production_helper_topology_hardening_plan": {
+                "ok": bool(helper_topology_hardening.get("ok")),
+                "schema": helper_topology_hardening.get("schema"),
+                "blocker": helper_topology_hardening.get("blocker"),
+                "blocker_status": helper_topology_hardening.get("blocker_status"),
+                "production_helper_execution_enabled": helper_topology_hardening.get("production_helper_execution_enabled"),
+                "production_helper_execution_ready": helper_topology_hardening.get("production_helper_execution_ready"),
+                "artifact_digest": helper_topology_hardening.get("artifact_digest"),
+            },
             "api_response_vectors": {"ok": api_vectors.get("ok"), "vector_count": api_vector_count},
             "testnet_capability_surface": capabilities,
             "state_root_cross_machine_export": state_roots,
@@ -618,6 +634,7 @@ def build() -> Json:
             "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check",
+            "PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check",
             "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",

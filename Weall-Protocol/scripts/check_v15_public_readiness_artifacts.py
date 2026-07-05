@@ -36,6 +36,7 @@ RELEASE_ARTIFACTS = [
     Path("generated/public_frontend_operator_journey_v1_5.json"),
     Path("generated/public_registry_signer_operations_v1_5.json"),
     Path("generated/protocol_upgrade_execution_hardening_plan_v1_5.json"),
+    Path("generated/production_helper_topology_hardening_plan_v1_5.json"),
     Path("generated/release_evidence_manifest_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
@@ -449,6 +450,34 @@ def _check_protocol_upgrade_execution_hardening_plan() -> list[str]:
             errors.append(f"protocol upgrade execution hardening plan must keep {key}=false")
     return errors
 
+
+def _check_production_helper_topology_hardening_plan() -> list[str]:
+    errors: list[str] = []
+    from gen_production_helper_topology_hardening_plan_v1_5 import build as build_helper_topology_plan
+
+    payload = _load_json(Path("generated/production_helper_topology_hardening_plan_v1_5.json"))
+    expected = build_helper_topology_plan()
+    if payload != expected:
+        errors.append("production_helper_topology_hardening_plan_v1_5.json is stale; rerun generator")
+    if payload.get("schema") != "weall.v1_5.production_helper_topology_hardening_plan":
+        errors.append("production helper topology hardening plan schema mismatch")
+    if payload.get("blocker") != "AUD-618-P1-005":
+        errors.append("production helper topology hardening plan must bind AUD-618-P1-005")
+    if payload.get("production_helper_execution_enabled") is not False:
+        errors.append("production helper topology hardening plan must keep production_helper_execution_enabled=false")
+    if payload.get("production_helper_execution_ready") is not False:
+        errors.append("production helper topology hardening plan must keep production_helper_execution_ready=false")
+    boundary = payload.get("current_boundary") if isinstance(payload.get("current_boundary"), dict) else {}
+    if boundary.get("launch_matrix_blocks_all_current_phases") is not True:
+        errors.append("production helper topology hardening plan must show launch matrix blocks all current phases")
+    if boundary.get("missing_helpers_can_halt_block_production") is not False:
+        errors.append("production helper topology hardening plan must keep missing helpers non-halting")
+    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    for key in ("public_beta_ready", "mainnet_ready", "production_helper_execution", "helper_mode_authority", "live_economics"):
+        if boundaries.get(key) is not False:
+            errors.append(f"production helper topology hardening plan must keep {key}=false")
+    return errors
+
 def _check_release_evidence_manifest() -> list[str]:
     errors: list[str] = []
     from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
@@ -466,7 +495,7 @@ def _check_release_evidence_manifest() -> list[str]:
     if payload.get("runtime_commit_binding_required") is not True:
         errors.append("release evidence manifest must require runtime commit binding")
     gates = payload.get("release_evidence_gates") if isinstance(payload.get("release_evidence_gates"), dict) else {}
-    for key in ("clean_clone_go_gate", "external_validator_operator_transcript", "storage_ipfs_operator_transcript", "legal_compliance_attestation", "rendered_operator_journey"):
+    for key in ("clean_clone_go_gate", "external_validator_operator_transcript", "storage_ipfs_operator_transcript", "legal_compliance_attestation", "rendered_operator_journey", "production_helper_topology_hardening_plan"):
         if key not in gates:
             errors.append(f"release evidence manifest missing gate: {key}")
     boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
@@ -566,6 +595,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_public_frontend_operator_journey())
         errors.extend(_check_public_registry_signer_operations())
         errors.extend(_check_protocol_upgrade_execution_hardening_plan())
+        errors.extend(_check_production_helper_topology_hardening_plan())
         errors.extend(_check_release_evidence_manifest())
         errors.extend(_check_controlled_testnet_go_gate())
         errors.extend(_check_reputation_artifacts())

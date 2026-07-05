@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "9236a0b3a6ac76eae270ff15388ddb1a75737f9a4e69d345fb85c78e4885171e",
+  "artifact_digest": "66319e98c1bfd421fa87a920cbda12715cc21ae38131d8d17656ccdf558d7c31",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -55,6 +55,18 @@
       "sample_templates_are_rejected_in_strict_release": true,
       "template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
+    },
+    "production_helper_topology_hardening_plan": {
+      "blocker": "AUD-618-P1-005",
+      "current_execution_enabled": false,
+      "future_governance_release_gate_required": true,
+      "keeps_launch_matrix_disabled": true,
+      "plan_artifact": "generated/production_helper_topology_hardening_plan_v1_5.json",
+      "required_before_production_helper_claims": true,
+      "required_before_public_beta": true,
+      "runbook": "docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md",
+      "template": "docs/proofs/production-helper-topology-hardening/2026-07-05/PLAN_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check"
     },
     "protocol_upgrade_execution_hardening_plan": {
       "blocker": "AUD-618-P0-003",
@@ -135,7 +147,7 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "f869fe73d25e3bb97e8b66709ea818acaf924c5319b10bf5eb807ea0164291cb",
+      "file_sha256": "67f0a084e8286686ee71c33c57ac9c1a31576fbbdca4f12e5809873903657209",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
@@ -154,6 +166,13 @@
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.failure_code_registry"
+    },
+    "generated/production_helper_topology_hardening_plan_v1_5.json": {
+      "file_sha256": "12f5f0f86da4d05d2896446e9ec3f915bc2f782ee6e9014c3c03abed46b1954e",
+      "ok": true,
+      "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.production_helper_topology_hardening_plan"
     },
     "generated/protocol_upgrade_execution_hardening_plan_v1_5.json": {
       "file_sha256": "147f2f888a417ecd799348bc182645f84b9bb06e84f1cef3776fd63e73cbbd84",

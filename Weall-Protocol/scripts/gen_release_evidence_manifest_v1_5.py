@@ -42,6 +42,7 @@ _TRACKED_ARTIFACTS = [
     "generated/public_frontend_operator_journey_v1_5.json",
     "generated/public_registry_signer_operations_v1_5.json",
     "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
+    "generated/production_helper_topology_hardening_plan_v1_5.json",
 ]
 
 
@@ -178,6 +179,18 @@ def build() -> Json:
                 "validator": "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check",
                 "current_execution_enabled": False,
                 "keeps_automatic_upgrades_disabled": True,
+            },
+            "production_helper_topology_hardening_plan": {
+                "required_before_public_beta": True,
+                "required_before_production_helper_claims": True,
+                "blocker": "AUD-618-P1-005",
+                "plan_artifact": "generated/production_helper_topology_hardening_plan_v1_5.json",
+                "runbook": "docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md",
+                "template": "docs/proofs/production-helper-topology-hardening/2026-07-05/PLAN_TEMPLATE.json",
+                "validator": "PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check",
+                "current_execution_enabled": False,
+                "keeps_launch_matrix_disabled": True,
+                "future_governance_release_gate_required": True,
             },
             "legal_compliance_attestation": {
                 "required_before_public_beta": True,

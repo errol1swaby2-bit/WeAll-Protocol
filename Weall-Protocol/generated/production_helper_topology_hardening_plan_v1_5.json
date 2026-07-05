@@ -1,0 +1,144 @@
+{
+  "artifact_digest": "e843d29a1fc6259d288df8b54e7248226f3c8187186e08335d05f5fb207e9ff6",
+  "blocker": "AUD-618-P1-005",
+  "blocker_status": "open_future_mainnet_hardening",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "helper_mode_authority": false,
+    "live_economics": false,
+    "mainnet_ready": false,
+    "production_helper_execution": false,
+    "public_beta_ready": false,
+    "public_validator_enabled": false,
+    "storage_market_ready": false
+  },
+  "current_boundary": {
+    "frontend_state_authority": false,
+    "governance_enablement_path_live": false,
+    "helper_mode_grants_protocol_authority": false,
+    "helper_receipts_required_for_block_validity": false,
+    "launch_matrix_blocks_all_current_phases": true,
+    "local_script_authority": false,
+    "missing_helpers_can_halt_block_production": false,
+    "production_helper_execution_enabled": false,
+    "release_manifest_enablement_path_live": false,
+    "serial_fallback_required": true
+  },
+  "disabled_execution_tests": [
+    "tests/test_launch_disabled_matrix_v15.py",
+    "tests/test_helper_release_gate.py",
+    "tests/test_helper_readiness_report.py",
+    "tests/prod/test_production_helper_topology_hardening_plan.py"
+  ],
+  "docs": {
+    "hardening_plan": "docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md",
+    "helper_safety_spec": "docs/PRODUCTION_POSTURE.md",
+    "plan_template": "docs/proofs/production-helper-topology-hardening/2026-07-05/PLAN_TEMPLATE.json",
+    "proof_slot": "docs/proofs/production-helper-topology-hardening/2026-07-05/README.md"
+  },
+  "docs_present": {
+    "hardening_plan": true,
+    "helper_safety_spec": true,
+    "plan_template": true,
+    "proof_slot": true
+  },
+  "future_enablement_phases": [
+    "helper_topology_declaration_record",
+    "serial_equivalence_expansion",
+    "byzantine_helper_rejection_rehearsal",
+    "multi_node_helper_capacity_rehearsal",
+    "operator_identity_and_key_policy_review",
+    "governance_release_gate_record",
+    "launch_matrix_transition_proposal",
+    "controlled_activation_rehearsal",
+    "public_incident_response_rehearsal"
+  ],
+  "future_required_evidence": [
+    "deterministic_helper_assignment_from_canonical_inputs",
+    "deterministic_lane_partitioning_for_all_tx_families",
+    "canonical_ordering_before_helper_execution",
+    "receipt_signature_domain_separation_and_context_binding",
+    "deterministic_merge_order_and_root_commitment",
+    "serial_vs_helper_equivalence_corpus_for_all_supported_tx_types",
+    "missing_helper_timeout_and_serial_fallback_proof",
+    "byzantine_helper_output_rejection_and_misbehavior_proof",
+    "crash_restart_replay_equivalence_across_helper_enabled_nodes",
+    "multi_node_staggered_helper_topology_transcript",
+    "operator_helper_identity_and_key_rotation_policy",
+    "capacity_budget_overcommit_and_slow_helper_backpressure_proof",
+    "governance_release_gate_with_launch_matrix_transition",
+    "public_incident_response_and_forensics_runbook",
+    "strict_external_transcript_validation_before_any_public_claim"
+  ],
+  "launch_matrix_status_by_phase": {
+    "controlled_validator_rehearsal": {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    "external_observer": {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    "local_rehearsal": {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    "production_candidate": {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    "public_beta_candidate": {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    }
+  },
+  "mainnet_ready": false,
+  "must_remain_disabled_until": [
+    "all_future_required_evidence_attached",
+    "external_transcript_validated",
+    "release_gate_digest_published",
+    "launch_matrix_transition_reviewed",
+    "governance_record_finalized",
+    "operator_runbook_and_incident_response_rehearsed"
+  ],
+  "ok": true,
+  "production_helper_execution_enabled": false,
+  "production_helper_execution_ready": false,
+  "public_beta_ready": false,
+  "required_manifest_fields": [
+    "schema",
+    "chain_id",
+    "network_id",
+    "helper_topology_id",
+    "validator_set_hash",
+    "helper_set_hash",
+    "lane_partition_hash",
+    "tx_order_hash",
+    "serial_equivalence_corpus_sha256",
+    "byzantine_rejection_matrix_sha256",
+    "restart_replay_vector_sha256",
+    "capacity_budget",
+    "operator_policy",
+    "governance_record_tx_id",
+    "release_gate_digest",
+    "signer_id",
+    "signature"
+  ],
+  "schema": "weall.v1_5.production_helper_topology_hardening_plan",
+  "version": "2026-07-pass26-production-helper-topology-hardening-plan"
+}

@@ -1339,6 +1339,12 @@
         "present": true,
         "schema": "weall.launch_disabled_matrix.v1_5"
       },
+      "production_helper_topology_hardening_plan": {
+        "ok": true,
+        "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+        "present": true,
+        "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+      },
       "public_beta_blocker_report": {
         "ok": true,
         "path": "generated/public_beta_blocker_report_v1_5.json",

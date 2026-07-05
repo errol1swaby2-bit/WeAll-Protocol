@@ -157,14 +157,17 @@
         "public_beta"
       ],
       "can_be_closed_by_code_only": true,
-      "current_behavior": "Production helper execution remains disabled.",
-      "evidence_gate": "production_helper_topology_gate",
-      "expected_production_behavior": "Helper assignment, receipts, merge, crash, Byzantine, and serial equivalence proven under production topology before activation.",
-      "gate_status": "gate_present_execution_still_disabled",
+      "current_behavior": "Production helper execution remains disabled and future topology evidence is now planned.",
+      "evidence_gate": "production_helper_topology_hardening_plan",
+      "expected_production_behavior": "Helper assignment, receipts, merge, crash, Byzantine, capacity/backpressure, operator policy, governance/release gate, and serial equivalence proven under production topology before activation.",
+      "gate_status": "hardening_plan_present_execution_still_disabled",
       "id": "AUD-618-P1-005",
       "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
-        "future helper production enablement governance/release gate"
+        "future helper production enablement governance/release gate",
+        "multi-node helper topology transcript",
+        "serial-equivalence corpus",
+        "Byzantine helper rejection matrix"
       ],
       "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
       "safe_to_reduce_before_nlnet_first_round": false,
@@ -374,6 +377,15 @@
       "runbook": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
       "validation_command": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
     },
+    "production_helper_topology_hardening_plan": {
+      "artifact_digest": "e843d29a1fc6259d288df8b54e7248226f3c8187186e08335d05f5fb207e9ff6",
+      "blocker": "AUD-618-P1-005",
+      "blocker_status": "open_future_mainnet_hardening",
+      "ok": true,
+      "production_helper_execution_enabled": false,
+      "production_helper_execution_ready": false,
+      "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+    },
     "protocol_upgrade_execution_hardening_plan": {
       "artifact_digest": "b6e8fb7c28bcaf2b78c2ddc9819524b3ab84ac6daec3f6bfb34c6965bb87ace7",
       "automatic_protocol_upgrades_ready": false,
@@ -457,7 +469,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "9236a0b3a6ac76eae270ff15388ddb1a75737f9a4e69d345fb85c78e4885171e",
+      "artifact_digest": "66319e98c1bfd421fa87a920cbda12715cc21ae38131d8d17656ccdf558d7c31",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -796,6 +808,12 @@
           "present": true,
           "schema": "weall.launch_disabled_matrix.v1_5"
         },
+        "production_helper_topology_hardening_plan": {
+          "ok": true,
+          "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+        },
         "public_beta_blocker_report": {
           "ok": true,
           "path": "generated/public_beta_blocker_report_v1_5.json",
@@ -897,6 +915,22 @@
         "signature_or_controlled_reference"
       ]
     },
+    "production_helper_topology_hardening_plan": {
+      "must_not_claim": [
+        "production_helper_execution",
+        "helper_mode_authority",
+        "mainnet_ready",
+        "public_beta_ready"
+      ],
+      "required_fields": [
+        "schema",
+        "blocker",
+        "current_boundary",
+        "future_required_evidence",
+        "launch_matrix_status_by_phase",
+        "claim_boundaries"
+      ]
+    },
     "protocol_upgrade_execution_hardening_plan": {
       "must_not_claim": [
         "automatic_protocol_upgrades",
@@ -968,6 +1002,7 @@
     "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
     "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
     "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check",
     "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
     "PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check",
     "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",

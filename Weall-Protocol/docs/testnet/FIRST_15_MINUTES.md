@@ -244,3 +244,19 @@ docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md
 `AUD-618-P0-002` remains open until a real counsel or controlled external
 attestation is attached and passes strict-release validation. Local draft docs and
 checked-in templates are preparation only.
+
+## Optional reviewer add-on: production helper topology hardening boundary
+
+For Pass 26 evidence capture, reviewers can open `docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md` and confirm that `AUD-618-P1-005` is a future hardening gate, not a current readiness claim. The expected first-run observation is:
+
+- helper production execution remains disabled;
+- helper readiness is diagnostic only;
+- missing helpers cannot halt block production;
+- local scripts and frontend state cannot grant helper authority;
+- the future closure package requires serial equivalence, Byzantine rejection, deterministic merge, crash/restart replay, multi-node helper topology, operator policy, and governance/release evidence.
+
+Capture the generated artifact check output:
+
+```bash
+PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check
+```

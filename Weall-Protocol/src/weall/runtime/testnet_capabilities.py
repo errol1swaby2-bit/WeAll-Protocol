@@ -50,6 +50,7 @@ _REQUIRED_ARTIFACTS = {
     "b582_b586_proof": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
     "b587_b594_mechanism_completion": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
     "public_beta_blocker_report": "generated/public_beta_blocker_report_v1_5.json",
+    "production_helper_topology_hardening_plan": "generated/production_helper_topology_hardening_plan_v1_5.json",
     "external_operator_transcript_requirements": "generated/external_operator_transcript_requirements_v1_5.json",
 }
 

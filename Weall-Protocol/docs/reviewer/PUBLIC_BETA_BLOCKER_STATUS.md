@@ -104,3 +104,13 @@ PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5
   --strict-release \
   --path <attestation.json>
 ```
+
+## Production helper topology hardening status
+
+`AUD-618-P1-005` remains open. Pass 26 adds a production helper topology hardening plan and proof slot, but does not enable helper production execution and does not claim production helper readiness. Closure still requires a future external/multi-node topology package with deterministic helper assignment, deterministic lane partitioning, canonical ordering, verifiable receipts, deterministic merge, serial equivalence, crash/restart replay, Byzantine helper rejection, capacity/backpressure proof, operator policy, and a governance/release gate that explicitly updates the launch matrix.
+
+Reviewer command:
+
+```bash
+PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check
+```
