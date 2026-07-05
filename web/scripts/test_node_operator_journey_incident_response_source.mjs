@@ -82,7 +82,7 @@ for (const needle of [
   "Personal Node screenshot, including mode matrix, safe next action, seed/peer status, validator endpoint freshness, mempool/backlog status, and incident timeline",
   "local commands, node switching, or environment flags grant validator/operator authority",
   "chain mismatch, stale validator endpoint, missing readyz, or mempool backlog warnings",
-  "## 9. Inspect node/operator journey and incident response",
+  "### Node/operator journey and incident response",
 ]) {
   assertIncludes(first15, needle, "first 15 minutes pass 19 doc");
 }

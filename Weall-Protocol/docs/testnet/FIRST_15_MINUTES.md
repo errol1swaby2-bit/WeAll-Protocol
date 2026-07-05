@@ -38,6 +38,7 @@ From a fresh checkout:
 cd ~/WeAll-Protocol/Weall-Protocol
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -r requirements.lock
 pip install -e .
 
 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
@@ -95,6 +96,80 @@ The first-run reviewer loop is:
 Home → Account → Verification → Feed → Groups → Decisions → Reports → Review Center → Activity → Transactions → Personal Node
 ```
 
+## Flow inspection checklist
+
+### Public social action
+
+Open the Feed or Create Post page and submit a small public test post only if account state permits it.
+
+Expected behavior:
+
+- the action uses public-only wording;
+- submission is not labeled final immediately;
+- Transactions/backend tx status is the place to inspect confirmation;
+- rejected/error states explain what to do next.
+
+See `docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md` for the social-flow checklist.
+
+### Governance rendered journey
+
+Open **Decisions**, a decision detail page, and the create-decision page.
+
+Expected behavior:
+
+- the canonical ladder is visible: `draft → poll → revision → validation → voting → closed → tallied → executed → finalized`;
+- block height, deadline height, and blocks remaining are labeled as protocol/backend state;
+- wall-clock time appears only as an estimate;
+- vote choices for multi-option proposals use canonical option IDs;
+- protocol/constitution upgrade records are described as record-only and non-activating;
+- latest action output points the tester back to Transactions rather than claiming finality.
+
+See `docs/testnet/GOVERNANCE_RENDERED_JOURNEY.md` for the governance-flow checklist.
+
+### Dispute and review rendered journey
+
+Open **Reports**, a report detail page, **Review Center**, and a report review action route if one is assigned.
+
+Expected behavior:
+
+- report records, tallies, appeals, and outcomes are described as public civic state;
+- raw PoH/video/government identity evidence is not exposed through broad report pages;
+- the lifecycle is understandable: `submission → assignment → acceptance/decline → attendance/check-in → review vote → tally/outcome → appeal window → appeal review if filed → finalization`;
+- review, withdrawal, timeout, appeal, and finalization windows are based on backend block height, not browser timers;
+- accept, decline, withdraw, Keep Post, Remove Post, and Need More Review are signed transactions;
+- no submitted review action is called final until Transactions/read-model reconciliation shows it.
+
+See `docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md` for the dispute/review checklist.
+
+### Transaction lifecycle rendered evidence
+
+Open **Transactions** after any signed action or honest fail-closed result.
+
+Expected behavior:
+
+- submitted, locally accepted, queued/pending, forwarded/gossiped, included in block, finalized/confirmed, rejected, removed from mempool, and unknown/unavailable are visibly distinct;
+- mempool acceptance, queueing, and gossip are not labeled final;
+- `/v1/tx/status/{tx_id}` is treated as read-only status evidence;
+- observer-edge upstream accepted/confirmed is separate from local observer state synced;
+- clearing browser history is not described as deleting protocol records.
+
+See `docs/testnet/TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md` for the transaction lifecycle checklist.
+
+### Node/operator journey and incident response
+
+Open **Personal Node** after checking Transactions.
+
+Expected behavior:
+
+- current mode is separated into observer, node operator, validator-candidate, and validator authority;
+- the dashboard shows current backend URL, chain identity, height/finalized height if available, readyz, seed/peer state, validator endpoint freshness, NAT/firewall posture, mempool/backlog symptoms, and blocked helper/economics/storage/upgrade gates;
+- safe commands are labeled diagnostic-only, local-only, observer-only, evidence capture, external transcript, or requires protocol state;
+- node switching blocks incompatible chain identity, genesis hash, tx index hash, or protocol profile hash;
+- incident response guidance tells the tester to capture evidence before recovery;
+- no frontend state, copied command, seed hint, or environment flag is described as granting protocol authority.
+
+See `docs/testnet/NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md` and `docs/operators/INCIDENT_RESPONSE.md` for the operator journey checklist.
+
 ## Evidence to capture
 
 For an external observer transcript, capture:
@@ -115,139 +190,32 @@ For an external observer transcript, capture:
 - Transactions page screenshot after any submitted action or honest fail-closed result, including the lifecycle timeline and tx id when available;
 - any errors with exact command/output.
 
-## Stop conditions
-
-Stop and file a bug rather than continuing if:
-
-- the frontend implies public beta, mainnet, public BFT, live economics, automatic upgrade, production helper, legal approval, or public storage readiness;
-- the Home or Personal Node page hides node/chain/authority status from a normal tester;
-- Personal Node implies that local commands, node switching, or environment flags grant validator/operator authority;
-- chain mismatch, stale validator endpoint, missing readyz, or mempool backlog warnings are hidden instead of surfaced as incident evidence;
-- a mutation reports final success without transaction lifecycle evidence;
-- private protocol-native messaging or private group read visibility appears;
-- browser state or a copied command appears to grant validator/operator/protocol authority.
-
-
-## Upgrade execution boundary
-
-If you see protocol or constitution upgrade records during the first-run journey, treat them as public governance records only. They may show declaration, scheduled activation height, target version, or ignored execution fields, but they do not fetch artifacts, apply software, execute migrations, roll back migrations, restart nodes, or activate economics. See `docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md` for the future hardening plan that keeps `AUD-618-P0-003` open.
-
-## Allowed readiness statement after this journey
-
-If the first-run path works locally but external transcripts are still missing, the strongest allowed claim is:
-
-```text
-Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence gates.
-```
-
-
-## 4. Try one public social action
-
-Open the Feed or Create Post page and submit a small public test post.
-
-Expected behavior:
-
-- the action uses public-only wording;
-- submission is not labeled final immediately;
-- Transactions/backend tx status is the place to inspect confirmation;
-- rejected/error states explain what to do next.
-
-See `docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md` for the social-flow checklist.
-
-## 6. Inspect the governance rendered journey
-
-Open **Decisions**, a decision detail page, and the create-decision page. Expected behavior:
-
-- the canonical ladder is visible: `draft → poll → revision → validation → voting → closed → tallied → executed → finalized`;
-- block height, deadline height, and blocks remaining are labeled as protocol/backend state;
-- wall-clock time appears only as an estimate;
-- vote choices for multi-option proposals use canonical option IDs;
-- protocol/constitution upgrade records are described as record-only and non-activating;
-- latest action output points the tester back to Transactions rather than claiming finality.
-
-See `docs/testnet/GOVERNANCE_RENDERED_JOURNEY.md` for the governance-flow checklist.
-
-## 7. Inspect the dispute and review rendered journey
-
-Open **Reports**, a report detail page, **Review Center**, and a report review action route if one is assigned. Expected behavior:
-
-- report records, tallies, appeals, and outcomes are described as public civic state;
-- raw PoH/video/government identity evidence is not exposed through broad report pages;
-- the lifecycle is understandable: `submission → assignment → acceptance/decline → attendance/check-in → review vote → tally/outcome → appeal window → appeal review if filed → finalization`;
-- review, withdrawal, timeout, appeal, and finalization windows are based on backend block height, not browser timers;
-- accept, decline, withdraw, Keep Post, Remove Post, and Need More Review are signed transactions;
-- no submitted review action is called final until Transactions/read-model reconciliation shows it.
-
-See `docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md` for the dispute/review checklist.
-
-## 8. Inspect transaction lifecycle rendered evidence
-
-Open **Transactions** after any signed action or honest fail-closed result. Expected behavior:
-
-- submitted, locally accepted, queued/pending, forwarded/gossiped, included in block, finalized/confirmed, rejected, removed from mempool, and unknown/unavailable are visibly distinct;
-- mempool acceptance, queueing, and gossip are not labeled final;
-- `/v1/tx/status/{tx_id}` is treated as read-only status evidence;
-- observer-edge upstream accepted/confirmed is separate from local observer state synced;
-- clearing browser history is not described as deleting protocol records.
-
-See `docs/testnet/TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md` for the transaction lifecycle checklist.
-
-## 9. Inspect node/operator journey and incident response
-
-Open **Personal Node** after checking Transactions. Expected behavior:
-
-- current mode is separated into observer, node operator, validator-candidate, and validator authority;
-- the dashboard shows current backend URL, chain identity, height/finalized height if available, readyz, seed/peer state, validator endpoint freshness, NAT/firewall posture, mempool/backlog symptoms, and blocked helper/economics/storage/upgrade gates;
-- safe commands are labeled diagnostic-only, local-only, observer-only, evidence capture, external transcript, or requires protocol state;
-- node switching blocks incompatible chain identity, genesis hash, tx index hash, or protocol profile hash;
-- incident response guidance tells the tester to capture evidence before recovery;
-- no frontend state, copied command, seed hint, or environment flag is described as granting protocol authority.
-
-See `docs/testnet/NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md` and `docs/operators/INCIDENT_RESPONSE.md` for the operator journey checklist.
-
-## External transcript capture
+## External evidence boundaries
 
 When this journey is run by an external public-observer tester, capture the evidence package described in `docs/testnet/PUBLIC_OBSERVER_OPEN_DOWNLOAD_TRANSCRIPT.md`. The capture package prepares `AUD-628-P1-001`, but it does not close the blocker until the transcript is external, complete, and reviewed.
 
 For the separate external cross-machine replay gate, use `docs/testnet/EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md`. That package prepares `AUD-618-P1-003`, but it does not close the blocker until at least two external/physical machine packets are combined, validated, and reviewed.
 
-## Storage/IPFS external evidence note
+Public storage-market and decentralized media durability claims remain forbidden until `AUD-618-P1-004` is closed by a real daemon/operator transcript. See [Real storage/IPFS operator transcript](REAL_STORAGE_IPFS_OPERATOR_TRANSCRIPT.md) for the capture checklist. A first-run tester should not treat local browser media state, one local IPFS daemon, or a simulated durability rehearsal as public storage readiness.
 
-Public storage-market and decentralized media durability claims remain forbidden
-until `AUD-618-P1-004` is closed by a real daemon/operator transcript. See
-[Real storage/IPFS operator transcript](REAL_STORAGE_IPFS_OPERATOR_TRANSCRIPT.md)
-for the capture checklist. A first-run tester should not treat local browser
-media state, one local IPFS daemon, or a simulated durability rehearsal as public
-storage readiness.
+Public validator safety and public multi-validator BFT claims remain forbidden until `AUD-618-P0-001` is closed by an independent controlled validator/operator transcript. See [Independent controlled validator/operator transcript](INDEPENDENT_CONTROLLED_VALIDATOR_OPERATOR_TRANSCRIPT.md) for the capture checklist. A copied command, environment flag, seed registry hint, local browser state, or founder-run rehearsal does not grant validator authority and does not close the blocker.
 
-## Controlled validator/operator external evidence note
-
-Public validator safety and public multi-validator BFT claims remain forbidden
-until `AUD-618-P0-001` is closed by an independent controlled
-validator/operator transcript. See
-[Independent controlled validator/operator transcript](INDEPENDENT_CONTROLLED_VALIDATOR_OPERATOR_TRANSCRIPT.md)
-for the capture checklist. A copied command, environment flag, seed registry hint,
-local browser state, or founder-run rehearsal does not grant validator authority
-and does not close the blocker.
-
-## Legal/compliance evidence boundary
-
-Before any tester, reviewer, or public update interprets this repository as a
-public beta, mainnet, live-economics, public-validator, public-storage, or legal
-approval package, read:
+Before any tester, reviewer, or public update interprets this repository as a public beta, mainnet, live-economics, public-validator, public-storage, or legal approval package, read:
 
 ```text
 docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md
 docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md
 ```
 
-`AUD-618-P0-002` remains open until a real counsel or controlled external
-attestation is attached and passes strict-release validation. Local draft docs and
-checked-in templates are preparation only.
+`AUD-618-P0-002` remains open until a real counsel or controlled external attestation is attached and passes strict-release validation. Local draft docs and checked-in templates are preparation only.
 
-## Optional reviewer add-on: production helper topology hardening boundary
+## Upgrade execution boundary
 
-For Pass 26 evidence capture, reviewers can open `docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md` and confirm that `AUD-618-P1-005` is a future hardening gate, not a current readiness claim. The expected first-run observation is:
+If you see protocol or constitution upgrade records during the first-run journey, treat them as public governance records only. They may show declaration, scheduled activation height, target version, or ignored execution fields, but they do not fetch artifacts, apply software, execute migrations, roll back migrations, restart nodes, or activate economics. See `docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md` for the future hardening plan that keeps `AUD-618-P0-003` open.
+
+## Production helper topology boundary
+
+Reviewers can open `docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md` and confirm that `AUD-618-P1-005` is a future hardening gate, not a current readiness claim. The expected first-run observation is:
 
 - helper production execution remains disabled;
 - helper readiness is diagnostic only;
@@ -270,3 +238,23 @@ PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testn
 ```
 
 A local first-run journey can support controlled rehearsal readiness. It cannot close `AUD-628-P1-001` unless the documented external open-download/state-sync/rendered journey transcript is attached.
+
+## Stop conditions
+
+Stop and file a bug rather than continuing if:
+
+- the frontend implies public beta, mainnet, public BFT, live economics, automatic upgrade, production helper, legal approval, or public storage readiness;
+- the Home or Personal Node page hides node/chain/authority status from a normal tester;
+- Personal Node implies that local commands, node switching, or environment flags grant validator/operator authority;
+- chain mismatch, stale validator endpoint, missing readyz, or mempool backlog warnings are hidden instead of surfaced as incident evidence;
+- a mutation reports final success without transaction lifecycle evidence;
+- private protocol-native messaging or private group read visibility appears;
+- browser state or a copied command appears to grant validator/operator/protocol authority.
+
+## Allowed readiness statement after this journey
+
+If the first-run path works locally but external transcripts are still missing, the strongest allowed claim is:
+
+```text
+Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence gates.
+```

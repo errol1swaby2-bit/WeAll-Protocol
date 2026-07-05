@@ -29,6 +29,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 | Public-only protocol docs/tests | `docs/PUBLIC_ONLY_PROTOCOL.md`, `tests/test_public_only_protocol_redesign.py` | Confirms protocol-native private/opaque social payloads are unsupported. |
 | Release truth docs | `docs/TRUTH_BOUNDARY.md`, `docs/PRODUCTION_POSTURE.md`, `docs/PROTOCOL_VERSIONING_STRATEGY.md` | Defines claim boundaries and fail-closed requirements. |
 | Testnet runbooks | `docs/testnet/` | Provides controlled rehearsal and external transcript instructions. |
+| Pass 29 pre-rehearsal flow audit | `docs/audits/comprehensive_protocol_flow_audit_before_two_node_v1_5.md` | Classifies major user/operator/reviewer flows and records low-risk fixes before two-node rehearsal. |
 
 ## Generated artifacts
 

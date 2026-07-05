@@ -28,6 +28,7 @@ const home = readWeb("src/pages/Home.tsx");
 const protocolSummary = readWeb("src/components/ProtocolStatusSummary.tsx");
 const statusLib = readWeb("src/lib/status.ts");
 const packageJson = readWeb("package.json");
+const auditReport = readRepo("Weall-Protocol/docs/audits/comprehensive_protocol_flow_audit_before_two_node_v1_5.md");
 const statusRoute = readRepo("Weall-Protocol/src/weall/api/routes_public_parts/status.py");
 const first15Path = resolve(repoRoot, "Weall-Protocol/docs/testnet/FIRST_15_MINUTES.md");
 if (!existsSync(first15Path)) {
@@ -86,10 +87,27 @@ for (const needle of [
 assertIncludes(statusRoute, '"finalized_height"', "normal /v1/status payload should expose finalized height for first-run testers");
 assertIncludes(packageJson, "test:first-run-tester-journey-source", "package script must expose first-run source check");
 
+for (const staleHeading of ["## 4. Try one public social action", "## 6. Inspect the governance rendered journey", "## 7. Inspect the dispute and review rendered journey"]) {
+  assertNotIncludes(first15, staleHeading, "first-run guide should not retain duplicated numbered headings");
+}
+
+for (const needle of [
+  "# Comprehensive protocol flow audit before two-node rehearsal v1.5",
+  "Flow classification table",
+  "First-run tester onboarding",
+  "Public observer boot",
+  "Transaction lifecycle status",
+  "Final go-gate package",
+  "This audit is local repository evidence only; it does not close external blockers.",
+]) {
+  assertIncludes(auditReport, needle, "Pass 29 pre-rehearsal audit report");
+}
+
 for (const needle of [
   "# First 15 minutes on the bounded public observer / controlled testnet",
   "current node / API target",
   "Frontend buttons, browser state, seed hints, local scripts, node switching, and environment flags must never be treated as protocol authority.",
+  "pip install -r requirements.lock",
   "WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh",
   "Home → Account → Verification → Feed → Groups → Decisions → Reports → Review Center → Activity → Transactions → Personal Node",
   "A transaction is only final when the backend reports inclusion/finalization or a specific rejected terminal state.",

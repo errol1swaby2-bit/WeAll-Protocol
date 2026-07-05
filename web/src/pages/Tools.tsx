@@ -149,7 +149,7 @@ export default function Tools(): JSX.Element {
             <button className="btn btnPrimary" onClick={() => void refreshDiagnostics()} disabled={busy}>
               {busy ? "Refreshing…" : "Refresh diagnostics"}
             </button>
-            <button className="btn" onClick={() => nav("/session-devices")}>
+            <button className="btn" onClick={() => nav("/session")}>
               Session utility
             </button>
             <button className="btn" onClick={() => nav("/settings")}>
@@ -397,7 +397,7 @@ export default function Tools(): JSX.Element {
               <button className="btn" onClick={() => nav("/verification")}>
                 Account Verification
               </button>
-              <button className="btn" onClick={() => nav("/post")}>
+              <button className="btn" onClick={() => nav("/create")}>
                 Create Post
               </button>
               <button className="btn" onClick={() => nav("/reviews")}>

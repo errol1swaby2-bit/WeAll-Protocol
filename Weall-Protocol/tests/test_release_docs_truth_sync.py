@@ -177,3 +177,59 @@ def test_reviewer_docs_preserve_public_beta_blocker_counts() -> None:
         assert "false" in text.lower()
         assert "p0_open_count" in text
         assert "p1_open_count" in text
+
+
+def test_pass29_pre_two_node_flow_audit_is_present_and_bounded() -> None:
+    path = REPO_ROOT / "docs" / "audits" / "comprehensive_protocol_flow_audit_before_two_node_v1_5.md"
+    text = _read(path)
+
+    assert ALLOWED_REHEARSAL_CLAIM in text
+    assert "## Flow classification table" in text
+    for flow in (
+        "First-run tester onboarding",
+        "Public observer boot",
+        "Node connection and switching",
+        "Account creation/login/recovery",
+        "Public posting/feed",
+        "Group governance",
+        "Multi-option voting",
+        "Protocol/constitution upgrade record-only surfaces",
+        "Dispute review/vote flow",
+        "Transaction lifecycle status",
+        "Operator command wizard",
+        "Public observer open-download transcript docs",
+        "Storage/IPFS operator transcript docs",
+        "Legal/compliance evidence pack",
+        "Production helper topology hardening plan",
+        "Final go-gate package",
+    ):
+        assert flow in text
+
+    for boundary in (
+        "public_beta_ready` | `false`",
+        "Blocker catalog entries | `14`",
+        "Closed in repository | `7`",
+        "Still open | `7`",
+        "does not close external blockers",
+        "frontend state",
+        "local scripts",
+    ):
+        assert boundary in text
+
+
+def test_first_15_minutes_guide_is_ordered_and_clean_clone_copy_pasteable() -> None:
+    text = _read(REPO_ROOT / "docs" / "testnet" / "FIRST_15_MINUTES.md")
+
+    assert "pip install -r requirements.lock" in text
+    assert "pip install -e ." in text
+    assert text.index("## Flow inspection checklist") < text.index("## Evidence to capture")
+    assert text.index("## Evidence to capture") < text.index("## External evidence boundaries")
+    assert text.index("## Stop conditions") < text.index("## Allowed readiness statement after this journey")
+
+    stale_numbered_headings = [
+        "## 4. Try one public social action",
+        "## 6. Inspect the governance rendered journey",
+        "## 7. Inspect the dispute and review rendered journey",
+    ]
+    for heading in stale_numbered_headings:
+        assert heading not in text

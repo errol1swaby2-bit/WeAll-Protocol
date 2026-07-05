@@ -21,6 +21,7 @@ const operatorWizard = read("src/components/OperatorCommandWizard.tsx");
 const incidentTimeline = read("src/components/OperatorIncidentTimeline.tsx");
 const txPage = read("src/pages/TransactionsPage.tsx");
 const txTimeline = read("src/components/TxPropagationTimeline.tsx");
+const tools = read("src/pages/Tools.tsx");
 
 for (const needle of [
   "OperatorCommandWizard",
@@ -49,6 +50,22 @@ for (const needle of [
   "Commands marked local-only, observer-only, diagnostic-only, or requires protocol state",
 ]) {
   assertIncludes(operatorWizard, needle, "operator wizard source gate");
+}
+
+for (const needle of [
+  'nav("/session")',
+  'nav("/create")',
+  "Session utility",
+  "Create Post",
+]) {
+  assertIncludes(tools, needle, "advanced tools should route tester shortcuts to valid routes");
+}
+
+for (const stale of [
+  'nav("/session-devices")',
+  'nav("/post")',
+]) {
+  assertNotIncludes(tools, stale, "advanced tools must not route testers to missing pages");
 }
 
 for (const needle of [
