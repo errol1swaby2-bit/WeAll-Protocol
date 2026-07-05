@@ -205,3 +205,12 @@ See `docs/testnet/NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md` and `docs/oper
 When this journey is run by an external public-observer tester, capture the evidence package described in `docs/testnet/PUBLIC_OBSERVER_OPEN_DOWNLOAD_TRANSCRIPT.md`. The capture package prepares `AUD-628-P1-001`, but it does not close the blocker until the transcript is external, complete, and reviewed.
 
 For the separate external cross-machine replay gate, use `docs/testnet/EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md`. That package prepares `AUD-618-P1-003`, but it does not close the blocker until at least two external/physical machine packets are combined, validated, and reviewed.
+
+## Storage/IPFS external evidence note
+
+Public storage-market and decentralized media durability claims remain forbidden
+until `AUD-618-P1-004` is closed by a real daemon/operator transcript. See
+[Real storage/IPFS operator transcript](REAL_STORAGE_IPFS_OPERATOR_TRANSCRIPT.md)
+for the capture checklist. A first-run tester should not treat local browser
+media state, one local IPFS daemon, or a simulated durability rehearsal as public
+storage readiness.

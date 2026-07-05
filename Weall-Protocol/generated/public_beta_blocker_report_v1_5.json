@@ -439,7 +439,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "08435c541aa7b19dcfbb3da2329f5859b6cadf6808f6bccb17e226611e553d8a",
+      "artifact_digest": "735bd7e8ff70704dd801e54150f7fcf8e9bf967f052660dd9f8e5acb1080f2b6",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -816,7 +816,7 @@
   },
   "evidence_inventory_ok": true,
   "external_operator_transcript_requirements": {
-    "artifact_digest": "f183ed45dc73fa22a34a48fecc726728308cbf656447383ad78ac9ecec4d723d",
+    "artifact_digest": "a7d1418e729b07de0f3d2440ff469bab7d4f8f95fb18ec191f5251bbcd54c99c",
     "external_attestation_required_before_public_beta": true,
     "ok": true,
     "schema_count": 4

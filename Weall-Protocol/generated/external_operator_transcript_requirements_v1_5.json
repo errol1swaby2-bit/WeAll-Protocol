@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "f183ed45dc73fa22a34a48fecc726728308cbf656447383ad78ac9ecec4d723d",
+  "artifact_digest": "a7d1418e729b07de0f3d2440ff469bab7d4f8f95fb18ec191f5251bbcd54c99c",
   "external_attestation_required_before_public_beta": true,
   "mainnet_ready": false,
   "ok": true,
@@ -153,31 +153,43 @@
         "restricted_identity_evidence_publicly_visible"
       ],
       "minimum_counts": {
+        "daemon_versions": 3,
         "ipfs_peer_ids": 3,
         "machine_ids": 3,
         "operator_ids": 3,
         "operator_signatures": 3,
-        "replication_factor": 3
+        "pin_proofs": 3,
+        "replication_factor": 3,
+        "retrieval_proofs": 3
       },
       "name": "storage_ipfs_operator_transcript",
       "required_fields": [
         "schema",
+        "blocker",
         "operator_ids",
         "machine_ids",
         "ipfs_peer_ids",
+        "daemon_versions",
+        "payload_sha256",
         "cid",
         "replication_factor",
+        "publish_proofs",
+        "pin_proofs",
+        "retrieval_proofs",
+        "durability_window",
         "origin_failure",
         "retrieval_from_non_origin_machine",
         "fresh_node_retrieval",
         "wrong_cid_rejected",
         "corrupt_content_rejected",
         "revalidation_exercised",
+        "real_daemon_topology",
         "transcript_digest",
         "operator_signatures",
         "claim_boundaries"
       ],
       "required_truths": {
+        "blocker": "AUD-618-P1-004",
         "claim_boundaries.public_beta_ready": false,
         "claim_boundaries.public_decentralized_media_durability": false,
         "claim_boundaries.public_storage_provider_market": false,

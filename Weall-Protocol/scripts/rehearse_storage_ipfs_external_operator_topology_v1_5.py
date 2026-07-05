@@ -22,17 +22,37 @@ def _digest(obj: Any) -> str:
 def build_transcript() -> Json:
     core = {
         "schema": "weall.v1_5.storage_ipfs_operator_transcript",
+        "blocker": "AUD-618-P1-004",
         "operator_ids": ["storage-operator-a", "storage-operator-b", "storage-operator-c"],
         "machine_ids": ["storage-machine-a", "storage-machine-b", "storage-machine-c"],
         "ipfs_peer_ids": ["12D3KooWsampleA", "12D3KooWsampleB", "12D3KooWsampleC"],
+        "daemon_versions": {
+            "storage-machine-a": "kubo-sample-version-required",
+            "storage-machine-b": "kubo-sample-version-required",
+            "storage-machine-c": "kubo-sample-version-required",
+        },
+        "payload_sha256": "0" * 64,
         "cid": "bafybeigdyrztb620samplecidnotpublicdurabilityclaim",
         "replication_factor": 3,
+        "publish_proofs": {"origin_machine": "storage-machine-a", "add_output": "sample-required"},
+        "pin_proofs": {
+            "storage-machine-a": "pin-ls-sample-required",
+            "storage-machine-b": "pin-ls-sample-required",
+            "storage-machine-c": "pin-ls-sample-required",
+        },
+        "retrieval_proofs": {
+            "storage-machine-a": "retrieval-sha256-sample-required",
+            "storage-machine-b": "retrieval-sha256-sample-required",
+            "storage-machine-c": "retrieval-sha256-sample-required",
+        },
+        "durability_window": {"started_utc": "sample-required", "ended_utc": "sample-required", "minimum_minutes": 0},
         "origin_failure": True,
         "retrieval_from_non_origin_machine": True,
         "fresh_node_retrieval": True,
         "wrong_cid_rejected": True,
         "corrupt_content_rejected": True,
         "revalidation_exercised": True,
+        "real_daemon_topology": False,
         "operator_signatures": ["external-storage-signature-required-a", "external-storage-signature-required-b", "external-storage-signature-required-c"],
         "claim_boundaries": {
             "public_storage_provider_market": False,

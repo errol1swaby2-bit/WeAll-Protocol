@@ -156,6 +156,10 @@ def build() -> Json:
             },
             "storage_ipfs_operator_transcript": {
                 "required_before_public_beta": True,
+                "required_before_public_storage_claims": True,
+                "blocker": "AUD-618-P1-004",
+                "capture_script": "scripts/capture_real_storage_ipfs_operator_transcript_v1_5.sh",
+                "template": "docs/proofs/real-storage-ipfs-operator/2026-07-05/TRANSCRIPT_TEMPLATE.json",
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind storage_ipfs_operator_transcript --strict-release --path <transcript.json>",
                 "sample_transcripts_are_rejected_in_strict_release": True,
             },

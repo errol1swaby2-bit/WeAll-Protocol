@@ -84,11 +84,30 @@ def test_strict_release_accepts_attested_validator_transcript(tmp_path: Path) ->
 def test_strict_release_accepts_attested_storage_and_legal_transcripts(tmp_path: Path) -> None:
     storage = _with_digest({
         "schema": "weall.v1_5.storage_ipfs_operator_transcript",
+        "blocker": "AUD-618-P1-004",
         "operator_ids": ["storage-alpha-real", "storage-beta-real", "storage-gamma-real"],
         "machine_ids": ["storage-host-alpha-001", "storage-host-beta-002", "storage-host-gamma-003"],
         "ipfs_peer_ids": ["12D3KooWalphaRealPeer111111", "12D3KooWbetaRealPeer222222", "12D3KooWgammaRealPeer333333"],
+        "daemon_versions": {
+            "storage-host-alpha-001": "kubo-v0.29.0-alpha-real",
+            "storage-host-beta-002": "kubo-v0.29.0-beta-real",
+            "storage-host-gamma-003": "kubo-v0.29.0-gamma-real",
+        },
+        "payload_sha256": "a" * 64,
         "cid": "bafybeigdyrztrealoperatorcidb621evidencecandidate",
         "replication_factor": 3,
+        "publish_proofs": {"origin_machine": "storage-host-alpha-001", "add_sha256": "b" * 64},
+        "pin_proofs": {
+            "storage-host-alpha-001": "pin-proof-alpha-real-001",
+            "storage-host-beta-002": "pin-proof-beta-real-002",
+            "storage-host-gamma-003": "pin-proof-gamma-real-003",
+        },
+        "retrieval_proofs": {
+            "storage-host-alpha-001": "a" * 64,
+            "storage-host-beta-002": "a" * 64,
+            "storage-host-gamma-003": "a" * 64,
+        },
+        "durability_window": {"started_utc": "2026-07-05T00:00:00Z", "ended_utc": "2026-07-05T00:30:00Z", "minimum_minutes": 30},
         "origin_failure": True,
         "retrieval_from_non_origin_machine": True,
         "fresh_node_retrieval": True,

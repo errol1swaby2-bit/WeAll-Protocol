@@ -77,8 +77,9 @@ The current external-evidence targets are:
 
 - `AUD-628-P1-001` — external public observer open-download/state-sync/rendered journey transcript.
 - `AUD-618-P1-003` — external cross-machine replay transcript proving identical state roots, vectors, and tx-index hash.
+- `AUD-618-P1-004` — real storage/IPFS daemon/operator transcript proving publish, pin, retrieval, wrong-CID rejection, corrupt-content rejection, revalidation, and durability evidence.
 
 A local founder-run transcript may improve the runbook, but only external evidence
-from the documented commit can close either blocker.
+from the documented commit can close these blockers.
 
-For `AUD-628-P1-001`, only an external clean-clone/open-download state-sync/rendered journey transcript can close the blocker. For `AUD-618-P1-003`, only an external cross-machine replay transcript from the documented commit can close the blocker.
+For `AUD-628-P1-001`, only an external clean-clone/open-download state-sync/rendered journey transcript can close the blocker. For `AUD-618-P1-003`, only an external cross-machine replay transcript from the documented commit can close the blocker. For `AUD-618-P1-004`, only a real storage/IPFS daemon/operator transcript with strict-release validation can close the blocker.
