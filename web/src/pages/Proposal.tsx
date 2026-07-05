@@ -96,7 +96,7 @@ function optionCountsFromMap(
 
 function lifecycleSteps(stageRaw: string): Array<{ label: string; state: "done" | "active" | "todo" }> {
   const stage = String(stageRaw || "").toLowerCase();
-  const labels = ["Draft", "Early input", "Revision", "Readiness check", "Voting", "Results counted", "Changes applied", "Final result"];
+  const labels = ["draft", "poll", "revision", "validation", "voting", "closed", "tallied", "executed", "finalized"];
   const activeIndexByStage: Record<string, number> = {
     draft: 0,
     poll: 1,
@@ -107,7 +107,7 @@ function lifecycleSteps(stageRaw: string): Array<{ label: string; state: "done" 
     closed: 5,
     tallied: 5,
     executed: 6,
-    finalized: 7,
+    finalized: 8,
     withdrawn: 0,
   };
   const active = activeIndexByStage[stage] ?? 0;
@@ -200,6 +200,57 @@ function actionReadinessLabel(params: { stage: string; canVote: boolean; canEdit
   return "No action available";
 }
 
+
+function governanceStageLadderText(): string {
+  return "draft → poll → revision → validation → voting → closed → tallied → executed → finalized";
+}
+
+function actionTxTypesOf(proposal: any): string[] {
+  const actions = Array.isArray(proposal?.actions) ? proposal.actions : [];
+  return actions
+    .map((action: any) => String(action?.tx_type || action?.type || "").trim().toUpperCase())
+    .filter(Boolean)
+    .sort();
+}
+
+function hasUpgradeAction(proposal: any): boolean {
+  return actionTxTypesOf(proposal).some((txType) =>
+    [
+      "PROTOCOL_UPGRADE_DECLARE",
+      "PROTOCOL_UPGRADE_ACTIVATE",
+      "CONSTITUTION_UPGRADE_DECLARE",
+      "CONSTITUTION_UPGRADE_ACTIVATE",
+    ].includes(txType),
+  );
+}
+
+function executionStateLabel(proposal: any, stage: string): string {
+  if (hasUpgradeAction(proposal)) return "Record-only upgrade boundary";
+  if (["draft", "poll", "revision", "validation", "voting", "vote", "closed"].includes(stage)) return "Not executable yet";
+  if (stage === "tallied") return "Awaiting execution/finalization record";
+  if (stage === "executed") return "Execution record visible";
+  if (stage === "finalized") return "Finalized record visible";
+  if (stage === "withdrawn") return "Withdrawn; execution disabled";
+  return "Execution state unknown";
+}
+
+function cannotExecuteReason(params: { proposal: any; stage: string; deadlineHeight: number; currentHeight: number }): string {
+  const { proposal, stage, deadlineHeight, currentHeight } = params;
+  if (hasUpgradeAction(proposal)) {
+    return "Protocol and constitution upgrade actions are public, governance-parent-bound records only. They do not fetch artifacts, execute migrations, restart nodes, auto-apply software, or activate economics in this bounded testnet.";
+  }
+  if (["draft", "poll", "revision", "validation", "voting", "vote"].includes(stage)) {
+    return deadlineHeight > 0
+      ? `Cannot execute yet: the proposal is in ${stage}; final action waits for the backend to reach block ${deadlineHeight}. Current procedure block is ${currentHeight || "unknown"}.`
+      : `Cannot execute yet: the proposal is in ${stage}; the backend has not exposed an execution deadline for this stage.`;
+  }
+  if (stage === "closed") return "Cannot execute yet: voting is closed, but the tally/final action record has not been published.";
+  if (stage === "tallied") return "Execution may only happen through the backend governance path and must be reflected as a transaction/status record; the frontend cannot execute by itself.";
+  if (stage === "executed") return "Execution has a visible record. Finalization still depends on backend state and cannot be forced by a browser timer.";
+  if (stage === "finalized") return "Finalized: this page is read-only except for inspection and transaction/status review.";
+  if (stage === "withdrawn") return "Withdrawn proposals cannot execute.";
+  return "Execution reason unavailable. Refresh the backend state and inspect the transaction lifecycle before taking action.";
+}
 
 function lifecycleActionHint(stage: string, isCreator: boolean): string {
   if (stage === "draft") {
@@ -358,7 +409,7 @@ export default function Proposal({ id }: Props): JSX.Element {
         title: "Cast vote",
         pendingKey: txPendingKey(["proposal-vote", pid, acct, normalizedChoice]),
         pendingMessage: `Recording ${voteLabel} vote…`,
-        successMessage: `Vote recorded: ${voteLabel}.`,
+        successMessage: `Vote submission tracked: ${voteLabel}. Confirm inclusion/finality in Transactions or the refreshed decision detail.`,
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
@@ -385,7 +436,7 @@ export default function Proposal({ id }: Props): JSX.Element {
   }
 
   async function revokeVote(): Promise<void> {
-    await doTx("GOV_VOTE_REVOKE", { proposal_id: pid }, "Revoke vote", "Vote revoked.");
+    await doTx("GOV_VOTE_REVOKE", { proposal_id: pid }, "Revoke vote", "Vote revoke submitted; confirm lifecycle status in Transactions.");
   }
 
   async function editProposal(): Promise<void> {
@@ -397,12 +448,12 @@ export default function Proposal({ id }: Props): JSX.Element {
         body: editBody.trim(),
       },
       "Edit decision",
-      "Decision edit saved.",
+      "Decision edit submitted; confirm visibility through the decision lifecycle.",
     );
   }
 
   async function withdrawProposal(): Promise<void> {
-    await doTx("GOV_PROPOSAL_WITHDRAW", { proposal_id: pid }, "Withdraw decision", "Decision withdrawn.");
+    await doTx("GOV_PROPOSAL_WITHDRAW", { proposal_id: pid }, "Withdraw decision", "Decision withdrawal submitted; confirm lifecycle status in Transactions.");
   }
 
   async function submitProposalComment(): Promise<void> {
@@ -415,7 +466,7 @@ export default function Proposal({ id }: Props): JSX.Element {
       "GOV_PROPOSAL_COMMENT",
       { proposal_id: pid, body },
       "Add deliberation comment",
-      "Deliberation comment recorded.",
+      "Deliberation comment submitted; confirm visibility through the decision lifecycle.",
     );
     setCommentBody("");
   }
@@ -470,6 +521,15 @@ export default function Proposal({ id }: Props): JSX.Element {
   const procedureIntervalMs = targetBlockIntervalMs(proposal);
   const proposalVersions = Array.isArray(proposal?.versions) ? proposal.versions : [];
   const proposalComments = Array.isArray(proposal?.comments) ? proposal.comments : [];
+  const proposalActionTxTypes = actionTxTypesOf(proposal);
+  const upgradeRecordOnlyBoundary = hasUpgradeAction(proposal);
+  const executionState = executionStateLabel(proposal, stage);
+  const executionReason = cannotExecuteReason({
+    proposal,
+    stage,
+    deadlineHeight: procedureDeadlineHeight,
+    currentHeight: procedureCurrentHeight,
+  });
   const commentWindowOpen = ["draft", "poll", "revision", "validation"].includes(stage);
   const canComment = gate.ok && commentWindowOpen && !signerBusy;
 
@@ -482,7 +542,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="eyebrow">Decision</div>
               <h1 className="heroTitle heroTitleSm">{title}</h1>
               <p className="heroText">
-                Decision detail keeps status, voting activity, and creator controls in one place. It separates saving an action from the final visible result.
+                Decision detail keeps stage, block-height deadlines, voting activity, execution state, and transaction evidence in one place. Saving an action is not the same as finalization.
               </p>
             </div>
             <div className="heroInfoPanel">
@@ -490,6 +550,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="heroInfoList">
                 <span className={stageBadgeClass(stage)}>{stage}</span>
                 <span className="statusPill">Votes {hasProposalOptions ? activeOptionCounts.total : activeCount.total}</span>
+                <span className={`statusPill ${stage === "executed" || stage === "finalized" ? "ok" : upgradeRecordOnlyBoundary ? "warn" : ""}`}>{executionState}</span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
                   {gate.ok ? "Trusted Verified Person" : "Live verification required"}
                 </span>
@@ -532,6 +593,23 @@ export default function Proposal({ id }: Props): JSX.Element {
       <ErrorBanner message={voteErr?.msg} details={voteErr?.details} onDismiss={() => setVoteErr(null)} />
       <ErrorBanner message={adminErr?.msg} details={adminErr?.details} onDismiss={() => setAdminErr(null)} />
 
+      <section className="surfaceBoundaryBar" aria-label="Governance rendered journey boundary">
+        <div className="surfaceBoundaryHeader">
+          <div>
+            <h2 className="surfaceBoundaryTitle">Governance stage ladder is block-height based.</h2>
+            <p className="surfaceBoundaryText">
+              Canonical stage ladder: {governanceStageLadderText()}. Wall-clock times are display estimates only; backend block height and transaction status decide eligibility, execution, and finalization.
+            </p>
+          </div>
+          <span className="statusPill">Block-height authority</span>
+        </div>
+        <div className="surfaceBoundaryList">
+          <span className="surfaceBoundaryTag">multi-option voting uses canonical option IDs</span>
+          <span className="surfaceBoundaryTag">execution requires backend state</span>
+          <span className="surfaceBoundaryTag">upgrade actions remain record-only</span>
+          <span className="surfaceBoundaryTag">transactions page confirms status</span>
+        </div>
+      </section>
 
       <ProcedureTimeline
         title="Decision timeline"
@@ -556,6 +634,16 @@ export default function Proposal({ id }: Props): JSX.Element {
             <div className="summaryCardLabel">Deliberation comments</div>
             <div className="summaryCardValue mono">{proposalComments.length}</div>
             <div className="summaryCardText">Comments are protocol-visible input before final voting.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Execution state</div>
+            <div className="summaryCardValue">{executionState}</div>
+            <div className="summaryCardText">{executionReason}</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Upgrade boundary</div>
+            <div className="summaryCardValue">{upgradeRecordOnlyBoundary ? "record-only" : "not an upgrade record"}</div>
+            <div className="summaryCardText">Automatic protocol upgrade, migration, rollback, economics activation, and node restart remain disabled from the frontend.</div>
           </article>
         </div>
       </ProcedureTimeline>
@@ -817,6 +905,16 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="summaryCardText">{decisionStageHelp(stage)}</div>
             </article>
             <article className="summaryCard">
+              <div className="summaryCardLabel">Why execution cannot be forced</div>
+              <div className="summaryCardValue">{executionState}</div>
+              <div className="summaryCardText">{executionReason}</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Action tx types</div>
+              <div className="summaryCardValue">{proposalActionTxTypes.length || "none"}</div>
+              <div className="summaryCardText mono">{proposalActionTxTypes.length ? proposalActionTxTypes.join(", ") : "No executable action payload declared."}</div>
+            </article>
+            <article className="summaryCard">
               <div className="summaryCardLabel">What happens next</div>
               <div className="summaryCardValue">{readiness}</div>
               <div className="summaryCardText">Exact start/end boundaries come from backend state; repeated finalization must remain idempotent.</div>
@@ -985,8 +1083,12 @@ export default function Proposal({ id }: Props): JSX.Element {
                 <div className="eyebrow">Latest result</div>
                 <h2 className="cardTitle">Latest action response</h2>
               </div>
-              
+              <div className="statusSummary">
+                <button className="btn" onClick={() => nav("/transactions")}>Open Transactions</button>
+              </div>
             </div>
+
+            <div className="calloutInfo">Submission output is evidence to follow, not a finalization claim. Use Transactions or refreshed backend state to verify included, finalized, rejected, or still pending status.</div>
 
             <div className="cardDesc mono" style={{ whiteSpace: "pre-wrap" }}>
               {JSON.stringify(voteRes || adminRes, null, 2)}

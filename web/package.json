@@ -32,7 +32,8 @@
     "test:first-run-tester-journey-source": "node scripts/test_first_run_tester_journey_source.mjs",
     "test:account-profile-readiness-source": "node scripts/test_account_profile_readiness_source.mjs",
     "test:public-social-flow-readiness-source": "node scripts/test_public_social_flow_readiness_source.mjs",
-    "test:group-flow-readiness-source": "node scripts/test_group_flow_readiness_source.mjs"
+    "test:group-flow-readiness-source": "node scripts/test_group_flow_readiness_source.mjs",
+    "test:governance-rendered-journey-source": "node scripts/test_governance_rendered_journey_source.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

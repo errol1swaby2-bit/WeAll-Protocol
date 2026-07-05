@@ -138,8 +138,8 @@ export default function ProposalCreate(): JSX.Element {
       await tx.runTx({
         title: "Create community decision",
         pendingKey: txPendingKey(["proposal-create", acct, resolvedProposalId || payload?.proposal_id || title]),
-        pendingMessage: "Saving decision…",
-        successMessage: "Decision saved. The detail page will open once it is visible.",
+        pendingMessage: "Submitting decision transaction…",
+        successMessage: "Decision submission tracked. The detail page opens once backend state makes it visible.",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         finality: {
@@ -182,7 +182,7 @@ export default function ProposalCreate(): JSX.Element {
               <div className="eyebrow">Create decision</div>
               <h1 className="heroTitle heroTitleSm">Create a community decision</h1>
               <p className="heroText">
-                Decision creation is separated from the decision queue so browsing and writing do not compete for the same visual space.
+                Decision creation is separated from the decision queue. Submitting here creates a signed governance transaction; Transactions and the detail page prove whether it becomes visible/final.
               </p>
             </div>
 
@@ -232,7 +232,24 @@ export default function ProposalCreate(): JSX.Element {
       </section>
 
 
-      <ActionLifecycleCard intro="This route should always show the same honest sequence: checking, saving, recorded, updating the page, visible, or failed." />
+      <ActionLifecycleCard intro="This route should always show the same honest sequence: checking, submitted, locally accepted, included/visible, finalized, rejected, or failed." />
+
+      <section className="surfaceBoundaryBar" aria-label="Governance creation boundary">
+        <div className="surfaceBoundaryHeader">
+          <div>
+            <h2 className="surfaceBoundaryTitle">Creation is not approval, execution, or finalization.</h2>
+            <p className="surfaceBoundaryText">
+              New decisions enter the governance lifecycle through signed transactions. Stage changes, votes, execution records, and finalization remain backend/protocol state. Protocol and constitution upgrade actions are record-only in this bounded testnet.
+            </p>
+          </div>
+          <span className="statusPill">Submission only</span>
+        </div>
+        <div className="surfaceBoundaryList">
+          <span className="surfaceBoundaryTag">draft → poll → revision → validation → voting → closed → tallied → executed → finalized</span>
+          <span className="surfaceBoundaryTag">block-height deadlines</span>
+          <span className="surfaceBoundaryTag">Transactions page confirms status</span>
+        </div>
+      </section>
 
       <section className="card pageNarrow">
         <div className="cardBody formStack">
@@ -313,7 +330,8 @@ export default function ProposalCreate(): JSX.Element {
                   <summary>View technical action options</summary>
                   <label className="fieldLabel">
                     Technical action type
-                    <input value={actionTxType} onChange={(e) => setActionTxType(e.target.value)} placeholder="GOV_RULES_SET, GOV_QUORUM_SET, ..." />
+                    <input value={actionTxType} onChange={(e) => setActionTxType(e.target.value)} placeholder="GOV_RULES_SET, GOV_QUORUM_SET, PROTOCOL_UPGRADE_DECLARE, ..." />
+                    <span className="fieldHint">Protocol/constitution upgrade action records are public record-only metadata here; they do not auto-apply software, execute migrations, restart nodes, or activate economics.</span>
                   </label>
 
                   <label className="fieldLabel">
@@ -340,7 +358,8 @@ export default function ProposalCreate(): JSX.Element {
 
           {createRes ? (
             <details className="detailsPanel">
-              <summary>View technical saved details</summary>
+              <summary>View technical submitted details</summary>
+              <div className="calloutInfo">This payload is the submitted decision data. Confirm visible/final status from the decision detail and Transactions pages.</div>
               <div className="cardDesc mono" style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(createRes, null, 2)}</div>
             </details>
           ) : null}

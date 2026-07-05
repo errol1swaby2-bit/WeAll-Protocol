@@ -46,7 +46,7 @@ export default function ProcedureTimeline({
           <article className="summaryCard">
             <div className="summaryCardLabel">Next deadline block</div>
             <div className="summaryCardValue mono">{clock.hasDeadline ? clock.deadlineHeight : "—"}</div>
-            <div className="summaryCardText">Stages open only when the backend reaches this height.</div>
+            <div className="summaryCardText">Stages open only when backend/protocol state reaches this block height.</div>
           </article>
           <article className="summaryCard">
             <div className="summaryCardLabel">Blocks remaining</div>
@@ -56,7 +56,7 @@ export default function ProcedureTimeline({
           <article className="summaryCard">
             <div className="summaryCardLabel">Estimated time</div>
             <div className="summaryCardValue">{clock.hasDeadline ? clock.estimatedLabel : "not scheduled"}</div>
-            <div className="summaryCardText">Estimate assumes the manifest-pinned block target.</div>
+            <div className="summaryCardText">Display estimate only. Backend block height is protocol truth; wall-clock time cannot advance a stage.</div>
           </article>
         </div>
         <div className="calloutInfo">{authorityLabel}</div>

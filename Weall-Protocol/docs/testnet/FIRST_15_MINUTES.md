@@ -64,9 +64,10 @@ From the frontend:
 5. Open **Account Verification** and confirm the UI explains eligibility without claiming real-world identity certainty.
 6. Open **Account** and compare the account/profile surface against [Account and public profile readiness](ACCOUNT_PROFILE_READINESS.md).
 7. Browse **Feed**, **Groups**, **Decisions**, **Reports**, and **Review Center**. Compare Feed/Create Post/Thread behavior against [Public social flow readiness](PUBLIC_SOCIAL_FLOW_READINESS.md).
-8. Open a public group and compare the directory/detail/create flow against [Group flow readiness](GROUP_FLOW_READINESS.md).
-9. Submit only a low-risk test action if the account state permits it.
-10. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
+8. Open **Decisions** and compare the queue/detail/create/vote flow against [Governance rendered journey readiness](GOVERNANCE_RENDERED_JOURNEY.md).
+9. Open a public group and compare the directory/detail/create flow against [Group flow readiness](GROUP_FLOW_READINESS.md).
+10. Submit only a low-risk test action if the account state permits it.
+11. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
 
 The user journey should be understandable without opening advanced developer tools.
 
@@ -107,6 +108,7 @@ For an external observer transcript, capture:
 - frontend load screenshot;
 - Home status cards screenshot;
 - Personal Node screenshot;
+- Decisions queue/detail/timeline screenshot;
 - Transactions page screenshot after any submitted action or honest fail-closed result;
 - any errors with exact command/output.
 
@@ -141,3 +143,16 @@ Expected behavior:
 - rejected/error states explain what to do next.
 
 See `docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md` for the social-flow checklist.
+
+## 6. Inspect the governance rendered journey
+
+Open **Decisions**, a decision detail page, and the create-decision page. Expected behavior:
+
+- the canonical ladder is visible: `draft → poll → revision → validation → voting → closed → tallied → executed → finalized`;
+- block height, deadline height, and blocks remaining are labeled as protocol/backend state;
+- wall-clock time appears only as an estimate;
+- vote choices for multi-option proposals use canonical option IDs;
+- protocol/constitution upgrade records are described as record-only and non-activating;
+- latest action output points the tester back to Transactions rather than claiming finality.
+
+See `docs/testnet/GOVERNANCE_RENDERED_JOURNEY.md` for the governance-flow checklist.
