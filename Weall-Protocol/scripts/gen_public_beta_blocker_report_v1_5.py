@@ -99,14 +99,23 @@ def _clean_clone_gate_summary() -> Json:
 
 
 def _legal_summary() -> Json:
+    evidence_pack = ROOT / "docs" / "legal" / "COUNSEL_REVIEW_EVIDENCE_PACK.md"
+    runbook = ROOT / "docs" / "testnet" / "LEGAL_COMPLIANCE_EVIDENCE_PACK.md"
+    template = ROOT / "docs" / "proofs" / "legal-compliance-counsel" / "2026-07-05" / "ATTESTATION_TEMPLATE.json"
     return {
-        "ok": True,
+        "ok": evidence_pack.exists() and runbook.exists() and template.exists(),
         "legal_compliance_ready": False,
         "counsel_review_attached": False,
         "public_claims_require_counsel_review": True,
+        "evidence_pack": "docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
+        "runbook": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
+        "attestation_template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
+        "validation_command": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>",
         "required_attestations": [
-            "token/economics claims reviewed by counsel",
-            "governance and treasury claims reviewed by counsel",
+            "token/economics claims reviewed by counsel or controlled external reviewer",
+            "governance and treasury claims reviewed by counsel or controlled external reviewer",
+            "privacy/public-only, minors, sanctions, severe-harm, and NCIM posture reviewed",
+            "public validator, storage/IPFS, helper, and upgrade claims reviewed",
             "public-beta jurisdictional risk checklist completed",
             "marketing/docs checked against launch-disabled matrix",
         ],

@@ -169,8 +169,13 @@ def build() -> Json:
             },
             "legal_compliance_attestation": {
                 "required_before_public_beta": True,
+                "blocker": "AUD-618-P0-002",
+                "evidence_pack": "docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
+                "runbook": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
+                "template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>",
                 "counsel_or_control_attestation_required": True,
+                "sample_templates_are_rejected_in_strict_release": True,
             },
             "rendered_operator_journey": {
                 "required_before_public_beta": True,

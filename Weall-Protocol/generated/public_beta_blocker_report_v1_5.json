@@ -42,8 +42,10 @@
       "id": "AUD-618-P0-002",
       "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
-        "token/economics claims reviewed by counsel",
-        "governance and treasury claims reviewed by counsel",
+        "token/economics claims reviewed by counsel or controlled external reviewer",
+        "governance and treasury claims reviewed by counsel or controlled external reviewer",
+        "privacy/public-only, minors, sanctions, severe-harm, and NCIM posture reviewed",
+        "public validator, storage/IPFS, helper, and upgrade claims reviewed",
         "public-beta jurisdictional risk checklist completed",
         "marketing/docs checked against launch-disabled matrix"
       ],
@@ -354,16 +356,22 @@
       "tx_count": 4
     },
     "legal_compliance": {
+      "attestation_template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
       "counsel_review_attached": false,
+      "evidence_pack": "docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
       "legal_compliance_ready": false,
       "ok": true,
       "public_claims_require_counsel_review": true,
       "required_attestations": [
-        "token/economics claims reviewed by counsel",
-        "governance and treasury claims reviewed by counsel",
+        "token/economics claims reviewed by counsel or controlled external reviewer",
+        "governance and treasury claims reviewed by counsel or controlled external reviewer",
+        "privacy/public-only, minors, sanctions, severe-harm, and NCIM posture reviewed",
+        "public validator, storage/IPFS, helper, and upgrade claims reviewed",
         "public-beta jurisdictional risk checklist completed",
         "marketing/docs checked against launch-disabled matrix"
-      ]
+      ],
+      "runbook": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
+      "validation_command": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
     },
     "protocol_upgrade_staging": {
       "auto_apply_rejected": true,
@@ -439,7 +447,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "6583fbe41013850c1cb3405e4e896eef0bcb7254dbffa5f5a47420b92a37f930",
+      "artifact_digest": "991bcb7e15ad8fbbd7d941943a3c79a7f6bfe2d0fbae89af65f5f4078879c899",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -816,7 +824,7 @@
   },
   "evidence_inventory_ok": true,
   "external_operator_transcript_requirements": {
-    "artifact_digest": "acc9f3f80af43a2dfd1d74d03a3b57812ffd5bdae5bcf7166059706da251ab6b",
+    "artifact_digest": "afcca91144a440f5e78ae6f0fd06b0700b40a20afa41cad45ea9c518af6ebf8b",
     "external_attestation_required_before_public_beta": true,
     "ok": true,
     "schema_count": 4

@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "6583fbe41013850c1cb3405e4e896eef0bcb7254dbffa5f5a47420b92a37f930",
+  "artifact_digest": "991bcb7e15ad8fbbd7d941943a3c79a7f6bfe2d0fbae89af65f5f4078879c899",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -47,8 +47,13 @@
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --strict-release --path <transcript.json>"
     },
     "legal_compliance_attestation": {
+      "blocker": "AUD-618-P0-002",
       "counsel_or_control_attestation_required": true,
+      "evidence_pack": "docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
       "required_before_public_beta": true,
+      "runbook": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
+      "sample_templates_are_rejected_in_strict_release": true,
+      "template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
     },
     "public_frontend_operator_journey": {
@@ -126,7 +131,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/external_operator_transcript_requirements_v1_5.json": {
-      "file_sha256": "3b8523bbe72cdf5917b5a7eb93033599c619f8e2cb40e9ed461adffc2543f3c8",
+      "file_sha256": "51934d08da5ad61eddd1373537e7ce3fcdb72aa7ef04c3b36daf288f7762efb5",
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,

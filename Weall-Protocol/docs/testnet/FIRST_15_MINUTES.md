@@ -224,3 +224,18 @@ validator/operator transcript. See
 for the capture checklist. A copied command, environment flag, seed registry hint,
 local browser state, or founder-run rehearsal does not grant validator authority
 and does not close the blocker.
+
+## Legal/compliance evidence boundary
+
+Before any tester, reviewer, or public update interprets this repository as a
+public beta, mainnet, live-economics, public-validator, public-storage, or legal
+approval package, read:
+
+```text
+docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md
+docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md
+```
+
+`AUD-618-P0-002` remains open until a real counsel or controlled external
+attestation is attached and passes strict-release validation. Local draft docs and
+checked-in templates are preparation only.

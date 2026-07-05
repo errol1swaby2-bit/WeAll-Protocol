@@ -1,0 +1,73 @@
+{
+  "schema": "weall.v1_5.legal_compliance_attestation",
+  "blocker": "AUD-618-P0-002",
+  "sample_transcript_only": true,
+  "review_date": "YYYY-MM-DD",
+  "review_commit": "COMMIT_SHA_REQUIRED",
+  "review_branch": "BRANCH_REQUIRED",
+  "reviewer_or_counsel_reference": "COUNSEL_OR_CONTROLLED_EXTERNAL_REVIEW_REFERENCE_REQUIRED",
+  "counsel_or_control_attestation_attached": false,
+  "scope": [
+    "public claims",
+    "token/economics disabled claims",
+    "governance and treasury language",
+    "privacy and public-only posture",
+    "minors/safety/sanctions policy",
+    "public validator and BFT claims",
+    "storage/IPFS claims",
+    "helper execution claims"
+  ],
+  "documents_reviewed": [
+    "docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
+    "docs/legal/PUBLIC_CLAIMS_CHECKLIST.md",
+    "docs/legal/TOKEN_MARKETING_GUARDRAILS.md",
+    "docs/LAUNCH_DISABLED_FEATURE_MATRIX.md",
+    "generated/launch_disabled_matrix_v1_5.json",
+    "docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md",
+    "docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md"
+  ],
+  "approved_public_claims": [
+    "controlled internal/public-observer rehearsal candidate"
+  ],
+  "restricted_claims": [
+    "public beta ready",
+    "mainnet ready",
+    "live economics ready",
+    "public validator safe",
+    "public multi-validator BFT ready",
+    "automatic protocol upgrades ready",
+    "public storage-market ready",
+    "production helper execution ready",
+    "legal approval"
+  ],
+  "launch_matrix_checked": false,
+  "launch_disabled_matrix": {
+    "live_economics": false,
+    "token_transfers": false,
+    "fees": false,
+    "staking": false,
+    "validator_rewards": false,
+    "slashing": false,
+    "treasury_spending": false,
+    "public_validator_enrollment": false,
+    "public_multi_validator_bft": false,
+    "automatic_protocol_upgrades": false,
+    "protocol_migrations": false,
+    "protocol_rollbacks": false,
+    "production_helper_execution": false,
+    "public_storage_market": false
+  },
+  "signature_or_controlled_reference": "SIGNATURE_OR_CONTROLLED_REFERENCE_REQUIRED",
+  "claim_boundaries": {
+    "legal_compliance_ready": false,
+    "public_beta_ready": false,
+    "mainnet_ready": false,
+    "live_economics": false,
+    "public_validator_enabled": false,
+    "public_multi_validator_bft": false,
+    "automatic_protocol_upgrades": false,
+    "production_helper_execution": false,
+    "public_storage_provider_market": false
+  },
+  "transcript_digest": "DIGEST_RECOMPUTED_FOR_REAL_ATTESTATION"
+}

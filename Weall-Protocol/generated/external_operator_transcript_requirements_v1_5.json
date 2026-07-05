@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "acc9f3f80af43a2dfd1d74d03a3b57812ffd5bdae5bcf7166059706da251ab6b",
+  "artifact_digest": "afcca91144a440f5e78ae6f0fd06b0700b40a20afa41cad45ea9c518af6ebf8b",
   "external_attestation_required_before_public_beta": true,
   "mainnet_ready": false,
   "ok": true,
@@ -68,32 +68,66 @@
       }
     },
     "legal_compliance_attestation": {
-      "description": "Counsel/control attestation needed before public token, economics, governance, and launch-readiness claims.",
+      "description": "Counsel/control attestation needed before public token, economics, governance, treasury, validator, storage, helper, and launch-readiness claims.",
       "forbidden_claims": [
         "legal_compliance_ready_without_counsel_reference",
         "token_sale_ready_without_counsel",
-        "live_economics_ready_without_release_gate"
+        "live_economics_ready_without_release_gate",
+        "public_beta_ready_without_counsel_attestation",
+        "mainnet_ready_without_counsel_attestation",
+        "public_validator_safe_without_counsel_attestation",
+        "public_storage_market_ready_without_counsel_attestation"
       ],
       "minimum_counts": {
         "approved_public_claims": 1,
-        "restricted_claims": 1
+        "documents_reviewed": 6,
+        "restricted_claims": 6,
+        "scope": 8
       },
       "name": "legal_compliance_attestation",
       "required_fields": [
         "schema",
+        "blocker",
         "review_date",
+        "review_commit",
+        "review_branch",
         "reviewer_or_counsel_reference",
+        "counsel_or_control_attestation_attached",
         "scope",
+        "documents_reviewed",
         "approved_public_claims",
         "restricted_claims",
         "launch_matrix_checked",
+        "launch_disabled_matrix",
         "signature_or_controlled_reference",
         "claim_boundaries"
       ],
       "required_truths": {
+        "blocker": "AUD-618-P0-002",
+        "claim_boundaries.automatic_protocol_upgrades": false,
         "claim_boundaries.legal_compliance_ready": false,
         "claim_boundaries.live_economics": false,
         "claim_boundaries.mainnet_ready": false,
+        "claim_boundaries.production_helper_execution": false,
+        "claim_boundaries.public_beta_ready": false,
+        "claim_boundaries.public_multi_validator_bft": false,
+        "claim_boundaries.public_storage_provider_market": false,
+        "claim_boundaries.public_validator_enabled": false,
+        "counsel_or_control_attestation_attached": true,
+        "launch_disabled_matrix.automatic_protocol_upgrades": false,
+        "launch_disabled_matrix.fees": false,
+        "launch_disabled_matrix.live_economics": false,
+        "launch_disabled_matrix.production_helper_execution": false,
+        "launch_disabled_matrix.protocol_migrations": false,
+        "launch_disabled_matrix.protocol_rollbacks": false,
+        "launch_disabled_matrix.public_multi_validator_bft": false,
+        "launch_disabled_matrix.public_storage_market": false,
+        "launch_disabled_matrix.public_validator_enrollment": false,
+        "launch_disabled_matrix.slashing": false,
+        "launch_disabled_matrix.staking": false,
+        "launch_disabled_matrix.token_transfers": false,
+        "launch_disabled_matrix.treasury_spending": false,
+        "launch_disabled_matrix.validator_rewards": false,
         "launch_matrix_checked": true
       }
     },
