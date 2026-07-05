@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "eb0616bc576e9d60390d1604131a426212a5d8b4910e1f0a9aa9284df65fa76b",
+  "artifact_digest": "08435c541aa7b19dcfbb3da2329f5859b6cadf6808f6bccb17e226611e553d8a",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -27,6 +27,15 @@
       "runtime_report_required": true,
       "script": "scripts/run_clean_clone_go_gate_v1_5.sh",
       "tracked_manifest_only": true
+    },
+    "external_cross_machine_replay_transcript": {
+      "blocker": "AUD-618-P1-003",
+      "capture_script": "scripts/capture_external_cross_machine_replay_transcript_v1_5.sh",
+      "required_before_public_beta": true,
+      "required_before_public_observer_launch": true,
+      "sample_transcripts_are_rejected_in_strict_release": true,
+      "template": "docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind external_cross_machine_replay_transcript --strict-release --path <transcript.json>"
     },
     "external_validator_operator_transcript": {
       "required_before_public_beta": true,
@@ -109,7 +118,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/external_operator_transcript_requirements_v1_5.json": {
-      "file_sha256": "b80103100f248aeadd57f246a8ebb5fc81fa5e9a02362e5ed2ac798365b17fa3",
+      "file_sha256": "50d14ddde33b29b2b01b10f64b7e839db57c10fa643ae66ef29fbcaae65f7eae",
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,

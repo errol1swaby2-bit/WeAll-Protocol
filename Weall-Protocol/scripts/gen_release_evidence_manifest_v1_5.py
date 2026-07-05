@@ -145,6 +145,15 @@ def build() -> Json:
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --strict-release --path <transcript.json>",
                 "sample_transcripts_are_rejected_in_strict_release": True,
             },
+            "external_cross_machine_replay_transcript": {
+                "required_before_public_beta": True,
+                "required_before_public_observer_launch": True,
+                "blocker": "AUD-618-P1-003",
+                "capture_script": "scripts/capture_external_cross_machine_replay_transcript_v1_5.sh",
+                "template": "docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json",
+                "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind external_cross_machine_replay_transcript --strict-release --path <transcript.json>",
+                "sample_transcripts_are_rejected_in_strict_release": True,
+            },
             "storage_ipfs_operator_transcript": {
                 "required_before_public_beta": True,
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind storage_ipfs_operator_transcript --strict-release --path <transcript.json>",

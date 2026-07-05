@@ -162,7 +162,7 @@
     "mainnet_ready": false,
     "ok": true,
     "public_beta_ready": false,
-    "schema_count": 3
+    "schema_count": 4
   },
   "launch_matrix_capability_snapshot": {
     "artifact_blockers": [],

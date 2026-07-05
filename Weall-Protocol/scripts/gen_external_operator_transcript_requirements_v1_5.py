@@ -6,7 +6,7 @@ from __future__ import annotations
 This artifact intentionally does not mark public beta or mainnet ready. It turns
 remaining external-evidence blockers into deterministic, machine-checkable
 schemas so public-beta readiness cannot be claimed without independently
-operated validator/storage/legal transcripts attached to a release.
+operated validator/replay/storage/legal transcripts attached to a release.
 """
 
 import argparse
@@ -89,6 +89,51 @@ def build() -> Json:
                 "live_economics_enabled",
             ],
             {"operator_ids": 4, "node_ids": 4, "machine_ids": 4, "rounds": 6, "operator_signatures": 4},
+        ),
+
+        "external_cross_machine_replay_transcript": _schema(
+            "external_cross_machine_replay_transcript",
+            "External clean-checkout replay transcript proving the same commit and vectors replay to identical state roots and tx-index hash on two external/physical machines before public beta.",
+            [
+                "schema",
+                "blocker",
+                "commit",
+                "branch",
+                "machine_ids",
+                "operator_ids",
+                "machine_summaries",
+                "state_root_vectors_sha256",
+                "tx_index_hash_by_machine",
+                "state_root_by_machine",
+                "replay_commands",
+                "replay_outputs",
+                "same_commit",
+                "same_vectors",
+                "state_roots_match",
+                "tx_index_hash_match",
+                "external_machine_or_two_physical_machines",
+                "transcript_digest",
+                "operator_signatures",
+                "claim_boundaries",
+            ],
+            {
+                "blocker": "AUD-618-P1-003",
+                "same_commit": True,
+                "same_vectors": True,
+                "state_roots_match": True,
+                "tx_index_hash_match": True,
+                "external_machine_or_two_physical_machines": True,
+                "claim_boundaries.public_beta_ready": False,
+                "claim_boundaries.mainnet_ready": False,
+                "claim_boundaries.public_validator_enabled": False,
+            },
+            [
+                "public_beta_ready_without_external_replay_transcript",
+                "mainnet_ready_without_external_replay_transcript",
+                "cross_machine_replay_closed_by_founder_local_run",
+                "local_replay_harness_is_external_evidence",
+            ],
+            {"machine_ids": 2, "operator_ids": 1, "machine_summaries": 2, "operator_signatures": 1},
         ),
         "storage_ipfs_operator_transcript": _schema(
             "storage_ipfs_operator_transcript",

@@ -20,7 +20,7 @@ from gen_external_operator_transcript_requirements_v1_5 import build as build_re
 
 Json = dict[str, Any]
 _PLACEHOLDER_RE = re.compile(r"(sample|placeholder|external[-_ ]?signature[-_ ]?required|required|todo|example|dummy)", re.IGNORECASE)
-_SAMPLE_ID_RE = re.compile(r"^(operator-[a-d]|machine-[a-d]|v-[a-d]|storage-operator-[a-c]|storage-machine-[a-c]|12D3KooWsample[A-Z]?)$")
+_SAMPLE_ID_RE = re.compile(r"^(operator-[a-d]|machine-[a-d]|v-[a-d]|storage-operator-[a-c]|storage-machine-[a-c]|replay-operator-[ab]|replay-machine-[ab]|12D3KooWsample[A-Z]?)$")
 
 
 def _canon(obj: Any) -> str:
@@ -130,6 +130,15 @@ def _strict_release_errors(kind: str, payload: Json) -> list[str]:
             errors.append("public validator strict release transcript requires operator_attestation=external_operator_signed or independent_operator_signed")
         if payload.get("machine_isolation") not in ("independent_machines", "isolated_containers_with_operator_attestation"):
             errors.append("public validator strict release transcript requires machine_isolation proof")
+    elif kind == "external_cross_machine_replay_transcript":
+        if payload.get("operator_attestation") not in ("external_replay_operator_signed", "independent_operator_signed"):
+            errors.append("external replay strict release transcript requires external_replay_operator_signed or independent_operator_signed")
+        if payload.get("machine_isolation") not in ("two_physical_machines", "external_machine_plus_isolated_founder_machine", "independent_machines"):
+            errors.append("external replay strict release transcript requires machine_isolation proof")
+        if payload.get("same_commit") is not True:
+            errors.append("external replay strict release transcript requires same_commit=true")
+        if payload.get("same_vectors") is not True:
+            errors.append("external replay strict release transcript requires same_vectors=true")
     elif kind == "storage_ipfs_operator_transcript":
         if payload.get("real_daemon_topology") is not True:
             errors.append("storage/IPFS strict release transcript requires real_daemon_topology=true")

@@ -203,3 +203,5 @@ See `docs/testnet/NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md` and `docs/oper
 ## External transcript capture
 
 When this journey is run by an external public-observer tester, capture the evidence package described in `docs/testnet/PUBLIC_OBSERVER_OPEN_DOWNLOAD_TRANSCRIPT.md`. The capture package prepares `AUD-628-P1-001`, but it does not close the blocker until the transcript is external, complete, and reviewed.
+
+For the separate external cross-machine replay gate, use `docs/testnet/EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md`. That package prepares `AUD-618-P1-003`, but it does not close the blocker until at least two external/physical machine packets are combined, validated, and reviewed.

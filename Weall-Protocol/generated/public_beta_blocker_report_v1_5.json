@@ -112,15 +112,17 @@
       "blocks": [
         "public_beta"
       ],
-      "can_be_closed_by_code_only": true,
-      "current_behavior": "State-root vectors exist but need explicit cross-machine replay export status.",
-      "evidence_gate": "state_root_cross_machine_export_gate",
-      "expected_production_behavior": "Cross-machine/cross-implementation vector replay export and external attestation path.",
-      "gate_status": "gate_present_external_attestation_required",
+      "can_be_closed_by_code_only": false,
+      "current_behavior": "State-root vectors and transcript capture tooling exist, but no external cross-machine replay transcript is attached.",
+      "evidence_gate": "external_cross_machine_replay_transcript_schema",
+      "expected_production_behavior": "External/two-physical-machine replay transcript proving identical state roots, vector digest, and tx-index hash on the same commit.",
+      "gate_status": "gate_present_external_transcript_required",
       "id": "AUD-618-P1-003",
       "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
-        "external machine replay transcript"
+        "external machine replay transcript",
+        "same-commit state-root replay transcript",
+        "matching tx-index hash transcript"
       ],
       "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
       "safe_to_reduce_before_nlnet_first_round": false,
@@ -437,7 +439,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "eb0616bc576e9d60390d1604131a426212a5d8b4910e1f0a9aa9284df65fa76b",
+      "artifact_digest": "08435c541aa7b19dcfbb3da2329f5859b6cadf6808f6bccb17e226611e553d8a",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -445,9 +447,15 @@
     },
     "state_root_cross_machine_export": {
       "artifact_digest": "793991d9fb418c23a4bc48478634bc4266df5455c7152e2ac4bd1584bdf08ec1",
+      "capture_script": "scripts/capture_external_cross_machine_replay_transcript_v1_5.sh",
       "cross_machine_replay_exported": true,
       "external_cross_machine_attestation_required": true,
+      "external_cross_machine_replay_runbook_present": true,
+      "external_cross_machine_transcript_capture_script_present": true,
+      "external_cross_machine_transcript_template_present": true,
       "ok": true,
+      "template": "docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json",
+      "validation_command": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind external_cross_machine_replay_transcript --strict-release --path <transcript.json>",
       "vector_count": 9
     },
     "storage_ipfs": {
@@ -808,10 +816,10 @@
   },
   "evidence_inventory_ok": true,
   "external_operator_transcript_requirements": {
-    "artifact_digest": "c77cd6929b8f02b05992ea3781d37477c1a36151c14b60138e99307e03933c70",
+    "artifact_digest": "f183ed45dc73fa22a34a48fecc726728308cbf656447383ad78ac9ecec4d723d",
     "external_attestation_required_before_public_beta": true,
     "ok": true,
-    "schema_count": 3
+    "schema_count": 4
   },
   "mainnet_ready": false,
   "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",

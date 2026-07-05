@@ -73,6 +73,12 @@ The current readiness plan is maintained in
 | Tier C | Controlled validator rehearsal | `AUD-618-P0-001` can be reduced by invited operator rehearsal without claiming public validator safety. |
 | Tier D | Public validator beta / mainnet hardening | `AUD-618-P0-002`, `AUD-618-P0-003`, `AUD-618-P1-004`, and `AUD-618-P1-005`; plus any remaining public-validator/storage/helper/economics/legal gates. |
 
-The next external evidence target is `AUD-628-P1-001`. A local founder-run
-transcript may improve the runbook, but only an external clean-clone/open-download
-state-sync/rendered journey transcript can close that blocker.
+The current external-evidence targets are:
+
+- `AUD-628-P1-001` — external public observer open-download/state-sync/rendered journey transcript.
+- `AUD-618-P1-003` — external cross-machine replay transcript proving identical state roots, vectors, and tx-index hash.
+
+A local founder-run transcript may improve the runbook, but only external evidence
+from the documented commit can close either blocker.
+
+For `AUD-628-P1-001`, only an external clean-clone/open-download state-sync/rendered journey transcript can close the blocker. For `AUD-618-P1-003`, only an external cross-machine replay transcript from the documented commit can close the blocker.

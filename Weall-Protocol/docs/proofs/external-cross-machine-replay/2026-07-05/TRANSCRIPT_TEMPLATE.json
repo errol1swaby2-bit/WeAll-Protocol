@@ -1,0 +1,60 @@
+{
+  "schema": "weall.v1_5.external_cross_machine_replay_transcript",
+  "blocker": "AUD-618-P1-003",
+  "commit": "<same git commit on all machines>",
+  "branch": "<branch name>",
+  "operator_ids": ["<external operator id>"],
+  "machine_ids": ["<external-machine-a>", "<external-machine-b>"],
+  "machine_isolation": "two_physical_machines",
+  "operator_attestation": "external_replay_operator_signed",
+  "external_attestation_attached": true,
+  "machine_summaries": {
+    "<external-machine-a>": {
+      "packet_path": "machine-a/LOCAL_MACHINE_REPLAY_EVIDENCE.json",
+      "git_status_short_before_capture": "",
+      "replay_consistency_ok": true,
+      "fresh_node_replay_sync_ok": true
+    },
+    "<external-machine-b>": {
+      "packet_path": "machine-b/LOCAL_MACHINE_REPLAY_EVIDENCE.json",
+      "git_status_short_before_capture": "",
+      "replay_consistency_ok": true,
+      "fresh_node_replay_sync_ok": true
+    }
+  },
+  "state_root_vectors_sha256": "<same state_root_vectors_v1_5 sha256 on both machines>",
+  "tx_index_hash_by_machine": {
+    "<external-machine-a>": "<generated/tx_index.json sha256>",
+    "<external-machine-b>": "<generated/tx_index.json sha256>"
+  },
+  "state_root_by_machine": {
+    "<external-machine-a>": "<replay state root>",
+    "<external-machine-b>": "<replay state root>"
+  },
+  "replay_commands": [
+    "bash scripts/capture_external_cross_machine_replay_transcript_v1_5.sh --machine-id <external-machine-a> --operator-id <external-operator-id> --out-dir <out-dir>",
+    "bash scripts/capture_external_cross_machine_replay_transcript_v1_5.sh --machine-id <external-machine-b> --operator-id <external-operator-id> --out-dir <out-dir>"
+  ],
+  "replay_outputs": {
+    "machine_a_packet": "machine-a/LOCAL_MACHINE_REPLAY_EVIDENCE.json",
+    "machine_b_packet": "machine-b/LOCAL_MACHINE_REPLAY_EVIDENCE.json"
+  },
+  "same_commit": true,
+  "same_vectors": true,
+  "state_roots_match": true,
+  "tx_index_hash_match": true,
+  "external_machine_or_two_physical_machines": true,
+  "operator_signatures": ["<external operator signature or controlled attestation reference>"],
+  "claim_boundaries": {
+    "public_beta_ready": false,
+    "mainnet_ready": false,
+    "public_validator_enabled": false,
+    "public_multi_validator_bft": false,
+    "live_economics": false,
+    "automatic_protocol_upgrades": false,
+    "production_helper_execution": false,
+    "legal_compliance_ready": false,
+    "public_storage_provider_market": false
+  },
+  "transcript_digest": "<sha256 of canonical transcript without this field>"
+}

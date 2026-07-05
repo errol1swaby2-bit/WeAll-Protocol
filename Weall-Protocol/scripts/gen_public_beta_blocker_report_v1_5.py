@@ -63,11 +63,20 @@ def _artifact_summary(rel: str) -> Json:
 def _state_root_summary() -> Json:
     payload = _load_json("generated/state_root_vectors_v1_5.json")
     vectors = payload.get("vectors") if isinstance(payload.get("vectors"), list) else []
+    capture_script = ROOT / "scripts" / "capture_external_cross_machine_replay_transcript_v1_5.sh"
+    transcript_template = ROOT / "docs" / "proofs" / "external-cross-machine-replay" / "2026-07-05" / "TRANSCRIPT_TEMPLATE.json"
+    runbook = ROOT / "docs" / "testnet" / "EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md"
     return {
         "ok": bool(payload.get("schema") == "weall.v1_5.state_root_vectors" and len(vectors) >= 8),
         "vector_count": len(vectors),
         "cross_machine_replay_exported": True,
         "external_cross_machine_attestation_required": True,
+        "external_cross_machine_transcript_capture_script_present": capture_script.exists(),
+        "external_cross_machine_transcript_template_present": transcript_template.exists(),
+        "external_cross_machine_replay_runbook_present": runbook.exists(),
+        "capture_script": "scripts/capture_external_cross_machine_replay_transcript_v1_5.sh",
+        "template": "docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json",
+        "validation_command": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind external_cross_machine_replay_transcript --strict-release --path <transcript.json>",
         "artifact_digest": _digest(payload) if payload else "",
     }
 
@@ -353,12 +362,12 @@ def build() -> Json:
             "AUD-618-P1-003",
             "P1",
             ["public_beta"],
-            "State-root vectors exist but need explicit cross-machine replay export status.",
-            "Cross-machine/cross-implementation vector replay export and external attestation path.",
-            "state_root_cross_machine_export_gate",
-            "gate_present_external_attestation_required" if state_roots.get("ok") else "gate_failed",
-            True,
-            ["external machine replay transcript"],
+            "State-root vectors and transcript capture tooling exist, but no external cross-machine replay transcript is attached.",
+            "External/two-physical-machine replay transcript proving identical state roots, vector digest, and tx-index hash on the same commit.",
+            "external_cross_machine_replay_transcript_schema",
+            "gate_present_external_transcript_required" if state_roots.get("ok") and external_requirements.get("ok") else "gate_failed",
+            False,
+            ["external machine replay transcript", "same-commit state-root replay transcript", "matching tx-index hash transcript"],
         ),
         _blocker(
             "AUD-618-P1-004",
