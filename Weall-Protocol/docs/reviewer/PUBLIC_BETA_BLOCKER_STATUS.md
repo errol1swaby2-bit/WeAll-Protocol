@@ -59,3 +59,20 @@ source .venv/bin/activate
 PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
 ```
+
+## Canonical testnet readiness tier mapping
+
+The current readiness plan is maintained in
+`docs/audits/public_observer_testnet_readiness_plan_v1_5.md` and summarized in
+`docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md`.
+
+| Tier | Scope | Blockers/evidence handled |
+| --- | --- | --- |
+| Tier A | Controlled local reviewer testnet | Local deterministic artifacts, release hygiene, controlled-testnet mechanism gates, source-level UX evidence. |
+| Tier B | Public observer testnet | `AUD-628-P1-001` external open-download/state-sync/rendered journey transcript and `AUD-618-P1-003` external replay transcript. |
+| Tier C | Controlled validator rehearsal | `AUD-618-P0-001` can be reduced by invited operator rehearsal without claiming public validator safety. |
+| Tier D | Public validator beta / mainnet hardening | `AUD-618-P0-002`, `AUD-618-P0-003`, `AUD-618-P1-004`, and `AUD-618-P1-005`; plus any remaining public-validator/storage/helper/economics/legal gates. |
+
+The next external evidence target is `AUD-628-P1-001`. A local founder-run
+transcript may improve the runbook, but only an external clean-clone/open-download
+state-sync/rendered journey transcript can close that blocker.
