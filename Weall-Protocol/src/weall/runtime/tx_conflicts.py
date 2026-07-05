@@ -320,7 +320,18 @@ _register_many(
     BarrierClass.AUTHORITY_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["GOV_EXECUTE", "PROTOCOL_UPGRADE_DECLARE", "PROTOCOL_UPGRADE_ACTIVATE"], TxFamily.GOVERNANCE, BarrierClass.GLOBAL_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    [
+        "GOV_EXECUTE",
+        "PROTOCOL_UPGRADE_DECLARE",
+        "PROTOCOL_UPGRADE_ACTIVATE",
+        "CONSTITUTION_UPGRADE_DECLARE",
+        "CONSTITUTION_UPGRADE_ACTIVATE",
+    ],
+    TxFamily.GOVERNANCE,
+    BarrierClass.GLOBAL_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
 _register_many(
     [

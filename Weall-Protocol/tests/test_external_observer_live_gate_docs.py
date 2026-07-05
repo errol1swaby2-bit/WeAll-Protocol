@@ -48,8 +48,8 @@ def test_frontend_action_lifecycle_copy_distinguishes_recorded_from_done() -> No
     feedback = (WEB_ROOT / "src" / "lib" / "txFeedback.ts").read_text(encoding="utf-8")
     toast = (WEB_ROOT / "src" / "components" / "TxStatusToast.tsx").read_text(encoding="utf-8")
     card = (WEB_ROOT / "src" / "components" / "ActionLifecycleCard.tsx").read_text(encoding="utf-8")
-    assert 'case "recorded":\n      return "Recorded"' in feedback
-    assert "Recorded by the backend. Waiting for confirmation or visible state." in toast
-    assert "The action is confirmed and visible." in toast
+    assert 'case "recorded":\n      return "Accepted / queued"' in feedback
+    assert "Accepted or queued by the backend. This is not final confirmation." in toast
+    assert "final confirmed state for this node" in toast
     assert "backend accepted or recorded" in card
     assert "confirmed and visible" in card

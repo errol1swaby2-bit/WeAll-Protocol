@@ -352,7 +352,7 @@ def test_stale_profile_tx_index_and_validator_set_handshakes_fail_closed() -> No
 def test_helper_contract_map_keeps_global_authority_serial_and_bounded() -> None:
     helper_map = json.loads((ROOT / "generated" / "helper_contract_map.json").read_text(encoding="utf-8"))
     summary = helper_map["summary"]
-    assert summary["tx_count"] == 234
+    assert summary["tx_count"] == 236
     assert summary["global_authority_parallel_count"] == 0
     assert summary["unknown_family_count"] == 0
     assert summary["effective_lane_counts"]["SERIAL"] >= summary["helper_eligible_count"]

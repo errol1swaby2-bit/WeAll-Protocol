@@ -37,8 +37,8 @@ def test_removed_external_identity_txs_are_absent_from_canon_and_generated_artif
     assert not hits, "\n".join(hits)
 
 
-def test_generated_tx_index_count_is_225_after_external_identity_removal() -> None:
+def test_generated_tx_index_count_matches_current_canon_after_external_identity_removal() -> None:
     data = json.loads((ROOT / "generated/tx_index.json").read_text(encoding="utf-8"))
     by_name = data.get("by_name") or data.get("tx_types") or {}
     if isinstance(by_name, dict):
-        assert len(by_name) == 234
+        assert len(by_name) == 236

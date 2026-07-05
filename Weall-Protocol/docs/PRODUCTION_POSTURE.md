@@ -253,7 +253,7 @@ Violations of this production posture MUST result in:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **234 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
 - Latest full backend test checkpoint: **3636 passed, 3 warnings**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
@@ -267,4 +267,4 @@ Violations of this production posture MUST result in:
 - Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
-Current tx canon checkpoint: 234 tx types, version 1.25.0.
+Current tx canon checkpoint: 236 tx types, version 1.25.0.

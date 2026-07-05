@@ -444,4 +444,4 @@ readiness until the external transcript requirements in
 `Weall-Protocol/generated/external_operator_transcript_requirements_v1_5.json`
 and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied.
 
-Current tx canon checkpoint: 234 tx types, version 1.25.0.
+Current tx canon checkpoint: 236 tx types, version 1.25.0.

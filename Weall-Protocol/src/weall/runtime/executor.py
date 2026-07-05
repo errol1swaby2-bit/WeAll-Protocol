@@ -1256,7 +1256,8 @@ class WeAllExecutor:
 
     @staticmethod
     def _batch_timing_ms(start_ns: int) -> float:
-        return round(float(time.perf_counter_ns() - int(start_ns)) / 1_000_000.0, 3)
+        elapsed_ns = max(0, time.perf_counter_ns() - int(start_ns))
+        return round(elapsed_ns / 1_000_000, 3)
 
     @staticmethod
     def _empty_submit_batch_timings() -> dict[str, float]:
@@ -1272,7 +1273,10 @@ class WeAllExecutor:
 
     @staticmethod
     def _add_submit_batch_timing(timings: dict[str, float], key: str, start_ns: int) -> None:
-        timings[key] = round(float(timings.get(key, 0.0)) + WeAllExecutor._batch_timing_ms(start_ns), 3)
+        current = timings.get(key, 0.0)
+        if not isinstance(current, (int, float)):
+            current = 0.0
+        timings[key] = round(current + WeAllExecutor._batch_timing_ms(start_ns), 3)
 
     def submit_txs_batch(
         self,
@@ -1390,14 +1394,15 @@ class WeAllExecutor:
                 for key in timings:
                     if key == "tx_submit_total_wall_ms":
                         continue
-                    try:
-                        timings[key] = round(float(timings.get(key, 0.0)) + float(mempool_timings.get(key, 0.0)), 3)
-                    except Exception:
+                    current = timings.get(key, 0.0)
+                    incoming = mempool_timings.get(key, 0.0)
+                    if not isinstance(current, (int, float)) or not isinstance(incoming, (int, float)):
                         continue
+                    timings[key] = round(current + incoming, 3)
 
         if timings is not None:
             timings["tx_submit_total_wall_ms"] = self._batch_timing_ms(total_start)
-            timings = {k: round(float(v), 3) for k, v in timings.items()}
+            timings = {k: round(v, 3) if isinstance(v, (int, float)) else v for k, v in timings.items()}
             for result in results:
                 result["timings_ms"] = dict(timings)
         return results
