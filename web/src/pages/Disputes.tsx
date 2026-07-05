@@ -11,6 +11,7 @@ import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { actionableTxError } from "../lib/txAction";
 import { refreshMutationSlices } from "../lib/revalidation";
+import { currentProcedureHeight, disputeDeadlineHeight } from "../lib/procedureClock";
 import { reportStageLabel, reviewChoiceLabel, reviewStatusLabel, reviewTallyText } from "../lib/userLanguage";
 import {
   disputeAttendancePresent,
@@ -39,6 +40,13 @@ function disputeScopeText(filter: string): string {
   if (filter === "assigned") return "Only reports assigned to you for review are shown.";
   if (filter === "mine") return "Only reports opened by this account are shown.";
   return "This queue is for browsing reports and opening the right detail or review page.";
+}
+
+function queueDeadlineText(dispute: any): string {
+  const current = currentProcedureHeight(dispute);
+  const deadline = disputeDeadlineHeight(dispute);
+  if (!deadline) return "No backend deadline exposed";
+  return `${current || "—"} → ${deadline}`;
 }
 
 function queueNextAction(params: {
@@ -157,7 +165,7 @@ export default function Disputes(): JSX.Element {
           <div className="surfaceSummaryRow">
             <div>
               <h1 className="heroTitle heroTitleSm">Reports</h1>
-              <p className="heroSubtitle">Browse reported content, see what needs attention, and open assigned review work when selected.</p>
+              <p className="heroSubtitle">Browse public report records, inspect review status, and open assigned work without treating the queue as a private inbox or a final outcome.</p>
             </div>
             <div className="surfaceSummaryStats">
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{filtered.length}</strong><span className="surfaceSummaryHint">visible reports</span></div>
@@ -174,17 +182,18 @@ export default function Disputes(): JSX.Element {
       <section className="surfaceBoundaryBar" aria-label="How reports work">
         <div className="surfaceBoundaryHeader">
           <div>
-            <h2 className="surfaceBoundaryTitle">Reports move from submission to community review.</h2>
+            <h2 className="surfaceBoundaryTitle">Reports move through a public dispute timeline.</h2>
             <p className="surfaceBoundaryText">
-              Open a report to read the context. Selected Community Reviewers use the review page to choose what should happen next.
+              Report records, review tallies, appeals, and outcomes are public civic state. Selected Community Reviewers use the review page to choose what should happen next; raw PoH/video/government identity evidence must stay protected.
             </p>
           </div>
           <span className="statusPill">Browse</span>
         </div>
         <div className="surfaceBoundaryList">
-          <span className="surfaceBoundaryTag">Browse reports</span>
-          <span className="surfaceBoundaryTag">Read context</span>
+          <span className="surfaceBoundaryTag">Browse public report records</span>
+          <span className="surfaceBoundaryTag">Submission → assignment → attendance → vote → appeal → finalization</span>
           <span className="surfaceBoundaryTag">Review when selected</span>
+          <span className="surfaceBoundaryTag">Finality comes from backend block height</span>
         </div>
       </section>
 
@@ -231,7 +240,7 @@ export default function Disputes(): JSX.Element {
               </select>
             </label>
           </div>
-          <div className="cardDesc">{disputeScopeText(filter)}</div>
+          <div className="cardDesc">{disputeScopeText(filter)} Report visibility is public-read; reviewer actions remain permissioned signed transactions.</div>
         </div>
       </section>
 
@@ -284,6 +293,11 @@ export default function Disputes(): JSX.Element {
                     <div className="summaryCardLabel">Review attendance</div>
                     <div className="summaryCardValue">{present ? "Present" : status === "unassigned" ? "N/A" : "Not yet"}</div>
                     <div className="summaryCardText">Review choices should not unlock until assignment and attendance are clear.</div>
+                  </article>
+                  <article className="summaryCard">
+                    <div className="summaryCardLabel">Deadline blocks</div>
+                    <div className="summaryCardValue mono">{queueDeadlineText(item)}</div>
+                    <div className="summaryCardText">Browser time cannot close, appeal, or finalize a report.</div>
                   </article>
                 </div>
 

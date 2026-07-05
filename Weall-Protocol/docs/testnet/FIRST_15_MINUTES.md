@@ -66,8 +66,9 @@ From the frontend:
 7. Browse **Feed**, **Groups**, **Decisions**, **Reports**, and **Review Center**. Compare Feed/Create Post/Thread behavior against [Public social flow readiness](PUBLIC_SOCIAL_FLOW_READINESS.md).
 8. Open **Decisions** and compare the queue/detail/create/vote flow against [Governance rendered journey readiness](GOVERNANCE_RENDERED_JOURNEY.md).
 9. Open a public group and compare the directory/detail/create flow against [Group flow readiness](GROUP_FLOW_READINESS.md).
-10. Submit only a low-risk test action if the account state permits it.
-11. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
+10. Open **Reports** and **Review Center** and compare dispute queue/detail/review behavior against [Dispute and review rendered journey readiness](DISPUTE_REVIEW_RENDERED_JOURNEY.md).
+11. Submit only a low-risk test action if the account state permits it.
+12. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
 
 The user journey should be understandable without opening advanced developer tools.
 
@@ -109,6 +110,8 @@ For an external observer transcript, capture:
 - Home status cards screenshot;
 - Personal Node screenshot;
 - Decisions queue/detail/timeline screenshot;
+- Reports queue/detail/review-timeline screenshot;
+- Review Center lane and consent-boundary screenshot;
 - Transactions page screenshot after any submitted action or honest fail-closed result;
 - any errors with exact command/output.
 
@@ -156,3 +159,16 @@ Open **Decisions**, a decision detail page, and the create-decision page. Expect
 - latest action output points the tester back to Transactions rather than claiming finality.
 
 See `docs/testnet/GOVERNANCE_RENDERED_JOURNEY.md` for the governance-flow checklist.
+
+## 7. Inspect the dispute and review rendered journey
+
+Open **Reports**, a report detail page, **Review Center**, and a report review action route if one is assigned. Expected behavior:
+
+- report records, tallies, appeals, and outcomes are described as public civic state;
+- raw PoH/video/government identity evidence is not exposed through broad report pages;
+- the lifecycle is understandable: `submission → assignment → acceptance/decline → attendance/check-in → review vote → tally/outcome → appeal window → appeal review if filed → finalization`;
+- review, withdrawal, timeout, appeal, and finalization windows are based on backend block height, not browser timers;
+- accept, decline, withdraw, Keep Post, Remove Post, and Need More Review are signed transactions;
+- no submitted review action is called final until Transactions/read-model reconciliation shows it.
+
+See `docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md` for the dispute/review checklist.

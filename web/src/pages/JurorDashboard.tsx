@@ -572,7 +572,7 @@ export default function JurorDashboard(): JSX.Element {
         right={<span className={`statusPill ${REVIEW_LANES.some((lane) => reviewerLaneActive(lane.id)) ? "ok" : ""}`}>{REVIEW_LANES.filter((lane) => reviewerLaneActive(lane.id)).length} active lane(s)</span>}
       >
         <p className="cardDesc">
-          The generic combined case surface has been normalized into explicit lanes. Content disputes are not silently mixed with PoH reviews, and every action below names its backend source and consent boundary.
+          The generic combined case surface has been normalized into explicit lanes. Content disputes are not silently mixed with PoH reviews, and every action below names its backend source and consent boundary. This is a public outcome work queue, not a private inbox: report status, votes, appeals, and outcomes are public civic records while raw PoH/video/government identity evidence stays behind reviewer acceptance gates.
         </p>
         <div className="summaryCardGrid">
           {REVIEW_LANES.map((lane) => {

@@ -305,7 +305,7 @@
       "frontend_contract_gate_present": true,
       "ok": true,
       "requires_fresh_checkout_transcript_after_commit": true,
-      "root_gate_executable_in_this_checkout": true,
+      "root_gate_executable_in_this_checkout": false,
       "root_gate_path": "scripts/run_clean_clone_go_gate_v1_5.sh",
       "root_gate_present": true
     },
@@ -437,7 +437,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "459c157cfeab74c3bb3b27f559346da918567f8fee8ddf30324a3e0a21d54341",
+      "artifact_digest": "c2e4b07ca332c85c376f11d6ea90a4874cbf3b160379c8589dc3185c2ba5ada3",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",

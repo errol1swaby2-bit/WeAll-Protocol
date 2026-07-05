@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import ActionLifecycleCard from "../components/ActionLifecycleCard";
+import ProcedureTimeline from "../components/ProcedureTimeline";
 import MediaGallery from "../components/MediaGallery";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -24,6 +25,7 @@ import {
 } from "../lib/disputeSurface";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
+import { currentProcedureHeight, disputeDeadlineHeight, targetBlockIntervalMs } from "../lib/procedureClock";
 
 // Compatibility anchors for older frontend/backend congruity tests. The live
 // submit buttons below include canonical outcome fields, but these summaries
@@ -147,6 +149,11 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const contentAuthor = String(contentObj?.author || "").trim();
   const contentGroup = String(contentObj?.group_id || contentObj?.scope_id || "").trim();
   const contentMedia = asArray(contentObj?.media);
+  const reviewProcedureHeight = currentProcedureHeight(dispute);
+  const reviewDeadline = disputeDeadlineHeight(dispute);
+  const reviewIntervalMs = targetBlockIntervalMs(dispute);
+  const withdrawalDeadline = Number(dispute?.withdrawal_deadline_height || dispute?.free_withdrawal_deadline_height || 0) || 0;
+  const finalizationHeight = Number(dispute?.finalized_height || dispute?.finalized_at_height || dispute?.resolution_height || 0) || 0;
   const removeContentActions = targetId
     ? [
         { tx_type: "CONTENT_LABEL_SET", payload: { target_id: targetId, labels: ["dispute_upheld", "policy_violation"] } },
@@ -236,6 +243,34 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
       />
       <div className="calloutInfo">{lockReason}</div>
 
+      <ProcedureTimeline
+        title="Dispute review action timeline"
+        stage={String(dispute?.stage || "open")}
+        currentHeight={reviewProcedureHeight}
+        deadlineHeight={reviewDeadline}
+        targetBlockIntervalMs={reviewIntervalMs}
+        authorityLabel="Review, withdrawal, timeout, appeal, and finalization windows are controlled by backend block heights, not browser timers."
+        nextAction={lockReason}
+      >
+        <div className="summaryCardGrid">
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Withdrawal window</div>
+            <div className="summaryCardValue mono">{withdrawalDeadline || "backend supplied"}</div>
+            <div className="summaryCardText">Early withdrawal should remain lighter than timeout when protocol state still allows it.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Finalization height</div>
+            <div className="summaryCardValue mono">{finalizationHeight || "—"}</div>
+            <div className="summaryCardText">This page must not call a review final until backend/finalized block state says so.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Receipt path</div>
+            <div className="summaryCardValue">Transactions</div>
+            <div className="summaryCardText">Accept, decline, withdraw, and final choices are signed transactions; inspect inclusion, rejection, or finality on the Transactions page.</div>
+          </article>
+        </div>
+      </ProcedureTimeline>
+
       <section className="detailFocusStrip actionFocusStrip">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Primary object</div>
@@ -250,7 +285,12 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Interaction boundary</div>
           <div className="detailFocusValue">Action route only</div>
-          <div className="detailFocusText">Use this page to accept, decline, or record the final review choice. Queue browsing and report explanation live on the other routes.</div>
+          <div className="detailFocusText">Use this page to accept, decline, withdraw, or record the final review choice. Queue browsing and report explanation live on the other routes.</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Evidence boundary</div>
+          <div className="detailFocusValue">Public target, protected identity material</div>
+          <div className="detailFocusText">Content under dispute is public civic state. Protected PoH/video/government identity evidence must only unlock through reviewer-specific acceptance gates.</div>
         </article>
       </section>
 
@@ -348,7 +388,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "abstain" }, "Need More Review", "Need More Review choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Need More Review"}</button>
           </div>
           <div className="infoCard compact"><div className="infoCardHeader"><span className="statusPill">Juror reputation</span><strong>Canonical review obligation</strong></div><div className="infoCardText">{reputationWarning}</div></div>
-          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept, withdraw, or vote using signed protocol transactions. The backend returns canonical deadlines and classifies all reputation outcomes; the frontend only displays countdowns and warnings.</div>
+          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept, decline, withdraw, or vote using signed protocol transactions. The backend returns canonical deadlines and classifies all reputation outcomes; the frontend only displays countdowns and warnings. A submitted review is not final until transaction status and the dispute read model reconcile.</div>
         </div>
       </section>
 

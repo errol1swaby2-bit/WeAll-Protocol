@@ -182,6 +182,16 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   const appealWindowOpen = disputeStage === "appeal_window" || disputeStage === "appealed" || disputeStage === "appeal_review";
   const appealDeadlinePassed = Number(dispute?.appeal_deadline_height || 0) > 0 && disputeProcedureHeight > Number(dispute?.appeal_deadline_height || 0);
   const appealEligibility = asRecord(dispute?.appeal_eligibility);
+  const outcomeRecord = asRecord(dispute?.outcome || dispute?.resolution || dispute?.final_outcome);
+  const outcomeSummary = String(outcomeRecord?.summary || outcomeRecord?.outcome || dispute?.outcome_summary || dispute?.resolution_summary || "No outcome has finalized yet.");
+  const finalizedHeight = Number(dispute?.finalized_height || dispute?.finalized_at_height || dispute?.resolution_height || 0) || 0;
+  const reasoningRecords = Array.isArray(dispute?.reviewer_notes)
+    ? dispute.reviewer_notes.length
+    : Array.isArray(dispute?.reasoning_records)
+      ? dispute.reasoning_records.length
+      : Array.isArray(dispute?.votes)
+        ? dispute.votes.length
+        : 0;
   const targetOwner = String(appealEligibility?.target_owner || dispute?.target_owner || contentAuthor || "").trim();
   const appealActorEligible =
     appealEligibility?.can_file === true ||
@@ -291,6 +301,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         currentHeight={disputeProcedureHeight}
         deadlineHeight={disputeDeadline}
         targetBlockIntervalMs={disputeIntervalMs}
+        authorityLabel="Dispute review uses backend block height as authority. Wall-clock time is only a display estimate and cannot trigger timeout, appeal, or finalization."
         nextAction={String(dispute?.stage || "").toLowerCase() === "appeal_window" ? "Appeals are open until the deadline block. Sanctions should not finalize before that window closes." : hint}
       >
         <div className="summaryCardGrid">
@@ -307,7 +318,12 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
           <article className="summaryCard">
             <div className="summaryCardLabel">Block-height truth</div>
             <div className="summaryCardValue mono">{disputeProcedureHeight || "—"} → {disputeDeadline || "—"}</div>
-            <div className="summaryCardText">Review windows, appeal windows, missed-vote outcomes, and finalization must follow backend block heights, not browser wall-clock time.</div>
+            <div className="summaryCardText">Review windows, withdrawal windows, appeal windows, missed-vote outcomes, and finalization must follow backend block heights, not browser wall-clock time.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Canonical dispute path</div>
+            <div className="summaryCardValue">Review ladder</div>
+            <div className="summaryCardText">submission → assignment → acceptance → attendance → vote → tally → appeal window → finalization.</div>
           </article>
         </div>
       </ProcedureTimeline>
@@ -372,6 +388,37 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         </div>
       </section>
       ) : null}
+
+      <section className="card">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Outcome and reasoning trail</div>
+              <h2 className="cardTitle">Public records without exposing protected identity evidence</h2>
+            </div>
+            <div className="statusSummary">
+              <span className={`statusPill ${finalizedHeight ? "ok" : ""}`}>{finalizedHeight ? "Finalized by backend" : "Not finalized"}</span>
+            </div>
+          </div>
+          <div className="summaryCardGrid">
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Outcome summary</div>
+              <div className="summaryCardValue">{dispute?.resolved ? "Resolved" : "Pending"}</div>
+              <div className="summaryCardText">{outcomeSummary}</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Finalized height</div>
+              <div className="summaryCardValue mono">{finalizedHeight || "—"}</div>
+              <div className="summaryCardText">Only backend/finalized block state can mark a dispute final.</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Public reasoning records</div>
+              <div className="summaryCardValue mono">{reasoningRecords || "—"}</div>
+              <div className="summaryCardText">Reviewer notes, votes, appeals, and outcome records may be public; raw PoH/video/government identity evidence must not be rendered here.</div>
+            </article>
+          </div>
+        </div>
+      </section>
 
       <section className="detailFocusStrip">
         <article className="detailFocusCard">
