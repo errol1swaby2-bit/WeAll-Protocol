@@ -137,6 +137,7 @@ configs/local/
 !generated/public_registry_signer_operations_v1_5.json
 !generated/protocol_upgrade_execution_hardening_plan_v1_5.json
 !generated/production_helper_topology_hardening_plan_v1_5.json
+!generated/final_public_observer_controlled_testnet_go_gate_v1_5.json
 
 !generated/reputation_event_registry_v1_5.json
 

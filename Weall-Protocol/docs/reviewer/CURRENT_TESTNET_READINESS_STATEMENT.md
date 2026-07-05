@@ -101,3 +101,9 @@ PYTHONPATH=src python -m pytest -q tests/prod/test_public_observer_testnet_readi
 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 ```
+
+## Pass 27 final go-gate package
+
+The final repository-side go-gate package is maintained in `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json`, `docs/reviewer/EVIDENCE_INDEX.md`, `docs/reviewer/CURRENT_READINESS_STATEMENT.md`, `docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md`, `docs/testnet/TESTNET_LAUNCH_CHECKLIST.md`, and `docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md`.
+
+The current verdict is GO for controlled internal/public-observer rehearsal candidate and NO-GO for public beta, public observer launch claims, mainnet, public validator/BFT, live economics, automatic upgrades, production helpers, legal approval, and public storage-market readiness until the external evidence gates are satisfied.

@@ -114,3 +114,16 @@ Reviewer command:
 ```bash
 PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check
 ```
+
+## Final go-gate package
+
+Pass 27 adds the final repository-side bounded testnet package:
+
+- `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json`;
+- `docs/reviewer/EVIDENCE_INDEX.md`;
+- `docs/reviewer/CURRENT_READINESS_STATEMENT.md`;
+- `docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md`;
+- `docs/testnet/TESTNET_LAUNCH_CHECKLIST.md`;
+- `docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md`.
+
+This package is GO for controlled internal/public-observer rehearsal candidate only. It is NO-GO for public beta readiness and does not close any of the seven still-open external evidence or mainnet-hardening blockers.

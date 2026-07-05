@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "66319e98c1bfd421fa87a920cbda12715cc21ae38131d8d17656ccdf558d7c31",
+  "artifact_digest": "aa65323e2a1922b1adb998ee6e1937849cea31138e72746b2e5ee39b24599974",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -45,6 +45,15 @@
       "sample_transcripts_are_rejected_in_strict_release": true,
       "template": "docs/proofs/independent-controlled-validator-operator/2026-07-05/TRANSCRIPT_TEMPLATE.json",
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --strict-release --path <transcript.json>"
+    },
+    "final_public_observer_controlled_testnet_go_gate": {
+      "artifact": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+      "controlled_rehearsal_candidate_allowed": true,
+      "public_beta_ready": false,
+      "public_observer_launch_claim_ready": false,
+      "required_before_any_public_observer_or_public_beta_claim": true,
+      "runbook": "docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check"
     },
     "legal_compliance_attestation": {
       "blocker": "AUD-618-P0-002",
@@ -166,6 +175,13 @@
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.failure_code_registry"
+    },
+    "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json": {
+      "file_sha256": "327a1e26a3c609c55076158f7789e7ab24477f93f0bbf34b0909230203204af8",
+      "ok": true,
+      "path": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.final_public_observer_controlled_testnet_go_gate"
     },
     "generated/production_helper_topology_hardening_plan_v1_5.json": {
       "file_sha256": "12f5f0f86da4d05d2896446e9ec3f915bc2f782ee6e9014c3c03abed46b1954e",

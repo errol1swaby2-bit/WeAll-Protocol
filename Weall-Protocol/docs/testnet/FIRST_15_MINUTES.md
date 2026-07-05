@@ -260,3 +260,13 @@ Capture the generated artifact check output:
 ```bash
 PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check
 ```
+
+## Final go-gate package
+
+Before a tester transcript is treated as release evidence, check `docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` and run:
+
+```bash
+PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check
+```
+
+A local first-run journey can support controlled rehearsal readiness. It cannot close `AUD-628-P1-001` unless the documented external open-download/state-sync/rendered journey transcript is attached.

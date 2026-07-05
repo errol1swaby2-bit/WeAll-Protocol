@@ -43,6 +43,7 @@ _TRACKED_ARTIFACTS = [
     "generated/public_registry_signer_operations_v1_5.json",
     "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
     "generated/production_helper_topology_hardening_plan_v1_5.json",
+    "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
 ]
 
 
@@ -201,6 +202,15 @@ def build() -> Json:
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>",
                 "counsel_or_control_attestation_required": True,
                 "sample_templates_are_rejected_in_strict_release": True,
+            },
+            "final_public_observer_controlled_testnet_go_gate": {
+                "required_before_any_public_observer_or_public_beta_claim": True,
+                "artifact": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+                "runbook": "docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+                "validator": "PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check",
+                "controlled_rehearsal_candidate_allowed": True,
+                "public_beta_ready": False,
+                "public_observer_launch_claim_ready": False,
             },
             "rendered_operator_journey": {
                 "required_before_public_beta": True,

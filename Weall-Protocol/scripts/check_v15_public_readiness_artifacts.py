@@ -37,6 +37,7 @@ RELEASE_ARTIFACTS = [
     Path("generated/public_registry_signer_operations_v1_5.json"),
     Path("generated/protocol_upgrade_execution_hardening_plan_v1_5.json"),
     Path("generated/production_helper_topology_hardening_plan_v1_5.json"),
+    Path("generated/final_public_observer_controlled_testnet_go_gate_v1_5.json"),
     Path("generated/release_evidence_manifest_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
@@ -478,6 +479,32 @@ def _check_production_helper_topology_hardening_plan() -> list[str]:
             errors.append(f"production helper topology hardening plan must keep {key}=false")
     return errors
 
+
+def _check_final_public_observer_controlled_testnet_go_gate() -> list[str]:
+    errors: list[str] = []
+    from gen_final_public_observer_controlled_testnet_go_gate_v1_5 import build as build_final_go_gate
+
+    payload = _load_json(Path("generated/final_public_observer_controlled_testnet_go_gate_v1_5.json"))
+    expected = build_final_go_gate()
+    if payload != expected:
+        errors.append("final_public_observer_controlled_testnet_go_gate_v1_5.json is stale; rerun generator")
+    if payload.get("schema") != "weall.v1_5.final_public_observer_controlled_testnet_go_gate":
+        errors.append("final public observer controlled testnet go-gate schema mismatch")
+    verdict = payload.get("go_no_go_verdict") if isinstance(payload.get("go_no_go_verdict"), dict) else {}
+    if verdict.get("controlled_internal_public_observer_rehearsal_candidate") != "GO":
+        errors.append("final go-gate must be GO only for controlled internal/public-observer rehearsal candidate")
+    for key in ("bounded_public_observer_launch_claim", "public_beta_claim", "public_mainnet_claim", "public_validator_bft_claim"):
+        if not str(verdict.get(key, "")).startswith("NO_GO"):
+            errors.append(f"final go-gate must keep {key} as NO_GO")
+    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    for key in ("public_beta_ready", "mainnet_ready", "public_multi_validator_bft", "production_helper_execution", "automatic_protocol_upgrades", "live_economics", "legal_compliance_ready"):
+        if boundaries.get(key) is not False:
+            errors.append(f"final go-gate must keep {key}=false")
+    counts = payload.get("blocker_counts") if isinstance(payload.get("blocker_counts"), dict) else {}
+    if counts.get("remaining_blocker_count") != 7:
+        errors.append("final go-gate must preserve seven open blocker count")
+    return errors
+
 def _check_release_evidence_manifest() -> list[str]:
     errors: list[str] = []
     from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
@@ -596,6 +623,7 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(_check_public_registry_signer_operations())
         errors.extend(_check_protocol_upgrade_execution_hardening_plan())
         errors.extend(_check_production_helper_topology_hardening_plan())
+        errors.extend(_check_final_public_observer_controlled_testnet_go_gate())
         errors.extend(_check_release_evidence_manifest())
         errors.extend(_check_controlled_testnet_go_gate())
         errors.extend(_check_reputation_artifacts())
