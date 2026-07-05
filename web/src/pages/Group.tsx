@@ -301,6 +301,13 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const groupReadVisibility = String(governanceContract?.public_only_contract?.read_visibility || "public");
   const adminShortcutsSupported = governanceContract?.authority_contract?.admin_shortcuts_supported === true;
   const permissionSummary = governanceContract?.participation_permissions || {};
+  const activeGroupElections = Array.isArray(governanceContract?.authority_contract?.active_group_elections)
+    ? governanceContract?.authority_contract?.active_group_elections || []
+    : [];
+  const contractCounts = governanceContract?.counts || {};
+  const signerThreshold = governanceContract?.authority_contract?.signer_threshold;
+  const signerCount = governanceContract?.authority_contract?.signer_count;
+  const moderatorCount = governanceContract?.authority_contract?.moderator_count;
 
   return (
     <div className="pageStack groupDetailPage">
@@ -311,7 +318,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="eyebrow">Group detail</div>
               <h1 className="heroTitle heroTitleSm">{detailName}</h1>
               <p className="heroText">
-                See what this group is about, check your membership status, and preview recent posts from the community.
+                Read the public group charter, inspect membership and governance posture, and use signed actions only for participation changes.
               </p>
             </div>
 
@@ -319,7 +326,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="heroInfoTitle">Group status</div>
               <div className="heroInfoList">
                 <span className="statusPill mono">{selected || "No group id"}</span>
-                <span className="statusPill">Public reads</span>
+                <span className="statusPill">Public reads · member-gated participation</span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
                   {membershipGate.ok ? "Can join" : "Complete verification to join"}
                 </span>
@@ -338,12 +345,12 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <span className="statValue">{acct ? (isMember ? "Member" : isPendingMembership ? "Pending" : "Not a member") : "Read-only"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Visibility</span>
+              <span className="statLabel">Read visibility</span>
               <span className="statValue">Public</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Recent posts</span>
-              <span className="statValue">{groupPosts.length}</span>
+              <span className="statLabel">Active elections</span>
+              <span className="statValue">{Number(contractCounts.active_elections || activeGroupElections.length || 0)}</span>
             </div>
           </div>
         </div>
@@ -375,13 +382,16 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="eyebrow">Group governance contract</div>
               <h2 className="cardTitle">Protocol governance scaled to group scope</h2>
               <div className="cardDesc">
-                This is a public derived read model. It does not grant authority; it explains how this group surface maps reads, membership, actions, and audit trails.
+                This is a public derived read model. It does not grant authority; it explains how this group surface maps reads, membership, actions, emissary records, and audit trails.
               </div>
             </div>
           </div>
           <div className="surfaceBoundaryList">
             <span className="surfaceBoundaryTag">Model: {groupGovernanceModel.replace(/_/g, " ")}</span>
             <span className="surfaceBoundaryTag">Reads: {groupReadVisibility}</span>
+            <span className="surfaceBoundaryTag">Signer threshold: {signerThreshold == null ? "not returned" : String(signerThreshold)}</span>
+            <span className="surfaceBoundaryTag">Signers: {signerCount == null ? "not returned" : String(signerCount)}</span>
+            <span className="surfaceBoundaryTag">Moderators: {moderatorCount == null ? "not returned" : String(moderatorCount)}</span>
             <span className="surfaceBoundaryTag">Admin shortcuts: {adminShortcutsSupported ? "unsupported contract violated" : "not exposed"}</span>
             <span className="surfaceBoundaryTag">Frontend cache authority: never</span>
           </div>
@@ -410,6 +420,41 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </div>
       </section>
 
+      <section className="card" aria-label="Group emissary election records">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Emissary election records</div>
+              <h2 className="cardTitle">Public group-governance records</h2>
+              <div className="cardDesc">
+                Emissaries are seated through public group election records. Candidate lists, ballots/counts, winners, term activation, and term expiration must be inspectable when present in chain state.
+              </div>
+            </div>
+            <div className="statusSummary">
+              <button className="btn" onClick={() => nav("/transactions")}>Track related transactions</button>
+            </div>
+          </div>
+
+          {activeGroupElections.length ? (
+            <div className="milestoneList">
+              {activeGroupElections.map((election: Record<string, unknown>, idx: number) => (
+                <span key={String(election.election_id || idx)} className="miniTag">
+                  {String(election.election_id || "election")} · {String(election.status || "open")} · {String(election.candidate_count ?? "?")} candidate(s)
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="cardDesc">No active emissary election records were returned for this group. That is an honest empty state, not an admin appointment path.</div>
+          )}
+
+          <div className="surfaceBoundaryList">
+            <span className="surfaceBoundaryTag">Election creation: signed group tx</span>
+            <span className="surfaceBoundaryTag">Ballots: public group-scope governance tx</span>
+            <span className="surfaceBoundaryTag">Finalization: deterministic group outcome</span>
+            <span className="surfaceBoundaryTag">Owner appointment path: unsupported</span>
+          </div>
+        </div>
+      </section>
 
       <section className="detailFocusStrip" aria-label="Group detail posture">
         <article className="detailFocusCard">
@@ -545,7 +590,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <h3 className="cardTitle">Recent group activity</h3>
             </div>
           </div>
-          <div className="cardDesc">Open a post to read the public replies. Use Create Post when you want to share something with this group.</div>
+          <div className="cardDesc">Open a post to read the public replies. Use Create Post when you want to share something with this group. Posting is participation and may be member-gated; reading remains public.</div>
           {groupPosts.length ? (
             <div className="pageStack">
               {groupPosts.map((post: any) => {
@@ -555,7 +600,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                     <button className="quickCardMain" onClick={() => nav(`/content/${encodeURIComponent(pid)}`)}>
                       <span>
                         <strong>{String(post?.body || "Untitled post").slice(0, 100) || pid}</strong>
-                        <small>{String(post?.author || "unknown")} · {String(post?.visibility || "public")}</small>
+                        <small>{String(post?.author || "unknown")} · {String(post?.visibility || "public")} · public group record</small>
                       </span>
                     </button>
                     <button

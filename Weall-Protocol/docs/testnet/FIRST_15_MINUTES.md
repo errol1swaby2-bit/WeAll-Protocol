@@ -64,8 +64,9 @@ From the frontend:
 5. Open **Account Verification** and confirm the UI explains eligibility without claiming real-world identity certainty.
 6. Open **Account** and compare the account/profile surface against [Account and public profile readiness](ACCOUNT_PROFILE_READINESS.md).
 7. Browse **Feed**, **Groups**, **Decisions**, **Reports**, and **Review Center**. Compare Feed/Create Post/Thread behavior against [Public social flow readiness](PUBLIC_SOCIAL_FLOW_READINESS.md).
-8. Submit only a low-risk test action if the account state permits it.
-9. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
+8. Open a public group and compare the directory/detail/create flow against [Group flow readiness](GROUP_FLOW_READINESS.md).
+9. Submit only a low-risk test action if the account state permits it.
+10. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
 
 The user journey should be understandable without opening advanced developer tools.
 
@@ -126,3 +127,17 @@ If the first-run path works locally but external transcripts are still missing, 
 ```text
 Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence gates.
 ```
+
+
+## 4. Try one public social action
+
+Open the Feed or Create Post page and submit a small public test post.
+
+Expected behavior:
+
+- the action uses public-only wording;
+- submission is not labeled final immediately;
+- Transactions/backend tx status is the place to inspect confirmation;
+- rejected/error states explain what to do next.
+
+See `docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md` for the social-flow checklist.

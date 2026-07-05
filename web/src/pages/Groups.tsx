@@ -111,7 +111,7 @@ export default function Groups(): JSX.Element {
               <div className="eyebrow">Groups</div>
               <h1 className="heroTitle heroTitleSm">Find your communities</h1>
               <p className="heroText">
-                Browse groups, open the ones that interest you, and create a new community when your account is ready.
+                Browse public civic groups, open any group as a read-only tester, and participate only when your account/session/Tier state permits it.
               </p>
             </div>
 
@@ -157,8 +157,8 @@ export default function Groups(): JSX.Element {
               <span className="statValue">{membershipGate.ok ? "Ready" : "Verification needed"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Page purpose</span>
-              <span className="statValue">Browse</span>
+              <span className="statLabel">Read visibility</span>
+              <span className="statValue">Public</span>
             </div>
           </div>
         </div>
@@ -178,14 +178,21 @@ export default function Groups(): JSX.Element {
           <div className="summaryCardLabel">Browse first</div>
           <div className="summaryCardValue">Simple directory</div>
           <div className="summaryCardText">
-            This page keeps the group list simple. Open a group to see its details, posts, and membership options.
+            The directory is a public read surface. Membership may gate participation inside a group, but not reading the group listing or public group records.
           </div>
         </article>
         <article className="summaryCard">
           <div className="summaryCardLabel">Next step</div>
           <div className="summaryCardValue">Open a group</div>
           <div className="summaryCardText">
-            Each group opens into its own page with the join button, group description, and recent activity.
+            Each group opens into a public detail page with membership status, recent activity, governance-contract copy, and transaction-status guidance for signed actions.
+          </div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Authority model</div>
+          <div className="summaryCardValue">Group-scale governance</div>
+          <div className="summaryCardText">
+            Group admins, signers, moderators, and emissaries are public governance roles. They are not private owners and the frontend never grants authority.
           </div>
         </article>
       </section>
@@ -209,7 +216,7 @@ export default function Groups(): JSX.Element {
           </div>
 
           {groups.length === 0 ? (
-            <div className="cardDesc">No groups are visible yet.</div>
+            <div className="cardDesc">No groups are visible yet. This is an honest empty public directory, not a private visibility gate.</div>
           ) : (
             <div className="pageStack">
               {groups.map((g) => (
