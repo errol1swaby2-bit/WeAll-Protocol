@@ -114,7 +114,7 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
         blocker_report
         and blocker_report.get("schema") == "weall.v1_5.public_beta_blocker_report"
         and blocker_report.get("public_beta_ready") is False
-        and int(blocker_report.get("blocker_count") or 0) >= 12
+        and int(blocker_report.get("blocker_catalog_count") or blocker_report.get("blocker_count") or 0) >= 12
     )
     return {
         "schema": "weall.v1_5.testnet_capability_surface",
@@ -131,7 +131,15 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
             "public_beta_ready": bool(blocker_report.get("public_beta_ready", False)) if blocker_report else False,
             "mainnet_ready": bool(blocker_report.get("mainnet_ready", False)) if blocker_report else False,
             "blocker_count": int(blocker_report.get("blocker_count") or 0) if blocker_report else 0,
+            "blocker_catalog_count": int(blocker_report.get("blocker_catalog_count") or blocker_report.get("blocker_count") or 0) if blocker_report else 0,
             "remaining_blocker_count": int(blocker_report.get("remaining_blocker_count") or 0) if blocker_report else 0,
+            "closed_in_repository_count": int(blocker_report.get("closed_in_repository_count") or blocker_report.get("closed_blocker_count") or 0) if blocker_report else 0,
+            "remaining_external_evidence_required_count": int(blocker_report.get("remaining_external_evidence_required_count") or 0) if blocker_report else 0,
+            "remaining_mainnet_hardening_count": int(blocker_report.get("remaining_mainnet_hardening_count") or 0) if blocker_report else 0,
+            "p0_open_count": int(blocker_report.get("p0_open_count") or 0) if blocker_report else 0,
+            "p1_open_count": int(blocker_report.get("p1_open_count") or 0) if blocker_report else 0,
+            "p2_open_count": int(blocker_report.get("p2_open_count") or 0) if blocker_report else 0,
+            "p3_open_count": int(blocker_report.get("p3_open_count") or 0) if blocker_report else 0,
             "next_allowed_claim": blocker_report.get("next_allowed_claim", "") if blocker_report else "",
         },
         "protocol_upgrade_lifecycle": {

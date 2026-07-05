@@ -476,11 +476,41 @@ def build() -> Json:
         and legal.get("legal_compliance_ready") is False
         and frontend_p2_ux.get("ok") is True
     )
+    open_blockers = [b for b in blockers if b in remaining]
     closed_count = len([b for b in blockers if str(b.get("gate_status", "")).startswith("closed")])
     classification_counts: dict[str, int] = {}
     for row in blockers:
         key = str(row.get("blocker_category") or "unclassified")
         classification_counts[key] = classification_counts.get(key, 0) + 1
+
+    def count_open_severity(severity: str) -> int:
+        return len([b for b in open_blockers if b.get("severity") == severity])
+
+    remaining_mainnet_hardening_ids = [
+        b["id"]
+        for b in open_blockers
+        if b["id"]
+        in {
+            "AUD-618-P0-001",
+            "AUD-618-P0-003",
+            "AUD-618-P1-004",
+            "AUD-618-P1-005",
+        }
+    ]
+    remaining_external_evidence_ids = [
+        b["id"]
+        for b in open_blockers
+        if b.get("remaining_external_evidence") or str(b.get("gate_status", "")).endswith("required")
+    ]
+    count_meanings = {
+        "blocker_count": "Compatibility alias for blocker_catalog_count; it is the full historical blocker catalog size, not the number still open.",
+        "blocker_catalog_count": "Total blocker catalog entries kept visible for audit continuity.",
+        "remaining_blocker_count": "Open blockers that still require external evidence, counsel attestation, or future mainnet-readiness hardening before public beta can be claimed.",
+        "closed_in_repository_count": "Catalog entries closed by tracked repository evidence, generated artifacts, docs, or source-level UX gates.",
+        "remaining_external_evidence_required_count": "Open blockers with missing independent transcript, real-operator proof, counsel attestation, or other external evidence.",
+        "remaining_mainnet_hardening_count": "Open blockers whose final closure depends on future public-validator, protocol-upgrade, storage, or production-helper hardening beyond the bounded observer/controlled-testnet candidate.",
+        "p*_open_count": "Open blocker count by severity, using remaining_blocker_count semantics rather than catalog size.",
+    }
 
     return {
         "schema": "weall.v1_5.public_beta_blocker_report",
@@ -493,8 +523,20 @@ def build() -> Json:
         "controlled_testnet_candidate": True,
         "public_beta_blockers_remaining": True,
         "blocker_count": len(blockers),
-        "remaining_blocker_count": len(remaining),
+        "blocker_catalog_count": len(blockers),
+        "remaining_blocker_count": len(open_blockers),
+        "open_blocker_count": len(open_blockers),
         "closed_blocker_count": closed_count,
+        "closed_in_repository_count": closed_count,
+        "remaining_external_evidence_required_count": len(remaining_external_evidence_ids),
+        "remaining_mainnet_hardening_count": len(remaining_mainnet_hardening_ids),
+        "p0_open_count": count_open_severity("P0"),
+        "p1_open_count": count_open_severity("P1"),
+        "p2_open_count": count_open_severity("P2"),
+        "p3_open_count": count_open_severity("P3"),
+        "remaining_external_evidence_required_ids": remaining_external_evidence_ids,
+        "remaining_mainnet_hardening_ids": remaining_mainnet_hardening_ids,
+        "count_meanings": count_meanings,
         "blocker_classification_summary": classification_counts,
         "closed_code_gate_ids": closed_code_gates,
         "blockers": blockers,
@@ -568,11 +610,18 @@ def main() -> int:
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
             raise SystemExit("public_beta_blocker_report_v1_5.json is stale; rerun generator")
-        print(f"OK: {OUT.relative_to(ROOT)} is current ({payload['blocker_count']} blockers; public_beta_ready=false)")
+        print(
+            f"OK: {OUT.relative_to(ROOT)} is current "
+            f"({payload['blocker_catalog_count']} catalog entries; "
+            f"{payload['remaining_blocker_count']} still open; public_beta_ready=false)"
+        )
         return 0 if payload.get("ok") else 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
-    print(f"wrote {OUT.relative_to(ROOT)} ({payload['blocker_count']} blockers)")
+    print(
+        f"wrote {OUT.relative_to(ROOT)} "
+        f"({payload['blocker_catalog_count']} catalog entries; {payload['remaining_blocker_count']} still open)"
+    )
     return 0 if payload.get("ok") else 1
 
 
