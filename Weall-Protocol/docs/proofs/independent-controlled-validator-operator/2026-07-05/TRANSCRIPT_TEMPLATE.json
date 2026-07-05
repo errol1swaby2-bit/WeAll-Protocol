@@ -1,0 +1,85 @@
+{
+  "schema": "weall.v1_5.public_validator_operator_transcript",
+  "blocker": "AUD-618-P0-001",
+  "chain_id": "weall-testnet-v1",
+  "commit": "<40-char-git-commit>",
+  "branch": "<branch-name>",
+  "operator_ids": [
+    "<external-operator-1>",
+    "<external-operator-2>",
+    "<external-operator-3>",
+    "<external-operator-4>"
+  ],
+  "node_ids": [
+    "<validator-node-1>",
+    "<validator-node-2>",
+    "<validator-node-3>",
+    "<validator-node-4>"
+  ],
+  "machine_ids": [
+    "<machine-1>",
+    "<machine-2>",
+    "<machine-3>",
+    "<machine-4>"
+  ],
+  "machine_isolation": "independent_machines",
+  "operator_attestation": "external_operator_signed",
+  "external_attestation_attached": true,
+  "rounds": 6,
+  "threshold": 3,
+  "fresh_clone": true,
+  "node_registration": true,
+  "node_operator_readiness": true,
+  "validator_candidate_path": true,
+  "readiness_receipt": true,
+  "activation_rehearsal": true,
+  "observer_bypass_rejected": true,
+  "observer_vote_rejected": true,
+  "restart_fail_closed_without_chain_state_signing": true,
+  "restart_replay": true,
+  "partition_rejoin": true,
+  "minority_partition_cannot_finalize": true,
+  "equivocation_rejected": true,
+  "fresh_node_catchup": true,
+  "state_roots_match": true,
+  "state_root_by_node": {
+    "<validator-node-1>": "<64-char-root>",
+    "<validator-node-2>": "<64-char-root>",
+    "<validator-node-3>": "<64-char-root>",
+    "<validator-node-4>": "<64-char-root>"
+  },
+  "readiness_receipt_ids": [
+    "<receipt-id-1>",
+    "<receipt-id-2>",
+    "<receipt-id-3>",
+    "<receipt-id-4>"
+  ],
+  "activation_rehearsal_receipts": [
+    "<activation-rehearsal-receipt>"
+  ],
+  "observer_rejection_receipts": [
+    "<observer-bypass-rejection-receipt>"
+  ],
+  "restart_fail_closed_evidence": {
+    "before_restart": "<evidence-reference>",
+    "after_restart": "<evidence-reference>",
+    "signing_not_enabled_by_local_flag": true
+  },
+  "operator_signatures": [
+    "<external-signature-1>",
+    "<external-signature-2>",
+    "<external-signature-3>",
+    "<external-signature-4>"
+  ],
+  "claim_boundaries": {
+    "public_validator_enabled": false,
+    "public_multi_validator_bft": false,
+    "public_beta_ready": false,
+    "mainnet_ready": false,
+    "live_economics_enabled": false,
+    "automatic_protocol_upgrades": false,
+    "production_helper_execution": false,
+    "legal_compliance_ready": false
+  },
+  "transcript_digest": "<sha256-of-canonical-payload-without-this-field>"
+}

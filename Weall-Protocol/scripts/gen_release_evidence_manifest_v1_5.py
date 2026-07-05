@@ -142,6 +142,10 @@ def build() -> Json:
             },
             "external_validator_operator_transcript": {
                 "required_before_public_beta": True,
+                "required_before_controlled_validator_rehearsal_claim": True,
+                "blocker": "AUD-618-P0-001",
+                "capture_script": "scripts/capture_independent_controlled_validator_operator_transcript_v1_5.sh",
+                "template": "docs/proofs/independent-controlled-validator-operator/2026-07-05/TRANSCRIPT_TEMPLATE.json",
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --strict-release --path <transcript.json>",
                 "sample_transcripts_are_rejected_in_strict_release": True,
             },

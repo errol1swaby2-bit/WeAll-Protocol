@@ -214,3 +214,13 @@ until `AUD-618-P1-004` is closed by a real daemon/operator transcript. See
 for the capture checklist. A first-run tester should not treat local browser
 media state, one local IPFS daemon, or a simulated durability rehearsal as public
 storage readiness.
+
+## Controlled validator/operator external evidence note
+
+Public validator safety and public multi-validator BFT claims remain forbidden
+until `AUD-618-P0-001` is closed by an independent controlled
+validator/operator transcript. See
+[Independent controlled validator/operator transcript](INDEPENDENT_CONTROLLED_VALIDATOR_OPERATOR_TRANSCRIPT.md)
+for the capture checklist. A copied command, environment flag, seed registry hint,
+local browser state, or founder-run rehearsal does not grant validator authority
+and does not close the blocker.

@@ -130,6 +130,22 @@ def _strict_release_errors(kind: str, payload: Json) -> list[str]:
             errors.append("public validator strict release transcript requires operator_attestation=external_operator_signed or independent_operator_signed")
         if payload.get("machine_isolation") not in ("independent_machines", "isolated_containers_with_operator_attestation"):
             errors.append("public validator strict release transcript requires machine_isolation proof")
+        for field in (
+            "fresh_clone",
+            "node_registration",
+            "node_operator_readiness",
+            "validator_candidate_path",
+            "readiness_receipt",
+            "activation_rehearsal",
+            "observer_bypass_rejected",
+            "observer_vote_rejected",
+            "restart_fail_closed_without_chain_state_signing",
+        ):
+            if payload.get(field) is not True:
+                errors.append(f"public validator strict release transcript requires {field}=true")
+        boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+        if boundaries.get("public_multi_validator_bft") is not False:
+            errors.append("public validator strict release transcript must keep claim_boundaries.public_multi_validator_bft=false")
     elif kind == "external_cross_machine_replay_transcript":
         if payload.get("operator_attestation") not in ("external_replay_operator_signed", "independent_operator_signed"):
             errors.append("external replay strict release transcript requires external_replay_operator_signed or independent_operator_signed")

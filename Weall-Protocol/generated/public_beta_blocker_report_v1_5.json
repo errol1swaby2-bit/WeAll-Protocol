@@ -439,7 +439,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "735bd7e8ff70704dd801e54150f7fcf8e9bf967f052660dd9f8e5acb1080f2b6",
+      "artifact_digest": "6583fbe41013850c1cb3405e4e896eef0bcb7254dbffa5f5a47420b92a37f930",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -816,7 +816,7 @@
   },
   "evidence_inventory_ok": true,
   "external_operator_transcript_requirements": {
-    "artifact_digest": "a7d1418e729b07de0f3d2440ff469bab7d4f8f95fb18ec191f5251bbcd54c99c",
+    "artifact_digest": "acc9f3f80af43a2dfd1d74d03a3b57812ffd5bdae5bcf7166059706da251ab6b",
     "external_attestation_required_before_public_beta": true,
     "ok": true,
     "schema_count": 4
@@ -883,15 +883,25 @@
       "must_not_claim": [
         "mainnet",
         "public_validator_enabled_without_gate",
+        "public_multi_validator_bft_without_external_rehearsal",
         "economic_activation"
       ],
       "required_fields": [
         "schema",
+        "blocker",
         "chain_id",
         "operator_ids",
         "node_ids",
         "machine_ids",
         "rounds",
+        "fresh_clone",
+        "node_registration",
+        "node_operator_readiness",
+        "validator_candidate_path",
+        "readiness_receipt",
+        "activation_rehearsal",
+        "observer_bypass_rejected",
+        "restart_fail_closed_without_chain_state_signing",
         "partition_rejoin",
         "equivocation_rejected",
         "restart_replay",

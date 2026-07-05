@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "a7d1418e729b07de0f3d2440ff469bab7d4f8f95fb18ec191f5251bbcd54c99c",
+  "artifact_digest": "acc9f3f80af43a2dfd1d74d03a3b57812ffd5bdae5bcf7166059706da251ab6b",
   "external_attestation_required_before_public_beta": true,
   "mainnet_ready": false,
   "ok": true,
@@ -98,11 +98,12 @@
       }
     },
     "public_validator_operator_transcript": {
-      "description": "Independently operated public-validator rehearsal transcript. Local simulation is not enough for public beta.",
+      "description": "Independently operated controlled validator/operator rehearsal transcript. Local simulation is not enough for public beta, public validator safety, or public multi-validator BFT claims.",
       "forbidden_claims": [
         "mainnet_ready",
         "public_beta_ready_without_release_vote",
         "public_validator_enabled_without_external_attestation",
+        "public_multi_validator_bft_without_external_rehearsal",
         "live_economics_enabled"
       ],
       "minimum_counts": {
@@ -115,34 +116,54 @@
       "name": "public_validator_operator_transcript",
       "required_fields": [
         "schema",
+        "blocker",
         "chain_id",
         "operator_ids",
         "node_ids",
         "machine_ids",
         "rounds",
         "threshold",
+        "fresh_clone",
+        "node_registration",
+        "node_operator_readiness",
+        "validator_candidate_path",
+        "readiness_receipt",
+        "activation_rehearsal",
+        "observer_bypass_rejected",
+        "observer_vote_rejected",
+        "restart_fail_closed_without_chain_state_signing",
+        "restart_replay",
         "state_root_by_node",
+        "state_roots_match",
         "partition_rejoin",
         "minority_partition_cannot_finalize",
         "equivocation_rejected",
-        "observer_vote_rejected",
         "fresh_node_catchup",
-        "restart_replay",
         "transcript_digest",
         "operator_signatures",
         "claim_boundaries"
       ],
       "required_truths": {
+        "activation_rehearsal": true,
+        "blocker": "AUD-618-P0-001",
         "claim_boundaries.mainnet_ready": false,
         "claim_boundaries.public_beta_ready": false,
+        "claim_boundaries.public_multi_validator_bft": false,
         "claim_boundaries.public_validator_enabled": false,
         "equivocation_rejected": true,
+        "fresh_clone": true,
         "fresh_node_catchup": true,
         "minority_partition_cannot_finalize": true,
+        "node_operator_readiness": true,
+        "node_registration": true,
+        "observer_bypass_rejected": true,
         "observer_vote_rejected": true,
         "partition_rejoin": true,
+        "readiness_receipt": true,
+        "restart_fail_closed_without_chain_state_signing": true,
         "restart_replay": true,
-        "state_roots_match": true
+        "state_roots_match": true,
+        "validator_candidate_path": true
       }
     },
     "storage_ipfs_operator_transcript": {

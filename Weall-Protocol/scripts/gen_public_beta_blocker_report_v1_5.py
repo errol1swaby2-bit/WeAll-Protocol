@@ -457,8 +457,8 @@ def build() -> Json:
     remaining = [b for b in blockers if b["remaining_external_evidence"] or b["gate_status"].startswith("tracked_as") or b["gate_status"].endswith("required")]
     transcript_schemas = {
         "public_validator_operator_transcript": {
-            "required_fields": ["schema", "chain_id", "operator_ids", "node_ids", "machine_ids", "rounds", "partition_rejoin", "equivocation_rejected", "restart_replay", "state_root_by_node", "transcript_digest", "operator_signatures"],
-            "must_not_claim": ["mainnet", "public_validator_enabled_without_gate", "economic_activation"],
+            "required_fields": ["schema", "blocker", "chain_id", "operator_ids", "node_ids", "machine_ids", "rounds", "fresh_clone", "node_registration", "node_operator_readiness", "validator_candidate_path", "readiness_receipt", "activation_rehearsal", "observer_bypass_rejected", "restart_fail_closed_without_chain_state_signing", "partition_rejoin", "equivocation_rejected", "restart_replay", "state_root_by_node", "transcript_digest", "operator_signatures"],
+            "must_not_claim": ["mainnet", "public_validator_enabled_without_gate", "public_multi_validator_bft_without_external_rehearsal", "economic_activation"],
         },
         "storage_ipfs_operator_transcript": {
             "required_fields": ["schema", "operator_ids", "machine_ids", "ipfs_peer_ids", "cid", "replication_factor", "origin_failure", "wrong_cid_rejected", "corrupt_content_rejected", "fresh_node_retrieval", "transcript_digest"],

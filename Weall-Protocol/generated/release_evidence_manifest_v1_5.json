@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "735bd7e8ff70704dd801e54150f7fcf8e9bf967f052660dd9f8e5acb1080f2b6",
+  "artifact_digest": "6583fbe41013850c1cb3405e4e896eef0bcb7254dbffa5f5a47420b92a37f930",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -38,8 +38,12 @@
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind external_cross_machine_replay_transcript --strict-release --path <transcript.json>"
     },
     "external_validator_operator_transcript": {
+      "blocker": "AUD-618-P0-001",
+      "capture_script": "scripts/capture_independent_controlled_validator_operator_transcript_v1_5.sh",
+      "required_before_controlled_validator_rehearsal_claim": true,
       "required_before_public_beta": true,
       "sample_transcripts_are_rejected_in_strict_release": true,
+      "template": "docs/proofs/independent-controlled-validator-operator/2026-07-05/TRANSCRIPT_TEMPLATE.json",
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --strict-release --path <transcript.json>"
     },
     "legal_compliance_attestation": {
@@ -122,7 +126,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/external_operator_transcript_requirements_v1_5.json": {
-      "file_sha256": "1ebb9cc4ea08b4941620e3ede44e7c54f99d586f33aea161d4afbe790d8ce742",
+      "file_sha256": "3b8523bbe72cdf5917b5a7eb93033599c619f8e2cb40e9ed461adffc2543f3c8",
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,
