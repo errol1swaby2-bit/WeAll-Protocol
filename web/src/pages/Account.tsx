@@ -116,6 +116,10 @@ function optionalField(value: string): string | undefined {
   return clean ? clean : undefined;
 }
 
+function txIdFromResult(value: any): string {
+  return String(value?.result?.tx_id || value?.tx_id || value?.submit?.tx_id || "").trim();
+}
+
 export default function Account({ account }: { account: string }): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const acct = useMemo(() => normalizeAccount(account), [account]);
@@ -139,6 +143,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
+  const [profileResult, setProfileResult] = useState<any>(null);
   const [profileErr, setProfileErr] = useState<{ msg: string; details: any } | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>(() => emptyProfileForm());
   const [profileDirty, setProfileDirty] = useState<boolean>(false);
@@ -205,6 +210,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   useEffect(() => {
     setProfileDirty(false);
+    setProfileResult(null);
     setProfileForm(emptyProfileForm());
     void load();
   }, [acct, isSelf]);
@@ -241,6 +247,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const publicProfileTags = Array.isArray(publicProfile.tags) ? publicProfile.tags.map((tag: any) => String(tag || "").trim()).filter(Boolean) : [];
   const profileAvatarMedia = asRecord(publicProfile.avatar_media);
   const profileAvatarPath = String(profileAvatarMedia.fetch_path || "");
+  const profileTruthBoundary = String(profileView?.truth_boundary || "public_derived_index_view_of_chain_state");
+  const profileReceiptStatusTemplate = String(profileView?.receipt_paths?.status_template || "/v1/tx/status/{tx_id}");
+  const profileResultTxId = txIdFromResult(profileResult);
 
   const reviewerTruth = asRecord(reviewerStatus?.reviewer);
   const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
@@ -271,6 +280,20 @@ export default function Account({ account }: { account: string }): JSX.Element {
           ...((rec as Record<string, any>) || {}),
         }) as DeviceRecord,
     );
+  const accountKeyRows = Array.isArray(state?.keys)
+    ? state.keys
+        .map((row: any) => (row && typeof row === "object" ? row : { pubkey: row, active: true }))
+        .filter((row: any) => String(row?.pubkey || "").trim())
+    : Object.entries(asRecord(state?.keys)).map(([pubkey, row]) => ({
+        pubkey,
+        active: row && typeof row === "object" ? (row as Record<string, any>).active !== false : true,
+      }));
+  const activeAccountPubkey = String(accountKeyRows.find((row: any) => row?.active !== false)?.pubkey || "").trim();
+  const accountKeySummary = accountKeyRows.length
+    ? `${accountKeyRows.filter((row: any) => row?.active !== false).length} active / ${accountKeyRows.length} total`
+    : isSelf && localPubkey
+      ? "1 local signer available on this browser"
+      : "No public account key summary exposed";
 
   const nodeDevices: DeviceRecord[] = activeDevices.filter((rec) =>
     isNodeDevice(String(rec.deviceId || ""), rec),
@@ -375,6 +398,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
     setBusy("profile");
     setProfileErr(null);
+    setProfileResult(null);
 
     try {
       if (!accountExists) throw new Error("register_the_account_first");
@@ -393,12 +417,22 @@ export default function Account({ account }: { account: string }): JSX.Element {
       const skeletonTx = skeleton?.tx || {};
       if (!skeletonTx?.tx_type) throw new Error("profile_update_skeleton_missing_tx_type");
 
-      await tx.runTx({
+      const result = await tx.runTx({
         title: "Update public profile",
         pendingMessage: "Submitting public profile update…",
-        successMessage: "Profile update submitted. The public profile refreshes from committed chain state.",
+        successMessage: "Profile update submitted. Track the transaction status before treating this profile as committed chain state.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          base,
+          mutation: {
+            entityType: "account",
+            entityId: acct,
+            account: acct,
+            routeHint: `/account/${acct}`,
+            txType: "PROFILE_UPDATE",
+          },
+        },
         task: async () =>
           submitSignedTx({
             account: acct,
@@ -409,6 +443,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           }),
       });
 
+      setProfileResult(result);
       setProfileDirty(false);
       await load();
       await refreshAccountContext();
@@ -738,10 +773,40 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <div className="detailFocusText">Use the main action above when there is a setup or verification step to finish.</div>
             </article>
           </div>
+
+          <div className="calloutInfo">
+            <strong>Account/profile readiness boundary</strong>
+            <div style={{ marginTop: 6 }}>
+              PoH/Tier status is protocol eligibility, not real-world identity certainty. Local browser keys, drafts, and UI preferences help this device submit actions, but only committed protocol state controls account standing, reputation, profile metadata, and responsibility eligibility.
+            </div>
+          </div>
         </div>
       </section>
 
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={refreshAccountSurface} onDismiss={() => setErr(null)} />
+
+      <section className="summaryCardGrid" aria-label="Account and profile protocol state summary">
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Canonical account id</div>
+          <div className="summaryCardValue mono">{acct}</div>
+          <div className="summaryCardText">This is the protocol account id used in signed transactions and public read models.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Account public key summary</div>
+          <div className="summaryCardValue">{accountKeySummary}</div>
+          <div className="summaryCardText mono">{activeAccountPubkey || localPubkey || "No active public key visible from this view."}</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">PoH / Tier status</div>
+          <div className="summaryCardValue">{verificationLabel(tier)}</div>
+          <div className="summaryCardText">PoH/Tier status is protocol eligibility, not real-world identity certainty or legal identity proof.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Public profile source</div>
+          <div className="summaryCardValue">Chain read model</div>
+          <div className="summaryCardText mono">{profileTruthBoundary}</div>
+        </article>
+      </section>
 
       <section className="card publicProfileCard">
         <div className="cardBody formStack">
@@ -796,14 +861,38 @@ export default function Account({ account }: { account: string }): JSX.Element {
           <div className="calloutInfo">
             <strong>Public-state boundary</strong>
             <div style={{ marginTop: 6 }}>
-              Profile edits are signed <span className="mono">PROFILE_UPDATE</span> transactions. They become public protocol metadata only after commit; raw PoH evidence, recovery secrets, and device secrets are not part of this profile contract. Receipts remain inspectable through <span className="mono">/v1/tx/status/&lbrace;tx_id&rbrace;</span>.
+              Profile edits are signed <span className="mono">PROFILE_UPDATE</span> transactions. They become public protocol metadata only after commit; raw PoH evidence, recovery secrets, and device secrets are not part of this profile contract. Receipts remain inspectable through <span className="mono">{profileReceiptStatusTemplate}</span>.
             </div>
           </div>
+
+          {profileResult ? (
+            <div className="calloutInfo" data-testid="profile-tx-status-callout">
+              <strong>Profile action submitted</strong>
+              <div style={{ marginTop: 6 }}>
+                The profile form has produced a signed <span className="mono">PROFILE_UPDATE</span> action. This is not a committed profile change until transaction status or the public profile read model confirms it.
+              </div>
+              {profileResultTxId ? (
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <span className="statusPill">tx pending/finalizing</span>
+                  <span className="mono">{profileResultTxId}</span>
+                  <button className="btn" onClick={() => nav("/transactions")}>Track in Transactions</button>
+                </div>
+              ) : (
+                <div className="feedMediaMeta">No transaction id was returned; refresh the account and check the Transactions page before retrying.</div>
+              )}
+            </div>
+          ) : null}
 
           {isSelf ? (
             <details className="detailsPanel" open={profileDirty}>
               <summary>Edit public profile</summary>
               <div className="formStack">
+                <div className="infoCard compact">
+                  <div className="feedMediaTitle">Protocol-state versus local draft</div>
+                  <div className="infoCardText">
+                    Local form fields are not protocol state. They become public profile state only after this browser signs a <span className="mono">PROFILE_UPDATE</span>, the backend accepts it into the transaction lifecycle, and the public profile read model reflects the committed result.
+                  </div>
+                </div>
                 <ErrorBanner
                   message={profileErr?.msg}
                   details={profileErr?.details}

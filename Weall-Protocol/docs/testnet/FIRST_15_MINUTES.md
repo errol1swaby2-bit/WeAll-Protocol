@@ -62,9 +62,10 @@ From the frontend:
 3. Open **Personal Node** and inspect node, seed, peer, chain identity, and safe command guidance.
 4. Create or restore an account from **Login** only if you intend to submit signed test actions.
 5. Open **Account Verification** and confirm the UI explains eligibility without claiming real-world identity certainty.
-6. Browse **Feed**, **Groups**, **Decisions**, **Reports**, and **Review Center**.
-7. Submit only a low-risk test action if the account state permits it.
-8. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
+6. Open **Account** and compare the account/profile surface against [Account and public profile readiness](ACCOUNT_PROFILE_READINESS.md).
+7. Browse **Feed**, **Groups**, **Decisions**, **Reports**, and **Review Center**.
+8. Submit only a low-risk test action if the account state permits it.
+9. Open **Transactions** and verify the action is not called finalized until backend status shows inclusion/finality.
 
 The user journey should be understandable without opening advanced developer tools.
 
