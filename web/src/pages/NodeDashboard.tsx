@@ -269,6 +269,7 @@ export default function NodeDashboard(): JSX.Element {
   const seedNodes = asArray(publicSeeds.nodes);
   const seedP2pUrls = asArray(publicSeeds.seed_p2p_urls);
   const seedRegistrySig = asRecord(publicSeeds.seed_registry_signature_status || asRecord(publicValidators.registry).seed_registry_signature_status);
+  const activeCryptoProfile = str(publicSeeds.active_signature_profile || publicSeeds.seed_registry_sig_profile || seedRegistrySig.sig_profile || asRecord(publicValidators.registry).active_signature_profile || "pq-mldsa-v1", "pq-mldsa-v1");
   const seedRegistrySourceKind = str(publicSeeds.registry_source_kind || asRecord(publicValidators.registry).registry_source_kind || "unknown", "unknown");
   const observerTxQueue = asRecord(observerEdge.tx_queue);
   const observerTxQueueCounts = asRecord(observerTxQueue.counts);
@@ -603,6 +604,7 @@ export default function NodeDashboard(): JSX.Element {
               <div className="progressList">
                 <DetailRow label="Public testnet" value={publicSeeds.public_testnet === true ? "Enabled" : "Not enabled"} ok={publicSeeds.public_testnet === true} warn={publicSeeds.public_testnet !== true && publicSeeds.ok === true} />
                 <DetailRow label="Registry signature" value={seedRegistrySig.verified === true ? `Verified (${str(seedRegistrySig.trust, "signed")})` : "Unsigned / not loaded"} ok={seedRegistrySig.verified === true} warn={publicSeeds.public_testnet === true && seedRegistrySig.verified !== true} />
+                <DetailRow label="Active crypto profile" value={activeCryptoProfile} ok={activeCryptoProfile === "pq-mldsa-v1"} warn={activeCryptoProfile !== "pq-mldsa-v1"} />
                 <DetailRow label="Registry source" value={statusLabel(seedRegistrySourceKind)} ok={seedRegistrySig.verified === true && seedRegistrySourceKind !== "unknown"} warn={publicSeeds.public_testnet === true && seedRegistrySourceKind === "unknown"} />
                 <DetailRow label="Seed API nodes" value={String(seedNodes.length)} ok={seedNodes.length > 0} warn={publicSeeds.public_testnet === true && seedNodes.length === 0} />
                 <DetailRow label="Seed P2P URIs" value={String(seedP2pUrls.length)} ok={seedP2pUrls.length > 0} warn={publicSeeds.public_testnet === true && seedP2pUrls.length === 0} />

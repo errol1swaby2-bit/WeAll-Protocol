@@ -84,16 +84,16 @@
         "mainnet"
       ],
       "can_be_closed_by_code_only": false,
-      "current_behavior": "The controlled-testnet target crypto profile is now pq-mldsa-v1, but real ML-DSA signing, seed-registry re-signing, and full validator/BFT migration remain incomplete.",
+      "current_behavior": "The controlled-testnet crypto profile has transitioned to pq-mldsa-v1 ML-DSA for core protocol authority surfaces, but fresh post-transition evidence and external cryptographic review are still missing.",
       "evidence_gate": "quantum_resistance_readiness",
-      "expected_production_behavior": "Reproducibly pinned ML-DSA signer/verifier, PQ-signed seed registry/trust roots, profile-aware tx/account/validator/block/BFT surfaces, and external crypto review before long-lived public network claims.",
-      "gate_status": "gate_present_real_mldsa_and_external_review_required",
+      "expected_production_behavior": "Fresh profile-aware closed-testnet rehearsal evidence, browser/local signing boundary review, helper/evidence-signing production gates, and external crypto review before long-lived public network claims.",
+      "gate_status": "gate_present_real_mldsa_integrated_external_review_required",
       "id": "AUD-633-P0-004",
       "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
-        "real ML-DSA dependency decision record",
-        "PQ-signed seed registry",
         "fresh profile-aware testnet rehearsal",
+        "browser/local signing boundary review",
+        "helper/evidence signing production gate",
         "external cryptographic review"
       ],
       "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
@@ -493,7 +493,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "4cbaa150c7437089481c3f3dc9c9a258c1b64a254e2bff7f21ba2ad387203ff8",
+      "artifact_digest": "4d2b326bd0e5ac9ee9af251a2cd19d7a2078c9e0adb3e7de9df2f1f437b6ddb7",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",

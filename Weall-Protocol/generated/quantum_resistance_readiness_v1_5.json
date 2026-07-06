@@ -1,5 +1,5 @@
 {
-  "acceptable_claim_if_scaffolding_only": "WeAll remains a pre-public-testnet protocol implementation under active hardening. This patch adds fail-closed post-quantum signature-profile scaffolding, but real quantum-safe signing remains blocked until a reproducible ML-DSA implementation is integrated and tested.",
+  "acceptable_claim": "WeAll remains a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has transitioned from classical-only Ed25519 to profile-aware ML-DSA signing for protocol authority surfaces covered by this pass. This supports quantum-resistance hardening but does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, or production constitutional governance readiness.",
   "controlled_testnet_target_profile": "pq-mldsa-v1",
   "ed25519_legacy_transitional_dev_only": true,
   "framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
@@ -7,10 +7,14 @@
   "live_economics": false,
   "mldsa_backend_status": {
     "algorithm": "ML-DSA-65",
-    "available": false,
+    "available": true,
     "backend": "pyca-cryptography",
-    "detail": "cannot import name 'mldsa' from 'cryptography.hazmat.primitives.asymmetric' (/opt/pyvenv/lib/python3.13/site-packages/cryptography/hazmat/primitives/asymmetric/__init__.py)",
-    "reason": "module_unavailable"
+    "context": "weall:pq-mldsa-v1:protocol-signature",
+    "minimum_cryptography_version": "47.0.0",
+    "public_key_bytes": 1952,
+    "reason": "ok",
+    "repo_locked_cryptography_version": "48.0.0",
+    "signature_bytes": 3309
   },
   "production_crypto_audit_complete": false,
   "production_post_quantum_security_claimed": false,
@@ -18,13 +22,11 @@
   "public_mainnet_ready": false,
   "public_multi_validator_bft_ready": false,
   "quantum_proof_claimed": false,
-  "real_mldsa_implemented_in_this_environment": false,
+  "real_mldsa_implemented_in_this_environment": true,
   "remaining_crypto_blockers": [
-    "real_mldsa_backend_unavailable_or_unpinned",
-    "seed_registry_requires_pq_resign",
-    "bft_qc_signature_profile_incomplete",
-    "peer_gossip_relay_signature_migration_incomplete",
     "frontend_local_pq_signing_not_complete",
+    "helper_receipt_certificate_production_pq_gate_missing",
+    "public_evidence_bundle_pq_signing_policy_missing",
     "external_crypto_review_missing"
   ],
   "schema": "weall.quantum_resistance_readiness.v1_5"

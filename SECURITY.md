@@ -53,6 +53,6 @@ Controlled-devnet files, generated demo output, local databases, lock files, `.e
 
 Security issues should be fixed and regression-tested before public disclosure. Public writeups should avoid publishing working exploit details until users and operators have had reasonable time to update.
 
-## Pass 33 post-quantum transition boundary
+## Pass 34 post-quantum transition boundary
 
-WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet target signing profile is `pq-mldsa-v1`; Ed25519 is treated as `legacy-ed25519-v1` for dev/local/transitional flows unless explicitly allowed by chain configuration. This improves crypto-agility posture but is not a completed production cryptographic audit and does not imply mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness.
+WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware `pq-mldsa-v1` ML-DSA signing for protocol authority surfaces covered by this pass; Ed25519 is treated as `legacy-ed25519-v1` for dev/local/transitional flows unless explicitly allowed by chain configuration. This improves quantum-resistance posture but is not a completed production cryptographic audit and does not imply mainnet readiness, live economics, public multi-validator BFT readiness, production helper execution readiness, production constitutional governance readiness, or public beta readiness.

@@ -1,6 +1,6 @@
 {
-  "allowed_claim": "Pre-public-testnet implementation under active hardening. Pass 33 adds profile-aware post-quantum signing scaffolding and sets pq-mldsa-v1 as the controlled-testnet target, but controlled/public testnet signing remains blocked until a reproducible real ML-DSA verifier is integrated, seed/trust-root materials are PQ-signed, and external cryptographic review is complete.",
-  "artifact_digest": "2bc42b31d1875815516f7b6e912c4df8fa0ae6c73bf8a0fdb4d2a82bd9b80f05",
+  "allowed_claim": "Pre-public-testnet implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware pq-mldsa-v1 ML-DSA signing for protocol authority surfaces covered by this pass. Fresh post-transition observer/testnet evidence and external cryptographic review remain required before any long-lived public network or mainnet claim.",
+  "artifact_digest": "e5c323aed2f35be27fb3abeeffbbb00e9f1b03d71a8938b9ce2eee9b533f73cb",
   "blocker_counts": {
     "blocker_catalog_count": 15,
     "closed_in_repository_count": 7,
@@ -40,7 +40,7 @@
     "public_storage_provider_market": false,
     "public_validator_enabled": false
   },
-  "controlled_rehearsal_candidate_ready": false,
+  "controlled_rehearsal_candidate_ready": true,
   "external_blockers_still_open": true,
   "external_evidence_still_required": true,
   "flow_readiness_docs": {
@@ -89,7 +89,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "controlled_testnet_go_gate": {
-      "ok": false,
+      "ok": true,
       "path": "generated/controlled_testnet_go_gate_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.controlled_testnet_go_gate"
@@ -152,7 +152,7 @@
   "go_no_go_verdict": {
     "automatic_upgrade_claim": "NO_GO_RECORD_ONLY",
     "bounded_public_observer_launch_claim": "NO_GO_EXTERNAL_EVIDENCE_PENDING",
-    "controlled_internal_public_observer_rehearsal_candidate": "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE",
+    "controlled_internal_public_observer_rehearsal_candidate": "GO",
     "live_economics_claim": "NO_GO_DISABLED",
     "production_helper_claim": "NO_GO_DISABLED",
     "public_beta_claim": "NO_GO_PUBLIC_BETA_BLOCKERS_OPEN",
@@ -173,13 +173,11 @@
   "quantum_resistance_readiness_summary": {
     "path": "generated/quantum_resistance_readiness_v1_5.json",
     "production_crypto_audit_complete": false,
-    "real_mldsa_implemented_in_this_environment": false,
+    "real_mldsa_implemented_in_this_environment": true,
     "remaining_crypto_blockers": [
-      "real_mldsa_backend_unavailable_or_unpinned",
-      "seed_registry_requires_pq_resign",
-      "bft_qc_signature_profile_incomplete",
-      "peer_gossip_relay_signature_migration_incomplete",
       "frontend_local_pq_signing_not_complete",
+      "helper_receipt_certificate_production_pq_gate_missing",
+      "public_evidence_bundle_pq_signing_policy_missing",
       "external_crypto_review_missing"
     ]
   },
@@ -217,7 +215,7 @@
     "upgrade_hardening_plan": true,
     "validator_operator_transcript": true
   },
-  "real_mldsa_implemented_in_this_environment": false,
+  "real_mldsa_implemented_in_this_environment": true,
   "remaining_open_blockers": [
     "AUD-618-P0-001",
     "AUD-618-P0-002",
@@ -237,7 +235,7 @@
     "AUD-618-P1-004": "real storage/IPFS daemon/operator transcript",
     "AUD-618-P1-005": "future production helper topology proof",
     "AUD-628-P1-001": "external clean-clone/open-download/state-sync/frontend rendered journey transcript",
-    "AUD-633-P0-004": "reproducible real ML-DSA verifier/signing integration, PQ-signed seed/trust-root materials, migrated authority signatures, and external cryptographic review"
+    "AUD-633-P0-004": "fresh profile-aware post-transition rehearsal evidence, browser/local signing boundary review, helper/evidence signing production gate, and external cryptographic review"
   },
   "schema": "weall.v1_5.final_public_observer_controlled_testnet_go_gate",
   "version": "2026-07-pass27-final-bounded-testnet-go-gate"

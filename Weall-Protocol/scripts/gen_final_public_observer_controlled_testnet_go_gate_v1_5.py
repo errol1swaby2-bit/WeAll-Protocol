@@ -150,7 +150,7 @@ def build() -> Json:
             "automatic_upgrade_claim": "NO_GO_RECORD_ONLY",
             "production_helper_claim": "NO_GO_DISABLED",
         },
-        "allowed_claim": "Pre-public-testnet implementation under active hardening. Pass 33 adds profile-aware post-quantum signing scaffolding and sets pq-mldsa-v1 as the controlled-testnet target, but controlled/public testnet signing remains blocked until a reproducible real ML-DSA verifier is integrated, seed/trust-root materials are PQ-signed, and external cryptographic review is complete.",
+        "allowed_claim": "Pre-public-testnet implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware pq-mldsa-v1 ML-DSA signing for protocol authority surfaces covered by this pass. Fresh post-transition observer/testnet evidence and external cryptographic review remain required before any long-lived public network or mainnet claim.",
         "forbidden_claims": [
             "public beta readiness",
             "public mainnet readiness",
@@ -188,7 +188,7 @@ def build() -> Json:
             "AUD-618-P0-002": "real counsel or controlled legal/compliance attestation",
             "AUD-618-P0-003": "future executable upgrade staging/rollback proof",
             "AUD-618-P1-005": "future production helper topology proof",
-            "AUD-633-P0-004": "reproducible real ML-DSA verifier/signing integration, PQ-signed seed/trust-root materials, migrated authority signatures, and external cryptographic review",
+            "AUD-633-P0-004": "fresh profile-aware post-transition rehearsal evidence, browser/local signing boundary review, helper/evidence signing production gate, and external cryptographic review",
         },
         "readiness_package_docs": REQUIRED_DOCS,
         "readiness_package_docs_present": docs_present,

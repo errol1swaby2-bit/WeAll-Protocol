@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "4cbaa150c7437089481c3f3dc9c9a258c1b64a254e2bff7f21ba2ad387203ff8",
+  "artifact_digest": "4d2b326bd0e5ac9ee9af251a2cd19d7a2078c9e0adb3e7de9df2f1f437b6ddb7",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -72,10 +72,10 @@
       "profile_registry": "generated/signature_profile_registry_v1_5.json",
       "public_multi_validator_bft_ready": false,
       "readiness_artifact": "generated/quantum_resistance_readiness_v1_5.json",
-      "real_mldsa_required_before_controlled_testnet": true,
+      "real_mldsa_required_before_controlled_testnet": false,
       "required_before_closed_testnet_rehearsal": true,
       "required_before_public_observer_launch": true,
-      "validator": "PYTHONPATH=src python scripts/gen_crypto_posture_v1_5.py && PYTHONPATH=src python -m pytest -q tests/test_crypto_signature_profiles.py tests/test_tx_signature_profile_admission.py tests/test_seed_registry_signature_profiles.py"
+      "validator": "PYTHONPATH=src python scripts/gen_crypto_posture_v1_5.py && PYTHONPATH=src python -m pytest -q tests/test_crypto_signature_profiles.py tests/test_pq_mldsa_signature_profile.py tests/test_tx_signature_profile_admission.py tests/test_seed_registry_signature_profiles.py tests/test_net_pq_signature_profiles.py"
     },
     "production_helper_topology_hardening_plan": {
       "blocker": "AUD-618-P1-005",
@@ -179,7 +179,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/crypto_inventory_v1_5.json": {
-      "file_sha256": "2d8878bc05539543383c630f66dbaa219cc8ecf10b559277b5e06e620d0932ed",
+      "file_sha256": "ae836391a3aac6a333e931a3b99990efac21e50ada492d5f9b5034940c2be359",
       "ok": true,
       "path": "generated/crypto_inventory_v1_5.json",
       "present": true,
@@ -195,7 +195,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "938e8ae8426b1eccbb13ed04f84f5cf193652566b933ede978787a23623fcd05",
+      "file_sha256": "5793bcf0f7566d2cd9c502d139327e8e916792ee9717f11708d40080972de9ff",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -203,7 +203,7 @@
       "schema": "weall.v1_5.failure_code_registry"
     },
     "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json": {
-      "file_sha256": "b0a2e93bf7186fdb6d95f0254284d8adaf4afe272d0bd1499d4d6bb6e1df6e70",
+      "file_sha256": "22211e66708b9ee18828180404d8692ac578a15c40b4f071fdc964c3f738d1b8",
       "ok": true,
       "path": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
       "present": true,
@@ -315,7 +315,7 @@
       "schema": "weall.v1_5.public_validator_endpoint_churn_proof"
     },
     "generated/quantum_resistance_readiness_v1_5.json": {
-      "file_sha256": "f78f7d1e0ac73e700846bb2be515f9529ef35888a77089042d8da1f05b42fe68",
+      "file_sha256": "1b94c9b40349d5a6d39a3fb2ffdbcc95f55bcdd25b5c00975ccd7e9fd70e57c2",
       "ok": true,
       "path": "generated/quantum_resistance_readiness_v1_5.json",
       "present": true,
@@ -323,7 +323,7 @@
       "schema": "weall.quantum_resistance_readiness.v1_5"
     },
     "generated/signature_profile_registry_v1_5.json": {
-      "file_sha256": "ee6aa95db2f9889a28938e40b0253d2c63b4e8dbbb65153e1f813a04ea02f234",
+      "file_sha256": "0c812210d1e094df8e7d1d275fec992fc6ac5a6ce443fd47a07139640e5b2351",
       "ok": true,
       "path": "generated/signature_profile_registry_v1_5.json",
       "present": true,

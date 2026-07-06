@@ -29,6 +29,8 @@ export type AccountIdValidation = {
 
 const KEYPAIR_PREFIX = "weall_keypair::";
 const SECRET_PREFIX = "weall_secret::";
+export const LEGACY_BROWSER_SIG_PROFILE = "legacy-ed25519-v1";
+export const CONTROLLED_TESTNET_SIG_PROFILE = "pq-mldsa-v1";
 const SECRET_KEY_BYTES = 64;
 const PUBLIC_KEY_BYTES = 32;
 
@@ -239,6 +241,10 @@ export function hasSecretInSession(account: string): boolean {
   return s.trim().length >= 10;
 }
 
+export function browserLegacySigningNotice(): string {
+  return "Browser-local Ed25519 signing is legacy/dev-only. Controlled/public testnet protocol signing uses pq-mldsa-v1 through backend/operator custody until browser ML-DSA support is implemented.";
+}
+
 export function signDetachedB64(secretKeyB64: string, msgBytes: Uint8Array): string {
   const sec = b64ToBytes(secretKeyB64);
   if (sec.length !== SECRET_KEY_BYTES) {
@@ -250,6 +256,8 @@ export function signDetachedB64(secretKeyB64: string, msgBytes: Uint8Array): str
 
 export function canonicalTxMessage(env: {
   chain_id: string;
+  network_id?: string;
+  sig_profile?: string;
   tx_type: string;
   signer: string;
   nonce: number;
@@ -257,6 +265,8 @@ export function canonicalTxMessage(env: {
   parent: string | null;
 }): Uint8Array {
   const chain_id = String(env.chain_id || "").trim();
+  const network_id = String(env.network_id || "").trim();
+  const sig_profile = String(env.sig_profile || LEGACY_BROWSER_SIG_PROFILE).trim();
   const tx_type = String(env.tx_type || "");
   const signer = String(env.signer || "");
   const nonce = Math.floor(Number(env.nonce || 0));
@@ -265,6 +275,10 @@ export function canonicalTxMessage(env: {
 
   const obj: Record<string, unknown> = {
     ...(chain_id ? { chain_id } : {}),
+    ...(network_id ? { network_id } : {}),
+    domain_separator: "weall.tx.v1",
+    object_kind: "tx",
+    sig_profile,
     tx_type,
     signer,
     nonce,

@@ -463,7 +463,7 @@ def admit_bft_block(
 
     if mode_requires_explicit_sig_profile():
         chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
-        ok_sig_profile, sig_reason = validate_block_signature_profile(block, chain_config=chain_config, require_verifier=False)
+        ok_sig_profile, sig_reason = validate_block_signature_profile(block, chain_config=chain_config, require_verifier=True)
         if not ok_sig_profile:
             return False, BlockReject("bad_block_signature_profile", str(sig_reason), {"block_id": _as_str(block.get("block_id") or "")})
 

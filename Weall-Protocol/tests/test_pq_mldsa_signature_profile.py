@@ -1,4 +1,6 @@
 from weall.crypto.pq_mldsa import (
+    MLDSA65_PUBLIC_KEY_BYTES,
+    MLDSA65_SIGNATURE_BYTES,
     generate_mldsa65_keypair,
     mldsa_backend_status,
     sign_mldsa65,
@@ -6,20 +8,19 @@ from weall.crypto.pq_mldsa import (
 )
 
 
-def test_mldsa_backend_status_is_explicit():
+def test_mldsa_backend_status_is_real_and_available():
     status = mldsa_backend_status()
     assert status["algorithm"] == "ML-DSA-65"
     assert status["backend"] == "pyca-cryptography"
-    assert status["available"] in {True, False}
+    assert status["available"] is True
+    assert status["repo_locked_cryptography_version"] == "48.0.0"
 
 
-def test_mldsa_sign_verify_if_real_backend_available_otherwise_no_toy_fallback():
-    status = mldsa_backend_status()
-    if not status["available"]:
-        assert verify_mldsa65_signature(message=b"msg", sig="00", pubkey="00") is False
-        return
-
+def test_mldsa_sign_verify_positive_and_negative_paths():
     kp = generate_mldsa65_keypair()
+    assert len(bytes.fromhex(kp["pubkey"])) == MLDSA65_PUBLIC_KEY_BYTES
     sig = sign_mldsa65(message=b"weall-pq-test", privkey=kp["privkey"])
+    assert len(bytes.fromhex(sig)) == MLDSA65_SIGNATURE_BYTES
     assert verify_mldsa65_signature(message=b"weall-pq-test", sig=sig, pubkey=kp["pubkey"])
     assert not verify_mldsa65_signature(message=b"tampered", sig=sig, pubkey=kp["pubkey"])
+    assert not verify_mldsa65_signature(message=b"weall-pq-test", sig="00" + sig[2:], pubkey=kp["pubkey"])

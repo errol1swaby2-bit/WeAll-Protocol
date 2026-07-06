@@ -13,6 +13,7 @@ import { createBrowserSession, weall } from "../api/weall";
 
 import {
   KeypairB64,
+  LEGACY_BROWSER_SIG_PROFILE,
   canonicalTxMessage,
   deleteKeypair,
   generateKeypair,
@@ -793,6 +794,7 @@ export async function submitSignedTxInSequence(args: {
         nonce,
         payload,
         parent: args.parent ?? null,
+        sig_profile: LEGACY_BROWSER_SIG_PROFILE,
       });
       const signed = signEnvelope(unsigned, kp);
 
@@ -867,6 +869,8 @@ export type TxEnvelope = {
   nonce: number;
   payload: any;
   parent?: string | null;
+  sig_profile?: string;
+  signature?: { alg: string; pubkey: string; sig: string };
   sig?: string;
 };
 
@@ -877,6 +881,7 @@ function buildUnsignedEnvelope(args: {
   nonce: number;
   payload: any;
   parent?: string | null;
+  sig_profile?: string;
 }): TxEnvelope {
   return {
     chain_id: args.chain_id,
@@ -885,12 +890,14 @@ function buildUnsignedEnvelope(args: {
     nonce: Math.max(0, Math.floor(Number(args.nonce || 0))),
     payload: args.payload ?? {},
     parent: args.parent ?? null,
+    sig_profile: args.sig_profile || LEGACY_BROWSER_SIG_PROFILE,
   };
 }
 
 function signEnvelope(env: TxEnvelope, kp: KeypairB64): TxEnvelope {
   const msg = canonicalTxMessage({
     chain_id: env.chain_id || "",
+    sig_profile: env.sig_profile || LEGACY_BROWSER_SIG_PROFILE,
     tx_type: env.tx_type,
     signer: env.signer,
     nonce: env.nonce,
@@ -898,7 +905,12 @@ function signEnvelope(env: TxEnvelope, kp: KeypairB64): TxEnvelope {
     parent: env.parent ?? null,
   });
   const sig = signDetachedB64(kp.secretKeyB64, msg);
-  return { ...env, sig };
+  return {
+    ...env,
+    sig_profile: env.sig_profile || LEGACY_BROWSER_SIG_PROFILE,
+    sig,
+    signature: { alg: "Ed25519", pubkey: kp.pubkeyB64, sig },
+  };
 }
 
 async function resolveChainId(): Promise<string> {
@@ -934,6 +946,7 @@ export async function submitSignedTx(args: {
         nonce: claim.nonce,
         payload: args.payload ?? {},
         parent: args.parent ?? null,
+        sig_profile: LEGACY_BROWSER_SIG_PROFILE,
       });
       const signed = signEnvelope(unsigned, kp);
       try {
@@ -980,6 +993,7 @@ export async function submitSignedTxWithNonce(args: {
         nonce: claim.nonce,
         payload,
         parent: args.parent ?? null,
+        sig_profile: LEGACY_BROWSER_SIG_PROFILE,
       });
       const signed = signEnvelope(unsigned, kp);
       try {

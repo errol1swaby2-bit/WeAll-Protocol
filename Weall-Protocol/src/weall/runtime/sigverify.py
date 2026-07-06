@@ -166,7 +166,7 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
     ok_profile, _reason_profile = profile_allowed_for_context(
         sig_profile,
         chain_config=chain_config,
-        require_verifier=False,
+        require_verifier=True,
     )
     if not ok_profile:
         return False

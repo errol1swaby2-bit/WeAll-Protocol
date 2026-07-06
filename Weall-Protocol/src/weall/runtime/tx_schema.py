@@ -45,10 +45,16 @@ class _StrictModel(BaseModel):
 
 class AccountRegisterPayload(_StrictModel):
     pubkey: str = Field(..., min_length=1)
+    sig_profile: str | None = Field(default=None, min_length=1)
+    pubkeys: dict[str, str] | None = None
+    mldsa_pubkey: str | None = Field(default=None, min_length=1)
 
 
 class AccountKeyAddPayload(_StrictModel):
     pubkey: str = Field(..., min_length=1)
+    sig_profile: str | None = Field(default=None, min_length=1)
+    pubkeys: dict[str, str] | None = None
+    mldsa_pubkey: str | None = Field(default=None, min_length=1)
     key_id: str | None = None
     key_type: str | None = None
 
@@ -108,6 +114,7 @@ class AccountRecoveryConfigSetPayload(_StrictModel):
     guardians: list[str] | None = None
     threshold: int | None = Field(default=None, ge=0)
     delay_blocks: int | None = Field(default=None, ge=0)
+    recovery_sig_profile: str | None = Field(default=None, min_length=1)
 
 
 class AccountRecoveryRequestPayload(_StrictModel):

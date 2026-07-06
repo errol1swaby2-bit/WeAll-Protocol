@@ -33,7 +33,7 @@
       "profile_id": "pq-mldsa-v1",
       "purpose": "signing",
       "status": "active",
-      "verifier_available": false
+      "verifier_available": true
     },
     {
       "activation_height_support": true,

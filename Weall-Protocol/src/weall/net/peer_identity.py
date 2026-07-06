@@ -22,8 +22,8 @@ Node device definition (consistent with apply/identity.py):
   OR label begins with "node" (legacy convenience)
 
 Signing:
-  - Outbound peers may include `hello.identity = {"pubkey":..., "sig":...}` where
-    `sig` is an Ed25519 signature over canonical fields.
+  - Outbound peers may include `hello.identity = {"pubkey":..., "sig_profile":..., "sig":...}`.
+  - Controlled/public testnet identity proofs default to pq-mldsa-v1; Ed25519 is legacy/dev-only.
 
 We do NOT return secrets. We do not log. We return:
   (ok, reason, account_id, pubkey)
@@ -31,7 +31,9 @@ We do NOT return secrets. We do not log. We return:
 
 from typing import Any
 
-from weall.crypto.ed25519 import sign_ed25519, verify_ed25519_sig
+from weall.crypto.account_keys import account_key_pubkey
+from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
+from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, default_signature_profile_for_mode
 from weall.net.messages import PeerHello, WireHeader
 
 Json = dict[str, Any]
@@ -112,7 +114,7 @@ def _get_active_keys(acct: Json) -> set[str]:
                 continue
             if rec.get("active", True) is False:
                 continue
-            pk = rec.get("pubkey")
+            pk = account_key_pubkey(rec)
             if isinstance(pk, str) and pk.strip():
                 out.add(pk.strip())
         return out
@@ -128,7 +130,7 @@ def _get_active_keys(acct: Json) -> set[str]:
                 continue
             if bool(rec.get("revoked", False)):
                 continue
-            pk = rec.get("pubkey")
+            pk = account_key_pubkey(rec)
             if isinstance(pk, str) and pk.strip():
                 out.add(pk.strip())
         return out
@@ -139,7 +141,8 @@ def _get_active_keys(acct: Json) -> set[str]:
             continue
         if isinstance(rec, dict):
             if bool(rec.get("active", False)):
-                out.add(pk)
+                rec_pk = account_key_pubkey(rec) or pk
+                out.add(rec_pk)
         else:
             # tolerate older shape where keys is {pubkey: True/False}
             if bool(rec):
@@ -203,6 +206,32 @@ def _canonical_hello_sign_bytes_v2(
     return ("|".join(parts)).encode("utf-8")
 
 
+def _canonical_hello_sign_bytes_v3(
+    *,
+    header: WireHeader,
+    peer_id: str,
+    pubkey: str,
+    sig_profile: str,
+    agent: str,
+    nonce: str,
+) -> bytes:
+    """Profile-aware canonical peer identity proof bytes."""
+    parts = [
+        "WEALL_PEER_HELLO_V3",
+        str(header.chain_id),
+        str(header.schema_version),
+        str(header.tx_index_hash),
+        str(int(header.sent_ts_ms or 0)),
+        str(header.corr_id or ""),
+        str(peer_id).strip(),
+        str(pubkey).strip(),
+        str(sig_profile or "").strip(),
+        str(agent or "").strip(),
+        str(nonce or "").strip(),
+    ]
+    return ("|".join(parts)).encode("utf-8")
+
+
 def sign_peer_hello_identity(
     *,
     header: WireHeader,
@@ -211,16 +240,16 @@ def sign_peer_hello_identity(
     privkey: str,
     agent: str = "",
     nonce: str = "",
+    sig_profile: str | None = None,
 ) -> Json:
     """Return the `identity` object for a PEER_HELLO.
 
     Shape:
-      {"pubkey": <hex/b64 pubkey>, "sig": <hex signature>, "sig_alg": "ed25519"}
+      {"pubkey": <hex/b64 pubkey>, "sig_profile": "pq-mldsa-v1", "sig": <hex signature>}
 
     Notes:
-      - `privkey` is the Ed25519 secret (seed/private) encoded as hex or base64/base64url
-        as supported by weall.crypto.ed25519.sign_ed25519.
-      - The signature binds the canonical hello fields (V2 preferred).
+      - `privkey` is interpreted according to the selected signature profile.
+      - The signature binds the canonical hello fields and the signature profile.
     """
     pid = str(peer_id or "").strip()
     pk = str(pubkey or "").strip()
@@ -228,11 +257,17 @@ def sign_peer_hello_identity(
     if not pid or not pk or not sk:
         return {}
 
-    msg_bytes = _canonical_hello_sign_bytes_v2(
-        header=header, peer_id=pid, pubkey=pk, agent=agent, nonce=nonce
+    profile = str(sig_profile or default_signature_profile_for_mode()).strip() or PQ_MLDSA_V1
+    msg_bytes = _canonical_hello_sign_bytes_v3(
+        header=header, peer_id=pid, pubkey=pk, sig_profile=profile, agent=agent, nonce=nonce
     )
-    sig = sign_ed25519(message_bytes=msg_bytes, privkey_str=sk, encoding="hex")
-    return {"pubkey": pk, "sig": sig, "sig_alg": "ed25519"}
+    sig = sign_signature_for_profile(sig_profile=profile, message=msg_bytes, privkey=sk, encoding="hex")
+    return {
+        "pubkey": pk,
+        "sig_profile": profile,
+        "sig_alg": "ML-DSA" if profile == PQ_MLDSA_V1 else "Ed25519",
+        "sig": sig,
+    }
 
 
 def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool, str, str, str]:
@@ -249,6 +284,9 @@ def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool,
     identity = _as_dict(getattr(hello, "identity", None))
     pubkey = _as_str(identity.get("pubkey")).strip()
     sig = _as_str(identity.get("sig")).strip()
+    sig_profile = _as_str(identity.get("sig_profile")).strip()
+    if not sig_profile:
+        sig_profile = LEGACY_ED25519_V1 if _as_str(identity.get("sig_alg") or "ed25519").lower() == "ed25519" else ""
 
     if not pubkey:
         return (False, "missing_pubkey", peer_id, "")
@@ -283,6 +321,14 @@ def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool,
     agent = _as_str(getattr(hello, "agent", "")).strip()
     nonce = _as_str(getattr(hello, "nonce", "")).strip()
 
+    v3 = _canonical_hello_sign_bytes_v3(
+        header=hello.header,
+        peer_id=peer_id,
+        pubkey=pubkey,
+        sig_profile=sig_profile,
+        agent=agent,
+        nonce=nonce,
+    )
     v2 = _canonical_hello_sign_bytes_v2(
         header=hello.header,
         peer_id=peer_id,
@@ -299,9 +345,18 @@ def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool,
     )
 
     try:
-        ok = bool(verify_ed25519_sig(pubkey, v2, sig))
-        if not ok:
-            ok = bool(verify_ed25519_sig(pubkey, v1, sig))
+        ok = bool(
+            verify_signature_for_profile(
+                sig_profile=sig_profile,
+                message=v3,
+                sig=sig,
+                pubkey=pubkey,
+            )
+        )
+        if not ok and sig_profile == LEGACY_ED25519_V1:
+            ok = bool(verify_signature_for_profile(sig_profile=sig_profile, message=v2, sig=sig, pubkey=pubkey))
+        if not ok and sig_profile == LEGACY_ED25519_V1:
+            ok = bool(verify_signature_for_profile(sig_profile=sig_profile, message=v1, sig=sig, pubkey=pubkey))
     except Exception:
         return (False, "sig_verify_exception", account_id, pubkey)
 

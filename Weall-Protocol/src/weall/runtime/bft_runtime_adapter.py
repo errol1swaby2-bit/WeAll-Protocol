@@ -39,6 +39,13 @@ from weall.runtime.executor import (
 )
 
 from weall.runtime.bft_hotstuff import validator_set_hash
+from weall.crypto.sig import sign_signature_for_profile
+from weall.crypto.signature_profiles import (
+    LEGACY_ED25519_V1,
+    PQ_MLDSA_V1,
+    default_signature_profile_for_mode,
+    normalize_signature_profile_id,
+)
 
 from weall.runtime import bft_artifact_cache as _bft_artifact_cache
 from weall.runtime import bft_diagnostics as _bft_diagnostics
@@ -551,10 +558,46 @@ def _validator_pubkeys(self) -> dict[str, str]:
     for acct, rec in reg.items():
         if not isinstance(rec, dict):
             continue
+        profile = normalize_signature_profile_id(rec.get("sig_profile") or rec.get("signature_profile"))
         pk = str(rec.get("pubkey") or "").strip()
+        if profile == PQ_MLDSA_V1:
+            pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
+            pk = str(pubkeys.get("mldsa") or pk).strip()
         if pk:
             out[str(acct).strip()] = pk
     return out
+
+def _validator_signature_profiles(self) -> dict[str, str]:
+    out: dict[str, str] = {}
+    c = self.state.get("consensus")
+    if not isinstance(c, dict):
+        return out
+    v = c.get("validators")
+    if not isinstance(v, dict):
+        return out
+    reg = v.get("registry")
+    if not isinstance(reg, dict):
+        return out
+    for acct, rec in reg.items():
+        if not isinstance(rec, dict):
+            continue
+        profile = normalize_signature_profile_id(rec.get("sig_profile") or rec.get("signature_profile"))
+        if not profile:
+            profile = LEGACY_ED25519_V1
+        out[str(acct).strip()] = profile
+    return out
+
+
+def _local_validator_sig_profile(self) -> str:
+    explicit = normalize_signature_profile_id(os.environ.get("WEALL_NODE_SIG_PROFILE"))
+    if explicit:
+        return explicit
+    signer = self._local_validator_account()
+    profile = self._validator_signature_profiles().get(signer, "")
+    if profile:
+        return profile
+    return default_signature_profile_for_mode()
+
 
 def _current_validator_epoch(self) -> int:
     c = self.state.get("consensus")
@@ -1178,6 +1221,7 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         return None
 
     if bid and proposer_pubkey and proposer_privkey and local_validator:
+        sig_profile = _local_validator_sig_profile(self)
         msg = canonical_proposal_message(
             chain_id=self.chain_id,
             view=view,
@@ -1188,11 +1232,15 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
             validator_epoch=int(epoch),
             validator_set_hash=vset_hash,
             justify_qc_id=justify_qc_id,
+            sig_profile=sig_profile,
         )
         blk["proposer_pubkey"] = proposer_pubkey
-        blk["proposer_sig"] = sign_ed25519(
-            message=msg, privkey=proposer_privkey, encoding="hex"
+        blk["proposer_sig_profile"] = sig_profile
+        blk["proposer_signature"] = {"alg": "ML-DSA" if sig_profile == PQ_MLDSA_V1 else "Ed25519", "pubkey": proposer_pubkey}
+        blk["proposer_sig"] = sign_signature_for_profile(
+            sig_profile=sig_profile, message=msg, privkey=proposer_privkey, encoding="hex"
         )
+        blk["proposer_signature"]["sig"] = blk["proposer_sig"]
 
     if bid:
         self._persist_bft_state()
@@ -1238,6 +1286,7 @@ def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
         signer=str(vote_json.get("signer") or "").strip(),
         pubkey=str(vote_json.get("pubkey") or "").strip(),
         sig=str(vote_json.get("sig") or "").strip(),
+        sig_profile=normalize_signature_profile_id(vote_json.get("sig_profile") or vote_json.get("signature_profile")),
         validator_epoch=int(vote_json.get("validator_epoch") or 0),
         validator_set_hash=str(vote_json.get("validator_set_hash") or "").strip(),
     )
@@ -1287,6 +1336,7 @@ def bft_make_vote_for_block(
 
     validator_epoch = self._current_validator_epoch()
     validator_set_hash = self._current_validator_set_hash() if int(validator_epoch) > 0 else ""
+    sig_profile = _local_validator_sig_profile(self)
     msg = canonical_vote_message(
         chain_id=self.chain_id,
         view=int(view),
@@ -1296,8 +1346,9 @@ def bft_make_vote_for_block(
         signer=signer,
         validator_epoch=int(validator_epoch),
         validator_set_hash=validator_set_hash,
+        sig_profile=sig_profile,
     )
-    sig = sign_ed25519(message=msg, privkey=privkey, encoding="hex")
+    sig = sign_signature_for_profile(sig_profile=sig_profile, message=msg, privkey=privkey, encoding="hex")
 
     vote = BftVote(
         chain_id=self.chain_id,
@@ -1308,6 +1359,7 @@ def bft_make_vote_for_block(
         signer=signer,
         pubkey=pubkey,
         sig=sig,
+        sig_profile=sig_profile,
         validator_epoch=int(validator_epoch),
         validator_set_hash=validator_set_hash,
     )
@@ -1331,6 +1383,7 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
 
     validator_epoch = self._current_validator_epoch()
     validator_set_hash = self._current_validator_set_hash() if int(validator_epoch) > 0 else ""
+    sig_profile = _local_validator_sig_profile(self)
     msg = canonical_timeout_message(
         chain_id=self.chain_id,
         view=int(view),
@@ -1338,8 +1391,9 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
         signer=signer,
         validator_epoch=int(validator_epoch),
         validator_set_hash=validator_set_hash,
+        sig_profile=sig_profile,
     )
-    sig = sign_ed25519(message=msg, privkey=privkey, encoding="hex")
+    sig = sign_signature_for_profile(sig_profile=sig_profile, message=msg, privkey=privkey, encoding="hex")
     self._bft.note_timeout_emitted(view=int(view))
     tmo = BftTimeout(
         chain_id=self.chain_id,
@@ -1348,6 +1402,7 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
         signer=signer,
         pubkey=pubkey,
         sig=sig,
+        sig_profile=sig_profile,
         validator_epoch=int(validator_epoch),
         validator_set_hash=validator_set_hash,
     )
@@ -1390,6 +1445,7 @@ def bft_handle_timeout(self, timeout_json: Json) -> int | None:
         signer=str(timeout_json.get("signer") or "").strip(),
         pubkey=str(timeout_json.get("pubkey") or "").strip(),
         sig=str(timeout_json.get("sig") or "").strip(),
+        sig_profile=normalize_signature_profile_id(timeout_json.get("sig_profile") or timeout_json.get("signature_profile")),
         validator_epoch=int(timeout_json.get("validator_epoch") or 0),
         validator_set_hash=str(timeout_json.get("validator_set_hash") or "").strip(),
     )

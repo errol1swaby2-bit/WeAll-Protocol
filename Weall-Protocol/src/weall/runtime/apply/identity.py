@@ -7,6 +7,12 @@ from ..errors import ApplyError
 from ..tx_admission_types import TxEnvelope
 from ..session_keys import revoke_session_record, store_session_record
 from ..public_protocol_policy import public_protocol_policy_violation
+from weall.crypto.account_keys import (
+    account_key_pubkey,
+    account_key_record_from_payload,
+    validate_account_key_record,
+)
+from weall.crypto.signature_profiles import default_signature_profile_for_mode
 
 Json = dict[str, Any]
 
@@ -72,6 +78,24 @@ def _mk_key_id(pubkey: str) -> str:
     return f"k:{h[:16]}"
 
 
+def _current_height(state: Json) -> int:
+    return _as_int(state.get("height") or state.get("block_height"), 0)
+
+
+def _key_record_from_payload_or_raise(state: Json, payload: Json, *, key_type: str) -> Json:
+    rec = account_key_record_from_payload(
+        payload,
+        created_height=_current_height(state),
+        default_profile=default_signature_profile_for_mode(),
+        key_type=key_type,
+    )
+    chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+    ok, reason = validate_account_key_record(rec, chain_config=chain_config, require_verifier=False)
+    if not ok:
+        raise ApplyError("invalid_tx", reason, {"sig_profile": rec.get("sig_profile")})
+    return rec
+
+
 def _mk_device_id_hash(device_id: str) -> str:
     h = hashlib.sha256(device_id.encode("utf-8")).hexdigest()
     return f"d:{h[:16]}"
@@ -107,7 +131,7 @@ def _extract_active_pubkeys(acct: Json) -> list[str]:
                     continue
                 if bool(rec.get("revoked", False)):
                     continue
-                _add(rec.get("pubkey"))
+                _add(account_key_pubkey(rec))
             out.sort()
             return out
 
@@ -120,7 +144,7 @@ def _extract_active_pubkeys(acct: Json) -> list[str]:
                 continue
             if item.get("active", True) is False:
                 continue
-            _add(item.get("pubkey"))
+            _add(account_key_pubkey(item))
         out.sort()
         return out
 
@@ -174,7 +198,8 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("invalid_tx", "account_exists", {"account_id": signer})
 
     p = _payload(env)
-    pubkey = _as_str(p.get("pubkey") or "").strip()
+    key_record = _key_record_from_payload_or_raise(state, p, key_type="main")
+    pubkey = account_key_pubkey(key_record)
     if not pubkey:
         raise ApplyError("invalid_tx", "missing_pubkey", {})
 
@@ -188,12 +213,7 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         "reputation": "0",
         "keys": {
             "by_id": {
-                _mk_key_id(pubkey): {
-                    "pubkey": pubkey,
-                    "key_type": "main",
-                    "revoked": False,
-                    "revoked_at": None,
-                }
+                str(key_record.get("key_id") or _mk_key_id(pubkey)): key_record
             }
         },
         "devices": {"by_id": {}},
@@ -211,8 +231,9 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
     _expect_nonce(a, env)
     p = _payload(env)
 
-    pubkey = _as_str(p.get("pubkey") or "").strip()
     key_type = _as_str(p.get("key_type") or "secondary").strip().lower()
+    key_record = _key_record_from_payload_or_raise(state, p, key_type=key_type)
+    pubkey = account_key_pubkey(key_record)
     if not pubkey:
         raise ApplyError("invalid_tx", "missing_pubkey", {})
 
@@ -229,12 +250,8 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
     if kid in by_id and isinstance(by_id.get(kid), dict) and by_id[kid].get("revoked") is not True:
         raise ApplyError("invalid_tx", "key_exists", {"pubkey": pubkey})
 
-    by_id[kid] = {
-        "pubkey": pubkey,
-        "key_type": key_type,
-        "revoked": False,
-        "revoked_at": None,
-    }
+    key_record["key_id"] = str(key_record.get("key_id") or kid)
+    by_id[kid] = key_record
     a["nonce"] = _as_int(a.get("nonce"), 0) + 1
     _sync_account_key_views(a)
     return state
@@ -258,7 +275,7 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
     for kid, rec in by_id.items():
         if not isinstance(rec, dict):
             continue
-        if _as_str(rec.get("pubkey") or "").strip() == pubkey and rec.get("revoked") is not True:
+        if account_key_pubkey(rec) == pubkey and rec.get("revoked") is not True:
             match_kid = kid
             break
 
@@ -830,12 +847,12 @@ def _apply_account_recovery_execute(state: Json, env: TxEnvelope) -> Json:
     if kid in by_id and isinstance(by_id.get(kid), dict) and by_id[kid].get("revoked") is not True:
         raise ApplyError("invalid_tx", "key_exists", {"pubkey": new_pubkey})
 
-    by_id[kid] = {
-        "pubkey": new_pubkey,
-        "key_type": "recovered",
-        "revoked": False,
-        "revoked_at": None,
-    }
+    recovery_payload = dict(prop)
+    recovery_payload.setdefault("pubkey", new_pubkey)
+    recovery_payload.setdefault("sig_profile", prop.get("sig_profile") or default_signature_profile_for_mode())
+    key_record = _key_record_from_payload_or_raise(state, recovery_payload, key_type="recovered")
+    key_record["key_id"] = str(key_record.get("key_id") or kid)
+    by_id[kid] = key_record
     prop["executed"] = True
 
     a["nonce"] = exp

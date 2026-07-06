@@ -8,7 +8,7 @@ from typing import Any
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
-from weall.crypto.pq_mldsa import sign_mldsa65, verify_mldsa65_signature
+from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed, sign_mldsa65, verify_mldsa65_signature
 from weall.crypto.signature_profiles import (
     LEGACY_ED25519_V1,
     PQ_MLDSA_V1,
@@ -168,12 +168,16 @@ def sign_tx_envelope_dict(*, tx: Json, privkey: str, encoding: str = "hex") -> J
         out["network_id"] = network_id.strip()
 
     if sig_profile == PQ_MLDSA_V1:
-        sig = sign_mldsa65(message=msg, privkey=privkey, encoding=encoding)
-        out["signature"] = {"alg": "ML-DSA", "pubkey": str(out.get("pubkey") or ""), "sig": sig}
+        sig = sign_signature_for_profile(sig_profile=sig_profile, message=msg, privkey=privkey, encoding=encoding)
+        pubkey = str(out.get("pubkey") or "").strip() or public_key_for_private_key_profile(
+            sig_profile=sig_profile, privkey=privkey, encoding=encoding
+        )
+        out["signature"] = {"alg": "ML-DSA", "pubkey": pubkey, "sig": sig}
         out["sig"] = sig
+        out["pubkey"] = pubkey
         return out
     if sig_profile == LEGACY_ED25519_V1:
-        sig = sign_ed25519(message=msg, privkey=privkey, encoding=encoding)
+        sig = sign_signature_for_profile(sig_profile=sig_profile, message=msg, privkey=privkey, encoding=encoding)
         out["sig"] = sig
         return out
     raise ValueError("unsupported_signature_profile")
@@ -200,6 +204,22 @@ def sign_ed25519(*, message: bytes, privkey: str, encoding: str = "hex") -> str:
     if encoding in {"b64", "base64"}:
         return base64.b64encode(sig_b).decode("ascii")
     raise ValueError("unsupported encoding")
+
+
+def sign_signature_for_profile(*, sig_profile: str, message: bytes, privkey: str, encoding: str = "hex") -> str:
+    profile = normalize_signature_profile_id(sig_profile)
+    if profile == LEGACY_ED25519_V1:
+        return sign_ed25519(message=message, privkey=privkey, encoding=encoding)
+    if profile == PQ_MLDSA_V1:
+        return sign_mldsa65(message=message, privkey=privkey, encoding=encoding)
+    raise ValueError("unsupported_signature_profile")
+
+
+def public_key_for_private_key_profile(*, sig_profile: str, privkey: str, encoding: str = "hex") -> str:
+    profile = normalize_signature_profile_id(sig_profile)
+    if profile == PQ_MLDSA_V1:
+        return mldsa65_public_key_from_seed(privkey=privkey, encoding=encoding)
+    raise ValueError("public_key_derivation_not_supported_for_profile")
 
 
 def extract_active_account_pubkeys(ledger: Json, account_id: str, *, sig_profile: str | None = None) -> list[str]:
@@ -280,7 +300,7 @@ def verify_tx_sig_against_any_key(
         if mode_requires_explicit_sig_profile():
             return False, {"reason": "missing_signature_profile"}
         profile = LEGACY_ED25519_V1
-    allowed, reason = profile_allowed_for_context(profile, chain_config=chain_config, require_verifier=False)
+    allowed, reason = profile_allowed_for_context(profile, chain_config=chain_config, require_verifier=True)
     if not allowed:
         return False, {"reason": reason, "sig_profile": profile}
 

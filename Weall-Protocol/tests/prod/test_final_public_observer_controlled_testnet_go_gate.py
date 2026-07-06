@@ -27,9 +27,9 @@ def test_final_go_gate_artifact_is_fresh_and_conservative() -> None:
     payload = json.loads((ROOT / "generated" / "final_public_observer_controlled_testnet_go_gate_v1_5.json").read_text(encoding="utf-8"))
     assert payload["ok"] is True
     assert payload["repo_package_ready"] is True
-    assert payload["real_mldsa_implemented_in_this_environment"] is False
+    assert payload["real_mldsa_implemented_in_this_environment"] is True
     verdict = payload["go_no_go_verdict"]
-    assert verdict["controlled_internal_public_observer_rehearsal_candidate"] == "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE"
+    assert verdict["controlled_internal_public_observer_rehearsal_candidate"] == "GO"
     assert verdict["bounded_public_observer_launch_claim"].startswith("NO_GO")
     assert verdict["public_beta_claim"].startswith("NO_GO")
     assert verdict["public_mainnet_claim"].startswith("NO_GO")
@@ -75,7 +75,7 @@ def test_evidence_index_maps_remaining_blockers_to_exact_evidence() -> None:
         "AUD-618-P0-002": "Real counsel or controlled legal/compliance attestation",
         "AUD-618-P0-003": "Future executable upgrade staging/rollback proof",
         "AUD-618-P1-005": "Future production helper topology proof",
-        "AUD-633-P0-004": "reproducible real ML-DSA verifier",
+        "AUD-633-P0-004": "fresh profile-aware post-transition rehearsal evidence",
     }
     for blocker, phrase in expected.items():
         assert blocker in text
@@ -100,7 +100,7 @@ def test_release_manifest_tracks_final_go_gate() -> None:
     assert "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json" in payload["tracked_artifacts"]
     gate = payload["release_evidence_gates"]["final_public_observer_controlled_testnet_go_gate"]
     assert gate["controlled_rehearsal_candidate_allowed"] is True
-    assert payload["release_evidence_gates"]["post_quantum_signature_profile_transition"]["real_mldsa_required_before_controlled_testnet"] is True
+    assert payload["release_evidence_gates"]["post_quantum_signature_profile_transition"]["real_mldsa_required_before_controlled_testnet"] is False
     assert gate["public_beta_ready"] is False
     assert gate["public_observer_launch_claim_ready"] is False
 

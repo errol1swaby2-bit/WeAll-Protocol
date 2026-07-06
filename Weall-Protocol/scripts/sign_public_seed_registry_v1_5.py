@@ -27,8 +27,9 @@ from weall.api.public_seed_registry import (  # noqa: E402
     registry_signature_payload,
     validator_endpoint_signature_payload,
 )
-from weall.crypto.sig import sign_ed25519  # noqa: E402
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1  # noqa: E402
+from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed  # noqa: E402
+from weall.crypto.sig import sign_signature_for_profile  # noqa: E402
+from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, normalize_signature_profile_id  # noqa: E402
 
 Json = dict[str, Any]
 
@@ -67,12 +68,22 @@ def _strip_registry_signature(data: Json) -> Json:
     return out
 
 
-def sign_registry(data: Json, *, private_key: str, public_key: str) -> Json:
+def _signature_alg_label(profile: str, domain: str) -> str:
+    if profile == PQ_MLDSA_V1:
+        return f"pq-mldsa-v1/ML-DSA-65/{domain}"
+    if profile == LEGACY_ED25519_V1:
+        return f"legacy-ed25519-v1/{domain}"
+    return f"{profile}/{domain}"
+
+
+def sign_registry(data: Json, *, private_key: str, public_key: str, sig_profile: str) -> Json:
+    profile = normalize_signature_profile_id(sig_profile) or PQ_MLDSA_V1
     out = _strip_registry_signature(data)
     out["seed_registry_signer"] = public_key
-    out["seed_registry_sig_profile"] = LEGACY_ED25519_V1
-    out["seed_registry_signature_alg"] = "legacy-ed25519-v1/weall.public_seed_registry.v1"
-    out["seed_registry_signature"] = sign_ed25519(
+    out["seed_registry_sig_profile"] = profile
+    out["seed_registry_signature_alg"] = _signature_alg_label(profile, "weall.public_seed_registry.v1")
+    out["seed_registry_signature"] = sign_signature_for_profile(
+        sig_profile=profile,
         message=registry_signature_payload(out),
         privkey=private_key,
     )
@@ -96,7 +107,10 @@ def sign_validator_endpoints(data: Json, *, endpoint_key_map: Json) -> Json:
             signed.append(endpoint)
             continue
         private_key = str(key_record.get("private_key") if isinstance(key_record, dict) else key_record).strip()
+        profile = normalize_signature_profile_id(key_record.get("sig_profile") if isinstance(key_record, dict) else "") or PQ_MLDSA_V1
         signer = str(key_record.get("public_key") if isinstance(key_record, dict) else node_pubkey).strip() or node_pubkey
+        if profile == PQ_MLDSA_V1 and not signer:
+            signer = mldsa65_public_key_from_seed(privkey=private_key)
         if not private_key or not signer:
             raise SystemExit(f"endpoint key map entry for {account or node_pubkey} is missing private/public key")
         out = dict(endpoint)
@@ -104,8 +118,10 @@ def sign_validator_endpoints(data: Json, *, endpoint_key_map: Json) -> Json:
         out.setdefault("node_pubkey", signer)
         out["signed"] = True
         out["verified"] = True
-        out["sig_profile"] = LEGACY_ED25519_V1
-        out["signature"] = sign_ed25519(
+        out["sig_profile"] = profile
+        out["signature_alg"] = _signature_alg_label(profile, "weall.public_validator_endpoint.v1")
+        out["signature"] = sign_signature_for_profile(
+            sig_profile=profile,
             message=validator_endpoint_signature_payload(out, commitments=commitments),
             privkey=private_key,
         )
@@ -121,6 +137,7 @@ def main() -> int:
     parser.add_argument("--output", required=True, help="signed registry output path")
     parser.add_argument("--registry-private-key-env", default="WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY")
     parser.add_argument("--registry-public-key", default=os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", ""))
+    parser.add_argument("--signature-profile", default=os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_SIG_PROFILE", PQ_MLDSA_V1), help="signature profile for registry and endpoint signatures; default pq-mldsa-v1")
     parser.add_argument("--endpoint-key-map", help="optional local JSON map for signing validator endpoint advertisements; do not commit it")
     parser.add_argument("--allow-local", action="store_true", help="allow localhost/http endpoints for rehearsal signing validation")
     parser.add_argument("--check", action="store_true", help="verify the output would match the existing output")
@@ -135,11 +152,14 @@ def main() -> int:
         endpoint_key_map = _load_json(Path(args.endpoint_key_map).resolve())
         data = sign_validator_endpoints(data, endpoint_key_map=endpoint_key_map)
 
+    profile = normalize_signature_profile_id(args.signature_profile) or PQ_MLDSA_V1
+    private_key = _env_required(args.registry_private_key_env)
     public_key = str(args.registry_public_key or "").strip()
+    if not public_key and profile == PQ_MLDSA_V1:
+        public_key = mldsa65_public_key_from_seed(privkey=private_key)
     if not public_key:
         raise SystemExit("missing registry public key: pass --registry-public-key or WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY")
-    private_key = _env_required(args.registry_private_key_env)
-    signed = sign_registry(data, private_key=private_key, public_key=public_key)
+    signed = sign_registry(data, private_key=private_key, public_key=public_key, sig_profile=profile)
 
     # Validate as a public-testnet launch registry even when the caller did not
     # pre-export every node runtime variable.  This makes the signing command a
@@ -148,6 +168,8 @@ def main() -> int:
     os.environ.setdefault("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", public_key)
     if args.allow_local:
         os.environ.setdefault("WEALL_PUBLIC_TESTNET_ALLOW_LEGACY_SIGNATURES", "1")
+    os.environ.setdefault("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", public_key)
+    os.environ.setdefault("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_SIG_PROFILE", profile)
 
     # Validate the signed payload before writing/checking.  This catches
     # placeholders, bad URLs, and bad signatures with the same runtime code used

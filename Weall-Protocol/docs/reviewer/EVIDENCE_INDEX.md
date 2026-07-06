@@ -152,4 +152,4 @@ PYTHONPATH=src python -m pytest -q \
 
 ### Pass 33 post-quantum signing blocker
 
-- `AUD-633-P0-004`: reproducible real ML-DSA verifier/signing integration, PQ-signed seed/trust-root materials, migrated authority signatures, and external cryptographic review remain required before controlled/public testnet signing can be claimed.
+- `AUD-633-P0-004`: fresh profile-aware post-transition rehearsal evidence, browser/local signing boundary review, helper/evidence signing production gate, and external cryptographic review remain required before public observer or long-lived public-network claims.

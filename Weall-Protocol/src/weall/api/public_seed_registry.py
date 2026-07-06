@@ -535,7 +535,7 @@ def _verify_registry_signature(data: Json) -> Json:
     profile_chain_config = None
     if profile == LEGACY_ED25519_V1 and _allow_legacy_seed_registry_signatures():
         profile_chain_config = {"crypto": {"allowed_signature_profiles": [LEGACY_ED25519_V1], "allow_legacy_ed25519": True}}
-    ok_profile, reason = profile_allowed_for_context(profile, chain_config=profile_chain_config, require_verifier=False)
+    ok_profile, reason = profile_allowed_for_context(profile, chain_config=profile_chain_config, require_verifier=True)
     if not ok_profile:
         raise PublicSeedRegistryError(f"public_seed_registry_{reason}")
 
