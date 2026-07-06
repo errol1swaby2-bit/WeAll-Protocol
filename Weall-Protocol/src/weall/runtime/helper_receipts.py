@@ -9,6 +9,9 @@ from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
 
+from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
+from weall.crypto.signature_profiles import LEGACY_ED25519_V1, default_signature_profile_for_mode, normalize_signature_profile_id
+
 
 
 def _sha256_hex(value: Any) -> str:
@@ -35,6 +38,7 @@ class HelperReceipt:
     helper_id: str
     signature: str
     plan_id: str = ""
+    sig_profile: str = LEGACY_ED25519_V1
 
     def signing_payload(self) -> Dict[str, Any]:
         return {
@@ -50,6 +54,7 @@ class HelperReceipt:
             "output_state_hash": self.output_state_hash,
             "helper_id": self.helper_id,
             "plan_id": self.plan_id,
+            "sig_profile": normalize_signature_profile_id(self.sig_profile) or LEGACY_ED25519_V1,
         }
 
     def receipt_id(self) -> str:
@@ -108,8 +113,12 @@ def sign_helper_receipt(
     privkey: str | Ed25519PrivateKey | None = None,
     receipt_secret: str | None = None,
     allow_legacy_receipt_secret: bool = False,
+    sig_profile: str | None = None,
 ) -> HelperReceipt:
     normalized_tx_ids = _normalize_tx_ids(ordered_tx_ids)
+    profile = normalize_signature_profile_id(sig_profile) or default_signature_profile_for_mode()
+    if receipt_secret is not None and privkey is None:
+        profile = "legacy-hmac-helper-secret-v1"
     unsigned = {
         "t": "HELPER_RECEIPT",
         "chain_id": str(chain_id),
@@ -123,10 +132,16 @@ def sign_helper_receipt(
         "output_state_hash": str(output_state_hash),
         "helper_id": str(helper_id),
         "plan_id": str(plan_id or ""),
+        "sig_profile": profile,
     }
     payload = _signing_material(unsigned)
     if privkey is not None:
-        signature = _private_key_from_value(privkey).sign(payload).hex()
+        if isinstance(privkey, Ed25519PrivateKey):
+            if profile != LEGACY_ED25519_V1:
+                raise ValueError("ed25519 private key object requires legacy-ed25519-v1 helper receipt profile")
+            signature = privkey.sign(payload).hex()
+        else:
+            signature = sign_signature_for_profile(sig_profile=profile, message=payload, privkey=str(privkey), encoding="hex")
     else:
         if not allow_legacy_receipt_secret or receipt_secret is None:
             raise ValueError("helper receipt signing requires privkey; legacy HMAC receipt signing is disabled unless explicitly allowed")
@@ -144,6 +159,7 @@ def sign_helper_receipt(
         helper_id=str(helper_id),
         signature=signature,
         plan_id=str(plan_id or ""),
+        sig_profile=profile,
     )
 
 
@@ -162,6 +178,7 @@ def verify_helper_receipt(
     helper_pubkey: str | Ed25519PublicKey | None = None,
     receipt_secret: str | None = None,
     allow_legacy_receipt_secret: bool = False,
+    sig_profile: str | None = None,
 ) -> bool:
     if receipt.chain_id != str(expected_chain_id):
         return False
@@ -184,11 +201,16 @@ def verify_helper_receipt(
 
     payload = _signing_material(receipt.signing_payload())
     if helper_pubkey is not None:
-        try:
-            _public_key_from_value(helper_pubkey).verify(bytes.fromhex(receipt.signature), payload)
-            return True
-        except Exception:
-            return False
+        profile = normalize_signature_profile_id(sig_profile or getattr(receipt, "sig_profile", "")) or LEGACY_ED25519_V1
+        if isinstance(helper_pubkey, Ed25519PublicKey):
+            if profile != LEGACY_ED25519_V1:
+                return False
+            try:
+                helper_pubkey.verify(bytes.fromhex(receipt.signature), payload)
+                return True
+            except Exception:
+                return False
+        return verify_signature_for_profile(sig_profile=profile, message=payload, sig=receipt.signature, pubkey=str(helper_pubkey))
     if not allow_legacy_receipt_secret or receipt_secret is None:
         return False
     expected_sig = hmac.new(receipt_secret.encode("utf-8"), payload, digestmod="sha256").hexdigest()

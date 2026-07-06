@@ -2674,7 +2674,7 @@
       "route_id": "265cefbc6cf5d572",
       "route_path_without_v1_prefix": "/session/create",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 308,
+      "source_lineno": 378,
       "summary": "",
       "tags": [
         "session"
@@ -2696,7 +2696,7 @@
       "route_id": "8aa87bfedb4476d9",
       "route_path_without_v1_prefix": "/session/login",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 130,
+      "source_lineno": 179,
       "summary": "",
       "tags": [
         "session"
@@ -2718,7 +2718,7 @@
       "route_id": "c3f8b32a3bb27285",
       "route_path_without_v1_prefix": "/session/me",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 410,
+      "source_lineno": 480,
       "summary": "",
       "tags": [
         "session"

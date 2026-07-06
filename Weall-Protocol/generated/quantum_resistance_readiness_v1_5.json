@@ -25,7 +25,6 @@
   "real_mldsa_implemented_in_this_environment": true,
   "remaining_crypto_blockers": [
     "frontend_local_pq_signing_not_complete",
-    "helper_receipt_certificate_production_pq_gate_missing",
     "public_evidence_bundle_pq_signing_policy_missing",
     "external_crypto_review_missing"
   ],

@@ -399,6 +399,7 @@ export async function createBrowserSession(input: {
   ttl_s: number;
   issued_at_ms: number;
   device_id: string;
+  sig_profile?: string;
   pubkey: string;
   sig?: string;
   signature?: string;
@@ -414,6 +415,7 @@ export async function createBrowserSession(input: {
         ttl_s: input.ttl_s,
         issued_at_ms: input.issued_at_ms,
         device_id: input.device_id,
+        ...(input.sig_profile ? { sig_profile: input.sig_profile } : {}),
         pubkey: input.pubkey,
         sig,
       }),

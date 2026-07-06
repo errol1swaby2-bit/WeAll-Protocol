@@ -41,6 +41,18 @@
       "upgrade_before_public_testnet": false
     },
     {
+      "account_custody": true,
+      "consensus_critical": false,
+      "current_algorithm": "browser/API session-login proofs are profile-aware; controlled/public testnet mode rejects missing profiles and accepts pq-mldsa-v1 proofs over chain/network-bound canonical login payloads",
+      "external_audit_before_mainnet": true,
+      "observer_trust": true,
+      "surface": "session_login_signatures",
+      "target_algorithm": "pq-mldsa-v1",
+      "transport_or_local_only": false,
+      "upgrade_before_closed_testnet": false,
+      "upgrade_before_public_testnet": false
+    },
+    {
       "account_custody": false,
       "consensus_critical": true,
       "current_algorithm": "validator/operator records and HotStuff vote/timeout/proposal signing are profile-aware and support pq-mldsa-v1 ML-DSA-65",
@@ -187,14 +199,14 @@
     {
       "account_custody": false,
       "consensus_critical": true,
-      "current_algorithm": "production helper execution remains disabled; helper receipt/certificate signing has legacy Ed25519/HMAC compatibility and must not be used as public authority until PQ-gated",
+      "current_algorithm": "helper receipt and helper certificate signing are profile-aware and support pq-mldsa-v1 ML-DSA-65; HMAC and Ed25519 compatibility remain legacy/dev-only while production helper execution stays separately disabled",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "helper_receipts_certificates",
-      "target_algorithm": "pq-mldsa-v1 helper receipt/certificate profile before production helper enablement",
+      "target_algorithm": "pq-mldsa-v1 helper receipt/certificate profile",
       "transport_or_local_only": false,
       "upgrade_before_closed_testnet": false,
-      "upgrade_before_public_testnet": true
+      "upgrade_before_public_testnet": false
     },
     {
       "account_custody": true,

@@ -1,6 +1,6 @@
 {
   "allowed_claim": "Pre-public-testnet implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware pq-mldsa-v1 ML-DSA signing for protocol authority surfaces covered by this pass. Fresh post-transition observer/testnet evidence and external cryptographic review remain required before any long-lived public network or mainnet claim.",
-  "artifact_digest": "e5c323aed2f35be27fb3abeeffbbb00e9f1b03d71a8938b9ce2eee9b533f73cb",
+  "artifact_digest": "7a7c7a60f33b90bf304abea10912a26b8c4201a6c2c9d3abce3521bfc30ab019",
   "blocker_counts": {
     "blocker_catalog_count": 15,
     "closed_in_repository_count": 7,
@@ -176,7 +176,6 @@
     "real_mldsa_implemented_in_this_environment": true,
     "remaining_crypto_blockers": [
       "frontend_local_pq_signing_not_complete",
-      "helper_receipt_certificate_production_pq_gate_missing",
       "public_evidence_bundle_pq_signing_policy_missing",
       "external_crypto_review_missing"
     ]

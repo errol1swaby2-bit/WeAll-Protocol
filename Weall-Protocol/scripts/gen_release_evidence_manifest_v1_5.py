@@ -220,7 +220,7 @@ def build() -> Json:
                 "profile_registry": "generated/signature_profile_registry_v1_5.json",
                 "inventory": "generated/crypto_inventory_v1_5.json",
                 "readiness_artifact": "generated/quantum_resistance_readiness_v1_5.json",
-                "validator": "PYTHONPATH=src python scripts/gen_crypto_posture_v1_5.py && PYTHONPATH=src python -m pytest -q tests/test_crypto_signature_profiles.py tests/test_pq_mldsa_signature_profile.py tests/test_tx_signature_profile_admission.py tests/test_seed_registry_signature_profiles.py tests/test_net_pq_signature_profiles.py",
+                "validator": "PYTHONPATH=src python scripts/gen_crypto_posture_v1_5.py && PYTHONPATH=src python -m pytest -q tests/test_crypto_signature_profiles.py tests/test_pq_mldsa_signature_profile.py tests/test_tx_signature_profile_admission.py tests/test_seed_registry_signature_profiles.py tests/test_net_pq_signature_profiles.py tests/test_session_pq_signature_profile.py tests/test_helper_pq_signature_profiles.py",
                 "production_crypto_audit_complete": False,
                 "public_multi_validator_bft_ready": False,
                 "live_economics": False,
