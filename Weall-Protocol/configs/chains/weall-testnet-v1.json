@@ -21,6 +21,17 @@
     "procedure_time_source": "finalized_block_height",
     "target_block_interval_ms": 20000
   },
+  "crypto": {
+    "active_signature_profile": "pq-mldsa-v1",
+    "allow_legacy_ed25519": false,
+    "allowed_signature_profiles": [
+      "pq-mldsa-v1"
+    ],
+    "external_crypto_review_required_before_mainnet": true,
+    "legacy_ed25519_profile": "legacy-ed25519-v1",
+    "production_crypto_audit_complete": false,
+    "transport_key_establishment_profile": "pq-mlkem-v1"
+  },
   "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
   "genesis_state_root": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
   "genesis_time_ms": 0,

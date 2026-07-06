@@ -68,3 +68,7 @@ tracked repository artifacts/docs/source gates rather than external evidence:
 
 These blockers are intentional. They prevent the project from accidentally
 marketing a local controlled rehearsal as a public decentralized network.
+
+### Pass 33 signature-profile truth boundary
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet target signature profile is `pq-mldsa-v1`; `legacy-ed25519-v1` is legacy/transitional/dev-only unless explicitly allowed by chain configuration. This does not claim completed production cryptographic audit, mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

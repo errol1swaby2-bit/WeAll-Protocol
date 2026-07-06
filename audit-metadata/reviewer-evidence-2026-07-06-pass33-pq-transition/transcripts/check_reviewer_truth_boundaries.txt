@@ -1,0 +1,3 @@
+## env PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+[truth-boundary] OK: no high-risk unbounded reviewer readiness claims found
+EXIT_CODE=0

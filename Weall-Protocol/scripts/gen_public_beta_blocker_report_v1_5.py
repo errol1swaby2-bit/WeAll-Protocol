@@ -309,6 +309,7 @@ def build() -> Json:
     public_observer_launch = _artifact_summary("generated/public_observer_launch_evidence_requirements_v1_5.json")
     release_evidence = build_release_evidence_manifest()
     frontend_p2_ux = _frontend_p2_ux_summary()
+    crypto_readiness = _artifact_summary("generated/quantum_resistance_readiness_v1_5.json")
 
     high_risk_disabled = all(
         record.get("enabled") is False
@@ -350,6 +351,17 @@ def build() -> Json:
             "hardening_plan_present_execution_still_disabled" if protocol_upgrade.get("ok") and protocol_upgrade_hardening.get("ok") else "gate_failed",
             True,
             ["future production execution gate", "operator approval policy", "multi-node rollback transcript", "strict external upgrade execution transcript"],
+        ),
+        _blocker(
+            "AUD-633-P0-004",
+            "P0",
+            ["closed_testnet", "public_beta", "mainnet"],
+            "The controlled-testnet target crypto profile is now pq-mldsa-v1, but real ML-DSA signing, seed-registry re-signing, and full validator/BFT migration remain incomplete.",
+            "Reproducibly pinned ML-DSA signer/verifier, PQ-signed seed registry/trust roots, profile-aware tx/account/validator/block/BFT surfaces, and external crypto review before long-lived public network claims.",
+            "quantum_resistance_readiness",
+            "gate_present_real_mldsa_and_external_review_required" if crypto_readiness.get("present") else "gate_failed",
+            False,
+            ["real ML-DSA dependency decision record", "PQ-signed seed registry", "fresh profile-aware testnet rehearsal", "external cryptographic review"],
         ),
         _blocker(
             "AUD-618-P1-001",

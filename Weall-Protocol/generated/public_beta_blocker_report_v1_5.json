@@ -1,10 +1,10 @@
 {
-  "blocker_catalog_count": 14,
+  "blocker_catalog_count": 15,
   "blocker_classification_summary": {
     "closed_by_artifact_or_docs": 7,
-    "external_evidence_required": 7
+    "external_evidence_required": 8
   },
-  "blocker_count": 14,
+  "blocker_count": 15,
   "blockers": [
     {
       "blocker_category": "external_evidence_required",
@@ -71,6 +71,30 @@
         "operator approval policy",
         "multi-node rollback transcript",
         "strict external upgrade execution transcript"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P0"
+    },
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "closed_testnet",
+        "public_beta",
+        "mainnet"
+      ],
+      "can_be_closed_by_code_only": false,
+      "current_behavior": "The controlled-testnet target crypto profile is now pq-mldsa-v1, but real ML-DSA signing, seed-registry re-signing, and full validator/BFT migration remain incomplete.",
+      "evidence_gate": "quantum_resistance_readiness",
+      "expected_production_behavior": "Reproducibly pinned ML-DSA signer/verifier, PQ-signed seed registry/trust roots, profile-aware tx/account/validator/block/BFT surfaces, and external crypto review before long-lived public network claims.",
+      "gate_status": "gate_present_real_mldsa_and_external_review_required",
+      "id": "AUD-633-P0-004",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "real ML-DSA dependency decision record",
+        "PQ-signed seed registry",
+        "fresh profile-aware testnet rehearsal",
+        "external cryptographic review"
       ],
       "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
       "safe_to_reduce_before_nlnet_first_round": false,
@@ -469,7 +493,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "f48256bd4e0b110af99d2df2293ec212708448fc759293a9d0600251cc66bc07",
+      "artifact_digest": "7a7e6720521717dcfbb2ac063f3021bc7136c81beda98a9fb34ab8d2d6372c70",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -748,20 +772,20 @@
         "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
       },
       "public_beta_blocker_report": {
-        "blocker_catalog_count": 14,
-        "blocker_count": 14,
+        "blocker_catalog_count": 15,
+        "blocker_count": 15,
         "closed_in_repository_count": 7,
         "mainnet_ready": false,
         "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
         "ok": true,
-        "p0_open_count": 3,
+        "p0_open_count": 4,
         "p1_open_count": 4,
         "p2_open_count": 0,
         "p3_open_count": 0,
         "present": true,
         "public_beta_ready": false,
-        "remaining_blocker_count": 7,
-        "remaining_external_evidence_required_count": 7,
+        "remaining_blocker_count": 8,
+        "remaining_external_evidence_required_count": 8,
         "remaining_mainnet_hardening_count": 4
       },
       "public_beta_ready_claimed": false,
@@ -861,8 +885,8 @@
   "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
   "ok": true,
   "ok_meaning": "The blocker inventory and bounded evidence gates are current; this does not mean public beta readiness.",
-  "open_blocker_count": 7,
-  "p0_open_count": 3,
+  "open_blocker_count": 8,
+  "p0_open_count": 4,
   "p1_open_count": 4,
   "p2_open_count": 0,
   "p3_open_count": 0,
@@ -880,12 +904,13 @@
     "public_storage_provider_market": false,
     "public_validator_enabled": false
   },
-  "remaining_blocker_count": 7,
-  "remaining_external_evidence_required_count": 7,
+  "remaining_blocker_count": 8,
+  "remaining_external_evidence_required_count": 8,
   "remaining_external_evidence_required_ids": [
     "AUD-618-P0-001",
     "AUD-618-P0-002",
     "AUD-618-P0-003",
+    "AUD-633-P0-004",
     "AUD-618-P1-003",
     "AUD-618-P1-004",
     "AUD-618-P1-005",

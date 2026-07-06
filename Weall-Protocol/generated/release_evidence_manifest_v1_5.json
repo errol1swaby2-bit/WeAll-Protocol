@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "f48256bd4e0b110af99d2df2293ec212708448fc759293a9d0600251cc66bc07",
+  "artifact_digest": "7a7e6720521717dcfbb2ac063f3021bc7136c81beda98a9fb34ab8d2d6372c70",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -64,6 +64,18 @@
       "sample_templates_are_rejected_in_strict_release": true,
       "template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
       "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
+    },
+    "post_quantum_signature_profile_transition": {
+      "inventory": "generated/crypto_inventory_v1_5.json",
+      "live_economics": false,
+      "production_crypto_audit_complete": false,
+      "profile_registry": "generated/signature_profile_registry_v1_5.json",
+      "public_multi_validator_bft_ready": false,
+      "readiness_artifact": "generated/quantum_resistance_readiness_v1_5.json",
+      "real_mldsa_required_before_controlled_testnet": true,
+      "required_before_closed_testnet_rehearsal": true,
+      "required_before_public_observer_launch": true,
+      "validator": "PYTHONPATH=src python scripts/gen_crypto_posture_v1_5.py && PYTHONPATH=src python -m pytest -q tests/test_crypto_signature_profiles.py tests/test_tx_signature_profile_admission.py tests/test_seed_registry_signature_profiles.py"
     },
     "production_helper_topology_hardening_plan": {
       "blocker": "AUD-618-P1-005",
@@ -139,6 +151,7 @@
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.api_contract_map.v1_5"
     },
     "generated/api_response_vectors_v1_5.json": {
@@ -146,6 +159,7 @@
       "ok": true,
       "path": "generated/api_response_vectors_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.api_response_vectors"
     },
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
@@ -153,20 +167,31 @@
       "ok": true,
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "67f0a084e8286686ee71c33c57ac9c1a31576fbbdca4f12e5809873903657209",
+      "file_sha256": "47d1c8d54395712a1360e3288214d68076a08ff767042b70cb151abc0f98b8e2",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+    },
+    "generated/crypto_inventory_v1_5.json": {
+      "file_sha256": "c85707a5d50c2ff24d703da6de7ce23e20dbf19808aca536d9e19133394209dc",
+      "ok": true,
+      "path": "generated/crypto_inventory_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.crypto_inventory.v1_5"
     },
     "generated/external_operator_transcript_requirements_v1_5.json": {
       "file_sha256": "51934d08da5ad61eddd1373537e7ce3fcdb72aa7ef04c3b36daf288f7762efb5",
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
@@ -174,13 +199,15 @@
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.failure_code_registry"
     },
     "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json": {
-      "file_sha256": "327a1e26a3c609c55076158f7789e7ab24477f93f0bbf34b0909230203204af8",
+      "file_sha256": "b0a2e93bf7186fdb6d95f0254284d8adaf4afe272d0bd1499d4d6bb6e1df6e70",
       "ok": true,
       "path": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": true,
       "schema": "weall.v1_5.final_public_observer_controlled_testnet_go_gate"
     },
     "generated/production_helper_topology_hardening_plan_v1_5.json": {
@@ -188,6 +215,7 @@
       "ok": true,
       "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.production_helper_topology_hardening_plan"
     },
     "generated/protocol_upgrade_execution_hardening_plan_v1_5.json": {
@@ -195,6 +223,7 @@
       "ok": true,
       "path": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan"
     },
     "generated/public_discovery_provider_independence_v1_5.json": {
@@ -202,6 +231,7 @@
       "ok": true,
       "path": "generated/public_discovery_provider_independence_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_discovery_provider_independence"
     },
     "generated/public_frontend_operator_journey_v1_5.json": {
@@ -209,6 +239,7 @@
       "ok": true,
       "path": "generated/public_frontend_operator_journey_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_frontend_operator_journey"
     },
     "generated/public_observer_auto_discovery_proof_v1_5.json": {
@@ -216,6 +247,7 @@
       "ok": true,
       "path": "generated/public_observer_auto_discovery_proof_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_observer_auto_discovery_proof"
     },
     "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json": {
@@ -223,6 +255,7 @@
       "ok": true,
       "path": "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript"
     },
     "generated/public_observer_launch_evidence_requirements_v1_5.json": {
@@ -230,6 +263,7 @@
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_observer_launch_evidence_requirements"
     },
     "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json": {
@@ -237,13 +271,15 @@
       "ok": true,
       "path": "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "33cfd17bd04501dd0a1c026c48a62f79abfd2ce82b53fa352c0980c62993e771",
+      "file_sha256": "8aaea6661ec2ab870749615e0d1da229d6806e7a06c7084b89af27e1251b9fd6",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.public_only_protocol_audit.v1_5"
     },
     "generated/public_registry_signer_operations_v1_5.json": {
@@ -251,6 +287,7 @@
       "ok": true,
       "path": "generated/public_registry_signer_operations_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_registry_signer_operations"
     },
     "generated/public_seed_registry_signature_verification_v1_5.json": {
@@ -258,6 +295,7 @@
       "ok": true,
       "path": "generated/public_seed_registry_signature_verification_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_seed_registry_signature_verification"
     },
     "generated/public_validator_bft_preflight_matrix_v1_5.json": {
@@ -265,6 +303,7 @@
       "ok": true,
       "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
     },
     "generated/public_validator_endpoint_churn_proof_v1_5.json": {
@@ -272,13 +311,31 @@
       "ok": true,
       "path": "generated/public_validator_endpoint_churn_proof_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.public_validator_endpoint_churn_proof"
+    },
+    "generated/quantum_resistance_readiness_v1_5.json": {
+      "file_sha256": "f78f7d1e0ac73e700846bb2be515f9529ef35888a77089042d8da1f05b42fe68",
+      "ok": true,
+      "path": "generated/quantum_resistance_readiness_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.quantum_resistance_readiness.v1_5"
+    },
+    "generated/signature_profile_registry_v1_5.json": {
+      "file_sha256": "ee6aa95db2f9889a28938e40b0253d2c63b4e8dbbb65153e1f813a04ea02f234",
+      "ok": true,
+      "path": "generated/signature_profile_registry_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.signature_profile_registry.v1_5"
     },
     "generated/state_root_vectors_v1_5.json": {
       "file_sha256": "b1d86f5a659f564dff371f707009c01e4d66fbefdb449a871122ac69e7d1fabd",
       "ok": true,
       "path": "generated/state_root_vectors_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.state_root_vectors"
     },
     "generated/tokenomics_simulation_v1_5.json": {
@@ -286,6 +343,7 @@
       "ok": true,
       "path": "generated/tokenomics_simulation_v1_5.json",
       "present": true,
+      "readiness_no_go_artifact": false,
       "schema": "weall.v1_5.tokenomics_simulation"
     }
   },

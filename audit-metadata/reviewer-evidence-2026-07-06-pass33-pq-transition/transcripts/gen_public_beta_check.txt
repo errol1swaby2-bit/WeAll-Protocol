@@ -1,0 +1,3 @@
+## env PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+OK: generated/public_beta_blocker_report_v1_5.json is current (15 catalog entries; 8 still open; public_beta_ready=false)
+EXIT_CODE=0

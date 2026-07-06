@@ -120,3 +120,7 @@ bash scripts/first_external_observer_reproducibility_gate.sh <public-observer-bu
 
 Until the signed onboarding gate passes, the safe claim is limited to local observer preconditions and remote compatibility readiness, not first external observer completion.
 
+
+### Pass 33 signature-profile truth boundary
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet target signature profile is `pq-mldsa-v1`; `legacy-ed25519-v1` is legacy/transitional/dev-only unless explicitly allowed by chain configuration. This does not claim completed production cryptographic audit, mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

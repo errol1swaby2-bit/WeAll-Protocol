@@ -112,6 +112,12 @@
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "docs/security/CRYPTO_AGILITY_AND_QUANTUM_POSTURE.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md"
     },
     {
@@ -156,7 +162,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 16,
+  "inventory_hit_count": 17,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

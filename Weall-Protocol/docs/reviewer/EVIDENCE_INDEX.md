@@ -148,3 +148,8 @@ PYTHONPATH=src python -m pytest -q \
   tests/prod/test_public_observer_testnet_readiness_docs.py \
   tests/test_public_readiness_artifacts_v15.py
 ```
+
+
+### Pass 33 post-quantum signing blocker
+
+- `AUD-633-P0-004`: reproducible real ML-DSA verifier/signing integration, PQ-signed seed/trust-root materials, migrated authority signatures, and external cryptographic review remain required before controlled/public testnet signing can be claimed.

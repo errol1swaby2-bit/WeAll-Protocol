@@ -1,9 +1,11 @@
 {
+  "active_signature_profile": "pq-mldsa-v1",
   "active_validator_endpoint_policy": "verified_or_hint",
   "chain_id": "weall-testnet-v1",
   "economics_active": false,
   "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
   "genesis_state_root": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
+  "legacy_signature_transitional_only": true,
   "network_id": "weall-public-observer-testnet-v1",
   "nodes": [
     {
@@ -15,6 +17,7 @@
       "weight": 100
     }
   ],
+  "pq_resign_required_before_public_testnet": true,
   "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
   "registry_urls": [],
   "resettable_testnet": true,
@@ -24,8 +27,9 @@
   "seed_p2p_urls": [
     "tls://p2p.genesis.weallprotocol.xyz:30303"
   ],
+  "seed_registry_sig_profile": "legacy-ed25519-v1",
   "seed_registry_signature": "023e7bb7552175d91893f5471de1aa1a5bc8bf6c1319008bde3dc9dede016f5aff9aef195e2d7cab75773a75abc71f217ade558ebe2dda52c654d8b4faf8ee03",
-  "seed_registry_signature_alg": "ed25519/weall.public_seed_registry.v1",
+  "seed_registry_signature_alg": "legacy-ed25519-v1/weall.public_seed_registry.v1",
   "seed_registry_signer": "81eaf06a553325a438a98a126bfef417faee784f1363dfd2f4856fd4207f1865",
   "tx_index_hash": "c6863731be6076a20acb0284634d8b03fe48bad7db45cbb32e6394b10db5921f",
   "validator_endpoints": [],

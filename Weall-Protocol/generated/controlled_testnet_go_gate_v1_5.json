@@ -153,8 +153,8 @@
     "public_validator_readiness",
     "protocol_private_activity"
   ],
-  "controlled_testnet_candidate": true,
-  "controlled_testnet_go_gate_ready_to_run": true,
+  "controlled_testnet_candidate": false,
+  "controlled_testnet_go_gate_ready_to_run": false,
   "controlled_testnet_ready_claimed_by_repo": false,
   "deterministic_tracked_manifest": true,
   "external_operator_transcript_requirements_summary": {
@@ -187,25 +187,40 @@
     }
   },
   "next_allowed_claim_if_runtime_go_gate_passes": "controlled testnet candidate evidence captured",
-  "ok": true,
+  "ok": false,
   "public_beta_blocker_report_summary": {
-    "blocker_catalog_count": 14,
-    "blocker_count": 14,
+    "blocker_catalog_count": 15,
+    "blocker_count": 15,
     "closed_in_repository_count": 7,
     "mainnet_ready": false,
     "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
     "ok": true,
-    "p0_open_count": 3,
+    "p0_open_count": 4,
     "p1_open_count": 4,
     "p2_open_count": 0,
     "p3_open_count": 0,
     "public_beta_ready": false,
-    "remaining_blocker_count": 7,
-    "remaining_external_evidence_required_count": 7,
+    "remaining_blocker_count": 8,
+    "remaining_external_evidence_required_count": 8,
     "remaining_mainnet_hardening_count": 4
   },
   "public_beta_ready": false,
   "public_readiness_claim_requires_external_evidence": true,
+  "quantum_resistance_readiness_summary": {
+    "controlled_testnet_target_profile": "pq-mldsa-v1",
+    "ok": false,
+    "production_crypto_audit_complete": false,
+    "real_mldsa_implemented_in_this_environment": false,
+    "remaining_crypto_blockers": [
+      "real_mldsa_backend_unavailable_or_unpinned",
+      "seed_registry_requires_pq_resign",
+      "bft_qc_signature_profile_incomplete",
+      "peer_gossip_relay_signature_migration_incomplete",
+      "frontend_local_pq_signing_not_complete",
+      "external_crypto_review_missing"
+    ],
+    "schema": "weall.quantum_resistance_readiness.v1_5"
+  },
   "recommended_gate_commands": [
     "PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --run-gates --require-git-tracked",
     "PYTHONPATH=src:scripts python -m pytest -q",

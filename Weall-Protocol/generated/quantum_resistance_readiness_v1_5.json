@@ -1,0 +1,31 @@
+{
+  "acceptable_claim_if_scaffolding_only": "WeAll remains a pre-public-testnet protocol implementation under active hardening. This patch adds fail-closed post-quantum signature-profile scaffolding, but real quantum-safe signing remains blocked until a reproducible ML-DSA implementation is integrated and tested.",
+  "controlled_testnet_target_profile": "pq-mldsa-v1",
+  "ed25519_legacy_transitional_dev_only": true,
+  "framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
+  "legacy_profile": "legacy-ed25519-v1",
+  "live_economics": false,
+  "mldsa_backend_status": {
+    "algorithm": "ML-DSA-65",
+    "available": false,
+    "backend": "pyca-cryptography",
+    "detail": "cannot import name 'mldsa' from 'cryptography.hazmat.primitives.asymmetric' (/opt/pyvenv/lib/python3.13/site-packages/cryptography/hazmat/primitives/asymmetric/__init__.py)",
+    "reason": "module_unavailable"
+  },
+  "production_crypto_audit_complete": false,
+  "production_post_quantum_security_claimed": false,
+  "public_beta_ready": false,
+  "public_mainnet_ready": false,
+  "public_multi_validator_bft_ready": false,
+  "quantum_proof_claimed": false,
+  "real_mldsa_implemented_in_this_environment": false,
+  "remaining_crypto_blockers": [
+    "real_mldsa_backend_unavailable_or_unpinned",
+    "seed_registry_requires_pq_resign",
+    "bft_qc_signature_profile_incomplete",
+    "peer_gossip_relay_signature_migration_incomplete",
+    "frontend_local_pq_signing_not_complete",
+    "external_crypto_review_missing"
+  ],
+  "schema": "weall.quantum_resistance_readiness.v1_5"
+}

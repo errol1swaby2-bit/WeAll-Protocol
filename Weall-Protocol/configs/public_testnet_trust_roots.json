@@ -1,13 +1,21 @@
 {
+  "active_signature_profile": "pq-mldsa-v1",
+  "allowed_signature_profiles": [
+    "pq-mldsa-v1"
+  ],
   "chain_id": "weall-testnet-v1",
   "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
+  "legacy_signature_profiles_transitional_only": [
+    "legacy-ed25519-v1"
+  ],
   "network_id": "weall-public-observer-testnet-v1",
   "notes": [
     "The checked-in signed registry is sufficient for bootstrap if listed endpoints are reachable.",
     "Optional HTTPS mirrors may publish the same signed registry.",
     "Mirror hosts are not trust authorities.",
     "Discovery-level verification does not grant validator authority.",
-    "This public observer testnet is resettable and non-economic."
+    "This public observer testnet is resettable and non-economic.",
+    "Controlled/public testnet cryptographic gate now targets pq-mldsa-v1; legacy Ed25519 seed registry signatures are dev/local transitional only."
   ],
   "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
   "seed_registry_mirrors": [],

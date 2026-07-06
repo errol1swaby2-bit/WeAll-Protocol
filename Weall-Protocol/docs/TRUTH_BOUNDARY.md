@@ -155,3 +155,7 @@ Required practice:
 5. If reviewer asks for clarification, state which improvements happened after the submitted commit.
 
 This lets the project keep moving quickly without confusing reviewers about what was true at submission time.
+
+### Pass 33 signature-profile truth boundary
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet target signature profile is `pq-mldsa-v1`; `legacy-ed25519-v1` is legacy/transitional/dev-only unless explicitly allowed by chain configuration. This does not claim completed production cryptographic audit, mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

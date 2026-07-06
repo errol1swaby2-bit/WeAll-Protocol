@@ -1,0 +1,4 @@
+## env PYTHONPATH=src python -m pytest -q tests/test_crypto_signature_profiles.py tests/test_pq_mldsa_signature_profile.py tests/test_tx_signature_profile_admission.py tests/test_account_pq_key_schema.py tests/test_seed_registry_signature_profiles.py tests/test_block_signature_profiles.py tests/test_validator_operator_signature_profiles.py tests/test_quantum_resistance_truth_boundary.py tests/prod/test_public_testnet_crypto_profile_gate.py
+...........................                                              [100%]
+27 passed in 1.15s
+EXIT_CODE=0

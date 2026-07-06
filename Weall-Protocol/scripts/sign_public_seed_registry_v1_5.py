@@ -28,6 +28,7 @@ from weall.api.public_seed_registry import (  # noqa: E402
     validator_endpoint_signature_payload,
 )
 from weall.crypto.sig import sign_ed25519  # noqa: E402
+from weall.crypto.signature_profiles import LEGACY_ED25519_V1  # noqa: E402
 
 Json = dict[str, Any]
 
@@ -69,7 +70,8 @@ def _strip_registry_signature(data: Json) -> Json:
 def sign_registry(data: Json, *, private_key: str, public_key: str) -> Json:
     out = _strip_registry_signature(data)
     out["seed_registry_signer"] = public_key
-    out["seed_registry_signature_alg"] = "ed25519/weall.public_seed_registry.v1"
+    out["seed_registry_sig_profile"] = LEGACY_ED25519_V1
+    out["seed_registry_signature_alg"] = "legacy-ed25519-v1/weall.public_seed_registry.v1"
     out["seed_registry_signature"] = sign_ed25519(
         message=registry_signature_payload(out),
         privkey=private_key,
@@ -102,6 +104,7 @@ def sign_validator_endpoints(data: Json, *, endpoint_key_map: Json) -> Json:
         out.setdefault("node_pubkey", signer)
         out["signed"] = True
         out["verified"] = True
+        out["sig_profile"] = LEGACY_ED25519_V1
         out["signature"] = sign_ed25519(
             message=validator_endpoint_signature_payload(out, commitments=commitments),
             privkey=private_key,
@@ -143,6 +146,8 @@ def main() -> int:
     # safe publication gate and rejects placeholders before writing output.
     os.environ.setdefault("WEALL_PUBLIC_TESTNET", "1")
     os.environ.setdefault("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", public_key)
+    if args.allow_local:
+        os.environ.setdefault("WEALL_PUBLIC_TESTNET_ALLOW_LEGACY_SIGNATURES", "1")
 
     # Validate the signed payload before writing/checking.  This catches
     # placeholders, bad URLs, and bad signatures with the same runtime code used

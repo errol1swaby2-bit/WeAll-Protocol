@@ -6,7 +6,14 @@ from typing import Any
 from weall.crypto.sig import (
     canonical_tx_message,
     strict_tx_sig_domain_enabled,
-    verify_ed25519_signature,
+    verify_signature_for_profile,
+)
+from weall.crypto.signature_profiles import (
+    LEGACY_ED25519_V1,
+    PQ_MLDSA_V1,
+    mode_requires_explicit_sig_profile,
+    normalize_signature_profile_id,
+    profile_allowed_for_context,
 )
 
 Json = dict[str, Any]
@@ -23,32 +30,42 @@ def _add_pubkey(out: list[str], seen: set[str], pk: Any) -> None:
     out.append(pk2)
 
 
-def _extract_active_keys(acct: Any) -> list[str]:
-    """Extract active pubkeys from a signer account record."""
+def _extract_active_keys(acct: Any, *, sig_profile: str = "") -> list[str]:
+    """Extract active profile-aware pubkeys from a signer account record."""
     if not isinstance(acct, dict):
         return []
 
+    wanted = normalize_signature_profile_id(sig_profile)
     out: list[str] = []
     seen: set[str] = set()
 
-    active_keys = acct.get("active_keys")
-    if isinstance(active_keys, list):
-        for pk in active_keys:
-            _add_pubkey(out, seen, pk)
-
-    _add_pubkey(out, seen, acct.get("pubkey"))
+    # Legacy compatibility fields. These are ignored in strict PQ profile mode.
+    if not wanted or wanted == LEGACY_ED25519_V1:
+        active_keys = acct.get("active_keys")
+        if isinstance(active_keys, list):
+            for pk in active_keys:
+                _add_pubkey(out, seen, pk)
+        _add_pubkey(out, seen, acct.get("pubkey"))
 
     keys = acct.get("keys")
     if isinstance(keys, list):
         for item in keys:
             if isinstance(item, str):
-                _add_pubkey(out, seen, item)
+                if not wanted or wanted == LEGACY_ED25519_V1:
+                    _add_pubkey(out, seen, item)
                 continue
             if not isinstance(item, dict):
                 continue
             if item.get("active", True) is False:
                 continue
-            _add_pubkey(out, seen, item.get("pubkey"))
+            rec_profile = normalize_signature_profile_id(item.get("sig_profile"))
+            if wanted and rec_profile and rec_profile != wanted:
+                continue
+            if rec_profile == PQ_MLDSA_V1:
+                pubkeys = item.get("pubkeys") if isinstance(item.get("pubkeys"), dict) else {}
+                _add_pubkey(out, seen, pubkeys.get("mldsa"))
+            else:
+                _add_pubkey(out, seen, item.get("pubkey"))
 
     elif isinstance(keys, dict):
         by_id = keys.get("by_id")
@@ -58,17 +75,25 @@ def _extract_active_keys(acct: Any) -> list[str]:
                     continue
                 if bool(rec.get("revoked", False)) is True:
                     continue
-                _add_pubkey(out, seen, rec.get("pubkey"))
+                rec_profile = normalize_signature_profile_id(rec.get("sig_profile"))
+                if wanted and rec_profile and rec_profile != wanted:
+                    continue
+                if rec_profile == PQ_MLDSA_V1:
+                    pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
+                    _add_pubkey(out, seen, pubkeys.get("mldsa"))
+                else:
+                    _add_pubkey(out, seen, rec.get("pubkey"))
             return out
 
-        for pk, rec in keys.items():
-            if not isinstance(pk, str) or not pk.strip():
-                continue
-            if isinstance(rec, dict):
-                if bool(rec.get("active", False)):
+        if not wanted or wanted == LEGACY_ED25519_V1:
+            for pk, rec in keys.items():
+                if not isinstance(pk, str) or not pk.strip():
+                    continue
+                if isinstance(rec, dict):
+                    if bool(rec.get("active", False)):
+                        _add_pubkey(out, seen, pk)
+                else:
                     _add_pubkey(out, seen, pk)
-            else:
-                _add_pubkey(out, seen, pk)
 
     return out
 
@@ -126,15 +151,32 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
         if isinstance(maybe, dict):
             acct = maybe
 
-    active_keys = _extract_active_keys(acct)
-
-    sig = tx.get("sig")
+    raw_signature = tx.get("signature") if isinstance(tx.get("signature"), dict) else {}
+    sig = raw_signature.get("sig") or tx.get("sig")
     if not isinstance(sig, str) or not sig.strip():
         return False
+
+    sig_profile = normalize_signature_profile_id(tx.get("sig_profile"))
+    if not sig_profile:
+        if mode_requires_explicit_sig_profile():
+            return False
+        sig_profile = LEGACY_ED25519_V1
+
+    chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+    ok_profile, _reason_profile = profile_allowed_for_context(
+        sig_profile,
+        chain_config=chain_config,
+        require_verifier=False,
+    )
+    if not ok_profile:
+        return False
+
+    active_keys = _extract_active_keys(acct, sig_profile=sig_profile)
 
     expected_chain_id = _expected_chain_id(state)
     tx_chain_id = tx.get("chain_id")
     tx_chain_id2 = str(tx_chain_id).strip() if isinstance(tx_chain_id, str) else ""
+    network_id = str(tx.get("network_id") or state.get("network_id") or "").strip()
     strict_domain = strict_tx_sig_domain_enabled()
 
     if strict_domain:
@@ -149,6 +191,8 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
             msg_candidates.append(
                 canonical_tx_message(
                     chain_id=tx_chain_id2,
+                    network_id=network_id,
+                    sig_profile=sig_profile,
                     tx_type=tx.get("tx_type"),
                     signer=signer,
                     nonce=tx.get("nonce"),
@@ -163,6 +207,7 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
         try:
             msg_candidates.append(
                 canonical_tx_message(
+                    sig_profile=sig_profile,
                     tx_type=tx.get("tx_type"),
                     signer=signer,
                     nonce=tx.get("nonce"),
@@ -183,13 +228,13 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
             pk = payload.get("pubkey")
             if isinstance(pk, str) and pk.strip():
                 for msg in msg_candidates:
-                    if verify_ed25519_signature(message=msg, sig=sig, pubkey=pk):
+                    if verify_signature_for_profile(sig_profile=sig_profile, message=msg, sig=sig, pubkey=pk):
                         return True
         return _unsafe_dev_allows_unsigned()
 
     for pk in active_keys:
         for msg in msg_candidates:
-            if verify_ed25519_signature(message=msg, sig=sig, pubkey=pk):
+            if verify_signature_for_profile(sig_profile=sig_profile, message=msg, sig=sig, pubkey=pk):
                 return True
 
     return False

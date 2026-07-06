@@ -44,6 +44,9 @@ _TRACKED_ARTIFACTS = [
     "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
     "generated/production_helper_topology_hardening_plan_v1_5.json",
     "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+    "generated/crypto_inventory_v1_5.json",
+    "generated/signature_profile_registry_v1_5.json",
+    "generated/quantum_resistance_readiness_v1_5.json",
 ]
 
 
@@ -76,11 +79,18 @@ def _load_json(rel: str) -> Json:
 
 def _artifact(rel: str) -> Json:
     payload = _load_json(rel)
+    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    readiness_no_go_artifact = rel in {
+        "generated/controlled_testnet_go_gate_v1_5.json",
+        "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+    } and bool(payload) and (payload.get("public_beta_ready") is False or boundaries.get("public_beta_ready") is False)
+    artifact_ok = bool(payload.get("ok", True)) if payload else False
     return {
         "path": rel,
         "present": bool(payload),
         "schema": str(payload.get("schema") or "") if payload else "",
-        "ok": bool(payload.get("ok", True)) if payload else False,
+        "ok": bool(artifact_ok or readiness_no_go_artifact),
+        "readiness_no_go_artifact": bool(readiness_no_go_artifact),
         "file_sha256": _sha256_file(ROOT / rel),
     }
 
@@ -202,6 +212,18 @@ def build() -> Json:
                 "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>",
                 "counsel_or_control_attestation_required": True,
                 "sample_templates_are_rejected_in_strict_release": True,
+            },
+            "post_quantum_signature_profile_transition": {
+                "required_before_closed_testnet_rehearsal": True,
+                "real_mldsa_required_before_controlled_testnet": True,
+                "required_before_public_observer_launch": True,
+                "profile_registry": "generated/signature_profile_registry_v1_5.json",
+                "inventory": "generated/crypto_inventory_v1_5.json",
+                "readiness_artifact": "generated/quantum_resistance_readiness_v1_5.json",
+                "validator": "PYTHONPATH=src python scripts/gen_crypto_posture_v1_5.py && PYTHONPATH=src python -m pytest -q tests/test_crypto_signature_profiles.py tests/test_tx_signature_profile_admission.py tests/test_seed_registry_signature_profiles.py",
+                "production_crypto_audit_complete": False,
+                "public_multi_validator_bft_ready": False,
+                "live_economics": False,
             },
             "final_public_observer_controlled_testnet_go_gate": {
                 "required_before_any_public_observer_or_public_beta_claim": True,

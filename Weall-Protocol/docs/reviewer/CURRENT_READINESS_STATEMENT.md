@@ -129,3 +129,7 @@ Do not claim public beta readiness, public mainnet readiness, public multi-valid
 - `docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md` — separates local observer proof, same-machine dual-node proof, and remote signed observer proof.
 - `docs/reviewer/HELPER_PRODUCTION_SAFETY_CHECKLIST.md` — makes helper execution safety topics and disabled production posture reviewer-visible.
 - `docs/reviewer/ACCESSIBILITY_REVIEW_CHECKLIST.md` — states basic source-level accessibility coverage without claiming full WCAG compliance.
+
+### Pass 33 signature-profile truth boundary
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet target signature profile is `pq-mldsa-v1`; `legacy-ed25519-v1` is legacy/transitional/dev-only unless explicitly allowed by chain configuration. This does not claim completed production cryptographic audit, mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

@@ -13,6 +13,8 @@ from weall.runtime.block_time_admission import (
     validate_block_timestamp,
 )
 from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
+from weall.runtime.block_signature_profiles import validate_block_signature_profile
+from weall.crypto.signature_profiles import mode_requires_explicit_sig_profile
 from weall.runtime.protocol_profile import runtime_max_block_future_drift_ms
 from weall.runtime.public_protocol_policy import mark_public_protocol_policy_checked
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
@@ -456,6 +458,15 @@ def admit_bft_block(
           * verify justify_qc threshold + signatures
           * enforce deterministic proposal leader/view validity
     """
+    if not isinstance(block, dict):
+        return False, BlockReject("bad_shape", "block_must_be_object", {"type": str(type(block))})
+
+    if mode_requires_explicit_sig_profile():
+        chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+        ok_sig_profile, sig_reason = validate_block_signature_profile(block, chain_config=chain_config, require_verifier=False)
+        if not ok_sig_profile:
+            return False, BlockReject("bad_block_signature_profile", str(sig_reason), {"block_id": _as_str(block.get("block_id") or "")})
+
     effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
     if not effective_bft_enabled:
         return True, None

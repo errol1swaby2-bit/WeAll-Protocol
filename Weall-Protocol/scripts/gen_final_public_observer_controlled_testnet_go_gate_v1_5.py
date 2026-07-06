@@ -45,6 +45,9 @@ REQUIRED_GENERATED = {
     "protocol_upgrade_hardening_plan": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
     "production_helper_topology_hardening_plan": "generated/production_helper_topology_hardening_plan_v1_5.json",
     "release_evidence_manifest": "generated/release_evidence_manifest_v1_5.json",
+    "crypto_inventory": "generated/crypto_inventory_v1_5.json",
+    "signature_profile_registry": "generated/signature_profile_registry_v1_5.json",
+    "quantum_resistance_readiness": "generated/quantum_resistance_readiness_v1_5.json",
 }
 
 FLOW_DOCS = {
@@ -121,18 +124,24 @@ def build() -> Json:
         "AUD-618-P1-004",
         "AUD-618-P1-005",
         "AUD-628-P1-001",
+        "AUD-633-P0-004",
     }
+    quantum = _read_json("generated/quantum_resistance_readiness_v1_5.json")
+    real_mldsa_ready = bool(quantum.get("real_mldsa_implemented_in_this_environment"))
     external_blockers_still_open = set(remaining_ids) == expected_remaining
     repo_package_ready = all(docs_present.values()) and all(generated_present.values()) and all(flow_docs_present.values())
-    bounded_rehearsal_candidate = repo_package_ready and external_blockers_still_open and blocker_counts.get("public_beta_ready") is False
+    artifact_consistent = repo_package_ready and external_blockers_still_open and blocker_counts.get("public_beta_ready") is False
+    bounded_rehearsal_candidate = artifact_consistent and real_mldsa_ready
+    controlled_verdict = "GO" if bounded_rehearsal_candidate else "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE"
 
     payload: Json = {
         "schema": "weall.v1_5.final_public_observer_controlled_testnet_go_gate",
         "version": "2026-07-pass27-final-bounded-testnet-go-gate",
-        "ok": bounded_rehearsal_candidate,
+        "ok": artifact_consistent,
+        "controlled_rehearsal_candidate_ready": bounded_rehearsal_candidate,
         "repo_package_ready": repo_package_ready,
         "go_no_go_verdict": {
-            "controlled_internal_public_observer_rehearsal_candidate": "GO",
+            "controlled_internal_public_observer_rehearsal_candidate": controlled_verdict,
             "bounded_public_observer_launch_claim": "NO_GO_EXTERNAL_EVIDENCE_PENDING",
             "public_beta_claim": "NO_GO_PUBLIC_BETA_BLOCKERS_OPEN",
             "public_mainnet_claim": "NO_GO_UNCLAIMED",
@@ -141,7 +150,7 @@ def build() -> Json:
             "automatic_upgrade_claim": "NO_GO_RECORD_ONLY",
             "production_helper_claim": "NO_GO_DISABLED",
         },
-        "allowed_claim": "Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.",
+        "allowed_claim": "Pre-public-testnet implementation under active hardening. Pass 33 adds profile-aware post-quantum signing scaffolding and sets pq-mldsa-v1 as the controlled-testnet target, but controlled/public testnet signing remains blocked until a reproducible real ML-DSA verifier is integrated, seed/trust-root materials are PQ-signed, and external cryptographic review is complete.",
         "forbidden_claims": [
             "public beta readiness",
             "public mainnet readiness",
@@ -154,6 +163,9 @@ def build() -> Json:
             "production helper execution readiness",
             "legal/compliance approval",
             "public storage-market readiness",
+            "completed production cryptographic audit",
+            "production post-quantum security",
+            "quantum-proof security",
             "complete anti-Sybil/collusion detection",
             "complete public identity infrastructure",
         ],
@@ -161,6 +173,13 @@ def build() -> Json:
         "external_evidence_still_required": True,
         "external_blockers_still_open": external_blockers_still_open,
         "remaining_open_blockers": sorted(expected_remaining),
+        "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
+        "quantum_resistance_readiness_summary": {
+            "path": "generated/quantum_resistance_readiness_v1_5.json",
+            "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
+            "remaining_crypto_blockers": quantum.get("remaining_crypto_blockers") or [],
+            "production_crypto_audit_complete": bool(quantum.get("production_crypto_audit_complete")),
+        },
         "required_external_evidence_before_public_beta_or_public_observer_claim": {
             "AUD-628-P1-001": "external clean-clone/open-download/state-sync/frontend rendered journey transcript",
             "AUD-618-P1-003": "external/two-machine replay transcript proving identical state roots, vector digest, and tx-index hash",
@@ -169,6 +188,7 @@ def build() -> Json:
             "AUD-618-P0-002": "real counsel or controlled legal/compliance attestation",
             "AUD-618-P0-003": "future executable upgrade staging/rollback proof",
             "AUD-618-P1-005": "future production helper topology proof",
+            "AUD-633-P0-004": "reproducible real ML-DSA verifier/signing integration, PQ-signed seed/trust-root materials, migrated authority signatures, and external cryptographic review",
         },
         "readiness_package_docs": REQUIRED_DOCS,
         "readiness_package_docs_present": docs_present,
@@ -191,6 +211,8 @@ def build() -> Json:
             "public_validator_enabled": False,
             "public_multi_validator_bft": False,
             "public_storage_provider_market": False,
+            "production_crypto_audit_complete": False,
+            "production_post_quantum_security": False,
             "production_helper_execution": False,
             "automatic_protocol_upgrades": False,
             "live_economics": False,
@@ -218,11 +240,11 @@ def main() -> int:
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
             raise SystemExit("final_public_observer_controlled_testnet_go_gate_v1_5.json is stale; rerun generator")
-        print("OK: generated/final_public_observer_controlled_testnet_go_gate_v1_5.json is current (GO controlled rehearsal; NO-GO public beta)")
+        print("OK: generated/final_public_observer_controlled_testnet_go_gate_v1_5.json is current (bounded controlled verdict; NO-GO public beta)")
         return 0 if payload.get("ok") else 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
-    print("wrote generated/final_public_observer_controlled_testnet_go_gate_v1_5.json (GO controlled rehearsal; NO-GO public beta)")
+    print("wrote generated/final_public_observer_controlled_testnet_go_gate_v1_5.json (bounded controlled verdict; NO-GO public beta)")
     return 0 if payload.get("ok") else 1
 
 

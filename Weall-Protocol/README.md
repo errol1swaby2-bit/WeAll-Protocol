@@ -195,3 +195,15 @@ After the backend is ready, the local demo bootstrap is:
 ```
 
 It writes `generated/demo_bootstrap_result.json`; the root dev flow can copy that into `web/public/dev-bootstrap.json` for local UI inspection. Demo seed state is useful for review ergonomics, but it is not external evidence and must not be used to close public beta blockers.
+
+## Pass 33 crypto posture
+
+WeAll is a pre-public-testnet protocol implementation under active hardening.
+
+The controlled-testnet target signing profile is now `pq-mldsa-v1`. `legacy-ed25519-v1` is legacy/transitional/dev-only unless a chain configuration explicitly allows it for migration tests. This does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.
+
+See `Weall-Protocol/docs/security/CRYPTO_AGILITY_AND_QUANTUM_POSTURE.md` for the crypto inventory and remaining blockers.
+
+### Pass 33 signature-profile truth boundary
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet target signature profile is `pq-mldsa-v1`; `legacy-ed25519-v1` is legacy/transitional/dev-only unless explicitly allowed by chain configuration. This does not claim completed production cryptographic audit, mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

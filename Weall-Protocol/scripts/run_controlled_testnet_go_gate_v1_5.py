@@ -119,6 +119,8 @@ def build() -> Json:
     public_beta_blockers = build_public_beta_blocker_report()
     external_transcripts = build_external_operator_transcript_requirements()
     release_evidence = build_release_evidence_manifest()
+    quantum_readiness = _load_json("generated/quantum_resistance_readiness_v1_5.json")
+    real_mldsa_ready = bool(quantum_readiness.get("real_mldsa_implemented_in_this_environment"))
     capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
     validator = run_validator_harness()
     storage = run_storage_harness()
@@ -142,6 +144,7 @@ def build() -> Json:
         bool(public_beta_blockers.get("ok")),
         bool(external_transcripts.get("ok")),
         bool(release_evidence.get("ok")),
+        real_mldsa_ready,
         bool(b587.get("ok")),
         bool(capabilities.get("controlled_testnet_mechanisms_complete")),
         bool(validator.get("ok")),
@@ -197,6 +200,14 @@ def build() -> Json:
             "mainnet_ready": bool(release_evidence.get("mainnet_ready")),
             "runtime_commit_binding_required": bool(release_evidence.get("runtime_commit_binding_required")),
             "tracked_manifest_is_commit_agnostic": bool(release_evidence.get("tracked_manifest_is_commit_agnostic")),
+        },
+        "quantum_resistance_readiness_summary": {
+            "ok": real_mldsa_ready,
+            "schema": quantum_readiness.get("schema"),
+            "controlled_testnet_target_profile": quantum_readiness.get("controlled_testnet_target_profile"),
+            "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
+            "remaining_crypto_blockers": quantum_readiness.get("remaining_crypto_blockers") or [],
+            "production_crypto_audit_complete": bool(quantum_readiness.get("production_crypto_audit_complete")),
         },
         "launch_matrix_capability_snapshot": {
             "phase": capabilities.get("phase"),

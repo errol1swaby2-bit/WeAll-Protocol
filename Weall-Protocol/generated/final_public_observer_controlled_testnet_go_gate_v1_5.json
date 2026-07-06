@@ -1,18 +1,19 @@
 {
-  "allowed_claim": "Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.",
-  "artifact_digest": "71fe10d82791721efc0758ba0e78e432b30e3e6bc9e03983df46aac622ee6a5b",
+  "allowed_claim": "Pre-public-testnet implementation under active hardening. Pass 33 adds profile-aware post-quantum signing scaffolding and sets pq-mldsa-v1 as the controlled-testnet target, but controlled/public testnet signing remains blocked until a reproducible real ML-DSA verifier is integrated, seed/trust-root materials are PQ-signed, and external cryptographic review is complete.",
+  "artifact_digest": "2bc42b31d1875815516f7b6e912c4df8fa0ae6c73bf8a0fdb4d2a82bd9b80f05",
   "blocker_counts": {
-    "blocker_catalog_count": 14,
+    "blocker_catalog_count": 15,
     "closed_in_repository_count": 7,
-    "p0_open_count": 3,
+    "p0_open_count": 4,
     "p1_open_count": 4,
     "public_beta_ready": false,
-    "remaining_blocker_count": 7,
-    "remaining_external_evidence_required_count": 7,
+    "remaining_blocker_count": 8,
+    "remaining_external_evidence_required_count": 8,
     "remaining_external_evidence_required_ids": [
       "AUD-618-P0-001",
       "AUD-618-P0-002",
       "AUD-618-P0-003",
+      "AUD-633-P0-004",
       "AUD-618-P1-003",
       "AUD-618-P1-004",
       "AUD-618-P1-005",
@@ -31,12 +32,15 @@
     "legal_compliance_ready": false,
     "live_economics": false,
     "mainnet_ready": false,
+    "production_crypto_audit_complete": false,
     "production_helper_execution": false,
+    "production_post_quantum_security": false,
     "public_beta_ready": false,
     "public_multi_validator_bft": false,
     "public_storage_provider_market": false,
     "public_validator_enabled": false
   },
+  "controlled_rehearsal_candidate_ready": false,
   "external_blockers_still_open": true,
   "external_evidence_still_required": true,
   "flow_readiness_docs": {
@@ -71,6 +75,9 @@
     "production helper execution readiness",
     "legal/compliance approval",
     "public storage-market readiness",
+    "completed production cryptographic audit",
+    "production post-quantum security",
+    "quantum-proof security",
     "complete anti-Sybil/collusion detection",
     "complete public identity infrastructure"
   ],
@@ -82,10 +89,16 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "controlled_testnet_go_gate": {
-      "ok": true,
+      "ok": false,
       "path": "generated/controlled_testnet_go_gate_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.controlled_testnet_go_gate"
+    },
+    "crypto_inventory": {
+      "ok": true,
+      "path": "generated/crypto_inventory_v1_5.json",
+      "present": true,
+      "schema": "weall.crypto_inventory.v1_5"
     },
     "external_operator_transcript_requirements": {
       "ok": true,
@@ -117,17 +130,29 @@
       "present": true,
       "schema": "weall.v1_5.public_observer_launch_evidence_requirements"
     },
+    "quantum_resistance_readiness": {
+      "ok": true,
+      "path": "generated/quantum_resistance_readiness_v1_5.json",
+      "present": true,
+      "schema": "weall.quantum_resistance_readiness.v1_5"
+    },
     "release_evidence_manifest": {
       "ok": true,
       "path": "generated/release_evidence_manifest_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.release_evidence_manifest"
+    },
+    "signature_profile_registry": {
+      "ok": true,
+      "path": "generated/signature_profile_registry_v1_5.json",
+      "present": true,
+      "schema": "weall.signature_profile_registry.v1_5"
     }
   },
   "go_no_go_verdict": {
     "automatic_upgrade_claim": "NO_GO_RECORD_ONLY",
     "bounded_public_observer_launch_claim": "NO_GO_EXTERNAL_EVIDENCE_PENDING",
-    "controlled_internal_public_observer_rehearsal_candidate": "GO",
+    "controlled_internal_public_observer_rehearsal_candidate": "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE",
     "live_economics_claim": "NO_GO_DISABLED",
     "production_helper_claim": "NO_GO_DISABLED",
     "public_beta_claim": "NO_GO_PUBLIC_BETA_BLOCKERS_OPEN",
@@ -145,6 +170,19 @@
     "cd ../web && npm run typecheck && npm run build"
   ],
   "ok": true,
+  "quantum_resistance_readiness_summary": {
+    "path": "generated/quantum_resistance_readiness_v1_5.json",
+    "production_crypto_audit_complete": false,
+    "real_mldsa_implemented_in_this_environment": false,
+    "remaining_crypto_blockers": [
+      "real_mldsa_backend_unavailable_or_unpinned",
+      "seed_registry_requires_pq_resign",
+      "bft_qc_signature_profile_incomplete",
+      "peer_gossip_relay_signature_migration_incomplete",
+      "frontend_local_pq_signing_not_complete",
+      "external_crypto_review_missing"
+    ]
+  },
   "readiness_package_docs": {
     "current_readiness_statement": "docs/reviewer/CURRENT_READINESS_STATEMENT.md",
     "current_testnet_readiness_statement": "docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md",
@@ -179,6 +217,7 @@
     "upgrade_hardening_plan": true,
     "validator_operator_transcript": true
   },
+  "real_mldsa_implemented_in_this_environment": false,
   "remaining_open_blockers": [
     "AUD-618-P0-001",
     "AUD-618-P0-002",
@@ -186,7 +225,8 @@
     "AUD-618-P1-003",
     "AUD-618-P1-004",
     "AUD-618-P1-005",
-    "AUD-628-P1-001"
+    "AUD-628-P1-001",
+    "AUD-633-P0-004"
   ],
   "repo_package_ready": true,
   "required_external_evidence_before_public_beta_or_public_observer_claim": {
@@ -196,7 +236,8 @@
     "AUD-618-P1-003": "external/two-machine replay transcript proving identical state roots, vector digest, and tx-index hash",
     "AUD-618-P1-004": "real storage/IPFS daemon/operator transcript",
     "AUD-618-P1-005": "future production helper topology proof",
-    "AUD-628-P1-001": "external clean-clone/open-download/state-sync/frontend rendered journey transcript"
+    "AUD-628-P1-001": "external clean-clone/open-download/state-sync/frontend rendered journey transcript",
+    "AUD-633-P0-004": "reproducible real ML-DSA verifier/signing integration, PQ-signed seed/trust-root materials, migrated authority signatures, and external cryptographic review"
   },
   "schema": "weall.v1_5.final_public_observer_controlled_testnet_go_gate",
   "version": "2026-07-pass27-final-bounded-testnet-go-gate"

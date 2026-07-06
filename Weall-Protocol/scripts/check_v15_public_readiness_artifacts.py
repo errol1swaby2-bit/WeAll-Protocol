@@ -38,6 +38,9 @@ RELEASE_ARTIFACTS = [
     Path("generated/protocol_upgrade_execution_hardening_plan_v1_5.json"),
     Path("generated/production_helper_topology_hardening_plan_v1_5.json"),
     Path("generated/final_public_observer_controlled_testnet_go_gate_v1_5.json"),
+    Path("generated/crypto_inventory_v1_5.json"),
+    Path("generated/signature_profile_registry_v1_5.json"),
+    Path("generated/quantum_resistance_readiness_v1_5.json"),
     Path("generated/release_evidence_manifest_v1_5.json"),
     Path("generated/reputation_event_registry_v1_5.json"),
     Path("generated/reputation_matrix_contract_v1_5.json"),
@@ -226,7 +229,10 @@ def _check_controlled_testnet_go_gate() -> list[str]:
     if payload.get("schema") != "weall.v1_5.controlled_testnet_go_gate":
         errors.append("controlled testnet go-gate schema mismatch")
     if payload.get("controlled_testnet_go_gate_ready_to_run") is not True:
-        errors.append("controlled testnet go-gate must be ready to run")
+        q = payload.get("quantum_resistance_readiness_summary") if isinstance(payload.get("quantum_resistance_readiness_summary"), dict) else {}
+        pq_blocked = q.get("real_mldsa_implemented_in_this_environment") is False
+        if not pq_blocked:
+            errors.append("controlled testnet go-gate must be ready to run")
     if payload.get("public_beta_ready") is not False:
         errors.append("controlled testnet go-gate must not claim public beta readiness")
     boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
@@ -491,8 +497,9 @@ def _check_final_public_observer_controlled_testnet_go_gate() -> list[str]:
     if payload.get("schema") != "weall.v1_5.final_public_observer_controlled_testnet_go_gate":
         errors.append("final public observer controlled testnet go-gate schema mismatch")
     verdict = payload.get("go_no_go_verdict") if isinstance(payload.get("go_no_go_verdict"), dict) else {}
-    if verdict.get("controlled_internal_public_observer_rehearsal_candidate") != "GO":
-        errors.append("final go-gate must be GO only for controlled internal/public-observer rehearsal candidate")
+    controlled_verdict = str(verdict.get("controlled_internal_public_observer_rehearsal_candidate", ""))
+    if controlled_verdict not in {"GO", "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE"}:
+        errors.append("final go-gate must give a bounded controlled-rehearsal verdict")
     for key in ("bounded_public_observer_launch_claim", "public_beta_claim", "public_mainnet_claim", "public_validator_bft_claim"):
         if not str(verdict.get(key, "")).startswith("NO_GO"):
             errors.append(f"final go-gate must keep {key} as NO_GO")
@@ -501,8 +508,8 @@ def _check_final_public_observer_controlled_testnet_go_gate() -> list[str]:
         if boundaries.get(key) is not False:
             errors.append(f"final go-gate must keep {key}=false")
     counts = payload.get("blocker_counts") if isinstance(payload.get("blocker_counts"), dict) else {}
-    if counts.get("remaining_blocker_count") != 7:
-        errors.append("final go-gate must preserve seven open blocker count")
+    if counts.get("remaining_blocker_count") != 8:
+        errors.append("final go-gate must preserve eight open blocker count after PQ signing blocker")
     return errors
 
 def _check_release_evidence_manifest() -> list[str]:

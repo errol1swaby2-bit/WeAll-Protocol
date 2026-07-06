@@ -158,3 +158,9 @@ WeAll is being built as a familiar public social application with deterministic 
 ## License
 
 This repository is licensed under the Mozilla Public License 2.0. See `LICENSE` for the full license text.
+
+## Pass 33 crypto posture
+
+WeAll is a pre-public-testnet protocol implementation under active hardening.
+
+The controlled-testnet target signing profile is now `pq-mldsa-v1`. `legacy-ed25519-v1` is legacy/transitional/dev-only unless a chain configuration explicitly allows it for migration tests. This does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

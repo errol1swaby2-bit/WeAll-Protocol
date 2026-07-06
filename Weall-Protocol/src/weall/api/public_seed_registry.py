@@ -11,7 +11,14 @@ from typing import Any
 from urllib.parse import urlparse, urlunparse
 
 from weall.api.config import normalize_base_url
-from weall.crypto.sig import verify_ed25519_signature
+from weall.crypto.sig import verify_signature_for_profile
+from weall.crypto.signature_profiles import (
+    LEGACY_ED25519_V1,
+    PQ_MLDSA_V1,
+    mode_requires_explicit_sig_profile,
+    normalize_signature_profile_id,
+    profile_allowed_for_context,
+)
 
 Json = dict[str, Any]
 
@@ -20,9 +27,11 @@ _TRUE = {"1", "true", "yes", "y", "on"}
 _REGISTRY_SIGNATURE_OMIT = {
     "seed_registry_signature",
     "seed_registry_signature_alg",
+    "seed_registry_sig_profile",
+    "sig_profile",
     "signature",
 }
-_ENDPOINT_SIGNATURE_OMIT = {"signature", "signed", "verified"}
+_ENDPOINT_SIGNATURE_OMIT = {"signature", "signed", "verified", "sig_profile", "signature_profile"}
 
 
 class PublicSeedRegistryError(RuntimeError):
@@ -425,6 +434,38 @@ def _registry_signer_pins() -> set[str]:
     )
     return {_safe_str(pin) for pin in pins if _safe_str(pin)}
 
+def _trust_root_allowed_signature_profiles() -> list[str]:
+    try:
+        roots = load_public_seed_trust_roots()
+    except PublicSeedRegistryError:
+        raise
+    except Exception as exc:
+        raise PublicSeedRegistryError("public_seed_trust_roots_read_failed") from exc
+    raw = roots.get("allowed_signature_profiles") or roots.get("seed_registry_allowed_signature_profiles")
+    if isinstance(raw, list):
+        return [normalize_signature_profile_id(item) for item in raw if normalize_signature_profile_id(item)]
+    value = normalize_signature_profile_id(raw)
+    return [value] if value else []
+
+
+def _allow_legacy_seed_registry_signatures() -> bool:
+    if env_truthy("WEALL_PUBLIC_TESTNET_ALLOW_LEGACY_SIGNATURES", False):
+        return True
+    mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
+    return mode in {"dev", "test", "local", "ci"}
+
+
+def _seed_registry_profile_allowed(profile: str) -> bool:
+    if profile == LEGACY_ED25519_V1 and _allow_legacy_seed_registry_signatures():
+        return True
+    allowed = _trust_root_allowed_signature_profiles()
+    if allowed:
+        return profile in allowed
+    if mode_requires_explicit_sig_profile():
+        return profile == PQ_MLDSA_V1
+    return profile in {LEGACY_ED25519_V1, PQ_MLDSA_V1}
+
+
 
 def _pinned_registry_signer_required() -> bool:
     raw = os.environ.get("WEALL_PUBLIC_TESTNET_REQUIRE_PINNED_REGISTRY_SIGNER")
@@ -478,13 +519,38 @@ def validator_endpoint_signature_payload(raw: Json, *, commitments: Json) -> byt
 def _verify_registry_signature(data: Json) -> Json:
     signer = _safe_str(data.get("seed_registry_signer"))
     sig = _safe_str(data.get("seed_registry_signature"))
+    profile = normalize_signature_profile_id(
+        data.get("seed_registry_sig_profile")
+        or data.get("sig_profile")
+        or data.get("seed_registry_signature_profile")
+    )
+    if not profile:
+        if mode_requires_explicit_sig_profile():
+            profile = PQ_MLDSA_V1
+        else:
+            profile = LEGACY_ED25519_V1
+
+    if not _seed_registry_profile_allowed(profile):
+        raise PublicSeedRegistryError("public_seed_registry_signature_profile_not_allowed")
+    profile_chain_config = None
+    if profile == LEGACY_ED25519_V1 and _allow_legacy_seed_registry_signatures():
+        profile_chain_config = {"crypto": {"allowed_signature_profiles": [LEGACY_ED25519_V1], "allow_legacy_ed25519": True}}
+    ok_profile, reason = profile_allowed_for_context(profile, chain_config=profile_chain_config, require_verifier=False)
+    if not ok_profile:
+        raise PublicSeedRegistryError(f"public_seed_registry_{reason}")
+
     if not signer or not sig:
         if _signature_required():
             missing = "seed_registry_signer" if not signer else "seed_registry_signature"
             raise PublicSeedRegistryError(f"public_seed_registry_missing_{missing}")
-        return {"required": False, "verified": False, "signer": signer, "trust": "unsigned_local_rehearsal"}
+        return {"required": False, "verified": False, "signer": signer, "sig_profile": profile, "trust": "unsigned_local_rehearsal"}
 
-    ok = verify_ed25519_signature(message=registry_signature_payload(data), sig=sig, pubkey=signer)
+    ok = verify_signature_for_profile(
+        sig_profile=profile,
+        message=registry_signature_payload(data),
+        sig=sig,
+        pubkey=signer,
+    )
     if not ok:
         raise PublicSeedRegistryError("public_seed_registry_bad_signature")
     pins = _registry_signer_pins()
@@ -496,9 +562,9 @@ def _verify_registry_signature(data: Json) -> Json:
         "required": bool(_signature_required()),
         "verified": True,
         "signer": signer,
+        "sig_profile": profile,
         "trust": "pinned" if pins else "self_declared_local_rehearsal",
     }
-
 
 def _safe_str(value: Any) -> str:
     try:
@@ -606,12 +672,21 @@ def _registry_nodes_from_seed_urls(seed_api_urls: list[str]) -> list[Json]:
 def _verify_validator_endpoint_signature(raw: Json, *, commitments: Json) -> Json:
     signer = _safe_str(raw.get("signer") or raw.get("node_pubkey") or raw.get("node_public_key"))
     sig = _safe_str(raw.get("signature"))
+    profile = normalize_signature_profile_id(raw.get("sig_profile") or raw.get("signature_profile"))
+    if not profile:
+        if mode_requires_explicit_sig_profile():
+            profile = PQ_MLDSA_V1
+        else:
+            profile = LEGACY_ED25519_V1
     requested_verified = bool(raw.get("verified") is True or raw.get("signed") is True or sig)
+    if not _seed_registry_profile_allowed(profile):
+        return {"verified": False, "signed": False, "error": "validator_endpoint_signature_profile_not_allowed", "signer": signer, "sig_profile": profile}
     if not signer or not sig:
         if requested_verified or _signature_required():
-            return {"verified": False, "signed": False, "error": "validator_endpoint_signature_missing", "signer": signer}
-        return {"verified": False, "signed": False, "error": "validator_endpoint_unsigned_hint", "signer": signer}
-    ok = verify_ed25519_signature(
+            return {"verified": False, "signed": False, "error": "validator_endpoint_signature_missing", "signer": signer, "sig_profile": profile}
+        return {"verified": False, "signed": False, "error": "validator_endpoint_unsigned_hint", "signer": signer, "sig_profile": profile}
+    ok = verify_signature_for_profile(
+        sig_profile=profile,
         message=validator_endpoint_signature_payload(raw, commitments=commitments),
         sig=sig,
         pubkey=signer,
@@ -621,8 +696,8 @@ def _verify_validator_endpoint_signature(raw: Json, *, commitments: Json) -> Jso
         "signed": bool(ok),
         "error": "" if ok else "validator_endpoint_bad_signature",
         "signer": signer,
+        "sig_profile": profile,
     }
-
 
 def _normalize_validator_endpoint(raw: Any, *, allow_local: bool, commitments: Json) -> Json | None:
     if not isinstance(raw, dict):
@@ -671,6 +746,7 @@ def _normalize_validator_endpoint(raw: Any, *, allow_local: bool, commitments: J
         "verified": bool(verification.get("verified")),
         "signed": bool(verification.get("signed")),
         "signature": _safe_str(raw.get("signature")),
+        "sig_profile": _safe_str(verification.get("sig_profile") or raw.get("sig_profile") or raw.get("signature_profile")),
         "signer": _safe_str(verification.get("signer") or raw.get("signer") or raw.get("seed_registry_signer")),
         "signature_error": _safe_str(verification.get("error")),
     }
@@ -800,6 +876,7 @@ def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
         "seed_api_urls": seed_api_urls,
         "seed_p2p_urls": seed_p2p_urls,
         "seed_registry_signature": _safe_str(data.get("seed_registry_signature")),
+        "seed_registry_sig_profile": _safe_str(data.get("seed_registry_sig_profile") or data.get("sig_profile") or data.get("seed_registry_signature_profile")),
         "seed_registry_signer": _safe_str(data.get("seed_registry_signer")),
         "seed_registry_signature_status": signature_status,
         "active_validator_endpoint_policy": policy,
