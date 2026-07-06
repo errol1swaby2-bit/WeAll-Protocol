@@ -64,7 +64,6 @@ def test_stale_audit_export_transcripts_removed() -> None:
         "WARN: not a git work tree",
         "93 passed in 20.31s",
         "66 passed in 17.84s",
-        "ModuleNotFoundError: No module named 'nacl'",
         "A plain full pytest run in the audit sandbox did not complete",
         "Do not present full pytest as passed unless this command has passed",
     ]

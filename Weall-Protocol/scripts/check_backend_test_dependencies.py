@@ -5,7 +5,6 @@ import importlib.util
 import sys
 
 REQUIRED = {
-    "nacl": "PyNaCl>=1.5",
     "pytest": "pytest>=8",
     "httpx": "httpx>=0.27",
 }

@@ -24,8 +24,7 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from nacl.signing import SigningKey  # noqa: E402
-
+from weall.crypto.pq_mldsa import generate_mldsa65_keypair, mldsa65_public_key_from_seed  # noqa: E402
 from weall.crypto.sig import sign_tx_envelope_dict  # noqa: E402
 
 Json = dict[str, Any]
@@ -53,22 +52,13 @@ def _normalize_account(value: str | None, *, fallback_pubkey: str = "", existing
     return f"@devnet-{suffix}"
 
 
-def _seed_bytes_from_private_hex(private_key_hex: str) -> bytes:
-    raw = bytes.fromhex(str(private_key_hex or "").strip())
-    if len(raw) == 64:
-        raw = raw[:32]
-    if len(raw) != 32:
-        raise ValueError("private_key_hex must be a 32-byte seed or 64-byte expanded key")
-    return raw
-
-
 def _derive_public_key_hex(private_key_hex: str) -> str:
-    return SigningKey(_seed_bytes_from_private_hex(private_key_hex)).verify_key.encode().hex()
+    return mldsa65_public_key_from_seed(privkey=private_key_hex, encoding="hex")
 
 
 def _new_keypair() -> tuple[str, str]:
-    sk = SigningKey.generate()
-    return sk.encode().hex(), sk.verify_key.encode().hex()
+    kp = generate_mldsa65_keypair(encoding="hex")
+    return kp["privkey"], kp["pubkey"]
 
 
 def _key_material(keyfile: Path, *, account: str = "", fresh: bool = False) -> tuple[str, str, str, Json]:

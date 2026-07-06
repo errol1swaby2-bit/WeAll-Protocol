@@ -211,14 +211,15 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from nacl.signing import SigningKey
+from weall.crypto.pq_mldsa import generate_mldsa65_keypair
 path = Path(sys.argv[1])
-sk = SigningKey.generate()
+kp = generate_mldsa65_keypair(encoding="hex")
 out = {
     "key_type": "mldsa",
+    "sig_profile": "pq-mldsa-v1",
     "purpose": "external_observer_node_identity",
-    "private_key_hex": sk.encode().hex(),
-    "public_key_hex": sk.verify_key.encode().hex(),
+    "private_key_hex": kp["privkey"],
+    "public_key_hex": kp["pubkey"],
 }
 path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 path.chmod(0o600)

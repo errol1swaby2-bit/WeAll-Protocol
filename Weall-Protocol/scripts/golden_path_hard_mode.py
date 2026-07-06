@@ -28,8 +28,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
-from nacl.signing import SigningKey
-
+from weall.crypto.pq_mldsa import generate_mldsa65_keypair
 from weall.crypto.sig import sign_tx_envelope_dict
 
 Json = dict[str, Any]
@@ -200,9 +199,8 @@ def _wait_tx_confirmed_best_effort(
 
 
 def _gen_keypair() -> tuple[str, str]:
-    sk = SigningKey.generate()
-    pk = sk.verify_key
-    return sk.encode().hex(), pk.encode().hex()
+    kp = generate_mldsa65_keypair(encoding="hex")
+    return kp["privkey"], kp["pubkey"]
 
 
 def main() -> int:
