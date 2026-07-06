@@ -20,7 +20,7 @@ if ! grep -q '"lockfileVersion"' "$WEB_ROOT/package-lock.json"; then
   exit 1
 fi
 
-if grep -Eq '"(react|react-dom|react-router-dom|tweetnacl|typescript|vite)"[[:space:]]*:[[:space:]]*"[~^]' "$WEB_ROOT/package.json"; then
+if grep -Eq '"(react|react-dom|react-router-dom|typescript|vite)"[[:space:]]*:[[:space:]]*"[~^]' "$WEB_ROOT/package.json"; then
   echo "[deps] ERROR: web/package.json still contains broad semver ranges for production-critical deps" >&2
   exit 1
 fi

@@ -7,7 +7,7 @@ Robust against nodes that:
   - store account keys as either a list OR as {"by_id": {...}}
 
 Flow:
-  1) generate ed25519 keypair
+  1) generate mldsa keypair
   2) ACCOUNT_REGISTER (nonce=account.nonce+1)
   3) wait for account registration to apply (keys present)
   4) POH_BOOTSTRAP_TIER2_GRANT (dev-only; requires WEALL_POH_BOOTSTRAP_OPEN=1)

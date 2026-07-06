@@ -13,7 +13,7 @@ from weall.runtime.system_tx_engine import (
     prune_emitted_system_queue,
     system_queue_phase_for_id,
 )
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _mk_executor(tmp_path: Path, name: str = "node") -> WeAllExecutor:
@@ -26,7 +26,7 @@ def _mk_executor(tmp_path: Path, name: str = "node") -> WeAllExecutor:
 
 
 def _submit_register(ex: WeAllExecutor, signer: str = "@user000") -> None:
-    pubkey, priv = deterministic_ed25519_keypair(label=signer)
+    pubkey, priv = deterministic_mldsa_keypair(label=signer)
     tx = {
         "tx_type": "ACCOUNT_REGISTER",
         "signer": signer,

@@ -24,7 +24,6 @@ from weall.runtime.runtime_env import (
 )
 from weall.runtime.runtime_time import _now_ms
 
-from weall.crypto.sig import sign_ed25519
 from weall.ledger.roles_schema import ensure_roles_schema
 from weall.ledger.state import LedgerView
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader

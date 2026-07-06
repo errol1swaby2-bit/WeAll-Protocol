@@ -6,9 +6,7 @@ import json
 from typing import Any
 
 from weall.crypto.signature_profiles import (
-    LEGACY_ED25519_V1,
     PQ_MLDSA_V1,
-    mode_requires_explicit_sig_profile,
     normalize_signature_profile_id,
     profile_allowed_for_context,
 )
@@ -55,9 +53,7 @@ def validate_block_signature_profile(
 ) -> tuple[bool, str]:
     profile = block_signature_profile(block)
     if not profile:
-        if mode_requires_explicit_sig_profile():
-            return False, "block_signature_profile_missing"
-        profile = LEGACY_ED25519_V1
+        return False, "block_signature_profile_missing"
     ok_profile, reason = profile_allowed_for_context(profile, chain_config=chain_config, require_verifier=require_verifier)
     if not ok_profile:
         return False, reason
@@ -78,9 +74,7 @@ def validate_validator_operator_record(
         return False, "validator_record_not_object"
     profile = normalize_signature_profile_id(record.get("sig_profile") or record.get("signature_profile"))
     if not profile:
-        if mode_requires_explicit_sig_profile():
-            return False, "validator_signature_profile_missing"
-        profile = LEGACY_ED25519_V1
+        return False, "validator_signature_profile_missing"
     ok_profile, reason = profile_allowed_for_context(profile, chain_config=chain_config, require_verifier=require_verifier)
     if not ok_profile:
         return False, reason

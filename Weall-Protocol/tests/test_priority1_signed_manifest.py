@@ -15,7 +15,7 @@ from weall.runtime.chain_config import (
     production_bootstrap_issues,
     production_bootstrap_report,
 )
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _cfg(tmp_path: Path) -> ChainConfig:
@@ -112,8 +112,8 @@ def test_signed_manifest_round_trip_and_report(
     _write_db(Path(cfg.db_path), _make_state())
     bundle_path = tmp_path / "release_manifest.json"
 
-    pubkey, sk = deterministic_ed25519_keypair(label="release-signer")
-    priv_hex = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption()).hex()
+    pubkey, sk = deterministic_mldsa_keypair(label="release-signer")
+    priv_hex = sk.private_bytes_raw().hex()
     cmd_env = {
         **dict(os.environ),
         "WEALL_CHAIN_CONFIG_PATH": str(cfg_path),
@@ -178,8 +178,8 @@ def test_signed_manifest_detects_tamper(tmp_path: Path, monkeypatch: pytest.Monk
     _set_prod_env(monkeypatch)
     cfg = _cfg(tmp_path)
     _write_db(Path(cfg.db_path), _make_state())
-    pubkey, sk = deterministic_ed25519_keypair(label="release-signer")
-    priv_hex = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption()).hex()
+    pubkey, sk = deterministic_mldsa_keypair(label="release-signer")
+    priv_hex = sk.private_bytes_raw().hex()
     monkeypatch.setenv("WEALL_RELEASE_SIGNING_PRIVKEY", priv_hex)
     monkeypatch.setenv("WEALL_RELEASE_PUBKEY", pubkey)
     from weall.runtime.bootstrap_manifest import build_manifest, sign_manifest

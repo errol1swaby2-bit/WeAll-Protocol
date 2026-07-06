@@ -1,13 +1,14 @@
 {
-  "critical_quantum_surface": "protocol signing and authority, not private messaging encryption",
-  "framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
-  "public_only": true,
+  "active_signature_profile": "pq-mldsa-v1",
+  "classical_signature_profiles_removed": true,
+  "production_crypto_audit_complete": false,
+  "required_framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
   "schema": "weall.crypto_inventory.v1_5",
   "surfaces": [
     {
       "account_custody": true,
       "consensus_critical": true,
-      "current_algorithm": "profile-aware pq-mldsa-v1 signing/verifying through pyca/cryptography ML-DSA-65; legacy-ed25519-v1 remains dev/migration only when explicitly allowed",
+      "current_algorithm": "profile-aware pq-mldsa-v1 signing/verifying through pyca/cryptography ML-DSA-65 only",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "transaction_signatures",
@@ -19,7 +20,7 @@
     {
       "account_custody": true,
       "consensus_critical": true,
-      "current_algorithm": "profile-aware account key records create pq-mldsa-v1 mldsa pubkeys for registration/key-add/recovery paths; legacy classical records are migration/dev-only",
+      "current_algorithm": "profile-aware ML-DSA account key records only",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "account_keys",
@@ -31,7 +32,7 @@
     {
       "account_custody": true,
       "consensus_critical": true,
-      "current_algorithm": "profile-aware recovery key records are supported and default to pq-mldsa-v1 in controlled/public testnet modes",
+      "current_algorithm": "profile-aware ML-DSA recovery/key rotation records only",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "account_recovery_keys",
@@ -41,21 +42,9 @@
       "upgrade_before_public_testnet": false
     },
     {
-      "account_custody": true,
-      "consensus_critical": false,
-      "current_algorithm": "browser/API session-login proofs are profile-aware; controlled/public testnet mode rejects missing profiles and accepts pq-mldsa-v1 proofs over chain/network-bound canonical login payloads",
-      "external_audit_before_mainnet": true,
-      "observer_trust": true,
-      "surface": "session_login_signatures",
-      "target_algorithm": "pq-mldsa-v1",
-      "transport_or_local_only": false,
-      "upgrade_before_closed_testnet": false,
-      "upgrade_before_public_testnet": false
-    },
-    {
       "account_custody": false,
       "consensus_critical": true,
-      "current_algorithm": "validator/operator records and HotStuff vote/timeout/proposal signing are profile-aware and support pq-mldsa-v1 ML-DSA-65",
+      "current_algorithm": "validator/operator records declare pq-mldsa-v1 and runtime admission rejects other signing profiles",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "validator_operator_signatures",
@@ -67,7 +56,7 @@
     {
       "account_custody": false,
       "consensus_critical": true,
-      "current_algorithm": "block signature profile admission requires verifier availability and rejects unknown/disallowed profiles",
+      "current_algorithm": "block signature metadata and admission require pq-mldsa-v1/ML-DSA",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "block_signatures",
@@ -79,11 +68,11 @@
     {
       "account_custody": false,
       "consensus_critical": true,
-      "current_algorithm": "HotStuff vote, timeout, proposal, and QC verification paths are profile-aware and covered by real ML-DSA-65 tests; public multi-validator BFT readiness remains unclaimed pending external/operator evidence",
+      "current_algorithm": "HotStuff proposal/vote/timeout/QC surfaces are profile-aware and use pq-mldsa-v1",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "bft_qc_signatures",
-      "target_algorithm": "pq-mldsa-v1 or externally reviewed threshold/aggregate profile",
+      "target_algorithm": "pq-mldsa-v1",
       "transport_or_local_only": false,
       "upgrade_before_closed_testnet": false,
       "upgrade_before_public_testnet": false
@@ -91,7 +80,7 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "checked-in public testnet seed registry is pq-mldsa-v1/ML-DSA-65 signed and pinned to pq-mldsa-v1 trust roots",
+      "current_algorithm": "public seed registry verification requires pq-mldsa-v1",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "seed_registry_signatures",
@@ -103,7 +92,7 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "trust roots allow pq-mldsa-v1 for public testnet registry verification and keep legacy Ed25519 transitional/dev-only",
+      "current_algorithm": "trust roots allow pq-mldsa-v1 only for public testnet registry verification",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "public_testnet_trust_roots",
@@ -115,7 +104,7 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "registry signing script signs validator endpoint advertisements as pq-mldsa-v1 by default with explicit legacy override only",
+      "current_algorithm": "validator endpoint advertisements are signed and verified with pq-mldsa-v1",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "validator_endpoint_advertisements",
@@ -127,7 +116,7 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "PEER_HELLO identity proofs are profile-aware and support pq-mldsa-v1 ML-DSA-65; legacy V1/V2 Ed25519 remains migration fallback",
+      "current_algorithm": "PEER_HELLO identity proofs use pq-mldsa-v1 ML-DSA-65",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "peer_identity_signatures",
@@ -139,7 +128,7 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "signed peer address gossip records are profile-aware and support pq-mldsa-v1 ML-DSA-65",
+      "current_algorithm": "peer gossip records use pq-mldsa-v1 signatures when signed",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "gossip_signatures",
@@ -151,7 +140,7 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "relay access requests and relay envelopes are profile-aware and support pq-mldsa-v1 ML-DSA-65",
+      "current_algorithm": "relay access requests and relay envelopes use pq-mldsa-v1 when signed",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "relay_signatures",
@@ -163,7 +152,7 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "observer onboarding consumes pq-mldsa-v1 registry trust roots; any remaining local evidence signatures remain non-authoritative until migrated",
+      "current_algorithm": "observer onboarding evidence is tied to pq-mldsa-v1 trust-root/registry verification and must be rerun after migration",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "observer_onboarding_signatures",
@@ -175,11 +164,11 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "SHA-256 digests remain for evidence integrity; durable signed evidence bundles still require pq-mldsa-v1 signing policy",
+      "current_algorithm": "evidence bundles are digest/manifest based; durable PQ signing policy remains a reviewer blocker",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "evidence_bundle_signatures_digests",
-      "target_algorithm": "pq-mldsa-v1 signatures plus documented digest policy",
+      "target_algorithm": "pq-mldsa-v1 evidence manifest signing",
       "transport_or_local_only": false,
       "upgrade_before_closed_testnet": false,
       "upgrade_before_public_testnet": true
@@ -187,11 +176,11 @@
     {
       "account_custody": true,
       "consensus_critical": false,
-      "current_algorithm": "observer UI exposes active pq-mldsa-v1 crypto profile; browser-local Ed25519 helper is explicitly legacy/dev-only pending browser ML-DSA support",
+      "current_algorithm": "observer UI exposes active pq-mldsa-v1; browser signing must use a controlled ML-DSA-capable signer until browser-native support is complete",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "frontend_signing_assumptions",
-      "target_algorithm": "pq-mldsa-v1 or controlled backend/operator signer",
+      "target_algorithm": "pq-mldsa-v1 controlled signer or browser implementation",
       "transport_or_local_only": false,
       "upgrade_before_closed_testnet": false,
       "upgrade_before_public_testnet": true
@@ -199,7 +188,7 @@
     {
       "account_custody": false,
       "consensus_critical": true,
-      "current_algorithm": "helper receipt and helper certificate signing are profile-aware and support pq-mldsa-v1 ML-DSA-65; HMAC and Ed25519 compatibility remain legacy/dev-only while production helper execution stays separately disabled",
+      "current_algorithm": "helper receipt and helper certificate signing use pq-mldsa-v1 ML-DSA-65; shared-secret helper authority is removed",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "helper_receipts_certificates",
@@ -211,11 +200,11 @@
     {
       "account_custody": true,
       "consensus_critical": false,
-      "current_algorithm": "symmetric/local storage varies and is documented separately from PQ signing migration",
+      "current_algorithm": "local storage encryption remains symmetric/local and is tracked separately from protocol signing",
       "external_audit_before_mainnet": true,
       "observer_trust": false,
       "surface": "local_wallet_key_storage_encryption",
-      "target_algorithm": "AES-256-equivalent plus PQ-aware backup plan",
+      "target_algorithm": "AEAD/symmetric local storage plus PQ recovery policy",
       "transport_or_local_only": true,
       "upgrade_before_closed_testnet": false,
       "upgrade_before_public_testnet": true
@@ -223,11 +212,11 @@
     {
       "account_custody": false,
       "consensus_critical": false,
-      "current_algorithm": "conventional TLS stack; pq-mlkem-v1 remains a documented future key-establishment target rather than transaction signing profile",
+      "current_algorithm": "TLS remains transport security; ML-KEM deployment is planned separately where libraries support it",
       "external_audit_before_mainnet": true,
-      "observer_trust": true,
-      "surface": "transport_tls_assumptions",
-      "target_algorithm": "TLS plus future pq-mlkem-v1/hybrid support where available",
+      "observer_trust": false,
+      "surface": "transport_encryption_tls",
+      "target_algorithm": "pq-mlkem-v1 for future key establishment",
       "transport_or_local_only": true,
       "upgrade_before_closed_testnet": false,
       "upgrade_before_public_testnet": false

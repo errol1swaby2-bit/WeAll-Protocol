@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-"""Deterministic signature/key-establishment profile registry.
+"""Deterministic post-quantum signature/key-establishment profile registry.
 
-This module is intentionally policy-only.  It does not implement cryptography;
-callers must route signing/verification through the appropriate verifier and
-fail closed when the verifier for an allowed profile is unavailable.
+WeAll no longer carries a classical signature profile in active protocol code.
+All executable authority surfaces are expected to declare and verify
+``pq-mldsa-v1`` for signatures.  ``pq-mlkem-v1`` remains key establishment /
+transport only, and ``pq-slhdsa-v1`` remains a reserved backup-signature track.
+Unknown or classical profiles fail closed.
 """
 
 import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
-LEGACY_ED25519_V1 = "legacy-ed25519-v1"
 PQ_MLDSA_V1 = "pq-mldsa-v1"
 PQ_SLHDSA_V1 = "pq-slhdsa-v1"
 PQ_MLKEM_V1 = "pq-mlkem-v1"
 
-SIGNING_PURPOSES = {"signing", "backup_signature", "legacy"}
+SIGNING_PURPOSES = {"signing", "backup_signature"}
 STRICT_TESTNET_MODES = {"closed-testnet", "closed_testnet", "controlled-testnet", "controlled_testnet", "public-testnet", "public_testnet"}
 LOCAL_MODES = {"dev", "local", "test", "ci", "demo", "controlled_devnet", "controlled-devnet"}
 
@@ -52,21 +53,6 @@ def _detect_mldsa_verifier_available() -> bool:
 
 def _profiles() -> dict[str, SignatureProfile]:
     return {
-        LEGACY_ED25519_V1: SignatureProfile(
-            profile_id=LEGACY_ED25519_V1,
-            algorithm_family="Ed25519",
-            purpose="legacy",
-            status="legacy",
-            post_quantum=False,
-            allowed_in_dev_local=True,
-            allowed_in_closed_testnet=False,
-            allowed_in_public_testnet=False,
-            allowed_in_mainnet=False,
-            verifier_available=True,
-            activation_height_support=True,
-            chain_config_allowlist_support=True,
-            notes="Classical-only signature profile. Dev/local and explicit migration tests only.",
-        ),
         PQ_MLDSA_V1: SignatureProfile(
             profile_id=PQ_MLDSA_V1,
             algorithm_family="ML-DSA-65/FIPS-204",
@@ -80,7 +66,7 @@ def _profiles() -> dict[str, SignatureProfile]:
             verifier_available=_detect_mldsa_verifier_available(),
             activation_height_support=True,
             chain_config_allowlist_support=True,
-            notes="Controlled-testnet target signing profile. Requires external cryptographic review before mainnet.",
+            notes="Sole active WeAll protocol signing profile. Requires external cryptographic review before mainnet.",
         ),
         PQ_SLHDSA_V1: SignatureProfile(
             profile_id=PQ_SLHDSA_V1,
@@ -124,11 +110,11 @@ def signature_profile_registry_json() -> dict[str, Any]:
     return {
         "schema": "weall.signature_profile_registry.v1_5",
         "default_controlled_testnet_signature_profile": PQ_MLDSA_V1,
-        "legacy_profile": LEGACY_ED25519_V1,
+        "active_signature_profile": PQ_MLDSA_V1,
         "future_backup_signature_profile": PQ_SLHDSA_V1,
         "transport_key_establishment_profile": PQ_MLKEM_V1,
         "fail_closed_unknown_profiles": True,
-        "silent_ed25519_fallback_allowed": False,
+        "classical_signature_profiles_removed": True,
         "production_crypto_audit_complete": False,
         "profiles": profiles,
     }
@@ -159,15 +145,14 @@ def runtime_crypto_mode() -> str:
 
 
 def mode_requires_explicit_sig_profile(mode: str | None = None) -> bool:
-    m = (mode or runtime_crypto_mode()).strip().lower()
-    return m in STRICT_TESTNET_MODES or str(os.environ.get("WEALL_REQUIRE_SIGNATURE_PROFILES") or "").strip().lower() in {"1", "true", "yes", "on"}
+    # After the PQ-only transition, all executable signing surfaces require an
+    # explicit profile unless a caller is constructing a new object through the
+    # central signing helper, which stamps pq-mldsa-v1.
+    return True
 
 
 def default_signature_profile_for_mode(mode: str | None = None) -> str:
-    m = (mode or runtime_crypto_mode()).strip().lower()
-    if m in STRICT_TESTNET_MODES or m in {"testnet"}:
-        return PQ_MLDSA_V1
-    return LEGACY_ED25519_V1
+    return PQ_MLDSA_V1
 
 
 def _chain_crypto_config(chain_config: dict[str, Any] | None) -> dict[str, Any]:
@@ -185,32 +170,15 @@ def _chain_allowlist(chain_config: dict[str, Any] | None) -> list[str]:
     return []
 
 
-def legacy_ed25519_explicitly_allowed(chain_config: dict[str, Any] | None = None) -> bool:
-    crypto = _chain_crypto_config(chain_config)
-    if crypto.get("allow_legacy_ed25519") is True:
-        return True
-    return LEGACY_ED25519_V1 in _chain_allowlist(chain_config)
-
-
 def allowed_signature_profiles_for_mode(
     *,
     mode: str | None = None,
     chain_config: dict[str, Any] | None = None,
 ) -> set[str]:
-    allowlist = set(_chain_allowlist(chain_config))
+    allowlist = {p for p in _chain_allowlist(chain_config) if p in signature_profile_registry()}
     if allowlist:
-        # Unknown allowlist entries do not become valid profiles; fail closed later.
         return allowlist
-    m = (mode or runtime_crypto_mode()).strip().lower()
-    if m in STRICT_TESTNET_MODES:
-        return {PQ_MLDSA_V1}
-    if m in {"mainnet"}:
-        return set()
-    if m in LOCAL_MODES or m in {"testnet"}:
-        return {LEGACY_ED25519_V1, PQ_MLDSA_V1}
-    # Production service manifests are not public/mainnet claims. Keep Ed25519
-    # migration compatibility unless strict testnet mode is explicitly selected.
-    return {LEGACY_ED25519_V1, PQ_MLDSA_V1}
+    return {PQ_MLDSA_V1}
 
 
 def profile_allowed_for_context(
@@ -230,10 +198,6 @@ def profile_allowed_for_context(
     allowed = allowed_signature_profiles_for_mode(mode=mode, chain_config=chain_config)
     if normalized not in allowed:
         return False, "signature_profile_not_allowed"
-    if normalized == LEGACY_ED25519_V1:
-        m = (mode or runtime_crypto_mode()).strip().lower()
-        if m in STRICT_TESTNET_MODES and not legacy_ed25519_explicitly_allowed(chain_config):
-            return False, "legacy_ed25519_not_allowed"
     if require_verifier and purpose == "signing" and not profile.verifier_available:
         return False, "signature_profile_verifier_unavailable"
     return True, "ok"

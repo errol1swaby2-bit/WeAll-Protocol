@@ -1,32 +1,20 @@
 {
-  "acceptable_claim": "WeAll remains a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has transitioned from classical-only Ed25519 to profile-aware ML-DSA signing for protocol authority surfaces covered by this pass. This supports quantum-resistance hardening but does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, or production constitutional governance readiness.",
-  "controlled_testnet_target_profile": "pq-mldsa-v1",
-  "ed25519_legacy_transitional_dev_only": true,
-  "framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
-  "legacy_profile": "legacy-ed25519-v1",
+  "acceptable_claim": "WeAll remains a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has migrated to profile-aware ML-DSA signing for active protocol authority surfaces. This supports quantum-resistance hardening but does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, or production constitutional governance readiness.",
+  "active_signature_profile": "pq-mldsa-v1",
+  "classical_signature_profiles_removed": true,
+  "controlled_testnet_default": "pq-mldsa-v1",
   "live_economics": false,
-  "mldsa_backend_status": {
-    "algorithm": "ML-DSA-65",
-    "available": true,
-    "backend": "pyca-cryptography",
-    "context": "weall:pq-mldsa-v1:protocol-signature",
-    "minimum_cryptography_version": "47.0.0",
-    "public_key_bytes": 1952,
-    "reason": "ok",
-    "repo_locked_cryptography_version": "48.0.0",
-    "signature_bytes": 3309
-  },
   "production_crypto_audit_complete": false,
-  "production_post_quantum_security_claimed": false,
   "public_beta_ready": false,
   "public_mainnet_ready": false,
   "public_multi_validator_bft_ready": false,
-  "quantum_proof_claimed": false,
-  "real_mldsa_implemented_in_this_environment": true,
-  "remaining_crypto_blockers": [
-    "frontend_local_pq_signing_not_complete",
-    "public_evidence_bundle_pq_signing_policy_missing",
-    "external_crypto_review_missing"
+  "real_mldsa_backend_required": true,
+  "remaining_blockers": [
+    "external cryptographic review",
+    "fresh post-migration observer and validator evidence",
+    "browser/client ML-DSA signing implementation or controlled signer boundary",
+    "durable PQ-signed public evidence bundle policy"
   ],
+  "required_framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
   "schema": "weall.quantum_resistance_readiness.v1_5"
 }

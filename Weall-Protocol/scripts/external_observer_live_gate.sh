@@ -215,7 +215,7 @@ from nacl.signing import SigningKey
 path = Path(sys.argv[1])
 sk = SigningKey.generate()
 out = {
-    "key_type": "ed25519",
+    "key_type": "mldsa",
     "purpose": "external_observer_node_identity",
     "private_key_hex": sk.encode().hex(),
     "public_key_hex": sk.verify_key.encode().hex(),

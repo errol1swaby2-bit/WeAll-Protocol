@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     NoEncryption,
@@ -348,9 +348,9 @@ def _wait_tx_confirmed(cfg: Cfg, tx_id: str) -> Json:
 
 
 def _make_keypair() -> tuple[str, str]:
-    sk = Ed25519PrivateKey.generate()
-    seed_bytes = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
-    pub_bytes = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    sk = MLDSA65PrivateKey.generate()
+    seed_bytes = sk.private_bytes_raw()
+    pub_bytes = sk.public_key().public_bytes_raw()
     priv_hex = seed_bytes.hex()
     pub_hex = pub_bytes.hex()
     return priv_hex, pub_hex

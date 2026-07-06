@@ -41,7 +41,7 @@ PYTHONPATH=src python3 scripts/gen_public_testnet_v1_chain_identity.py --check
 
 Public observer mode uses the backend public seed registry as the source of truth. The frontend may still read `/seeds.json` as a compatibility fallback, but the node dashboard and connection manager now prefer backend `/v1/nodes/seeds` and `/v1/nodes/validators`.
 
-A production public observer registry must include a valid Ed25519 registry signature and a pinned registry signer. The pin can come from environment or from a repo-shipped trust-root file committed before launch:
+A production public observer registry must include a valid ML-DSA registry signature and a pinned registry signer. The pin can come from environment or from a repo-shipped trust-root file committed before launch:
 
 ```bash
 export WEALL_PUBLIC_TESTNET=1

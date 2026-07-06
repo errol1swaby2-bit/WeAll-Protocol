@@ -918,7 +918,7 @@ class NetMeshLoop:
     def _relay_recipient_pubkey(self, recipient: str) -> str:
         """Return an optional relay-recipient pubkey for mailbox binding.
 
-        Preferred production config is JSON: {"peer-id":"ed25519-pubkey"} in
+        Preferred production config is JSON: {"peer-id":"mldsa-pubkey"} in
         WEALL_NET_RELAY_RECIPIENT_PUBKEYS. If the recipient itself is a 64-char
         hex key, it can also be used directly for key-addressed relay mailboxes.
         """

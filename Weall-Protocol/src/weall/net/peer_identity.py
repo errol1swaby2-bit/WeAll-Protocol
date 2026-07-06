@@ -23,7 +23,7 @@ Node device definition (consistent with apply/identity.py):
 
 Signing:
   - Outbound peers may include `hello.identity = {"pubkey":..., "sig_profile":..., "sig":...}`.
-  - Controlled/public testnet identity proofs default to pq-mldsa-v1; Ed25519 is legacy/dev-only.
+  - Peer identity proofs use pq-mldsa-v1 only.
 
 We do NOT return secrets. We do not log. We return:
   (ok, reason, account_id, pubkey)
@@ -33,7 +33,7 @@ from typing import Any
 
 from weall.crypto.account_keys import account_key_pubkey
 from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, default_signature_profile_for_mode
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode
 from weall.net.messages import PeerHello, WireHeader
 
 Json = dict[str, Any]
@@ -265,7 +265,7 @@ def sign_peer_hello_identity(
     return {
         "pubkey": pk,
         "sig_profile": profile,
-        "sig_alg": "ML-DSA" if profile == PQ_MLDSA_V1 else "Ed25519",
+        "sig_alg": "ML-DSA",
         "sig": sig,
     }
 
@@ -286,7 +286,7 @@ def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool,
     sig = _as_str(identity.get("sig")).strip()
     sig_profile = _as_str(identity.get("sig_profile")).strip()
     if not sig_profile:
-        sig_profile = LEGACY_ED25519_V1 if _as_str(identity.get("sig_alg") or "ed25519").lower() == "ed25519" else ""
+        sig_profile = PQ_MLDSA_V1
 
     if not pubkey:
         return (False, "missing_pubkey", peer_id, "")
@@ -353,9 +353,9 @@ def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool,
                 pubkey=pubkey,
             )
         )
-        if not ok and sig_profile == LEGACY_ED25519_V1:
+        if not ok and sig_profile == PQ_MLDSA_V1:
             ok = bool(verify_signature_for_profile(sig_profile=sig_profile, message=v2, sig=sig, pubkey=pubkey))
-        if not ok and sig_profile == LEGACY_ED25519_V1:
+        if not ok and sig_profile == PQ_MLDSA_V1:
             ok = bool(verify_signature_for_profile(sig_profile=sig_profile, message=v1, sig=sig, pubkey=pubkey))
     except Exception:
         return (False, "sig_verify_exception", account_id, pubkey)

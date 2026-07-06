@@ -12,7 +12,7 @@ from typing import Any, Iterator
 from weall.runtime.bft_hotstuff import CONSENSUS_PHASE_BFT_ACTIVE, quorum_threshold
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.replay_consistency import build_sample_chain
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 VALIDATORS = ["v1", "v2", "v3", "v4"]
 
@@ -29,7 +29,7 @@ def _keys() -> tuple[dict[str, str], dict[str, str]]:
     pubs: dict[str, str] = {}
     privs: dict[str, str] = {}
     for vid in VALIDATORS:
-        pub, sk = deterministic_ed25519_keypair(label=f"batch539-{vid}")
+        pub, sk = deterministic_mldsa_keypair(label=f"batch539-{vid}")
         pubs[vid] = pub
         privs[vid] = sk.private_bytes_raw().hex()
     return pubs, privs

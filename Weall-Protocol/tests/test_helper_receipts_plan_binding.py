@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def test_helper_receipt_binds_plan_id() -> None:
-    pub, priv = deterministic_ed25519_keypair(label="helper-receipt-plan-b29")
+    pub, priv = deterministic_mldsa_keypair(label="helper-receipt-plan-b29")
     receipt = sign_helper_receipt(
         chain_id="c1", height=10, validator_epoch=3, validator_set_hash="vh", parent_block_id="p1", lane_id="L1", ordered_tx_ids=("t1",), input_state_hash="in", output_state_hash="out", helper_id="h1", privkey=priv, plan_id="plan-1",
     )
@@ -25,7 +25,7 @@ def test_helper_receipt_binds_plan_id() -> None:
 
 
 def test_helper_receipt_rejects_plan_id_mismatch() -> None:
-    pub, priv = deterministic_ed25519_keypair(label="helper-receipt-plan-b29-mismatch")
+    pub, priv = deterministic_mldsa_keypair(label="helper-receipt-plan-b29-mismatch")
     receipt = sign_helper_receipt(
         chain_id="c1", height=10, validator_epoch=3, validator_set_hash="vh", parent_block_id="p1", lane_id="L1", ordered_tx_ids=("t1",), input_state_hash="in", output_state_hash="out", helper_id="h1", privkey=priv, plan_id="plan-1",
     )

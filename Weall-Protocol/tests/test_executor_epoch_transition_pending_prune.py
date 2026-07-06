@@ -4,7 +4,7 @@ from pathlib import Path
 
 from weall.runtime.bft_hotstuff import validator_set_hash
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _seed_validator_state(
@@ -36,7 +36,7 @@ def _mk_executor(tmp_path: Path) -> tuple[WeAllExecutor, dict[str, str]]:
     )
     pubs: dict[str, str] = {}
     for vid in ("v1", "v2", "v3", "v4", "v5"):
-        pub, _sk = deterministic_ed25519_keypair(label=vid)
+        pub, _sk = deterministic_mldsa_keypair(label=vid)
         pubs[vid] = pub
     return ex, pubs
 

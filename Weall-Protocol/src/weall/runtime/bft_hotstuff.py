@@ -8,7 +8,6 @@ from weall.runtime.runtime_time import now_ms as _now_ms
 
 from weall.crypto.sig import verify_signature_for_profile
 from weall.crypto.signature_profiles import (
-    LEGACY_ED25519_V1,
     PQ_MLDSA_V1,
     mode_requires_explicit_sig_profile,
     normalize_signature_profile_id,
@@ -118,9 +117,7 @@ def _bft_sig_profile(value: Any) -> str:
     profile = normalize_signature_profile_id(value)
     if profile:
         return profile
-    if mode_requires_explicit_sig_profile():
-        return ""
-    return LEGACY_ED25519_V1
+    return ""
 
 
 def _bft_sig_allowed(profile: str) -> bool:

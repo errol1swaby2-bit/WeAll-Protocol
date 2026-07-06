@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _mk_receipt():
-    pub, priv = deterministic_ed25519_keypair(label="helper-receipt-domain-b34")
+    pub, priv = deterministic_mldsa_keypair(label="helper-receipt-domain-b34")
     return pub, sign_helper_receipt(
         chain_id="c1",
         height=10,

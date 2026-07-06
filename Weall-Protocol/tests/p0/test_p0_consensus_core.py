@@ -253,7 +253,7 @@ def test_validator_candidate_register_records_candidate_without_activation(base_
             "VALIDATOR_CANDIDATE_REGISTER",
             {
                 "node_id": "node-alice",
-                "pubkey": "ed25519:alice",
+                "pubkey": "mldsa:alice",
                 "endpoints": ["https://alice.example"],
                 "metadata_hash": "abc123",
             },
@@ -276,7 +276,7 @@ def test_validator_candidate_approve_schedules_future_activation(base_state) -> 
             "VALIDATOR_CANDIDATE_REGISTER",
             {
                 "node_id": "node-alice",
-                "pubkey": "ed25519:alice",
+                "pubkey": "mldsa:alice",
                 "endpoints": ["https://alice.example"],
             },
             signer="alice",
@@ -353,7 +353,7 @@ def test_validator_remove_marks_non_active_record_removed_immediately(base_state
             "VALIDATOR_CANDIDATE_REGISTER",
             {
                 "node_id": "node-alice",
-                "pubkey": "ed25519:alice",
+                "pubkey": "mldsa:alice",
                 "endpoints": ["https://alice.example"],
             },
             signer="alice",

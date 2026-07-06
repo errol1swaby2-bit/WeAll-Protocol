@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from weall.runtime.executor import ExecutorError, WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _repo_root() -> Path:
@@ -18,7 +18,7 @@ def _tx_index_path() -> str:
 
 def test_restart_rejects_genesis_bootstrap_profile_drift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     acct = "@bootstrap-pinned"
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
+    pub, _sk = deterministic_mldsa_keypair(label=acct)
     db_path = str(tmp_path / "genesis_profile.db")
 
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
@@ -52,7 +52,7 @@ def test_restart_rejects_late_genesis_bootstrap_enablement(tmp_path: Path, monke
     meta = ex.read_state().get("meta") if isinstance(ex.read_state().get("meta"), dict) else {}
     assert meta.get("genesis_bootstrap_profile", {}).get("enabled") is False
 
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
+    pub, _sk = deterministic_mldsa_keypair(label=acct)
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", acct)
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_PUBKEY", pub)
@@ -62,7 +62,7 @@ def test_restart_rejects_late_genesis_bootstrap_enablement(tmp_path: Path, monke
 
 def test_genesis_mode_profile_is_pinned_to_validator_identity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     acct = "@genesis-mode-pinned"
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
+    pub, _sk = deterministic_mldsa_keypair(label=acct)
     db_path = str(tmp_path / "genesis_mode_profile.db")
 
     monkeypatch.setenv("WEALL_GENESIS_MODE", "1")

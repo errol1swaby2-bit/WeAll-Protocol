@@ -9,9 +9,7 @@ from weall.crypto.sig import (
     verify_signature_for_profile,
 )
 from weall.crypto.signature_profiles import (
-    LEGACY_ED25519_V1,
     PQ_MLDSA_V1,
-    mode_requires_explicit_sig_profile,
     normalize_signature_profile_id,
     profile_allowed_for_context,
 )
@@ -39,20 +37,11 @@ def _extract_active_keys(acct: Any, *, sig_profile: str = "") -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
 
-    # Legacy compatibility fields. These are ignored in strict PQ profile mode.
-    if not wanted or wanted == LEGACY_ED25519_V1:
-        active_keys = acct.get("active_keys")
-        if isinstance(active_keys, list):
-            for pk in active_keys:
-                _add_pubkey(out, seen, pk)
-        _add_pubkey(out, seen, acct.get("pubkey"))
-
     keys = acct.get("keys")
     if isinstance(keys, list):
         for item in keys:
             if isinstance(item, str):
-                if not wanted or wanted == LEGACY_ED25519_V1:
-                    _add_pubkey(out, seen, item)
+                continue
                 continue
             if not isinstance(item, dict):
                 continue
@@ -80,20 +69,8 @@ def _extract_active_keys(acct: Any, *, sig_profile: str = "") -> list[str]:
                     continue
                 if rec_profile == PQ_MLDSA_V1:
                     pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
-                    _add_pubkey(out, seen, pubkeys.get("mldsa"))
-                else:
-                    _add_pubkey(out, seen, rec.get("pubkey"))
+                    _add_pubkey(out, seen, pubkeys.get("mldsa") or rec.get("pubkey"))
             return out
-
-        if not wanted or wanted == LEGACY_ED25519_V1:
-            for pk, rec in keys.items():
-                if not isinstance(pk, str) or not pk.strip():
-                    continue
-                if isinstance(rec, dict):
-                    if bool(rec.get("active", False)):
-                        _add_pubkey(out, seen, pk)
-                else:
-                    _add_pubkey(out, seen, pk)
 
     return out
 
@@ -121,13 +98,7 @@ def _expected_chain_id(state: Json) -> str:
 def verify_tx_signature(state: Json, tx: Json) -> bool:
     """Verify tx signature against active keys for the signer.
 
-    Production default is fail-closed on the tx replay domain:
-      - tx.chain_id must be present
-      - tx.chain_id must match the local/state chain_id when known
-      - only the chain-bound signature payload is accepted
-
-    Legacy no-chain-id signatures remain available only when explicitly allowed
-    through WEALL_ALLOW_LEGACY_SIG_DOMAIN=1 (default outside prod).
+    Production default is fail-closed on the tx replay domain and pq-mldsa-v1 profile.
     """
     if not isinstance(tx, dict):
         return False
@@ -158,9 +129,7 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
 
     sig_profile = normalize_signature_profile_id(tx.get("sig_profile"))
     if not sig_profile:
-        if mode_requires_explicit_sig_profile():
-            return False
-        sig_profile = LEGACY_ED25519_V1
+        return False
 
     chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
     ok_profile, _reason_profile = profile_allowed_for_context(
@@ -177,7 +146,7 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
     tx_chain_id = tx.get("chain_id")
     tx_chain_id2 = str(tx_chain_id).strip() if isinstance(tx_chain_id, str) else ""
     network_id = str(tx.get("network_id") or state.get("network_id") or "").strip()
-    strict_domain = strict_tx_sig_domain_enabled()
+    strict_domain = True
 
     if strict_domain:
         if not tx_chain_id2:

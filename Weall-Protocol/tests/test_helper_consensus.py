@@ -5,7 +5,7 @@ from copy import deepcopy
 from weall.runtime.helper_executor import HelperExecutionError, HelperExecutor
 from weall.runtime.helper_planner import build_helper_plan, normalize_validators, validator_set_hash
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _validators() -> list[str]:
@@ -15,7 +15,7 @@ def _validators() -> list[str]:
 def _keys() -> dict[str, dict[str, str]]:
     out: dict[str, dict[str, str]] = {}
     for helper_id in ("validator-a", "validator-b", "validator-c"):
-        pub, priv = deterministic_ed25519_keypair(label=f"helper-consensus::{helper_id}")
+        pub, priv = deterministic_mldsa_keypair(label=f"helper-consensus::{helper_id}")
         out[helper_id] = {"pub": pub, "priv": priv}
     return out
 

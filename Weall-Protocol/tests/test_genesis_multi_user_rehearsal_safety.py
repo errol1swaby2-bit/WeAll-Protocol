@@ -4,7 +4,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
 
 from weall.crypto.sig import sign_tx_envelope_dict
@@ -18,16 +18,9 @@ DEVNET_FULL = ROOT / "scripts" / "devnet_full_onboarding_e2e.sh"
 
 
 def _new_key() -> tuple[str, str]:
-    private = Ed25519PrivateKey.generate()
-    priv_seed = private.private_bytes(
-        encoding=Encoding.Raw,
-        format=PrivateFormat.Raw,
-        encryption_algorithm=NoEncryption(),
-    )
-    pub = private.public_key().public_bytes(
-        encoding=Encoding.Raw,
-        format=PublicFormat.Raw,
-    )
+    private = MLDSA65PrivateKey.generate()
+    priv_seed = private.private_bytes_raw()
+    pub = private.public_key().public_bytes_raw()
     return priv_seed.hex(), pub.hex()
 
 

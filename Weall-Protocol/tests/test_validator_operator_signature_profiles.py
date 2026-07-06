@@ -1,4 +1,6 @@
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1
+from weall.crypto.signature_profiles import PQ_MLDSA_V1
+
+REMOVED_CLASSICAL_PROFILE = "classical-signature-profile-removed"
 from weall.runtime.block_signature_profiles import validate_validator_operator_record
 
 
@@ -11,9 +13,9 @@ def test_validator_operator_record_requires_profile_in_closed_testnet(monkeypatc
 
 def test_validator_operator_record_rejects_legacy_without_allowlist(monkeypatch):
     monkeypatch.setenv("WEALL_CRYPTO_MODE", "closed-testnet")
-    ok, reason = validate_validator_operator_record({"sig_profile": LEGACY_ED25519_V1, "node_pubkey": "aa"}, require_verifier=False)
+    ok, reason = validate_validator_operator_record({"sig_profile": REMOVED_CLASSICAL_PROFILE, "node_pubkey": "aa"}, require_verifier=False)
     assert ok is False
-    assert reason in {"signature_profile_not_allowed", "legacy_ed25519_not_allowed"}
+    assert reason in {"signature_profile_not_allowed", "unknown_signature_profile"}
 
 
 def test_validator_operator_record_accepts_pq_shape_without_verifier(monkeypatch):

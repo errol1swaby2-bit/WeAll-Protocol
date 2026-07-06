@@ -6,11 +6,8 @@ import json
 from typing import Any, Dict, Mapping, Sequence
 from weall.runtime.json_tools import canonical_json_str as _canon_json
 
-import binascii
-
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-
 from .helper_planner import HelperPlan, build_helper_plan, canonicalize_txs, stable_tx_id
+from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed
 from .helper_receipts import HelperReceipt, sign_helper_receipt, verify_helper_receipt
 
 
@@ -41,10 +38,9 @@ class HelperExecutor:
     """
     Minimal deterministic helper executor used by helper tests.
 
-    Production helper trust boundaries use asymmetric helper identities. This
-    test harness still supports legacy HMAC material only when explicitly
-    provided, so old corpus-style tests can be ported gradually without
-    weakening runtime verification paths.
+    Production helper trust boundaries use pq-mldsa-v1 helper identities.
+    Helper signing material is a ML-DSA-65 seed/private key string and no
+    classical or shared-secret receipt mode is accepted.
     """
 
     def __init__(
@@ -54,29 +50,13 @@ class HelperExecutor:
         helper_pubkeys: Mapping[str, str] | None = None,
         legacy_receipt_secret_mode: bool = False,
     ):
-        self.helper_signing_material = {str(k): v for k, v in dict(helper_signing_material).items()}
+        if legacy_receipt_secret_mode:
+            raise ValueError("helper receipt shared-secret mode has been removed")
+        self.helper_signing_material = {str(k): str(v) for k, v in dict(helper_signing_material).items()}
         self.helper_pubkeys = {str(k): str(v) for k, v in dict(helper_pubkeys or {}).items()}
-        self.legacy_receipt_secret_mode = bool(legacy_receipt_secret_mode)
-        self._helper_legacy_mode_by_id: dict[str, bool] = {}
         derived: dict[str, str] = {}
         for helper_id, material in self.helper_signing_material.items():
-            if self.legacy_receipt_secret_mode:
-                self._helper_legacy_mode_by_id[helper_id] = True
-                continue
-            if isinstance(material, Ed25519PrivateKey):
-                key_obj = material
-                self._helper_legacy_mode_by_id[helper_id] = False
-                derived[helper_id] = key_obj.public_key().public_bytes_raw().hex()
-                continue
-            try:
-                raw = bytes.fromhex(str(material))
-                if len(raw) != 32:
-                    raise ValueError("ed25519 private key must be 32 bytes")
-                key_obj = Ed25519PrivateKey.from_private_bytes(raw)
-                self._helper_legacy_mode_by_id[helper_id] = False
-                derived[helper_id] = key_obj.public_key().public_bytes_raw().hex()
-            except (ValueError, TypeError, binascii.Error):
-                self._helper_legacy_mode_by_id[helper_id] = True
+            derived[helper_id] = mldsa65_public_key_from_seed(privkey=str(material), encoding="hex")
         for helper_id, pubkey in derived.items():
             self.helper_pubkeys.setdefault(helper_id, pubkey)
 
@@ -160,17 +140,10 @@ class HelperExecutor:
             "helper_id": helper_id,
             "plan_id": str(plan_id or ""),
         }
-        if self._helper_legacy_mode_by_id.get(helper_id, self.legacy_receipt_secret_mode):
-            receipt = sign_helper_receipt(
-                **receipt_kwargs,
-                receipt_secret=str(self.helper_signing_material[helper_id]),
-                allow_legacy_receipt_secret=True,
-            )
-        else:
-            receipt = sign_helper_receipt(
-                **receipt_kwargs,
-                privkey=self.helper_signing_material[helper_id],
-            )
+        receipt = sign_helper_receipt(
+            **receipt_kwargs,
+            privkey=self.helper_signing_material[helper_id],
+        )
         return LaneExecutionResult(
             lane_id=lane_id,
             ordered_tx_ids=ordered_tx_ids,
@@ -193,23 +166,6 @@ class HelperExecutor:
         parent_block_id: str,
         expected_plan_id: str = "",
     ) -> bool:
-        if self._helper_legacy_mode_by_id.get(lane_result.helper_id, self.legacy_receipt_secret_mode):
-            secret = self.helper_signing_material.get(lane_result.helper_id)
-            if not secret:
-                return False
-            return verify_helper_receipt(
-                lane_result.receipt,
-                receipt_secret=str(secret),
-                allow_legacy_receipt_secret=True,
-                expected_chain_id=chain_id,
-                expected_height=height,
-                expected_validator_epoch=validator_epoch,
-                expected_validator_set_hash=validator_set_hash,
-                expected_parent_block_id=parent_block_id,
-                expected_lane_id=lane_result.lane_id,
-                expected_helper_id=lane_result.helper_id,
-                expected_plan_id=str(expected_plan_id or lane_result.plan_id or ""),
-            )
         helper_pubkey = self.helper_pubkeys.get(lane_result.helper_id)
         if not helper_pubkey:
             return False

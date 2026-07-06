@@ -528,7 +528,7 @@ Weall-Protocol/src/weall/api/schemas.py
 Weall-Protocol/src/weall/api/security.py
 Weall-Protocol/src/weall/api/structured_logging.py
 Weall-Protocol/src/weall/crypto/__init__.py
-Weall-Protocol/src/weall/crypto/ed25519.py
+Weall-Protocol/src/weall/crypto/mldsa.py
 Weall-Protocol/src/weall/crypto/sig.py
 Weall-Protocol/src/weall/env.py
 Weall-Protocol/src/weall/indexing/__init__.py
@@ -1781,7 +1781,6 @@ web/src/pages/Thread.tsx
 web/src/pages/Tools.tsx
 web/src/pages/TransactionsPage.tsx
 web/src/styles.css
-web/src/types/tweetnacl.d.ts
 web/src/vite-env.d.ts
 web/tests/e2e/conference_path.spec.ts
 web/tests/e2e/decisions_reviews_human_first.spec.ts

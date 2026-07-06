@@ -30,7 +30,7 @@ def _app_state_root(state: dict[str, Any]) -> str:
     }
     return hashlib.sha256(json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 from weall.services.block_producer import ProducerConfig, _produce_once
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 VALIDATORS = ["v-a", "v-b", "v-c", "v-d"]
 
@@ -55,7 +55,7 @@ def _keys() -> tuple[dict[str, str], dict[str, str]]:
     pubs: dict[str, str] = {}
     privs: dict[str, str] = {}
     for vid in VALIDATORS:
-        pub, sk = deterministic_ed25519_keypair(label=f"batch556-{vid}")
+        pub, sk = deterministic_mldsa_keypair(label=f"batch556-{vid}")
         pubs[vid] = pub
         privs[vid] = sk.private_bytes_raw().hex()
     return pubs, privs

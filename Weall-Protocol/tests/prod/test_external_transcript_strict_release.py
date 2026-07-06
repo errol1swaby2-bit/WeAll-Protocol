@@ -73,7 +73,7 @@ def test_strict_release_accepts_attested_validator_transcript(tmp_path: Path) ->
         "observer_vote_rejected": True,
         "fresh_node_catchup": True,
         "restart_replay": True,
-        "operator_signatures": ["sig-ed25519-alpha-real-attestation-0001", "sig-ed25519-beta-real-attestation-0002", "sig-ed25519-gamma-real-attestation-0003", "sig-ed25519-delta-real-attestation-0004"],
+        "operator_signatures": ["sig-mldsa-alpha-real-attestation-0001", "sig-mldsa-beta-real-attestation-0002", "sig-mldsa-gamma-real-attestation-0003", "sig-mldsa-delta-real-attestation-0004"],
         "external_attestation_attached": True,
         "operator_attestation": "external_operator_signed",
         "machine_isolation": "independent_machines",

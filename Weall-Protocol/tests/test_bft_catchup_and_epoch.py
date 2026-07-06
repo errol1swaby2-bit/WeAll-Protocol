@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     NoEncryption,
@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.serialization import (
     PublicFormat,
 )
 
-from weall.crypto.sig import sign_ed25519
+from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import BftVote, canonical_vote_message
 from weall.runtime.executor import WeAllExecutor
 
@@ -20,10 +20,10 @@ def _repo_root() -> Path:
 
 
 def _mk_keypair_hex() -> tuple[str, str]:
-    sk = Ed25519PrivateKey.generate()
+    sk = MLDSA65PrivateKey.generate()
     pk = sk.public_key()
-    sk_b = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
-    pk_b = pk.public_bytes(Encoding.Raw, PublicFormat.Raw)
+    sk_b = sk.private_bytes_raw()
+    pk_b = pk.public_bytes_raw()
     return pk_b.hex(), sk_b.hex()
 
 
@@ -80,7 +80,7 @@ def _make_qc(
             validator_epoch=int(validator_epoch),
             validator_set_hash=str(validator_set_hash),
         )
-        sig = sign_ed25519(message=msg, privkey=vpriv[signer], encoding="hex")
+        sig = sign_mldsa(message=msg, privkey=vpriv[signer], encoding="hex")
         votes.append(
             BftVote(
                 chain_id=chain_id,

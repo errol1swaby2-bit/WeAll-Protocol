@@ -9,7 +9,7 @@ from weall.runtime.bft_hotstuff import (
     CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP,
 )
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _seed_validator_state(
@@ -50,7 +50,7 @@ def _mk_executor(
     pubs: dict[str, str] = {}
     privs: dict[str, str] = {}
     for vid in ("v1", "v2", "v3", "v4"):
-        pub, sk = deterministic_ed25519_keypair(label=f"batch31-{vid}")
+        pub, sk = deterministic_mldsa_keypair(label=f"batch31-{vid}")
         pubs[vid] = pub
         privs[vid] = sk.private_bytes_raw().hex()
     _seed_validator_state(ex, ["v1", "v2", "v3", "v4"], pubs, phase=phase)

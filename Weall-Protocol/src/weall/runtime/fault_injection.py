@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     NoEncryption,
@@ -19,7 +19,7 @@ from cryptography.hazmat.primitives.serialization import (
     PublicFormat,
 )
 
-from weall.crypto.sig import sign_ed25519
+from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import (
     BftVote,
     canonical_proposal_message,
@@ -75,10 +75,10 @@ def _now_ms() -> int:
 
 
 def _mk_keypair_hex() -> tuple[str, str]:
-    sk = Ed25519PrivateKey.generate()
+    sk = MLDSA65PrivateKey.generate()
     pk = sk.public_key()
-    sk_b = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
-    pk_b = pk.public_bytes(Encoding.Raw, PublicFormat.Raw)
+    sk_b = sk.private_bytes_raw()
+    pk_b = pk.public_bytes_raw()
     return pk_b.hex(), sk_b.hex()
 
 
@@ -147,7 +147,7 @@ def _make_qc(
             validator_epoch=validator_epoch,
             validator_set_hash=validator_set_hash,
         )
-        sig = sign_ed25519(message=msg, privkey=str(vpriv[signer]), encoding="hex")
+        sig = sign_mldsa(message=msg, privkey=str(vpriv[signer]), encoding="hex")
         votes.append(
             BftVote(
                 chain_id=chain_id,
@@ -1041,7 +1041,7 @@ def run_timeout_epoch_storm_soak(
             "high_qc_id": str(high_qc_id),
             "signer": str(signer),
             "pubkey": str(vpub[signer]),
-            "sig": sign_ed25519(message=msg, privkey=str(vpriv[signer]), encoding="hex"),
+            "sig": sign_mldsa(message=msg, privkey=str(vpriv[signer]), encoding="hex"),
             "validator_epoch": int(validator_epoch),
             "validator_set_hash": str(validator_set_hash),
         }
@@ -1419,7 +1419,7 @@ def run_consensus_resilience_matrix(
     forged = dict(valid_proposal)
     forged["proposer"] = "v2"
     forged["proposer_pubkey"] = str(vpub["v2"])
-    forged["proposer_sig"] = sign_ed25519(
+    forged["proposer_sig"] = sign_mldsa(
         message=canonical_proposal_message(
             chain_id=str(forged.get("chain_id") or conflict_chain_id),
             view=int(forged.get("view") or 0),

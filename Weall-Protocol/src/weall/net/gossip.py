@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, default_signature_profile_for_mode
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode
 from weall.net.messages import BlockProposalMsg, TxEnvelopeMsg
 from weall.tx.canon import CanonError
 from weall.runtime.tx_id import compute_tx_id_from_dict
@@ -211,7 +211,7 @@ def _canon_addr_signing_payload(record: JsonObject) -> bytes:
         "tx_index_hash": str(record.get("tx_index_hash") or ""),
         "valid_from_ms": int(record.get("valid_from_ms") or 0),
         "expires_at_ms": int(record.get("expires_at_ms") or 0),
-        "sig_profile": str(record.get("sig_profile") or LEGACY_ED25519_V1).strip(),
+        "sig_profile": str(record.get("sig_profile") or PQ_MLDSA_V1).strip(),
     }
     return json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
@@ -233,7 +233,7 @@ def make_peer_addr_record(
 
     If pubkey+privkey are supplied, the record is signed with an explicit
     signature profile.  Controlled/public testnet mode defaults to pq-mldsa-v1;
-    legacy-ed25519-v1 is dev/migration-only unless explicitly allowed. Unsigned
+    pq-mldsa-v1 is the only accepted gossip signature profile. Unsigned
     records are still useful for discovery but remain untrusted hints until the
     normal PEER_HELLO handshake succeeds.
     """
@@ -261,7 +261,7 @@ def make_peer_addr_record(
         profile = str(sig_profile or default_signature_profile_for_mode()).strip() or PQ_MLDSA_V1
         rec["pubkey"] = pk
         rec["sig_profile"] = profile
-        rec["sig_alg"] = "ML-DSA" if profile == PQ_MLDSA_V1 else "Ed25519"
+        rec["sig_alg"] = "ML-DSA"
         rec["sig"] = sign_signature_for_profile(
             sig_profile=profile,
             message=_canon_addr_signing_payload(rec),
@@ -311,7 +311,7 @@ def verify_peer_addr_record(record: Any, *, cfg: PeerAddrGossipConfig, now_ms: i
         return False
     profile = str(record.get("sig_profile") or "").strip()
     if not profile:
-        profile = LEGACY_ED25519_V1 if str(record.get("sig_alg") or "ed25519").lower() == "ed25519" else ""
+        profile = PQ_MLDSA_V1
     if not profile:
         return False
     try:

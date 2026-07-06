@@ -33,7 +33,6 @@ from weall.runtime.executor import (
     normalize_validators,
     os,
     qc_from_json,
-    sign_ed25519,
     verify_proposal_json,
     verify_qc,
 )
@@ -41,7 +40,6 @@ from weall.runtime.executor import (
 from weall.runtime.bft_hotstuff import validator_set_hash
 from weall.crypto.sig import sign_signature_for_profile
 from weall.crypto.signature_profiles import (
-    LEGACY_ED25519_V1,
     PQ_MLDSA_V1,
     default_signature_profile_for_mode,
     normalize_signature_profile_id,
@@ -324,7 +322,7 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
             return None
 
     # Enforce signed leader-authored proposals in normal/prod verification modes,
-    # while preserving legacy dev/test paths when signature verification is disabled.
+    # while preserving non-production paths when signature verification is disabled.
     has_proposal_sig = bool(str(proposal2.get("proposer_sig") or "").strip())
     has_proposal_pub = bool(str(proposal2.get("proposer_pubkey") or "").strip())
     if require_sig or has_proposal_sig or has_proposal_pub:
@@ -583,7 +581,7 @@ def _validator_signature_profiles(self) -> dict[str, str]:
             continue
         profile = normalize_signature_profile_id(rec.get("sig_profile") or rec.get("signature_profile"))
         if not profile:
-            profile = LEGACY_ED25519_V1
+            profile = PQ_MLDSA_V1
         out[str(acct).strip()] = profile
     return out
 
@@ -1236,7 +1234,7 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         )
         blk["proposer_pubkey"] = proposer_pubkey
         blk["proposer_sig_profile"] = sig_profile
-        blk["proposer_signature"] = {"alg": "ML-DSA" if sig_profile == PQ_MLDSA_V1 else "Ed25519", "pubkey": proposer_pubkey}
+        blk["proposer_signature"] = {"alg": "ML-DSA", "pubkey": proposer_pubkey}
         blk["proposer_sig"] = sign_signature_for_profile(
             sig_profile=sig_profile, message=msg, privkey=proposer_privkey, encoding="hex"
         )

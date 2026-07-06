@@ -18,7 +18,7 @@ Every relay envelope is:
 - expiration bounded
 - replay/dedupe safe at the receiver
 
-The relay server stores and returns signed envelopes. It cannot safely mutate payloads because mutation breaks the payload hash and Ed25519 signature.
+The relay server stores and returns signed envelopes. It cannot safely mutate payloads because mutation breaks the payload hash and ML-DSA signature.
 
 Relayed messages still pass the normal receiving path:
 
@@ -112,7 +112,7 @@ export WEALL_BLOCK_LOOP_AUTOSTART=0
 If a relay mutates any payload field, the receiver rejects the envelope because either:
 
 - `payload_hash` no longer matches the payload, or
-- the Ed25519 signature no longer verifies, or
+- the ML-DSA signature no longer verifies, or
 - the recomputed `relay_id` no longer matches.
 
 ### Wrong-chain relay attempt

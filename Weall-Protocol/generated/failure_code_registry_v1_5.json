@@ -7,6 +7,15 @@
   },
   "codes": [
     {
+      "code": "CLASSICAL_SIGNATURE_PROFILE_REMOVED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
       "code": "GENESIS_TESTNET_API_UNREACHABLE",
       "domain": "launch_readiness",
       "family": "LaunchReadiness",
@@ -107,15 +116,6 @@
     },
     {
       "code": "GENESIS_TESTNET_WRONG_TX_INDEX_HASH",
-      "domain": "launch_readiness",
-      "family": "LaunchReadiness",
-      "http_status": null,
-      "sample_reason": "stable public genesis launch readiness failure code",
-      "source": "scripts/gen_failure_code_registry_v1_5.py",
-      "source_lineno": 0
-    },
-    {
-      "code": "LEGACY_ED25519_NOT_ALLOWED",
       "domain": "launch_readiness",
       "family": "LaunchReadiness",
       "http_status": null,
@@ -337,7 +337,7 @@
       "http_status": 404,
       "sample_reason": "account does not exist",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 261
+      "source_lineno": 253
     },
     {
       "code": "account_required",
@@ -355,7 +355,7 @@
       "http_status": 400,
       "sample_reason": "account is required",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 225
+      "source_lineno": 219
     },
     {
       "code": "already_exists",
@@ -454,7 +454,7 @@
       "http_status": 400,
       "sample_reason": "invalid JSON body",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 208
+      "source_lineno": 203
     },
     {
       "code": "bad_request",
@@ -490,7 +490,7 @@
       "http_status": 403,
       "sample_reason": "session login signature verification failed",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 282
+      "source_lineno": 274
     },
     {
       "code": "bad_sig",
@@ -1282,7 +1282,7 @@
       "http_status": 400,
       "sample_reason": "issued_at_ms is required",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 244
+      "source_lineno": 236
     },
     {
       "code": "legacy_endpoint_removed",
@@ -1345,7 +1345,7 @@
       "http_status": 403,
       "sample_reason": "login proof timestamp is outside the accepted clock skew window",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 250
+      "source_lineno": 242
     },
     {
       "code": "media_byte_hash_mismatch",
@@ -1678,7 +1678,7 @@
       "http_status": 500,
       "sample_reason": "ledger store update primitive unavailable",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 291
+      "source_lineno": 283
     },
     {
       "code": "not_registered",
@@ -1750,7 +1750,7 @@
       "http_status": 403,
       "sample_reason": "pubkey is not an active key on this account",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 265
+      "source_lineno": 257
     },
     {
       "code": "pubkey_required",
@@ -1759,7 +1759,7 @@
       "http_status": 400,
       "sample_reason": "pubkey is required",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 240
+      "source_lineno": 232
     },
     {
       "code": "receipt_submission_forbidden",
@@ -1786,7 +1786,7 @@
       "http_status": 400,
       "sample_reason": "session_key is required",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 227
+      "source_lineno": 221
     },
     {
       "code": "session_mismatch",
@@ -1820,9 +1820,9 @@
       "domain": "api",
       "family": "ApiError.bad_request",
       "http_status": 400,
-      "sample_reason": "sig_profile is required in controlled/public testnet mode",
+      "sample_reason": "sig_profile is required",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 230
+      "source_lineno": 223
     },
     {
       "code": "sig_required",
@@ -1831,7 +1831,7 @@
       "http_status": 400,
       "sample_reason": "sig is required",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 242
+      "source_lineno": 234
     },
     {
       "code": "state_invalid",
@@ -1840,7 +1840,7 @@
       "http_status": 500,
       "sample_reason": "accounts subtree missing",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 258
+      "source_lineno": 250
     },
     {
       "code": "system_tx_forbidden",

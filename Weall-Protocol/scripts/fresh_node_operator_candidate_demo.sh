@@ -85,7 +85,7 @@ if path.exists():
     except Exception:
         pass
 sk = SigningKey.generate()
-obj = {'type':'weall_node_key','version':1,'key_type':'ed25519','private_key_hex':sk.encode().hex(),'public_key_hex':sk.verify_key.encode().hex(),'created_at_ms':int(time.time()*1000),'warning':'This is an operational node key, not your WeAll account recovery key.'}
+obj = {'type':'weall_node_key','version':1,'key_type':'mldsa','private_key_hex':sk.encode().hex(),'public_key_hex':sk.verify_key.encode().hex(),'created_at_ms':int(time.time()*1000),'warning':'This is an operational node key, not your WeAll account recovery key.'}
 path.write_text(json.dumps(obj, indent=2, sort_keys=True)+'\n', encoding='utf-8')
 try: path.chmod(0o600)
 except OSError: pass

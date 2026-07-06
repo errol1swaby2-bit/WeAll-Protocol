@@ -62,7 +62,7 @@ def test_m03_slash_execute_records_non_economic_validator_accountability() -> No
         "state_version": 1,
         "validators": {
             "registry": {
-                "alice": {"status": "active", "active": True, "pubkey": "ed25519:alice"}
+                "alice": {"status": "active", "active": True, "pubkey": "mldsa:alice"}
             }
         },
         "roles": {"validators": {"active_set": ["alice"]}},

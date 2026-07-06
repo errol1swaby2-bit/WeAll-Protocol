@@ -24,7 +24,7 @@ def test_genesis_bootstrap_reputation_env_uses_integer_units(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     acct = "@bootstrap"
-    pub = "ed25519:bootstrap"
+    pub = "mldsa:bootstrap"
 
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", acct)

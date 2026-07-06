@@ -13,7 +13,6 @@ from urllib.parse import urlparse, urlunparse
 from weall.api.config import normalize_base_url
 from weall.crypto.sig import verify_signature_for_profile
 from weall.crypto.signature_profiles import (
-    LEGACY_ED25519_V1,
     PQ_MLDSA_V1,
     mode_requires_explicit_sig_profile,
     normalize_signature_profile_id,
@@ -304,7 +303,6 @@ _PLACEHOLDER_MARKERS = (
     "<",
     "set-before-public-launch",
     "required-prod",
-    "required-ed25519",
     "testnet.weall.example",
     "@validator-account-id",
     "validator-node-public-key",
@@ -448,22 +446,11 @@ def _trust_root_allowed_signature_profiles() -> list[str]:
     return [value] if value else []
 
 
-def _allow_legacy_seed_registry_signatures() -> bool:
-    if env_truthy("WEALL_PUBLIC_TESTNET_ALLOW_LEGACY_SIGNATURES", False):
-        return True
-    mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
-    return mode in {"dev", "test", "local", "ci"}
-
-
 def _seed_registry_profile_allowed(profile: str) -> bool:
-    if profile == LEGACY_ED25519_V1 and _allow_legacy_seed_registry_signatures():
-        return True
     allowed = _trust_root_allowed_signature_profiles()
     if allowed:
         return profile in allowed
-    if mode_requires_explicit_sig_profile():
-        return profile == PQ_MLDSA_V1
-    return profile in {LEGACY_ED25519_V1, PQ_MLDSA_V1}
+    return profile == PQ_MLDSA_V1
 
 
 
@@ -525,17 +512,11 @@ def _verify_registry_signature(data: Json) -> Json:
         or data.get("seed_registry_signature_profile")
     )
     if not profile:
-        if mode_requires_explicit_sig_profile():
-            profile = PQ_MLDSA_V1
-        else:
-            profile = LEGACY_ED25519_V1
+        profile = PQ_MLDSA_V1
 
     if not _seed_registry_profile_allowed(profile):
         raise PublicSeedRegistryError("public_seed_registry_signature_profile_not_allowed")
-    profile_chain_config = None
-    if profile == LEGACY_ED25519_V1 and _allow_legacy_seed_registry_signatures():
-        profile_chain_config = {"crypto": {"allowed_signature_profiles": [LEGACY_ED25519_V1], "allow_legacy_ed25519": True}}
-    ok_profile, reason = profile_allowed_for_context(profile, chain_config=profile_chain_config, require_verifier=True)
+    ok_profile, reason = profile_allowed_for_context(profile, require_verifier=True)
     if not ok_profile:
         raise PublicSeedRegistryError(f"public_seed_registry_{reason}")
 
@@ -674,10 +655,7 @@ def _verify_validator_endpoint_signature(raw: Json, *, commitments: Json) -> Jso
     sig = _safe_str(raw.get("signature"))
     profile = normalize_signature_profile_id(raw.get("sig_profile") or raw.get("signature_profile"))
     if not profile:
-        if mode_requires_explicit_sig_profile():
-            profile = PQ_MLDSA_V1
-        else:
-            profile = LEGACY_ED25519_V1
+        profile = PQ_MLDSA_V1
     requested_verified = bool(raw.get("verified") is True or raw.get("signed") is True or sig)
     if not _seed_registry_profile_allowed(profile):
         return {"verified": False, "signed": False, "error": "validator_endpoint_signature_profile_not_allowed", "signer": signer, "sig_profile": profile}

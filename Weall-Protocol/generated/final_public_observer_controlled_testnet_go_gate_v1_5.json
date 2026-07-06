@@ -1,6 +1,6 @@
 {
   "allowed_claim": "Pre-public-testnet implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware pq-mldsa-v1 ML-DSA signing for protocol authority surfaces covered by this pass. Fresh post-transition observer/testnet evidence and external cryptographic review remain required before any long-lived public network or mainnet claim.",
-  "artifact_digest": "7a7c7a60f33b90bf304abea10912a26b8c4201a6c2c9d3abce3521bfc30ab019",
+  "artifact_digest": "4b933335d95370a52d370c196888b45f191832aab5878bfb7d02a4b0afc45347",
   "blocker_counts": {
     "blocker_catalog_count": 15,
     "closed_in_repository_count": 7,
@@ -40,7 +40,7 @@
     "public_storage_provider_market": false,
     "public_validator_enabled": false
   },
-  "controlled_rehearsal_candidate_ready": true,
+  "controlled_rehearsal_candidate_ready": false,
   "external_blockers_still_open": true,
   "external_evidence_still_required": true,
   "flow_readiness_docs": {
@@ -89,7 +89,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "controlled_testnet_go_gate": {
-      "ok": true,
+      "ok": false,
       "path": "generated/controlled_testnet_go_gate_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.controlled_testnet_go_gate"
@@ -152,7 +152,7 @@
   "go_no_go_verdict": {
     "automatic_upgrade_claim": "NO_GO_RECORD_ONLY",
     "bounded_public_observer_launch_claim": "NO_GO_EXTERNAL_EVIDENCE_PENDING",
-    "controlled_internal_public_observer_rehearsal_candidate": "GO",
+    "controlled_internal_public_observer_rehearsal_candidate": "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE",
     "live_economics_claim": "NO_GO_DISABLED",
     "production_helper_claim": "NO_GO_DISABLED",
     "public_beta_claim": "NO_GO_PUBLIC_BETA_BLOCKERS_OPEN",
@@ -173,12 +173,8 @@
   "quantum_resistance_readiness_summary": {
     "path": "generated/quantum_resistance_readiness_v1_5.json",
     "production_crypto_audit_complete": false,
-    "real_mldsa_implemented_in_this_environment": true,
-    "remaining_crypto_blockers": [
-      "frontend_local_pq_signing_not_complete",
-      "public_evidence_bundle_pq_signing_policy_missing",
-      "external_crypto_review_missing"
-    ]
+    "real_mldsa_implemented_in_this_environment": false,
+    "remaining_crypto_blockers": []
   },
   "readiness_package_docs": {
     "current_readiness_statement": "docs/reviewer/CURRENT_READINESS_STATEMENT.md",
@@ -214,7 +210,7 @@
     "upgrade_hardening_plan": true,
     "validator_operator_transcript": true
   },
-  "real_mldsa_implemented_in_this_environment": true,
+  "real_mldsa_implemented_in_this_environment": false,
   "remaining_open_blockers": [
     "AUD-618-P0-001",
     "AUD-618-P0-002",

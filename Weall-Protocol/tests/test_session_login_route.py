@@ -7,7 +7,7 @@ import time
 from fastapi.testclient import TestClient
 
 from weall.api.app import app
-from weall.crypto.sig import sign_ed25519
+from weall.crypto.sig import sign_mldsa
 from weall.runtime.session_keys import session_record_key
 
 
@@ -77,7 +77,7 @@ def test_session_login_creates_device_and_session(monkeypatch):
     issued_at_ms = state["time"] * 1000
     device_id = "browser:@satoshi:test"
     msg = _canon(account, session_key, ttl_s, issued_at_ms, device_id)
-    sig = sign_ed25519(message=msg, privkey="dcf7f9411aaf31d038f0cde1ac634ec77b23265ae6f6c4e43741d294414811a1", encoding="base64")
+    sig = sign_mldsa(message=msg, privkey="dcf7f9411aaf31d038f0cde1ac634ec77b23265ae6f6c4e43741d294414811a1", encoding="base64")
 
     r = client.post("/v1/session/login", json={
         "account": account,

@@ -79,7 +79,7 @@ def test_validator_epoch_transition_preserves_set_hash_equivalence_after_activat
     for st in (a, b):
         _apply(st, "VALIDATOR_SET_UPDATE", {"active_set": ["alice"], "activate_at_epoch": 1}, signer="SYSTEM", nonce=1, system=True, parent="gov:set:1")
         _apply(st, "EPOCH_OPEN", {"epoch": 1}, signer="SYSTEM", nonce=2, system=True)
-        _apply(st, "VALIDATOR_CANDIDATE_REGISTER", {"node_id": "node-bob", "pubkey": "ed25519:bob", "endpoints": ["https://bob.example"]}, signer="bob", nonce=3)
+        _apply(st, "VALIDATOR_CANDIDATE_REGISTER", {"node_id": "node-bob", "pubkey": "mldsa:bob", "endpoints": ["https://bob.example"]}, signer="bob", nonce=3)
         _apply(st, "VALIDATOR_CANDIDATE_APPROVE", {"account": "bob", "activate_at_epoch": 2}, signer="SYSTEM", nonce=4, system=True, parent="gov:approve:bob:2")
         _apply(st, "EPOCH_CLOSE", {"epoch": 1}, signer="SYSTEM", nonce=5, system=True)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
@@ -36,7 +36,7 @@ def _lane_setup():
 
 
 def _pub_hex_from_seed(seed_hex: str) -> str:
-    key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(seed_hex))
+    key = MLDSA65PrivateKey.from_seed_bytes(bytes.fromhex(seed_hex))
     return key.public_key().public_bytes_raw().hex()
 
 

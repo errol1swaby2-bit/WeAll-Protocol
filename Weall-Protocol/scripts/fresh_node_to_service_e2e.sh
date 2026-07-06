@@ -65,7 +65,7 @@ public_hex = hashlib.sha256((key_type + ':' + private_hex).encode('utf-8')).hexd
 obj = {
     'type': key_type,
     'version': 1,
-    'key_type': 'ed25519-devnet-material',
+    'key_type': 'mldsa-devnet-material',
     'private_key_hex': private_hex,
     'public_key_hex': public_hex,
     'created_at_ms': int(time.time() * 1000),

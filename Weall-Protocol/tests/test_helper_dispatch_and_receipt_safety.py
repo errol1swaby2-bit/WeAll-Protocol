@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
 from weall.runtime.helper_certificates import HelperExecutionCertificate, make_namespace_hash, sign_helper_certificate
 from weall.runtime.helper_dispatch import HelperCertificateStore, HelperDispatchContext
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
 from weall.runtime.parallel_execution import plan_parallel_execution
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _pub_hex_from_seed(seed_hex: str) -> str:
-    key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(seed_hex))
+    key = MLDSA65PrivateKey.from_seed_bytes(bytes.fromhex(seed_hex))
     return key.public_key().public_bytes_raw().hex()
 
 
@@ -98,7 +98,7 @@ def test_helper_receipt_requires_asymmetric_identity_by_default() -> None:
 
 
 def test_helper_receipt_accepts_pubkey_signature() -> None:
-    pub, priv = deterministic_ed25519_keypair(label="helper-receipt-b125")
+    pub, priv = deterministic_mldsa_keypair(label="helper-receipt-b125")
     receipt = sign_helper_receipt(
         chain_id="c1",
         height=10,

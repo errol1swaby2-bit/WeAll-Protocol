@@ -79,7 +79,7 @@ def _state() -> dict[str, object]:
                 "enabled": True,
                 "mode": "explicit",
                 "account": "@genesis-node",
-                "pubkey": "ed25519:pub",
+                "pubkey": "mldsa:pub",
                 "reputation_milli": 1000,
                 "storage_capacity_bytes": 0,
             },

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _seed_validator_set(
@@ -36,7 +36,7 @@ def _mk_executor(
     pubs: dict[str, str] = {}
     privs: dict[str, str] = {}
     for vid in ("v1", "v2", "v3", "v4"):
-        pub, sk = deterministic_ed25519_keypair(label=vid)
+        pub, sk = deterministic_mldsa_keypair(label=vid)
         pubs[vid] = pub
         privs[vid] = sk.private_bytes_raw().hex()
     _seed_validator_set(ex, ["v1", "v2", "v3", "v4"], pubs)

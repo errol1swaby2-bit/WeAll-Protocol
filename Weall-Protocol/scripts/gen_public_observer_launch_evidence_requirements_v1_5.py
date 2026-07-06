@@ -46,7 +46,7 @@ def build() -> Json:
                 "trust roots pin network_id, chain_id, genesis_hash, protocol_profile_hash, and tx_index_hash",
                 "signed seed registries are rejected when they mismatch pinned repo commitments",
                 "testnet identity is resettable and non-economic",
-                "active_signature_profile is pq-mldsa-v1 and legacy-ed25519-v1 is transitional/dev-only unless explicitly allowed",
+                "active_signature_profile is pq-mldsa-v1 and no classical signing profile is accepted",
             ],
             "validation_command": "PYTHONPATH=src python3 scripts/gen_public_testnet_v1_chain_identity.py --check",
         },
@@ -76,7 +76,7 @@ def build() -> Json:
             ],
             "required_observations": [
                 "pq-mldsa-v1 is the controlled-testnet target signature profile",
-                "legacy-ed25519-v1 registry material is transitional/dev-only until the registry is PQ re-signed",
+                "registry material is pq-mldsa-v1 signed",
                 "unknown or disallowed registry signature profiles fail closed",
                 "observer bootstrap must not treat a signed registry as validator authority",
             ],
@@ -149,7 +149,7 @@ def build() -> Json:
                 "backend-derived validator promotion checklist",
                 "transaction propagation timeline",
                 "active crypto profile from /v1/status crypto_profile",
-                "no UI copy presents Ed25519 as the future testnet signing profile",
+                "no UI copy presents ML-DSA as the future testnet signing profile",
             ],
         },
         {

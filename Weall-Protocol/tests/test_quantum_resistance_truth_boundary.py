@@ -22,4 +22,4 @@ def test_docs_preserve_pre_public_testnet_hardening_frame():
     assert "WeAll is a pre-public-testnet protocol implementation under active hardening." in text
     assert "public-only" in text
     assert "pq-mldsa-v1" in text
-    assert "legacy-ed25519-v1" in text
+    assert "classical signature profiles removed" in text.lower()

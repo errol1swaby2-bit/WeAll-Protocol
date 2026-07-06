@@ -5,7 +5,6 @@
   "economics_active": false,
   "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
   "genesis_state_root": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
-  "legacy_signature_transitional_only": true,
   "network_id": "weall-public-observer-testnet-v1",
   "nodes": [
     {

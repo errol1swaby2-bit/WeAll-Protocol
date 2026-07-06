@@ -7,7 +7,7 @@ from weall.net.messages import BftVoteMsg, MsgType, PeerHello, WireHeader
 from weall.net.node import NetConfig, NetNode, PeerPolicy
 from weall.net.peer_identity import sign_peer_hello_identity
 from weall.net.transport import WirePacket
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _cfg() -> NetConfig:
@@ -15,8 +15,8 @@ def _cfg() -> NetConfig:
 
 
 def _seed_hex(label: str) -> str:
-    # Must match weall.testing.sigtools.deterministic_ed25519_keypair seed derivation.
-    b = ("weall-test-ed25519:" + label).encode("utf-8")
+    # Must match weall.testing.sigtools.deterministic_mldsa_keypair seed derivation.
+    b = ("weall-test-mldsa:" + label).encode("utf-8")
     return hashlib.sha256(b).digest().hex()
 
 
@@ -41,7 +41,7 @@ def test_bft_vote_requires_identity_and_validator(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_NET_REQUIRE_IDENTITY", "1")
     monkeypatch.setenv("WEALL_NET_REQUIRE_IDENTITY_FOR_BFT", "1")
 
-    pubkey, _sk = deterministic_ed25519_keypair(label="alice")
+    pubkey, _sk = deterministic_mldsa_keypair(label="alice")
     ledger = _ledger_for_validator("alice", pubkey)
 
     node = NetNode(
@@ -91,7 +91,7 @@ def test_bft_vote_signer_mismatch_bans_fast(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_NET_REQUIRE_IDENTITY", "1")
     monkeypatch.setenv("WEALL_NET_REQUIRE_IDENTITY_FOR_BFT", "1")
 
-    pubkey, _sk = deterministic_ed25519_keypair(label="alice")
+    pubkey, _sk = deterministic_mldsa_keypair(label="alice")
     ledger = _ledger_for_validator("alice", pubkey)
 
     # max_strikes=1 so first violation bans

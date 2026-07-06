@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, default_signature_profile_for_mode
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode
 from weall.net.codec import decode_message, dumps_json, encode_message, loads_json
 from weall.net.messages import MsgType, WireMessage
 
@@ -128,7 +128,7 @@ def _relay_signing_material(envelope: Json) -> bytes:
         "created_ms": int(envelope.get("created_ms") or 0),
         "expires_at_ms": int(envelope.get("expires_at_ms") or 0),
         "payload_hash": payload_hash,
-        "sig_profile": str(envelope.get("sig_profile") or LEGACY_ED25519_V1).strip(),
+        "sig_profile": str(envelope.get("sig_profile") or PQ_MLDSA_V1).strip(),
     }
     return _canonical_json_bytes(material)
 
@@ -170,7 +170,7 @@ def _relay_access_signing_material(request: Json) -> bytes:
         "expires_at_ms": int(request.get("expires_at_ms") or 0),
         "limit": int(request.get("limit") or 0) if req_type == "fetch" else 0,
         "relay_ids": list(relay_ids),
-        "sig_profile": str(request.get("sig_profile") or LEGACY_ED25519_V1).strip(),
+        "sig_profile": str(request.get("sig_profile") or PQ_MLDSA_V1).strip(),
     }
     return _canonical_json_bytes(material)
 
@@ -217,7 +217,7 @@ def make_relay_access_request(
         req["relay_ids"] = list(_clean_relay_ids(relay_ids or ()))
     else:
         req["request_type"] = req_type
-    req["sig_alg"] = "ML-DSA" if req["sig_profile"] == PQ_MLDSA_V1 else "Ed25519"
+    req["sig_alg"] = "ML-DSA"
     req["sig"] = sign_signature_for_profile(
         sig_profile=str(req["sig_profile"]),
         message=_relay_access_signing_material(req),
@@ -280,7 +280,7 @@ def validate_relay_access_request(
         raise RelayEnvelopeError("relay_access_missing_signature")
     sig_profile = str(req.get("sig_profile") or "").strip()
     if not sig_profile:
-        sig_profile = LEGACY_ED25519_V1 if str(req.get("sig_alg") or "ed25519").lower() == "ed25519" else ""
+        sig_profile = PQ_MLDSA_V1
     if not sig_profile:
         raise RelayEnvelopeError("relay_access_bad_sig_alg")
     req["sig_profile"] = sig_profile
@@ -350,7 +350,7 @@ def make_relay_envelope(
         "pubkey": str(pubkey or "").strip(),
         "sig_profile": str(sig_profile or default_signature_profile_for_mode()).strip() or PQ_MLDSA_V1,
     }
-    envelope["sig_alg"] = "ML-DSA" if envelope["sig_profile"] == PQ_MLDSA_V1 else "Ed25519"
+    envelope["sig_alg"] = "ML-DSA"
     envelope["sig"] = sign_signature_for_profile(
         sig_profile=str(envelope["sig_profile"]),
         message=_relay_signing_material(envelope),
@@ -444,7 +444,7 @@ def validate_relay_envelope(envelope: Any, *, cfg: RelayConfig, now_ms: int | No
         raise RelayEnvelopeError("relay_missing_signature")
     sig_profile = str(env.get("sig_profile") or "").strip()
     if not sig_profile:
-        sig_profile = LEGACY_ED25519_V1 if str(env.get("sig_alg") or "ed25519").lower() == "ed25519" else ""
+        sig_profile = PQ_MLDSA_V1
     if not sig_profile:
         raise RelayEnvelopeError("relay_bad_sig_alg")
     env["sig_profile"] = sig_profile

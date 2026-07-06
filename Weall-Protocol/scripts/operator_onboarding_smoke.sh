@@ -93,7 +93,7 @@ require_text "$NODE_KEYS" "not your WeAll account recovery key"
 
 require_text "$THREAT_MODEL" "WEALL_NODE_PRIVKEY_FILE=/secure/path/weall-node.key"
 require_text "$THREAT_MODEL" "Do **not** use the account recovery key as the node key"
-reject_text "$THREAT_MODEL" "WEALL_NODE_PRIVKEY=<matching Ed25519 seed>"
+reject_text "$THREAT_MODEL" "WEALL_NODE_PRIVKEY=<matching ML-DSA seed>"
 
 require_text "$LEGACY_ONBOARDING" "superseded by the current first-run operator guide"
 require_text "$LEGACY_ONBOARDING" "Baseline Node Operator status does not automatically grant validator authority"

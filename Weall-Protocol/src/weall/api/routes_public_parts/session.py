@@ -11,12 +11,7 @@ from weall.api.errors import ApiError
 from weall.api.mode_isolation import direct_session_mutation_issue
 from weall.api.routes_public_parts import common
 from weall.crypto.sig import _decode_bytes, verify_signature_for_profile
-from weall.crypto.signature_profiles import (
-    LEGACY_ED25519_V1,
-    normalize_signature_profile_id,
-    mode_requires_explicit_sig_profile,
-    profile_allowed_for_context,
-)
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, normalize_signature_profile_id, profile_allowed_for_context
 from weall.runtime.session_keys import session_record_for, store_session_record
 
 router = APIRouter()
@@ -117,15 +112,15 @@ def _active_account_pubkeys(arec: Json, *, sig_profile: str = "") -> set[str]:
         if bool(rec.get("revoked", False)) or bool(rec.get("revoked_at") not in (None, "")):
             continue
         rec_profile = normalize_signature_profile_id(rec.get("sig_profile"))
-        effective_profile = rec_profile or LEGACY_ED25519_V1
+        effective_profile = rec_profile or PQ_MLDSA_V1
         if wanted and effective_profile != wanted:
             continue
         pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
         pk = ""
-        if effective_profile == "pq-mldsa-v1":
-            pk = str(pubkeys.get("mldsa") or rec.get("mldsa_pubkey") or "").strip()
+        if effective_profile == PQ_MLDSA_V1:
+            pk = str(pubkeys.get("mldsa") or rec.get("mldsa_pubkey") or rec.get("pubkey") or "").strip()
         else:
-            pk = str(rec.get("pubkey") or pubkeys.get("ed25519") or "").strip()
+            pk = ""
         if pk:
             out.add(pk)
     return out
@@ -212,7 +207,6 @@ async def v1_session_login(request: Request):
     ttl_s = _ttl_s(body.get("ttl_s", 24 * 60 * 60))
     device_id = _norm_device_id(body.get("device_id") or f"browser:{account}")
     sig_profile = normalize_signature_profile_id(body.get("sig_profile"))
-    sig_profile_explicit = bool(sig_profile)
     pubkey = str(body.get("pubkey") or "").strip()
     sig = str(body.get("sig") or "").strip()
 
@@ -226,9 +220,7 @@ async def v1_session_login(request: Request):
     if not session_key:
         raise ApiError.bad_request("session_key_required", "session_key is required", {})
     if not sig_profile:
-        if mode_requires_explicit_sig_profile():
-            raise ApiError.bad_request("sig_profile_required", "sig_profile is required in controlled/public testnet mode", {})
-        sig_profile = LEGACY_ED25519_V1
+        raise ApiError.bad_request("sig_profile_required", "sig_profile is required", {})
     allowed, allowed_reason = profile_allowed_for_context(sig_profile, require_verifier=True)
     if not allowed:
         raise ApiError.forbidden(
@@ -274,9 +266,9 @@ async def v1_session_login(request: Request):
         ttl_s=ttl_s,
         issued_at_ms=issued_at_ms,
         device_id=device_id,
-        sig_profile=sig_profile if sig_profile_explicit else None,
-        chain_id=_state_chain_context(st)[0] if sig_profile_explicit else None,
-        network_id=_state_chain_context(st)[1] if sig_profile_explicit else None,
+        sig_profile=sig_profile,
+        chain_id=_state_chain_context(st)[0],
+        network_id=_state_chain_context(st)[1],
     )
     if not verify_signature_for_profile(sig_profile=sig_profile, message=msg, sig=sig, pubkey=pubkey):
         raise ApiError.forbidden(

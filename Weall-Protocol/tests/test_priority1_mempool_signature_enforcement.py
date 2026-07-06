@@ -7,7 +7,7 @@ import pytest
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.tx_admission import admit_tx
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _repo_root() -> Path:
@@ -29,7 +29,7 @@ def test_prod_http_admission_rejects_bad_signature(
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _executor(tmp_path, "prod-node", chain_id="mempool-prod-badsig")
 
-    pub, _priv = deterministic_ed25519_keypair(label="@alice")
+    pub, _priv = deterministic_mldsa_keypair(label="@alice")
     bad = {
         "tx_type": "ACCOUNT_REGISTER",
         "signer": "@alice",
@@ -50,7 +50,7 @@ def test_prod_http_admission_accepts_valid_signature(
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _executor(tmp_path, "prod-node", chain_id="mempool-prod-goodsig")
 
-    pub, priv = deterministic_ed25519_keypair(label="@alice")
+    pub, priv = deterministic_mldsa_keypair(label="@alice")
     payload = {"pubkey": pub}
     tx = {
         "tx_type": "ACCOUNT_REGISTER",

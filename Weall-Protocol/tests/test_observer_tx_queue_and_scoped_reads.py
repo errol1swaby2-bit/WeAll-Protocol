@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi.testclient import TestClient
 
@@ -56,8 +56,8 @@ def _client_with_executor(ex: Any) -> TestClient:
 
 def _signed_account_register(account: str, *, chain_id: str = "weall-observer-tx-queue") -> dict[str, Any]:
     seed = bytes.fromhex("58" * 32)
-    sk = Ed25519PrivateKey.from_private_bytes(seed)
-    pubkey = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw).hex()
+    sk = MLDSA65PrivateKey.from_seed_bytes(seed)
+    pubkey = sk.public_key().public_bytes_raw().hex()
     tx = {
         "tx_type": "ACCOUNT_REGISTER",
         "signer": account,

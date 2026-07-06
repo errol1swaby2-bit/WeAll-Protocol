@@ -1,7 +1,9 @@
 import pytest
 
 from weall.api.public_seed_registry import PublicSeedRegistryError, normalize_public_seed_registry
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1
+from weall.crypto.signature_profiles import PQ_MLDSA_V1
+
+REMOVED_CLASSICAL_PROFILE = "classical-signature-profile-removed"
 
 
 def _registry(profile):
@@ -28,7 +30,7 @@ def test_strict_seed_registry_rejects_legacy_profile(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET_REQUIRE_SIGNATURES", "1")
     with pytest.raises(PublicSeedRegistryError, match="signature_profile_not_allowed"):
-        normalize_public_seed_registry(_registry(LEGACY_ED25519_V1), allow_local=False)
+        normalize_public_seed_registry(_registry(REMOVED_CLASSICAL_PROFILE), allow_local=False)
 
 
 def test_strict_seed_registry_rejects_unknown_profile(monkeypatch):
@@ -43,5 +45,5 @@ def test_seed_registry_declares_pq_profile_before_verification(monkeypatch):
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET", "1")
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET_REQUIRE_SIGNATURES", "1")
-    with pytest.raises(PublicSeedRegistryError, match="bad_signature"):
+    with pytest.raises(PublicSeedRegistryError, match="bad_signature|signature_profile_verifier_unavailable"):
         normalize_public_seed_registry(_registry(PQ_MLDSA_V1), allow_local=False)

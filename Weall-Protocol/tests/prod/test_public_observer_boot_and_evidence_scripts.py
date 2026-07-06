@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
 from public_seed_test_helpers import REGISTRY_PUBKEY
 
@@ -50,7 +50,7 @@ def test_public_seed_registry_signing_script_rejects_placeholders_and_writes_val
             "--registry-public-key",
             REGISTRY_PUBKEY,
             "--signature-profile",
-            "legacy-ed25519-v1",
+            "classical-signature-profile-removed",
             "--allow-local",
         ],
         cwd=root,
@@ -76,7 +76,7 @@ def test_public_seed_registry_signing_script_rejects_placeholders_and_writes_val
             "--registry-public-key",
             REGISTRY_PUBKEY,
             "--signature-profile",
-            "legacy-ed25519-v1",
+            "classical-signature-profile-removed",
             "--allow-local",
             "--check",
         ],

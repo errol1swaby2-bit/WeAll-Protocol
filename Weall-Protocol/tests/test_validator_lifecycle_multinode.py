@@ -99,7 +99,7 @@ def _register_candidate(st: Json, account: str, *, nonce: int) -> None:
             "VALIDATOR_CANDIDATE_REGISTER",
             {
                 "node_id": f"node-{account}",
-                "pubkey": f"ed25519:{account}",
+                "pubkey": f"mldsa:{account}",
                 "endpoints": [f"https://{account}.example"],
             },
             signer=account,

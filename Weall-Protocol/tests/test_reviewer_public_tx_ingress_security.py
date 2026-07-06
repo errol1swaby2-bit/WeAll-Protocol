@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi.testclient import TestClient
 from pathlib import Path
@@ -35,8 +35,8 @@ def _account_register_tx(
     account: str = "@reviewer-ingress", *, chain_id: str = "weall-dev"
 ) -> tuple[dict, str]:
     seed = bytes.fromhex("11" * 32)
-    sk = Ed25519PrivateKey.from_private_bytes(seed)
-    pubkey = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw).hex()
+    sk = MLDSA65PrivateKey.from_seed_bytes(seed)
+    pubkey = sk.public_key().public_bytes_raw().hex()
     tx = {
         "tx_type": "ACCOUNT_REGISTER",
         "signer": account,

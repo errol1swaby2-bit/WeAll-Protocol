@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
 from weall.api.mode_isolation import direct_session_mutation_issue
-from weall.crypto.sig import sign_ed25519
+from weall.crypto.sig import sign_mldsa
 from weall.runtime.apply.identity import apply_identity
 from weall.runtime.session_keys import session_record_for, session_record_key
 from weall.runtime.tx_admission_types import TxEnvelope
@@ -172,7 +172,7 @@ def test_seeded_demo_direct_login_stores_hashed_session_key(monkeypatch: pytest.
     ttl_s = 3600
     issued_at_ms = state["time"] * 1000
     device_id = "browser:@satoshi:test"
-    sig = sign_ed25519(
+    sig = sign_mldsa(
         message=_canon(account, session_key, ttl_s, issued_at_ms, device_id),
         privkey="dcf7f9411aaf31d038f0cde1ac634ec77b23265ae6f6c4e43741d294414811a1",
         encoding="base64",

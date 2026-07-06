@@ -5,7 +5,7 @@ from pathlib import Path
 
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _repo_root() -> Path:
@@ -22,7 +22,7 @@ def _mk_executor(tmp_path: Path, name: str, *, chain_id: str = "batch113-marker"
 
 
 def _submit_signed_register(ex: WeAllExecutor, signer: str = "@freshuser") -> None:
-    pubkey, priv = deterministic_ed25519_keypair(label=signer)
+    pubkey, priv = deterministic_mldsa_keypair(label=signer)
     payload = {"pubkey": pubkey}
     msg = canonical_tx_message(
         chain_id=ex.chain_id,

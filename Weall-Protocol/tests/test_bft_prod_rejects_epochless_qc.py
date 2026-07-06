@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from weall.crypto.sig import sign_ed25519
+from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import canonical_vote_message, quorum_threshold
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _seed_validator_set(
@@ -49,7 +49,7 @@ def _make_epochless_qc(
             validator_epoch=0,
             validator_set_hash="",
         )
-        sig = sign_ed25519(message=msg, privkey=vpriv[signer], encoding="hex")
+        sig = sign_mldsa(message=msg, privkey=vpriv[signer], encoding="hex")
         votes.append(
             {
                 "t": "VOTE",
@@ -93,7 +93,7 @@ def test_prod_rejects_epochless_qc_when_epoch_is_set(tmp_path: Path, monkeypatch
     vpub: dict[str, str] = {}
     vpriv: dict[str, str] = {}
     for vid in validators:
-        pub, sk = deterministic_ed25519_keypair(label=vid)
+        pub, sk = deterministic_mldsa_keypair(label=vid)
         vpub[vid] = pub
         vpriv[vid] = sk.private_bytes_raw().hex()
 

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _repo_root() -> Path:
@@ -13,7 +13,7 @@ def _repo_root() -> Path:
 
 
 def _signed_account_register(*, chain_id: str, signer: str) -> dict[str, object]:
-    pub, priv = deterministic_ed25519_keypair(label=signer)
+    pub, priv = deterministic_mldsa_keypair(label=signer)
     payload = {"pubkey": pub}
     return {
         "tx_type": "ACCOUNT_REGISTER",

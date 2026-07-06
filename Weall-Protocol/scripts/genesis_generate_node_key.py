@@ -1,6 +1,6 @@
 # projects/Weall-Protocol/scripts/genesis_generate_node_key.py
 #!/usr/bin/env python3
-"""Genesis Node Key Generator (Ed25519)
+"""Genesis Node Key Generator (ML-DSA)
 
 Genesis-only helper.
 
@@ -13,7 +13,7 @@ Safety:
 
 Format rationale:
   - Backend supports hex keys.
-  - Ed25519PrivateKey.from_private_bytes expects a 32-byte seed.
+  - MLDSA65PrivateKey.from_seed_bytes expects a 32-byte seed.
   - Public key is 32 bytes.
 """
 
@@ -22,7 +22,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     NoEncryption,
@@ -51,20 +51,13 @@ def main() -> int:
 
     SECRETS_DIR.mkdir(parents=True, exist_ok=True)
 
-    priv = Ed25519PrivateKey.generate()
+    priv = MLDSA65PrivateKey.generate()
 
     # 32-byte seed
-    priv_seed = priv.private_bytes(
-        encoding=Encoding.Raw,
-        format=PrivateFormat.Raw,
-        encryption_algorithm=NoEncryption(),
-    )
+    priv_seed = priv.private_bytes_raw()
 
     # 32-byte pubkey
-    pub_bytes = priv.public_key().public_bytes(
-        encoding=Encoding.Raw,
-        format=PublicFormat.Raw,
-    )
+    pub_bytes = priv.public_key().public_bytes_raw()
 
     PRIV_PATH.write_text(priv_seed.hex() + "\n", encoding="utf-8")
     PUB_PATH.write_text(pub_bytes.hex() + "\n", encoding="utf-8")

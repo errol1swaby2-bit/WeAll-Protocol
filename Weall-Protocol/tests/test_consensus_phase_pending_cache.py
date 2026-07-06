@@ -6,7 +6,7 @@ import pytest
 
 from weall.runtime.bft_hotstuff import CONSENSUS_PHASE_MULTI_VALIDATOR_BOOTSTRAP
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _seed_validator_state(ex: WeAllExecutor, validators: list[str], pubs: dict[str, str]) -> None:
@@ -66,7 +66,7 @@ def test_bootstrap_phase_keeps_unlabeled_pending_blocks_for_diagnostics(
     )
     pubs: dict[str, str] = {}
     for vid in ("v1", "v2", "v3", "v4"):
-        pub, _sk = deterministic_ed25519_keypair(label=f"batch32-{vid}")
+        pub, _sk = deterministic_mldsa_keypair(label=f"batch32-{vid}")
         pubs[vid] = pub
     _seed_validator_state(ex, ["v1", "v2", "v3", "v4"], pubs)
     monkeypatch.setenv("WEALL_MODE", "prod")

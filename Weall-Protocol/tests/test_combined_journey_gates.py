@@ -13,7 +13,7 @@ from weall.runtime.apply.governance import apply_governance
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.system_tx_engine import system_tx_emitter
 from weall.runtime.tx_admission_types import TxEnvelope
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -145,8 +145,8 @@ def test_governance_activation_then_wecoin_transfer_replays_identically() -> Non
 
 
 def _priv_hex(label: str) -> tuple[str, str]:
-    pub, sk = deterministic_ed25519_keypair(label=label)
-    priv = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption()).hex()
+    pub, sk = deterministic_mldsa_keypair(label=label)
+    priv = sk.private_bytes_raw().hex()
     return pub, priv
 
 

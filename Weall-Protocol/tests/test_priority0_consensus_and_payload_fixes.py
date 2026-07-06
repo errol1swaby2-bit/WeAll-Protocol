@@ -25,7 +25,7 @@ def test_bft_commit_block_accepts_descendant_of_finalized_path(monkeypatch) -> N
         "roles": {"validators": {"active_set": ["@v1"]}},
         "consensus": {
             "validator_set": {"epoch": 1, "set_hash": "validator-set-hash-1"},
-            "validators": {"registry": {"@v1": {"pubkey": "ed25519:v1"}}},
+            "validators": {"registry": {"@v1": {"pubkey": "mldsa:v1"}}},
         },
         "bft": {
             "finalized_block_id": "B2",
@@ -64,7 +64,7 @@ def test_bft_commit_block_rejects_ancestor_before_finalized(monkeypatch) -> None
         "roles": {"validators": {"active_set": ["@v1"]}},
         "consensus": {
             "validator_set": {"epoch": 1, "set_hash": "validator-set-hash-1"},
-            "validators": {"registry": {"@v1": {"pubkey": "ed25519:v1"}}},
+            "validators": {"registry": {"@v1": {"pubkey": "mldsa:v1"}}},
         },
         "bft": {
             "finalized_block_id": "B2",

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
 from weall.runtime.state_hash import compute_state_root
 
@@ -63,16 +63,9 @@ def _replace_recursive(value: Any, *, account: str, chain_id: str, pubkey: str) 
 
 
 def _new_keypair() -> tuple[str, str]:
-    private = Ed25519PrivateKey.generate()
-    seed = private.private_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PrivateFormat.Raw,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-    pub = private.public_key().public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw,
-    )
+    private = MLDSA65PrivateKey.generate()
+    seed = private.private_bytes_raw()
+    pub = private.public_key().public_bytes_raw()
     return seed.hex(), pub.hex()
 
 

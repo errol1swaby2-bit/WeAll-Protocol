@@ -36,7 +36,7 @@ def _base_state() -> Json:
         "accounts": {v: {"poh_tier": 2, "node_keys": {v: {"active": True}}} for v in VALIDATORS},
         "roles": {"validators": {"active_set": list(VALIDATORS)}},
         "validators": {
-            "registry": {v: {"account": v, "status": "active", "active": True, "pubkey": f"ed25519:{v}"} for v in VALIDATORS}
+            "registry": {v: {"account": v, "status": "active", "active": True, "pubkey": f"mldsa:{v}"} for v in VALIDATORS}
         },
     }
 
@@ -70,7 +70,7 @@ def run_harness() -> Json:
 
     # Candidate join activates only through an epoch-bound validator-set transition.
     state["accounts"]["validator-e"] = {"poh_tier": 2, "node_keys": {"node-e": {"active": True}}}
-    apply_consensus(state, _env("VALIDATOR_CANDIDATE_REGISTER", signer="validator-e", nonce=20, payload={"pubkey": "ed25519:validator-e", "node_id": "node-e", "endpoints": ["tcp://validator-e:9000"]}))
+    apply_consensus(state, _env("VALIDATOR_CANDIDATE_REGISTER", signer="validator-e", nonce=20, payload={"pubkey": "mldsa:validator-e", "node_id": "node-e", "endpoints": ["tcp://validator-e:9000"]}))
     approve = apply_consensus(state, _env("VALIDATOR_CANDIDATE_APPROVE", signer="SYSTEM", system=True, parent="gov:approve-e", nonce=21, payload={"account": "validator-e", "activate_at_epoch": 1}))
     open_epoch = apply_consensus(state, _env("EPOCH_OPEN", signer="SYSTEM", system=True, nonce=22, payload={"epoch": 1}))
     active_after_join = list(state["roles"]["validators"]["active_set"])

@@ -1,4 +1,6 @@
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1
+from weall.crypto.signature_profiles import PQ_MLDSA_V1
+
+REMOVED_CLASSICAL_PROFILE = "classical-signature-profile-removed"
 from weall.runtime.block_admission import admit_bft_block
 from weall.runtime.block_signature_profiles import canonical_block_signature_payload, validate_block_signature_profile
 
@@ -26,9 +28,9 @@ def test_strict_block_admission_rejects_missing_profile(monkeypatch):
 
 def test_strict_block_admission_rejects_legacy_profile(monkeypatch):
     monkeypatch.setenv("WEALL_CRYPTO_MODE", "closed-testnet")
-    ok, rej = admit_bft_block(block=_block(LEGACY_ED25519_V1), state={}, bft_enabled=False)
+    ok, rej = admit_bft_block(block=_block(REMOVED_CLASSICAL_PROFILE), state={}, bft_enabled=False)
     assert ok is False
-    assert rej.reason in {"signature_profile_not_allowed", "legacy_ed25519_not_allowed"}
+    assert rej.reason in {"signature_profile_not_allowed", "unknown_signature_profile"}
 
 
 def test_block_profile_pq_shape_ok_without_requiring_verifier(monkeypatch):

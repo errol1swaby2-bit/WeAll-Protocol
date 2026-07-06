@@ -460,7 +460,7 @@
       "wrong_signer_rejected": true
     },
     "public_observer_launch_evidence_requirements": {
-      "digest": "59b4b8a401e718726fec9dc99f395b313b6f924bae45cce965cfd5126d63e2ed",
+      "digest": "daa9ef3d37629e758b8672e1c549c88cade0c0574b5f7efb747d169a2ca45377",
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,
@@ -493,7 +493,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "f2cb23b292b8adfb996a91645ee7a88a50e31f71882ffbd7e0d0641e0a85014e",
+      "artifact_digest": "7ec4da6120b3dc0014ae0470d7393e836ff5530a3df5824c43a1526fa200c933",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",

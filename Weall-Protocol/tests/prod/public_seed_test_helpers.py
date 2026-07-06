@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives import serialization
 
 from weall.api.public_seed_registry import registry_signature_payload, validator_endpoint_signature_payload
-from weall.crypto.sig import sign_ed25519
+from weall.crypto.sig import sign_mldsa
 
 _REGISTRY_SEED = "11" * 32
 _VALIDATOR_SEED = "22" * 32
 
 
 def _pubkey_for_seed(seed_hex: str) -> str:
-    key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(seed_hex))
-    return key.public_key().public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw,
-    ).hex()
+    key = MLDSA65PrivateKey.from_seed_bytes(bytes.fromhex(seed_hex))
+    return key.public_key().public_bytes_raw().hex()
 
 
 REGISTRY_PUBKEY = _pubkey_for_seed(_REGISTRY_SEED)
@@ -36,7 +33,7 @@ def signed_endpoint(data: dict, endpoint: dict, *, seed_hex: str = _VALIDATOR_SE
     out = dict(endpoint)
     out.setdefault("node_pubkey", pubkey)
     out.setdefault("signer", pubkey)
-    out["signature"] = sign_ed25519(
+    out["signature"] = sign_mldsa(
         message=validator_endpoint_signature_payload(out, commitments=commitments_for(data)),
         privkey=seed_hex,
     )
@@ -48,8 +45,8 @@ def signed_endpoint(data: dict, endpoint: dict, *, seed_hex: str = _VALIDATOR_SE
 def signed_registry(data: dict, *, seed_hex: str = _REGISTRY_SEED, pubkey: str = REGISTRY_PUBKEY) -> dict:
     out = dict(data)
     out["seed_registry_signer"] = pubkey
-    out["seed_registry_signature_alg"] = "ed25519/weall.public_seed_registry.v1"
-    out["seed_registry_signature"] = sign_ed25519(
+    out["seed_registry_signature_alg"] = "mldsa/weall.public_seed_registry.v1"
+    out["seed_registry_signature"] = sign_mldsa(
         message=registry_signature_payload(out),
         privkey=seed_hex,
     )

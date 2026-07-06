@@ -14,9 +14,9 @@
   "seed_p2p_urls": [
     "tcp://seed-1.testnet.weall.example:30303"
   ],
-  "seed_registry_signature": "<required-prod-ed25519-signature-over-weall.public_seed_registry.v1>",
+  "seed_registry_signature": "<required-prod-mldsa-signature-over-weall.public_seed_registry.v1>",
   "seed_registry_signer": "<required-prod-pinned-seed-registry-public-key>",
-  "seed_registry_signature_alg": "ed25519/weall.public_seed_registry.v1",
+  "seed_registry_signature_alg": "mldsa/weall.public_seed_registry.v1",
   "active_validator_endpoint_policy": "verified_or_hint",
   "resettable_testnet": true,
   "economics_active": false,
@@ -38,7 +38,7 @@
       "p2p_url": "tcp://validator-1.testnet.weall.example:30303",
       "verified": true,
       "signed": true,
-      "signature": "<required-ed25519-signature-over-weall.public_validator_endpoint.v1>",
+      "signature": "<required-mldsa-signature-over-weall.public_validator_endpoint.v1>",
       "signer": "<validator-node-public-key>",
       "proof_timestamp_ms": 0,
       "endpoint_source": "public_seed_registry"

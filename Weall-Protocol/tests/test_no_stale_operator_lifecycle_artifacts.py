@@ -28,7 +28,7 @@ def test_threat_model_uses_separate_node_key_file() -> None:
     text = _read(ROOT / "docs" / "THREAT_MODEL_CHECKLIST.md")
     assert "WEALL_NODE_PRIVKEY_FILE=/secure/path/weall-node.key" in text
     assert "Do **not** use the account recovery key as the node key" in text
-    assert "WEALL_NODE_PRIVKEY=<matching Ed25519 seed>" not in text
+    assert "WEALL_NODE_PRIVKEY=<matching ML-DSA seed>" not in text
     assert "WEALL_NODE_PUBKEY=<account active pubkey>" not in text
 
 
@@ -57,7 +57,7 @@ def test_operator_docs_and_frontend_do_not_reintroduce_unsafe_positive_guidance(
     forbidden = [
         "WEALL_NODE_PRIVKEY=<account_secret>",
         "WEALL_NODE_PRIVKEY=<localSecretKey>",
-        "WEALL_NODE_PRIVKEY=<matching Ed25519 seed>",
+        "WEALL_NODE_PRIVKEY=<matching ML-DSA seed>",
         "WEALL_NODE_PUBKEY=<account active pubkey>",
         "account private key as node key",
         "Activate node operator role",

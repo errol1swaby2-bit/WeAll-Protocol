@@ -7,7 +7,7 @@ import pytest
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.tx_admission import admit_tx
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 ROOT = Path(__file__).resolve().parents[1]
 API_ROOT = ROOT / "src" / "weall" / "api"
@@ -23,7 +23,7 @@ def _executor(tmp_path: Path, *, chain_id: str = "operator-ingress-prod") -> WeA
 
 
 def _signed_account_register(*, chain_id: str, signer: str = "@operatoruser", nonce: int = 1) -> dict[str, object]:
-    pub, priv = deterministic_ed25519_keypair(label=signer)
+    pub, priv = deterministic_mldsa_keypair(label=signer)
     payload = {"pubkey": pub}
     msg = canonical_tx_message(
         chain_id=chain_id,

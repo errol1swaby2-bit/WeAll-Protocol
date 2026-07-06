@@ -2,7 +2,7 @@
 
 WeAll is a pre-public-testnet protocol implementation under active hardening.
 
-This evidence bundle records the Pass 33 transition work from classical-only Ed25519 assumptions toward profile-aware post-quantum signing gates. The patch does **not** claim quantum-proof security, production post-quantum security, completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness.
+This evidence bundle records the Pass 33 transition work from classical-only ML-DSA assumptions toward profile-aware post-quantum signing gates. The patch does **not** claim quantum-proof security, production post-quantum security, completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, or public beta readiness.
 
 ## Result boundary
 

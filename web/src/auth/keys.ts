@@ -1,5 +1,3 @@
-import nacl from "tweetnacl";
-
 export type KeypairB64 = {
   pubkeyB64: string;
   secretKeyB64: string;
@@ -29,10 +27,9 @@ export type AccountIdValidation = {
 
 const KEYPAIR_PREFIX = "weall_keypair::";
 const SECRET_PREFIX = "weall_secret::";
-export const LEGACY_BROWSER_SIG_PROFILE = "legacy-ed25519-v1";
+export const BROWSER_PQ_SIG_PROFILE = "pq-mldsa-v1";
 export const CONTROLLED_TESTNET_SIG_PROFILE = "pq-mldsa-v1";
-const SECRET_KEY_BYTES = 64;
-const PUBLIC_KEY_BYTES = 32;
+const MLDSA_BROWSER_SIGNING_AVAILABLE = false;
 
 function bytesToB64(bytes: Uint8Array): string {
   let binary = "";
@@ -81,11 +78,7 @@ function secretStorageKey(account: string): string {
 }
 
 function readPublicKeyFromSecret(secretKeyB64: string): string {
-  const secret = b64ToBytes(String(secretKeyB64 || "").trim());
-  if (secret.length !== SECRET_KEY_BYTES) {
-    throw new Error("secret_key_must_be_64_bytes_base64");
-  }
-  return bytesToB64(secret.slice(PUBLIC_KEY_BYTES));
+  throw new Error("browser_pq_signing_not_implemented");
 }
 
 export function validateAccountId(raw: string): AccountIdValidation {
@@ -127,11 +120,7 @@ export function keyStorageKey(account: string): string {
 }
 
 export function generateKeypair(): KeypairB64 {
-  const kp = nacl.sign.keyPair();
-  return {
-    pubkeyB64: bytesToB64(kp.publicKey),
-    secretKeyB64: bytesToB64(kp.secretKey),
-  };
+  throw new Error("browser_pq_signing_not_implemented");
 }
 
 export function derivePublicKeyFromSecretKey(secretKeyB64: string): string {
@@ -142,52 +131,14 @@ export function validateKeypair(
   pubkeyB64: string,
   secretKeyB64: string,
 ): { ok: boolean; reason?: string } {
-  try {
-    const pub = b64ToBytes(String(pubkeyB64 || ""));
-    const sec = b64ToBytes(String(secretKeyB64 || ""));
-    if (pub.length !== PUBLIC_KEY_BYTES) return { ok: false, reason: "pubkey_len" };
-    if (sec.length !== SECRET_KEY_BYTES) return { ok: false, reason: "secret_len" };
-    for (let i = 0; i < PUBLIC_KEY_BYTES; i++) {
-      if (sec[PUBLIC_KEY_BYTES + i] !== pub[i]) {
-        return { ok: false, reason: "pubkey_mismatch" };
-      }
-    }
-    return { ok: true };
-  } catch {
-    return { ok: false, reason: "decode_failed" };
-  }
+  return { ok: false, reason: "browser_pq_signing_not_implemented" };
 }
 
 export function saveKeypair(
   account: string,
   kp: { pubkeyB64?: string; secretKeyB64: string },
 ): KeypairB64 {
-  const normalized = normalizeAccount(account);
-  if (!normalized) throw new Error("account_required");
-
-  const secretKeyB64 = String(kp.secretKeyB64 || "").trim();
-  if (!secretKeyB64) throw new Error("secret_key_required");
-
-  const pubkeyB64 =
-    String(kp.pubkeyB64 || "").trim() || derivePublicKeyFromSecretKey(secretKeyB64);
-
-  const valid = validateKeypair(pubkeyB64, secretKeyB64);
-  if (!valid.ok) throw new Error(`invalid_keypair:${valid.reason || "unknown"}`);
-
-  const secureMeta: StoredKeypair = {
-    version: 2,
-    publicKey: pubkeyB64,
-    pubkeyB64,
-    hasSecret: false,
-  };
-
-  // Production safety rule: never persist raw account private keys in
-  // localStorage.  localStorage keeps public metadata only; the secret is kept
-  // in sessionStorage so closing the browser/session clears signing custody.
-  localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta));
-  sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64);
-
-  return { pubkeyB64, secretKeyB64 };
+  throw new Error("browser_pq_signing_not_implemented");
 }
 
 function readStoredKeypair(raw: string | null): StoredKeypair | null {
@@ -202,21 +153,7 @@ function readStoredKeypair(raw: string | null): StoredKeypair | null {
 }
 
 export function loadKeypair(account: string): KeypairB64 | null {
-  const normalized = normalizeAccount(account);
-  if (!normalized) return null;
-
-  const meta = readStoredKeypair(localStorage.getItem(keyStorageKey(normalized)));
-
-  const storedPub = String(meta?.pubkeyB64 || meta?.publicKey || "").trim();
-
-  const sessionSecret = String(sessionStorage.getItem(secretStorageKey(normalized)) || "").trim();
-  if (!sessionSecret) return null;
-
-  const pubkeyB64 = storedPub || derivePublicKeyFromSecretKey(sessionSecret);
-  const valid = validateKeypair(pubkeyB64, sessionSecret);
-  if (!valid.ok) return null;
-
-  return { pubkeyB64, secretKeyB64: sessionSecret };
+  return null;
 }
 
 export function getKeypair(account: string): KeypairB64 | null {
@@ -241,17 +178,13 @@ export function hasSecretInSession(account: string): boolean {
   return s.trim().length >= 10;
 }
 
-export function browserLegacySigningNotice(): string {
-  return "Browser-local Ed25519 signing is legacy/dev-only. Controlled/public testnet protocol signing uses pq-mldsa-v1 through backend/operator custody until browser ML-DSA support is implemented.";
+export function browserPqSigningNotice(): string {
+  return "Browser-local protocol signing is disabled until a reviewed ML-DSA implementation is available; controlled/public testnet signing must use backend/operator custody.";
 }
 
+
 export function signDetachedB64(secretKeyB64: string, msgBytes: Uint8Array): string {
-  const sec = b64ToBytes(secretKeyB64);
-  if (sec.length !== SECRET_KEY_BYTES) {
-    throw new Error("invalid_secret_key");
-  }
-  const sig = nacl.sign.detached(msgBytes, sec);
-  return bytesToB64(sig);
+  throw new Error("browser_pq_signing_not_implemented");
 }
 
 export function canonicalTxMessage(env: {
@@ -266,7 +199,7 @@ export function canonicalTxMessage(env: {
 }): Uint8Array {
   const chain_id = String(env.chain_id || "").trim();
   const network_id = String(env.network_id || "").trim();
-  const sig_profile = String(env.sig_profile || LEGACY_BROWSER_SIG_PROFILE).trim();
+  const sig_profile = String(env.sig_profile || BROWSER_PQ_SIG_PROFILE).trim();
   const tx_type = String(env.tx_type || "");
   const signer = String(env.signer || "");
   const nonce = Math.floor(Number(env.nonce || 0));

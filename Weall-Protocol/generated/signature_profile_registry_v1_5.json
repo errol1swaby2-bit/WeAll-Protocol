@@ -1,25 +1,11 @@
 {
+  "active_signature_profile": "pq-mldsa-v1",
+  "classical_signature_profiles_removed": true,
   "default_controlled_testnet_signature_profile": "pq-mldsa-v1",
   "fail_closed_unknown_profiles": true,
   "future_backup_signature_profile": "pq-slhdsa-v1",
-  "legacy_profile": "legacy-ed25519-v1",
   "production_crypto_audit_complete": false,
   "profiles": [
-    {
-      "activation_height_support": true,
-      "algorithm_family": "Ed25519",
-      "allowed_in_closed_testnet": false,
-      "allowed_in_dev_local": true,
-      "allowed_in_mainnet": false,
-      "allowed_in_public_testnet": false,
-      "chain_config_allowlist_support": true,
-      "notes": "Classical-only signature profile. Dev/local and explicit migration tests only.",
-      "post_quantum": false,
-      "profile_id": "legacy-ed25519-v1",
-      "purpose": "legacy",
-      "status": "legacy",
-      "verifier_available": true
-    },
     {
       "activation_height_support": true,
       "algorithm_family": "ML-DSA-65/FIPS-204",
@@ -28,7 +14,7 @@
       "allowed_in_mainnet": false,
       "allowed_in_public_testnet": true,
       "chain_config_allowlist_support": true,
-      "notes": "Controlled-testnet target signing profile. Requires external cryptographic review before mainnet.",
+      "notes": "Sole active WeAll protocol signing profile. Requires external cryptographic review before mainnet.",
       "post_quantum": true,
       "profile_id": "pq-mldsa-v1",
       "purpose": "signing",
@@ -67,6 +53,5 @@
     }
   ],
   "schema": "weall.signature_profile_registry.v1_5",
-  "silent_ed25519_fallback_allowed": false,
   "transport_key_establishment_profile": "pq-mlkem-v1"
 }

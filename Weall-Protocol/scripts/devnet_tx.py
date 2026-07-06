@@ -72,7 +72,7 @@ def _new_keypair() -> tuple[str, str]:
 
 
 def _key_material(keyfile: Path, *, account: str = "", fresh: bool = False) -> tuple[str, str, str, Json]:
-    """Load or create controlled-devnet Ed25519 key material.
+    """Load or create controlled-devnet ML-DSA key material.
 
     The helper is intentionally file-backed so shell harnesses can share one
     account/key across create-account, native PoH verification, and
@@ -113,7 +113,7 @@ def _key_material(keyfile: Path, *, account: str = "", fresh: bool = False) -> t
             "account": acct,
             "private_key_hex": priv,
             "public_key_hex": pub,
-            "key_type": "ed25519",
+            "key_type": "mldsa",
         }
     )
     if "created_at_ms" not in out:
@@ -854,7 +854,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
     s.set_defaults(func=cmd_submit_tx)
 
-    k = sub.add_parser("ensure-keyfile", help="Generate/load a devnet ed25519 keyfile without submitting txs")
+    k = sub.add_parser("ensure-keyfile", help="Generate/load a devnet mldsa keyfile without submitting txs")
     k.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
     k.add_argument("--keyfile", required=True)
     k.add_argument("--print-private", action="store_true")

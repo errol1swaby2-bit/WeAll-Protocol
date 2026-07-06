@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives import serialization
 
 from weall.crypto.sig import sign_tx_envelope_dict
@@ -14,16 +14,9 @@ CHAIN_ID = "weall-prod-observer-signed-e2e"
 
 
 def _new_key() -> tuple[str, str]:
-    sk = Ed25519PrivateKey.generate()
-    priv = sk.private_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PrivateFormat.Raw,
-        encryption_algorithm=serialization.NoEncryption(),
-    ).hex()
-    pub = sk.public_key().public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw,
-    ).hex()
+    sk = MLDSA65PrivateKey.generate()
+    priv = sk.private_bytes_raw().hex()
+    pub = sk.public_key().public_bytes_raw().hex()
     return priv, pub
 
 

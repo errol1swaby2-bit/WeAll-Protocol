@@ -10,7 +10,7 @@ from weall.runtime.helper_planner import (
     validator_set_hash,
 )
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _validators():
@@ -18,9 +18,9 @@ def _validators():
 
 
 def _helper_keys():
-    pub_a, priv_a = deterministic_ed25519_keypair(label="validator-a")
-    pub_b, priv_b = deterministic_ed25519_keypair(label="validator-b")
-    pub_c, priv_c = deterministic_ed25519_keypair(label="validator-c")
+    pub_a, priv_a = deterministic_mldsa_keypair(label="validator-a")
+    pub_b, priv_b = deterministic_mldsa_keypair(label="validator-b")
+    pub_c, priv_c = deterministic_mldsa_keypair(label="validator-c")
     return {
         "validator-a": {"pub": pub_a, "priv": priv_a},
         "validator-b": {"pub": pub_b, "priv": priv_b},

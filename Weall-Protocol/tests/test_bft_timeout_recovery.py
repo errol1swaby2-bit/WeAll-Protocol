@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     NoEncryption,
@@ -19,10 +19,10 @@ def _repo_root() -> Path:
 
 
 def _mk_keypair_hex() -> tuple[str, str]:
-    sk = Ed25519PrivateKey.generate()
+    sk = MLDSA65PrivateKey.generate()
     pk = sk.public_key()
-    sk_b = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
-    pk_b = pk.public_bytes(Encoding.Raw, PublicFormat.Raw)
+    sk_b = sk.private_bytes_raw()
+    pk_b = pk.public_bytes_raw()
     return pk_b.hex(), sk_b.hex()
 
 

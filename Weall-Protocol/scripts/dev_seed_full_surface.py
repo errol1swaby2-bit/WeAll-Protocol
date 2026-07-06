@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
 
 from weall.crypto.sig import sign_tx_envelope_dict
@@ -70,8 +70,8 @@ def _cfg() -> Cfg:
 
 def _seed_material() -> tuple[str, str, str]:
     seed = hashlib.sha256(b"weall-dev-full-surface-seed-v1").digest()
-    sk = Ed25519PrivateKey.from_private_bytes(seed)
-    pub = sk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    sk = MLDSA65PrivateKey.from_seed_bytes(seed)
+    pub = sk.public_key().public_bytes_raw()
     priv_hex = seed.hex()
     pub_hex = pub.hex()
     secret_key_b64 = base64.b64encode(seed + pub).decode("ascii")

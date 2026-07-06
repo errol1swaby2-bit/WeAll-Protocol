@@ -44,7 +44,7 @@ def _make_minimal_outer_tree(tmp_path: Path) -> Path:
     hashed_req = "demo-pkg==1.0.0 \\\n    --hash=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
     _write(backend / "requirements.lock", hashed_req)
     _write(backend / "requirements-dev.lock", hashed_req)
-    _write(web / "package.json", '{"dependencies":{"vite":"7.3.3","typescript":"5.9.3","react":"18.3.1","react-dom":"18.3.1","react-router-dom":"6.30.3","tweetnacl":"1.0.3"}}\n')
+    _write(web / "package.json", '{"dependencies":{"vite":"7.3.3","typescript":"5.9.3","react":"18.3.1","react-dom":"18.3.1","react-router-dom":"6.30.3"}}\n')
     _write(web / "package-lock.json", '{"lockfileVersion":3,"packages":{}}\n')
     _write(tree / "scripts/fresh_clone_smoke.sh", "#!/usr/bin/env bash\n")
     return tree

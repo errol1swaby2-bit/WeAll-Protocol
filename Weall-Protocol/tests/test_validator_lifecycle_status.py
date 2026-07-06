@@ -35,7 +35,7 @@ class _FakeExecutor:
                 "registry": {
                     "@candidate": {
                         "account": "@candidate",
-                        "pubkey": "ed25519:candidate",
+                        "pubkey": "mldsa:candidate",
                         "node_id": "node-candidate",
                         "status": "pending_activation",
                         "requested_activation_epoch": 2,
@@ -45,7 +45,7 @@ class _FakeExecutor:
                     },
                     "@removed": {
                         "account": "@removed",
-                        "pubkey": "ed25519:removed",
+                        "pubkey": "mldsa:removed",
                         "node_id": "node-removed",
                         "status": "removed",
                     },

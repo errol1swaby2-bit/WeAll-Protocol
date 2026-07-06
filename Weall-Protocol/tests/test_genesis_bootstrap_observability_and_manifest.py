@@ -22,7 +22,7 @@ def _make_executor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, acct: str
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", acct)
-    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_PUBKEY", f"ed25519:{acct}")
+    monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_PUBKEY", f"mldsa:{acct}")
     monkeypatch.setenv("WEALL_NODE_ID", acct)
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_REPUTATION", "2.5")
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_STORAGE_CAPACITY_BYTES", "4096")

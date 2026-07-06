@@ -106,7 +106,7 @@ def test_peer_identity_requires_node_device_then_accepts(monkeypatch: pytest.Mon
     import weall.net.peer_identity as peer_identity_mod
 
     monkeypatch.setattr(
-        peer_identity_mod, "verify_ed25519_sig", lambda pubkey, msg_bytes, sig: True
+        peer_identity_mod, "verify_mldsa_sig", lambda pubkey, msg_bytes, sig: True
     )
 
     hello = _hello(account_id="acc1", pubkey="pk1", sig="sig1")

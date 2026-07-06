@@ -1,5 +1,7 @@
 from weall.crypto.account_keys import mldsa_account_key_record, validate_account_key_record
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1
+from weall.crypto.signature_profiles import PQ_MLDSA_V1
+
+REMOVED_CLASSICAL_PROFILE = "classical-signature-profile-removed"
 
 
 def test_mldsa_account_key_record_shape():
@@ -20,7 +22,7 @@ def test_ambiguous_key_rejected_in_closed_testnet(monkeypatch):
 
 def test_legacy_key_rejected_without_allowlist_in_closed_testnet(monkeypatch):
     monkeypatch.setenv("WEALL_CRYPTO_MODE", "closed-testnet")
-    rec = {"sig_profile": LEGACY_ED25519_V1, "pubkey": "aa", "active": True}
+    rec = {"sig_profile": REMOVED_CLASSICAL_PROFILE, "pubkey": "aa", "active": True}
     ok, reason = validate_account_key_record(rec, require_verifier=False)
     assert ok is False
-    assert reason in {"signature_profile_not_allowed", "legacy_ed25519_not_allowed"}
+    assert reason in {"signature_profile_not_allowed", "unknown_signature_profile"}

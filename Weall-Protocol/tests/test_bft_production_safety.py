@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _seed_validator_set(ex: WeAllExecutor, validators: list[str], pubs: dict[str, str]) -> None:
@@ -32,7 +32,7 @@ def test_non_leader_cannot_propose(tmp_path: Path, monkeypatch) -> None:
     pubs = {}
     privs = {}
     for vid in ("v1", "v2", "v3", "v4"):
-        pub, sk = deterministic_ed25519_keypair(label=vid)
+        pub, sk = deterministic_mldsa_keypair(label=vid)
         pubs[vid] = pub
         privs[vid] = sk.private_bytes_raw().hex()
     _seed_validator_set(ex, ["v1", "v2", "v3", "v4"], pubs)
@@ -56,7 +56,7 @@ def test_proposal_requires_valid_signature_and_epoch(tmp_path: Path, monkeypatch
     pubs = {}
     privs = {}
     for vid in ("v1", "v2", "v3", "v4"):
-        pub, sk = deterministic_ed25519_keypair(label=vid)
+        pub, sk = deterministic_mldsa_keypair(label=vid)
         pubs[vid] = pub
         privs[vid] = sk.private_bytes_raw().hex()
     _seed_validator_set(ex, ["v1", "v2", "v3", "v4"], pubs)

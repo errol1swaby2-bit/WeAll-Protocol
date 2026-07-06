@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _repo_root() -> Path:
@@ -18,7 +18,7 @@ def test_genesis_builder_can_grant_bootstrap_live(
     """Option B1: Live bootstrap is applied in genesis state builder only."""
 
     acct = "@bootstrap"
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
+    pub, _sk = deterministic_mldsa_keypair(label=acct)
 
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", acct)
@@ -53,7 +53,7 @@ def test_genesis_bootstrap_is_disabled_by_default(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     acct = "@bootstrap"
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
+    pub, _sk = deterministic_mldsa_keypair(label=acct)
 
     monkeypatch.delenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", raising=False)
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", acct)
@@ -83,7 +83,7 @@ def test_genesis_bootstrap_requires_both_env_vars(
     """Fail-closed if only one of ACCOUNT/PUBKEY is provided."""
 
     acct = "@bootstrap"
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
+    pub, _sk = deterministic_mldsa_keypair(label=acct)
 
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
@@ -112,7 +112,7 @@ def test_genesis_builder_bootstraps_founder_as_active_operator(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     acct = "@bootstrap"
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
+    pub, _sk = deterministic_mldsa_keypair(label=acct)
 
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", acct)

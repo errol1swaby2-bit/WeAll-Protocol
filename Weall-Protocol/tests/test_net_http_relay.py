@@ -18,7 +18,7 @@ from weall.net.relay import (
     make_relay_envelope,
     validate_relay_envelope,
 )
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 class _DummyMempool:
@@ -46,8 +46,8 @@ class _SimpleExecutor:
 
 
 def _priv_hex(label: str) -> tuple[str, str]:
-    pub, sk = deterministic_ed25519_keypair(label=label)
-    priv = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption()).hex()
+    pub, sk = deterministic_mldsa_keypair(label=label)
+    priv = sk.private_bytes_raw().hex()
     return pub, priv
 
 

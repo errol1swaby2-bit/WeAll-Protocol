@@ -7,7 +7,7 @@ import pytest
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.tx_admission import admit_tx
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _repo_root() -> Path:
@@ -24,7 +24,7 @@ def _executor(tmp_path: Path, name: str, *, chain_id: str) -> WeAllExecutor:
 
 
 def _signed_account_register(*, chain_id: str, signer: str, nonce: int) -> dict[str, object]:
-    pub, priv = deterministic_ed25519_keypair(label=signer)
+    pub, priv = deterministic_mldsa_keypair(label=signer)
     payload = {"pubkey": pub}
     msg = canonical_tx_message(
         chain_id=chain_id,
@@ -54,7 +54,7 @@ def test_prod_http_admission_rejects_unsigned_tx_and_executor_keeps_local_fixtur
         "tx_type": "ACCOUNT_REGISTER",
         "signer": "@unsigned",
         "nonce": 1,
-        "payload": {"pubkey": "ed25519:unsigned"},
+        "payload": {"pubkey": "mldsa:unsigned"},
         "chain_id": "candidate-prod",
         "sig": "",
     }
@@ -69,7 +69,7 @@ def test_prod_http_admission_rejects_unsigned_tx_and_executor_keeps_local_fixtur
             "tx_type": "ACCOUNT_REGISTER",
             "signer": "@fixturelocal",
             "nonce": 1,
-            "payload": {"pubkey": "ed25519:fixture-local"},
+            "payload": {"pubkey": "mldsa:fixture-local"},
         }
     )
     assert local_fixture["ok"] is True
@@ -101,7 +101,7 @@ def test_nonprod_candidate_builder_preserves_unsigned_fixture_behavior(
             "tx_type": "ACCOUNT_REGISTER",
             "signer": "@fixture",
             "nonce": 1,
-            "payload": {"pubkey": "ed25519:fixture"},
+            "payload": {"pubkey": "mldsa:fixture"},
         }
     )
     assert res["ok"] is True

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     NoEncryption,
@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.serialization import (
     PublicFormat,
 )
 
-from weall.crypto.sig import sign_ed25519
+from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import BftTimeout, canonical_timeout_message
 from weall.runtime.executor import WeAllExecutor
 
@@ -21,10 +21,10 @@ def _repo_root() -> Path:
 
 
 def _mk_keypair_hex() -> tuple[str, str]:
-    sk = Ed25519PrivateKey.generate()
+    sk = MLDSA65PrivateKey.generate()
     pk = sk.public_key()
-    sk_b = sk.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
-    pk_b = pk.public_bytes(Encoding.Raw, PublicFormat.Raw)
+    sk_b = sk.private_bytes_raw()
+    pk_b = pk.public_bytes_raw()
     return pk_b.hex(), sk_b.hex()
 
 
@@ -92,7 +92,7 @@ def test_bft_liveness_advances_view_via_timeouts_threshold(tmp_path: Path) -> No
         msg = canonical_timeout_message(
             chain_id="bft-live", view=view, high_qc_id=high_qc_id, signer=signer
         )
-        sig = sign_ed25519(message=msg, privkey=vpriv[signer], encoding="hex")
+        sig = sign_mldsa(message=msg, privkey=vpriv[signer], encoding="hex")
         tmo = BftTimeout(
             chain_id="bft-live",
             view=view,
@@ -118,7 +118,7 @@ def test_bft_liveness_advances_view_via_timeouts_threshold(tmp_path: Path) -> No
         msg = canonical_timeout_message(
             chain_id="bft-live", view=view2, high_qc_id=high_qc_id, signer=signer
         )
-        sig = sign_ed25519(message=msg, privkey=vpriv[signer], encoding="hex")
+        sig = sign_mldsa(message=msg, privkey=vpriv[signer], encoding="hex")
         tmo = BftTimeout(
             chain_id="bft-live",
             view=view2,

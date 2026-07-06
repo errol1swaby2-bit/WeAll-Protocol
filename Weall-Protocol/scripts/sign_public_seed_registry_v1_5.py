@@ -29,7 +29,7 @@ from weall.api.public_seed_registry import (  # noqa: E402
 )
 from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed  # noqa: E402
 from weall.crypto.sig import sign_signature_for_profile  # noqa: E402
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, normalize_signature_profile_id  # noqa: E402
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, normalize_signature_profile_id  # noqa: E402
 
 Json = dict[str, Any]
 
@@ -71,8 +71,6 @@ def _strip_registry_signature(data: Json) -> Json:
 def _signature_alg_label(profile: str, domain: str) -> str:
     if profile == PQ_MLDSA_V1:
         return f"pq-mldsa-v1/ML-DSA-65/{domain}"
-    if profile == LEGACY_ED25519_V1:
-        return f"legacy-ed25519-v1/{domain}"
     return f"{profile}/{domain}"
 
 
@@ -166,8 +164,6 @@ def main() -> int:
     # safe publication gate and rejects placeholders before writing output.
     os.environ.setdefault("WEALL_PUBLIC_TESTNET", "1")
     os.environ.setdefault("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", public_key)
-    if args.allow_local:
-        os.environ.setdefault("WEALL_PUBLIC_TESTNET_ALLOW_LEGACY_SIGNATURES", "1")
     os.environ.setdefault("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", public_key)
     os.environ.setdefault("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_SIG_PROFILE", profile)
 

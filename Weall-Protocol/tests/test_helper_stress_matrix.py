@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
@@ -21,7 +21,7 @@ from weall.runtime.parallel_execution import plan_parallel_execution
 
 
 def _pub_hex_from_seed(seed_hex: str) -> str:
-    key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(seed_hex))
+    key = MLDSA65PrivateKey.from_seed_bytes(bytes.fromhex(seed_hex))
     return key.public_key().public_bytes_raw().hex()
 
 
@@ -40,7 +40,7 @@ def _lane_setup():
 
 def _mk_signed_cert(*, helper_id: str, lane_id: str, tx_ids: tuple[str, ...], seed_byte: int, receipts_root: str = "receipts"):
     seed = (bytes([seed_byte]) * 32).hex()
-    key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(seed))
+    key = MLDSA65PrivateKey.from_seed_bytes(bytes.fromhex(seed))
     pub = key.public_key().public_bytes_raw().hex()
     cert = sign_helper_certificate(
         HelperExecutionCertificate(

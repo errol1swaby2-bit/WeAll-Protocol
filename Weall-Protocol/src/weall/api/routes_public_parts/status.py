@@ -23,7 +23,7 @@ from weall.runtime.helper_status_surface import build_helper_status_surface
 from weall.runtime.launch_matrix import launch_matrix_from_state, launch_matrix_payload
 from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
 from weall.crypto.pq_mldsa import mldsa_backend_status
-from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, PQ_MLKEM_V1, signature_profile_registry_json
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, PQ_MLKEM_V1, signature_profile_registry_json
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 from weall.runtime.protocol_time import protocol_time_height
 from weall.runtime.runtime_authority import (
@@ -867,12 +867,11 @@ def _crypto_profile_payload(state: Mapping[str, Any]) -> dict[str, Any]:
         "schema": "weall.crypto_profile.status.v1_5",
         "active_signature_profile": active_profile,
         "controlled_testnet_target_signature_profile": PQ_MLDSA_V1,
-        "legacy_signature_profile": LEGACY_ED25519_V1,
         "transport_key_establishment_target_profile": PQ_MLKEM_V1,
         "allowed_signature_profiles": allowed_profiles,
         "mldsa_verifier_available": bool(backend.get("available") is True),
         "mldsa_backend_status": backend,
-        "ed25519_legacy_transitional_dev_only": True,
+        "classical_signature_profiles_removed": True,
         "production_crypto_audit_complete": False,
         "production_post_quantum_security_claimed": False,
         "quantum_proof_claimed": False,
@@ -882,7 +881,7 @@ def _crypto_profile_payload(state: Mapping[str, Any]) -> dict[str, Any]:
         "live_economics": False,
         "public_only_protocol_surface": True,
         "signature_profile_registry": signature_profile_registry_json(),
-        "claim": "Controlled-testnet signing is targeted at profile-aware pq-mldsa-v1, but real ML-DSA verifier availability, PQ re-signing, and external cryptographic review remain required before any durable public-network or mainnet claim.",
+        "claim": "Controlled-testnet signing uses profile-aware pq-mldsa-v1 on active protocol authority surfaces, while external cryptographic review remains required before any durable public-network or mainnet claim.",
     }
 
 def _base_status_payload(request: Request) -> dict[str, Any]:

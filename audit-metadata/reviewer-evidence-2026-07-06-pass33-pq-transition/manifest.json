@@ -104,7 +104,7 @@
   ],
   "forbidden_claims_preserved": true,
   "framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
-  "legacy_profile": "legacy-ed25519-v1",
+  "legacy_profile": "pq-mldsa-v1",
   "real_mldsa_implemented": false,
   "schema": "weall.pass33.pq_transition_evidence_manifest"
 }

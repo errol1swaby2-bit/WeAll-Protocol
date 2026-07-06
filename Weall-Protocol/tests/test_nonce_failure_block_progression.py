@@ -4,7 +4,7 @@ from pathlib import Path
 
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _mk_executor(tmp_path: Path, name: str) -> WeAllExecutor:
@@ -29,7 +29,7 @@ def _signed(ex: WeAllExecutor, *, signer: str, nonce: int, tx_type: str, payload
 
 def test_failed_block_apply_does_not_consume_nonce(tmp_path: Path) -> None:
     signer = "@user000"
-    pub, priv = deterministic_ed25519_keypair(label=signer)
+    pub, priv = deterministic_mldsa_keypair(label=signer)
     priv_hex = priv.private_bytes_raw().hex()
 
     leader = _mk_executor(tmp_path, "leader")

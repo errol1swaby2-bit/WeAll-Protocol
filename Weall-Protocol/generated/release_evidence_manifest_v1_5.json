@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "f2cb23b292b8adfb996a91645ee7a88a50e31f71882ffbd7e0d0641e0a85014e",
+  "artifact_digest": "7ec4da6120b3dc0014ae0470d7393e836ff5530a3df5824c43a1526fa200c933",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -147,7 +147,7 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "4e6b01fa8d9a1d14c0b3c22d82ac89521671b78cdf691eabb8b64b4206d75052",
+      "file_sha256": "18eb29ef12d4a9c85dd33cc1e85a49cd7ad4ddf58dba6f6915b6962bc3904330",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -179,7 +179,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/crypto_inventory_v1_5.json": {
-      "file_sha256": "a8e6d282ad1f6417564f559d34709e81e24dbb8a946fdf41aedf3d4335f9ebf8",
+      "file_sha256": "d2488936874dd8aae3681fff68ab22fffd56a58d9ef460ebc1a97283c1afed49",
       "ok": true,
       "path": "generated/crypto_inventory_v1_5.json",
       "present": true,
@@ -195,7 +195,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "1f0739f82ead6fcb8e714f2c79942ec0e61976e3ab04b80e5e82aaec7a8a809c",
+      "file_sha256": "1b266950dca4e5f78973425f44198a2b86f306e6be377ef8fa5a6b683d3d3e58",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -203,7 +203,7 @@
       "schema": "weall.v1_5.failure_code_registry"
     },
     "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json": {
-      "file_sha256": "049c9e27e754e5634664aede799934df5a6f9c2e969444633540c67d9a167f0d",
+      "file_sha256": "aa819c3e73ee8d8d18e0f90b700bcd0b3a94588031e72bc2d981b16ba3138df4",
       "ok": true,
       "path": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
       "present": true,
@@ -259,7 +259,7 @@
       "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript"
     },
     "generated/public_observer_launch_evidence_requirements_v1_5.json": {
-      "file_sha256": "c2bcd2542c50704a80906d7d76d47f954b9fe38cf8d4a00ce451e3d746c8fef9",
+      "file_sha256": "02c83ce70376b51a9c73736baa373cc0e74e7a281a54eaaa9765f79cdb586b43",
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,
@@ -315,7 +315,7 @@
       "schema": "weall.v1_5.public_validator_endpoint_churn_proof"
     },
     "generated/quantum_resistance_readiness_v1_5.json": {
-      "file_sha256": "284cbf84ca2a864b0847d7ba4e812ccb05e520ca4ccde3b6b1c6dcfab69211d9",
+      "file_sha256": "e9e52cfeba0a35a40d3cd52cc7e2cf940be9d0ee3a5a619f23f8b96446cf865e",
       "ok": true,
       "path": "generated/quantum_resistance_readiness_v1_5.json",
       "present": true,
@@ -323,7 +323,7 @@
       "schema": "weall.quantum_resistance_readiness.v1_5"
     },
     "generated/signature_profile_registry_v1_5.json": {
-      "file_sha256": "0c812210d1e094df8e7d1d275fec992fc6ac5a6ce443fd47a07139640e5b2351",
+      "file_sha256": "652584ea2b868960daaede73ac2b82c1beafe3be66ed3e202c30a6d38f78f0dd",
       "ok": true,
       "path": "generated/signature_profile_registry_v1_5.json",
       "present": true,
