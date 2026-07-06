@@ -64,7 +64,7 @@ PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5
 Allowed:
 
 ```text
-Ready for controlled internal/public-observer rehearsal candidate, with public
+Pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public
 beta readiness still blocked by explicit external evidence and counsel-review gates.
 ```
 

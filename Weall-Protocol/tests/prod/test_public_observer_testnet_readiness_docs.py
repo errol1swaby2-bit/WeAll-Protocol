@@ -35,7 +35,7 @@ def test_public_observer_readiness_plan_defines_bounded_tiers_and_non_claims() -
     ):
         assert forbidden_claim in text
 
-    assert "Ready for controlled internal/public-observer rehearsal candidate" in text
+    assert "pre-public-testnet protocol implementation under active hardening" in text.lower()
     assert "public beta readiness still blocked" in text
 
 

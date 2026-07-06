@@ -106,5 +106,5 @@ Stop and file a bug if any social page:
 The strongest allowed claim after this flow works locally is:
 
 ```text
-Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence gates.
+Pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external evidence gates.
 ```

@@ -1,6 +1,6 @@
 # Reviewer Evidence Index
 
-Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
 This index separates implemented repository evidence, generated artifacts, local/controlled rehearsal readiness, external evidence still required, and future mainnet-readiness hardening. It does not claim public beta, public mainnet, public multi-validator BFT/public validator safety, live economics, automatic upgrades, production helper execution, legal approval, or public storage-market readiness.
 
@@ -81,6 +81,16 @@ Local/controlled evidence is useful for review, but local scripts are not author
 | Legal/compliance counsel | `docs/proofs/legal-compliance-counsel/2026-07-05/` | Template-only proof slot. | not completed external evidence; does not close `AUD-618-P0-002`. |
 | Protocol upgrade execution | `docs/proofs/protocol-upgrade-execution-hardening/2026-07-05/` | Template-only future hardening proof slot. | not completed external evidence; does not close `AUD-618-P0-003`. |
 | Production helper topology | `docs/proofs/production-helper-topology-hardening/2026-07-05/` | Template-only future hardening proof slot. | not completed external evidence; does not close `AUD-618-P1-005`. |
+
+## Reviewer trust posture additions
+
+| Area | Reviewer-visible file | Current meaning | Verification |
+|---|---|---|---|
+| Public-only direction / DM quarantine | `docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md` | Direct/private/encrypted messaging is absent from active public-testnet tx canon and out of scope for the NLnet claim. | `PYTHONPATH=src python -m pytest -q tests/test_direct_message_transaction_quarantine.py` |
+| Observer proof tiers | `docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md` | Separates local observer proof, same-machine dual-node proof, and remote two-machine signed observer proof. | Runbook only unless transcripts are captured under `audit-metadata/reviewer-evidence-YYYY-MM-DD/`. |
+| Helper safety posture | `docs/reviewer/HELPER_PRODUCTION_SAFETY_CHECKLIST.md` | Production helper execution is disabled; checklist maps future safety evidence topics. | `PYTHONPATH=src python -m pytest -q tests/prod/test_helper_production_safety_checklist.py` |
+| Accessibility posture | `docs/reviewer/ACCESSIBILITY_REVIEW_CHECKLIST.md` | Basic source-level accessibility posture exists; full WCAG compliance is not claimed. | `cd ../web && npm run test:accessibility-source && npm run test:reviewer-critical-source` |
+| Frontend reviewer-critical flows | `web/scripts/test_reviewer_critical_flows_source.mjs` | Source check covers account recovery, async/live PoH, posting/feed, groups, disputes, governance, locked wallet/economics, observer copy, and no active private messaging claim. | `cd ../web && npm run test:reviewer-critical-source` |
 
 ## External evidence still required
 

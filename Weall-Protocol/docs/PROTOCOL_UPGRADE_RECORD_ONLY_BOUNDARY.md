@@ -4,6 +4,8 @@ Status: v1.5 safety boundary.
 
 `PROTOCOL_UPGRADE_DECLARE` and `PROTOCOL_UPGRADE_ACTIVATE` currently record governance upgrade metadata for auditability. They do **not** fetch, verify, stage, apply, migrate, restart, or roll back node software.
 
+Current upgrade semantics record declaration and activation. They do not yet execute arbitrary state migrations unless explicitly implemented and tested.
+
 The apply path stores explicit `record_only_boundary` metadata on declarations and activations so upgrade records cannot be mistaken for an automatic upgrade delivery system. Activation records now also carry a deterministic future `activation_height`; governance approval schedules public compatibility metadata, not immediate software mutation.
 
 ## Activation record semantics

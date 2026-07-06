@@ -1,7 +1,7 @@
 # WeAll Protocol — Production Operator Runbook
 
 This runbook describes the current operator-facing posture for the WeAll Genesis node software.
-It is intentionally conservative: the repository is production-candidate protocol software, but public mainnet deployment still requires a final fresh-clone operator rehearsal, public-validator beta review, and external security review.
+It is intentionally conservative: the repository is a pre-public-testnet protocol implementation under active hardening, and public mainnet deployment still requires a final fresh-clone operator rehearsal, public-validator beta review, and external security review.
 
 ## 1. Launch postures
 
@@ -126,7 +126,7 @@ docker logs weall_producer --tail=200
 
 ## 7. Consensus and authority invariants operators should know
 
-Current production-candidate hardening includes:
+Current local/devnet hardening includes:
 
 - two-tier native PoH: async Tier 1 and live Tier 2
 - no required email, SMTP, DNS, named hosting provider, CAPTCHA, OAuth, KYC provider, or government ID provider for PoH authority

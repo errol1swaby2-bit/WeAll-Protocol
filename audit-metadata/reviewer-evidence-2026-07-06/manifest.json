@@ -1,0 +1,146 @@
+{
+  "bundle": "reviewer-evidence-2026-07-06",
+  "commit_under_review": "514871321519837ac33278fc634523e1c8202686",
+  "timestamp_utc": "2026-07-06T15:05:31Z",
+  "claim_frame": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
+  "claims_not_made": [
+    "public mainnet readiness",
+    "live economics",
+    "public multi-validator BFT readiness",
+    "production constitutional governance readiness",
+    "production encrypted/private messaging",
+    "first external observer readiness"
+  ],
+  "evidence": [
+    {
+      "file": "transcripts/00_commit_environment.txt",
+      "commands": [
+        "git rev-parse HEAD",
+        "git status --short",
+        "date -u",
+        "python --version",
+        "node --version",
+        "npm --version",
+        "uname -a"
+      ],
+      "claims": [
+        "commit binding",
+        "environment summary"
+      ],
+      "result": "recorded"
+    },
+    {
+      "file": "transcripts/01_git_patch_checks.txt",
+      "commands": [
+        "git status --short",
+        "git diff --check HEAD~1..HEAD",
+        "git diff --stat HEAD~1..HEAD"
+      ],
+      "claims": [
+        "patch hygiene",
+        "files changed"
+      ],
+      "result": "passed"
+    },
+    {
+      "file": "transcripts/02_generated_artifact_consistency.txt",
+      "commands": [
+        "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
+        "PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check",
+        "PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py --check",
+        "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check",
+        "PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check",
+        "PYTHONPATH=src python scripts/gen_tx_index.py --out /tmp/weall_tx_index_check.json && cmp -s generated/tx_index.json /tmp/weall_tx_index_check.json",
+        "PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py",
+        "PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py"
+      ],
+      "claims": [
+        "generated artifacts current",
+        "tx index current",
+        "public beta readiness remains false",
+        "reviewer truth boundaries hold"
+      ],
+      "result": "passed"
+    },
+    {
+      "file": "transcripts/03_backend_targeted_pytest.txt",
+      "commands": [
+        "PYTHONPATH=src python -m pytest -q <87 targeted backend/doc/protocol tests>"
+      ],
+      "claims": [
+        "direct-message quarantine",
+        "public-only protocol posture",
+        "protocol upgrade record-only semantics",
+        "helper safety posture",
+        "observer non-authority",
+        "reviewer traceability"
+      ],
+      "result": "87 passed"
+    },
+    {
+      "file": "transcripts/03b_observer_capture_script_checks.txt",
+      "commands": [
+        "test -x observer/replay/storage capture scripts",
+        "grep non-authority/non-closure language"
+      ],
+      "claims": [
+        "capture scripts executable",
+        "capture scripts do not close remote/external proof blockers by themselves"
+      ],
+      "result": "passed"
+    },
+    {
+      "file": "transcripts/04_frontend_source_checks.txt",
+      "commands": [
+        "node scripts/test_reviewer_critical_flows_source.mjs",
+        "node scripts/test_accessibility_source.mjs",
+        "node scripts/test_public_only_protocol_source.mjs",
+        "node scripts/test_rendered_civic_loop_source.mjs"
+      ],
+      "claims": [
+        "reviewer-critical frontend source posture",
+        "basic accessibility source posture",
+        "public-only UI source posture"
+      ],
+      "result": "passed"
+    },
+    {
+      "file": "transcripts/05_npm_typecheck.txt",
+      "commands": [
+        "npm run typecheck"
+      ],
+      "claims": [
+        "frontend typecheck attempted"
+      ],
+      "result": "failed: missing installed React/JSX dependencies in sandbox; no pass claim"
+    },
+    {
+      "file": "transcripts/06_release_hygiene.txt",
+      "commands": [
+        "PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py"
+      ],
+      "claims": [
+        "release hygiene posture after executable-bit fixes"
+      ],
+      "result": "passed"
+    }
+  ],
+  "not_run": [
+    {
+      "item": "remote two-machine signed observer proof",
+      "reason": "requires second remote machine/public endpoint/operator signing context not present in sandbox"
+    },
+    {
+      "item": "first external observer readiness proof",
+      "reason": "requires fresh remote signed run; intentionally not claimed"
+    },
+    {
+      "item": "full Playwright/browser E2E",
+      "reason": "frontend dependencies/browser/backend service not installed/running in sandbox"
+    },
+    {
+      "item": "full pytest completion",
+      "reason": "not completed in sandbox time budget; targeted suite passed and full completion should be captured in CI/clean local checkout"
+    }
+  ]
+}

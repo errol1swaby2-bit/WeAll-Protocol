@@ -18,7 +18,7 @@ Allowed target statement:
 
 If external observer evidence is still missing, use the narrower statement:
 
-> Ready for controlled internal/public-observer rehearsal candidate, with public
+> Pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public
 > beta readiness still blocked by explicit external evidence gates. In short,
 > public beta readiness still blocked until external evidence exists.
 

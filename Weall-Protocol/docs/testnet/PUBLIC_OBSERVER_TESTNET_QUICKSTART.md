@@ -1,6 +1,6 @@
 # Public Observer Testnet Quickstart Pointer
 
-Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
 This file exists to prevent reviewer/operator confusion between the current testnet runbook location and the older detailed public-discovery supplement.
 
@@ -25,3 +25,13 @@ The older detailed discovery guide remains at `docs/PUBLIC_OBSERVER_TESTNET_QUIC
 ## Claim boundary
 
 This pointer does not close `AUD-628-P1-001`. Public observer launch and public beta remain blocked until a completed external clean-clone/open-download/state-sync/frontend rendered journey transcript is attached and reviewed.
+
+## Observer proof tiers and capture path
+
+Observer proof is intentionally tiered:
+
+1. local observer proof: local checkout verifies chain identity/trust roots and boots observer mode;
+2. same-machine dual-node proof: two local nodes rehearse controlled devnet flows on one machine;
+3. remote two-machine signed observer proof: a fresh external machine/operator captures a commit-bound transcript.
+
+First external observer readiness requires a fresh remote/signed observer run. This quickstart alone does not close that gate. Use `docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md` and capture outputs under `audit-metadata/reviewer-evidence-YYYY-MM-DD/`.

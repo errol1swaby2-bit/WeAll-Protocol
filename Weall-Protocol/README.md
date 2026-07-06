@@ -1,16 +1,22 @@
 # WeAll Protocol Backend
 
-This directory contains the WeAll backend node/runtime, public API, generated artifacts, Docker/operator helpers, and backend test surfaces for the current controlled rehearsal candidate.
+This directory contains the WeAll backend node/runtime, public API, generated artifacts, Docker/operator helpers, and backend test surfaces for the current local/devnet/public-observer-oriented hardening track.
 
-Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
 This backend README is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
+
+## Public-only civic protocol direction
+
+The backend is reviewed as public-only civic protocol infrastructure. Protocol-native social, civic, governance, moderation, dispute, group, reputation, validator/operator, and node activity is intended to be publicly inspectable. Group membership may gate posting, commenting, voting, moderation, invitation, and administration behavior, but not read visibility for protocol-native group content.
+
+Private/direct/encrypted messaging is not part of the NLnet/public-testnet claim. Any historical private messaging language is legacy/out-of-scope unless explicitly labeled unsupported or disabled.
 
 ## Current status
 
 | Surface | Status | Backend meaning |
 |---|---:|---|
-| Controlled internal/public-observer rehearsal candidate | GO | Backend artifacts, generated evidence, and local gates support the next bounded rehearsal candidate. |
+| Local/devnet/public-observer-oriented evidence | GO for local review only | Backend artifacts, generated evidence, and local gates support bounded local/devnet/public-observer-oriented rehearsal packaging. |
 | Public beta readiness | NO-GO | `generated/public_beta_blocker_report_v1_5.json` keeps `public_beta_ready=false`. |
 | Public observer launch claim | NO-GO | External clean-clone/open-download observer evidence is still required. |
 | Public validator/BFT readiness | NO-GO | Independent validator/operator evidence remains required. |

@@ -1,6 +1,6 @@
 # Current Readiness Statement
 
-Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
 This statement reflects the repository after Passes 10–27. It is intentionally conservative and must not be read as public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness.
 
@@ -122,3 +122,10 @@ PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 ## Final communication boundary
 
 Do not claim public beta readiness, public mainnet readiness, public multi-validator BFT readiness, public validator safety, live economics readiness, automatic protocol upgrade readiness, executable migration readiness, rollback execution readiness, production helper execution readiness, legal/compliance approval, public storage-market readiness, complete anti-Sybil/collusion detection, or complete public identity infrastructure.
+
+## Reviewer trust posture files added for this boundary
+
+- `docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md` — verifies direct/private/encrypted messaging is not in the active public-testnet tx canon and remains out of scope.
+- `docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md` — separates local observer proof, same-machine dual-node proof, and remote signed observer proof.
+- `docs/reviewer/HELPER_PRODUCTION_SAFETY_CHECKLIST.md` — makes helper execution safety topics and disabled production posture reviewer-visible.
+- `docs/reviewer/ACCESSIBILITY_REVIEW_CHECKLIST.md` — states basic source-level accessibility coverage without claiming full WCAG compliance.

@@ -2,7 +2,7 @@
 
 Use this checklist before any bounded testnet communication. It preserves the current conservative status after Passes 10–27.
 
-Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
 ## Go / No-Go summary
 
@@ -109,6 +109,6 @@ Capture the command output and status endpoints listed in `docs/testnet/PUBLIC_O
 
 ## Final communication rule
 
-Allowed wording: “Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.”
+Allowed wording: “Pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.”
 
 Forbidden wording: “public beta ready”, “mainnet ready”, “public validator safe”, “public multi-validator BFT ready”, “live economics ready”, “automatic upgrades ready”, “legal/compliance approved”, “production helper ready”, or “public storage-market ready”.

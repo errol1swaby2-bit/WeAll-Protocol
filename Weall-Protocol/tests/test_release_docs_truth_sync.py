@@ -96,10 +96,10 @@ def test_release_docs_include_current_production_safety_gates() -> None:
 
 
 ALLOWED_REHEARSAL_CLAIM = (
-    "WeAll is ready for controlled internal/public-observer rehearsal candidate, "
-    "with public beta readiness still blocked by explicit external evidence, "
-    "counsel-review, upgrade-execution, storage, validator, replay, observer, "
-    "and helper-topology gates."
+    "WeAll is a pre-public-testnet protocol implementation under active hardening, "
+    "with local/devnet/public-observer-oriented evidence present and public beta readiness "
+    "still blocked by explicit external observer, replay, validator/operator, storage, "
+    "legal, upgrade-execution, and helper-topology gates."
 )
 
 
@@ -125,9 +125,11 @@ def test_readmes_and_reviewer_docs_preserve_current_allowed_claim() -> None:
 def test_top_level_readme_has_reviewer_verification_and_evidence_map() -> None:
     text = _read(OUTER_ROOT / "README.md")
     for heading in (
+        "## Public-only civic protocol direction",
         "## Current status",
         "## Reviewer verification path",
         "## Evidence package map",
+        "## Headline claim to evidence map",
         "## Major protocol surfaces",
         "## What is intentionally disabled",
     ):
@@ -138,11 +140,18 @@ def test_top_level_readme_has_reviewer_verification_and_evidence_map() -> None:
         "Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md",
         "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
         "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+        "Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md",
+        "tests/test_direct_message_transaction_quarantine.py",
+        "tests/prod/test_helper_production_safety_checklist.py",
+        "test:reviewer-critical-source",
     ):
         assert required_link in text
 
     assert "236 tx types, version 1.25.0" in text
     assert "public_beta_ready=false" in text or "public_beta_ready` | `false`" in text or "`public_beta_ready=false`" in text
+    assert "private, direct, encrypted" in text.lower()
+    assert "membership must not gate read visibility" in text.lower()
+    assert "first external observer readiness requires a fresh remote/signed observer run" in text.lower()
 
 
 def test_readme_forbidden_claim_boundaries_are_explicit() -> None:
@@ -277,6 +286,10 @@ def test_readme_links_to_final_go_gate_and_current_evidence_artifacts() -> None:
         "Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
         "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
         "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+        "Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md",
+        "tests/test_direct_message_transaction_quarantine.py",
+        "tests/prod/test_helper_production_safety_checklist.py",
+        "test:reviewer-critical-source",
     ):
         assert required_link in text
 

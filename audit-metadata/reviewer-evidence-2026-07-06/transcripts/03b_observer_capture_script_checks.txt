@@ -1,0 +1,8 @@
+$ for observer/replay/storage capture scripts: test -x and grep non-authority help text
+OK executable: scripts/capture_external_cross_machine_replay_transcript_v1_5.sh
+OK executable: scripts/capture_independent_controlled_validator_operator_transcript_v1_5.sh
+OK executable: scripts/boot_public_observer_testnet.sh
+OK executable: scripts/capture_public_observer_open_download_transcript_v1_5.sh
+OK executable: scripts/capture_real_storage_ipfs_operator_transcript_v1_5.sh
+OK: non-authority/non-closure language found in capture scripts
+exit_status=0

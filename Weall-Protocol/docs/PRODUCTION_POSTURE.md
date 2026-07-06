@@ -6,7 +6,7 @@ Status: REQUIRED for public-validator and production deployment
 
 Reviewer current-state boundary after Passes 10–27:
 
-> WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.
+> WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.
 
 This document is a production posture specification and truth boundary. It is not a claim that the repository is public beta ready, public mainnet ready, public validator safe, public multi-validator BFT ready, live-economics ready, automatic-upgrade ready, production-helper ready, legal approval granted, or public storage-market ready.
 

@@ -1,6 +1,6 @@
 # Public Observer Quickstart
 
-Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
 This quickstart is for bounded observer rehearsal and transcript collection. It is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
 
@@ -77,6 +77,16 @@ node scripts/test_rendered_civic_loop_source.mjs
 Expected frontend check output: typecheck and build complete without errors, and the source rendered-civic-loop check exits successfully. These checks prove source/build health only; they do not prove browser E2E behavior or protocol finality.
 
 Open the frontend and capture the first-run journey using `Weall-Protocol/docs/testnet/FIRST_15_MINUTES.md`. Frontend screenshots or source checks are supportive evidence only; frontend state is not protocol authority.
+
+## Observer proof tiers and capture path
+
+Observer proof is intentionally tiered:
+
+1. local observer proof: local checkout verifies chain identity/trust roots and boots observer mode;
+2. same-machine dual-node proof: two local nodes rehearse controlled devnet flows on one machine;
+3. remote two-machine signed observer proof: a fresh external machine/operator captures a commit-bound transcript.
+
+First external observer readiness requires a fresh remote/signed observer run. This quickstart alone does not close that gate. Use `docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md` and capture outputs under `audit-metadata/reviewer-evidence-YYYY-MM-DD/`.
 
 ## 7. Evidence package map
 

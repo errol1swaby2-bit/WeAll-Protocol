@@ -1,6 +1,6 @@
 # Final Public Observer Controlled Testnet Go-Gate
 
-Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
 This go-gate is bounded to the next controlled internal/public-observer rehearsal candidate. It is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
 
@@ -96,6 +96,6 @@ The current go-gate keeps these disabled or unclaimed: live economics, fees/tran
 
 ## Final communication rule
 
-Allowed wording: “Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.”
+Allowed wording: “Pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.”
 
 Forbidden escalation: public beta readiness, public observer launch claim, public mainnet readiness, public validator safety, public multi-validator BFT readiness, live economics readiness, automatic protocol upgrade readiness, executable migration readiness, rollback execution readiness, production helper execution readiness, legal/compliance approval, public storage-market readiness, complete anti-Sybil/collusion detection, or complete public identity infrastructure.

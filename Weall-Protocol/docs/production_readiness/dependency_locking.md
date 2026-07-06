@@ -52,4 +52,4 @@ The combined verifier checks backend lockfiles and the frontend npm lockfile, bu
 
 ## Release posture
 
-Until these files are committed and verified, the protocol may be considered production-candidate, but not fully public-operator-packaged.
+Until these files are committed and verified, the protocol may be considered a local/devnet implementation artifact under active hardening, but not fully public-operator-packaged.

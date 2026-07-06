@@ -38,7 +38,7 @@ Backend and frontend dependency locks are now part of the release posture and mu
 
 ## Production posture after this sync
 
-The repository is production-candidate protocol software suitable for local demo, controlled devnet review, and public-validator beta preparation.
+The repository is pre-public-testnet protocol implementation under active hardening suitable for local demo and controlled devnet review, without implying public production readiness.
 
 It does not yet claim public mainnet readiness. Final public production launch still requires:
 

@@ -3,7 +3,7 @@
 Pass: 29
 Purpose: practical pre-rehearsal audit of reviewer-facing truth, first-run user/operator experience, and major protocol-flow UX before the next two-node/public-observer rehearsal.
 
-Current allowed claim: **WeAll is ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence, counsel-review, upgrade-execution, storage, validator, replay, observer, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
 This audit does not claim public beta readiness, public mainnet readiness, public multi-validator BFT readiness, live economics readiness, production helper execution readiness, automatic upgrade readiness, legal/compliance approval, or public storage-market readiness.
 

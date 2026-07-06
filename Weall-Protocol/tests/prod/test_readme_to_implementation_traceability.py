@@ -8,10 +8,10 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTER_ROOT = ROOT.parent
 TRACE = ROOT / "docs" / "reviewer" / "README_TO_IMPLEMENTATION_TRACEABILITY.md"
 ALLOWED_REHEARSAL_CLAIM = (
-    "WeAll is ready for controlled internal/public-observer rehearsal candidate, "
-    "with public beta readiness still blocked by explicit external evidence, "
-    "counsel-review, upgrade-execution, storage, validator, replay, observer, "
-    "and helper-topology gates."
+    "WeAll is a pre-public-testnet protocol implementation under active hardening, "
+    "with local/devnet/public-observer-oriented evidence present and public beta readiness "
+    "still blocked by explicit external observer, replay, validator/operator, storage, "
+    "legal, upgrade-execution, and helper-topology gates."
 )
 OPEN_BLOCKERS = {
     "AUD-618-P0-001",

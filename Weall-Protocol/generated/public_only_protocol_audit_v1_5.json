@@ -51,6 +51,12 @@
     {
       "category": "frontend",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 2,
+      "path": "../web/scripts/test_reviewer_critical_flows_source.mjs"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "../web/src/api/weall.ts"
     },
@@ -82,6 +88,30 @@
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "docs/reviewer/CURRENT_READINESS_STATEMENT.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 6,
+      "path": "docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 2,
+      "path": "docs/reviewer/EVIDENCE_INDEX.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md"
     },
     {
@@ -93,8 +123,20 @@
     {
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 10,
+      "path": "tests/test_direct_message_transaction_quarantine.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "tests/test_group_governance_contract.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_release_docs_truth_sync.py"
     }
   ],
   "inventory_classification": {
@@ -114,7 +156,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 9,
+  "inventory_hit_count": 16,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",
