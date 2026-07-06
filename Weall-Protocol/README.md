@@ -134,7 +134,7 @@ The checked-in public-testnet chain commitments, signed seed registry, trust roo
 | Failure code registry | `generated/failure_code_registry_v1_5.json` |
 | Tx canon artifacts | `generated/tx_index.json`, `generated/tx_contract_map.json` |
 | External proof templates | `docs/proofs/` |
-| Reviewer documents | `docs/reviewer/` |
+| Reviewer documents | `docs/reviewer/`, including `docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` |
 | Testnet runbooks | `docs/testnet/` |
 
 The blocker catalog remains explicit: 14 total entries, 7 closed in repository, and 7 open as external evidence or mainnet-hardening gates.

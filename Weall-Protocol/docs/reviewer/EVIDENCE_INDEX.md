@@ -41,6 +41,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 | Testnet runbooks | `docs/testnet/` | Provides controlled rehearsal and external transcript instructions. |
 | Pass 29 pre-rehearsal flow audit | `docs/audits/comprehensive_protocol_flow_audit_before_two_node_v1_5.md` | Classifies major user/operator/reviewer flows and records low-risk fixes before two-node rehearsal. |
 | Pass 30 documentation/evidence audit | `docs/audits/documentation_evidence_package_audit_before_two_node_v1_5.md` | Classifies reviewer docs, runbooks, generated artifacts, and proof templates before two-node rehearsal. |
+| README-to-implementation traceability | `docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` | Maps major README claims to implementation files, tests, generated artifacts, proof templates, disabled launch gates, and explicit open blockers. |
 
 ## Generated artifacts
 

@@ -24,6 +24,8 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 
 Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
 
+The checked-in public testnet seed registry is `configs/public_testnet_seed_registry.json`, the checked-in public testnet trust roots are `configs/public_testnet_trust_roots.json`, and the pinned testnet chain identity config is `configs/chains/weall-testnet-v1.json`. It is a repository-pinned discovery input for observer bootstrapping; it is not provider authority, validator authority, or proof of public beta readiness.
+
 ## Reviewer verification path
 
 Run these checks from a fresh checkout before relying on reviewer-facing claims:
@@ -75,6 +77,7 @@ Frontend state is not protocol authority. Local scripts are not public-readiness
 | Final bounded go-gate | `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` and `Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` | GO only for controlled internal/public-observer rehearsal candidate. |
 | Release evidence manifest | `Weall-Protocol/generated/release_evidence_manifest_v1_5.json` | Tracks generated artifacts and preserves release claim boundaries. |
 | Reviewer evidence index | `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md` | Maps implemented evidence, generated artifacts, and external transcript templates. |
+| README-to-implementation traceability | `Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` | Maps major README claims to implementation files, tests, generated artifacts, templates, disabled gates, and open blockers. |
 | External proof templates | `Weall-Protocol/docs/proofs/` | Templates for evidence that cannot be self-certified by local scripts. |
 | Testnet runbooks | `Weall-Protocol/docs/testnet/` | Operator instructions and transcript expectations for the next rehearsal. |
 | Production posture | `Weall-Protocol/docs/PRODUCTION_POSTURE.md` | Fail-closed production constraints and disabled-readiness boundaries. |
@@ -117,12 +120,17 @@ Public-testnet discovery uses signed/pinned seed-registry and endpoint evidence,
 
 1. `Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md`
 2. `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md`
-3. `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md`
-4. `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md`
-5. `Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md`
-6. `Weall-Protocol/docs/PRODUCTION_POSTURE.md`
-7. `RELEASE_CHECKLIST.md`
+3. `Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md`
+4. `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md`
+5. `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md`
+6. `Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md`
+7. `Weall-Protocol/docs/PRODUCTION_POSTURE.md`
+8. `RELEASE_CHECKLIST.md`
 
 ## Product direction
 
 WeAll is being built as a familiar public social application with deterministic protocol state underneath: public posting, groups, community decisions, reports/reviews, account verification, and trusted responsibilities. The frontend is intentionally moving toward plain human language rather than crypto-native dashboard language, while the backend remains responsible for deterministic state, evidence, and fail-closed protocol boundaries.
+
+## License
+
+This repository is licensed under the Mozilla Public License 2.0. See `LICENSE` for the full license text.

@@ -71,3 +71,9 @@ Do not claim public beta readiness, public mainnet readiness, public validator s
 ## Evidence closure rule
 
 Only real evidence closes open blockers. Local scripts can prove that templates and checks exist; they cannot self-certify external operator runs, counsel/control review, cross-machine replay, real storage/IPFS operation, public observer open-download behavior, production helper topology, or executable upgrade/rollback behavior.
+
+## Strict external evidence boundary
+
+For blocker IDs `AUD-618-P0-001`, `AUD-618-P1-003`, and related external transcript blockers, only external evidence can close the blocker. Local scripts, local generated artifacts, proof templates, or founder-operated rehearsals are not enough to close those blockers.
+
+For `AUD-618-P1-004`, real storage/IPFS operator evidence must pass strict-release validation before the storage/IPFS blocker can be closed. Template files and local simulations do not close the blocker.

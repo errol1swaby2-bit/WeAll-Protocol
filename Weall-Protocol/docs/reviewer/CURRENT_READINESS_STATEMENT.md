@@ -66,6 +66,7 @@ Canonical generated files include:
 - `generated/failure_code_registry_v1_5.json`;
 - `generated/tx_index.json`;
 - `generated/tx_contract_map.json`.
+- `docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` for README claim-to-implementation mapping.
 
 Generated files are evidence of repository consistency. They are not substitutes for missing external proof.
 
