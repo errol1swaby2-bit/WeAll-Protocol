@@ -22,6 +22,8 @@ from weall.runtime.helper_status_route_adapter import build_api_status_response_
 from weall.runtime.helper_status_surface import build_helper_status_surface
 from weall.runtime.launch_matrix import launch_matrix_from_state, launch_matrix_payload
 from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
+from weall.crypto.pq_mldsa import mldsa_backend_status
+from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, PQ_MLKEM_V1, signature_profile_registry_json
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 from weall.runtime.protocol_time import protocol_time_height
 from weall.runtime.runtime_authority import (
@@ -839,6 +841,50 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
         "launch_matrix_capabilities": build_testnet_capability_surface(state if isinstance(state, dict) else {}),
     }
 
+
+def _crypto_profile_payload(state: Mapping[str, Any]) -> dict[str, Any]:
+    """Return read-only cryptographic posture for normal observer UI surfaces.
+
+    This is status/claim-control metadata only. It does not make a node
+    authoritative and does not claim completed production cryptographic review.
+    """
+
+    chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), Mapping) else {}
+    crypto = chain_config.get("crypto") if isinstance(chain_config, Mapping) and isinstance(chain_config.get("crypto"), Mapping) else {}
+    active_profile = _safe_str(
+        crypto.get("active_signature_profile")
+        or state.get("active_signature_profile")
+        or os.environ.get("WEALL_ACTIVE_SIGNATURE_PROFILE")
+        or PQ_MLDSA_V1,
+        PQ_MLDSA_V1,
+    )
+    allowed_profiles = crypto.get("allowed_signature_profiles") if isinstance(crypto, Mapping) else None
+    if not isinstance(allowed_profiles, list):
+        allowed_profiles = [PQ_MLDSA_V1]
+    allowed_profiles = [_safe_str(x, "").strip() for x in allowed_profiles if _safe_str(x, "").strip()]
+    backend = mldsa_backend_status()
+    return {
+        "schema": "weall.crypto_profile.status.v1_5",
+        "active_signature_profile": active_profile,
+        "controlled_testnet_target_signature_profile": PQ_MLDSA_V1,
+        "legacy_signature_profile": LEGACY_ED25519_V1,
+        "transport_key_establishment_target_profile": PQ_MLKEM_V1,
+        "allowed_signature_profiles": allowed_profiles,
+        "mldsa_verifier_available": bool(backend.get("available") is True),
+        "mldsa_backend_status": backend,
+        "ed25519_legacy_transitional_dev_only": True,
+        "production_crypto_audit_complete": False,
+        "production_post_quantum_security_claimed": False,
+        "quantum_proof_claimed": False,
+        "public_mainnet_ready": False,
+        "public_beta_ready": False,
+        "public_multi_validator_bft_ready": False,
+        "live_economics": False,
+        "public_only_protocol_surface": True,
+        "signature_profile_registry": signature_profile_registry_json(),
+        "claim": "Controlled-testnet signing is targeted at profile-aware pq-mldsa-v1, but real ML-DSA verifier availability, PQ re-signing, and external cryptographic review remain required before any durable public-network or mainnet claim.",
+    }
+
 def _base_status_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or {}
@@ -872,6 +918,7 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "schema_version": _schema_version(ex, state if isinstance(state, dict) else {}),
         "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),
         "protocol_profile_hash": runtime_protocol_profile_hash(),
+        "crypto_profile": _crypto_profile_payload(state if isinstance(state, dict) else {}),
         "constitution": constitution,
         "constitutional_clock": constitutional_clock,
         "testnet_readiness": testnet_readiness,
@@ -894,7 +941,7 @@ def status(request: Request) -> dict[str, Any]:
     payload = shape["status_payload"]
     # Keep normal-user node compatibility fields on /v1/status so the frontend
     # can fail closed without relying on operator-only endpoints.
-    for key in ("schema_version", "tx_index_hash", "protocol_profile_hash", "constitution", "constitutional_clock", "testnet_readiness"):
+    for key in ("schema_version", "tx_index_hash", "protocol_profile_hash", "crypto_profile", "constitution", "constitutional_clock", "testnet_readiness"):
         if key in base:
             payload[key] = base[key]
     return payload

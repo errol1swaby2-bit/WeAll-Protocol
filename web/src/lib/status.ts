@@ -21,6 +21,9 @@ export type NodeConnectionState = {
   height?: number;
   finalizedHeight?: number;
   profile?: string;
+  cryptoProfile?: string;
+  cryptoVerifierAvailable?: boolean;
+  cryptoDetail: string;
   authorityLevel: string;
 };
 
@@ -133,6 +136,7 @@ export function summarizeNodeConnection(raw: any, fallbackBase: string): NodeCon
       phase: "offline",
       label: "Offline",
       detail: fallbackBase,
+      cryptoDetail: "crypto profile unavailable until the node responds",
       authorityLevel: "unknown; treat as read-only until the node responds",
     };
   }
@@ -143,6 +147,14 @@ export function summarizeNodeConnection(raw: any, fallbackBase: string): NodeCon
   const mode = raw?.mode ? String(raw.mode) : undefined;
   const lifecycle = raw?.node_lifecycle ? String(raw.node_lifecycle) : undefined;
   const profile = lifecycle || mode;
+  const crypto = raw?.crypto_profile && typeof raw.crypto_profile === "object" ? raw.crypto_profile : {};
+  const cryptoProfile = crypto?.active_signature_profile ? String(crypto.active_signature_profile) : undefined;
+  const cryptoVerifierAvailable = typeof crypto?.mldsa_verifier_available === "boolean" ? crypto.mldsa_verifier_available : undefined;
+  const cryptoDetail = [
+    cryptoProfile ? `active ${cryptoProfile}` : "active profile unknown",
+    crypto?.controlled_testnet_target_signature_profile ? `target ${String(crypto.controlled_testnet_target_signature_profile)}` : "target profile unknown",
+    cryptoVerifierAvailable === true ? "real ML-DSA verifier available" : cryptoVerifierAvailable === false ? "real ML-DSA verifier unavailable" : "verifier status unknown",
+  ].join(" · ");
   const authorityLevel = deriveAuthorityLevel(raw, profile);
   const detailParts = [
     chainId,
@@ -160,6 +172,9 @@ export function summarizeNodeConnection(raw: any, fallbackBase: string): NodeCon
       height,
       finalizedHeight,
       profile,
+      cryptoProfile,
+      cryptoVerifierAvailable,
+      cryptoDetail,
       authorityLevel,
     };
   }
@@ -172,6 +187,9 @@ export function summarizeNodeConnection(raw: any, fallbackBase: string): NodeCon
     height,
     finalizedHeight,
     profile,
+    cryptoProfile,
+    cryptoVerifierAvailable,
+    cryptoDetail,
     authorityLevel,
   };
 }

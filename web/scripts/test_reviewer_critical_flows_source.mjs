@@ -31,10 +31,12 @@ const proposalsList = read("src/pages/Proposals.tsx");
 const economics = read("src/pages/Economics.tsx");
 const wallet = read("src/components/WalletPanel.tsx");
 const node = read("src/pages/NodeDashboard.tsx");
+const statusLib = read("src/lib/status.ts");
+const protocolSummary = read("src/components/ProtocolStatusSummary.tsx");
 const api = read("src/api/weall.ts");
 const app = read("src/App.tsx");
 
-const combined = [router, account, verification, liveRoom, createPost, feed, group, disputes, proposals, proposalsList, economics, wallet, node, api, app].join("\n");
+const combined = [router, account, verification, liveRoom, createPost, feed, group, disputes, proposals, proposalsList, economics, wallet, node, statusLib, protocolSummary, api, app].join("\n");
 
 // Account recovery / custody / profile reviewability.
 assertAnyIncludes(account, ["needs recovery", "recovery secrets", "Account posture"], "account recovery/custody reviewer copy");
@@ -84,6 +86,9 @@ assertIncludes(api, "/v1/wallet/", "wallet status API route");
 assertIncludes(node, "Public observer testnet", "observer public-testnet panel");
 assertIncludes(node, "observer experience", "observer readiness boundary copy");
 assertIncludes(node, "does not replace", "frontend/operator evidence non-authority copy");
+assertIncludes(statusLib, "crypto_profile", "frontend reads backend crypto profile status");
+assertIncludes(protocolSummary, "Crypto profile", "observer UI exposes active crypto profile");
+assertIncludes(combined, "pq-mldsa-v1", "frontend surfaces controlled-testnet PQ signature target");
 assertIncludes(api, "/v1/observer/edge/status", "observer edge API route");
 
 // No private/direct messaging active claim in reviewer-visible UI.

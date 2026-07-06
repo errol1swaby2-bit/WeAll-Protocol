@@ -175,7 +175,7 @@
     {
       "account_custody": true,
       "consensus_critical": false,
-      "current_algorithm": "UI must not present Ed25519 as future testnet profile",
+      "current_algorithm": "UI reads /v1/status crypto_profile, exposes active profile, and must not present Ed25519 as future testnet profile",
       "external_audit_before_mainnet": true,
       "observer_trust": true,
       "surface": "frontend_signing_assumptions",

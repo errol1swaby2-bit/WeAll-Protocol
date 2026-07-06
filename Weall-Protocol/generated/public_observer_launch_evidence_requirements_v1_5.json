@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "8ecf144d9858ca365ad06e958e6b260bb9a469b834f0c9de677bd9d186b79052",
+  "artifact_digest": "56ac67a60c440af56560b56c75cc2a665dcaefa8804625e1d742faeab1b32fea",
   "claim_boundaries": {
     "legal_compliance_ready": false,
     "live_economics": false,
@@ -26,7 +26,8 @@
         "genesis_hash and genesis_state_root are computed from the checked-in testnet genesis ledger",
         "trust roots pin network_id, chain_id, genesis_hash, protocol_profile_hash, and tx_index_hash",
         "signed seed registries are rejected when they mismatch pinned repo commitments",
-        "testnet identity is resettable and non-economic"
+        "testnet identity is resettable and non-economic",
+        "active_signature_profile is pq-mldsa-v1 and legacy-ed25519-v1 is transitional/dev-only unless explicitly allowed"
       ],
       "validation_command": "PYTHONPATH=src python3 scripts/gen_public_testnet_v1_chain_identity.py --check"
     },
@@ -49,8 +50,16 @@
         "seed_p2p_urls",
         "seed_registry_signer",
         "seed_registry_signature",
+        "seed_registry_sig_profile",
+        "active_signature_profile",
         "resettable_testnet",
         "economics_active"
+      ],
+      "required_observations": [
+        "pq-mldsa-v1 is the controlled-testnet target signature profile",
+        "legacy-ed25519-v1 registry material is transitional/dev-only until the registry is PQ re-signed",
+        "unknown or disallowed registry signature profiles fail closed",
+        "observer bootstrap must not treat a signed registry as validator authority"
       ],
       "validation_command": "PYTHONPATH=src WEALL_PUBLIC_TESTNET=1 WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<pubkey> python scripts/sign_public_seed_registry_v1_5.py --input <unsigned.json> --output configs/public_testnet_seed_registry.json --check"
     },
@@ -118,7 +127,9 @@
         "observer edge tx_queue/upstream/confirmed counts",
         "peer connectivity and NAT/relay recovery guidance",
         "backend-derived validator promotion checklist",
-        "transaction propagation timeline"
+        "transaction propagation timeline",
+        "active crypto profile from /v1/status crypto_profile",
+        "no UI copy presents Ed25519 as the future testnet signing profile"
       ],
       "validation_command": "cd web && npm run test:public-observer-rendered"
     },
@@ -170,12 +181,16 @@
     "generated/public_frontend_operator_journey_v1_5.json",
     "generated/public_registry_signer_operations_v1_5.json",
     "generated/public_observer_launch_runtime_transcript_v1_5.json",
+    "generated/crypto_inventory_v1_5.json",
+    "generated/signature_profile_registry_v1_5.json",
+    "generated/quantum_resistance_readiness_v1_5.json",
     "docs/proofs/public-observer-open-download/<date>/<external-operator>/manifest.json"
   ],
   "required_gate_count": 9,
   "schema": "weall.v1_5.public_observer_launch_evidence_requirements",
   "verification_commands": [
     "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
+    "PYTHONPATH=src python3 scripts/gen_crypto_posture_v1_5.py",
     "PYTHONPATH=src:scripts python3 scripts/gen_public_discovery_provider_independence_v1_5.py --check",
     "PYTHONPATH=src:scripts python3 scripts/gen_public_observer_launch_transcript_v1_5.py --check",
     "bash scripts/capture_public_observer_open_download_transcript_v1_5.sh --help",

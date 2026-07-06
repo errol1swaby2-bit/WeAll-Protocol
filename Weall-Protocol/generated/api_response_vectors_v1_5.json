@@ -21,8 +21,8 @@
   "vectors": [
     {
       "auth_case": "anonymous_public_read",
-      "contract_auth": "public_read_redacted_snapshot",
-      "contract_truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation.",
+      "contract_auth": "public_read_node_status_with_crypto_profile_truth_boundary",
+      "contract_truth_boundary": "Status exposes the active/target signature profile and ML-DSA verifier availability for observer review only; it grants no validator authority and does not claim completed production cryptographic audit, public beta, mainnet, live economics, or public multi-validator BFT readiness.",
       "error_codes": [],
       "expected_http_statuses": [
         200
@@ -34,7 +34,7 @@
         "testnet_readiness"
       ],
       "id": "status-public-ok",
-      "metadata_source": "static_generator_heuristic",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "GET",
       "path": "/v1/status",
       "privacy_boundary": "redacted public node status only; grants no authority",

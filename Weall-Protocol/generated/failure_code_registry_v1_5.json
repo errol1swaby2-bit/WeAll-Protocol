@@ -1,7 +1,7 @@
 {
   "by_domain": {
     "api": 101,
-    "launch_readiness": 25,
+    "launch_readiness": 32,
     "runtime": 7,
     "runtime_apply": 69
   },
@@ -115,6 +115,24 @@
       "source_lineno": 0
     },
     {
+      "code": "LEGACY_ED25519_NOT_ALLOWED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "MLDSA_VERIFIER_UNAVAILABLE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
       "code": "NON_PUBLIC_GROUP_UNSUPPORTED",
       "domain": "launch_readiness",
       "family": "LaunchReadiness",
@@ -169,6 +187,15 @@
       "source_lineno": 0
     },
     {
+      "code": "PQ_SEED_REGISTRY_RESIGN_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
       "domain": "api",
       "family": "ApiError.bad_request",
@@ -212,6 +239,42 @@
       "sample_reason": "public observer has no verified tx upstream for required propagation",
       "source": "src/weall/api/routes_public_parts/tx.py",
       "source_lineno": 1677
+    },
+    {
+      "code": "SIGNATURE_PROFILE_MISSING",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "SIGNATURE_PROFILE_NOT_ALLOWED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "SIGNATURE_PROFILE_UNKNOWN",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "SIGNATURE_PROFILE_VERIFIER_UNAVAILABLE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
     },
     {
       "code": "VALIDATOR_PROMOTION_OPERATOR_OPT_IN_REQUIRED",
@@ -1825,7 +1888,7 @@
       "source_lineno": 124
     }
   ],
-  "entry_count": 202,
+  "entry_count": 209,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
@@ -1863,6 +1926,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 93,
+  "unique_code_count": 100,
   "version": "2026-06-batch10a"
 }

@@ -227,6 +227,13 @@
       "idempotency": "safe_session_probe_no_state_mutation",
       "truth_boundary": "Returns unauthenticated diagnostic status when headers are absent and scoped session status only when valid session headers are present; not a generic state snapshot."
     },
+    "GET /v1/status": {
+      "auth": "public_read_node_status_with_crypto_profile_truth_boundary",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_status_config_error",
+      "idempotency": "safe_read_no_state_mutation",
+      "truth_boundary": "Status exposes the active/target signature profile and ML-DSA verifier availability for observer review only; it grants no validator authority and does not claim completed production cryptographic audit, public beta, mainnet, live economics, or public multi-validator BFT readiness."
+    },
     "GET /v1/status/launch-matrix": {
       "auth": "public_read_launch_capability_truth_boundary",
       "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",

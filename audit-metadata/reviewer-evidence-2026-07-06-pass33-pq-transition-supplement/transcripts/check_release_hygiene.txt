@@ -1,0 +1,1 @@
+release_hygiene_failed:runtime_artifact_not_gitignored:Weall-Protocol/.weall-media-cache/,runtime_artifact_not_gitignored:Weall-Protocol/.weall-devnet/,runtime_artifact_not_gitignored:.weall-dev/

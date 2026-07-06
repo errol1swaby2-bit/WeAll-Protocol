@@ -130,6 +130,12 @@ export default function ProtocolStatusSummary(): JSX.Element {
         <div className="protocolSummaryDetail">Frontend state and node switching never grant validator, economics, helper, storage, or upgrade authority.</div>
       </button>
 
+      <button className={`protocolSummaryCard ${summary.node.cryptoVerifierAvailable ? "ok" : "warn"}`} onClick={() => nav("/node")}>
+        <div className="protocolSummaryLabel">Crypto profile</div>
+        <strong>{summary.node.cryptoProfile || "Profile unknown"}</strong>
+        <div className="protocolSummaryDetail">{summary.node.cryptoDetail || "Controlled-testnet target is pq-mldsa-v1; no production cryptographic audit is claimed."}</div>
+      </button>
+
       <button className={`protocolSummaryCard ${localSignerTone}`} onClick={() => nav(summary.session.account ? `/account/${encodeURIComponent(summary.session.account)}` : "/login")}>
         <div className="protocolSummaryLabel">Local device</div>
         <strong>{summary.session.account || "No account selected"}</strong>

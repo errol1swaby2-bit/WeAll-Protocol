@@ -477,6 +477,8 @@ export default function AppRightRail({
             <span className={`railMetaPill railMetaPill-${nodeSummary.phase}`}>{nodeSummary.phase}</span>
           </div>
           <div className="railSupportText">{[chainId, nodeHeight, nodeSummary.profile || "profile unknown"].join(" · ")}</div>
+          <div className="railSupportText">Crypto profile: {nodeSummary.cryptoProfile || "unknown"}</div>
+          <div className="railSupportText">{nodeSummary.cryptoDetail}</div>
           <div className="railSupportText">{nodeSummary.detail || base}</div>
           <div className="railActionRow">
             <button className="railSecondaryAction" onClick={() => void refreshRail()} disabled={refreshingRail}>

@@ -1,0 +1,24 @@
+{
+  "schema": "weall.reviewer_evidence.pass33_pq_transition_supplement.v1",
+  "date": "2026-07-06",
+  "scope": "Reviewer-visible crypto profile/status supplement for Pass 33 fail-closed PQ signature profile scaffolding",
+  "framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
+  "claim_boundary": {
+    "public_mainnet_ready": false,
+    "live_economics": false,
+    "public_multi_validator_bft_ready": false,
+    "production_constitutional_governance_ready": false,
+    "completed_cryptographic_audit": false,
+    "quantum_proof_security": false,
+    "production_post_quantum_security": false,
+    "public_beta_ready": false
+  },
+  "transcripts": [
+    "transcripts/targeted_crypto_tests.txt",
+    "transcripts/affected_readiness_tests.txt",
+    "transcripts/artifact_checks.txt",
+    "transcripts/frontend_status_copy_checks.txt",
+    "transcripts/npm_typecheck.txt",
+    "transcripts/check_release_hygiene.txt"
+  ]
+}
