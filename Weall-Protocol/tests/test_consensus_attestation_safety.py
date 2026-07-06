@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
+from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.ledger.state import LedgerView
 from weall.runtime.block_admission import admit_block_txs
@@ -13,7 +14,7 @@ from weall.tx.canon import load_tx_index_json
 
 
 VALIDATOR_PRIVKEY = "11" * 32
-VALIDATOR_PUBKEY = "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737"
+VALIDATOR_PUBKEY = mldsa65_public_key_from_seed(privkey=VALIDATOR_PRIVKEY, encoding="hex")
 
 
 def _tx_index():

@@ -10,6 +10,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+os.environ.setdefault("WEALL_API_BOOT_RUNTIME", "0")
 from weall.api.app import create_app
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.poh import apply_poh

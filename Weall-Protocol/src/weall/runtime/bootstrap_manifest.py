@@ -344,8 +344,8 @@ def sign_manifest(manifest: Json, *, privkey: str, signer_pubkey: str) -> Json:
     from weall.crypto.signature_profiles import PQ_MLDSA_V1
 
     payload = dict(_manifest_payload(manifest))
-    payload["manifest_hash"] = _computed_manifest_hash(payload)
     payload["sig_profile"] = PQ_MLDSA_V1
+    payload["manifest_hash"] = _computed_manifest_hash(payload)
     sig = sign_signature_for_profile(
         sig_profile=PQ_MLDSA_V1,
         message=payload["manifest_hash"].encode("utf-8"),

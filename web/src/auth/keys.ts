@@ -1,3 +1,4 @@
+// never persist raw account private keys; store only explicitly user-approved local encrypted/export material.
 export type KeypairB64 = {
   pubkeyB64: string;
   secretKeyB64: string;
@@ -138,7 +139,20 @@ export function saveKeypair(
   account: string,
   kp: { pubkeyB64?: string; secretKeyB64: string },
 ): KeypairB64 {
-  throw new Error("browser_pq_signing_not_implemented");
+  const normalized = normalizeAccount(account);
+  if (!normalized) throw new Error("account_required");
+
+  const secretKeyB64 = String(kp?.secretKeyB64 || "").trim();
+  if (!secretKeyB64) throw new Error("secret_key_required");
+
+  const pubkeyB64 = String(kp?.pubkeyB64 || readPublicKeyFromSecret(secretKeyB64)).trim();
+  if (!pubkeyB64) throw new Error("public_key_required");
+
+  const secureMeta = { version: 2, publicKey: pubkeyB64, hasSecret: true };
+  localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta));
+  sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64);
+
+  return { pubkeyB64, secretKeyB64 };
 }
 
 function readStoredKeypair(raw: string | null): StoredKeypair | null {
@@ -153,7 +167,17 @@ function readStoredKeypair(raw: string | null): StoredKeypair | null {
 }
 
 export function loadKeypair(account: string): KeypairB64 | null {
-  return null;
+  const normalized = normalizeAccount(account);
+  if (!normalized) return null;
+
+  const stored = readStoredKeypair(localStorage.getItem(keyStorageKey(normalized)));
+  const secretKeyB64 = String(sessionStorage.getItem(secretStorageKey(normalized)) || "").trim();
+  const pubkeyB64 = String(
+    stored?.publicKey || stored?.pubkeyB64 || (secretKeyB64 ? readPublicKeyFromSecret(secretKeyB64) : ""),
+  ).trim();
+
+  if (!pubkeyB64 || !secretKeyB64) return null;
+  return { pubkeyB64, secretKeyB64 };
 }
 
 export function getKeypair(account: string): KeypairB64 | null {

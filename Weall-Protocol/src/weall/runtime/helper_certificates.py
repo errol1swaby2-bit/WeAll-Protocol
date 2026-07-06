@@ -7,7 +7,7 @@ from typing import Any, Mapping, Sequence
 from weall.runtime.json_tools import canonical_json_str
 
 
-from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
+from weall.crypto.sig import public_key_for_private_key_profile, sign_signature_for_profile, verify_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode, normalize_signature_profile_id
 
 
@@ -325,6 +325,17 @@ def _signature_material(cert: HelperExecutionCertificate | HelperCertificate) ->
     return canonical_json(cert.signing_payload()).encode("utf-8")
 
 
+def _pq_seed_from_helper_material(value: Any) -> str:
+    raw = str(value or "").strip()
+    try:
+        data = bytes.fromhex(raw)
+        if len(data) == 32:
+            return raw.lower()
+    except Exception:
+        pass
+    return hashlib.sha256(("weall-helper-pq-material:" + raw).encode("utf-8")).hexdigest()
+
+
 def sign_helper_certificate(
     cert: HelperExecutionCertificate | HelperCertificate | None = None,
     privkey: str | None = None,
@@ -345,6 +356,8 @@ def sign_helper_certificate(
         descriptor_hash = str(kwargs["descriptor_hash"])
         plan_id = str(kwargs["plan_id"])
         privkey = str(kwargs.get("privkey") or privkey or "")
+        if not privkey and (kwargs.get("receipt_secret") is not None or secret is not None):
+            privkey = _pq_seed_from_helper_material(kwargs.get("receipt_secret") if kwargs.get("receipt_secret") is not None else secret)
         issued_ms = int(kwargs.get("issued_ms", 0))
         profile = PQ_MLDSA_V1
         payload = {
@@ -380,6 +393,8 @@ def sign_helper_certificate(
     profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", "")) or default_signature_profile_for_mode()
     unsigned_json = {**normalized.to_json(), "sig_profile": profile}
     normalized = HelperExecutionCertificate(**unsigned_json)
+    if privkey is None and secret is not None:
+        privkey = _pq_seed_from_helper_material(secret)
     if privkey is not None:
         sig = sign_signature_for_profile(sig_profile=profile, message=_signature_material(normalized), privkey=str(privkey), encoding="hex")
         return HelperExecutionCertificate(**{**normalized.to_json(), "helper_signature": sig, "sig_profile": profile})
@@ -393,8 +408,19 @@ def verify_helper_certificate_signature(
     sig_profile: str | None = None,
 ) -> bool:
     normalized = ensure_helper_execution_certificate(cert)
+    profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", "")) or PQ_MLDSA_V1
+
+    if helper_pubkey is None and secret is not None:
+        try:
+            helper_pubkey = public_key_for_private_key_profile(
+                sig_profile=profile,
+                privkey=_pq_seed_from_helper_material(secret),
+                encoding="hex",
+            )
+        except Exception:
+            helper_pubkey = None
+
     if helper_pubkey is not None:
-        profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", "")) or PQ_MLDSA_V1
         return verify_signature_for_profile(
             sig_profile=profile,
             message=_signature_material(normalized),

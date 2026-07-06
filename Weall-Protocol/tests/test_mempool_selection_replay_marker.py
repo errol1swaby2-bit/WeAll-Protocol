@@ -39,6 +39,7 @@ def _submit_signed_register(ex: WeAllExecutor, signer: str = "@freshuser") -> No
             "nonce": 1,
             "payload": payload,
             "chain_id": ex.chain_id,
+            "sig_profile": "pq-mldsa-v1",
             "sig": priv.sign(msg).hex(),
         }
     )

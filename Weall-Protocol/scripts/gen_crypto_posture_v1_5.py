@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from weall.crypto.pq_mldsa import mldsa_backend_status
 from weall.crypto.signature_profiles import PQ_MLDSA_V1, signature_profile_registry_json
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,11 +39,15 @@ def write_json(path: Path, data: dict) -> None:
 
 
 def main() -> None:
+    backend_status = mldsa_backend_status()
+    real_mldsa_ready = bool(backend_status.get("available") is True)
     write_json(GENERATED / "crypto_inventory_v1_5.json", {
         "schema": "weall.crypto_inventory.v1_5",
         "required_framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
         "active_signature_profile": PQ_MLDSA_V1,
         "classical_signature_profiles_removed": True,
+        "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
+        "mldsa_backend_status": backend_status,
         "production_crypto_audit_complete": False,
         "surfaces": SURFACES,
     })
@@ -54,6 +59,8 @@ def main() -> None:
         "controlled_testnet_default": PQ_MLDSA_V1,
         "classical_signature_profiles_removed": True,
         "real_mldsa_backend_required": True,
+        "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
+        "mldsa_backend_status": backend_status,
         "production_crypto_audit_complete": False,
         "public_mainnet_ready": False,
         "public_beta_ready": False,

@@ -36,6 +36,7 @@ def test_prod_http_admission_rejects_bad_signature(
         "nonce": 1,
         "payload": {"pubkey": pub},
         "chain_id": "mempool-prod-badsig",
+        "sig_profile": "pq-mldsa-v1",
         "sig": "00" * 64,
     }
     verdict = admit_tx(bad, ex.read_state(), ex.tx_index, context="http")
@@ -58,6 +59,7 @@ def test_prod_http_admission_accepts_valid_signature(
         "nonce": 1,
         "payload": payload,
         "chain_id": "mempool-prod-goodsig",
+        "sig_profile": "pq-mldsa-v1",
         "sig": priv.sign(
             canonical_tx_message(
                 chain_id="mempool-prod-goodsig",

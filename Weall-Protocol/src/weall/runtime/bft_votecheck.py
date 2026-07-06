@@ -111,7 +111,13 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
         return False
     height = self._block_height_hint(block)
     if height <= 0:
-        return False
+        # Some restart/liveness harnesses exercise qc-less local testnet proposals
+        # before a committed height exists. Keep production strict, but allow this
+        # non-prod qc-less path so vote-state persistence can be tested.
+        mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
+        allow_qcless = str(os.environ.get("WEALL_BFT_ALLOW_QC_LESS_BLOCKS") or "").strip() in {"1", "true", "yes", "on"}
+        if mode == "prod" or not allow_qcless:
+            return False
     txs = block.get("txs")
     if not isinstance(txs, list):
         return False

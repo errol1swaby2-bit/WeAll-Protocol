@@ -31,7 +31,8 @@ def test_external_observer_live_gate_script_contract() -> None:
     assert "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN" in script
     assert 'SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD"' in script
 
-    assert "SigningKey.generate()" in script
+    assert "generate_mldsa65_keypair" in script
+    assert "pq-mldsa-v1" in script
     assert "ACCOUNT_REGISTER" in script
     assert "ACCOUNT_DEVICE_REGISTER node key binding" in script
     assert "ACCOUNT_DEVICE_REGISTER" in script

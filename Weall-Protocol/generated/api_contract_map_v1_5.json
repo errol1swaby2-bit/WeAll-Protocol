@@ -408,7 +408,7 @@
       "route_id": "467052b1fb5c59ba",
       "route_path_without_v1_prefix": "/consensus/block-production/proof",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 306,
+      "source_lineno": 315,
       "summary": "",
       "tags": [
         "consensus"
@@ -430,7 +430,7 @@
       "route_id": "88a35ef2343b2b79",
       "route_path_without_v1_prefix": "/consensus/block-production/readiness",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 176,
+      "source_lineno": 185,
       "summary": "",
       "tags": [
         "consensus"
@@ -2674,7 +2674,7 @@
       "route_id": "265cefbc6cf5d572",
       "route_path_without_v1_prefix": "/session/create",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 370,
+      "source_lineno": 386,
       "summary": "",
       "tags": [
         "session"
@@ -2696,7 +2696,7 @@
       "route_id": "8aa87bfedb4476d9",
       "route_path_without_v1_prefix": "/session/login",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 174,
+      "source_lineno": 175,
       "summary": "",
       "tags": [
         "session"
@@ -2718,7 +2718,7 @@
       "route_id": "c3f8b32a3bb27285",
       "route_path_without_v1_prefix": "/session/me",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 472,
+      "source_lineno": 488,
       "summary": "",
       "tags": [
         "session"

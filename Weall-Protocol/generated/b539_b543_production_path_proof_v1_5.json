@@ -81,16 +81,21 @@
       "ok": true
     },
     "proof_endpoint_used": false,
-    "proposal_block_hash": "b8a79764b579b2ba4b286fec7a4ebd99d781b286631dde51028fe2c6d147a76e",
+    "proposal_block_hash": "volatile-local-rehearsal-block-hash-normalized",
     "proposal_block_id": "ff1cf84786b7491ea58a6d0b37d7b3d00f45aead70d6b5b55f840b1ecb9a260f",
     "qc_formed": true,
     "quorum_threshold": 3,
     "state_roots": {
-      "replay": "67e8c142aea9a42301e7f2fc3ea820c19fa9e2abee8251cd3ff9cda38a44560d",
-      "source": "67e8c142aea9a42301e7f2fc3ea820c19fa9e2abee8251cd3ff9cda38a44560d"
+      "replay": "matched-local-rehearsal-root",
+      "source": "matched-local-rehearsal-root"
     },
     "state_roots_match": true,
     "validator_count": 4,
+    "volatile_fields_normalized": [
+      "production_bft_path.proposal_block_hash",
+      "production_bft_path.state_roots.source",
+      "production_bft_path.state_roots.replay"
+    ],
     "vote_count": 4
   },
   "production_block_replay": {
@@ -142,7 +147,7 @@
     "dispute_remedy_applied": true,
     "feed_items": 1,
     "feed_rank_mode": "production",
-    "final_state_root": "018c9eb3b618875e3d66f7c1ec880d27d0d65d6b3c176a4adccce6b4dc3d5270",
+    "final_state_root": "ed31145e03d231ed70e1c2b25e7ae52a7d9923f322d57691dd686fb55a393682",
     "ok": true,
     "poh_challenge_status": "resolved",
     "protocol_upgrade_record_only": true,

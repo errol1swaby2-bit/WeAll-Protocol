@@ -40,6 +40,7 @@ def _signed_account_register(*, chain_id: str, signer: str, nonce: int) -> dict[
         "nonce": nonce,
         "payload": payload,
         "chain_id": chain_id,
+        "sig_profile": "pq-mldsa-v1",
         "sig": priv.sign(msg).hex(),
     }
 
@@ -62,19 +63,14 @@ def test_prod_http_admission_rejects_unsigned_tx_and_executor_keeps_local_fixtur
     assert verdict.ok is False
     assert verdict.code == "missing_sig"
 
-    # executor.submit_tx remains intentionally permissive for local fixture paths;
-    # public HTTP routes enforce signature verification before calling it.
+    # Production blocks require self-authenticating txs. Local executor fixture
+    # submission can still stage txs directly, but anything expected to commit
+    # must carry a valid PQ signature profile.
     local_fixture = ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@fixturelocal",
-            "nonce": 1,
-            "payload": {"pubkey": "mldsa:fixture-local"},
-        }
+        _signed_account_register(chain_id="candidate-prod", signer="@fixturelocal", nonce=1)
     )
     assert local_fixture["ok"] is True
 
-    # A valid signed tx remains admissible through the same executor-local path.
     good = ex.submit_tx(
         _signed_account_register(chain_id="candidate-prod", signer="@signed", nonce=1)
     )

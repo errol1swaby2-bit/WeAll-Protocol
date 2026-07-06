@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "7ec4da6120b3dc0014ae0470d7393e836ff5530a3df5824c43a1526fa200c933",
+  "artifact_digest": "07a58d92a8cc4587b2aee01fdc754e3f0938f80d8ffe3fdfe8546a759846952a",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -147,7 +147,7 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "18eb29ef12d4a9c85dd33cc1e85a49cd7ad4ddf58dba6f6915b6962bc3904330",
+      "file_sha256": "8c6452b00878f2e65f364687e8509073bd2a318d88f5d976053d87c60616c30b",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -179,7 +179,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/crypto_inventory_v1_5.json": {
-      "file_sha256": "d2488936874dd8aae3681fff68ab22fffd56a58d9ef460ebc1a97283c1afed49",
+      "file_sha256": "8abd9ad55e994c5d6ce83daa2b3f50c81c9d5588a61975dfc6cab8965c02f2c8",
       "ok": true,
       "path": "generated/crypto_inventory_v1_5.json",
       "present": true,
@@ -195,7 +195,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "1b266950dca4e5f78973425f44198a2b86f306e6be377ef8fa5a6b683d3d3e58",
+      "file_sha256": "26c482fc0809c30dba36548ea2dd9fc80892d58bbcaa42cdf661301c7b5c235c",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -203,7 +203,7 @@
       "schema": "weall.v1_5.failure_code_registry"
     },
     "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json": {
-      "file_sha256": "aa819c3e73ee8d8d18e0f90b700bcd0b3a94588031e72bc2d981b16ba3138df4",
+      "file_sha256": "c1df5fd94011966fd23fa2a6ecebc7d063dfeeb04459d36fbf18787b6a04d7ac",
       "ok": true,
       "path": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
       "present": true,
@@ -315,7 +315,7 @@
       "schema": "weall.v1_5.public_validator_endpoint_churn_proof"
     },
     "generated/quantum_resistance_readiness_v1_5.json": {
-      "file_sha256": "e9e52cfeba0a35a40d3cd52cc7e2cf940be9d0ee3a5a619f23f8b96446cf865e",
+      "file_sha256": "e04daf23146ddf6cd91104394306570574d911f9c2b4528939d05986ae07f852",
       "ok": true,
       "path": "generated/quantum_resistance_readiness_v1_5.json",
       "present": true,

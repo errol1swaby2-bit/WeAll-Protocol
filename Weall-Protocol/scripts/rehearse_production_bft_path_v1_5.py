@@ -148,13 +148,18 @@ def run_harness() -> dict[str, Any]:
             os.environ.update(old_env)
         source_manifest = replay.get("source_manifest") if isinstance(replay.get("source_manifest"), dict) else {}
         replay_manifest = replay.get("replay_manifest") if isinstance(replay.get("replay_manifest"), dict) else {}
-        roots = {
+        raw_roots = {
             "source": str(source_manifest.get("computed_state_root") or ""),
             "replay": str(replay_manifest.get("computed_state_root") or ""),
         }
+        roots_match = len(set(raw_roots.values())) == 1
+        roots = {
+            "source": "matched-local-rehearsal-root" if roots_match else raw_roots["source"],
+            "replay": "matched-local-rehearsal-root" if roots_match else raw_roots["replay"],
+        }
         db_files = {vid: str((root / f"{vid}.sqlite").name) for vid in VALIDATORS}
         return {
-            "ok": bool(qc_json) and bool(replay.get("ok")) and len(set(roots.values())) == 1,
+            "ok": bool(qc_json) and bool(replay.get("ok")) and roots_match,
             "batch": "539",
             "production_bft_methods_used": [
                 "WeAllExecutor.bft_leader_propose",
@@ -168,7 +173,7 @@ def run_harness() -> dict[str, Any]:
             "validator_count": len(VALIDATORS),
             "quorum_threshold": quorum_threshold(len(VALIDATORS)),
             "proposal_block_id": str(proposal.get("block_id") or ""),
-            "proposal_block_hash": str(proposal.get("block_hash") or ""),
+            "proposal_block_hash": "volatile-local-rehearsal-block-hash-normalized",
             "vote_count": len(votes),
             "qc_formed": isinstance(qc_json, dict),
             "production_replay": {
@@ -177,7 +182,12 @@ def run_harness() -> dict[str, Any]:
                 "issues": list(replay.get("issues") or []),
             },
             "state_roots": roots,
-            "state_roots_match": len(set(roots.values())) == 1,
+            "state_roots_match": roots_match,
+            "volatile_fields_normalized": [
+                "production_bft_path.proposal_block_hash",
+                "production_bft_path.state_roots.source",
+                "production_bft_path.state_roots.replay",
+            ],
             "db_files_created": db_files,
             "locked_boundaries": {"public_validators": False, "live_economics": False, "automatic_upgrades": False, "production_helpers": False},
         }

@@ -207,7 +207,7 @@ def _bft_artifact_shape_fast_fail(self, kind: str, payload: Json) -> bool:
     if not isinstance(payload, dict):
         return False
 
-    max_field_chars = max(8, _safe_int(os.environ.get("WEALL_BFT_MAX_FIELD_CHARS"), 512))
+    max_field_chars = max(8, _safe_int(os.environ.get("WEALL_BFT_MAX_FIELD_CHARS"), 16384))
     max_qc_votes = max(1, _safe_int(os.environ.get("WEALL_BFT_MAX_QC_VOTES_PER_ARTIFACT"), 512))
 
     def _str_field(name: str, *, required: bool = False, allow_empty: bool = False) -> bool:

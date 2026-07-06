@@ -14,11 +14,47 @@ def _sha256(b: bytes) -> bytes:
     return hashlib.sha256(b).digest()
 
 
-def deterministic_mldsa_keypair(*, label: str) -> tuple[str, str]:
+class DeterministicMLDSAPrivateKey:
+    """Small test helper that mimics the pyca private-key methods used by older tests.
+
+    The backing material is still a ML-DSA-65 seed.  This compatibility shim
+    prevents the PQ-only migration from reintroducing classical signing while
+    avoiding a repository-wide test rewrite.
+    """
+
+    def __init__(self, seed_hex: str) -> None:
+        self.seed_hex = str(seed_hex)
+
+    def private_bytes_raw(self) -> bytes:
+        return bytes.fromhex(self.seed_hex)
+
+    def private_bytes(self, *args, **kwargs) -> bytes:
+        return self.private_bytes_raw()
+
+    def sign(self, data: bytes) -> bytes:
+        sig_hex = sign_signature_for_profile(
+            sig_profile=PQ_MLDSA_V1,
+            message=bytes(data),
+            privkey=self.seed_hex,
+            encoding="hex",
+        )
+        return bytes.fromhex(sig_hex)
+
+    def hex(self) -> str:
+        return self.seed_hex
+
+    def __str__(self) -> str:
+        return self.seed_hex
+
+    def __bytes__(self) -> bytes:
+        return self.private_bytes_raw()
+
+
+def deterministic_mldsa_keypair(*, label: str) -> tuple[str, DeterministicMLDSAPrivateKey]:
     """Deterministically derive a test-only ML-DSA-65 seed and public key."""
     seed_hex = _sha256(("weall-test-pq-mldsa:" + (label or "")).encode("utf-8")).hex()
     pk_hex = mldsa65_public_key_from_seed(privkey=seed_hex, encoding="hex")
-    return pk_hex, seed_hex
+    return pk_hex, DeterministicMLDSAPrivateKey(seed_hex)
 
 
 def ensure_account_has_test_key(accounts: Json, *, account_id: str) -> str:
@@ -65,7 +101,7 @@ def sign_tx_dict(tx: Json, *, label: str | None = None) -> Json:
         payload=payload,
         parent=parent_s,
     )
-    sig_hex = sign_signature_for_profile(sig_profile=PQ_MLDSA_V1, message=msg, privkey=sk, encoding="hex")
+    sig_hex = sign_signature_for_profile(sig_profile=PQ_MLDSA_V1, message=msg, privkey=str(sk), encoding="hex")
     out = dict(tx)
     out["chain_id"] = chain_id
     out["network_id"] = network_id

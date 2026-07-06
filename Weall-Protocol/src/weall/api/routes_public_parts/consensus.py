@@ -107,6 +107,15 @@ async def consensus_attest_submit(request: Request):
             {"tx_type": tx_type, "signer": signer},
         )
 
+    # ML-DSA signatures are large. Reject tiny forged placeholders before any
+    # permissive local/testnet fallback can mask the bad signature.
+    if str(body.get("sig_profile") or "").strip() == "pq-mldsa-v1" and len(sig) < 1000:
+        raise ApiError.forbidden(
+            "bad_sig",
+            "signature verification failed",
+            {"tx_type": tx_type, "signer": signer},
+        )
+
     if not verify_tx_signature(st if isinstance(st, dict) else {}, body):
         raise ApiError.forbidden(
             "bad_sig",

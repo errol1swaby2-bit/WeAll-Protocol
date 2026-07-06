@@ -39,6 +39,7 @@ def _signed_account_register(*, chain_id: str, signer: str = "@operatoruser", no
         "nonce": nonce,
         "payload": payload,
         "chain_id": chain_id,
+        "sig_profile": "pq-mldsa-v1",
         "sig": priv.sign(msg).hex(),
     }
 

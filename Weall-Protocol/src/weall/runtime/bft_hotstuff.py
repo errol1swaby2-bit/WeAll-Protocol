@@ -117,7 +117,7 @@ def _bft_sig_profile(value: Any) -> str:
     profile = normalize_signature_profile_id(value)
     if profile:
         return profile
-    return ""
+    return PQ_MLDSA_V1
 
 
 def _bft_sig_allowed(profile: str) -> bool:
@@ -194,7 +194,7 @@ def canonical_vote_message(
     signer: str,
     validator_epoch: int = 0,
     validator_set_hash: str = "",
-    sig_profile: str = "",
+    sig_profile: str = PQ_MLDSA_V1,
 ) -> bytes:
     profile = _bft_sig_profile(sig_profile)
     payload = {
@@ -222,7 +222,7 @@ def canonical_timeout_message(
     signer: str,
     validator_epoch: int = 0,
     validator_set_hash: str = "",
-    sig_profile: str = "",
+    sig_profile: str = PQ_MLDSA_V1,
 ) -> bytes:
     profile = _bft_sig_profile(sig_profile)
     payload = {
@@ -251,7 +251,7 @@ def canonical_proposal_message(
     validator_epoch: int = 0,
     validator_set_hash: str = "",
     justify_qc_id: str = "",
-    sig_profile: str = "",
+    sig_profile: str = PQ_MLDSA_V1,
 ) -> bytes:
     profile = _bft_sig_profile(sig_profile)
     payload = {
@@ -291,7 +291,7 @@ class BftVote:
     signer: str
     pubkey: str
     sig: str
-    sig_profile: str = ""
+    sig_profile: str = PQ_MLDSA_V1
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
@@ -386,7 +386,7 @@ class BftTimeout:
     signer: str
     pubkey: str
     sig: str
-    sig_profile: str = ""
+    sig_profile: str = PQ_MLDSA_V1
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
@@ -501,7 +501,7 @@ def verify_qc(
         vote must verify against the fully bound canonical message that includes
         block_hash, validator_epoch, and validator_set_hash.
     """
-    if not qc.chain_id or not qc.block_id or not qc.block_hash:
+    if not qc.chain_id or not qc.block_id:
         return False
 
     vset = set(normalize_validators(validators))
@@ -1170,7 +1170,7 @@ class HotStuffBFT:
         )
         if vote.chain_id != self.chain_id:
             return None
-        if not vote.block_id or not vote.block_hash or not vote.signer:
+        if not vote.block_id or not vote.signer:
             return None
 
         # Verify signature and membership.

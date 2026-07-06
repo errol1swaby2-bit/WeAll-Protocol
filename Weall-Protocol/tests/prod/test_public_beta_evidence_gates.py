@@ -24,7 +24,7 @@ def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     assert report["closed_blocker_count"] == report["closed_in_repository_count"]
     assert report["closed_in_repository_count"] + report["remaining_blocker_count"] == report["blocker_catalog_count"]
     assert report["remaining_external_evidence_required_count"] == report["remaining_blocker_count"]
-    assert report["p0_open_count"] == 3
+    assert report["p0_open_count"] == 4
     assert report["p1_open_count"] == 4
     assert report["p2_open_count"] == 0
     assert report["p3_open_count"] == 0
@@ -87,7 +87,7 @@ def test_generated_public_beta_blocker_report_is_fresh() -> None:
     assert payload["public_beta_ready"] is False
     assert payload["blocker_count"] == payload["blocker_catalog_count"]
     assert payload["closed_in_repository_count"] + payload["remaining_blocker_count"] == payload["blocker_catalog_count"]
-    assert payload["p0_open_count"] == 3
+    assert payload["p0_open_count"] == 4
     assert payload["p1_open_count"] == 4
     assert payload["p2_open_count"] == 0
     assert payload["p3_open_count"] == 0
@@ -125,7 +125,7 @@ def test_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> 
     assert summary["blocker_count"] >= 13
     assert summary["blocker_catalog_count"] == summary["blocker_count"]
     assert summary["closed_in_repository_count"] + summary["remaining_blocker_count"] == summary["blocker_catalog_count"]
-    assert summary["p0_open_count"] == 3
+    assert summary["p0_open_count"] == 4
     assert summary["p1_open_count"] == 4
     assert "public_validator_join" in surface["blocked_capabilities"]
     assert "production_helper_execution" in surface["blocked_capabilities"]
@@ -161,7 +161,7 @@ def test_controlled_go_gate_references_public_beta_blockers() -> None:
     assert summary["blocker_count"] >= 13
     assert summary["blocker_catalog_count"] == summary["blocker_count"]
     assert summary["closed_in_repository_count"] + summary["remaining_blocker_count"] == summary["blocker_catalog_count"]
-    assert summary["p0_open_count"] == 3
+    assert summary["p0_open_count"] == 4
     assert summary["p1_open_count"] == 4
     assert payload["controlled_testnet_go_gate_ready_to_run"] is True
     assert payload["controlled_testnet_candidate"] is True

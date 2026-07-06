@@ -82,6 +82,16 @@ def _signing_material(unsigned: Mapping[str, Any]) -> bytes:
     return _canon_json(dict(unsigned)).encode("utf-8")
 
 
+def _pq_seed_from_helper_material(value: Any) -> str:
+    raw = str(value or "").strip()
+    try:
+        data = bytes.fromhex(raw)
+        if len(data) == 32:
+            return raw.lower()
+    except Exception:
+        pass
+    return sha256(("weall-helper-pq-material:" + raw).encode("utf-8")).hexdigest()
+
 
 def sign_helper_receipt(
     *,
@@ -98,6 +108,8 @@ def sign_helper_receipt(
     plan_id: str = "",
     privkey: str | None = None,
     sig_profile: str | None = None,
+    receipt_secret: str | None = None,
+    allow_legacy_receipt_secret: bool = False,
 ) -> HelperReceipt:
     normalized_tx_ids = _normalize_tx_ids(ordered_tx_ids)
     profile = normalize_signature_profile_id(sig_profile) or default_signature_profile_for_mode()
@@ -117,6 +129,8 @@ def sign_helper_receipt(
         "sig_profile": profile,
     }
     payload = _signing_material(unsigned)
+    if privkey is None and receipt_secret is not None:
+        privkey = _pq_seed_from_helper_material(receipt_secret)
     if privkey is None:
         raise ValueError("helper receipt signing requires pq-mldsa-v1 privkey")
     if profile != PQ_MLDSA_V1:

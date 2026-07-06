@@ -83,9 +83,12 @@ def _current_height(state: Json) -> int:
 
 
 def _key_record_from_payload_or_raise(state: Json, payload: Json, *, key_type: str) -> Json:
+    # Account key records must be schedule-independent. Block height may differ
+    # across equivalent replay chunking/restart schedules, so do not bake the
+    # current height into the key record itself.
     rec = account_key_record_from_payload(
         payload,
-        created_height=_current_height(state),
+        created_height=0,
         default_profile=default_signature_profile_for_mode(),
         key_type=key_type,
     )

@@ -10,7 +10,14 @@ from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
 from weall.api.mode_isolation import direct_session_mutation_issue
+from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed
 from weall.crypto.sig import sign_mldsa
+
+SESSION_LOGIN_PRIVKEY = "dcf7f9411aaf31d038f0cde1ac634ec77b23265ae6f6c4e43741d294414811a1"
+SESSION_LOGIN_PUBKEY = mldsa65_public_key_from_seed(
+    privkey=SESSION_LOGIN_PRIVKEY,
+    encoding="hex",
+)
 from weall.runtime.apply.identity import apply_identity
 from weall.runtime.session_keys import session_record_for, session_record_key
 from weall.runtime.tx_admission_types import TxEnvelope
@@ -28,6 +35,9 @@ def _canon(account: str, session_key: str, ttl_s: int, issued_at_ms: int, device
             "ttl_s": ttl_s,
             "issued_at_ms": issued_at_ms,
             "device_id": device_id,
+            "domain_separator": "weall.session.login.v1",
+            "object_kind": "session_login",
+            "sig_profile": "pq-mldsa-v1",
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -141,7 +151,7 @@ def test_seeded_demo_direct_login_stores_hashed_session_key(monkeypatch: pytest.
                     "by_id": {
                         "k:1": {
                             "key_type": "main",
-                            "pubkey": "15c57e17e48ac97cb24538397f2402e3776f1ad1b756ab40af4dfd66db4f5e19",
+                            "pubkey": SESSION_LOGIN_PUBKEY,
                             "revoked": False,
                         }
                     }
@@ -174,7 +184,7 @@ def test_seeded_demo_direct_login_stores_hashed_session_key(monkeypatch: pytest.
     device_id = "browser:@satoshi:test"
     sig = sign_mldsa(
         message=_canon(account, session_key, ttl_s, issued_at_ms, device_id),
-        privkey="dcf7f9411aaf31d038f0cde1ac634ec77b23265ae6f6c4e43741d294414811a1",
+        privkey=SESSION_LOGIN_PRIVKEY,
         encoding="base64",
     )
 
@@ -186,7 +196,7 @@ def test_seeded_demo_direct_login_stores_hashed_session_key(monkeypatch: pytest.
             "ttl_s": ttl_s,
             "issued_at_ms": issued_at_ms,
             "device_id": device_id,
-            "pubkey": "15c57e17e48ac97cb24538397f2402e3776f1ad1b756ab40af4dfd66db4f5e19",
+            "pubkey": SESSION_LOGIN_PUBKEY,
             "sig": sig,
         },
     )

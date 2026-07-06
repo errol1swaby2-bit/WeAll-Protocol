@@ -1758,6 +1758,7 @@ class TxEnvelopeModel(_StrictModel):
     nonce: int = Field(..., ge=0)
     payload: Json = Field(default_factory=dict)
     sig: str = Field(default="")
+    pubkey: str = Field(default="")
     sig_profile: str = Field(default="")
     signature: Json | None = None
     parent: str | None = None

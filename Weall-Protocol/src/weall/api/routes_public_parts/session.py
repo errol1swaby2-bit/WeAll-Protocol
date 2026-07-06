@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from typing import Any
 
@@ -207,6 +208,21 @@ async def v1_session_login(request: Request):
     ttl_s = _ttl_s(body.get("ttl_s", 24 * 60 * 60))
     device_id = _norm_device_id(body.get("device_id") or f"browser:{account}")
     sig_profile = normalize_signature_profile_id(body.get("sig_profile"))
+    crypto_mode = str(os.environ.get("WEALL_CRYPTO_MODE") or "").strip().lower()
+    strict_crypto_mode = crypto_mode in {
+        "closed-testnet",
+        "closed_testnet",
+        "controlled-testnet",
+        "controlled_testnet",
+        "public-testnet",
+        "public_testnet",
+    }
+    if (
+        not sig_profile
+        and not strict_crypto_mode
+        and str(os.environ.get("WEALL_MODE") or "").strip().lower() in {"dev", "demo", "test"}
+    ):
+        sig_profile = PQ_MLDSA_V1
     pubkey = str(body.get("pubkey") or "").strip()
     sig = str(body.get("sig") or "").strip()
 

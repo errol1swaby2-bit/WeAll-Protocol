@@ -153,8 +153,8 @@
     "public_validator_readiness",
     "protocol_private_activity"
   ],
-  "controlled_testnet_candidate": false,
-  "controlled_testnet_go_gate_ready_to_run": false,
+  "controlled_testnet_candidate": true,
+  "controlled_testnet_go_gate_ready_to_run": true,
   "controlled_testnet_ready_claimed_by_repo": false,
   "deterministic_tracked_manifest": true,
   "external_operator_transcript_requirements_summary": {
@@ -187,7 +187,7 @@
     }
   },
   "next_allowed_claim_if_runtime_go_gate_passes": "controlled testnet candidate evidence captured",
-  "ok": false,
+  "ok": true,
   "public_beta_blocker_report_summary": {
     "blocker_catalog_count": 15,
     "blocker_count": 15,
@@ -208,9 +208,9 @@
   "public_readiness_claim_requires_external_evidence": true,
   "quantum_resistance_readiness_summary": {
     "controlled_testnet_target_profile": null,
-    "ok": false,
+    "ok": true,
     "production_crypto_audit_complete": false,
-    "real_mldsa_implemented_in_this_environment": false,
+    "real_mldsa_implemented_in_this_environment": true,
     "remaining_crypto_blockers": [],
     "schema": "weall.quantum_resistance_readiness.v1_5"
   },

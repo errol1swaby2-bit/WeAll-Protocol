@@ -52,13 +52,24 @@ class HelperExecutor:
     ):
         if legacy_receipt_secret_mode:
             raise ValueError("helper receipt shared-secret mode has been removed")
-        self.helper_signing_material = {str(k): str(v) for k, v in dict(helper_signing_material).items()}
+        self.helper_signing_material = {str(k): self._normalize_helper_material(v) for k, v in dict(helper_signing_material).items()}
         self.helper_pubkeys = {str(k): str(v) for k, v in dict(helper_pubkeys or {}).items()}
         derived: dict[str, str] = {}
         for helper_id, material in self.helper_signing_material.items():
             derived[helper_id] = mldsa65_public_key_from_seed(privkey=str(material), encoding="hex")
         for helper_id, pubkey in derived.items():
             self.helper_pubkeys.setdefault(helper_id, pubkey)
+
+    @staticmethod
+    def _normalize_helper_material(value: Any) -> str:
+        raw = str(value or "").strip()
+        try:
+            data = bytes.fromhex(raw)
+            if len(data) == 32:
+                return raw.lower()
+        except Exception:
+            pass
+        return sha256(("weall-helper-pq-material:" + raw).encode("utf-8")).hexdigest()
 
     def plan(
         self,

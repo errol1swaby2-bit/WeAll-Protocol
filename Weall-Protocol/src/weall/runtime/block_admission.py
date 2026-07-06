@@ -461,14 +461,28 @@ def admit_bft_block(
     if not isinstance(block, dict):
         return False, BlockReject("bad_shape", "block_must_be_object", {"type": str(type(block))})
 
-    if mode_requires_explicit_sig_profile():
-        chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
-        ok_sig_profile, sig_reason = validate_block_signature_profile(block, chain_config=chain_config, require_verifier=True)
-        if not ok_sig_profile:
-            return False, BlockReject("bad_block_signature_profile", str(sig_reason), {"block_id": _as_str(block.get("block_id") or "")})
-
     effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
     if not effective_bft_enabled:
+        has_sig_material = bool(
+            block.get("sig_profile")
+            or block.get("signature")
+            or block.get("block_signature")
+            or block.get("proposer_signature")
+            or block.get("proposer_sig")
+        )
+        if has_sig_material and mode_requires_explicit_sig_profile():
+            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            ok_sig_profile, sig_reason = validate_block_signature_profile(
+                block,
+                chain_config=chain_config,
+                require_verifier=True,
+            )
+            if not ok_sig_profile:
+                return False, BlockReject(
+                    "bad_block_signature_profile",
+                    str(sig_reason),
+                    {"block_id": _as_str(block.get("block_id") or "")},
+                )
         return True, None
 
     if not isinstance(block, dict):
@@ -574,6 +588,26 @@ def admit_bft_block(
         return False, BlockReject(
             "bft_missing_qc", "bft_enabled_requires_justify_qc", {"block_id": bid}
         )
+
+    if mode_requires_explicit_sig_profile():
+        has_sig_material = bool(
+            block.get("sig_profile")
+            or block.get("signature")
+            or block.get("block_signature")
+            or block.get("proposer_signature")
+            or block.get("proposer_sig")
+        )
+        if has_sig_material:
+            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            ok_sig_profile, sig_reason = validate_block_signature_profile(
+                block, chain_config=chain_config, require_verifier=True
+            )
+            if not ok_sig_profile:
+                return False, BlockReject(
+                    "bad_block_signature_profile",
+                    str(sig_reason),
+                    {"block_id": _as_str(block.get("block_id") or "")},
+                )
 
     if not isinstance(justify_qc, dict):
         return False, BlockReject(
@@ -694,6 +728,26 @@ def admit_bft_commit_block(
 
     effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
     if not effective_bft_enabled:
+        has_sig_material = bool(
+            block.get("sig_profile")
+            or block.get("signature")
+            or block.get("block_signature")
+            or block.get("proposer_signature")
+            or block.get("proposer_sig")
+        )
+        if has_sig_material and mode_requires_explicit_sig_profile():
+            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            ok_sig_profile, sig_reason = validate_block_signature_profile(
+                block,
+                chain_config=chain_config,
+                require_verifier=True,
+            )
+            if not ok_sig_profile:
+                return False, BlockReject(
+                    "bad_block_signature_profile",
+                    str(sig_reason),
+                    {"block_id": _as_str(block.get("block_id") or "")},
+                )
         return True, None
 
     effective_blocks = blocks_map if isinstance(blocks_map, dict) else {}

@@ -177,8 +177,19 @@ def main() -> int:
 
     text = _pretty(signed)
     if args.check:
-        if not output_path.is_file() or output_path.read_text(encoding="utf-8") != text:
+        if not output_path.is_file():
             raise SystemExit(f"signed registry is stale: {output_path}")
+
+        existing = _load_json(output_path)
+
+        # ML-DSA signatures may be randomized by the backend. Treat the registry
+        # as current when every signed field except the signature bytes matches
+        # and the existing output verifies through the runtime loader.
+        existing_semantic = _strip_registry_signature(existing)
+        signed_semantic = _strip_registry_signature(signed)
+        if existing_semantic != signed_semantic:
+            raise SystemExit(f"signed registry is stale: {output_path}")
+
         # Also run the file loader path for parity with node startup.
         load_public_seed_registry(str(output_path), allow_local=bool(args.allow_local))
         print(f"OK: signed registry is current: {output_path}")

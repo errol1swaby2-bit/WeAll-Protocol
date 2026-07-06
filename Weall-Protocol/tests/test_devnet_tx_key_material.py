@@ -33,7 +33,7 @@ def test_devnet_tx_ensure_keyfile_creates_reusable_key_material(tmp_path: Path) 
     assert first_payload["account"] == "@devnet-smoke"
     assert first_payload["keyfile"] == str(keyfile)
     assert "private_key_hex" not in first_payload
-    assert len(first_payload["public_key_hex"]) == 64
+    assert len(first_payload["public_key_hex"]) == 3904
 
     stored = json.loads(keyfile.read_text(encoding="utf-8"))
     assert stored["account"] == "@devnet-smoke"

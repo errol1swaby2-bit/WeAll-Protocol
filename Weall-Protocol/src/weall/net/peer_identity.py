@@ -39,6 +39,15 @@ from weall.net.messages import PeerHello, WireHeader
 Json = dict[str, Any]
 
 
+def verify_mldsa_sig(pubkey: str, msg_bytes: bytes, sig: str) -> bool:
+    return verify_signature_for_profile(
+        sig_profile=PQ_MLDSA_V1,
+        message=bytes(msg_bytes),
+        sig=str(sig),
+        pubkey=str(pubkey),
+    )
+
+
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
@@ -345,18 +354,11 @@ def verify_peer_hello_identity(*, hello: PeerHello, ledger: Json) -> tuple[bool,
     )
 
     try:
-        ok = bool(
-            verify_signature_for_profile(
-                sig_profile=sig_profile,
-                message=v3,
-                sig=sig,
-                pubkey=pubkey,
-            )
-        )
+        ok = bool(verify_mldsa_sig(pubkey, v3, sig))
         if not ok and sig_profile == PQ_MLDSA_V1:
-            ok = bool(verify_signature_for_profile(sig_profile=sig_profile, message=v2, sig=sig, pubkey=pubkey))
+            ok = bool(verify_mldsa_sig(pubkey, v2, sig))
         if not ok and sig_profile == PQ_MLDSA_V1:
-            ok = bool(verify_signature_for_profile(sig_profile=sig_profile, message=v1, sig=sig, pubkey=pubkey))
+            ok = bool(verify_mldsa_sig(pubkey, v1, sig))
     except Exception:
         return (False, "sig_verify_exception", account_id, pubkey)
 

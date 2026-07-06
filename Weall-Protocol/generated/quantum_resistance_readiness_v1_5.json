@@ -4,11 +4,23 @@
   "classical_signature_profiles_removed": true,
   "controlled_testnet_default": "pq-mldsa-v1",
   "live_economics": false,
+  "mldsa_backend_status": {
+    "algorithm": "ML-DSA-65",
+    "available": true,
+    "backend": "pyca-cryptography",
+    "context": "weall:pq-mldsa-v1:protocol-signature",
+    "minimum_cryptography_version": "47.0.0",
+    "public_key_bytes": 1952,
+    "reason": "ok",
+    "repo_locked_cryptography_version": "48.0.0",
+    "signature_bytes": 3309
+  },
   "production_crypto_audit_complete": false,
   "public_beta_ready": false,
   "public_mainnet_ready": false,
   "public_multi_validator_bft_ready": false,
   "real_mldsa_backend_required": true,
+  "real_mldsa_implemented_in_this_environment": true,
   "remaining_blockers": [
     "external cryptographic review",
     "fresh post-migration observer and validator evidence",

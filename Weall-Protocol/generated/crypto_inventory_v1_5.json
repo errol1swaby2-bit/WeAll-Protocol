@@ -1,7 +1,19 @@
 {
   "active_signature_profile": "pq-mldsa-v1",
   "classical_signature_profiles_removed": true,
+  "mldsa_backend_status": {
+    "algorithm": "ML-DSA-65",
+    "available": true,
+    "backend": "pyca-cryptography",
+    "context": "weall:pq-mldsa-v1:protocol-signature",
+    "minimum_cryptography_version": "47.0.0",
+    "public_key_bytes": 1952,
+    "reason": "ok",
+    "repo_locked_cryptography_version": "48.0.0",
+    "signature_bytes": 3309
+  },
   "production_crypto_audit_complete": false,
+  "real_mldsa_implemented_in_this_environment": true,
   "required_framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
   "schema": "weall.crypto_inventory.v1_5",
   "surfaces": [

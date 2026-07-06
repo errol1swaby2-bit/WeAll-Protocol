@@ -1,8 +1,4 @@
 {
-  "active_signature_profile": "pq-mldsa-v1",
-  "allowed_signature_profiles": [
-    "pq-mldsa-v1"
-  ],
   "chain_id": "weall-testnet-v1",
   "economics_active": false,
   "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
@@ -13,7 +9,6 @@
     "Seed registries must match all hash commitments before fresh observers accept discovery metadata.",
     "Discovery-level verification does not grant validator authority."
   ],
-  "production_crypto_audit_complete": false,
   "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
   "resettable_testnet": true,
   "source_genesis_ledger": "configs/genesis.ledger.testnet-v1.json",
