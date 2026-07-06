@@ -18,6 +18,16 @@ This index separates implemented repository evidence, generated artifacts, local
 
 Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 
+## Evidence status legend
+
+| Status label | Meaning | Claim boundary |
+|---|---|---|
+| Generated artifact | Deterministic repository output produced by a checked-in generator. | Proves repo consistency only; not external evidence by itself. |
+| Local repository evidence | Source, tests, docs, or local command output from this checkout. | Supports controlled rehearsal review only. |
+| Template-only proof slot | Checked-in schema/runbook for future evidence capture. | Does not close blockers and must not be cited as completed external evidence. |
+| Completed limited proof | Attached proof from a bounded prior rehearsal. | May support the exact bounded claim stated in that proof; does not close broader public beta/mainnet gates. |
+| External blocker-closing evidence | Fresh operator/counsel transcript package from the exact commit with validation output. | Required before escalating claims or closing the corresponding open blocker. |
+
 ## Implemented repository evidence
 
 | Evidence | Path | Reviewer use |
@@ -30,6 +40,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 | Release truth docs | `docs/TRUTH_BOUNDARY.md`, `docs/PRODUCTION_POSTURE.md`, `docs/PROTOCOL_VERSIONING_STRATEGY.md` | Defines claim boundaries and fail-closed requirements. |
 | Testnet runbooks | `docs/testnet/` | Provides controlled rehearsal and external transcript instructions. |
 | Pass 29 pre-rehearsal flow audit | `docs/audits/comprehensive_protocol_flow_audit_before_two_node_v1_5.md` | Classifies major user/operator/reviewer flows and records low-risk fixes before two-node rehearsal. |
+| Pass 30 documentation/evidence audit | `docs/audits/documentation_evidence_package_audit_before_two_node_v1_5.md` | Classifies reviewer docs, runbooks, generated artifacts, and proof templates before two-node rehearsal. |
 
 ## Generated artifacts
 
@@ -56,6 +67,19 @@ The current local package supports a controlled internal/public-observer rehears
 - frontend type/build/source checks.
 
 Local/controlled evidence is useful for review, but local scripts are not authoritative for external readiness claims.
+
+## Proof package distinctions
+
+| Proof area | Path | Current status | Reviewer instruction |
+|---|---|---|---|
+| Controlled-devnet observer live gate | `docs/proofs/controlled-devnet-observer-live-gate/` | Completed limited proof for a controlled-devnet two-machine observer live gate. | May be cited only for that bounded controlled-devnet result; it does not close current public beta blockers. |
+| Public observer open-download | `docs/proofs/public-observer-open-download/2026-07-05/` | Template-only proof slot. | not completed external evidence; does not close `AUD-628-P1-001`. |
+| External cross-machine replay | `docs/proofs/external-cross-machine-replay/2026-07-05/` | Template-only proof slot. | not completed external evidence; does not close `AUD-618-P1-003`. |
+| Real storage/IPFS operator | `docs/proofs/real-storage-ipfs-operator/2026-07-05/` | Template-only proof slot. | not completed external evidence; does not close `AUD-618-P1-004`. |
+| Independent validator/operator | `docs/proofs/independent-controlled-validator-operator/2026-07-05/` | Template-only proof slot. | not completed external evidence; does not close `AUD-618-P0-001`. |
+| Legal/compliance counsel | `docs/proofs/legal-compliance-counsel/2026-07-05/` | Template-only proof slot. | not completed external evidence; does not close `AUD-618-P0-002`. |
+| Protocol upgrade execution | `docs/proofs/protocol-upgrade-execution-hardening/2026-07-05/` | Template-only future hardening proof slot. | not completed external evidence; does not close `AUD-618-P0-003`. |
+| Production helper topology | `docs/proofs/production-helper-topology-hardening/2026-07-05/` | Template-only future hardening proof slot. | not completed external evidence; does not close `AUD-618-P1-005`. |
 
 ## External evidence still required
 

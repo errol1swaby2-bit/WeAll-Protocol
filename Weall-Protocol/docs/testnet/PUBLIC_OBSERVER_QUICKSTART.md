@@ -52,6 +52,8 @@ Observer boot should use signed/pinned chain commitments, seed registry, trust r
 
 ## 5. Inspect backend status
 
+Expected backend status output: `readyz` returns an OK/ready response, `status` and `chain/identity` expose the chain identity/height surface, seed and validator routes show signed discovery/validator endpoint status, observer edge status separates local queue state from upstream acceptance/confirmation, and testnet capabilities keep high-risk launch claims disabled.
+
 ```bash
 curl -s http://127.0.0.1:8000/v1/readyz | python3 -m json.tool
 curl -s http://127.0.0.1:8000/v1/status | python3 -m json.tool
@@ -66,11 +68,13 @@ curl -s http://127.0.0.1:8000/v1/status/testnet-capabilities | python3 -m json.t
 
 ```bash
 cd ../web
-npm install
+npm ci
 npm run typecheck
 npm run build
 node scripts/test_rendered_civic_loop_source.mjs
 ```
+
+Expected frontend check output: typecheck and build complete without errors, and the source rendered-civic-loop check exits successfully. These checks prove source/build health only; they do not prove browser E2E behavior or protocol finality.
 
 Open the frontend and capture the first-run journey using `Weall-Protocol/docs/testnet/FIRST_15_MINUTES.md`. Frontend screenshots or source checks are supportive evidence only; frontend state is not protocol authority.
 

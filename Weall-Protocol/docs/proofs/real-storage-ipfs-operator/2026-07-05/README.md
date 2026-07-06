@@ -1,6 +1,6 @@
 # Real storage/IPFS operator transcript — 2026-07-05 template
 
-Status: TEMPLATE ONLY. This directory prepares the evidence package for
+Status: TEMPLATE ONLY — not completed external evidence. This directory prepares the evidence package for
 `AUD-618-P1-004`; it does not close the blocker and does not claim public beta,
 mainnet, public storage-market, or public decentralized media durability
 readiness.

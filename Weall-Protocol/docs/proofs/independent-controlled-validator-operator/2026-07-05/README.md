@@ -1,6 +1,6 @@
 # Independent controlled validator/operator transcript — AUD-618-P0-001
 
-Status: TEMPLATE ONLY. This directory prepares the evidence package for
+Status: TEMPLATE ONLY — not completed external evidence. This directory prepares the evidence package for
 `AUD-618-P0-001`; it does not close the blocker and does not claim public beta,
 public validator, public multi-validator BFT, or mainnet readiness.
 

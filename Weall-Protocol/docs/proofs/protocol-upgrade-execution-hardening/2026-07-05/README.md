@@ -1,5 +1,7 @@
 # Protocol upgrade execution hardening proof slot — 2026-07-05
 
+Status: TEMPLATE ONLY — not completed external evidence.
+
 This directory reserves the future proof slot for `AUD-618-P0-003`.
 
 The files here are **templates only**. They do not close the blocker and must not be cited as evidence that executable upgrades, migrations, rollbacks, automatic software delivery, or public beta readiness are available.

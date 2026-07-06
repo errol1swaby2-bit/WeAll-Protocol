@@ -4,6 +4,9 @@ Status: reviewer-facing evidence index for external review.
 
 Last reviewed: 2026-06-04.
 
+> Current-status note (Pass 30): this file is a historical reviewer checklist. The canonical current evidence index for the controlled internal/public-observer rehearsal candidate is `docs/reviewer/EVIDENCE_INDEX.md`, and the current blocker truth is `generated/public_beta_blocker_report_v1_5.json` with `public_beta_ready=false`, 14 catalog entries, 7 closed in repository, and 7 still open. Do not use this historical checklist to override the current allowed claim or to close external evidence blockers.
+
+
 This document lists the evidence that should be captured for the reviewer submission package and the truth boundary for each item. It is intentionally conservative: it records what the repository can prove without claiming public mainnet, public multi-validator BFT, or live economics.
 
 ## Submission identity

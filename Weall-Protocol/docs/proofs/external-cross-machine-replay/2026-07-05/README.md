@@ -1,6 +1,6 @@
 # External Cross-Machine Replay Transcript Template — 2026-07-05
 
-Status: TEMPLATE ONLY.
+Status: TEMPLATE ONLY — not completed external evidence.
 
 This folder prepares the evidence package for `AUD-618-P1-003`. It does not
 close the blocker and must not be described as public beta readiness.

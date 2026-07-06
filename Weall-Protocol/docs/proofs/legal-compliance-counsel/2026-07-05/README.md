@@ -1,6 +1,6 @@
 # Legal/compliance counsel attestation proof slot — 2026-07-05
 
-Status: template only. This directory does not close `AUD-618-P0-002`.
+Status: TEMPLATE ONLY — not completed external evidence. This directory does not close `AUD-618-P0-002`.
 
 Use this directory to attach a real counsel or controlled external reviewer
 attestation for the exact release commit. The checked-in template is intentionally

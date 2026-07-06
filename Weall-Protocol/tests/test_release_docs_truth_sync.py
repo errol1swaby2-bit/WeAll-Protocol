@@ -233,3 +233,113 @@ def test_first_15_minutes_guide_is_ordered_and_clean_clone_copy_pasteable() -> N
     ]
     for heading in stale_numbered_headings:
         assert heading not in text
+
+
+def test_pass30_documentation_evidence_audit_is_present_and_bounded() -> None:
+    path = REPO_ROOT / "docs" / "audits" / "documentation_evidence_package_audit_before_two_node_v1_5.md"
+    text = _read(path)
+
+    assert ALLOWED_REHEARSAL_CLAIM in text
+    assert "## Documentation classification table" in text
+    assert "Generated artifact" in text
+    assert "Template-only proof slot" in text
+    assert "not completed external evidence" in text
+    assert "public_beta_ready` | `false`" in text
+    assert "Blocker catalog entries | `14`" in text
+    assert "Closed in repository | `7`" in text
+    assert "Still open | `7`" in text
+
+    for area in (
+        "Root `README.md`",
+        "Current reviewer docs",
+        "Public observer quickstarts",
+        "Legal/compliance proof template",
+        "Upgrade execution proof slot",
+        "Production helper topology proof slot",
+        "Generated artifacts",
+    ):
+        assert area in text
+
+    for forbidden in (
+        "does not claim public beta readiness",
+        "frontend state are not protocol authority",
+        "Local scripts",
+    ):
+        assert forbidden.lower() in text.lower()
+
+
+def test_readme_links_to_final_go_gate_and_current_evidence_artifacts() -> None:
+    text = _read(OUTER_ROOT / "README.md")
+    for required_link in (
+        "Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md",
+        "Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md",
+        "Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+        "Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+        "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json",
+        "Weall-Protocol/generated/release_evidence_manifest_v1_5.json",
+    ):
+        assert required_link in text
+
+
+def test_evidence_index_separates_generated_local_template_completed_and_external_evidence() -> None:
+    text = _read(REPO_ROOT / "docs" / "reviewer" / "EVIDENCE_INDEX.md")
+    for phrase in (
+        "## Evidence status legend",
+        "Generated artifact",
+        "Local repository evidence",
+        "Template-only proof slot",
+        "Completed limited proof",
+        "External blocker-closing evidence",
+        "## Proof package distinctions",
+        "docs/proofs/controlled-devnet-observer-live-gate/",
+        "docs/proofs/public-observer-open-download/2026-07-05/",
+        "docs/audits/documentation_evidence_package_audit_before_two_node_v1_5.md",
+        "not completed external evidence",
+    ):
+        assert phrase in text
+
+
+def test_proof_templates_are_clearly_labeled_and_do_not_close_blockers() -> None:
+    template_readmes = sorted((REPO_ROOT / "docs" / "proofs").glob("*/2026-07-05/README.md"))
+    assert template_readmes, "expected dated proof-template README files"
+
+    for path in template_readmes:
+        text = _read(path).lower()
+        normalized = " ".join(text.split())
+        assert "template only" in text, f"{path} must be explicitly template-only"
+        assert "not completed external evidence" in text, f"{path} must say it is not completed external evidence"
+        assert "does not close" in normalized or "do not close" in normalized, f"{path} must not close blockers by itself"
+        assert "public beta" in text, f"{path} must preserve public beta claim boundary"
+
+    completed = _read(REPO_ROOT / "docs" / "proofs" / "controlled-devnet-observer-live-gate" / "README.md").lower()
+    assert "result: pass" in completed
+    assert "controlled-devnet" in completed
+    assert "public beta" not in completed or "does not" in completed
+
+
+def test_public_observer_quickstarts_have_canonical_current_path_and_expected_outputs() -> None:
+    current = _read(REPO_ROOT / "docs" / "testnet" / "PUBLIC_OBSERVER_QUICKSTART.md")
+    pointer = _read(REPO_ROOT / "docs" / "testnet" / "PUBLIC_OBSERVER_TESTNET_QUICKSTART.md")
+    supplement = _read(REPO_ROOT / "docs" / "PUBLIC_OBSERVER_TESTNET_QUICKSTART.md")
+
+    assert "npm ci" in current
+    assert "Expected backend status output" in current
+    assert "Expected frontend check output" in current
+    assert "WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh" in current
+    assert "docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md" in pointer
+    assert "canonical current runbook" in pointer.lower()
+    assert "does not close `AUD-628-P1-001`" in pointer
+    assert "Current-status note (Pass 30)" in supplement
+    assert "detailed provider-independent discovery" in supplement
+    assert "does not replace the current runbook" in supplement
+
+
+def test_legacy_reviewer_evidence_index_defers_to_current_evidence_index() -> None:
+    text = _read(REPO_ROOT / "docs" / "REVIEWER_EVIDENCE_INDEX.md")
+    assert "Current-status note (Pass 30)" in text
+    assert "docs/reviewer/EVIDENCE_INDEX.md" in text
+    assert "public_beta_ready=false" in text
+    assert "14 catalog entries" in text
+    assert "7 closed in repository" in text
+    assert "7 still open" in text
+    assert "Do not use this historical checklist" in text

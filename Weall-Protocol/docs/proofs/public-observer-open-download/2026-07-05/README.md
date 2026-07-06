@@ -1,6 +1,10 @@
 # Public Observer Open-Download Transcript Template — 2026-07-05
 
+Status: TEMPLATE ONLY — not completed external evidence.
+
 This directory is a **template**, not completed external evidence.
+
+This template does not close the blocker.
 
 It prepares `AUD-628-P1-001`, the external public observer open-download / state-sync / rendered journey transcript blocker. It must not be cited as blocker closure until an external tester uses the capture script from a clean clone on a machine not controlled by the founder and attaches the completed transcript package.
 

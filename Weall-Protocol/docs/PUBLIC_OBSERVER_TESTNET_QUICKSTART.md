@@ -1,5 +1,8 @@
 # Public Observer Testnet Quickstart
 
+> Current-status note (Pass 30): the canonical current runbook for the next bounded two-node/public-observer rehearsal is `docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md`. This file is a detailed provider-independent discovery and registry-signing supplement. It does not replace the current runbook, does not close `AUD-628-P1-001`, and must not be used to claim public observer launch, public beta, public validator, mainnet, live economics, automatic upgrade, production helper, legal/compliance, or public storage-market readiness.
+
+
 Batch 629 keeps the public observer path fail-closed around signed discovery and adds launch transcript, validator endpoint churn, rendered frontend, and registry signer operation evidence gates. This document is still conservative: it does not claim public beta, public validator, mainnet, or production readiness by itself.
 
 ## Safety boundary
