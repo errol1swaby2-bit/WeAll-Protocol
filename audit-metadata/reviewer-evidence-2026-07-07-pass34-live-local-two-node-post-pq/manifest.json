@@ -1,0 +1,34 @@
+{
+  "bundle": "reviewer-evidence-2026-07-07-pass34-live-local-two-node-post-pq",
+  "claim_boundary": {
+    "completed_cryptographic_audit": false,
+    "external_two_machine_observer_evidence": false,
+    "live_economics": false,
+    "live_local_two_node_rehearsal": true,
+    "mldsa_account_register_api_bound_fixed": true,
+    "production_post_quantum_security": false,
+    "public_beta_ready": false,
+    "public_mainnet_ready": false,
+    "public_multi_validator_bft_ready": false,
+    "public_seed_observer_launch_runtime_transcript": false
+  },
+  "not_run": [
+    "external two-machine observer/operator evidence",
+    "public observer launch runtime transcript against a real public seed endpoint",
+    "external cryptographic review"
+  ],
+  "protocol_status": "pre-public-testnet protocol implementation under active hardening",
+  "results": {
+    "api_contract_map_check": "current",
+    "b539_b543_check": "fresh",
+    "failure_code_registry_check": "current",
+    "full_pytest_after_live_local_pq_patch": "passed",
+    "live_local_two_node_rehearsal": "passed",
+    "post_fix_pq_live_local_gate_tests": "passed",
+    "public_beta_check": "current; public_beta_ready=false",
+    "release_manifest_check": "current",
+    "truth_boundary_check": "OK",
+    "v15_artifacts_check": "OK"
+  },
+  "scope": "live local two-node post-PQ controlled-devnet rehearsal"
+}

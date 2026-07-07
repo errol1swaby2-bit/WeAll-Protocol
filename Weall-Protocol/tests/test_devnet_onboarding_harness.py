@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
+from weall.crypto.pq_mldsa import generate_mldsa65_keypair
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,26 @@ def test_account_register_tx_skeleton_route() -> None:
     assert body["tx"]["tx_type"] == "ACCOUNT_REGISTER"
     assert body["tx"]["signer_hint"] == "@new-human"
     assert body["tx"]["payload"] == {"pubkey": "abcd1234"}
+
+
+def test_account_register_tx_skeleton_accepts_mldsa_public_key() -> None:
+    app = create_app(boot_runtime=False)
+    client = TestClient(app)
+    pubkey = generate_mldsa65_keypair(encoding="hex")["pubkey"]
+
+    assert len(pubkey) > 256
+
+    resp = client.post(
+        "/v1/accounts/tx/register",
+        json={"account_id": "@new-pq-human", "pubkey": pubkey},
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["tx"]["tx_type"] == "ACCOUNT_REGISTER"
+    assert body["tx"]["signer_hint"] == "@new-pq-human"
+    assert body["tx"]["payload"] == {"pubkey": pubkey}
 
 
 def test_devnet_onboarding_scripts_are_syntax_valid() -> None:

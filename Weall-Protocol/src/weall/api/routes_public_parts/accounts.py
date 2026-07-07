@@ -85,9 +85,16 @@ def _normalize_keys(acct: dict[str, Any]) -> list[dict]:
     return out
 
 
+# ML-DSA-65 public keys are 1952 bytes.  Hex-encoded keys are therefore
+# 3904 characters, so the account-register skeleton route must not retain the
+# earlier Ed25519-sized 256-character cap.  Keep a bounded field rather than
+# making this unbounded.
+MAX_ACCOUNT_REGISTER_PUBKEY_CHARS = 4096
+
+
 class AccountRegisterTxRequest(BaseModel):
     account_id: str = Field(..., min_length=1, max_length=128)
-    pubkey: str = Field(..., min_length=1, max_length=256)
+    pubkey: str = Field(..., min_length=1, max_length=MAX_ACCOUNT_REGISTER_PUBKEY_CHARS)
     parent: str | None = Field(default=None, max_length=256)
 
 

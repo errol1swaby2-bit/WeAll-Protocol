@@ -1,0 +1,1 @@
+OK: generated/release_evidence_manifest_v1_5.json is current (25 artifacts)
