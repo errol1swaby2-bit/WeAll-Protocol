@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "07a58d92a8cc4587b2aee01fdc754e3f0938f80d8ffe3fdfe8546a759846952a",
+  "artifact_digest": "61ba6b027c558f81a378a84faf03d1e6e443b994a322d719c72b07bac4ef6ad6",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -179,7 +179,7 @@
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/crypto_inventory_v1_5.json": {
-      "file_sha256": "8abd9ad55e994c5d6ce83daa2b3f50c81c9d5588a61975dfc6cab8965c02f2c8",
+      "file_sha256": "a4a47b35a2167f1101448d1c9a58c8bfe8fa156190a7d8fdc97e7a6fd952ade4",
       "ok": true,
       "path": "generated/crypto_inventory_v1_5.json",
       "present": true,
@@ -315,7 +315,7 @@
       "schema": "weall.v1_5.public_validator_endpoint_churn_proof"
     },
     "generated/quantum_resistance_readiness_v1_5.json": {
-      "file_sha256": "e04daf23146ddf6cd91104394306570574d911f9c2b4528939d05986ae07f852",
+      "file_sha256": "798732cc7bd884239694ad7157c233e342f8728dde79810d5af30f0beec58422",
       "ok": true,
       "path": "generated/quantum_resistance_readiness_v1_5.json",
       "present": true,
@@ -323,7 +323,7 @@
       "schema": "weall.quantum_resistance_readiness.v1_5"
     },
     "generated/signature_profile_registry_v1_5.json": {
-      "file_sha256": "652584ea2b868960daaede73ac2b82c1beafe3be66ed3e202c30a6d38f78f0dd",
+      "file_sha256": "27be3cb9948b5ff4d6e67f29d4e3b697a9d187e86dec4e65d80cfd39a2d79359",
       "ok": true,
       "path": "generated/signature_profile_registry_v1_5.json",
       "present": true,

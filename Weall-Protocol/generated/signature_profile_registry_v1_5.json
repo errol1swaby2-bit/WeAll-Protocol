@@ -1,11 +1,27 @@
 {
   "active_signature_profile": "pq-mldsa-v1",
-  "classical_signature_profiles_removed": true,
+  "classical_signature_profiles_removed_from_authority": true,
   "default_controlled_testnet_signature_profile": "pq-mldsa-v1",
   "fail_closed_unknown_profiles": true,
   "future_backup_signature_profile": "pq-slhdsa-v1",
+  "legacy_profile_defined_for_inventory_only": "legacy-ed25519-v1",
   "production_crypto_audit_complete": false,
   "profiles": [
+    {
+      "activation_height_support": true,
+      "algorithm_family": "Ed25519",
+      "allowed_in_closed_testnet": false,
+      "allowed_in_dev_local": false,
+      "allowed_in_mainnet": false,
+      "allowed_in_public_testnet": false,
+      "chain_config_allowlist_support": true,
+      "notes": "Historical pre-PQ profile retained for deterministic inventory and migration refusal tests only; not accepted by runtime admission.",
+      "post_quantum": false,
+      "profile_id": "legacy-ed25519-v1",
+      "purpose": "legacy",
+      "status": "disabled",
+      "verifier_available": false
+    },
     {
       "activation_height_support": true,
       "algorithm_family": "ML-DSA-65/FIPS-204",

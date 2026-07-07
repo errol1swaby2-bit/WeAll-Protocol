@@ -1,8 +1,10 @@
 {
   "acceptable_claim": "WeAll remains a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has migrated to profile-aware ML-DSA signing for active protocol authority surfaces. This supports quantum-resistance hardening but does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, or production constitutional governance readiness.",
   "active_signature_profile": "pq-mldsa-v1",
-  "classical_signature_profiles_removed": true,
+  "classical_signature_profiles_removed_from_authority": true,
   "controlled_testnet_default": "pq-mldsa-v1",
+  "legacy_signature_profile": "legacy-ed25519-v1",
+  "legacy_signature_profile_status": "disabled",
   "live_economics": false,
   "mldsa_backend_status": {
     "algorithm": "ML-DSA-65",

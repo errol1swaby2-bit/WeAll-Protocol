@@ -13,6 +13,7 @@ import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+LEGACY_ED25519_V1 = "legacy-ed25519-v1"
 PQ_MLDSA_V1 = "pq-mldsa-v1"
 PQ_SLHDSA_V1 = "pq-slhdsa-v1"
 PQ_MLKEM_V1 = "pq-mlkem-v1"
@@ -53,6 +54,21 @@ def _detect_mldsa_verifier_available() -> bool:
 
 def _profiles() -> dict[str, SignatureProfile]:
     return {
+        LEGACY_ED25519_V1: SignatureProfile(
+            profile_id=LEGACY_ED25519_V1,
+            algorithm_family="Ed25519",
+            purpose="legacy",
+            status="disabled",
+            post_quantum=False,
+            allowed_in_dev_local=False,
+            allowed_in_closed_testnet=False,
+            allowed_in_public_testnet=False,
+            allowed_in_mainnet=False,
+            verifier_available=False,
+            activation_height_support=True,
+            chain_config_allowlist_support=True,
+            notes="Historical pre-PQ profile retained for deterministic inventory and migration refusal tests only; not accepted by runtime admission.",
+        ),
         PQ_MLDSA_V1: SignatureProfile(
             profile_id=PQ_MLDSA_V1,
             algorithm_family="ML-DSA-65/FIPS-204",
@@ -114,7 +130,8 @@ def signature_profile_registry_json() -> dict[str, Any]:
         "future_backup_signature_profile": PQ_SLHDSA_V1,
         "transport_key_establishment_profile": PQ_MLKEM_V1,
         "fail_closed_unknown_profiles": True,
-        "classical_signature_profiles_removed": True,
+        "classical_signature_profiles_removed_from_authority": True,
+        "legacy_profile_defined_for_inventory_only": LEGACY_ED25519_V1,
         "production_crypto_audit_complete": False,
         "profiles": profiles,
     }
@@ -193,6 +210,8 @@ def profile_allowed_for_context(
     profile = get_signature_profile(normalized)
     if profile is None:
         return False, "unknown_signature_profile"
+    if profile.status in {"legacy", "disabled"}:
+        return False, "signature_profile_disabled"
     if purpose == "signing" and profile.purpose not in SIGNING_PURPOSES:
         return False, "signature_profile_wrong_purpose"
     allowed = allowed_signature_profiles_for_mode(mode=mode, chain_config=chain_config)

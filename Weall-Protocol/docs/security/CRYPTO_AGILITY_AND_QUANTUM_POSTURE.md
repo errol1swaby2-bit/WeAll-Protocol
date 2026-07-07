@@ -2,7 +2,7 @@
 
 WeAll is a pre-public-testnet protocol implementation under active hardening.
 
-This document records the Pass 34 transition from a classical-only ML-DSA signing assumption toward real, profile-aware ML-DSA protocol signing. It is a truth-boundary document, not a cryptographic audit. WeAll does not claim public mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, public beta readiness, production-grade PQ security, unbreakable quantum-security language, or completed production cryptographic review.
+This document records the Pass 34 transition from a classical-only Ed25519 signing assumption toward real, profile-aware ML-DSA protocol signing. It is a truth-boundary document, not a cryptographic audit. WeAll does not claim public mainnet readiness, live economics, public multi-validator BFT readiness, production constitutional governance readiness, public beta readiness, production-grade PQ security, unbreakable quantum-security language, or completed production cryptographic review.
 
 Because WeAll is public-only, the critical quantum-resistance surface is protocol signing and authority. This pass does not reintroduce private messaging, private groups, private E2EE product claims, or confidential protocol content.
 
@@ -78,8 +78,8 @@ Local key storage may still use symmetric encryption such as AES-256-equivalent 
 
 ## Final claim boundary
 
-WeAll remains a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has transitioned from classical-only ML-DSA to profile-aware ML-DSA signing for protocol authority surfaces covered by this pass. This supports quantum-resistance hardening but does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, production helper execution readiness, or production constitutional governance readiness.
+WeAll remains a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has transitioned from classical-only Ed25519 to profile-aware ML-DSA signing for protocol authority surfaces covered by this pass. This supports quantum-resistance hardening but does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, production helper execution readiness, or production constitutional governance readiness.
 
 ## Classical Signature Profiles Removed
 
-Classical signature profiles removed: WeAll no longer accepts classical signing profiles for protocol authority, testnet bootstrap trust, helper authority, session login proofs, peer identity, gossip, relay, block, BFT/QC, validator/operator, or transaction signatures. Any removed classical profile identifier must fail closed instead of falling back to an older verifier.
+Classical signature profiles disabled: WeAll no longer accepts classical signing profiles for protocol authority, testnet bootstrap trust, helper authority, session login proofs, peer identity, gossip, relay, block, BFT/QC, validator/operator, or transaction signatures. Any removed classical profile identifier must fail closed instead of falling back to an older verifier.

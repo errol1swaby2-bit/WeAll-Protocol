@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from weall.crypto.pq_mldsa import mldsa_backend_status
-from weall.crypto.signature_profiles import PQ_MLDSA_V1, signature_profile_registry_json
+from weall.crypto.signature_profiles import LEGACY_ED25519_V1, PQ_MLDSA_V1, signature_profile_registry_json
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATED = ROOT / "generated"
@@ -45,7 +45,9 @@ def main() -> None:
         "schema": "weall.crypto_inventory.v1_5",
         "required_framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
         "active_signature_profile": PQ_MLDSA_V1,
-        "classical_signature_profiles_removed": True,
+        "classical_signature_profiles_removed_from_authority": True,
+        "legacy_signature_profile": LEGACY_ED25519_V1,
+        "legacy_signature_profile_status": "disabled",
         "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
         "mldsa_backend_status": backend_status,
         "production_crypto_audit_complete": False,
@@ -57,7 +59,9 @@ def main() -> None:
         "required_framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
         "active_signature_profile": PQ_MLDSA_V1,
         "controlled_testnet_default": PQ_MLDSA_V1,
-        "classical_signature_profiles_removed": True,
+        "classical_signature_profiles_removed_from_authority": True,
+        "legacy_signature_profile": LEGACY_ED25519_V1,
+        "legacy_signature_profile_status": "disabled",
         "real_mldsa_backend_required": True,
         "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
         "mldsa_backend_status": backend_status,
