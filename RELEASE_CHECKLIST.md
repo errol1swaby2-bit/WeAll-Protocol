@@ -1,204 +1,149 @@
-# External Tester Release Checklist
+# WeAll Release / Reviewer Checklist
 
-Use this checklist before publishing the repository for external testers.
+This checklist is for reviewer-facing documentation and bounded rehearsal preparation after Passes 10–27. It does not escalate readiness claims.
 
-## 0. Fresh clone validation
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
-Before publishing, validate from a clean directory that does not contain founder-local state:
+## Current status
 
-```bash
-git clone <repo-url> weall-fresh-test
-cd weall-fresh-test
-./scripts/quickstart_tester.sh
-cd web
-cp .env.example .env.local
-npm ci
-npm run dev -- --host 127.0.0.1 --port 5173
-cd ../Weall-Protocol
-./scripts/demo_bootstrap_tester.sh
-```
+| Claim area | Status | Required boundary |
+|---|---:|---|
+| Controlled internal/public-observer rehearsal candidate | GO | May be used only with the blocker caveat above. |
+| Public beta readiness | NO-GO | `public_beta_ready=false` must remain visible. |
+| Public observer launch claim | NO-GO | External open-download observer transcript is still required. |
+| Public mainnet readiness | NO-GO | Mainnet hardening remains future work. |
+| Public validator / public multi-validator BFT readiness | NO-GO | Independent validator/operator transcript remains required. |
+| Live economics | NO-GO | Economics remain locked; no live fees/transfers/rewards/slashing claim. |
+| Automatic upgrades | NO-GO | Upgrade execution, migration execution, and rollback execution are disabled. |
+| Production helper execution | NO-GO | Helper topology remains a hardening gate. |
+| Legal/compliance approval | NO-GO | Counsel/control review remains open. |
+| Public storage-market readiness | NO-GO | Real operator storage/IPFS evidence remains required. |
 
-Do not treat an in-place founder checkout as sufficient validation.
+Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 
-## 1. Clean founder-local artifacts
+## Required repository checks
 
-Run:
-
-```bash
-cd Weall-Protocol
-./scripts/clean_local_artifacts.sh
-```
-
-Confirm none of these are staged:
-
-- `Weall-Protocol/.env`
-- `Weall-Protocol/.venv*`
-- `Weall-Protocol/data/`
-- `Weall-Protocol/generated/` runtime leftovers
-- `Weall-Protocol/secrets/*`
-- `web/.env.local`
-- `.weall-dev/`
-- `Weall-Protocol/.weall-devnet/`
-
-## 2. Verify canonical startup path still works
-
-Preferred full-stack path from the repository root:
+Run from the backend directory:
 
 ```bash
-./scripts/dev_boot_full_stack.sh
-```
-
-Manual backend path from the repository root:
-
-```bash
-./scripts/quickstart_tester.sh
-```
-
-Frontend, with the backend running at `http://127.0.0.1:8000` for contract verification:
-
-```bash
-cd web
-cp .env.example .env.local
-npm ci
-npm run typecheck
-API_BASE=http://127.0.0.1:8000 npm run contract-check
-npm run build
-npm run dev -- --host 127.0.0.1 --port 5173
-```
-
-Demo bootstrap:
-
-```bash
-cd Weall-Protocol
-./scripts/demo_bootstrap_tester.sh
-```
-
-Controlled-devnet same-machine non-seeded readiness proof:
-
-```bash
-cd Weall-Protocol
+cd ~/WeAll-Protocol/Weall-Protocol
 source .venv/bin/activate
 
-pytest -q
-WEALL_DEVNET_SUITE_RUN_TIER2=1 \
-WEALL_DEVNET_SUITE_RUN_LIVE=1 \
-bash scripts/devnet_controlled_readiness_suite.sh
+PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+PYTHONPATH=src python -m pytest -q \
+  tests/test_release_docs_truth_sync.py \
+  tests/test_reviewer_language_cleanup.py \
+  tests/prod/test_final_public_observer_controlled_testnet_go_gate.py \
+  tests/prod/test_public_beta_evidence_gates.py \
+  tests/prod/test_public_observer_testnet_readiness_docs.py \
+  tests/test_public_readiness_artifacts_v15.py
 ```
 
-## 3. Verify browser-visible demo
-
-Confirm all of the following:
-
-- `http://127.0.0.1:8000/v1/readyz` returns success
-- `http://127.0.0.1:8000/docs` loads
-- `http://127.0.0.1:5173` loads
-- the printed demo account exists in the UI
-- the printed demo post body is visible in the feed
-
-## 4. Verify documentation matches reality
-
-Check that these files all describe the same startup path and current proof posture:
-
-- `README.md`
-- `Weall-Protocol/README.md`
-- `Weall-Protocol/docs/testnet_runbook.md`
-
-The root README should only reference files that are actually tracked in this repository.
-
-## 5. Verify environment templates are present
-
-Confirm these files exist and are current:
-
-- `Weall-Protocol/configs/production.env.example`
-- `web/.env.example`
-
-Local override files such as `.env`, `Weall-Protocol/.env`, and `web/.env.local` should remain untracked.
-
-## 6. Verify public trust files are present
-
-Confirm these files exist before broad external review:
-
-- `LICENSE`
-- `SECURITY.md`
-- `CONTRIBUTING.md`
-- `CODE_OF_CONDUCT.md`
-
-## 7. Verify CI coverage
-
-Confirm the repository has active GitHub Actions coverage for:
-
-- backend lint, dependency audit, lockfile verification, canon lint, generated-artifact check, tx coverage report, and pytest
-- web `npm ci`, typecheck, contract check, and production build using committed `web/package-lock.json`
-- Native async/live PoH checks, including no required email, SMTP, DNS, Cloudflare, inbox, or external identity provider path
-
-## 8. Known release policy
-
-For external testers, the supported walkthrough is:
-
-- backend via Docker Compose
-- frontend via Vite dev server
-- demo state via `scripts/demo_bootstrap_tester.sh` or the repository root `scripts/dev_boot_full_stack.sh`
-
-For protocol reviewers, the expected non-seeded readiness proof is:
-
-- `Weall-Protocol/scripts/devnet_controlled_readiness_suite.sh` for the same-machine dual-node controlled-devnet proof
-- `Weall-Protocol/scripts/devnet_full_onboarding_e2e.sh` for the fuller onboarding path
-
-Browser onboarding and PoH verification are Cloudflare-free, email-free, and routed through the active WeAll API plus native async/live PoH surfaces. The controlled-devnet proof is the preferred same-machine reviewer rehearsal because it runs a controlled genesis node and a joining node without using the seeded demo shortcut. The default general tester flow may still use deterministic demo bootstrap for speed.
-
-## 9. Current validated checkpoint
-
-The current release checkpoint for this snapshot is:
-
-- full backend suite: `3405 passed, 2 warnings` for the latest audited snapshot; rerun locally before release
-- tx canon artifacts: `231 tx types, version 1.25.0`
-- production consensus profile: `2026.03-prod.6` / `7f014fb5ff451081b56cc1bd818a820cf7460c00be854adfb6118f082032a991`
-- `scripts/secret_guard.sh`: passed
-- `scripts/verify_release_tree.sh`: passed
-- `scripts/verify_release_dependencies.sh`: passed
-- backend locks: `requirements.lock` and `requirements-dev.lock` are present, pinned, and hashed
-- frontend lock: `web/package-lock.json` is present and `npm ci`/typecheck/contract/build were verified
-- Native PoH cleanup: primary path validated without email, SMTP, DNS, Cloudflare, relay-token completion, or external identity-provider env aliases
-- Public-validator posture: validator service/signing requires BFT enabled; observer mode and signing cannot be mixed
-- Public API posture: snapshots and unauthenticated account reads redact private/session/device/evidence internals
-- SYSTEM tx posture: follower-side block replay rejects mutating SYSTEM txs that do not match deterministic scheduler output
-- Helper posture: helper execution metadata is committed by `helper_execution_root` when present
-
-Before publishing, rerun:
+If README or reviewer docs changed in the reviewed commit, also run:
 
 ```bash
-cd Weall-Protocol
-source .venv/bin/activate
-pytest
-python3 -S scripts/check_tx_canon_artifacts.py
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+```
+
+For the complete local backend safety sweep when time allows:
+
+```bash
+PYTHONPATH=src python -m compileall -q src/weall
 bash scripts/secret_guard.sh
-bash scripts/verify_release_tree.sh
-bash scripts/verify_release_dependencies.sh
+PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check
+PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 ```
 
-<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
-## Release truth checkpoint
+## Frontend reviewer checks
 
-- Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
-- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
-- Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
-- There is no required user-facing Tier 3.
-- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
-- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
-- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
-- Public API redaction is required for public snapshots and unauthenticated account reads.
-- SYSTEM txs received in blocks must be scheduler-bound before apply.
-- Helper execution metadata is committed by `helper_execution_root` when present.
-- Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
-<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
-
-
-## Clean external tester export
-
-From the outer repository root, build the clean staged release archive:
+Run from the frontend directory before any rendered-journey claim:
 
 ```bash
-bash scripts/build_clean_release_export.sh
+cd ~/WeAll-Protocol/web
+npm run typecheck
+npm run build
+node scripts/test_first_run_tester_journey_source.mjs
+node scripts/test_transaction_lifecycle_rendered_evidence_source.mjs
+node scripts/test_node_operator_journey_incident_response_source.mjs
+node scripts/test_rendered_civic_loop_source.mjs
 ```
 
-This is the preferred external-tester packaging gate because it includes the backend, frontend, and top-level scripts while excluding runtime/cache/build artifacts from a staged copy.
+Frontend checks prove rendering/source-contract behavior only. They do not override backend artifacts and they do not close external evidence blockers by themselves.
+
+## Evidence package map
+
+| Package | Path | Must remain true |
+|---|---|---|
+| Current readiness statement | `Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md` | The allowed claim is bounded and public beta remains blocked. |
+| Evidence index | `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md` | Implemented evidence, generated artifacts, local gates, external evidence, and future hardening are separated. |
+| Public beta blocker status | `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md` | 14 blockers visible; 7 closed in repo; 7 open. |
+| Final go-gate doc | `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` | GO only for controlled internal/public-observer rehearsal candidate. |
+| Public observer quickstart | `Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md` | Boot steps are transcript collection steps, not public-readiness authority. |
+| Testnet launch checklist | `Weall-Protocol/docs/testnet/TESTNET_LAUNCH_CHECKLIST.md` | Launch wording remains conservative. |
+| Production posture | `Weall-Protocol/docs/PRODUCTION_POSTURE.md` | Fail-closed and disabled surfaces remain explicit. |
+| Versioning strategy | `Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md` | Tx canon and upgrade record-only boundaries remain current. |
+| Generated blocker report | `Weall-Protocol/generated/public_beta_blocker_report_v1_5.json` | `public_beta_ready=false`; `blocker_catalog_count=14`; `closed_in_repository_count=7`; `remaining_blocker_count=7`. |
+| Release evidence manifest | `Weall-Protocol/generated/release_evidence_manifest_v1_5.json` | Claim boundaries remain false for public beta, mainnet, live economics, public validator, automatic upgrades, production helpers, and storage-market readiness. |
+| Proof templates | `Weall-Protocol/docs/proofs/` | External transcript templates remain available and unfilled unless real evidence is attached. |
+
+## Blocker truth that must not be hidden
+
+- Public beta readiness remains false.
+- The blocker catalog remains 14 entries.
+- 7 entries are closed in repository.
+- 7 entries remain open as external evidence or mainnet-hardening gates.
+- P0 open count remains 3.
+- P1 open count remains 4.
+- Local scripts and generated artifacts can prove repository consistency, but they cannot self-certify missing external operator, counsel, storage, replay, helper, observer, or upgrade-execution evidence.
+
+## External evidence still required
+
+| Blocker | Evidence still required |
+|---|---|
+| `AUD-618-P0-001` | Independent controlled validator/operator transcript. |
+| `AUD-618-P0-002` | Real counsel or controlled legal/compliance attestation. |
+| `AUD-618-P0-003` | Future executable upgrade staging/rollback proof. |
+| `AUD-618-P1-003` | External/two-machine replay transcript. |
+| `AUD-618-P1-004` | Real storage/IPFS daemon/operator transcript. |
+| `AUD-618-P1-005` | Future production helper topology proof. |
+| `AUD-628-P1-001` | External clean-clone/open-download/state-sync/frontend rendered journey transcript. |
+
+## Major protocol surfaces to inspect
+
+- account/profile;
+- public social;
+- public groups;
+- governance;
+- disputes/reviews;
+- transaction lifecycle;
+- node/operator surfaces;
+- observer boot;
+- external evidence packages.
+
+## Intentionally disabled surfaces
+
+The current release package must continue to say that live economics, fees/transfers/rewards/slashing, public validator/BFT readiness, automatic upgrades, executable migrations/rollbacks, production helper execution, legal approval, and public storage-market readiness are not enabled or not claimed.
+
+## Commit hygiene before publishing a patch
+
+```bash
+git status --short
+git diff --check
+PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+```
+
+Suggested commit message for this documentation pass:
+
+```text
+Refresh reviewer documentation truth boundaries
+```

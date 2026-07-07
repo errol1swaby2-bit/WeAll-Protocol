@@ -75,7 +75,7 @@ generate_node_key() {
   python3 - "${NODE_KEYFILE}" <<'PY'
 import json, sys, time
 from pathlib import Path
-from nacl.signing import SigningKey
+from weall.crypto.pq_mldsa import generate_mldsa65_keypair
 path = Path(sys.argv[1]).expanduser(); path.parent.mkdir(parents=True, exist_ok=True)
 if path.exists():
     try:
@@ -84,8 +84,8 @@ if path.exists():
             print(obj['public_key_hex']); raise SystemExit(0)
     except Exception:
         pass
-sk = SigningKey.generate()
-obj = {'type':'weall_node_key','version':1,'key_type':'ed25519','private_key_hex':sk.encode().hex(),'public_key_hex':sk.verify_key.encode().hex(),'created_at_ms':int(time.time()*1000),'warning':'This is an operational node key, not your WeAll account recovery key.'}
+kp = generate_mldsa65_keypair(encoding='hex')
+obj = {'type':'weall_node_key','version':1,'key_type':'mldsa','sig_profile':'pq-mldsa-v1','private_key_hex':kp['privkey'],'public_key_hex':kp['pubkey'],'created_at_ms':int(time.time()*1000),'warning':'This is an operational node key, not your WeAll account recovery key.'}
 path.write_text(json.dumps(obj, indent=2, sort_keys=True)+'\n', encoding='utf-8')
 try: path.chmod(0o600)
 except OSError: pass

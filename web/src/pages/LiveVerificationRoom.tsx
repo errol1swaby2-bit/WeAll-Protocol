@@ -5,6 +5,7 @@ import { getApiBaseUrl, weall } from "../api/weall";
 import { liveRoomDescriptorText, liveRoomEmbedEnabled, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
 import { createWeAllPeerConnection, getWeAllLocalMedia, iceServerDiagnostics, loadWeAllIceServersJson, normalizeWeAllIceServers, saveWeAllIceServersJson, shouldCreateOffer, stopWeAllMediaStream, WeAllWebRTCSignal } from "../lib/webrtcLiveRoom";
 import { nav } from "../lib/router";
+import { REVIEW_CENTER_LABEL } from "../lib/reviewLanes";
 
 type LiveJuror = {
   juror_id?: string;
@@ -119,6 +120,7 @@ function TechnicalCommitments({ liveCase }: { liveCase: LiveCase | null }): JSX.
 
 export default function LiveVerificationRoom({ caseId }: { caseId: string }): JSX.Element {
   const apiBase = useMemo(() => getApiBaseUrl(), []);
+  const statusOnlyMode = typeof window !== "undefined" && new URLSearchParams(String(window.location.hash || "").split("?")[1] || "").get("mode") === "status";
   const session = getSession();
   const account = normalizeAccount(session?.account);
   const headers = useMemo(() => (account ? getAuthHeaders(account) : undefined), [account]);
@@ -180,9 +182,10 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const verdicts = countVerdicts(jurors);
   const isFinal = ["awarded", "rejected", "finalized"].includes(String(liveCase?.status || "").toLowerCase());
   const canAcceptDecline = !!myJuror && !myJuror.accepted && !isFinal;
-  const canCheckIn = !!myJuror && myJuror.accepted === true && myJuror.attended !== true && !isFinal;
+  const canJoinReview = !!account && (isSubject || !!myJuror) && !!sessionId && !isFinal;
   const canVote = !!myJuror && myJuror.accepted === true && myJuror.attended === true && String(myJuror.role || "") === "interacting" && !myJuror.verdict && !isFinal;
   const canPresenceCheckIn = !!account && (isSubject || !!myJuror) && !!sessionId;
+  const readOnlyStatusView = statusOnlyMode && !isSubject && !myJuror;
   const p2pParticipantAccounts = useMemo(() => {
     const out = new Set<string>();
     const subject = normalizeAccount(liveCase?.account_id);
@@ -264,6 +267,43 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     }
   }
 
+  function jurorFromCase(caseRecord: LiveCase | null, jurorId = account): LiveJuror | null {
+    const rows = Array.isArray(caseRecord?.jurors) ? caseRecord?.jurors : [];
+    return rows.find((j) => normalizeAccount(j.juror_id) === normalizeAccount(jurorId)) || null;
+  }
+
+  async function waitForLiveJurorState(
+    label: string,
+    predicate: (juror: LiveJuror | null, caseRecord: LiveCase | null) => boolean,
+    options: { maxWaitMs?: number; intervalMs?: number } = {},
+  ): Promise<LiveJuror | null> {
+    const maxWaitMs = Math.max(1000, Number(options.maxWaitMs ?? 45_000));
+    const intervalMs = Math.max(250, Number(options.intervalMs ?? 1_000));
+    const started = Date.now();
+    let lastCase: LiveCase | null = liveCase;
+    let lastJuror = jurorFromCase(lastCase);
+    if (predicate(lastJuror, lastCase)) return lastJuror;
+
+    while (Date.now() - started < maxWaitMs) {
+      try {
+        const res = await weall.pohLiveCase(caseId, apiBase, headers);
+        const nextCase = (res?.case || null) as LiveCase | null;
+        setCasePendingSync(false);
+        setLiveCase(nextCase);
+        lastCase = nextCase;
+        lastJuror = jurorFromCase(nextCase);
+        if (predicate(lastJuror, nextCase)) return lastJuror;
+      } catch {
+        // Observer-local live-case state can lag behind upstream acceptance.
+        // Keep polling so the UI only unlocks voting after the backend state
+        // actually reflects the signed review step.
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
+    }
+
+    throw new Error(`${label} was submitted, but the updated live-review state is not visible yet. Keep genesis/observer sync running, refresh the room, and try again.`);
+  }
+
   useEffect(() => {
     void load();
   }, [caseId, apiBase]);
@@ -326,6 +366,17 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     };
     await weall.pohLiveSessionPresenceUpdate(sessionId, payload, apiBase, headers);
     await loadRoomSidecars(sessionId);
+  }
+
+  async function tryUpdatePresence(status: "joined" | "left" | "reconnect" | "heartbeat"): Promise<boolean> {
+    try {
+      await updatePresence(status);
+      return true;
+    } catch (e) {
+      const msg = prettyError(e);
+      setP2pError(`Room presence update failed: ${msg}`);
+      return false;
+    }
   }
 
   function signalDedupeKey(signal: WeAllWebRTCSignal): string {
@@ -473,7 +524,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     for (const peer of missingRemoteAccounts) {
       const remote = normalizeAccount(peer);
       if (!remote || !shouldCreateOffer(account, remote)) continue;
-      await createOfferForPeer(remote, { reason });
+      try {
+        await createOfferForPeer(remote, { reason });
+      } catch (e) {
+        const msg = prettyError(e);
+        rememberPeerState(remote, `offer deferred: ${msg}`);
+        setP2pError(`Live media offer to ${remote} is waiting for local media: ${msg}`);
+      }
     }
   }
 
@@ -486,7 +543,6 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     if (processedSignalsRef.current.size > 500) {
       processedSignalsRef.current = new Set(Array.from(processedSignalsRef.current).slice(-250));
     }
-    await ensureLocalP2PMedia();
     let pc = getOrCreatePeerConnection(from);
     try {
       if (signal.type === "hello") {
@@ -549,12 +605,18 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function ensureP2PRoomStarted(): Promise<void> {
-    if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the P2P room.");
+    if (!canPresenceCheckIn) throw new Error("Only the subject or assigned reviewers can join the live media room.");
     setP2pError("");
-    await ensureLocalP2PMedia();
     await updatePresence("joined");
+    setP2pStatus("room presence recorded; starting local media");
+    try {
+      await ensureLocalP2PMedia();
+    } catch (e) {
+      setP2pStatus("room presence recorded; local media unavailable");
+      throw e;
+    }
     setP2pRunning(true);
-    setP2pStatus("p2p signaling active");
+    setP2pStatus("live media signaling active");
     await sendWebRTCSignal({ type: "hello" });
     for (const peer of p2pRemoteAccounts) {
       await sendWebRTCSignal({ type: "hello", to_account: peer });
@@ -576,7 +638,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }, [p2pRunning, sessionId, account, p2pRemoteAccounts.join("|")]);
 
   async function startP2PRoom(): Promise<void> {
-    await runAction("Starting decentralized P2P room…", async () => {
+    await runAction("Starting live media room…", async () => {
       await ensureP2PRoomStarted();
     }).catch((e) => {
       setP2pError(prettyError(e));
@@ -585,7 +647,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   }
 
   async function stopP2PRoom(): Promise<void> {
-    await runAction("Stopping P2P room…", async () => {
+    await runAction("Stopping live media room…", async () => {
       await sendWebRTCSignal({ type: "leave" });
       peerConnectionsRef.current.forEach((pc) => pc.close());
       peerConnectionsRef.current.clear();
@@ -606,13 +668,14 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     });
   }
 
-  async function submitSkeletonTx(skeleton: any, success: string): Promise<void> {
+  async function submitSkeletonTx(skeleton: any, success: string, afterSubmit?: () => Promise<void>): Promise<void> {
     const tx = skeleton?.tx;
     if (!account) throw new Error("Sign in before completing this live verification action.");
     if (!tx?.tx_type) throw new Error("Live verification transaction skeleton is missing a transaction type.");
     const payload = { ...(tx.payload || {}) };
     if (typeof payload.ts_ms === "number" && payload.ts_ms === 0) payload.ts_ms = Date.now();
     await submitSignedTx({ account, tx_type: String(tx.tx_type), payload, parent: tx.parent ?? null, base: apiBase });
+    if (afterSubmit) await afterSubmit();
     setNotice(success);
     await load();
     await loadRoomSidecars(sessionId);
@@ -634,7 +697,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   async function acceptCase(): Promise<void> {
     await runAction("Accepting live review…", async () => {
       const skeleton = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-      await submitSkeletonTx(skeleton, "Live verification review accepted.");
+      await submitSkeletonTx(
+        skeleton,
+        "Live verification review accepted. Join the room to record attendance before voting.",
+        async () => {
+          await waitForLiveJurorState("Review acceptance", (juror) => juror?.accepted === true);
+        },
+      );
     });
   }
 
@@ -651,27 +720,46 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     if (externalRoomUrl) {
       window.open(externalRoomUrl, "_blank", "noopener,noreferrer");
     }
-    await runAction("Checking into live room…", async () => {
-      await updatePresence("joined");
-      if (myJuror) {
-        const skeleton = await weall.pohLiveTxAttendance({ case_id: caseId, juror_id: account, attended: true }, apiBase, headers);
-        await submitSkeletonTx(skeleton, "Live room attendance recorded on-chain.");
-      } else {
-        setNotice("Live room presence updated. Verification authority still requires signed juror attendance and verdicts.");
+    await runAction("Joining live review room…", async () => {
+      let reviewerState = myJuror;
+      if (reviewerState && reviewerState.accepted !== true) {
+        const acceptSkeleton = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
+        await submitSkeletonTx(
+          acceptSkeleton,
+          "Live review accepted.",
+          async () => {
+            reviewerState = await waitForLiveJurorState("Review acceptance", (juror) => juror?.accepted === true);
+          },
+        );
       }
+      if (reviewerState && reviewerState.attended !== true) {
+        const attendanceSkeleton = await weall.pohLiveTxAttendance({ case_id: caseId, juror_id: account, attended: true }, apiBase, headers);
+        await submitSkeletonTx(
+          attendanceSkeleton,
+          "Live room attendance recorded on-chain.",
+          async () => {
+            reviewerState = await waitForLiveJurorState("Live room attendance", (juror) => juror?.accepted === true && juror?.attended === true);
+          },
+        );
+      }
+
+      const reviewerAttendanceReady = !!reviewerState && reviewerState.accepted === true && reviewerState.attended === true;
       if (!roomUrl) {
         try {
           await ensureP2PRoomStarted();
-          setNotice("Live room attendance recorded and P2P media started. Keep this page open while the other participant joins.");
+          setNotice(reviewerState ? "Live review joined, attendance recorded, and live media started. Voting unlocks from the refreshed on-chain attendance state." : "Live room presence recorded and live media started. Keep this page open while the other participant joins.");
         } catch (mediaError) {
           setP2pError(prettyError(mediaError));
-          setNotice("Live room attendance was recorded. Start P2P media when camera/microphone access is ready.");
+          setNotice(reviewerAttendanceReady ? "Live review acceptance and attendance are recorded on-chain. Live media did not start; use Retry live media when camera/microphone access is ready." : "Live room check-in did not fully start. Verification authority still requires signed juror attendance and verdicts.");
         }
       }
       if (shouldEmbed) {
         setShowEmbeddedRoom(true);
       } else if (roomUrl) {
-        setNotice("Live room opened in a separate tab. Keep this page open for chain-recorded attendance and reviewer votes.");
+        const presenceUpdated = await tryUpdatePresence("joined");
+        setNotice(reviewerState
+          ? `Live review opened in a separate tab and attendance is recorded on-chain${presenceUpdated ? "; room presence is updated." : "; room presence could not be updated yet."}`
+          : `Live room opened in a separate tab${presenceUpdated ? "; room presence is updated." : "; room presence could not be updated yet."} Keep this page open for chain-recorded attendance and reviewer votes.`);
       }
     });
   }
@@ -679,7 +767,13 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   async function submitVerdict(verdict: "pass" | "fail"): Promise<void> {
     await runAction(verdict === "pass" ? "Submitting approval…" : "Submitting rejection…", async () => {
       const skeleton = await weall.pohLiveTxVerdict({ case_id: caseId, verdict }, apiBase, headers);
-      await submitSkeletonTx(skeleton, verdict === "pass" ? "Approval vote recorded." : "Rejection vote recorded.");
+      await submitSkeletonTx(
+        skeleton,
+        verdict === "pass" ? "Approval vote recorded." : "Rejection vote recorded.",
+        async () => {
+          await waitForLiveJurorState("Reviewer vote", (juror) => String(juror?.verdict || "").toLowerCase() === verdict);
+        },
+      );
     });
   }
 
@@ -693,7 +787,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     });
   }
 
-  const title = cardTitleForRole(isSubject, myJuror);
+  const title = statusOnlyMode && !isSubject && !myJuror ? "Live verification status" : cardTitleForRole(isSubject, myJuror);
 
   return (
     <main className="pageStack liveRoomPage">
@@ -703,9 +797,16 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             <div>
               <div className="eyebrow">Live account verification</div>
               <h1 className="pageTitle">{title}</h1>
-              <p className="cardDesc">Use this room to join the live session, check in, record attendance, and complete reviewer voting while keeping video transport only and non-authoritative.</p>
+              <p className="cardDesc">
+                {statusOnlyMode && !isSubject && !myJuror
+                  ? "This read-only status view is for pending live verification records before the current account receives a reviewer assignment. Live room transport controls unlock only for the subject or assigned reviewers."
+                  : "Use this room to join the live session, check in, record attendance, and complete reviewer voting while keeping video transport only and non-authoritative."}
+              </p>
             </div>
-            <button className="btn" onClick={() => nav("/verification")}>Back to verification</button>
+            <div className="buttonRow">
+              <button className="btn" onClick={() => nav("/reviews?lane=poh_live_review")}>Back to {REVIEW_CENTER_LABEL}</button>
+              <button className="btn" onClick={() => nav("/verification")}>Back to verification</button>
+            </div>
           </div>
           <div className="statusGrid">
             <div className="statusCard"><span>Status</span><strong>{statusLabel(liveCase?.status)}</strong></div>
@@ -731,11 +832,17 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             <div className="sectionHead">
               <div>
                 <div className="eyebrow">Video room</div>
-                <h2 className="cardTitle">Conference feed</h2>
+                <h2 className="cardTitle">{readOnlyStatusView ? "Read-only live status" : "Conference feed"}</h2>
               </div>
-              {roomUrl ? <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">Open room</a> : null}
+              {!readOnlyStatusView && roomUrl ? <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">Open room</a> : null}
             </div>
-            {roomUrl && liveRoomEmbedEnabled() && showEmbeddedRoom ? (
+            {readOnlyStatusView ? (
+              <div className="videoPlaceholder">
+                <strong>Read-only status view</strong>
+                <p>This account is not the subject or an assigned reviewer for this live verification case, so room transport, Open room links, embedded video, and live media controls stay hidden.</p>
+                <p>Use the status cards and technical commitments to verify that the case exists without implying live-room authority.</p>
+              </div>
+            ) : roomUrl && liveRoomEmbedEnabled() && showEmbeddedRoom ? (
               <iframe
                 className="liveRoomFrame"
                 src={roomUrl}
@@ -745,15 +852,15 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
             ) : roomUrl ? (
               <div className="videoPlaceholder">
                 <strong>Compatibility room link ready</strong>
-                <p>Open the compatibility transport in a separate tab. This page records attendance, verdicts, and finalization on-chain.</p>
+                <p>Open the self-hosted transport in a separate tab. This page records attendance, verdicts, and finalization on-chain.</p>
               </div>
             ) : (
               <div className="p2pRoomPanel">
                 <div className="videoPlaceholder">
-                  <strong>Decentralized P2P WebRTC room</strong>
-                  <p>Browser media runs peer-to-peer using case-scoped signaling. Relays/ICE servers are transport fallback only and cannot grant verification.</p>
+                  <strong>Case-scoped live media room</strong>
+                  <p>Browser media uses case-scoped signaling. Relays/ICE servers are transport fallback only and cannot grant verification.</p>
                   <small>Status: {p2pStatus}</small>
-                  <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct P2P first"}</small>
+                  <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct browser media first"}</small>
                   <small>Expected participants: {p2pParticipantAccounts.length ? p2pParticipantAccounts.join(", ") : "waiting for chain assignment"}</small>
                   <small>Remote feeds: {remoteStreamEntries.length}/{p2pRemoteAccounts.length} · waiting {missingRemoteAccounts.length} · signals sent {p2pSignalsSent} · received {p2pSignalsReceived} · ICE {iceDiag.count} server(s) {iceDiag.hasTurn ? "with TURN" : "no TURN"}</small>
                   {Object.keys(peerStates).length ? <small>Peer states: {Object.entries(peerStates).map(([peer, state]) => `${peer}=${state}`).join(" · ")}</small> : null}
@@ -778,66 +885,69 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   ))}
                   {missingRemoteAccounts.map((peer) => (
                     <div className="p2pVideoTile" key={`waiting:${peer}`}>
-                      <div className="videoPlaceholder">Waiting for media from {peer}. Keep both tabs open and use Poll P2P if the remote camera is not visible yet.{peerStates[peer] ? ` State: ${peerStates[peer]}` : ""}</div>
+                      <div className="videoPlaceholder">Waiting for media from {peer}. Keep both tabs open and use Poll live media if the remote camera is not visible yet.{peerStates[peer] ? ` State: ${peerStates[peer]}` : ""}</div>
                       <span>{peer}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            {p2pRoomDescriptor ? (
+            {!readOnlyStatusView && p2pRoomDescriptor ? (
               <details className="advancedDetails" open={!roomUrl}>
 
-            <p className="text-sm text-slate-600">Use the decentralized P2P room descriptor below to establish the WebRTC session; verification still depends only on chain-recorded attendance, verdicts, and finalization.</p>
-                <summary>Decentralized P2P room descriptor</summary>
+            <p className="text-sm text-slate-600">Use the live media room descriptor below to establish the WebRTC session; verification still depends only on chain-recorded attendance, verdicts, and finalization.</p>
+                <summary>Live media room descriptor</summary>
                 <pre className="jsonBlock">{p2pRoomDescriptor}</pre>
               </details>
             ) : null}
-            <div className="toggleRow">
-              <label><input type="checkbox" checked={cameraEnabled} onChange={(e) => setCameraEnabled(e.currentTarget.checked)} /> Camera on</label>
-              <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
-            </div>
-            <div className="buttonRow">
-              <button className="btn btnPrimary" disabled={!canPresenceCheckIn || !!busy} onClick={checkIntoRoom}>Join / check in + start media</button>
-              <button className="btn" disabled={!canPresenceCheckIn || !!busy || !!roomUrl || p2pRunning} onClick={startP2PRoom}>Start P2P media</button>
-              <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling P2P signals…", pollWebRTCSignals)}>Poll P2P</button>
-              <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop P2P</button>
-              <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>
-              <button className="btn" disabled={!sessionId || !!busy} onClick={() => loadRoomSidecars(sessionId)}>Refresh room</button>
-            </div>
-            <details className="advancedDetails">
+            {!readOnlyStatusView ? (
+              <>
+                <div className="toggleRow">
+                  <label><input type="checkbox" checked={cameraEnabled} onChange={(e) => setCameraEnabled(e.currentTarget.checked)} /> Camera on</label>
+                  <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
+                </div>
+                <div className="buttonRow">
+                  <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || (!!myJuror && myJuror.attended === true && p2pRunning)} onClick={checkIntoRoom}>{myJuror ? (myJuror.attended ? (p2pRunning ? "Live room ready" : "Re-enter live room") : (myJuror.accepted ? "Check in and enter live room" : "Accept review, check in, and enter live room")) : "Enter live room"}</button>
+                  {canAcceptDecline ? <button className="btn" disabled={!!busy} onClick={declineCase}>Decline review</button> : null}
+                  {!roomUrl && !p2pRunning && p2pError ? <button className="btn" disabled={!canPresenceCheckIn || !!busy} onClick={startP2PRoom}>Retry live media</button> : null}
+                  <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling live-media signals…", pollWebRTCSignals)}>Poll live media</button>
+                  <button className="btn" disabled={!p2pRunning || !!busy} onClick={stopP2PRoom}>Stop live media</button>
+                  <button className="btn" disabled={!account || !sessionId || !!busy} onClick={() => runAction("Updating presence…", () => updatePresence("left"))}>Mark left</button>
+                  <button className="btn" disabled={!sessionId || !!busy} onClick={() => loadRoomSidecars(sessionId)}>Refresh room</button>
+                </div>
+              </>
+            ) : null}
+            {!readOnlyStatusView ? <details className="advancedDetails">
               <summary>TURN / relay config</summary>
               <p className="cardDesc">External networks often need TURN. These browser-local settings are transport-only and never become verification authority.</p>
               <textarea value={iceConfigText} onChange={(e) => setIceConfigText(e.target.value)} rows={4} placeholder='[{"urls":"turn:turn.example.org","username":"user","credential":"pass"}]' />
               <div className="buttonRow"><button className="btn" onClick={saveIceConfig}>Save ICE/TURN config</button></div>
               {iceDiag.relayRecommended ? <div className="calloutInfo">No TURN relay is configured. Same-LAN tests may work, but external participants will likely need TURN.</div> : null}
-            </details>
-            <div className="inCallVotingPanel" data-testid="webrtc-live-voting">
+            </details> : null}
+            {!readOnlyStatusView ? <div className="inCallVotingPanel" data-testid="webrtc-live-voting">
               <div className="eyebrow">In-call chain voting</div>
               <h3 className="cardTitle">Reviewer vote inside the WebRTC room</h3>
               {!myJuror ? (
                 <p className="cardDesc">Voting controls appear here for assigned reviewers. The video room remains transport only.</p>
               ) : (
                 <>
-                  <p className="cardDesc">Use these controls without leaving the WebRTC page. Accept the assignment, record attendance, then cast the live verification vote.</p>
+                  <p className="cardDesc">Use these controls without leaving the WebRTC page. Joining the live room accepts the review assignment, records on-chain attendance, and starts media in one reviewer action.</p>
                   <div className="statusGrid">
                     <div className="statusCard"><span>Your assignment</span><strong>{myJuror.accepted ? "Accepted" : "Pending"}</strong></div>
                     <div className="statusCard"><span>Your attendance</span><strong>{myJuror.attended ? "Recorded" : "Needed"}</strong></div>
                     <div className="statusCard"><span>Your vote</span><strong>{myJuror.verdict ? statusLabel(myJuror.verdict) : "Not cast"}</strong></div>
                   </div>
-                  <div className="buttonRow">
-                    <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={acceptCase}>Accept review</button>
-                    <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={declineCase}>Decline</button>
-                    <button className="btn btnPrimary" disabled={!canCheckIn || !!busy} onClick={checkIntoRoom}>Record attendance</button>
-                  </div>
-                  <div className="buttonRow">
-                    <button className="btn btnPrimary" disabled={!canVote || !!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
-                    <button className="btn" disabled={!canVote || !!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
-                  </div>
-                  {!canVote && !isFinal ? <p className="helpText">Voting unlocks only for an assigned interacting reviewer after review acceptance and on-chain attendance.</p> : null}
+                  <p className="helpText">Use the single live-room control above to accept the assignment, record chain attendance, and enter the room lobby. Media starts when peer connection and browser permissions are ready. Verdict controls appear here only after that chain-recorded check-in is visible.</p>
+                  {canVote ? (
+                    <div className="buttonRow">
+                      <button className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
+                      <button className="btn" disabled={!!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
+                    </div>
+                  ) : null}
+                  {!canVote && !isFinal ? <p className="helpText">Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain for an assigned interacting reviewer.</p> : null}
                 </>
               )}
-            </div>
+            </div> : null}
           </div>
         </article>
 
@@ -867,30 +977,6 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
       </section>
 
       <section className="liveRoomGrid">
-        <article className="card">
-          <div className="cardBody formStack">
-            <div className="eyebrow">Reviewer action</div>
-            <h2 className="cardTitle">In-call reviewer controls</h2>
-            {!myJuror ? (
-              <p className="cardDesc">You are not assigned as a reviewer for this case. You can join only if you are the verification subject or an assigned reviewer.</p>
-            ) : (
-              <>
-                <p className="cardDesc">Reviewer role: <strong>{myJuror.role || "juror"}</strong>. Verdict buttons unlock only after you accept and record attendance on-chain.</p>
-                <div className="buttonRow">
-                  <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={acceptCase}>Accept review</button>
-                  <button className="btn" disabled={!canAcceptDecline || !!busy} onClick={declineCase}>Decline</button>
-                  <button className="btn btnPrimary" disabled={!canCheckIn || !!busy} onClick={checkIntoRoom}>Record attendance</button>
-                </div>
-                <div className="buttonRow">
-                  <button className="btn btnPrimary" disabled={!canVote || !!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
-                  <button className="btn" disabled={!canVote || !!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
-                </div>
-                {!canVote && !isFinal ? <p className="helpText">To vote, you must be an interacting reviewer, accept the case, and record live-room attendance first.</p> : null}
-              </>
-            )}
-          </div>
-        </article>
-
         <article className="card">
           <div className="cardBody formStack">
             <div className="eyebrow">Finalization</div>

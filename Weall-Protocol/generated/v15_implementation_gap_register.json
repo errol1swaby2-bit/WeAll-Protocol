@@ -1,0 +1,145 @@
+{
+  "remaining_p0_p1_gaps": [
+    {
+      "evidence": [
+        "generated/api_contract_map_v1_5.json",
+        "scripts/gen_api_contract_map.py",
+        "tests/test_api_contract_map_v15.py",
+        "generated/api_response_vectors_v1_5.json",
+        "scripts/gen_api_response_vectors_v1_5.py",
+        "tests/test_testnet_mechanism_coverage.py"
+      ],
+      "id": "P0-API-CONTRACT-MAP",
+      "next_gate": "Expand API response vectors and attach external route transcripts through the controlled-testnet go-gate evidence bundle.",
+      "status": "initial_api_response_vectors_added_go_gate_required",
+      "summary": "Generated API contract inventory and an initial high-risk API response vector pack now exist; broader live response/schema vectors remain required before public beta."
+    },
+    {
+      "evidence": [
+        "src/weall/runtime/launch_matrix.py",
+        "generated/launch_disabled_matrix_v1_5.json",
+        "docs/LAUNCH_DISABLED_FEATURE_MATRIX.md",
+        "src/weall/runtime/testnet_capabilities.py",
+        "web/src/lib/testnetCapabilitySurface.ts",
+        "generated/controlled_testnet_go_gate_v1_5.json"
+      ],
+      "id": "P0-LAUNCH-DISABLED-MATRIX",
+      "next_gate": "Capture frontend/API capability snapshots in the controlled-testnet go-gate evidence bundle.",
+      "status": "capability_surface_added_go_gate_required",
+      "summary": "Launch-disabled matrix now feeds a backend testnet capability surface and frontend helper so high-risk features remain visibly blocked; final public UX evidence remains required before public beta."
+    },
+    {
+      "evidence": [
+        "src/weall/runtime/apply/protocol.py",
+        "docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md",
+        "tests/test_protocol_upgrade_record_only_boundary.py"
+      ],
+      "id": "P0-PROTOCOL-UPGRADE-DELIVERY",
+      "next_gate": "Signed artifact manifest, staged compatibility window, deterministic migration vectors, rollback semantics, and multi-node upgrade rehearsal.",
+      "status": "record_only_hardened_not_automatic",
+      "summary": "Protocol upgrade txs remain record-only. Batch hardening adds explicit record-only metadata so payloads cannot be mistaken for automatic patch/apply/migration/rollback execution."
+    },
+    {
+      "evidence": [
+        "docs/legal/"
+      ],
+      "id": "P0-LEGAL-COMPLIANCE-PACK",
+      "next_gate": "Counsel review, jurisdiction-specific edits, public claims checklist approval.",
+      "status": "draft_pending_counsel_review",
+      "summary": "Non-lawyer legal/compliance posture docs now exist and are explicitly pending counsel review."
+    },
+    {
+      "evidence": [
+        "docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md"
+      ],
+      "id": "P0-PUBLIC-VALIDATOR-BFT-PROOF",
+      "next_gate": "Run external multi-process adversarial validator proof with churn, equivocation, partition/rejoin, restart/replay, state sync, and incident evidence.",
+      "status": "proof_plan_defined_not_passed",
+      "summary": "Public validator/BFT proof requirements are centralized, but public multi-validator readiness is still not claimed."
+    },
+    {
+      "claim_boundary": "Initial vectors improve reviewer evidence; they do not prove public BFT readiness, cross-client compatibility, or public beta readiness.",
+      "evidence": [
+        "src/weall/runtime/state_hash.py",
+        "scripts/gen_state_root_vectors_v1_5.py",
+        "generated/state_root_vectors_v1_5.json",
+        "tests/test_state_root_ephemeral_contract.py",
+        "tests/test_readiness_safety.py"
+      ],
+      "id": "P1-STATE-ROOT-VECTORS",
+      "next_gate": "Run cross-machine/cross-implementation vector verification and include public reviewer fixture exports before public beta.",
+      "status": "initial_vector_pack_added_needs_cross_machine_release_vectors",
+      "summary": "An expanded v1.5 state-root vector artifact now exists with representative PoH, governance/protocol, dispute/group, and locked-economics fixtures. Public beta still needs external cross-machine/cross-implementation vector validation."
+    },
+    {
+      "claim_boundary": "Simulation is read-only and locked; it does not activate transfers, rewards, treasury spend, fee markets, or public token economics.",
+      "evidence": [
+        "src/weall/ledger/issuance.py",
+        "src/weall/ledger/tokenomics.py",
+        "scripts/gen_tokenomics_simulation_v1_5.py",
+        "generated/tokenomics_simulation_v1_5.json",
+        "tests/test_readiness_safety.py",
+        "tests/test_behavior_m1_m10.py"
+      ],
+      "id": "P1-ECONOMIC-SIMULATION-PACK",
+      "next_gate": "Expand locked simulation into adversarial reward-concentration, treasury-capture, Sybil-farming, wallet-read-model, and governance activation go/no-go evidence before any activation.",
+      "status": "initial_simulation_added_activation_still_blocked",
+      "summary": "A v1.5 tokenomics simulation artifact now exists with locked-economics truth boundaries, activation blockade checklist, and initial farming/capture scenario placeholders. Live economics remains disabled."
+    }
+  ],
+  "resolved_since_prior_evidence_map": [
+    {
+      "evidence": [
+        "src/weall/ledger/issuance.py",
+        "src/weall/ledger/tokenomics.py",
+        "src/weall/runtime/apply/rewards.py",
+        "src/weall/runtime/system_tx_engine.py",
+        "tests/test_real_tokenomics_policy.py",
+        "tests/test_reward_issuance_invariants.py",
+        "tests/test_v15_epoch_issuance_scheduler.py"
+      ],
+      "id": "V15-TOKENOMICS-EPOCH-ISSUANCE",
+      "status": "resolved_locked_implementation",
+      "summary": "Tokenomics no longer uses per-block monetary issuance. Issuance is epoch-based with 10-minute epochs, 30 blocks per epoch at 20-second target timing, 100 WCN initial issuance, 105120 issuance epochs per halving, cap stop at 21000000 WCN, duplicate epoch protection, and locked-economics preservation.",
+      "truth_boundary": "Policy and locked apply behavior are implemented; live economics remains disabled until separate activation/legal/economic-governance proof."
+    },
+    {
+      "evidence": [
+        "configs/prod.chain.json",
+        "configs/testnet.chain.json",
+        "src/weall/runtime/chain_config.py",
+        "tests/test_v15_runtime_config_alignment.py"
+      ],
+      "id": "V15-RUNTIME-BLOCK-TIMING-CONFIG",
+      "status": "resolved_config_alignment",
+      "summary": "Production/testnet runtime config is aligned to 20-second target block timing and no per-block block_reward config.",
+      "truth_boundary": "Config alignment does not by itself prove public multi-validator BFT."
+    },
+    {
+      "evidence": [
+        "generated/v15_implementation_gap_register.json",
+        "specs/api_contracts/v1_5_route_metadata.json",
+        "generated/api_contract_map_v1_5.json",
+        "tests/test_readiness_truth_and_proof.py"
+      ],
+      "id": "V15-B582-B583-READINESS-TRUTH-AND-OPERATOR-METADATA",
+      "status": "resolved_audit_truth_alignment",
+      "summary": "The gap register now distinguishes initial vector/simulation artifacts from remaining public-beta proof, and PoH operator routes have explicit API contract metadata instead of static heuristic classification.",
+      "truth_boundary": "This improves reviewer truthfulness and route contract metadata only; it does not enable operator PoH finalization, public validators, public beta, or live economics."
+    },
+    {
+      "evidence": [
+        "generated/controlled_testnet_go_gate_v1_5.json",
+        "scripts/run_controlled_testnet_go_gate_v1_5.py",
+        "tests/test_controlled_testnet_go_gate.py"
+      ],
+      "id": "V15-B595-CONTROLLED-TESTNET-GO-GATE",
+      "status": "controlled_testnet_go_gate_manifest_added",
+      "summary": "A deterministic controlled-testnet go-gate manifest and runner now collect the final internal evidence surface for controlled testnet candidacy, including artifact freshness, B587-B594 mechanism completion, API response vectors, launch-matrix capability blockers, validator harness snapshot, and storage durability snapshot.",
+      "truth_boundary": "This is a go-gate evidence manifest and runner. It does not claim public beta, public validator readiness, live economics, automatic upgrades, production helper execution, public decentralized media durability, legal/compliance readiness, or mainnet readiness."
+    }
+  ],
+  "schema": "weall.v15_implementation_gap_register",
+  "truth_boundary": "Evidence/gap register for reviewer/public-readiness planning. It is not a claim of public mainnet, public validator, live economics, legal approval, or automatic upgrade readiness.",
+  "version": "2026-06-v1.5-public-readiness-batch"
+}

@@ -104,13 +104,36 @@ export default function ProtocolStatusSummary(): JSX.Element {
     : summary.session.hasLocalSigner
       ? "ok"
       : "danger";
+  const chainTruthDetail = [
+    `chain_id ${summary.node.chainId || "unknown"}`,
+    typeof summary.node.height === "number" ? `height ${summary.node.height}` : "height unknown",
+    typeof summary.node.finalizedHeight === "number" ? `finalized height ${summary.node.finalizedHeight}` : "finalized height unknown",
+  ].join(" · ");
 
   return (
     <section className="protocolSummary" aria-label="Protocol and session status summary">
-      <button className={`protocolSummaryCard ${stateTone(summary.node.phase)}`} onClick={() => nav("/tools")}>
-        <div className="protocolSummaryLabel">Node connection</div>
+      <button className={`protocolSummaryCard ${stateTone(summary.node.phase)}`} onClick={() => nav("/node")}>
+        <div className="protocolSummaryLabel">Current node</div>
         <strong>{summary.node.label}</strong>
         <div className="protocolSummaryDetail">{summary.node.detail || base}</div>
+      </button>
+
+      <button className={`protocolSummaryCard ${stateTone(summary.node.phase)}`} onClick={() => nav("/node")}>
+        <div className="protocolSummaryLabel">Chain truth</div>
+        <strong>{summary.node.chainId || "Unknown chain"}</strong>
+        <div className="protocolSummaryDetail">{chainTruthDetail}</div>
+      </button>
+
+      <button className="protocolSummaryCard warn" onClick={() => nav("/node")}>
+        <div className="protocolSummaryLabel">Authority level</div>
+        <strong>{summary.node.authorityLevel}</strong>
+        <div className="protocolSummaryDetail">Frontend state and node switching never grant validator, economics, helper, storage, or upgrade authority.</div>
+      </button>
+
+      <button className={`protocolSummaryCard ${summary.node.cryptoVerifierAvailable ? "ok" : "warn"}`} onClick={() => nav("/node")}>
+        <div className="protocolSummaryLabel">Crypto profile</div>
+        <strong>{summary.node.cryptoProfile || "Profile unknown"}</strong>
+        <div className="protocolSummaryDetail">{summary.node.cryptoDetail || "Controlled-testnet target is pq-mldsa-v1; no production cryptographic audit is claimed."}</div>
       </button>
 
       <button className={`protocolSummaryCard ${localSignerTone}`} onClick={() => nav(summary.session.account ? `/account/${encodeURIComponent(summary.session.account)}` : "/login")}>

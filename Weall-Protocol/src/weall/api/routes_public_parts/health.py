@@ -90,14 +90,14 @@ def _safe_str(v: Any, default: str = "") -> str:
         return str(default)
 
 
-def _try_executor_snapshot(ex: Any) -> dict[str, Any] | None:
+def _try_executor_state(ex: Any) -> dict[str, Any] | None:
     if ex is None:
         return None
-    snap = getattr(ex, "snapshot", None)
-    if not callable(snap):
+    read_state = getattr(ex, "read_state", None)
+    if not callable(read_state):
         return None
     try:
-        st = snap()
+        st = read_state()
         return st if isinstance(st, dict) else None
     except Exception:
         return None
@@ -323,7 +323,7 @@ def _helper_status_surface(request: Request, chain_id: str) -> Any:
 
 def _health_payload(request: Request) -> dict[str, object]:
     ex = getattr(request.app.state, "executor", None)
-    st = _try_executor_snapshot(ex)
+    st = _try_executor_state(ex)
 
     chain_id = None
     node_id = None
@@ -419,7 +419,7 @@ def health(request: Request) -> dict[str, object]:
 
 def _ready_payload(request: Request) -> dict[str, object]:
     ex = getattr(request.app.state, "executor", None)
-    st = _try_executor_snapshot(ex)
+    st = _try_executor_state(ex)
 
     chain_id = None
     height = None

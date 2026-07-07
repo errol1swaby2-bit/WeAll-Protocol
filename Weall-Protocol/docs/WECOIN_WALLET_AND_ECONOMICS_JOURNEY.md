@@ -89,7 +89,7 @@ Positive fees for those classes are rejected by the economics apply layer.
 The following must fail before economics activation:
 
 - `BALANCE_TRANSFER`
-- block rewards
+- epoch issuance and reward distribution
 - creator rewards
 - treasury reward allocations
 - protocol treasury spend execution

@@ -1,0 +1,237 @@
+{
+  "allowed_claim": "Pre-public-testnet implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware pq-mldsa-v1 ML-DSA signing for protocol authority surfaces covered by this pass. Fresh post-transition observer/testnet evidence and external cryptographic review remain required before any long-lived public network or mainnet claim.",
+  "artifact_digest": "7a0b3b4b376f4642885eb6a648aec19a0b1c571a861c8c2af19e027b403e224e",
+  "blocker_counts": {
+    "blocker_catalog_count": 15,
+    "closed_in_repository_count": 7,
+    "p0_open_count": 4,
+    "p1_open_count": 4,
+    "public_beta_ready": false,
+    "remaining_blocker_count": 8,
+    "remaining_external_evidence_required_count": 8,
+    "remaining_external_evidence_required_ids": [
+      "AUD-618-P0-001",
+      "AUD-618-P0-002",
+      "AUD-618-P0-003",
+      "AUD-633-P0-004",
+      "AUD-618-P1-003",
+      "AUD-618-P1-004",
+      "AUD-618-P1-005",
+      "AUD-628-P1-001"
+    ],
+    "remaining_mainnet_hardening_count": 4,
+    "remaining_mainnet_hardening_ids": [
+      "AUD-618-P0-001",
+      "AUD-618-P0-003",
+      "AUD-618-P1-004",
+      "AUD-618-P1-005"
+    ]
+  },
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "legal_compliance_ready": false,
+    "live_economics": false,
+    "mainnet_ready": false,
+    "production_crypto_audit_complete": false,
+    "production_helper_execution": false,
+    "production_post_quantum_security": false,
+    "public_beta_ready": false,
+    "public_multi_validator_bft": false,
+    "public_storage_provider_market": false,
+    "public_validator_enabled": false
+  },
+  "controlled_rehearsal_candidate_ready": true,
+  "external_blockers_still_open": true,
+  "external_evidence_still_required": true,
+  "flow_readiness_docs": {
+    "account_profile": "docs/testnet/ACCOUNT_PROFILE_READINESS.md",
+    "disputes": "docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md",
+    "first_run_tester_onboarding": "docs/testnet/FIRST_15_MINUTES.md",
+    "governance": "docs/testnet/GOVERNANCE_RENDERED_JOURNEY.md",
+    "groups": "docs/testnet/GROUP_FLOW_READINESS.md",
+    "node_operator": "docs/testnet/NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md",
+    "public_social": "docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md",
+    "transaction_lifecycle": "docs/testnet/TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md"
+  },
+  "flow_readiness_docs_present": {
+    "account_profile": true,
+    "disputes": true,
+    "first_run_tester_onboarding": true,
+    "governance": true,
+    "groups": true,
+    "node_operator": true,
+    "public_social": true,
+    "transaction_lifecycle": true
+  },
+  "forbidden_claims": [
+    "public beta readiness",
+    "public mainnet readiness",
+    "public multi-validator BFT readiness",
+    "public validator safety",
+    "live economics readiness",
+    "automatic protocol upgrade readiness",
+    "executable migration readiness",
+    "rollback execution readiness",
+    "production helper execution readiness",
+    "legal/compliance approval",
+    "public storage-market readiness",
+    "completed production cryptographic audit",
+    "production post-quantum security",
+    "quantum-proof security",
+    "complete anti-Sybil/collusion detection",
+    "complete public identity infrastructure"
+  ],
+  "generated_artifacts": {
+    "b587_b594_mechanism_completion": {
+      "ok": true,
+      "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+    },
+    "controlled_testnet_go_gate": {
+      "ok": true,
+      "path": "generated/controlled_testnet_go_gate_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.controlled_testnet_go_gate"
+    },
+    "crypto_inventory": {
+      "ok": true,
+      "path": "generated/crypto_inventory_v1_5.json",
+      "present": true,
+      "schema": "weall.crypto_inventory.v1_5"
+    },
+    "external_operator_transcript_requirements": {
+      "ok": true,
+      "path": "generated/external_operator_transcript_requirements_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.external_operator_transcript_requirements"
+    },
+    "production_helper_topology_hardening_plan": {
+      "ok": true,
+      "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+    },
+    "protocol_upgrade_hardening_plan": {
+      "ok": true,
+      "path": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan"
+    },
+    "public_beta_blocker_report": {
+      "ok": true,
+      "path": "generated/public_beta_blocker_report_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_beta_blocker_report"
+    },
+    "public_observer_launch_requirements": {
+      "ok": true,
+      "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_observer_launch_evidence_requirements"
+    },
+    "quantum_resistance_readiness": {
+      "ok": true,
+      "path": "generated/quantum_resistance_readiness_v1_5.json",
+      "present": true,
+      "schema": "weall.quantum_resistance_readiness.v1_5"
+    },
+    "release_evidence_manifest": {
+      "ok": true,
+      "path": "generated/release_evidence_manifest_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.release_evidence_manifest"
+    },
+    "signature_profile_registry": {
+      "ok": true,
+      "path": "generated/signature_profile_registry_v1_5.json",
+      "present": true,
+      "schema": "weall.signature_profile_registry.v1_5"
+    }
+  },
+  "go_no_go_verdict": {
+    "automatic_upgrade_claim": "NO_GO_RECORD_ONLY",
+    "bounded_public_observer_launch_claim": "NO_GO_EXTERNAL_EVIDENCE_PENDING",
+    "controlled_internal_public_observer_rehearsal_candidate": "GO",
+    "live_economics_claim": "NO_GO_DISABLED",
+    "production_helper_claim": "NO_GO_DISABLED",
+    "public_beta_claim": "NO_GO_PUBLIC_BETA_BLOCKERS_OPEN",
+    "public_mainnet_claim": "NO_GO_UNCLAIMED",
+    "public_validator_bft_claim": "NO_GO_UNCLAIMED"
+  },
+  "launch_check_commands": [
+    "PYTHONPATH=src python -m compileall -q src/weall",
+    "bash scripts/secret_guard.sh",
+    "PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
+    "PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py",
+    "PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py",
+    "PYTHONPATH=src python -m pytest -q tests/prod/test_final_public_observer_controlled_testnet_go_gate.py",
+    "cd ../web && npm run typecheck && npm run build"
+  ],
+  "ok": true,
+  "quantum_resistance_readiness_summary": {
+    "path": "generated/quantum_resistance_readiness_v1_5.json",
+    "production_crypto_audit_complete": false,
+    "real_mldsa_implemented_in_this_environment": true,
+    "remaining_crypto_blockers": []
+  },
+  "readiness_package_docs": {
+    "current_readiness_statement": "docs/reviewer/CURRENT_READINESS_STATEMENT.md",
+    "current_testnet_readiness_statement": "docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md",
+    "external_observer_transcript": "docs/testnet/PUBLIC_OBSERVER_OPEN_DOWNLOAD_TRANSCRIPT.md",
+    "external_replay_transcript": "docs/testnet/EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md",
+    "final_go_gate_runbook": "docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+    "first_15_minutes": "docs/testnet/FIRST_15_MINUTES.md",
+    "helper_hardening_plan": "docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md",
+    "legal_evidence_pack": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
+    "public_beta_blocker_status": "docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md",
+    "public_observer_quickstart": "docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md",
+    "reviewer_evidence_index": "docs/reviewer/EVIDENCE_INDEX.md",
+    "storage_ipfs_transcript": "docs/testnet/REAL_STORAGE_IPFS_OPERATOR_TRANSCRIPT.md",
+    "testnet_launch_checklist": "docs/testnet/TESTNET_LAUNCH_CHECKLIST.md",
+    "upgrade_hardening_plan": "docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md",
+    "validator_operator_transcript": "docs/testnet/INDEPENDENT_CONTROLLED_VALIDATOR_OPERATOR_TRANSCRIPT.md"
+  },
+  "readiness_package_docs_present": {
+    "current_readiness_statement": true,
+    "current_testnet_readiness_statement": true,
+    "external_observer_transcript": true,
+    "external_replay_transcript": true,
+    "final_go_gate_runbook": true,
+    "first_15_minutes": true,
+    "helper_hardening_plan": true,
+    "legal_evidence_pack": true,
+    "public_beta_blocker_status": true,
+    "public_observer_quickstart": true,
+    "reviewer_evidence_index": true,
+    "storage_ipfs_transcript": true,
+    "testnet_launch_checklist": true,
+    "upgrade_hardening_plan": true,
+    "validator_operator_transcript": true
+  },
+  "real_mldsa_implemented_in_this_environment": true,
+  "remaining_open_blockers": [
+    "AUD-618-P0-001",
+    "AUD-618-P0-002",
+    "AUD-618-P0-003",
+    "AUD-618-P1-003",
+    "AUD-618-P1-004",
+    "AUD-618-P1-005",
+    "AUD-628-P1-001",
+    "AUD-633-P0-004"
+  ],
+  "repo_package_ready": true,
+  "required_external_evidence_before_public_beta_or_public_observer_claim": {
+    "AUD-618-P0-001": "independent controlled validator/operator transcript",
+    "AUD-618-P0-002": "real counsel or controlled legal/compliance attestation",
+    "AUD-618-P0-003": "future executable upgrade staging/rollback proof",
+    "AUD-618-P1-003": "external/two-machine replay transcript proving identical state roots, vector digest, and tx-index hash",
+    "AUD-618-P1-004": "real storage/IPFS daemon/operator transcript",
+    "AUD-618-P1-005": "future production helper topology proof",
+    "AUD-628-P1-001": "external clean-clone/open-download/state-sync/frontend rendered journey transcript",
+    "AUD-633-P0-004": "fresh profile-aware post-transition rehearsal evidence, browser/local signing boundary review, helper/evidence signing production gate, and external cryptographic review"
+  },
+  "schema": "weall.v1_5.final_public_observer_controlled_testnet_go_gate",
+  "version": "2026-07-pass27-final-bounded-testnet-go-gate"
+}

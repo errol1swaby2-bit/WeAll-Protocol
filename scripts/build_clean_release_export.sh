@@ -128,6 +128,7 @@ SKIP_DIR_NAMES = {
     ".nox",
     ".provider-cli",
     ".weall-devnet",
+    ".weall-media-cache",
     ".weall",
     "data",
     "data_local",
@@ -233,6 +234,54 @@ log "verifying staged backend release tree"
   bash scripts/verify_release_dependencies.sh
 )
 
+log "writing fresh audit metadata into staged export"
+python3 - "$ROOT" "$STAGED_ROOT" <<'PY'
+from __future__ import annotations
+
+import datetime as _dt
+import subprocess
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+staged = Path(sys.argv[2]).resolve()
+meta = staged / "audit-metadata"
+meta.mkdir(parents=True, exist_ok=True)
+
+def git(args: list[str]) -> str:
+    proc = subprocess.run(["git", *args], cwd=root, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    return proc.stdout.strip() if proc.returncode == 0 else ""
+
+tracked = git(["ls-files"]).splitlines()
+included = []
+for rel in tracked:
+    if (staged / rel).exists():
+        included.append(rel)
+
+now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+metadata = [
+    "schema=weall.audit_metadata.v1",
+    f"created_at_utc={now}",
+    f"source_repo_root={root}",
+    f"git_head={git(['rev-parse', 'HEAD'])}",
+    f"git_branch={git(['branch', '--show-current'])}",
+    "",
+    "latest_commit:",
+    git(["log", "--oneline", "-1"]),
+    "",
+    "git_status_short:",
+    git(["status", "--short", "--untracked-files=all"]) or "<clean>",
+    "",
+    f"tracked_file_count={len(tracked)}",
+    f"included_tracked_file_count={len(included)}",
+    "metadata_generation=build_clean_release_export.sh",
+    "truth_boundary=export metadata binds archive contents to source checkout; public beta/mainnet readiness is not claimed",
+]
+(meta / "AUDIT_METADATA.txt").write_text("\n".join(metadata) + "\n", encoding="utf-8")
+(meta / "GIT_TRACKED_FILES.txt").write_text("\n".join(tracked) + "\n", encoding="utf-8")
+(meta / "AUDIT_INCLUDED_PATHS.txt").write_text("\n".join(included) + "\n", encoding="utf-8")
+PY
+
 if find "$STAGED_ROOT" -name '*.rej' -o -name '*.orig' -o -name '*.tsbuildinfo' | grep -q .; then
   find "$STAGED_ROOT" -name '*.rej' -o -name '*.orig' -o -name '*.tsbuildinfo'
   die "staged export contains reject/orig/build-info artifacts"
@@ -274,6 +323,7 @@ forbidden_names = (
     "/.pytest_cache/",
     "/__pycache__/",
     "/.weall-devnet/",
+    "/.weall-media-cache/",
     "/.weall/",
     "/data/",
     ".tsbuildinfo",

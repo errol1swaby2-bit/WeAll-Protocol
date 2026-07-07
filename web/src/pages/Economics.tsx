@@ -106,6 +106,7 @@ export default function Economics(): JSX.Element {
               <h1 className="heroTitle heroTitleSm">{stageLabel}</h1>
               <p className="heroText">
                 WeCoin, fees, rewards, and treasury spending are shown here as a protocol status surface. This page never unlocks economics by itself.
+                No live token value, staking, validator rewards, slashing, treasury spending, or transfers are activated by this page.
               </p>
             </div>
             <div className="heroInfoPanel">
@@ -159,6 +160,9 @@ export default function Economics(): JSX.Element {
               {activationRequirements.map((item) => <div className="requirementItem" key={String(item.key || item.label)}>{item.ok ? "✓" : "•"} {String(item.label || item.key || "requirement")}</div>)}
             </div>
             <div className="calloutInfo">Activation readiness: {activation?.ready_for_activation_tx ? "ready for governance/system activation tx" : "not ready or still locked"}</div>
+            <div className="calloutWarn">
+              A future governance activation path must pass backend readiness gates; browsing this page or recording a protocol/constitution upgrade does not activate economics.
+            </div>
           </div>
         </div>
       </section>

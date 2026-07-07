@@ -1,0 +1,39 @@
+{
+  "artifact_digest": "24af6446f416ab6e93f3cd7a192c2b9a7109d9ce6334be89b364b6d73417daae",
+  "authority_rules": [
+    "repo-pinned trust roots pin signer and chain commitments",
+    "checked-in signed registry is sufficient for bootstrap if listed endpoints are reachable",
+    "generic HTTPS mirrors are optional byte publishers",
+    "remote bytes are accepted only after signature, signer pin, and commitment checks",
+    "direct P2P endpoints are transport hints and never validator authority",
+    "relay is transport fallback only"
+  ],
+  "checked_in_registry_fallback": true,
+  "direct_p2p_primary": true,
+  "generic_https_mirrors_optional": true,
+  "named_provider_dependency": false,
+  "ok": true,
+  "provider_authority": false,
+  "relay_fallback_only": true,
+  "schema": "weall.v1_5.public_discovery_provider_independence",
+  "source_order": [
+    "explicit_local_registry_path",
+    "explicit_generic_remote_registry_urls",
+    "trust_root_generic_mirror_urls",
+    "trust_root_legacy_generic_seed_registry_urls",
+    "checked_in_signed_registry_fallback",
+    "learned_direct_p2p_peers",
+    "relay_fallback_after_direct_discovery_failure"
+  ],
+  "tests": [
+    "tests/prod/test_public_discovery_no_named_provider_dependency.py",
+    "tests/prod/test_public_observer_checked_in_registry_primary.py",
+    "tests/prod/test_public_observer_generic_https_mirror.py",
+    "tests/prod/test_public_observer_provider_not_authority.py",
+    "tests/prod/test_public_observer_hybrid_discovery.py",
+    "tests/prod/test_public_observer_registry_auto_dial.py",
+    "tests/prod/test_public_nat_traversal_posture.py"
+  ],
+  "trust_roots_update_scope": "one_time_bootstrap_commitment_not_mutated_by_mirror_hosts",
+  "version": "2026-06-b631-provider-independent-discovery"
+}

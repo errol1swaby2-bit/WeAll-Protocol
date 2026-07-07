@@ -105,7 +105,17 @@ def _envelope_for_id(env: Json) -> Json:
     """
     out: Json = {}
     for k, v in env.items():
-        if k in {"tx_id", "received_ms", "expires_ms"}:
+        if k in {
+            "tx_id",
+            "received_ms",
+            "expires_ms",
+            # Local mempool metadata. These fields are stamped by the receiving
+            # node for storage/diagnostics and must never affect the canonical
+            # transaction identity or signature domain. Consensus candidate
+            # eligibility is anchored by the persisted height columns below.
+            "mempool_admitted_height",
+            "mempool_expires_height",
+        }:
             continue
         out[k] = v
     return out
@@ -134,6 +144,66 @@ def _expires_ms(env: Json, *, fallback_ttl_ms: int) -> int:
         return _safe_int(ex, _now_ms() + fallback_ttl_ms)
     return _now_ms() + fallback_ttl_ms
 
+
+
+
+def _extract_height_field(env: Json, *names: str) -> int:
+    """Extract a non-negative protocol-height field from a raw envelope.
+
+    Mempool height fields are local protocol metadata, not transaction payload
+    semantics. We intentionally only inspect the envelope top-level. Domain
+    payloads commonly contain their own expiry heights (for PoH/storage/etc.),
+    and those must not be confused with mempool candidate eligibility.
+    """
+
+    if not isinstance(env, dict):
+        return 0
+    for name in names:
+        raw = env.get(name)
+        if raw is None:
+            continue
+        try:
+            value = int(raw)
+        except Exception:
+            continue
+        if value > 0:
+            return int(value)
+    return 0
+
+
+def _height_or_zero(value: int | None) -> int:
+    try:
+        if value is None:
+            return 0
+        return max(0, int(value))
+    except Exception:
+        return 0
+
+
+def _elapsed_ms(start_ns: int) -> float:
+    return round(float(time.perf_counter_ns() - int(start_ns)) / 1_000_000.0, 3)
+
+
+def _empty_batch_timings() -> dict[str, float]:
+    return {
+        "tx_submit_total_wall_ms": 0.0,
+        "tx_signature_verify_wall_ms": 0.0,
+        "tx_canonicalize_or_hash_wall_ms": 0.0,
+        "tx_nonce_check_wall_ms": 0.0,
+        "tx_mempool_insert_wall_ms": 0.0,
+        "tx_reject_wall_ms": 0.0,
+        "tx_duplicate_check_wall_ms": 0.0,
+    }
+
+
+def _add_timing(timings: dict[str, float], key: str, start_ns: int) -> None:
+    timings[key] = round(float(timings.get(key, 0.0)) + _elapsed_ms(start_ns), 3)
+
+
+def _with_timings(result: Json, timings: dict[str, float] | None) -> Json:
+    if timings is not None:
+        result.setdefault("timings_ms", {k: round(float(v), 3) for k, v in timings.items()})
+    return result
 
 def _extract_nonce(env: Json) -> int | None:
     try:
@@ -202,7 +272,10 @@ class PersistentMempool:
     """SQLite-backed mempool.
 
     Table schema:
-      mempool(tx_id PK, envelope_json, signer, tx_type, nonce, received_ms, expires_ms)
+      mempool(
+        tx_id PK, envelope_json, signer, tx_type, nonce,
+        received_ms, expires_ms, admitted_at_height, expires_at_height
+      )
 
     Admission hardening:
       - at most one pending tx per (signer, nonce) pair (indexed in SQLite)
@@ -215,7 +288,8 @@ class PersistentMempool:
       - conflicting insert: same tx_id + different envelope is rejected
 
     Determinism:
-      - peek order is (received_ms ASC, tx_id ASC)
+      - production/default peek order is canonical (chain_id, nonce, signer, tx_type, tx_id)
+      - local FIFO order remains available only through the explicit non-production policy
       - peek filters expired items
 
     Production safety:
@@ -301,20 +375,29 @@ class PersistentMempool:
         ).fetchone()
         return int(row["n"]) if row is not None else 0
 
-    def _mempool_has_nonce_column(self, *, con) -> bool:
+    def _mempool_has_column(self, *, con, column: str) -> bool:
         rows = con.execute("PRAGMA table_info(mempool);").fetchall()
         for row in rows:
             try:
-                if str(row["name"]) == "nonce":
+                if str(row["name"]) == str(column):
                     return True
             except Exception:
                 continue
         return False
 
+    def _mempool_has_nonce_column(self, *, con) -> bool:
+        return self._mempool_has_column(con=con, column="nonce")
+
     def _add_nonce_column_if_missing(self, *, con) -> None:
         if self._mempool_has_nonce_column(con=con):
             return
         con.execute("ALTER TABLE mempool ADD COLUMN nonce INTEGER;")
+
+    def _add_height_columns_if_missing(self, *, con) -> None:
+        if not self._mempool_has_column(con=con, column="admitted_at_height"):
+            con.execute("ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;")
+        if not self._mempool_has_column(con=con, column="expires_at_height"):
+            con.execute("ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;")
 
     def _backfill_nonce_column(self, *, con) -> None:
         rows = con.execute(
@@ -373,11 +456,18 @@ class PersistentMempool:
             """
         )
 
+    def _ensure_height_indexes(self, *, con) -> None:
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_mempool_candidate_height ON mempool(admitted_at_height, expires_at_height);"
+        )
+
     def _ensure_nonce_index_ready(self) -> None:
         with self.db.write_tx() as con:
             self._add_nonce_column_if_missing(con=con)
+            self._add_height_columns_if_missing(con=con)
             self._backfill_nonce_column(con=con)
             self._ensure_nonce_indexes(con=con)
+            self._ensure_height_indexes(con=con)
 
     def _prune_expired_if_due(self, *, con, now_ms: int) -> None:
         if not self.prune_on_add:
@@ -455,7 +545,13 @@ class PersistentMempool:
             self._last_prune_ms = int(now)
             return int(n)
 
-    def add(self, env: Json) -> Json:
+    def add(
+        self,
+        env: Json,
+        *,
+        current_height: int | None = None,
+        expires_at_height: int | None = None,
+    ) -> Json:
         if not isinstance(env, dict):
             return {"ok": False, "error": "bad_env:not_object"}
 
@@ -474,6 +570,16 @@ class PersistentMempool:
 
         requested_received_ms = _now_ms()
         expires_ms = _expires_ms(env, fallback_ttl_ms=self.default_ttl_ms)
+        admitted_at_height = _height_or_zero(current_height)
+        protocol_expires_at_height = _height_or_zero(expires_at_height)
+        if protocol_expires_at_height <= 0:
+            protocol_expires_at_height = _extract_height_field(
+                env,
+                "mempool_expires_height",
+                "valid_until_height",
+                "expires_at_height",
+                "expires_height",
+            )
 
         with self.db.write_tx() as con:
             now = _now_ms()
@@ -496,6 +602,8 @@ class PersistentMempool:
             env_persist["tx_id"] = tx_id
             env_persist["received_ms"] = received_ms
             env_persist["expires_ms"] = expires_ms
+            env_persist["mempool_admitted_height"] = admitted_at_height
+            env_persist["mempool_expires_height"] = protocol_expires_at_height
             env_json = _canon_json(env_persist)
 
             nonce = _extract_nonce(env)
@@ -598,11 +706,22 @@ class PersistentMempool:
             con.execute(
                 """
                 INSERT OR IGNORE INTO mempool(
-                    tx_id, envelope_json, signer, tx_type, nonce, received_ms, expires_ms
+                    tx_id, envelope_json, signer, tx_type, nonce, received_ms, expires_ms,
+                    admitted_at_height, expires_at_height
                 )
-                VALUES(?, ?, ?, ?, ?, ?, ?);
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """,
-                (tx_id, env_json, signer, tx_type, nonce, int(received_ms), int(expires_ms)),
+                (
+                    tx_id,
+                    env_json,
+                    signer,
+                    tx_type,
+                    nonce,
+                    int(received_ms),
+                    int(expires_ms),
+                    int(admitted_at_height),
+                    int(protocol_expires_at_height),
+                ),
             )
 
             row = con.execute(
@@ -628,12 +747,18 @@ class PersistentMempool:
                         env["received_ms"] = existing_env.get("received_ms")
                     if "expires_ms" in existing_env:
                         env["expires_ms"] = existing_env.get("expires_ms")
+                    if "mempool_admitted_height" in existing_env:
+                        env["mempool_admitted_height"] = existing_env.get("mempool_admitted_height")
+                    if "mempool_expires_height" in existing_env:
+                        env["mempool_expires_height"] = existing_env.get("mempool_expires_height")
                     return {
                         "ok": True,
                         "tx_id": tx_id,
                         "already_known": True,
                         "received_ms": existing_env.get("received_ms"),
                         "expires_ms": existing_env.get("expires_ms"),
+                        "admitted_at_height": existing_env.get("mempool_admitted_height", 0),
+                        "expires_at_height": existing_env.get("mempool_expires_height", 0),
                     }
                 return {"ok": False, "error": "tx_id_conflict"}
 
@@ -641,7 +766,362 @@ class PersistentMempool:
         env["tx_id"] = tx_id
         env["received_ms"] = received_ms
         env["expires_ms"] = expires_ms
-        return {"ok": True, "tx_id": tx_id, "received_ms": received_ms, "expires_ms": expires_ms}
+        env["mempool_admitted_height"] = admitted_at_height
+        env["mempool_expires_height"] = protocol_expires_at_height
+        return {
+            "ok": True,
+            "tx_id": tx_id,
+            "received_ms": received_ms,
+            "expires_ms": expires_ms,
+            "admitted_at_height": admitted_at_height,
+            "expires_at_height": protocol_expires_at_height,
+        }
+
+    def add_many(
+        self,
+        envs: list[Json],
+        *,
+        current_height: int | None = None,
+        expires_at_height: int | None = None,
+        include_timings: bool = False,
+    ) -> list[Json]:
+        """Add many already-admitted envelopes using one deterministic DB transaction.
+
+        This is intentionally equivalent to calling ``add`` for each envelope in
+        order, but it avoids per-transaction SQLite write setup, repeated global
+        counts, and repeated ``MAX(received_ms)`` scans.  It does not perform
+        admission itself; callers must run the same admission policy they would
+        run before a serial ``add``.
+        """
+
+        if not isinstance(envs, list):
+            return [_with_timings({"ok": False, "error": "bad_envs:not_list"}, _empty_batch_timings() if include_timings else None)]
+
+        timings = _empty_batch_timings() if include_timings else None
+        total_start = time.perf_counter_ns()
+        results: list[Json | None] = [None for _ in envs]
+        prepared: list[tuple[int, Json, str, str, str, int | None, int, int, int]] = []
+        admitted_at_height = _height_or_zero(current_height)
+        default_protocol_expires_at_height = _height_or_zero(expires_at_height)
+
+        for idx, env in enumerate(envs):
+            if not isinstance(env, dict):
+                start = time.perf_counter_ns()
+                results[idx] = {"ok": False, "error": "bad_env:not_object"}
+                if timings is not None:
+                    _add_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            signer = str(env.get("signer") or "").strip()
+            if not signer:
+                start = time.perf_counter_ns()
+                results[idx] = {"ok": False, "error": "bad_env:missing_signer"}
+                if timings is not None:
+                    _add_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            tx_type = str(env.get("tx_type") or "").strip()
+            if not tx_type:
+                start = time.perf_counter_ns()
+                results[idx] = {"ok": False, "error": "bad_env:missing_tx_type"}
+                if timings is not None:
+                    _add_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            start = time.perf_counter_ns()
+            provided = str(env.get("tx_id") or "").strip()
+            tx_id = compute_tx_id(env, chain_id=self.chain_id)
+            nonce = _extract_nonce(env)
+            requested_received_ms = _now_ms()
+            expires_ms = _expires_ms(env, fallback_ttl_ms=self.default_ttl_ms)
+            protocol_expires_at_height = default_protocol_expires_at_height
+            if protocol_expires_at_height <= 0:
+                protocol_expires_at_height = _extract_height_field(
+                    env,
+                    "mempool_expires_height",
+                    "valid_until_height",
+                    "expires_at_height",
+                    "expires_height",
+                )
+            if timings is not None:
+                _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
+
+            if provided and provided != tx_id:
+                start = time.perf_counter_ns()
+                results[idx] = {"ok": False, "error": "bad_env:tx_id_mismatch"}
+                if timings is not None:
+                    _add_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            prepared.append(
+                (
+                    idx,
+                    env,
+                    signer,
+                    tx_type,
+                    tx_id,
+                    nonce,
+                    int(requested_received_ms),
+                    int(expires_ms),
+                    int(protocol_expires_at_height),
+                )
+            )
+
+        with self.db.write_tx() as con:
+            now = _now_ms()
+            self._prune_expired_if_due(con=con, now_ms=int(now))
+
+            row_last = con.execute(
+                "SELECT MAX(received_ms) AS last_received_ms FROM mempool;"
+            ).fetchone()
+            last_received_ms = (
+                int(row_last["last_received_ms"])
+                if row_last is not None and row_last["last_received_ms"] is not None
+                else 0
+            )
+            next_received_ms = int(last_received_ms)
+
+            if self.max_items > 0:
+                total_count = self._count_total(con=con)
+            else:
+                total_count = 0
+            signer_counts: dict[str, int] = {}
+            tx_type_counts: dict[str, int] = {}
+
+            for idx, env, signer, tx_type, tx_id, nonce, requested_received_ms, expires_ms, protocol_expires_at_height in prepared:
+                if results[idx] is not None:
+                    continue
+
+                received_ms = int(requested_received_ms)
+                if received_ms <= next_received_ms:
+                    received_ms = int(next_received_ms) + 1
+                next_received_ms = int(received_ms)
+
+                env_persist: Json = dict(env)
+                env_persist["tx_id"] = tx_id
+                env_persist["received_ms"] = received_ms
+                env_persist["expires_ms"] = expires_ms
+                env_persist["mempool_admitted_height"] = admitted_at_height
+                env_persist["mempool_expires_height"] = protocol_expires_at_height
+
+                start = time.perf_counter_ns()
+                env_json = _canon_json(env_persist)
+                if timings is not None:
+                    _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
+
+                if nonce is not None:
+                    start = time.perf_counter_ns()
+                    existing = _matching_signer_nonce_entry(con=con, signer=signer, nonce=int(nonce))
+                    if timings is not None:
+                        _add_timing(timings, "tx_duplicate_check_wall_ms", start)
+                    if existing is not None:
+                        existing_tx_id, existing_env = existing
+                        start = time.perf_counter_ns()
+                        existing_base = _canon_json(_envelope_for_id(existing_env))
+                        incoming_base = _canon_json(_envelope_for_id(env))
+                        if timings is not None:
+                            _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
+                        if existing_base == incoming_base:
+                            env["tx_id"] = existing_tx_id
+                            if "received_ms" in existing_env:
+                                env["received_ms"] = existing_env.get("received_ms")
+                            if "expires_ms" in existing_env:
+                                env["expires_ms"] = existing_env.get("expires_ms")
+                            if "mempool_admitted_height" in existing_env:
+                                env["mempool_admitted_height"] = existing_env.get("mempool_admitted_height")
+                            if "mempool_expires_height" in existing_env:
+                                env["mempool_expires_height"] = existing_env.get("mempool_expires_height")
+                            results[idx] = {
+                                "ok": True,
+                                "tx_id": existing_tx_id,
+                                "already_known": True,
+                                "received_ms": existing_env.get("received_ms"),
+                                "expires_ms": existing_env.get("expires_ms"),
+                                "admitted_at_height": existing_env.get("mempool_admitted_height", 0),
+                                "expires_at_height": existing_env.get("mempool_expires_height", 0),
+                                "details": {
+                                    "signer": signer,
+                                    "nonce": int(nonce),
+                                    "existing_tx_id": existing_tx_id,
+                                },
+                            }
+                            continue
+                        start = time.perf_counter_ns()
+                        results[idx] = {
+                            "ok": False,
+                            "error": "mempool_signer_nonce_conflict",
+                            "details": {
+                                "signer": signer,
+                                "nonce": int(nonce),
+                                "existing_tx_id": existing_tx_id,
+                            },
+                        }
+                        if timings is not None:
+                            _add_timing(timings, "tx_reject_wall_ms", start)
+                        continue
+
+                if self.max_items > 0 and total_count >= self.max_items:
+                    if self.evict_on_full:
+                        need = (total_count - self.max_items) + 1
+                        self._evict_oldest(con=con, need=int(need))
+                        total_count = self._count_total(con=con)
+                        signer_counts.clear()
+                        tx_type_counts.clear()
+                        if total_count >= self.max_items:
+                            start = time.perf_counter_ns()
+                            results[idx] = {"ok": False, "error": "mempool_full", "details": {"max": self.max_items}}
+                            if timings is not None:
+                                _add_timing(timings, "tx_reject_wall_ms", start)
+                            continue
+                    else:
+                        start = time.perf_counter_ns()
+                        results[idx] = {"ok": False, "error": "mempool_full", "details": {"max": self.max_items}}
+                        if timings is not None:
+                            _add_timing(timings, "tx_reject_wall_ms", start)
+                        continue
+
+                if self.max_per_signer > 0:
+                    if signer not in signer_counts:
+                        signer_counts[signer] = self._count_signer(signer, con=con)
+                    if signer_counts[signer] >= self.max_per_signer:
+                        if self.evict_on_full:
+                            need = (signer_counts[signer] - self.max_per_signer) + 1
+                            self._evict_oldest(con=con, need=int(need), signer=signer)
+                            signer_counts[signer] = self._count_signer(signer, con=con)
+                            total_count = self._count_total(con=con) if self.max_items > 0 else total_count
+                            if signer_counts[signer] >= self.max_per_signer:
+                                start = time.perf_counter_ns()
+                                results[idx] = {"ok": False, "error": "mempool_signer_quota", "details": {"signer": signer, "max": self.max_per_signer}}
+                                if timings is not None:
+                                    _add_timing(timings, "tx_reject_wall_ms", start)
+                                continue
+                        else:
+                            start = time.perf_counter_ns()
+                            results[idx] = {"ok": False, "error": "mempool_signer_quota", "details": {"signer": signer, "max": self.max_per_signer}}
+                            if timings is not None:
+                                _add_timing(timings, "tx_reject_wall_ms", start)
+                            continue
+
+                if self.max_per_tx_type > 0:
+                    if tx_type not in tx_type_counts:
+                        tx_type_counts[tx_type] = self._count_tx_type(tx_type, con=con)
+                    if tx_type_counts[tx_type] >= self.max_per_tx_type:
+                        if self.evict_on_full:
+                            need = (tx_type_counts[tx_type] - self.max_per_tx_type) + 1
+                            self._evict_oldest(con=con, need=int(need), tx_type=tx_type)
+                            tx_type_counts[tx_type] = self._count_tx_type(tx_type, con=con)
+                            total_count = self._count_total(con=con) if self.max_items > 0 else total_count
+                            if tx_type_counts[tx_type] >= self.max_per_tx_type:
+                                start = time.perf_counter_ns()
+                                results[idx] = {"ok": False, "error": "mempool_tx_type_quota", "details": {"tx_type": tx_type, "max": self.max_per_tx_type}}
+                                if timings is not None:
+                                    _add_timing(timings, "tx_reject_wall_ms", start)
+                                continue
+                        else:
+                            start = time.perf_counter_ns()
+                            results[idx] = {"ok": False, "error": "mempool_tx_type_quota", "details": {"tx_type": tx_type, "max": self.max_per_tx_type}}
+                            if timings is not None:
+                                _add_timing(timings, "tx_reject_wall_ms", start)
+                            continue
+
+                start = time.perf_counter_ns()
+                con.execute(
+                    """
+                    INSERT OR IGNORE INTO mempool(
+                        tx_id, envelope_json, signer, tx_type, nonce, received_ms, expires_ms,
+                        admitted_at_height, expires_at_height
+                    )
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    (
+                        tx_id,
+                        env_json,
+                        signer,
+                        tx_type,
+                        nonce,
+                        int(received_ms),
+                        int(expires_ms),
+                        int(admitted_at_height),
+                        int(protocol_expires_at_height),
+                    ),
+                )
+                if timings is not None:
+                    _add_timing(timings, "tx_mempool_insert_wall_ms", start)
+
+                start = time.perf_counter_ns()
+                row = con.execute(
+                    "SELECT envelope_json FROM mempool WHERE tx_id=? LIMIT 1;",
+                    (tx_id,),
+                ).fetchone()
+                if timings is not None:
+                    _add_timing(timings, "tx_duplicate_check_wall_ms", start)
+
+                if row is None:
+                    start = time.perf_counter_ns()
+                    results[idx] = {"ok": False, "error": "db_error:missing_after_insert"}
+                    if timings is not None:
+                        _add_timing(timings, "tx_reject_wall_ms", start)
+                    continue
+
+                if str(row["envelope_json"]) != env_json:
+                    try:
+                        existing_env = json.loads(str(row["envelope_json"]))
+                    except Exception:
+                        existing_env = {}
+                    start = time.perf_counter_ns()
+                    existing_base = _canon_json(_envelope_for_id(existing_env))
+                    incoming_base = _canon_json(_envelope_for_id(env))
+                    if timings is not None:
+                        _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
+                    if existing_base == incoming_base:
+                        env["tx_id"] = tx_id
+                        if "received_ms" in existing_env:
+                            env["received_ms"] = existing_env.get("received_ms")
+                        if "expires_ms" in existing_env:
+                            env["expires_ms"] = existing_env.get("expires_ms")
+                        if "mempool_admitted_height" in existing_env:
+                            env["mempool_admitted_height"] = existing_env.get("mempool_admitted_height")
+                        if "mempool_expires_height" in existing_env:
+                            env["mempool_expires_height"] = existing_env.get("mempool_expires_height")
+                        results[idx] = {
+                            "ok": True,
+                            "tx_id": tx_id,
+                            "already_known": True,
+                            "received_ms": existing_env.get("received_ms"),
+                            "expires_ms": existing_env.get("expires_ms"),
+                            "admitted_at_height": existing_env.get("mempool_admitted_height", 0),
+                            "expires_at_height": existing_env.get("mempool_expires_height", 0),
+                        }
+                        continue
+                    start = time.perf_counter_ns()
+                    results[idx] = {"ok": False, "error": "tx_id_conflict"}
+                    if timings is not None:
+                        _add_timing(timings, "tx_reject_wall_ms", start)
+                    continue
+
+                env["tx_id"] = tx_id
+                env["received_ms"] = received_ms
+                env["expires_ms"] = expires_ms
+                env["mempool_admitted_height"] = admitted_at_height
+                env["mempool_expires_height"] = protocol_expires_at_height
+                results[idx] = {
+                    "ok": True,
+                    "tx_id": tx_id,
+                    "received_ms": received_ms,
+                    "expires_ms": expires_ms,
+                    "admitted_at_height": admitted_at_height,
+                    "expires_at_height": protocol_expires_at_height,
+                }
+                total_count += 1
+                if self.max_per_signer > 0:
+                    signer_counts[signer] = int(signer_counts.get(signer, 0)) + 1
+                if self.max_per_tx_type > 0:
+                    tx_type_counts[tx_type] = int(tx_type_counts.get(tx_type, 0)) + 1
+
+        if timings is not None:
+            timings["tx_submit_total_wall_ms"] = _elapsed_ms(total_start)
+            return [_with_timings(dict(r or {"ok": False, "error": "internal_missing_result"}), timings) for r in results]
+        return [dict(r or {"ok": False, "error": "internal_missing_result"}) for r in results]
 
     def remove(self, env_or_tx_id: Any) -> Json:
         if isinstance(env_or_tx_id, str):
@@ -681,6 +1161,81 @@ class PersistentMempool:
         except Exception:
             return 0
 
+    def pending_max_nonce(self, signer: str) -> int:
+        """Return the highest live pending nonce for ``signer``.
+
+        This is local mempool metadata, not consensus state. It is used by
+        admission/frontends to reserve sequential future nonces without
+        weakening block replay, which still enforces strict nonce order.
+        """
+
+        s = str(signer or "").strip()
+        if not s:
+            return 0
+        try:
+            with self.db.connection() as con:
+                row = con.execute(
+                    """
+                    SELECT MAX(nonce) AS max_nonce
+                    FROM mempool
+                    WHERE signer=?
+                      AND nonce IS NOT NULL
+                      AND expires_ms > ?;
+                    """,
+                    (s, int(_now_ms())),
+                ).fetchone()
+                if row is None or row["max_nonce"] is None:
+                    return 0
+                return max(0, int(row["max_nonce"]))
+        except Exception:
+            return 0
+
+    def contiguous_pending_nonce(self, signer: str, *, after_nonce: int) -> int:
+        """Return the highest contiguous pending nonce after ``after_nonce``.
+
+        If the chain account nonce is 5 and live mempool rows exist for nonces
+        6 and 7, this returns 7. If rows exist for 6 and 8, this returns 6.
+        The gap stays fail-closed and block admission remains authoritative.
+        """
+
+        s = str(signer or "").strip()
+        if not s:
+            return max(0, int(after_nonce or 0))
+        cursor = max(0, int(after_nonce or 0))
+        try:
+            with self.db.connection() as con:
+                rows = con.execute(
+                    """
+                    SELECT nonce
+                    FROM mempool
+                    WHERE signer=?
+                      AND nonce IS NOT NULL
+                      AND nonce > ?
+                      AND expires_ms > ?
+                    ORDER BY nonce ASC;
+                    """,
+                    (s, int(cursor), int(_now_ms())),
+                ).fetchall()
+        except Exception:
+            return cursor
+
+        seen: set[int] = set()
+        for row in rows or []:
+            try:
+                n = int(row["nonce"])
+            except Exception:
+                continue
+            if n in seen:
+                continue
+            seen.add(n)
+            if n == cursor + 1:
+                cursor = n
+                continue
+            if n <= cursor:
+                continue
+            break
+        return cursor
+
     def selection_policy(self) -> str:
         return str(self._selection_policy or "canonical")
 
@@ -699,6 +1254,17 @@ class PersistentMempool:
                 env = json.loads(str(r["envelope_json"]))
             except Exception:
                 env = {}
+            try:
+                admitted_at_height = int(r["admitted_at_height"] or 0)
+            except Exception:
+                admitted_at_height = _extract_height_field(env, "mempool_admitted_height")
+            try:
+                expires_at_height = int(r["expires_at_height"] or 0)
+            except Exception:
+                expires_at_height = _extract_height_field(env, "mempool_expires_height")
+            if isinstance(env, dict):
+                env.setdefault("mempool_admitted_height", admitted_at_height)
+                env.setdefault("mempool_expires_height", expires_at_height)
             out.append((env, int(r["received_ms"]), str(r["tx_id"])))
         return out
 
@@ -707,7 +1273,7 @@ class PersistentMempool:
         with self.db.connection() as con:
             rows = con.execute(
                 """
-                SELECT envelope_json, received_ms, tx_id
+                SELECT envelope_json, received_ms, tx_id, admitted_at_height, expires_at_height
                 FROM mempool
                 WHERE expires_ms > ?
                 ORDER BY received_ms ASC, tx_id ASC
@@ -722,7 +1288,7 @@ class PersistentMempool:
         with self.db.connection() as con:
             rows = con.execute(
                 """
-                SELECT envelope_json, received_ms, tx_id
+                SELECT envelope_json, received_ms, tx_id, admitted_at_height, expires_at_height
                 FROM mempool
                 WHERE expires_ms > ?
                 ORDER BY nonce ASC, signer ASC, tx_type ASC, tx_id ASC
@@ -732,29 +1298,95 @@ class PersistentMempool:
             ).fetchall()
         return self._decode_rows(list(rows or []))
 
-    def fetch_for_block(self, *, limit: int = 1000, policy: str | None = None) -> list[Json]:
+    def _load_candidate_rows_fifo(self, *, candidate_height: int, limit: int) -> list[tuple[Json, int, str]]:
+        lim = int(limit) if int(limit) > 0 else 1000
+        h = int(candidate_height)
+        with self.db.connection() as con:
+            rows = con.execute(
+                """
+                SELECT envelope_json, received_ms, tx_id, admitted_at_height, expires_at_height
+                FROM mempool
+                WHERE admitted_at_height <= ?
+                  AND (expires_at_height <= 0 OR expires_at_height >= ?)
+                ORDER BY received_ms ASC, tx_id ASC
+                LIMIT ?;
+                """,
+                (h, h, int(lim)),
+            ).fetchall()
+        return self._decode_rows(list(rows or []))
+
+    def _load_candidate_rows_canonical(self, *, candidate_height: int, limit: int) -> list[tuple[Json, int, str]]:
+        lim = int(limit) if int(limit) > 0 else 1000
+        h = int(candidate_height)
+        with self.db.connection() as con:
+            rows = con.execute(
+                """
+                SELECT envelope_json, received_ms, tx_id, admitted_at_height, expires_at_height
+                FROM mempool
+                WHERE admitted_at_height <= ?
+                  AND (expires_at_height <= 0 OR expires_at_height >= ?)
+                ORDER BY nonce ASC, signer ASC, tx_type ASC, tx_id ASC
+                LIMIT ?;
+                """,
+                (h, h, int(lim)),
+            ).fetchall()
+        return self._decode_rows(list(rows or []))
+
+    def fetch_for_block(
+        self,
+        *,
+        limit: int = 1000,
+        policy: str | None = None,
+        now_ms: int | None = None,
+        candidate_height: int | None = None,
+    ) -> list[Json]:
         lim = int(limit) if int(limit) > 0 else 1000
         pol = _selection_policy_name(policy or self.selection_policy())
-        now = _now_ms()
         try:
-            if pol == "canonical":
-                rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+            if candidate_height is not None:
+                h = int(candidate_height)
+                if pol == "canonical":
+                    rows = self._load_candidate_rows_canonical(candidate_height=h, limit=lim)
+                else:
+                    rows = self._load_candidate_rows_fifo(candidate_height=h, limit=lim)
             else:
-                rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
+                # Local diagnostic/back-compat path only. Consensus block construction
+                # must pass candidate_height so eligibility is anchored to protocol
+                # height, not the receiver's wall clock.
+                now = int(_now_ms() if now_ms is None else int(now_ms))
+                if pol == "canonical":
+                    rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+                else:
+                    rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
         except Exception:
             return []
         if pol == "canonical":
             rows.sort(key=lambda item: self._selection_key(item[0]))
         return [dict(env) if isinstance(env, dict) else {} for env, _received_ms, _tx_id in rows]
 
-    def selection_diagnostics(self, *, limit: int = 10, policy: str | None = None) -> Json:
+    def selection_diagnostics(
+        self,
+        *,
+        limit: int = 10,
+        policy: str | None = None,
+        now_ms: int | None = None,
+        candidate_height: int | None = None,
+    ) -> Json:
         lim = int(limit) if int(limit) > 0 else 10
         pol = _selection_policy_name(policy or self.selection_policy())
         try:
-            if pol == "canonical":
-                rows = self._load_live_rows_canonical(now_ms=_now_ms(), limit=lim)
+            if candidate_height is not None:
+                h = int(candidate_height)
+                if pol == "canonical":
+                    rows = self._load_candidate_rows_canonical(candidate_height=h, limit=lim)
+                else:
+                    rows = self._load_candidate_rows_fifo(candidate_height=h, limit=lim)
             else:
-                rows = self._load_live_rows_fifo(now_ms=_now_ms(), limit=lim)
+                now = int(_now_ms() if now_ms is None else int(now_ms))
+                if pol == "canonical":
+                    rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+                else:
+                    rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
         except Exception as exc:
             return {
                 "policy": pol,
@@ -775,12 +1407,15 @@ class PersistentMempool:
                     "signer": str(base.get("signer") or ""),
                     "nonce": int(_extract_nonce(base) or 0),
                     "received_ms": int(base.get("received_ms") or received_ms),
+                    "mempool_admitted_height": int(base.get("mempool_admitted_height") or 0),
+                    "mempool_expires_height": int(base.get("mempool_expires_height") or 0),
                     "order_key": list(self._selection_key(base)),
                 }
             )
         return {
             "policy": pol,
             "preview_limit": lim,
+            **({"candidate_height": int(candidate_height)} if candidate_height is not None else {}),
             "size": self.size(),
             "items": items,
         }

@@ -54,7 +54,7 @@ export default function ErrorBanner({ message, details, onRetry, onDismiss, cate
   const returnTo = currentHashPath();
 
   return (
-    <div className={`card feedbackBanner feedbackBanner-${tone}`} data-feedback-category={normalized.category}>
+    <div className={`card feedbackBanner feedbackBanner-${tone}`} role="alert" aria-live="assertive" data-feedback-category={normalized.category}>
       <div className="cardBody formStack">
         <div className="sectionHead feedbackBannerHead">
           <div>

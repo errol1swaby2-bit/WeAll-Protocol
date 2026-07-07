@@ -152,7 +152,7 @@ def _explicit_lane_override(tx: Mapping[str, Any], access: TxAccessSet) -> TxAcc
         override = CONTENT_LANE
     elif tx_type.startswith(("IDENTITY_", "POH_")):
         override = IDENTITY_LANE
-    elif tx_type.startswith(("SOCIAL_", "REPUTATION_", "NOTIFICATION_", "MESSAGING_")):
+    elif tx_type.startswith(("SOCIAL_", "REPUTATION_", "NOTIFICATION_")):
         override = SOCIAL_LANE
     elif tx_type.startswith(("ECONOMICS_", "TREASURY_", "REWARDS_")):
         override = ECONOMICS_LANE

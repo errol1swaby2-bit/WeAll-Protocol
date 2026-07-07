@@ -7,7 +7,8 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from weall.crypto.ed25519 import sign_ed25519, verify_ed25519_sig
+from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode
 from weall.net.messages import BlockProposalMsg, TxEnvelopeMsg
 from weall.tx.canon import CanonError
 from weall.runtime.tx_id import compute_tx_id_from_dict
@@ -158,12 +159,12 @@ class SeenCache:
 class GossipState:
     cfg: GossipConfig
     seen: SeenCache
-    outbox: set[tuple[str, str]]
+    tx_queue: set[tuple[str, str]]
 
     def __init__(self, cfg: GossipConfig) -> None:
         self.cfg = cfg
         self.seen = SeenCache(max_seen=cfg.max_seen, ttl_ms=cfg.ttl_ms)
-        self.outbox = set()
+        self.tx_queue = set()
 
 
 # ---------------------------------------------------------------------
@@ -210,6 +211,7 @@ def _canon_addr_signing_payload(record: JsonObject) -> bytes:
         "tx_index_hash": str(record.get("tx_index_hash") or ""),
         "valid_from_ms": int(record.get("valid_from_ms") or 0),
         "expires_at_ms": int(record.get("expires_at_ms") or 0),
+        "sig_profile": str(record.get("sig_profile") or PQ_MLDSA_V1).strip(),
     }
     return json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
@@ -225,12 +227,15 @@ def make_peer_addr_record(
     ttl_ms: int | None = None,
     pubkey: str | None = None,
     privkey: str | None = None,
+    sig_profile: str | None = None,
 ) -> JsonObject:
     """Create a relayable peer address record.
 
-    If pubkey+privkey are supplied, the record is Ed25519-signed and can be
-    verified by receivers. Unsigned records are still useful for discovery but
-    remain untrusted hints until the normal PEER_HELLO handshake succeeds.
+    If pubkey+privkey are supplied, the record is signed with an explicit
+    signature profile.  Controlled/public testnet mode defaults to pq-mldsa-v1;
+    pq-mldsa-v1 is the only accepted gossip signature profile. Unsigned
+    records are still useful for discovery but remain untrusted hints until the
+    normal PEER_HELLO handshake succeeds.
     """
 
     clean_uri = normalize_peer_uri(uri)
@@ -253,10 +258,15 @@ def make_peer_addr_record(
     pk = str(pubkey or "").strip()
     sk = str(privkey or "").strip()
     if pk and sk:
+        profile = str(sig_profile or default_signature_profile_for_mode()).strip() or PQ_MLDSA_V1
         rec["pubkey"] = pk
-        rec["sig_alg"] = "ed25519"
-        rec["sig"] = sign_ed25519(
-            message_bytes=_canon_addr_signing_payload(rec), privkey_str=sk, encoding="hex"
+        rec["sig_profile"] = profile
+        rec["sig_alg"] = "ML-DSA"
+        rec["sig"] = sign_signature_for_profile(
+            sig_profile=profile,
+            message=_canon_addr_signing_payload(rec),
+            privkey=sk,
+            encoding="hex",
         )
     return rec
 
@@ -299,10 +309,20 @@ def verify_peer_addr_record(record: Any, *, cfg: PeerAddrGossipConfig, now_ms: i
         return bool(cfg.allow_unsigned)
     if not sig or not pubkey:
         return False
-    if str(record.get("sig_alg") or "ed25519").lower() != "ed25519":
+    profile = str(record.get("sig_profile") or "").strip()
+    if not profile:
+        profile = PQ_MLDSA_V1
+    if not profile:
         return False
     try:
-        return bool(verify_ed25519_sig(pubkey, _canon_addr_signing_payload(record), sig))
+        return bool(
+            verify_signature_for_profile(
+                sig_profile=profile,
+                message=_canon_addr_signing_payload({**record, "sig_profile": profile}),
+                sig=sig,
+                pubkey=pubkey,
+            )
+        )
     except Exception:
         return False
 

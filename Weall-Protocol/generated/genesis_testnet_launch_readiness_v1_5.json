@@ -1,0 +1,51 @@
+{
+  "checked_in_registry_baseline": true,
+  "direct_p2p_primary": true,
+  "live_rehearsal_required": true,
+  "mainnet_claim_allowed": false,
+  "manual_validator_activation_authority": false,
+  "named_provider_dependency": false,
+  "observer_boot_script_checks": {
+    "enables_direct_p2p_mesh_loop": true,
+    "initializes_local_node_identity_only": true,
+    "loads_checked_in_registry": true,
+    "loads_trust_roots": true,
+    "refuses_observer_validator_signing": true,
+    "runs_production_node_entrypoint": true
+  },
+  "overall_launch_verdict": "partial_until_live_genesis_reachability_and_rehearsal_pass",
+  "production_economics_active": false,
+  "registry": {
+    "chain_id": "weall-testnet-v1",
+    "errors": [],
+    "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
+    "network_id": "weall-public-observer-testnet-v1",
+    "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+    "seed_api_urls": [
+      "https://api.genesis.weallprotocol.xyz"
+    ],
+    "seed_p2p_urls": [
+      "tls://p2p.genesis.weallprotocol.xyz:30303"
+    ],
+    "signature_status": {
+      "required": true,
+      "signer": "81eaf06a553325a438a98a126bfef417faee784f1363dfd2f4856fd4207f1865",
+      "trust": "pinned",
+      "verified": true
+    },
+    "source_kind": "file",
+    "tx_index_hash": "b138d73c7d1f8dfd81c34c144d0e703734cddcfd8cbfb6385847667ebf70f4a8"
+  },
+  "relay_fallback_only": true,
+  "schema": "weall.v1_5.genesis_testnet_launch_readiness",
+  "source_files": [
+    "configs/chains/weall-testnet-v1.json",
+    "configs/public_testnet_trust_roots.json",
+    "configs/public_testnet_seed_registry.json",
+    "src/weall/api/public_seed_registry.py",
+    "src/weall/net/net_loop.py",
+    "scripts/boot_public_observer_testnet.sh"
+  ],
+  "static_readiness_verdict": "ready_for_live_endpoint_rehearsal",
+  "version": "2026-06-public-genesis-launch"
+}

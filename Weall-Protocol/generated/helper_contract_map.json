@@ -998,6 +998,76 @@
       ]
     },
     {
+      "authority_keys": [
+        "authority:governance",
+        "barrier:global"
+      ],
+      "barrier_class": "GLOBAL_BARRIER",
+      "context": "block",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Governance",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "GOVERNANCE",
+      "has_global_barrier_authority": true,
+      "helper_eligible": false,
+      "origin": "SYSTEM",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "global_barrier",
+      "receipt_only": true,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "gov:proposal:anon:CONSTITUTION_UPGRADE_ACTIVATE"
+      ],
+      "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "gov:proposal:anon:CONSTITUTION_UPGRADE_ACTIVATE"
+      ]
+    },
+    {
+      "authority_keys": [
+        "authority:governance",
+        "barrier:global"
+      ],
+      "barrier_class": "GLOBAL_BARRIER",
+      "context": "block",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Governance",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "GOVERNANCE",
+      "has_global_barrier_authority": true,
+      "helper_eligible": false,
+      "origin": "SYSTEM",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "global_barrier",
+      "receipt_only": true,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "gov:proposal:anon:CONSTITUTION_UPGRADE_DECLARE"
+      ],
+      "tx_type": "CONSTITUTION_UPGRADE_DECLARE",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "gov:proposal:anon:CONSTITUTION_UPGRADE_DECLARE"
+      ]
+    },
+    {
       "authority_keys": [],
       "barrier_class": "SUBJECT_BARRIER",
       "context": "mempool",
@@ -1585,72 +1655,6 @@
       "authority_keys": [],
       "barrier_class": "SUBJECT_BARRIER",
       "context": "mempool",
-      "degraded_to_serial": true,
-      "derived_only": false,
-      "domain": "Messaging",
-      "effective_lane_id": "SERIAL",
-      "execution_lane_id": "SERIAL",
-      "fail_closed_serial": false,
-      "family": "MESSAGING",
-      "has_global_barrier_authority": false,
-      "helper_eligible": false,
-      "origin": "USER",
-      "placeholder_key_count": 3,
-      "planner_lane_hint": "SOCIAL",
-      "proof_status": "DEGRADED_INSTANCE_REQUIRED",
-      "proven_helper_eligible": false,
-      "read_keys": [],
-      "reason": "execution_lane_serial",
-      "receipt_only": false,
-      "requires_concrete_instance": true,
-      "serial_only_on_missing_fields": true,
-      "subject_keys": [
-        "messaging:thread:anon:DIRECT_MESSAGE_REDACT"
-      ],
-      "tx_type": "DIRECT_MESSAGE_REDACT",
-      "uses_placeholder_keys": true,
-      "write_keys": [
-        "messaging:message:anon:DIRECT_MESSAGE_REDACT",
-        "messaging:thread:anon:DIRECT_MESSAGE_REDACT"
-      ]
-    },
-    {
-      "authority_keys": [],
-      "barrier_class": "SUBJECT_BARRIER",
-      "context": "mempool",
-      "degraded_to_serial": true,
-      "derived_only": false,
-      "domain": "Messaging",
-      "effective_lane_id": "SERIAL",
-      "execution_lane_id": "SERIAL",
-      "fail_closed_serial": false,
-      "family": "MESSAGING",
-      "has_global_barrier_authority": false,
-      "helper_eligible": false,
-      "origin": "USER",
-      "placeholder_key_count": 3,
-      "planner_lane_hint": "SOCIAL",
-      "proof_status": "DEGRADED_INSTANCE_REQUIRED",
-      "proven_helper_eligible": false,
-      "read_keys": [],
-      "reason": "execution_lane_serial",
-      "receipt_only": false,
-      "requires_concrete_instance": true,
-      "serial_only_on_missing_fields": true,
-      "subject_keys": [
-        "messaging:thread:anon:DIRECT_MESSAGE_SEND"
-      ],
-      "tx_type": "DIRECT_MESSAGE_SEND",
-      "uses_placeholder_keys": true,
-      "write_keys": [
-        "messaging:message:anon:DIRECT_MESSAGE_SEND",
-        "messaging:thread:anon:DIRECT_MESSAGE_SEND"
-      ]
-    },
-    {
-      "authority_keys": [],
-      "barrier_class": "SUBJECT_BARRIER",
-      "context": "mempool",
       "degraded_to_serial": false,
       "derived_only": false,
       "domain": "Dispute",
@@ -1905,6 +1909,72 @@
       "uses_placeholder_keys": true,
       "write_keys": [
         "dispute:case:anon:DISPUTE_JUROR_DECLINE"
+      ]
+    },
+    {
+      "authority_keys": [
+        "authority:dispute:anon:DISPUTE_JUROR_TIMEOUT"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "block",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Dispute",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "DISPUTE",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "SYSTEM",
+      "placeholder_key_count": 3,
+      "planner_lane_hint": "GOVERNANCE",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": true,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "dispute:case:anon:DISPUTE_JUROR_TIMEOUT"
+      ],
+      "tx_type": "DISPUTE_JUROR_TIMEOUT",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "dispute:case:anon:DISPUTE_JUROR_TIMEOUT"
+      ]
+    },
+    {
+      "authority_keys": [],
+      "barrier_class": "SUBJECT_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Dispute",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "DISPUTE",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "USER",
+      "placeholder_key_count": 2,
+      "planner_lane_hint": "GOVERNANCE",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": false,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [
+        "dispute:case:anon:DISPUTE_JUROR_WITHDRAW"
+      ],
+      "tx_type": "DISPUTE_JUROR_WITHDRAW",
+      "uses_placeholder_keys": true,
+      "write_keys": [
+        "dispute:case:anon:DISPUTE_JUROR_WITHDRAW"
       ]
     },
     {
@@ -3702,6 +3772,38 @@
       "tx_type": "MUTE_SET",
       "uses_placeholder_keys": false,
       "write_keys": []
+    },
+    {
+      "authority_keys": [
+        "authority:roles"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Roles",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "ROLES",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "USER",
+      "placeholder_key_count": 0,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": false,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [],
+      "tx_type": "NODE_OPERATOR_HELPER_OPT_IN",
+      "uses_placeholder_keys": false,
+      "write_keys": [
+        "roles:capability:NODE_OPERATOR_HELPER_OPT_IN"
+      ]
     },
     {
       "authority_keys": [],
@@ -5527,6 +5629,70 @@
       "tx_type": "REPUTATION_THRESHOLD_CROSS",
       "uses_placeholder_keys": false,
       "write_keys": []
+    },
+    {
+      "authority_keys": [
+        "authority:roles"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Roles",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "ROLES",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "USER",
+      "placeholder_key_count": 0,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": false,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [],
+      "tx_type": "REVIEWER_LANE_OPT_IN",
+      "uses_placeholder_keys": false,
+      "write_keys": [
+        "roles:capability:REVIEWER_LANE_OPT_IN"
+      ]
+    },
+    {
+      "authority_keys": [
+        "authority:roles"
+      ],
+      "barrier_class": "AUTHORITY_BARRIER",
+      "context": "mempool",
+      "degraded_to_serial": false,
+      "derived_only": false,
+      "domain": "Roles",
+      "effective_lane_id": "SERIAL",
+      "execution_lane_id": "SERIAL",
+      "fail_closed_serial": false,
+      "family": "ROLES",
+      "has_global_barrier_authority": false,
+      "helper_eligible": false,
+      "origin": "USER",
+      "placeholder_key_count": 0,
+      "planner_lane_hint": "SERIAL",
+      "proof_status": "SERIAL_ONLY",
+      "proven_helper_eligible": false,
+      "read_keys": [],
+      "reason": "planner_serial",
+      "receipt_only": false,
+      "requires_concrete_instance": false,
+      "serial_only_on_missing_fields": true,
+      "subject_keys": [],
+      "tx_type": "REVIEWER_LANE_OPT_OUT",
+      "uses_placeholder_keys": false,
+      "write_keys": [
+        "roles:capability:REVIEWER_LANE_OPT_OUT"
+      ]
     },
     {
       "authority_keys": [
@@ -7536,8 +7702,6 @@
     "COLD_SYNC_COMPLETE",
     "COLD_SYNC_REQUEST",
     "CREATOR_PERFORMANCE_REPORT",
-    "DIRECT_MESSAGE_REDACT",
-    "DIRECT_MESSAGE_SEND",
     "INDEX_ANCHOR_SET",
     "INDEX_TOPIC_ANCHOR_SET",
     "INDEX_TOPIC_REGISTER",
@@ -8033,26 +8197,25 @@
     "sample_count": 13
   },
   "summary": {
-    "degraded_to_serial_count": 28,
+    "degraded_to_serial_count": 26,
     "duplicate_name_count": 0,
     "effective_lane_counts": {
       "PARALLEL_CONTENT": 26,
       "PARALLEL_ECONOMY": 12,
       "PARALLEL_IDENTITY": 39,
       "PARALLEL_SOCIAL": 3,
-      "SERIAL": 151
+      "SERIAL": 156
     },
     "family_counts": {
       "CASES": 3,
       "CONSENSUS": 16,
       "CONTENT": 15,
-      "DISPUTE": 12,
+      "DISPUTE": 14,
       "ECONOMICS": 7,
-      "GOVERNANCE": 17,
+      "GOVERNANCE": 19,
       "GROUPS": 20,
       "IDENTITY": 18,
       "INDEXING": 8,
-      "MESSAGING": 2,
       "MODERATION": 2,
       "NETWORKING": 6,
       "NOTIFICATIONS": 3,
@@ -8060,24 +8223,24 @@
       "POH": 34,
       "REPUTATION": 6,
       "REWARDS": 6,
-      "ROLES": 18,
+      "ROLES": 21,
       "SOCIAL": 5,
       "STORAGE": 13,
       "TREASURY": 15
     },
     "global_authority_parallel_count": 0,
     "helper_eligible_count": 80,
-    "instance_required_count": 98,
+    "instance_required_count": 96,
     "placeholder_parallel_count": 73,
     "proven_helper_eligible_count": 7,
     "reason_counts": {
-      "execution_lane_serial": 28,
+      "execution_lane_serial": 26,
       "global_authority_placeholder": 28,
-      "global_barrier": 18,
+      "global_barrier": 20,
       "helper_parallel_allowed": 80,
-      "planner_serial": 77
+      "planner_serial": 82
     },
-    "tx_count": 231,
+    "tx_count": 236,
     "unknown_family_count": 0
   }
 }

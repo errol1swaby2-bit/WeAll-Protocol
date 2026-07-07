@@ -3,7 +3,7 @@ set -euo pipefail
 
 # scripts/e2e_smoke.sh
 #
-# End-to-end smoke for a single node (local):
+# Full-path smoke for a single node (local):
 # - boots API + block loop
 # - submits ACCOUNT_REGISTER
 # - waits for tx confirmation

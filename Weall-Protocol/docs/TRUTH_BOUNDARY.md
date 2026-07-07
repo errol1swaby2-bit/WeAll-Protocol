@@ -18,7 +18,7 @@ WeAll should **not** currently be described as:
 - public multi-validator BFT ready;
 - public adversarial validator ready;
 - live-economics ready;
-- production-grade encrypted messaging ready;
+- protocol-native non-public social surfaces removed; public activity notifications only;
 - a public user launch;
 - a finalized constitutional governance deployment;
 - a complete self-bootstrapped public Proof-of-Humanity network.
@@ -35,7 +35,7 @@ The following claims are acceptable when backed by fresh command output from the
 | Dependency locks | Backend and frontend lockfiles are present, pinned, and hashed. | `bash scripts/verify_release_dependencies.sh` |
 | Reviewer gate | The targeted production-readiness reviewer gate exercises the bounded reviewer suite. | `bash scripts/reviewer_production_readiness_gate.sh` |
 | Frontend type safety | The web frontend typechecks after clean dependency installation. | `cd ../web && npm ci && npm run typecheck` |
-| Account custody | The frontend has local key generation, recovery-file creation, recovery verification, restore handling, and signed transaction session wiring. | `web/src/auth/*`, `web/src/pages/LoginPage.tsx`, `web/scripts/test_batch469_account_custody_source.mjs` |
+| Account custody | The frontend has local key generation, recovery-file creation, recovery verification, restore handling, and signed transaction session wiring. | `web/src/auth/*`, `web/src/pages/LoginPage.tsx`, `web/scripts/test_account_custody_source.mjs` |
 | Proof of Humanity | Async/live PoH txs, APIs, frontend surfaces, review/finalization flows, and tier-gated follow-up flows exist and are test-covered in bounded suites. | PoH tests, reviewer tests, API/frontend source checks |
 | Content and groups | Posting, media surfaces, feed visibility, group creation, and group membership are implemented for rehearsal/testnet flows. | content/group tests, frontend source checks, local rehearsal evidence |
 | Dispute/review/governance | Dispute, review, appeal/procedure, proposal, comment, vote, finalization, and constitutional-clock surfaces exist for testnet review. | dispute/governance/procedure tests and docs |
@@ -88,7 +88,7 @@ export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/public-observer-bundle.jso
 bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
-For a private LAN rehearsal, `WEALL_ALLOW_PRIVATE_GENESIS_API=1` may be used only when the documentation clearly says this is not a public HTTPS deployment.
+For a LAN rehearsal, `WEALL_ALLOW_LAN_GENESIS_API=1` may be used only when the documentation clearly says this is not a public HTTPS deployment.
 
 ## Block production and BFT truth boundary
 
@@ -155,3 +155,7 @@ Required practice:
 5. If reviewer asks for clarification, state which improvements happened after the submitted commit.
 
 This lets the project keep moving quickly without confusing reviewers about what was true at submission time.
+
+### Pass 33 signature-profile truth boundary
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware `pq-mldsa-v1` ML-DSA signing for protocol authority surfaces covered by this pass; `legacy-ed25519-v1` is disabled for protocol authority and retained only as a fail-closed inventory/migration identifier. This does not claim completed production cryptographic audit, mainnet readiness, live economics, public multi-validator BFT readiness, production helper execution readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

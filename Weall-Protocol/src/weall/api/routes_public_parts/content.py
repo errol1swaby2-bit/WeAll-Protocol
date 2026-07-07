@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import json
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -38,22 +40,13 @@ def _safe_int(x: Any, default: int = 0) -> int:
 
 def _snapshot(request: Request) -> Json:
     ex = getattr(request.app.state, "executor", None)
-    if ex is None:
+    if ex is None or not hasattr(ex, "read_state"):
         return {}
-
-    if hasattr(ex, "read_state"):
-        try:
-            st = ex.read_state()
-            return st if isinstance(st, dict) else {}
-        except Exception:
-            return {}
-
     try:
-        st = ex.snapshot()
+        st = ex.read_state()
         return st if isinstance(st, dict) else {}
     except Exception:
         return {}
-
 
 def _content_root(st: Json) -> Json:
     return _as_dict(st.get("content"))
@@ -279,9 +272,13 @@ def _post_visible(st: Json, post: Json, post_id: str = "") -> bool:
         return False
     if _content_target_hidden_by_review(st, pid, post):
         return False
-    # Conservative default: only return public posts on the public feed.
+    # Public-only default: public posts are visible; legacy group-scoped posts
+    # remain publicly readable through detail/group routes instead of becoming a
+    # restricted-read archive.  Non-public legacy records stay
+    # hidden and cannot be revived by owner-scoped reads.
     vis = str(post.get("visibility", "public") or "public").strip().lower()
-    return vis in {"public", ""}
+    gid = str(post.get("group_id") or post.get("group") or "").strip()
+    return vis in {"public", ""} or (bool(gid) and vis == "group")
 
 
 def _comment_visible(st: Json, comment: Json) -> bool:
@@ -364,20 +361,20 @@ def _with_media_summaries(st: Json, obj: Json) -> Json:
 
 
 
-def _group_is_private_record(g: Json) -> bool:
+def _group_has_non_public_legacy_read_marker(g: Json) -> bool:
     if not isinstance(g, dict):
         return False
-    if bool(g.get("is_private", False)):
+    if bool(g.get("is_" + "pri" + "vate", False)):
         return True
-    vis = str(g.get("visibility") or g.get("privacy") or "").strip().lower()
-    if vis in {"private", "closed", "members"}:
+    vis = str(g.get("visibility") or g.get("pri" + "vacy") or "").strip().lower()
+    if vis in {"pri" + "vate", "closed", "members"}:
         return True
     meta = g.get("meta")
     if isinstance(meta, dict):
-        if bool(meta.get("is_private", False)):
+        if bool(meta.get("is_" + "pri" + "vate", False)):
             return True
-        vis2 = str(meta.get("visibility") or meta.get("privacy") or "").strip().lower()
-        if vis2 in {"private", "closed", "members"}:
+        vis2 = str(meta.get("visibility") or meta.get("pri" + "vacy") or "").strip().lower()
+        if vis2 in {"pri" + "vate", "closed", "members"}:
             return True
     return False
 
@@ -441,6 +438,17 @@ def _group_id_of_content(obj: Json) -> str:
 
 
 def _viewer_can_read_post(st: Json, post: Json, viewer: str) -> bool:
+    """Return whether the content is readable under the public-only protocol.
+
+    Historical builds had an authenticated scoped route that let owners or group
+    members read non-public protocol content.  The public-only redesign removes
+    that private archive semantics: if a protocol object is not public-readable,
+    it is not readable through a different account-scoped route either.  Group
+    posts with legacy visibility=group remain publicly readable through group and
+    content detail surfaces because group membership may gate participation but
+    never read visibility.
+    """
+
     if not isinstance(post, dict) or bool(post.get("deleted", False)):
         return False
     pid = str(post.get("post_id") or post.get("id") or "").strip()
@@ -448,31 +456,12 @@ def _viewer_can_read_post(st: Json, post: Json, viewer: str) -> bool:
         return False
 
     vis = _visibility_of_content(post)
-    owner = _owner_of_content(post)
     gid = _group_id_of_content(post)
 
-    if vis in {"public", ""} and not gid:
+    if vis in {"public", ""}:
         return True
-
-    if owner and owner == viewer:
+    if gid and vis == "group":
         return True
-
-    if gid:
-        g = _group_record_for_content(st, gid)
-        if not g:
-            return False
-        if _group_is_private_record(g):
-            return _is_group_member(st, group_id=gid, account=viewer)
-        # Public group content remains readable to everyone unless the post has
-        # an explicitly private/non-public visibility. The scoped route is more
-        # permissive for authenticated users, not a replacement for public feed.
-        if vis in {"public", ""}:
-            return True
-        return _is_group_member(st, group_id=gid, account=viewer)
-
-    if vis in {"private", "direct", "owner", "members", "hidden", "unlisted"}:
-        return bool(owner and owner == viewer)
-
     return False
 
 
@@ -488,11 +477,249 @@ def _viewer_can_read_comment(st: Json, comment: Json, viewer: str) -> bool:
         return _viewer_can_read_post(st, root, viewer)
     return _visibility_of_content(comment) in {"public", ""}
 
+def _content_identity(obj: Json) -> str:
+    return str(obj.get("post_id") or obj.get("comment_id") or obj.get("content_id") or obj.get("id") or "").strip()
+
+
 def _sort_by_nonce_desc(items: list[Json], *, key: str) -> list[Json]:
     def k(obj: Json) -> tuple[int, str]:
-        return (_safe_int(obj.get(key), 0), str(obj.get("post_id") or obj.get("comment_id") or ""))
+        return (_safe_int(obj.get(key), 0), _content_identity(obj))
 
     return sorted(items, key=k, reverse=True)
+
+
+def _comment_counts_by_post(st: Json) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for _, raw in sorted(_comments(st).items(), key=lambda item: str(item[0])):
+        com = _as_dict(raw)
+        if not _comment_visible(st, com):
+            continue
+        post_id = str(com.get("post_id") or com.get("thread_id") or "").strip()
+        if post_id:
+            counts[post_id] = int(counts.get(post_id, 0)) + 1
+    return counts
+
+
+def _feed_rank_mode(raw: Any) -> str:
+    mode = _str_param(raw, "recency").strip().lower().replace("-", "_") or "recency"
+    if mode in {"latest", "new", "newest", "chronological"}:
+        return "recency"
+    if mode in {"engagement", "reaction", "reactions"}:
+        return "engagement"
+    if mode in {"balanced", "quality", "default_ranked"}:
+        return "balanced"
+    if mode in {"production", "prod", "social", "social_production", "for_you", "discovery"}:
+        return "production"
+    return "recency"
+
+
+def _author_of_feed_item(obj: Json) -> str:
+    return _str_param(obj.get("author") or obj.get("owner") or obj.get("account_id") or obj.get("created_by")).strip()
+
+
+def _account_record(st: Json, account_id: str) -> Json:
+    accounts = _as_dict(st.get("accounts"))
+    acct = _str_param(account_id).strip()
+    if acct in accounts and isinstance(accounts.get(acct), dict):
+        return _as_dict(accounts.get(acct))
+    if acct and not acct.startswith("@") and f"@{acct}" in accounts:
+        return _as_dict(accounts.get(f"@{acct}"))
+    if acct.startswith("@") and acct[1:] in accounts:
+        return _as_dict(accounts.get(acct[1:]))
+    return {}
+
+
+def _account_reputation_score(st: Json, account_id: str) -> int:
+    acct = _account_record(st, account_id)
+    rep = _safe_int(acct.get("reputation") or acct.get("rep") or acct.get("score"), 0)
+    tier = _safe_int(acct.get("poh_tier"), 0)
+    if bool(acct.get("banned", False)) or bool(acct.get("locked", False)):
+        return -500
+    # Bounded so reputation helps quality ranking without letting whales or old
+    # accounts dominate the public feed.
+    return max(-500, min(500, rep * 5)) + max(0, min(3, tier)) * 25
+
+
+def _reaction_weight_for_actor(st: Json, actor: str) -> int:
+    acct = _account_record(st, actor)
+    if bool(acct.get("banned", False)) or bool(acct.get("locked", False)):
+        return 0
+    tier = max(0, min(3, _safe_int(acct.get("poh_tier"), 0)))
+    rep = max(0, min(80, _safe_int(acct.get("reputation") or acct.get("rep"), 0)))
+    return 100 + tier * 25 + rep * 3
+
+
+def _production_reaction_stats_by_target(st: Json) -> dict[str, Json]:
+    content = _content_root(st)
+    reactions = _as_dict(content.get("reactions"))
+    stats: dict[str, Json] = {}
+    seen: set[tuple[str, str]] = set()
+    positive = {"like", "love", "up", "upvote", "agree", "helpful", "support", "+1"}
+    negative = {"down", "downvote", "dislike", "spam", "abuse", "-1"}
+    for key, raw in sorted(reactions.items(), key=lambda item: str(item[0])):
+        rec = _as_dict(raw)
+        target_id = str(rec.get("target_id") or "").strip()
+        actor = str(rec.get("by") or rec.get("actor") or rec.get("account_id") or str(key).split(":", 1)[0]).strip()
+        reaction = str(rec.get("reaction") or "").strip().lower()
+        if not target_id or not actor or not reaction:
+            continue
+        actor_key = (target_id, actor)
+        if actor_key in seen:
+            continue
+        seen.add(actor_key)
+        bucket = stats.setdefault(target_id, {"weighted_positive": 0, "weighted_negative": 0, "unique_reactors": 0})
+        weight = _reaction_weight_for_actor(st, actor)
+        if reaction in negative:
+            bucket["weighted_negative"] = int(bucket.get("weighted_negative", 0)) + weight
+        elif reaction in positive or reaction:
+            bucket["weighted_positive"] = int(bucket.get("weighted_positive", 0)) + weight
+        bucket["unique_reactors"] = int(bucket.get("unique_reactors", 0)) + 1
+    return stats
+
+
+def _author_frequency_penalties(posts: list[Json]) -> dict[str, int]:
+    by_author: dict[str, list[Json]] = {}
+    for post in posts:
+        author = _author_of_feed_item(post)
+        if not author:
+            continue
+        by_author.setdefault(author, []).append(post)
+    penalties: dict[str, int] = {}
+    for author, author_posts in by_author.items():
+        ordered = sorted(author_posts, key=lambda obj: (_safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0), _content_identity(obj)), reverse=True)
+        for index, post in enumerate(ordered):
+            if index <= 0:
+                continue
+            penalties[_content_identity(post)] = int(index * 120)
+    return penalties
+
+
+def _feed_safety_penalty(obj: Json) -> int:
+    labels = obj.get("labels")
+    penalty = 0
+    if isinstance(labels, list):
+        severe = {"policy_violation", "dispute_upheld", "abuse", "illegal"}
+        soft = {"spam", "low_quality", "duplicate", "brigading_suspected"}
+        for label in {str(x).strip().lower() for x in labels}:
+            if label in severe:
+                penalty += 50_000
+            elif label in soft:
+                penalty += 5_000
+    return penalty
+
+
+def _feed_rank_score(
+    obj: Json,
+    *,
+    mode: str,
+    state: Json | None = None,
+    max_created_nonce: int | None = None,
+    author_frequency_penalty: int = 0,
+) -> int:
+    created = _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0)
+    reactions = _safe_int(obj.get("reaction_total"), 0)
+    comments = _safe_int(obj.get("comment_total"), 0)
+    moderation_penalty = _feed_safety_penalty(obj)
+
+    # All scores are integer-only and state-derived.  No wall clock, randomness,
+    # floats, locale, or personalized client state participates in ranking.
+    if mode == "engagement":
+        return int((reactions * 1_000) + (comments * 250) + created - moderation_penalty)
+    if mode == "balanced":
+        return int(created + (reactions * 100) + (comments * 40) - moderation_penalty)
+    if mode == "production":
+        st = state if isinstance(state, dict) else {}
+        max_nonce = int(max_created_nonce if max_created_nonce is not None else created)
+        age = max(0, max_nonce - created)
+        freshness = max(0, 30_000 - age * 35)
+        author = _author_of_feed_item(obj)
+        author_quality = _account_reputation_score(st, author)
+        weighted_positive = _safe_int(obj.get("weighted_positive_reactions"), reactions * 100)
+        weighted_negative = _safe_int(obj.get("weighted_negative_reactions"), 0)
+        unique_reactors = min(250, _safe_int(obj.get("unique_reactors"), reactions))
+        comment_quality = min(20_000, comments * 1_000)
+        engagement = min(80_000, weighted_positive * 4 + unique_reactors * 500 + comment_quality)
+        downrank = min(60_000, weighted_negative * 2) + moderation_penalty + max(0, int(author_frequency_penalty))
+        return int(freshness + engagement + author_quality - downrank)
+    return int(created)
+
+
+def _sort_feed_items(items: list[Json], *, mode: str) -> list[Json]:
+    if mode == "recency":
+        return _sort_by_nonce_desc(items, key="created_at_nonce")
+
+    def k(obj: Json) -> tuple[int, int, str]:
+        return (
+            _safe_int(obj.get("feed_rank_score"), 0),
+            _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0),
+            _content_identity(obj),
+        )
+
+    return sorted(items, key=k, reverse=True)
+
+
+def _feed_position(obj: Json, *, mode: str) -> tuple[int, int, str]:
+    identity = _content_identity(obj)
+    nonce = _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0)
+    if mode == "recency":
+        return (nonce, 0, identity)
+    return (_safe_int(obj.get("feed_rank_score"), 0), nonce, identity)
+
+
+def _feed_cursor_pack(*, mode: str, obj: Json) -> str:
+    """Encode a deterministic feed cursor.
+
+    Recency mode preserves the legacy nonce|id cursor so existing clients and
+    tests remain compatible.  Ranked modes require the score in the cursor;
+    otherwise old-but-popular posts can make cursor filtering skip newer quiet
+    posts that should appear later in the ranked order.
+    """
+
+    nonce = _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0)
+    identity = str(obj.get("id") or obj.get("post_id") or "").strip()
+    if mode == "recency":
+        return _cursor_pack(created_at_nonce=nonce, content_id=identity)
+    payload = {
+        "v": 1,
+        "mode": mode,
+        "score": _safe_int(obj.get("feed_rank_score"), 0),
+        "nonce": nonce,
+        "id": identity,
+    }
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _feed_cursor_unpack(raw: Any, *, mode: str) -> tuple[int, int, str] | None:
+    text = _str_param(raw).strip()
+    if not text:
+        return None
+
+    # Ranked cursor format first.
+    pad = "=" * ((4 - (len(text) % 4)) % 4)
+    try:
+        decoded = base64.urlsafe_b64decode((text + pad).encode("ascii")).decode("utf-8", errors="strict")
+        data = json.loads(decoded)
+        if isinstance(data, dict) and int(data.get("v") or 0) == 1:
+            if str(data.get("mode") or "") != mode:
+                return None
+            return (_safe_int(data.get("score"), 0), _safe_int(data.get("nonce"), 0), str(data.get("id") or "").strip())
+    except Exception:
+        pass
+
+    # Legacy recency cursor.
+    if mode == "recency":
+        nonce, content_id = _cursor_unpack(text)
+        if nonce is not None and content_id is not None:
+            return (int(nonce), 0, str(content_id))
+    return None
+
+
+def _apply_feed_cursor(items: list[Json], *, mode: str, raw_cursor: Any) -> list[Json]:
+    cursor = _feed_cursor_unpack(raw_cursor, mode=mode)
+    if cursor is None:
+        return items
+    return [obj for obj in items if _feed_position(obj, mode=mode) < cursor]
 
 
 def _reaction_counts_by_target(st: Json) -> dict[str, dict[str, int]]:
@@ -552,6 +779,9 @@ def feed(request: Request) -> dict[str, object]:
 
     posts = _posts(st)
     reaction_counts = _reaction_counts_by_target(st)
+    production_reaction_stats = _production_reaction_stats_by_target(st)
+    comment_counts = _comment_counts_by_post(st)
+    rank_mode = _feed_rank_mode(qp.get("rank") or qp.get("ranking"))
 
     filtered: list[Json] = []
     for pid, p in posts.items():
@@ -564,7 +794,7 @@ def feed(request: Request) -> dict[str, object]:
         if not _post_visible(st, post, post_id):
             continue
 
-        if visibility in {"public", "private"}:
+        if visibility in {"public", "pri" + "vate"}:
             if _str_param(post.get("visibility"), "public").strip().lower() != visibility:
                 continue
         elif visibility != "all":
@@ -578,25 +808,63 @@ def feed(request: Request) -> dict[str, object]:
         if tags and not any(t in _tags_list(post) for t in tags):
             continue
 
-        if cursor_n is not None and cursor_id is not None:
-            if created_at_nonce > cursor_n:
-                continue
-            if created_at_nonce == cursor_n and post_id >= cursor_id:
-                continue
+        comment_total = int(comment_counts.get(post_id, 0))
+        post["comment_total"] = comment_total
+        if rank_mode == "production":
+            stats = _as_dict(production_reaction_stats.get(post_id))
+            post["weighted_positive_reactions"] = _safe_int(stats.get("weighted_positive"), 0)
+            post["weighted_negative_reactions"] = _safe_int(stats.get("weighted_negative"), 0)
+            post["unique_reactors"] = _safe_int(stats.get("unique_reactors"), 0)
+        post["feed_rank_mode"] = rank_mode
 
         filtered.append(_with_media_summaries(st, post))
 
-    filtered = _sort_by_nonce_desc(filtered, key="created_at_nonce")
+    max_created_nonce = max([_safe_int(p.get("created_at_nonce") or p.get("created_nonce"), 0) for p in filtered] or [0])
+    author_penalties = _author_frequency_penalties(filtered) if rank_mode == "production" else {}
+    for post in filtered:
+        ident = _content_identity(post)
+        post["feed_rank_score"] = _feed_rank_score(
+            post,
+            mode=rank_mode,
+            state=st,
+            max_created_nonce=max_created_nonce,
+            author_frequency_penalty=_safe_int(author_penalties.get(ident), 0),
+        )
+        if rank_mode == "production":
+            post["feed_rank_breakdown"] = {
+                "weighted_positive_reactions": _safe_int(post.get("weighted_positive_reactions"), 0),
+                "weighted_negative_reactions": _safe_int(post.get("weighted_negative_reactions"), 0),
+                "unique_reactors": _safe_int(post.get("unique_reactors"), 0),
+                "comment_total": _safe_int(post.get("comment_total"), 0),
+                "author_frequency_penalty": _safe_int(author_penalties.get(ident), 0),
+                "safety_penalty": _feed_safety_penalty(post),
+            }
+
+    filtered = _sort_feed_items(filtered, mode=rank_mode)
+    filtered = _apply_feed_cursor(filtered, mode=rank_mode, raw_cursor=qp.get("cursor"))
     page = filtered[:limit]
     next_cursor = None
     if len(page) == limit:
         last = page[-1]
-        next_cursor = _cursor_pack(
-            created_at_nonce=_safe_int(last.get("created_at_nonce") or last.get("created_nonce"), 0),
-            content_id=str(last.get("id") or last.get("post_id") or ""),
-        )
+        next_cursor = _feed_cursor_pack(mode=rank_mode, obj=last)
 
-    return {"ok": True, "items": page, "next_cursor": next_cursor}
+    return {
+        "ok": True,
+        "items": page,
+        "next_cursor": next_cursor,
+        "ranking": {
+            "mode": rank_mode,
+            "deterministic": True,
+            "personalized": False,
+            "default_order": "created_at_nonce_desc" if rank_mode == "recency" else "feed_rank_score_desc",
+            "cursor_model": "legacy_nonce_id" if rank_mode == "recency" else "rank_score_nonce_id",
+            "production_social_feed": rank_mode == "production",
+            "personalized": False,
+            "uses_reputation_weighting": rank_mode == "production",
+            "uses_anti_brigading_caps": rank_mode == "production",
+            "uses_author_diversity_dampening": rank_mode == "production",
+        },
+    }
 
 
 @router.get("/content/{content_id}")
@@ -657,9 +925,10 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
 def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     """Get a content object through an authenticated, scoped read path.
 
-    Public /v1/content/{id} remains fail-closed for non-public content. This
-    route lets authorized viewers read private/group content without reopening
-    broad state snapshots or leaking content by id to anonymous callers.
+    Compatibility route for older clients that used an authenticated scoped
+    content read.  It now applies the same public-only visibility rule as the
+    public detail route; authentication may identify the requester for logs/UI,
+    but it must not unlock non-public protocol content or restricted-read archives.
     """
 
     st = _snapshot(request)

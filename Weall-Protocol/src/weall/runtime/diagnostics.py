@@ -169,10 +169,6 @@ def read_state(self) -> Json:
         pass
     return self.state
 
-def snapshot(self) -> Json:
-    """Return a full in-memory snapshot of chain state."""
-    return self.read_state()
-
 def tx_index_hash(self) -> str:
     """Return SHA-256 hex digest of the canonical tx index file."""
     return str(getattr(self, "_tx_index_hash", "") or "")

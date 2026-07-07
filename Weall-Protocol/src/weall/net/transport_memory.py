@@ -14,7 +14,7 @@ Addressing:
   - Use PeerAddr("mem://<name>") as the bind/connect uri.
   - bind() registers this transport instance under that uri.
   - connect() returns a Connection to the remote transport (by uri).
-  - send() enqueues a WirePacket into the remote transport inbox, with peer_id
+  - send() enqueues a WirePacket into the remote transport input_queue, with peer_id
     set to the sender's bound uri (or "mem://anonymous" if unbound).
 
 This is intentionally minimal and should never be used for production networking.
@@ -60,7 +60,7 @@ class _MemConn(Connection):
             raise TypeError("payload must be bytes")
         sender = self._local.bound_uri or "mem://anonymous"
         # Remote receives packet "from" the sender's uri.
-        self._remote._inbox.append(
+        self._remote._input_queue.append(
             WirePacket(
                 peer_id=str(sender),
                 payload=bytes(payload),
@@ -88,7 +88,7 @@ class InMemoryTransport:
     def __init__(self) -> None:
         self.bound_uri: str = ""
         self._closed: bool = False
-        self._inbox: list[WirePacket] = []
+        self._input_queue: list[WirePacket] = []
         self._conns: dict[str, _MemConn] = {}
 
     def bind(self, addr: PeerAddr) -> None:
@@ -121,8 +121,8 @@ class InMemoryTransport:
         if self._closed:
             return []
         n = int(max_packets) if int(max_packets) > 0 else 250
-        out = self._inbox[:n]
-        del self._inbox[:n]
+        out = self._input_queue[:n]
+        del self._input_queue[:n]
         return out
 
     def connections(self) -> Iterable[Connection]:
@@ -132,7 +132,7 @@ class InMemoryTransport:
         self._closed = True
         if self.bound_uri and _REGISTRY.get(self.bound_uri) is self:
             _REGISTRY.pop(self.bound_uri, None)
-        self._inbox.clear()
+        self._input_queue.clear()
         for c in list(self._conns.values()):
             try:
                 c.close()
@@ -143,10 +143,10 @@ class InMemoryTransport:
     # ---- helpers for tests/harness ----
 
     def _inject(self, *, peer_id: str, payload: bytes, received_at_ms: int | None = None) -> None:
-        """Inject a packet into this transport's inbox."""
+        """Inject a packet into this transport's input_queue."""
         if self._closed:
             return
-        self._inbox.append(
+        self._input_queue.append(
             WirePacket(
                 peer_id=str(peer_id),
                 payload=bytes(payload),

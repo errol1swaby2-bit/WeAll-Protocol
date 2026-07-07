@@ -1,0 +1,13 @@
+{
+  "network_id": "weall-public-observer-testnet-v1",
+  "chain_id": "weall-testnet-v1",
+  "genesis_hash": "<set-before-public-launch>",
+  "protocol_profile_hash": "<set-before-public-launch>",
+  "tx_index_hash": "<set-before-public-launch>",
+  "resettable_testnet": true,
+  "economics_active": false,
+  "notes": [
+    "These commitments must be pinned in public observer backend and frontend configuration before public launch.",
+    "Tokens/economic balances on this testnet have no real-world value."
+  ]
+}

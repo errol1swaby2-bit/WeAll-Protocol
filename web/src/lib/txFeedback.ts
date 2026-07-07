@@ -47,8 +47,8 @@ const CATEGORY_META: Record<FrontendErrorCategory, { label: string; title: strin
     safeToRetry: true,
   },
   recorded_not_yet_visible: {
-    label: "Done, updating",
-    title: "Done. Updating this page",
+    label: "Submitted, updating",
+    title: "Submitted. Waiting for status evidence",
     retryable: false,
     safeToRetry: false,
   },
@@ -66,7 +66,7 @@ const CATEGORY_META: Record<FrontendErrorCategory, { label: string; title: strin
   },
   index_visibility_lag: {
     label: "Updating",
-    title: "Done. Updating this page",
+    title: "Submitted. Updating this page",
     retryable: true,
     safeToRetry: false,
   },
@@ -77,13 +77,13 @@ export function txStatusLabel(status: TxLifecycleStatus): string {
     case "validating":
       return "Checking";
     case "submitting":
-      return "Saving";
+      return "Submitting";
     case "recorded":
-      return "Recorded";
+      return "Accepted / queued";
     case "refreshing":
-      return "Updating";
+      return "Checking status";
     case "confirmed":
-      return "Done";
+      return "Finalized";
     case "failed":
     default:
       return "Failed";

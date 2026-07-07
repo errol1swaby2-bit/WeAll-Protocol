@@ -5,6 +5,7 @@
 
 import { webVersion } from "./version";
 import { useMemo } from "react";
+import { loadSettings, type ClientSettings } from "./settings";
 
 export type AppConfig = {
   appName: string;
@@ -21,6 +22,7 @@ export type AppConfig = {
   clientVersion: string;
 
   // Network
+  publicTestnet: boolean;
   defaultApiBase: string;
   // Where to fetch initial seed node list (JSON). If empty, node selection falls back to user list / configured base.
   seedsUrl: string;
@@ -28,6 +30,7 @@ export type AppConfig = {
   // from the public chain manifest so the first reachable/current node cannot define the
   // expected network identity for the user.
   expectedChainId: string;
+  expectedGenesisHash: string;
   expectedTxIndexHash: string;
   expectedProtocolProfileHash: string;
   // Dev-only manifest used to preload a local tester account/signer/session.
@@ -70,11 +73,13 @@ export const config: AppConfig = {
   // Prefer Vite-injected version to avoid manual drift; env can override if desired.
   clientVersion: env("VITE_WEALL_CLIENT_VERSION").trim() || injectedVersion || "0.0.0",
 
+  publicTestnet: truthy(env("VITE_WEALL_PUBLIC_TESTNET")),
   defaultApiBase: defaultApiBase(),
 
   // Default to same-origin /seeds.json so a static webfront can ship its own seed list.
-  seedsUrl: env("VITE_WEALL_SEEDS_URL").trim() || "/seeds.json",
+  seedsUrl: env("VITE_WEALL_SEED_MANIFEST_URL").trim() || env("VITE_WEALL_SEEDS_URL").trim() || "/seeds.json",
   expectedChainId: env("VITE_WEALL_EXPECTED_CHAIN_ID").trim(),
+  expectedGenesisHash: env("VITE_WEALL_EXPECTED_GENESIS_HASH").trim(),
   expectedTxIndexHash: env("VITE_WEALL_EXPECTED_TX_INDEX_HASH").trim(),
   expectedProtocolProfileHash: env("VITE_WEALL_EXPECTED_PROTOCOL_PROFILE_HASH").trim(),
   devBootstrapManifestUrl: env("VITE_WEALL_DEV_BOOTSTRAP_MANIFEST").trim() || "/dev-bootstrap.json",
@@ -84,4 +89,10 @@ export const config: AppConfig = {
 export function useAppConfig(): AppConfig {
   // config is static (from Vite env); memo keeps hook semantics clean.
   return useMemo(() => config, []);
+}
+
+
+export function canShowAdvancedMode(settings?: Pick<ClientSettings, "showAdvancedMode">): boolean {
+  const clientSettings = settings ?? loadSettings();
+  return config.enableDevTools && clientSettings.showAdvancedMode === true;
 }

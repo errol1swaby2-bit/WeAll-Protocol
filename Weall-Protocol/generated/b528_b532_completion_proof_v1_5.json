@@ -1,0 +1,262 @@
+{
+  "api_lifecycle": {
+    "activity_status_code": 200,
+    "api_routes_exercised": [
+      "GET /v1/session/me",
+      "GET /v1/feed",
+      "GET /v1/activity/notices"
+    ],
+    "batch": "530",
+    "dispute_id": "d-api-life",
+    "domains_exercised": [
+      "session",
+      "poh",
+      "groups",
+      "content",
+      "feed",
+      "public_activity_input_queue",
+      "dispute",
+      "storage",
+      "economics_locked",
+      "protocol_upgrade_record_only"
+    ],
+    "economics_locked_rejection": true,
+    "feed_ranking": {
+      "cursor_model": "rank_score_nonce_id",
+      "default_order": "feed_rank_score_desc",
+      "deterministic": true,
+      "mode": "production",
+      "personalized": false,
+      "production_social_feed": true,
+      "uses_anti_brigading_caps": true,
+      "uses_author_diversity_dampening": true,
+      "uses_reputation_weighting": true
+    },
+    "final_enforcement_count": 4,
+    "final_state_root": "3a4e49d97766408ddf812009aa22c0642a8ac2ee232e555f725d013132e2d8cd",
+    "group_id": "g-life",
+    "ok": true,
+    "poh": {
+      "challenge_id": "pohc:@alice:1",
+      "resolve": {
+        "applied": "POH_CHALLENGE_RESOLVE",
+        "challenge_id": "pohc:@alice:1",
+        "consequence": {
+          "account_id": "@alice",
+          "applied": true,
+          "evidence_retention": {
+            "account_id": "@alice",
+            "appeal_remedy_available": true,
+            "case_id": "poh-case-life",
+            "challenge_id": "pohc:@alice:1",
+            "deletion_eligible": false,
+            "history": [
+              {
+                "account_id": "@alice",
+                "case_id": "poh-case-life",
+                "challenge_id": "pohc:@alice:1",
+                "event": "poh_challenge_evidence_retention_policy",
+                "height": 300,
+                "status": "retain_until_reverification_or_appeal"
+              }
+            ],
+            "reason": "challenge_upheld",
+            "status": "retain_until_reverification_or_appeal",
+            "updated_height": 300
+          },
+          "poh_tier": 0,
+          "reverification_required": true,
+          "reverification_status": "required",
+          "reviewer_accountability": {
+            "applied": true,
+            "case_id": "poh-case-life",
+            "collusion_suspicion": {
+              "applied": true,
+              "reviewer_count": 3,
+              "reviewers": [
+                "@bob",
+                "@juror",
+                "@reviewer"
+              ],
+              "suspicion_id": "poh-reviewer-collusion:poh-case-life:pohc:@alice:1"
+            },
+            "reviewers": [
+              "@bob",
+              "@juror",
+              "@reviewer"
+            ]
+          },
+          "status": "revoked",
+          "type": "poh_status_revoked"
+        },
+        "resolution": "upheld"
+      },
+      "reverify_finalize": {
+        "applied": "POH_ASYNC_FINALIZE",
+        "case_id": "poh-case-reverify",
+        "outcome": "approved",
+        "tier_awarded": 1,
+        "token_id": "fad41bc367355b6b9d7b1ff656a32ec13773262d19fbfe230ddfbe11ed2f2051"
+      },
+      "reviewer_eligible": false
+    },
+    "post_id": "post:lifecycle:api",
+    "protocol_activate_applied": true,
+    "protocol_declare_applied": true,
+    "protocol_upgrade_record_only": true,
+    "public_activity_checked": true,
+    "storage_failed_pin_reassigned": true,
+    "storage_retrieval_confirmed": true
+  },
+  "artifact": "b528_b532_completion_proof_v1_5",
+  "batches": [
+    528,
+    529,
+    530,
+    531,
+    532
+  ],
+  "feed_ranking": {
+    "complete_for_deterministic_public_social_ranking": true,
+    "complete_for_personalized_recommendation": false,
+    "cursor_model": "rank_score_nonce_id",
+    "mode": "production",
+    "personalized": false,
+    "uses_anti_brigading_caps": true,
+    "uses_author_diversity_dampening": true,
+    "uses_reputation_weighting": true
+  },
+  "fresh_node_replay_sync": {
+    "batch": "529",
+    "corrupt_block_rejected": true,
+    "durable_db_used": true,
+    "fresh_height": 6,
+    "fresh_state_root": "abd625e729ba84f151a9d1c174345132fcd50d782e5e48477aac104cb6e818f4",
+    "interrupted_resume_verified": true,
+    "ok": true,
+    "receipt_roots_verified": true,
+    "source_height": 6,
+    "source_state_root": "abd625e729ba84f151a9d1c174345132fcd50d782e5e48477aac104cb6e818f4"
+  },
+  "locked_boundaries": {
+    "automatic_upgrades": false,
+    "live_economics": false,
+    "production_helpers": false,
+    "public_validators": false
+  },
+  "ok": true,
+  "scope": [
+    "tcp_process_validator_rehearsal",
+    "sqlite_db_backed_fresh_node_replay_sync",
+    "api_driven_full_lifecycle",
+    "poh_dispute_accountability_completion",
+    "economics_storage_activation_complete_locked",
+    "production_social_feed_ranking"
+  ],
+  "truth_boundary": "local_private_completion_rehearsal_not_public_beta_or_mainnet",
+  "validator_rehearsal": {
+    "batch": "528",
+    "claim": "local_private_tcp_process_rehearsal_only",
+    "lagging_rejoin_root_matches_reference": true,
+    "minority_partition_result": "finality_threshold_not_met",
+    "network_transport": "127.0.0.1_tcp_json_lines",
+    "observer_vote_rejected": true,
+    "ok": true,
+    "ports_bound": 4,
+    "process_model": "subprocess_tcp_json_rpc",
+    "public_validator_enabled": false,
+    "restart_root_preserved": true,
+    "roots_after_restart": {
+      "validator-a": "36dee884c87fd3fe3e9cbdcc3f5fc91e815998279dd4b0852c64fb29701f1c7e",
+      "validator-b": "36dee884c87fd3fe3e9cbdcc3f5fc91e815998279dd4b0852c64fb29701f1c7e",
+      "validator-c": "36dee884c87fd3fe3e9cbdcc3f5fc91e815998279dd4b0852c64fb29701f1c7e",
+      "validator-d": "36dee884c87fd3fe3e9cbdcc3f5fc91e815998279dd4b0852c64fb29701f1c7e"
+    },
+    "rounds": [
+      {
+        "block": {
+          "block_hash": "83d407605fd08645eae18a3e93c8a10ecbe672b7da07e871e51edeacc1259974",
+          "block_id": "block-1-0",
+          "height": 1,
+          "parent_block_id": "genesis",
+          "tx_ids": [
+            "tx:bootstrap"
+          ],
+          "votes_hash": "acf5c8dd9ef89d6d3a95c0a62aa6ee6c7e5c8d1f11a594741c6a408461a06110"
+        },
+        "commit_replies": [
+          {
+            "height": 1,
+            "node_id": "validator-a",
+            "ok": true,
+            "root": "21ef51a5a28b1111421628580578993e48dd1e9c87388e174007ad5ef9a8c68c"
+          },
+          {
+            "height": 1,
+            "node_id": "validator-b",
+            "ok": true,
+            "root": "21ef51a5a28b1111421628580578993e48dd1e9c87388e174007ad5ef9a8c68c"
+          },
+          {
+            "height": 1,
+            "node_id": "validator-c",
+            "ok": true,
+            "root": "21ef51a5a28b1111421628580578993e48dd1e9c87388e174007ad5ef9a8c68c"
+          },
+          {
+            "height": 1,
+            "node_id": "validator-d",
+            "ok": true,
+            "root": "21ef51a5a28b1111421628580578993e48dd1e9c87388e174007ad5ef9a8c68c"
+          }
+        ],
+        "committed": true,
+        "height": 1,
+        "threshold": 3,
+        "votes": 4
+      },
+      {
+        "block": {
+          "block_hash": "64a4a7673d9c0d15ef4172b1884bfe48308695fb72902917abd418af01bd9887",
+          "block_id": "block-2-1",
+          "height": 2,
+          "parent_block_id": "block-1-0",
+          "tx_ids": [
+            "tx:gov"
+          ],
+          "votes_hash": "4f58f4333aba53b3fdde7641ed89193a2f649c6a7d3f9b18aba54cda1406e8a5"
+        },
+        "commit_replies": [
+          {
+            "height": 2,
+            "node_id": "validator-a",
+            "ok": true,
+            "root": "36dee884c87fd3fe3e9cbdcc3f5fc91e815998279dd4b0852c64fb29701f1c7e"
+          },
+          {
+            "height": 2,
+            "node_id": "validator-b",
+            "ok": true,
+            "root": "36dee884c87fd3fe3e9cbdcc3f5fc91e815998279dd4b0852c64fb29701f1c7e"
+          },
+          {
+            "height": 2,
+            "node_id": "validator-c",
+            "ok": true,
+            "root": "36dee884c87fd3fe3e9cbdcc3f5fc91e815998279dd4b0852c64fb29701f1c7e"
+          },
+          {
+            "height": 2,
+            "node_id": "validator-d",
+            "ok": true,
+            "root": "36dee884c87fd3fe3e9cbdcc3f5fc91e815998279dd4b0852c64fb29701f1c7e"
+          }
+        ],
+        "committed": true,
+        "height": 2,
+        "threshold": 3,
+        "votes": 4
+      }
+    ]
+  }
+}

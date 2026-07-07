@@ -66,8 +66,6 @@ ACTION_REQUIRED_POH_TIER: dict[str, int] = {
 
     # Tier 1: basic verified-human participation after native async review.
     "BALANCE_TRANSFER": 1,
-    "DIRECT_MESSAGE_SEND": 1,
-    "DIRECT_MESSAGE_REDACT": 1,
     "FOLLOW_SET": 1,
     "BLOCK_SET": 1,
     "MUTE_SET": 1,
@@ -87,6 +85,9 @@ ACTION_REQUIRED_POH_TIER: dict[str, int] = {
     "DISPUTE_APPEAL": 2,
     "DISPUTE_EVIDENCE_DECLARE": 2,
     "DISPUTE_EVIDENCE_BIND": 2,
+    "REVIEWER_LANE_OPT_IN": 2,
+    "REVIEWER_LANE_OPT_OUT": 2,
+    "NODE_OPERATOR_HELPER_OPT_IN": 2,
     "GROUP_MEMBERSHIP_REQUEST": 1,
     "POH_LIVE_REQUEST_OPEN": 1,
     "ROLE_NODE_OPERATOR_ENROLL": 2,

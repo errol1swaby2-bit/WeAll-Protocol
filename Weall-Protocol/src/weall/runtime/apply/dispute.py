@@ -19,6 +19,9 @@ from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.reviewer_responsibilities import DISPUTE_REVIEW_LANE, eligible_reviewer_ids, reviewer_lane_active
+from weall.runtime.reputation_events import append_reputation_event
+from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
 
@@ -36,9 +39,88 @@ class DisputeApplyError(RuntimeError):
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
+_ALLOWED_DISPUTE_TARGET_TYPES = frozenset({
+    "content",
+    "post",
+    "comment",
+    "account",
+    "group",
+    "membership",
+    "moderator",
+    "reviewer",
+    "poh",
+})
+
+_ALLOWED_DISPUTE_ENFORCEMENT_TX_TYPES = frozenset({
+    "CONTENT_LABEL_SET",
+    "CONTENT_VISIBILITY_SET",
+    "CONTENT_THREAD_LOCK_SET",
+    "ACCOUNT_LOCK",  # legacy queue-bound account action preserved for compatibility
+    "ACCOUNT_REINSTATE",
+    "ACCOUNT_RESTRICTION_SET",
+    "GROUP_MEMBERSHIP_RESTRICT",
+    "ROLE_ELIGIBILITY_SET",
+    "ROLE_JUROR_REINSTATE",
+})
+
+
+def _dispute_enforcement_rejections(state: Json) -> list[Json]:
+    root = state.get("dispute_enforcement_rejections")
+    if not isinstance(root, list):
+        root = []
+        state["dispute_enforcement_rejections"] = root
+    return root
+
+
+def _validate_dispute_target_type(target_type: str) -> str:
+    t = _as_str(target_type).strip().lower()
+    if not t or t not in _ALLOWED_DISPUTE_TARGET_TYPES:
+        raise DisputeApplyError(
+            "forbidden",
+            "unsupported_dispute_target_type",
+            {"target_type": target_type, "allowed": sorted(_ALLOWED_DISPUTE_TARGET_TYPES)},
+        )
+    return t
+
+
+def _validate_dispute_enforcement_actions(state: Json, *, actions: list[Json], dispute_id: str, parent_ref: str | None) -> list[Json]:
+    valid: list[Json] = []
+    for index, action in enumerate(actions):
+        if not isinstance(action, dict):
+            _dispute_enforcement_rejections(state).append({
+                "dispute_id": dispute_id,
+                "index": int(index),
+                "reason": "action_not_object",
+                "parent": parent_ref or "",
+            })
+            continue
+        tx_type = _as_str(action.get("tx_type")).strip().upper()
+        if tx_type not in _ALLOWED_DISPUTE_ENFORCEMENT_TX_TYPES:
+            _dispute_enforcement_rejections(state).append({
+                "dispute_id": dispute_id,
+                "index": int(index),
+                "tx_type": tx_type,
+                "reason": "unsupported_enforcement_action",
+                "parent": parent_ref or "",
+            })
+            continue
+        payload = action.get("payload") if isinstance(action.get("payload"), dict) else {}
+        valid.append({"tx_type": tx_type, "payload": dict(payload)})
+    return valid
+
 
 def _as_str(x: Any) -> str:
     return x if isinstance(x, str) else ""
+
+
+def _require_public_cid(value: Any, *, field: str, tx_type: str) -> str:
+    cid = _as_str(value).strip()
+    if not cid:
+        return ""
+    check = validate_ipfs_cid(cid)
+    if not check.ok:
+        raise DisputeApplyError("invalid_payload", "invalid_public_cid", {"field": field, "cid": cid, "reason": check.reason, "tx_type": tx_type})
+    return cid
 
 
 def _normalized_str_list(items: Any) -> list[str]:
@@ -132,6 +214,50 @@ def _eligible_key_for_actor(d: Json, juror: str) -> str:
     return ""
 
 
+
+
+def _dispute_target_owner(state: Json, d: Json) -> str:
+    owner = _as_str(d.get("target_owner") or d.get("target_author") or "").strip()
+    if owner:
+        return _resolve_account_identity(state, owner)
+    owner = _content_target_owner(
+        state,
+        target_type=_as_str(d.get("target_type") or "content"),
+        target_id=_as_str(d.get("target_id") or ""),
+    )
+    return _resolve_account_identity(state, owner) if owner else ""
+
+
+def _is_dispute_target_owner(state: Json, d: Json, account: str) -> bool:
+    owner = _dispute_target_owner(state, d)
+    return bool(owner and _same_account(owner, _as_str(account).strip()))
+
+
+def _filter_target_owner_from_jurors(state: Json, d: Json, jurors: list[str]) -> list[str]:
+    owner = _dispute_target_owner(state, d)
+    target_type = _as_str(d.get("target_type") or "").strip().lower()
+    content_review_target = target_type in {"", "content", "post", "comment"}
+    filtered: list[str] = []
+    excluded: list[str] = []
+    for juror in _normalized_str_list([_resolve_account_identity(state, item) for item in jurors]):
+        if owner and _same_account(owner, juror):
+            excluded.append(juror)
+            continue
+        filtered.append(juror)
+    if owner:
+        d["target_owner"] = owner
+    if owner and content_review_target:
+        # Record the content-review conflict policy whenever a content/post/comment
+        # dispute has a known owner, even if that owner was never present in the
+        # active reviewer candidate set. This keeps read models truthful after the
+        # stricter explicit-reviewer opt-in filter removes non-reviewers earlier.
+        d["conflict_policy"] = "target_owner_excluded_from_content_review"
+    if excluded:
+        existing = _normalized_str_list(d.get("conflicted_juror_ids"))
+        d["conflicted_juror_ids"] = _normalized_str_list(existing + excluded)
+    return filtered
+
+
 def _active_validator_ids(state: Json) -> list[str]:
     roles = _as_dict(state.get("roles"))
     validators = _as_dict(roles.get("validators"))
@@ -177,22 +303,61 @@ def _active_validator_ids(state: Json) -> list[str]:
     return []
 
 
+def _filter_active_dispute_reviewers(state: Json, jurors: list[str], dispute: Json) -> list[str]:
+    active = [
+        _resolve_account_identity(state, item)
+        for item in _normalized_str_list(jurors)
+        if reviewer_lane_active(state, _resolve_account_identity(state, item), DISPUTE_REVIEW_LANE)
+    ]
+    return _filter_target_owner_from_jurors(state, dispute, _normalized_str_list(active))
+
+
+def _require_dispute_reviewer_lane(state: Json, account_id: str, dispute: Json | None = None) -> str:
+    acct = _resolve_account_identity(state, account_id)
+    if dispute is not None and acct and _is_dispute_target_owner(state, dispute, acct):
+        # Preserve the more specific safety failure for conflicted content owners.
+        # Responsibility opt-in is still enforced for every unconflicted reviewer.
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_conflict_target_owner",
+            {"juror": acct, "target_owner": _dispute_target_owner(state, dispute)},
+        )
+    if not acct or not reviewer_lane_active(state, acct, DISPUTE_REVIEW_LANE):
+        raise DisputeApplyError(
+            "forbidden",
+            "reviewer_responsibility_not_active",
+            {"account_id": account_id, "lane": DISPUTE_REVIEW_LANE},
+        )
+    return acct
+
+
 def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str = "") -> list[str]:
-    snap = _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))])
+    # Dispute review is a human-review responsibility. Validators, content
+    # authors, reporters, or fallback signers never inherit this duty unless
+    # they explicitly hold an active Juror/reviewer lane.
+    snap = _filter_active_dispute_reviewers(
+        state,
+        [_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))],
+        dispute,
+    )
     if snap:
         dispute["eligible_juror_ids"] = list(snap)
         dispute["eligible_validator_count"] = int(len(snap))
         dispute["required_votes"] = int(quorum_threshold(len(snap))) if snap else 0
         return snap
 
-    assigned = _normalized_str_list([_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("assigned_jurors"))])
+    assigned = _filter_active_dispute_reviewers(
+        state,
+        [_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("assigned_jurors"))],
+        dispute,
+    )
     if assigned:
         dispute["eligible_juror_ids"] = list(assigned)
         dispute["eligible_validator_count"] = int(len(assigned))
         dispute["required_votes"] = int(quorum_threshold(len(assigned))) if assigned else 0
         return assigned
 
-    active = _active_validator_ids(state)
+    active = _filter_active_dispute_reviewers(state, eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE), dispute)
     if active:
         dispute["eligible_juror_ids"] = list(active)
         dispute["eligible_validator_count"] = int(len(active))
@@ -201,7 +366,7 @@ def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str
 
     raw_signer = fallback_signer or dispute.get("opened_by")
     signer = _resolve_account_identity(state, raw_signer)
-    if signer and signer.upper() != "SYSTEM":
+    if signer and signer.upper() != "SYSTEM" and reviewer_lane_active(state, signer, DISPUTE_REVIEW_LANE) and not _is_dispute_target_owner(state, dispute, signer):
         dispute["eligible_juror_ids"] = [signer]
         dispute["eligible_validator_count"] = 1
         dispute["required_votes"] = 1
@@ -305,11 +470,125 @@ def _apply_inline_content_enforcement(state: Json, *, actions: list[Json], curre
             continue
         tx_type = _as_str(action.get("tx_type")).strip()
         payload = action.get("payload") if isinstance(action.get("payload"), dict) else {}
-        if tx_type not in {"CONTENT_LABEL_SET", "CONTENT_VISIBILITY_SET", "CONTENT_THREAD_LOCK_SET"}:
+        if tx_type in {"CONTENT_LABEL_SET", "CONTENT_VISIBILITY_SET", "CONTENT_THREAD_LOCK_SET"}:
+            env = _system_env(tx_type, payload, height=int(current_height), parent_ref=parent_ref)
+            apply_content(state, env)
+            applied.append({"tx_type": tx_type, "payload": dict(payload)})
             continue
-        env = _system_env(tx_type, payload, height=int(current_height), parent_ref=parent_ref)
-        apply_content(state, env)
-        applied.append({"tx_type": tx_type, "payload": dict(payload)})
+
+        if tx_type == "ACCOUNT_RESTRICTION_SET":
+            account_id = _as_str(payload.get("account_id") or payload.get("target_account") or payload.get("target_id")).strip()
+            restriction = _as_str(payload.get("restriction") or payload.get("status") or "restricted_by_dispute").strip()
+            if not account_id:
+                continue
+            accounts = state.get("accounts")
+            if not isinstance(accounts, dict):
+                accounts = {}
+                state["accounts"] = accounts
+            rec = accounts.get(account_id) if isinstance(accounts.get(account_id), dict) else {}
+            restrictions = rec.get("restrictions") if isinstance(rec.get("restrictions"), list) else []
+            entry = {
+                "restriction": restriction,
+                "reason": _as_str(payload.get("reason") or "dispute_enforcement"),
+                "dispute_parent": parent_ref or "",
+                "height": int(current_height),
+            }
+            if entry not in restrictions:
+                restrictions.append(entry)
+            rec["restrictions"] = restrictions
+            rec["restricted"] = True
+            rec["latest_restriction"] = restriction
+            accounts[account_id] = rec
+            applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id})
+            continue
+
+        if tx_type == "ACCOUNT_REINSTATE":
+            account_id = _as_str(payload.get("account_id") or payload.get("target_account") or payload.get("target_id")).strip()
+            if not account_id:
+                continue
+            accounts = state.get("accounts")
+            if not isinstance(accounts, dict):
+                accounts = {}
+                state["accounts"] = accounts
+            rec = accounts.get(account_id) if isinstance(accounts.get(account_id), dict) else {}
+            prior = {
+                "restricted": bool(rec.get("restricted", False)),
+                "locked": bool(rec.get("locked", False)),
+                "banned": bool(rec.get("banned", False)),
+                "latest_restriction": _as_str(rec.get("latest_restriction") or ""),
+            }
+            rec["restricted"] = False
+            rec["locked"] = False
+            rec["banned"] = False
+            rec["latest_restriction"] = ""
+            remedies = rec.get("remedies") if isinstance(rec.get("remedies"), list) else []
+            remedy = {
+                "remedy": "account_reinstated",
+                "reason": _as_str(payload.get("reason") or "dispute_appeal_remedy"),
+                "height": int(current_height),
+                "dispute_parent": parent_ref or "",
+                "prior": prior,
+            }
+            if remedy not in remedies:
+                remedies.append(remedy)
+            rec["remedies"] = remedies
+            accounts[account_id] = rec
+            applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id, "remedy": "account_reinstated"})
+            continue
+
+        if tx_type in {"ROLE_ELIGIBILITY_SET", "ROLE_JUROR_REINSTATE"}:
+            account_id = _as_str(payload.get("account_id") or payload.get("target_account") or payload.get("target_id") or payload.get("juror_id")).strip()
+            role = _as_str(payload.get("role") or ("dispute_juror" if tx_type == "ROLE_JUROR_REINSTATE" else "")).strip() or "dispute_juror"
+            eligible = bool(payload.get("eligible", True))
+            if not account_id:
+                continue
+            accounts = state.get("accounts")
+            if not isinstance(accounts, dict):
+                accounts = {}
+                state["accounts"] = accounts
+            rec = accounts.get(account_id) if isinstance(accounts.get(account_id), dict) else {}
+            eligibility = rec.get("role_eligibility") if isinstance(rec.get("role_eligibility"), dict) else {}
+            eligibility[role] = {
+                "eligible": bool(eligible),
+                "height": int(current_height),
+                "reason": _as_str(payload.get("reason") or "dispute_appeal_remedy"),
+                "dispute_parent": parent_ref or "",
+            }
+            rec["role_eligibility"] = eligibility
+            if role in {"dispute_juror", "juror"}:
+                rec["dispute_juror_eligible"] = bool(eligible)
+                if bool(eligible):
+                    rec.pop("dispute_juror_suspended_reason", None)
+            if role in {"poh_reviewer", "reviewer"}:
+                rec["poh_reviewer_eligible"] = bool(eligible)
+                if bool(eligible):
+                    rec.pop("poh_reviewer_suspended_reason", None)
+            accounts[account_id] = rec
+            applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id, "role": role, "eligible": bool(eligible)})
+            continue
+
+        if tx_type == "GROUP_MEMBERSHIP_RESTRICT":
+            group_id = _as_str(payload.get("group_id") or payload.get("target_id")).strip()
+            account_id = _as_str(payload.get("account_id") or payload.get("member") or payload.get("target_account")).strip()
+            if not group_id or not account_id:
+                continue
+            groups = state.get("groups")
+            if not isinstance(groups, dict):
+                groups = {}
+                state["groups"] = groups
+            by_id = groups.get("by_id") if isinstance(groups.get("by_id"), dict) else {}
+            groups["by_id"] = by_id
+            grec = by_id.get(group_id) if isinstance(by_id.get(group_id), dict) else {"group_id": group_id}
+            restricted = grec.get("restricted_members") if isinstance(grec.get("restricted_members"), dict) else {}
+            restricted[account_id] = {
+                "reason": _as_str(payload.get("reason") or "dispute_enforcement"),
+                "height": int(current_height),
+                "dispute_parent": parent_ref or "",
+            }
+            grec["restricted_members"] = restricted
+            by_id[group_id] = grec
+            applied.append({"tx_type": tx_type, "payload": dict(payload), "applied_to": account_id})
+            continue
     return applied
 
 
@@ -392,6 +671,129 @@ def _mk_id(prefix: str, env: TxEnvelope, provided: object) -> str:
 def _require_system_env(env: TxEnvelope) -> None:
     if not bool(getattr(env, "system", False)):
         raise DisputeApplyError("forbidden", "system_only", {"tx_type": env.tx_type})
+
+
+def _as_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return int(default)
+
+
+def _current_height(state: Json) -> int:
+    return _as_int(state.get("height"), 0)
+
+
+def _dispute_reputation_params(state: Json, dispute: Json | None = None) -> Json:
+    """Return deterministic dispute-juror reputation windows.
+
+    Values are block counts, not local time.  Defaults assume the constitutional
+    20-second clock: 180 blocks = 1 hour, 45 blocks = 15 minutes.
+    """
+    params = _as_dict(state.get("params"))
+    rep = _as_dict(params.get("reputation"))
+    dispute_params = _as_dict(rep.get("dispute"))
+    top_dispute = _as_dict(params.get("dispute"))
+    rules = _as_dict(_as_dict(dispute).get("rules")) if isinstance(dispute, dict) else {}
+
+    def pick_int(key: str, default: int) -> int:
+        for bucket in (rules, dispute_params, top_dispute, params):
+            if key in bucket:
+                return max(0, _as_int(bucket.get(key), default))
+        return int(default)
+
+    vote_window = pick_int("juror_vote_window_blocks", pick_int("vote_window_blocks", 180))
+    safe_withdraw = pick_int("safe_withdraw_blocks", 45)
+    if vote_window <= 0:
+        vote_window = 180
+    if safe_withdraw <= 0:
+        safe_withdraw = 45
+    if safe_withdraw > vote_window:
+        safe_withdraw = vote_window
+    return {
+        "vote_window_blocks": int(vote_window),
+        "safe_withdraw_blocks": int(safe_withdraw),
+        "late_withdraw_penalty_milli": -max(0, pick_int("late_withdraw_penalty_milli", 500)),
+        "timeout_penalty_milli": -max(0, pick_int("timeout_penalty_milli", 1500)),
+    }
+
+
+def _ensure_juror_deadlines(state: Json, dispute: Json, juror_record: Json, *, accepted_height: int) -> Json:
+    params = _dispute_reputation_params(state, dispute)
+    vote_window = int(params["vote_window_blocks"])
+    safe_window = int(params["safe_withdraw_blocks"])
+    juror_record["accepted_at_height"] = int(accepted_height)
+    juror_record.setdefault("accepted_at_block_height", int(accepted_height))
+    juror_record["vote_deadline_height"] = int(accepted_height) + vote_window
+    juror_record["safe_withdraw_until_height"] = int(accepted_height) + safe_window
+    juror_record["reputation_policy"] = {
+        "version": 1,
+        "clock": "block_height",
+        "vote_window_blocks": vote_window,
+        "safe_withdraw_blocks": safe_window,
+        "late_withdraw_penalty_milli": int(params["late_withdraw_penalty_milli"]),
+        "timeout_penalty_milli": int(params["timeout_penalty_milli"]),
+    }
+    return juror_record
+
+
+def _juror_has_vote(dispute: Json, juror: str) -> bool:
+    votes = _as_dict(dispute.get("votes"))
+    variants = set(_identity_variants(juror))
+    return any(_as_str(voter).strip() in variants for voter in votes.keys())
+
+
+def _record_dispute_juror_reputation_event(
+    state: Json,
+    *,
+    dispute_id: str,
+    juror: str,
+    event_type: str,
+    delta_milli: int,
+    at_height: int,
+    at_nonce: int,
+    reason: str,
+    visibility: str = "public",
+) -> Json:
+    root = state.get("dispute_juror_reputation_events")
+    if not isinstance(root, dict):
+        root = {}
+        state["dispute_juror_reputation_events"] = root
+    event_id = f"dispute-juror-rep:v1:{dispute_id}:{juror}:{event_type}"
+    existing = root.get(event_id)
+    if isinstance(existing, dict):
+        return dict(existing, deduped=True)
+    rep_event = append_reputation_event(
+        state,
+        actor_id=juror,
+        event_code=event_type,
+        source_flow="dispute",
+        source_tx_id=f"dispute:{dispute_id}:{event_type}:{at_nonce}",
+        source_object_id=f"{dispute_id}:{juror}",
+        delta=int(delta_milli),
+        occurred_at_block=int(at_height),
+        occurred_at_time=int(at_height),
+        details={"dispute_id": dispute_id, "reason": reason, "legacy_event_id": event_id},
+    )
+    rec: Json = {
+        "event_id": event_id,
+        "canonical_reputation_event_id": rep_event.get("event_id"),
+        "dispute_id": dispute_id,
+        "juror": juror,
+        "account_id": juror,
+        "event_type": event_type,
+        "delta_milli": int(delta_milli),
+        "at_height": int(at_height),
+        "at_nonce": int(at_nonce),
+        "reason": reason,
+        "visibility": visibility,
+        "deterministic": True,
+        "clock": "block_height",
+        "version": 1,
+        "deduped": False,
+    }
+    root[event_id] = rec
+    return rec
 
 
 def _require_assigned_juror(d: Json, juror: str) -> Json:
@@ -568,6 +970,7 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
 
     if not target_type or not target_id:
         raise DisputeApplyError("invalid_payload", "missing_target", {"tx_type": env.tx_type})
+    target_type = _validate_dispute_target_type(target_type)
 
     disputes = _ensure_disputes(state)
     if dispute_id in disputes:
@@ -577,11 +980,17 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
     eligible_jurors = _dispute_eligible_juror_ids(state, {"opened_by": env.signer}, fallback_signer)
 
     target_owner = _content_target_owner(state, target_type=target_type, target_id=target_id)
+    reported_by = _as_str(payload.get("reported_by") or payload.get("flagged_by") or payload.get("reporter") or "").strip()
+    opened_h = _current_height(state)
     disputes[dispute_id] = {
         "id": dispute_id,
         "stage": "open",
         "opened_by": env.signer,
+        "reported_by": reported_by or None,
+        "flagged_by": reported_by or None,
         "opened_at_nonce": int(env.nonce),
+        "opened_at_height": int(opened_h),
+        "stage_set_at_height": int(opened_h),
         "target_type": target_type,
         "target_id": target_id,
         "target_owner": target_owner or None,
@@ -597,6 +1006,12 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
         "resolution": None,
         "appeals": [],
     }
+    # Recompute after target owner/reporter metadata is present so conflict
+    # filtering cannot select the disputed content's author as reviewer.
+    eligible_jurors = _dispute_eligible_juror_ids(state, disputes[dispute_id], fallback_signer)
+    disputes[dispute_id]["eligible_juror_ids"] = list(eligible_jurors)
+    disputes[dispute_id]["eligible_validator_count"] = int(len(eligible_jurors))
+    disputes[dispute_id]["required_votes"] = int(quorum_threshold(len(eligible_jurors))) if eligible_jurors else 0
     _index_dispute_target(state, disputes[dispute_id])
     return {"applied": "DISPUTE_OPEN", "dispute_id": dispute_id}
 
@@ -613,6 +1028,7 @@ def _apply_dispute_stage_set(state: Json, env: TxEnvelope) -> Json:
     d = _get_dispute(state, dispute_id)
     d["stage"] = stage
     d["stage_set_at_nonce"] = int(env.nonce)
+    d["stage_set_at_height"] = int(_current_height(state))
     return {"applied": "DISPUTE_STAGE_SET", "dispute_id": dispute_id, "stage": stage}
 
 
@@ -623,12 +1039,13 @@ def _apply_dispute_evidence_declare(state: Json, env: TxEnvelope) -> Json:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
     eid = _mk_id("evidence", env, payload.get("evidence_id"))
+    cid = _require_public_cid(payload.get("cid"), field="cid", tx_type=str(env.tx_type or ""))
     entry = {
         "id": eid,
         "declared_by": env.signer,
         "declared_at_nonce": int(env.nonce),
         "kind": _as_str(payload.get("kind")).strip(),
-        "cid": _as_str(payload.get("cid")).strip(),
+        "cid": cid,
         "meta": payload.get("meta") if isinstance(payload.get("meta"), dict) else {},
         "bound": False,
     }
@@ -678,12 +1095,20 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
             "invalid_payload", "missing_dispute_or_juror", {"tx_type": env.tx_type}
         )
     d = _get_dispute(state, dispute_id)
+    _require_dispute_reviewer_lane(state, juror, d)
+    if _is_dispute_target_owner(state, d, juror):
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_conflict_target_owner",
+            {"dispute_id": dispute_id, "juror": juror, "target_owner": _dispute_target_owner(state, d)},
+        )
     jurors = d.get("jurors")
     if not isinstance(jurors, dict):
         jurors = {}
     eligible_jurors = _dispute_eligible_juror_ids(state, d, juror)
     juror_key = _canonical_actor_key(eligible_jurors, juror, state)
-    jurors[juror_key] = {"status": "assigned", "assigned_at_nonce": int(env.nonce)}
+    now_h = _current_height(state)
+    jurors[juror_key] = {"status": "assigned", "assigned_at_nonce": int(env.nonce), "assigned_at_height": int(now_h)}
     d["jurors"] = jurors
     assigned = _normalized_str_list(list(_as_dict(d.get("jurors")).keys()))
     d["assigned_jurors"] = list(assigned)
@@ -694,6 +1119,7 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
     if stage in {"", "open"}:
         d["stage"] = "juror_review"
         d["stage_set_at_nonce"] = int(env.nonce)
+        d["stage_set_at_height"] = int(now_h)
     return {"applied": "DISPUTE_JUROR_ASSIGN", "dispute_id": dispute_id, "juror": juror_key}
 
 
@@ -703,6 +1129,13 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    _require_dispute_reviewer_lane(state, env.signer, d)
+    if _is_dispute_target_owner(state, d, env.signer):
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_conflict_target_owner",
+            {"dispute_id": dispute_id, "juror": env.signer, "target_owner": _dispute_target_owner(state, d)},
+        )
     jurors = d.get("jurors")
     if not isinstance(jurors, dict):
         jurors = {}
@@ -732,9 +1165,18 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
     j = _require_assigned_juror(d, env.signer)
     status = _as_str(j.get("status")).strip().lower()
     if status in {"accepted", "attended", "present"}:
+        if not _as_int(j.get("accepted_at_height"), 0):
+            _ensure_juror_deadlines(state, d, j, accepted_height=_current_height(state))
         jurors[juror_key] = j
         d["jurors"] = jurors
-        return {"applied": "DISPUTE_JUROR_ACCEPT", "dispute_id": dispute_id, "status": status or "accepted", "idempotent": True}
+        return {
+            "applied": "DISPUTE_JUROR_ACCEPT",
+            "dispute_id": dispute_id,
+            "status": status or "accepted",
+            "idempotent": True,
+            "vote_deadline_height": _as_int(j.get("vote_deadline_height"), 0),
+            "safe_withdraw_until_height": _as_int(j.get("safe_withdraw_until_height"), 0),
+        }
     if status not in {"", "assigned"}:
         raise DisputeApplyError(
             "forbidden",
@@ -748,10 +1190,29 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
         )
     j["status"] = "accepted"
     j["accepted_at_nonce"] = int(env.nonce)
+    _ensure_juror_deadlines(state, d, j, accepted_height=_current_height(state))
     j["attendance"] = {"present": True, "at_nonce": int(env.nonce), "auto": True, "source": "accept"}
     jurors[juror_key] = j
     d["jurors"] = jurors
-    return {"applied": "DISPUTE_JUROR_ACCEPT", "dispute_id": dispute_id, "present": True}
+    event = _record_dispute_juror_reputation_event(
+        state,
+        dispute_id=dispute_id,
+        juror=juror_key,
+        event_type="DISPUTE_JUROR_ACCEPTED",
+        delta_milli=0,
+        at_height=_current_height(state),
+        at_nonce=int(env.nonce),
+        reason="accepted_review_obligation",
+    )
+    return {
+        "applied": "DISPUTE_JUROR_ACCEPT",
+        "dispute_id": dispute_id,
+        "present": True,
+        "vote_deadline_height": _as_int(j.get("vote_deadline_height"), 0),
+        "safe_withdraw_until_height": _as_int(j.get("safe_withdraw_until_height"), 0),
+        "event_id": event.get("event_id"),
+        "canonical_reputation_event_id": event.get("canonical_reputation_event_id"),
+    }
 
 
 def _apply_dispute_juror_decline(state: Json, env: TxEnvelope) -> Json:
@@ -771,6 +1232,110 @@ def _apply_dispute_juror_decline(state: Json, env: TxEnvelope) -> Json:
     jurors[juror_key] = j
     d["jurors"] = jurors
     return {"applied": "DISPUTE_JUROR_DECLINE", "dispute_id": dispute_id}
+
+
+def _apply_dispute_juror_withdraw(state: Json, env: TxEnvelope) -> Json:
+    payload = _as_dict(env.payload)
+    dispute_id = _as_str(payload.get("dispute_id")).strip()
+    if not dispute_id:
+        raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
+    d = _get_dispute(state, dispute_id)
+    juror_key = _juror_key_for_actor(d, env.signer)
+    j = _require_juror_status(d, env.signer, {"accepted", "attended", "present"})
+    if _juror_has_vote(d, env.signer):
+        raise DisputeApplyError("forbidden", "dispute_withdraw_after_vote_forbidden", {"dispute_id": dispute_id, "juror": env.signer})
+    jurors = d.get("jurors")
+    if not isinstance(jurors, dict):
+        jurors = {}
+        d["jurors"] = jurors
+    j = jurors.get(juror_key) if isinstance(jurors.get(juror_key), dict) else j
+    now_h = _current_height(state)
+    if not _as_int(j.get("accepted_at_height"), 0):
+        _ensure_juror_deadlines(state, d, j, accepted_height=now_h)
+    safe_until = _as_int(j.get("safe_withdraw_until_height"), now_h)
+    policy = _as_dict(j.get("reputation_policy")) or _dispute_reputation_params(state, d)
+    safe = int(now_h) <= int(safe_until)
+    delta = 0 if safe else _as_int(policy.get("late_withdraw_penalty_milli"), -500)
+    event_type = "DISPUTE_JUROR_WITHDREW_EARLY" if safe else "DISPUTE_JUROR_WITHDREW_LATE"
+    reason = "safe_withdraw_no_penalty" if safe else "late_withdraw_light_penalty"
+    event = _record_dispute_juror_reputation_event(
+        state,
+        dispute_id=dispute_id,
+        juror=juror_key,
+        event_type=event_type,
+        delta_milli=delta,
+        at_height=now_h,
+        at_nonce=int(env.nonce),
+        reason=reason,
+    )
+    j["status"] = "withdrawn"
+    j["withdrawn_at_nonce"] = int(env.nonce)
+    j["withdrawn_at_height"] = int(now_h)
+    j["withdrawal"] = {
+        "safe": bool(safe),
+        "event_type": event_type,
+        "delta_milli": int(delta),
+        "reason": _as_str(payload.get("reason") or reason),
+        "event_id": event.get("event_id"),
+    }
+    jurors[juror_key] = j
+    d["jurors"] = jurors
+    return {
+        "applied": "DISPUTE_JUROR_WITHDRAW",
+        "dispute_id": dispute_id,
+        "juror": juror_key,
+        "safe": bool(safe),
+        "delta_milli": int(delta),
+        "event_id": event.get("event_id"),
+    }
+
+
+def _apply_dispute_juror_timeout(state: Json, env: TxEnvelope) -> Json:
+    _require_system_env(env)
+    payload = _as_dict(env.payload)
+    dispute_id = _as_str(payload.get("dispute_id")).strip()
+    juror = _as_str(payload.get("juror") or payload.get("juror_id")).strip()
+    if not dispute_id or not juror:
+        raise DisputeApplyError("invalid_payload", "missing_dispute_or_juror", {"tx_type": env.tx_type})
+    d = _get_dispute(state, dispute_id)
+    jurors = d.get("jurors")
+    if not isinstance(jurors, dict):
+        jurors = {}
+        d["jurors"] = jurors
+    juror_key = _juror_key_for_actor(d, juror)
+    j = jurors.get(juror_key)
+    if not isinstance(j, dict):
+        raise DisputeApplyError("forbidden", "juror_not_assigned", {"dispute_id": dispute_id, "juror": juror})
+    status = _as_str(j.get("status")).strip().lower()
+    if status in {"timed_out"}:
+        return {"applied": "DISPUTE_JUROR_TIMEOUT", "dispute_id": dispute_id, "juror": juror_key, "deduped": True}
+    if status not in {"accepted", "attended", "present"}:
+        raise DisputeApplyError("forbidden", "juror_wrong_status", {"dispute_id": dispute_id, "juror": juror, "status": status, "allowed": ["accepted"]})
+    if _juror_has_vote(d, juror_key):
+        raise DisputeApplyError("forbidden", "dispute_timeout_after_vote_forbidden", {"dispute_id": dispute_id, "juror": juror_key})
+    now_h = _current_height(state)
+    deadline = _as_int(j.get("vote_deadline_height") or payload.get("deadline_height"), 0)
+    if deadline > 0 and int(now_h) <= int(deadline):
+        raise DisputeApplyError("forbidden", "dispute_vote_deadline_not_passed", {"dispute_id": dispute_id, "juror": juror_key, "height": int(now_h), "deadline_height": int(deadline)})
+    policy = _as_dict(j.get("reputation_policy")) or _dispute_reputation_params(state, d)
+    delta = _as_int(policy.get("timeout_penalty_milli"), -1500)
+    event = _record_dispute_juror_reputation_event(
+        state,
+        dispute_id=dispute_id,
+        juror=juror_key,
+        event_type="DISPUTE_JUROR_TIMED_OUT",
+        delta_milli=delta,
+        at_height=now_h,
+        at_nonce=int(env.nonce),
+        reason="dispute_timeout_penalty",
+    )
+    j["status"] = "timed_out"
+    j["timed_out_at_nonce"] = int(env.nonce)
+    j["timed_out_at_height"] = int(now_h)
+    j["timeout"] = {"deadline_height": int(deadline), "delta_milli": int(delta), "event_id": event.get("event_id")}
+    jurors[juror_key] = j
+    d["jurors"] = jurors
+    return {"applied": "DISPUTE_JUROR_TIMEOUT", "dispute_id": dispute_id, "juror": juror_key, "delta_milli": int(delta), "event_id": event.get("event_id")}
 
 
 def _apply_dispute_juror_attendance(state: Json, env: TxEnvelope) -> Json:
@@ -793,6 +1358,7 @@ def _apply_dispute_juror_attendance(state: Json, env: TxEnvelope) -> Json:
     if status in {"", "assigned"}:
         j["status"] = "accepted"
         j.setdefault("accepted_at_nonce", int(env.nonce))
+        _ensure_juror_deadlines(state, d, j, accepted_height=_current_height(state))
     j["attendance"] = {"present": present, "at_nonce": int(env.nonce)}
     jurors[juror_key] = j
     d["jurors"] = jurors
@@ -805,22 +1371,57 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    _require_dispute_reviewer_lane(state, env.signer, d)
+    if _is_dispute_target_owner(state, d, env.signer):
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_conflict_target_owner",
+            {"dispute_id": dispute_id, "juror": env.signer, "target_owner": _dispute_target_owner(state, d)},
+        )
     _dispute_eligible_juror_ids(state, d, env.signer)
     juror_key = _juror_key_for_actor(d, env.signer)
-    j = _require_juror_status(d, env.signer, {"assigned", "accepted"})
+    j = _require_juror_status(d, env.signer, {"assigned", "accepted", "present", "attended"})
     status = _as_str(j.get("status")).strip().lower()
     if status in {"", "assigned"}:
-        j["status"] = "accepted"
-        j.setdefault("accepted_at_nonce", int(env.nonce))
-        jurors = d.get("jurors")
-        if not isinstance(jurors, dict):
-            jurors = {}
-            d["jurors"] = jurors
+        # Voting must not implicitly accept a juror assignment. The explicit
+        # accept/attendance step establishes the deterministic review window and
+        # reputation obligation before a juror can mutate the vote read model.
+        raise DisputeApplyError(
+            "forbidden",
+            "juror_not_present",
+            {
+                "dispute_id": dispute_id,
+                "juror": env.signer,
+                "status": status or "assigned",
+                "requires": "DISPUTE_JUROR_ACCEPT",
+            },
+        )
+    jurors = d.get("jurors")
+    if not isinstance(jurors, dict):
+        jurors = {}
+        d["jurors"] = jurors
+    if status == "accepted" and _as_int(j.get("vote_deadline_height"), 0) <= 0:
+        _ensure_juror_deadlines(state, d, j, accepted_height=_current_height(state))
         jurors[juror_key] = j
     att = j.get("attendance")
-    if isinstance(att, dict) and not bool(att.get("present", False)):
+    attendance_present = (isinstance(att, dict) and bool(att.get("present", False))) or status in {"present", "attended"}
+    if not attendance_present:
         raise DisputeApplyError(
-            "forbidden", "juror_not_present", {"dispute_id": dispute_id, "juror": env.signer}
+            "forbidden",
+            "juror_not_present",
+            {
+                "dispute_id": dispute_id,
+                "juror": env.signer,
+                "status": status,
+                "requires": "DISPUTE_JUROR_ACCEPT",
+            },
+        )
+    deadline = _as_int(j.get("vote_deadline_height"), 0)
+    if deadline > 0 and _current_height(state) > deadline:
+        raise DisputeApplyError(
+            "forbidden",
+            "dispute_vote_deadline_passed",
+            {"dispute_id": dispute_id, "juror": env.signer, "height": _current_height(state), "deadline_height": int(deadline)},
         )
     votes = d.get("votes")
     if not isinstance(votes, dict):
@@ -834,6 +1435,28 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
             votes.pop(alias, None)
     votes[juror_key] = vote_entry
     d["votes"] = votes
+    now_h = _current_height(state)
+    vote_event = _record_dispute_juror_reputation_event(
+        state,
+        dispute_id=dispute_id,
+        juror=juror_key,
+        event_type="DISPUTE_JUROR_VOTED_ON_TIME",
+        delta_milli=250,
+        at_height=now_h,
+        at_nonce=int(env.nonce),
+        reason="voted_before_deadline",
+    )
+    j["status"] = "completed"
+    j["completed_at_nonce"] = int(env.nonce)
+    j["completed_at_height"] = int(now_h)
+    j["completion"] = {"event_id": vote_event.get("event_id"), "delta_milli": 250}
+    jurors = d.get("jurors")
+    if not isinstance(jurors, dict):
+        jurors = {}
+    jurors[juror_key] = j
+    d["jurors"] = jurors
+
+    appeal_panel_result = _maybe_record_appeal_panel_vote(state, d, env, payload, juror_key)
 
     parent_ref = env.parent or _as_str(payload.get("_parent_ref")).strip() or f"tx:{env.signer}:{int(env.nonce)}"
     _maybe_schedule_dispute_auto_resolution(
@@ -844,8 +1467,95 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
         parent_ref=parent_ref,
     )
 
-    return {"applied": "DISPUTE_VOTE_SUBMIT", "dispute_id": dispute_id}
+    out: Json = {"applied": "DISPUTE_VOTE_SUBMIT", "dispute_id": dispute_id, "event_id": vote_event.get("event_id"), "canonical_reputation_event_id": vote_event.get("canonical_reputation_event_id")}
+    if appeal_panel_result is not None:
+        out["appeal_panel_result"] = appeal_panel_result
+    return out
 
+
+
+def _maybe_record_appeal_panel_vote(state: Json, d: Json, env: TxEnvelope, payload: Json, juror_key: str) -> Json | None:
+    """Record deterministic appeal-panel votes using existing DISPUTE_VOTE_SUBMIT.
+
+    Batch 508 avoids adding a new transaction type.  During appeal review, the
+    same assigned/accepted juror path can submit an appeal decision.  Once the
+    configured dispute quorum is reached, a canonical panel result is derived and
+    later consumed by DISPUTE_FINAL_RECEIPT if no explicit system
+    appeal_resolution is supplied.
+    """
+
+    stage = _as_str(d.get("stage") or "").strip().lower()
+    appeal_resolution = payload.get("appeal_resolution") if isinstance(payload.get("appeal_resolution"), dict) else None
+    raw_decision = _as_str(
+        payload.get("appeal_decision")
+        or payload.get("appeal_vote")
+        or (appeal_resolution or {}).get("decision")
+        or (appeal_resolution or {}).get("outcome")
+        or ""
+    ).strip().lower()
+    if stage not in {"appealed", "appeal_review"} and not raw_decision:
+        return None
+    if raw_decision not in {"uphold", "reverse", "modify"}:
+        return None
+
+    panel_votes = d.get("appeal_panel_votes")
+    if not isinstance(panel_votes, dict):
+        panel_votes = {}
+    vote_entry: Json = {
+        "decision": raw_decision,
+        "at_nonce": int(env.nonce),
+        "height": int(state.get("height", 0) or 0),
+    }
+    if isinstance(appeal_resolution, dict):
+        vote_entry["resolution"] = dict(appeal_resolution)
+    summary = _as_str(payload.get("summary") or (appeal_resolution or {}).get("summary") or "").strip()
+    if summary:
+        vote_entry["summary"] = summary
+    panel_votes[juror_key] = vote_entry
+    d["appeal_panel_votes"] = panel_votes
+    d["stage"] = "appeal_review"
+
+    eligible = _dispute_eligible_juror_ids(state, d, str(env.signer))
+    required = int(d.get("required_votes") or 0)
+    if required <= 0:
+        required = int(quorum_threshold(len(eligible))) if eligible else 1
+    counts: dict[str, int] = {"uphold": 0, "reverse": 0, "modify": 0}
+    for vote in panel_votes.values():
+        if isinstance(vote, dict):
+            decision = _as_str(vote.get("decision") or "").strip().lower()
+            if decision in counts:
+                counts[decision] += 1
+    decision = ""
+    for candidate in ("reverse", "modify", "uphold"):
+        if counts.get(candidate, 0) >= required:
+            decision = candidate
+            break
+    result: Json = {
+        "votes": len(panel_votes),
+        "required_votes": int(required),
+        "counts": counts,
+        "reached": bool(decision),
+    }
+    if decision:
+        resolution: Json = {"decision": decision}
+        # Deterministic tie-break for supplemental resolution details: use the
+        # lexicographically first juror key that voted for the winning decision.
+        for key in sorted(panel_votes):
+            vote = panel_votes.get(key)
+            if not isinstance(vote, dict) or _as_str(vote.get("decision") or "").strip().lower() != decision:
+                continue
+            if isinstance(vote.get("resolution"), dict):
+                resolution.update(dict(vote["resolution"]))
+                resolution["decision"] = decision
+            if _as_str(vote.get("summary") or "").strip():
+                resolution.setdefault("summary", _as_str(vote.get("summary")).strip())
+            break
+        result["decision"] = decision
+        result["resolution"] = resolution
+        d["appeal_panel_result"] = result
+    else:
+        d["appeal_panel_result"] = result
+    return result
 
 def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -923,9 +1633,10 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     if isinstance(res, dict):
         actions = res.get("actions")
         if isinstance(actions, list) and not constitutional_appeal_mode:
+            valid_actions = _validate_dispute_enforcement_actions(state, actions=[a for a in actions if isinstance(a, dict)], dispute_id=dispute_id, parent_ref=parent_ref)
             applied_actions = _apply_inline_content_enforcement(
                 state,
-                actions=[a for a in actions if isinstance(a, dict)],
+                actions=valid_actions,
                 current_height=int(base_due_h),
                 parent_ref=parent_ref,
             )
@@ -936,9 +1647,7 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
                 )
                 for a in applied_actions
             }
-            for a in actions:
-                if not isinstance(a, dict):
-                    continue
+            for a in valid_actions:
                 tx_type = _as_str(a.get("tx_type") or "").strip()
                 pl = a.get("payload") if isinstance(a.get("payload"), dict) else {}
                 if not tx_type:
@@ -985,28 +1694,169 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "DISPUTE_APPEAL", "dispute_id": dispute_id}
 
 
+def _record_dispute_juror_accountability(state: Json, dispute: Json, *, dispute_id: str) -> Json:
+    assigned = _normalized_str_list(dispute.get("assigned_jurors"))
+    votes = _as_dict(dispute.get("votes"))
+    voted: set[str] = set()
+    for voter in votes.keys():
+        for variant in _identity_variants(voter):
+            voted.add(variant)
+    root = state.get("dispute_juror_accountability")
+    if not isinstance(root, dict):
+        root = {"by_juror": {}, "events": []}
+        state["dispute_juror_accountability"] = root
+    by_juror = root.get("by_juror")
+    if not isinstance(by_juror, dict):
+        by_juror = {}
+        root["by_juror"] = by_juror
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    recorded: list[str] = []
+    accounts = _as_dict(state.get("accounts"))
+    juror_records = _as_dict(dispute.get("jurors"))
+    for juror in assigned:
+        jrec = _as_dict(juror_records.get(juror))
+        if _as_str(jrec.get("status")).strip().lower() in {"declined", "withdrawn", "timed_out"}:
+            continue
+        if any(variant in voted for variant in _identity_variants(juror)):
+            continue
+        rec = by_juror.get(juror)
+        if not isinstance(rec, dict):
+            rec = {"juror_id": juror, "missed_vote_count": 0, "events": []}
+        event = {"event": "assigned_dispute_vote_missed", "dispute_id": dispute_id, "height": int(state.get("height") or 0)}
+        rec["missed_vote_count"] = int(rec.get("missed_vote_count") or 0) + 1
+        rec["eligible_for_dispute_jury"] = False
+        rec["status"] = "juror_accountability_flagged"
+        rec.setdefault("events", []).append(event)
+        by_juror[juror] = rec
+        acct = accounts.get(juror)
+        if isinstance(acct, dict):
+            acct["dispute_juror_eligible"] = False
+            acct["dispute_juror_suspended_reason"] = "assigned_dispute_vote_missed"
+            acct["dispute_juror_suspended_at_height"] = int(state.get("height") or 0)
+        events.append({"juror_id": juror, **event})
+        recorded.append(juror)
+    return {"applied": bool(recorded), "jurors": recorded}
+
+
+def _final_receipt_resolution(dispute: Json, payload: Json) -> tuple[Json, Json]:
+    """Return the effective final resolution and appeal metadata.
+
+    Constitutional-clock disputes delay enforcement until final receipt.  If an
+    appeal was submitted, a system final receipt may carry an ``appeal_resolution``
+    object with a deterministic decision.  ``reverse`` suppresses original
+    enforcement actions; ``modify`` uses the appeal-provided actions; ``uphold``
+    keeps the original resolution unless replacement actions are supplied.
+    """
+
+    original = payload.get("resolution") if isinstance(payload.get("resolution"), dict) else dispute.get("resolution")
+    resolution: Json = dict(original) if isinstance(original, dict) else {}
+    appeal_resolution = payload.get("appeal_resolution")
+    if not isinstance(appeal_resolution, dict):
+        appeal_resolution = {}
+    if not appeal_resolution:
+        panel_result = dispute.get("appeal_panel_result")
+        if isinstance(panel_result, dict) and bool(panel_result.get("reached")) and isinstance(panel_result.get("resolution"), dict):
+            appeal_resolution = dict(panel_result["resolution"])
+            appeal_resolution.setdefault("source", "appeal_panel")
+
+    appeals = dispute.get("appeals") if isinstance(dispute.get("appeals"), list) else []
+    appeal_meta: Json = {
+        "appealed": bool(appeals),
+        "appeal_count": len(appeals),
+        "decision": "none",
+    }
+    if appeal_resolution:
+        decision = _as_str(appeal_resolution.get("decision") or appeal_resolution.get("outcome") or "uphold").strip().lower()
+        if decision not in {"uphold", "reverse", "modify"}:
+            decision = "uphold"
+        appeal_meta["decision"] = decision
+        appeal_meta["resolution"] = dict(appeal_resolution)
+        if decision == "reverse":
+            resolution["appeal_decision"] = "reverse"
+            resolution["actions"] = []
+            resolution["summary"] = _as_str(appeal_resolution.get("summary") or "Appeal reversed the dispute outcome.")
+        elif decision == "modify":
+            resolution.update({k: v for k, v in appeal_resolution.items() if k != "decision"})
+            resolution["appeal_decision"] = "modify"
+        else:
+            replacement_actions = appeal_resolution.get("actions")
+            if isinstance(replacement_actions, list):
+                resolution["actions"] = replacement_actions
+            if _as_str(appeal_resolution.get("summary")):
+                resolution["summary"] = _as_str(appeal_resolution.get("summary"))
+            resolution["appeal_decision"] = "uphold"
+    elif appeals:
+        appeal_meta["decision"] = "pending_review"
+
+    return resolution, appeal_meta
+
+
 def _apply_dispute_final_receipt(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     payload = _as_dict(env.payload)
     # Keep a light receipt surface for audits
     root = _ensure_root_dict(state, "dispute_receipts")
     rid = _mk_id("receipt", env, payload.get("receipt_id") or payload.get("id"))
+    dispute_id = _as_str(payload.get("dispute_id")).strip()
+    existing = root.get(rid)
+    if isinstance(existing, dict):
+        return {
+            "applied": "DISPUTE_FINAL_RECEIPT",
+            "receipt_id": rid,
+            "receipt": True,
+            "deduped": True,
+            "appeal_finalization": dict(existing.get("appeal_finalization") or {}),
+            "enforcement_applied": list(existing.get("enforcement_applied") or []),
+        }
+    applied_actions: list[Json] = []
+    appeal_meta: Json = {"appealed": False, "decision": "none", "appeal_count": 0}
+    final_resolution: Json = payload.get("resolution") if isinstance(payload.get("resolution"), dict) else {}
+
+    if dispute_id:
+        d = _get_dispute(state, dispute_id)
+        final_resolution, appeal_meta = _final_receipt_resolution(d, payload)
+        d["final_resolution"] = dict(final_resolution)
+        d["appeal_finalization"] = dict(appeal_meta)
+        d["juror_accountability"] = _record_dispute_juror_accountability(state, d, dispute_id=dispute_id)
+        # If an appeal exists but no appeal decision has been supplied, do not
+        # silently finalize enforcement.  Keep the case in appeal review and
+        # record an audit receipt for the attempted finalization.
+        if appeal_meta.get("decision") == "pending_review":
+            d["stage"] = "appeal_review"
+        else:
+            parent_ref = _as_str(payload.get("_parent_ref") or env.parent or f"tx:{env.signer}:{int(env.nonce)}").strip()
+            actions = final_resolution.get("actions") if isinstance(final_resolution.get("actions"), list) else []
+            valid_actions = _validate_dispute_enforcement_actions(state, actions=[a for a in actions if isinstance(a, dict)], dispute_id=dispute_id, parent_ref=parent_ref)
+            applied_actions = _apply_inline_content_enforcement(
+                state,
+                actions=valid_actions,
+                current_height=int(state.get("height", 0) or 0),
+                parent_ref=parent_ref,
+            )
+            d["stage"] = "finalized"
+            d["finalized_at_nonce"] = int(env.nonce)
+            d["final_enforcement_applied"] = list(applied_actions)
+
     if rid not in root:
         root[rid] = {
             "receipt_id": rid,
             "tx_type": str(env.tx_type or ""),
             "at_nonce": int(env.nonce),
             "payload": payload,
+            "resolution": dict(final_resolution),
+            "appeal_finalization": dict(appeal_meta),
+            "enforcement_applied": list(applied_actions),
         }
-    dispute_id = _as_str(payload.get("dispute_id")).strip()
-    if dispute_id:
-        try:
-            d = _get_dispute(state, dispute_id)
-            d["stage"] = "finalized"
-            d["finalized_at_nonce"] = int(env.nonce)
-        except Exception:
-            pass
-    return {"applied": "DISPUTE_FINAL_RECEIPT", "receipt_id": rid, "receipt": True}
+    return {
+        "applied": "DISPUTE_FINAL_RECEIPT",
+        "receipt_id": rid,
+        "receipt": True,
+        "appeal_finalization": appeal_meta,
+        "enforcement_applied": applied_actions,
+    }
 
 
 def _ensure_cases(state: Json) -> Json:
@@ -1078,6 +1928,8 @@ DISPUTE_TX_TYPES: set[str] = {
     "DISPUTE_JUROR_ASSIGN",
     "DISPUTE_JUROR_ACCEPT",
     "DISPUTE_JUROR_DECLINE",
+    "DISPUTE_JUROR_WITHDRAW",
+    "DISPUTE_JUROR_TIMEOUT",
     "DISPUTE_JUROR_ATTENDANCE",
     "DISPUTE_VOTE_SUBMIT",
     "DISPUTE_RESOLVE",
@@ -1110,6 +1962,10 @@ def apply_dispute(state: Json, env: TxEnvelope) -> Json | None:
         return _apply_dispute_juror_accept(state, env)
     if t == "DISPUTE_JUROR_DECLINE":
         return _apply_dispute_juror_decline(state, env)
+    if t == "DISPUTE_JUROR_WITHDRAW":
+        return _apply_dispute_juror_withdraw(state, env)
+    if t == "DISPUTE_JUROR_TIMEOUT":
+        return _apply_dispute_juror_timeout(state, env)
     if t == "DISPUTE_JUROR_ATTENDANCE":
         return _apply_dispute_juror_attendance(state, env)
     if t == "DISPUTE_VOTE_SUBMIT":

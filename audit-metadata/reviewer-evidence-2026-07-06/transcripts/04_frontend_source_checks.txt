@@ -1,0 +1,15 @@
+$ node scripts/test_reviewer_critical_flows_source.mjs
+OK: reviewer-critical frontend source checks passed
+exit_status=0
+
+$ node scripts/test_accessibility_source.mjs
+accessibility source checks passed
+exit_status=0
+
+$ node scripts/test_public_only_protocol_source.mjs
+OK: public-only frontend source contract holds
+exit_status=0
+
+$ node scripts/test_rendered_civic_loop_source.mjs
+OK: rendered reviewer civic-loop source rehearsal checks passed
+exit_status=0

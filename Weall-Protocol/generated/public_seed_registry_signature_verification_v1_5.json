@@ -1,0 +1,21 @@
+{
+  "artifact_digest": "46111024fa5ff76c24e12ade1687e503793216a5fb07ed10dcc896370c9ded67",
+  "claim_boundary": "This artifact is a schema/gate until --runtime-json is captured against real public testnet endpoints.",
+  "external_evidence_required_before_launch": true,
+  "ok": true,
+  "public_observer_launch_ready": false,
+  "purpose": "tracked contract for proving a real signed public seed registry before public observer launch",
+  "required_runtime_inputs": [
+    "configs/public_testnet_seed_registry.json or WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH",
+    "WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY",
+    "non-placeholder genesis_hash",
+    "non-placeholder protocol_profile_hash",
+    "non-placeholder tx_index_hash",
+    "non-local seed_api_urls for public launch",
+    "signed validator endpoint advertisements when validators are public connection targets"
+  ],
+  "runtime_registry_verified": false,
+  "schema": "weall.v1_5.public_seed_registry_signature_verification",
+  "validation_command": "PYTHONPATH=src WEALL_PUBLIC_TESTNET=1 WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY=<pubkey> python scripts/gen_public_observer_launch_transcript_v1_5.py --runtime-json --registry configs/public_testnet_seed_registry.json --api-base <seed-api>",
+  "version": "2026-06-b629-public-observer-transcript-gate"
+}

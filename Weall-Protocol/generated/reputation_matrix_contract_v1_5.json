@@ -1,0 +1,155 @@
+{
+  "append_only_ledger_path": "state.reputation.events",
+  "dimensions": [
+    "poh_reputation",
+    "civic_reputation",
+    "juror_reputation",
+    "governance_reputation",
+    "creator_reputation",
+    "safety_reputation",
+    "validator_reputation",
+    "storage_reputation",
+    "helper_reputation",
+    "appeal_correction_history"
+  ],
+  "eligibility_roles": [
+    "juror_assignment",
+    "poh_reviewer",
+    "governance_proposal",
+    "governance_voting",
+    "validator_operator",
+    "storage_assignment",
+    "helper_assignment",
+    "creator_feed_trust",
+    "safety_moderator"
+  ],
+  "event_history_root_path": "state.reputation.event_history_root",
+  "event_id_dedupe_path": "state.reputation.event_ids",
+  "event_schema": "weall.reputation_event.v1_5",
+  "public_api_endpoints": [
+    {
+      "auth": "account_session_required",
+      "method": "GET",
+      "path": "/v1/reputation/me",
+      "purpose": "owner_matrix_summary",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "method": "GET",
+      "path": "/v1/reputation/{actor_id}",
+      "purpose": "public_matrix_summary",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "method": "GET",
+      "path": "/v1/reputation/{actor_id}/events",
+      "purpose": "public_or_owner_events",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "method": "GET",
+      "path": "/v1/reputation/{actor_id}/matrix",
+      "purpose": "public_or_owner_matrix",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "method": "GET",
+      "path": "/v1/reputation/{actor_id}/eligibility",
+      "purpose": "role_eligibility_reasons",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_static_registry",
+      "method": "GET",
+      "path": "/v1/reputation/event-codes",
+      "purpose": "event_registry",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "GET",
+      "path": "/v1/disputes/eligible",
+      "purpose": "eligible_dispute_assignments",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "GET",
+      "path": "/v1/disputes/current",
+      "purpose": "current_dispute_assignments",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "POST",
+      "path": "/v1/disputes/{id}/accept",
+      "purpose": "dispute_accept_tx_template",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "POST",
+      "path": "/v1/disputes/{id}/vote",
+      "purpose": "dispute_vote_tx_template",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "POST",
+      "path": "/v1/disputes/{id}/withdraw",
+      "purpose": "dispute_withdraw_tx_template",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    }
+  ],
+  "reducer": {
+    "appeal_model": "append_reversal_events_no_delete_no_mutate_original",
+    "dimension_isolation": true,
+    "integer_milli_units": true,
+    "ordered_by": [
+      "occurred_at_block",
+      "event_id"
+    ],
+    "score_max_milli": 100000,
+    "score_min_milli": -100000
+  },
+  "role_dimension_requirements": {
+    "creator_feed_trust": {
+      "creator_reputation": -2500,
+      "safety_reputation": -5000
+    },
+    "governance_proposal": {
+      "governance_reputation": -1000
+    },
+    "governance_voting": {
+      "civic_reputation": -5000,
+      "governance_reputation": -5000
+    },
+    "helper_assignment": {
+      "helper_reputation": -1000
+    },
+    "juror_assignment": {
+      "juror_reputation": -1000
+    },
+    "poh_reviewer": {
+      "juror_reputation": -1000,
+      "poh_reputation": 0
+    },
+    "safety_moderator": {
+      "juror_reputation": -1000,
+      "safety_reputation": 0
+    },
+    "storage_assignment": {
+      "storage_reputation": -1000
+    },
+    "validator_operator": {
+      "validator_reputation": 0
+    }
+  },
+  "schema": "weall.reputation_matrix_contract.v1_5",
+  "source_dedupe_path": "state.reputation.event_source_index",
+  "version": "2026-06-v1.5-reputation-matrix"
+}

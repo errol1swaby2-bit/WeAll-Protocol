@@ -108,7 +108,7 @@ def _initial_state(self) -> Json:
         "tier2_min_rep_milli": "WEALL_POH_TIER2_MIN_REP_MILLI",
         # Native async Tier-1 review parameters.  These are normally
         # governance/chain defaults, but controlled local rehearsals need a
-        # deterministic one-reviewer quorum so the end-to-end browser path
+        # deterministic one-reviewer quorum so the full-path browser flow
         # can complete with only the genesis reviewer online.
         "async_n_jurors": "WEALL_POH_ASYNC_N_JURORS",
         "async_min_reviews": "WEALL_POH_ASYNC_MIN_REVIEWS",

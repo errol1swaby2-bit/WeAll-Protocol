@@ -121,10 +121,10 @@ def _authority_url_issues(bundle: Json, authority: Json) -> list[str]:
             issues.append("rehearsal_authority_url_must_be_remote_nonlocal")
         elif str(ip) == "169.254.169.254":
             issues.append("rehearsal_authority_url_metadata_service_forbidden")
-        elif ip.is_private and not _truthy_env("WEALL_ALLOW_PRIVATE_GENESIS_API"):
-            issues.append("rehearsal_private_authority_url_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
-    elif scheme == "http" and not _truthy_env("WEALL_ALLOW_PRIVATE_GENESIS_API"):
-        issues.append("rehearsal_http_authority_url_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+        elif ip.is_private and not _truthy_env("WEALL_ALLOW_LAN_GENESIS_API"):
+            issues.append("rehearsal_lan_authority_url_requires_WEALL_ALLOW_LAN_GENESIS_API=1")
+    elif scheme == "http" and not _truthy_env("WEALL_ALLOW_LAN_GENESIS_API"):
+        issues.append("rehearsal_http_authority_url_requires_WEALL_ALLOW_LAN_GENESIS_API=1")
 
     return issues
 

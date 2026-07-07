@@ -49,7 +49,7 @@ Built-in protections:
 
 Checklist:
 - Place the HTTP API behind a reverse proxy/WAF.
-- Consider restricting API exposure to trusted networks if you are running a private validator set.
+- Consider restricting API exposure to trusted networks if you are running a controlled validator set.
 
 ## 4) TCP mesh hardening
 

@@ -1,441 +1,166 @@
 # WeAll Protocol
 
-WeAll is an experimental deterministic coordination protocol and social application prototype.
+WeAll is an experimental public-only civic protocol implementation. This repository contains the backend node/runtime, public API, frontend, operator scripts, generated evidence artifacts, and reviewer-facing documentation for the current local/devnet/public-observer-oriented hardening track.
 
-The current repository demonstrates a local, fresh-clone, one-command development flow that boots a full local demo environment, seeds a demo account, and shows core social coordination surfaces in the frontend.
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
-WeAll is **production-candidate protocol software under active hardening**, with a working local demo and green release checks. It should still not be treated as a public mainnet, public user launch, or irreversible production governance system without a final public-validator beta rehearsal and external security review.
+This repository should be reviewed as an implementation under active hardening. It is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
 
----
+## Public-only civic protocol direction
 
-## Current Status
+WeAll is being narrowed and reviewed as public-only civic protocol infrastructure. Protocol-native social, civic, governance, moderation, dispute, group, reputation, validator/operator, and node activity is intended to be publicly inspectable. Group membership may gate posting, commenting, voting, moderation, invitation, and administration behavior, but membership must not gate read visibility for protocol-native group content.
 
-The current development milestone proves that a fresh clone can:
+Private, direct, encrypted, inbox/outbox, chat, or protocol-native messaging is not part of the NLnet/public-testnet claim. Earlier private/direct messaging concepts are legacy/out-of-scope artifacts only when they appear in historical docs. They are not active public-testnet functionality, not production encrypted messaging, and not a hidden launch feature.
 
-- create the local backend environment
-- install required dependencies
-- build the Docker backend stack
-- start the local node services
-- start IPFS/Kubo
-- generate the transaction index
-- run the golden-path bootstrap
-- create a pre-seeded demo account
-- upload media
-- create a post
-- seed demo social, decision, review, and messaging state
-- start the frontend
-- show core demo flows in the browser
+## Current status
 
-This is a reproducibility milestone for local development and demonstration.
+| Surface | Status | Reviewer meaning |
+|---|---:|---|
+| Local/devnet/public-observer-oriented evidence | GO for local review only | Repository artifacts and local gates support bounded local/devnet/public-observer-oriented rehearsal packaging. |
+| Public beta readiness | NO-GO | `generated/public_beta_blocker_report_v1_5.json` keeps `public_beta_ready=false`. |
+| Public observer launch claim | NO-GO | `AUD-628-P1-001` still requires an external clean-clone/open-download/state-sync/frontend rendered journey transcript. |
+| Public mainnet readiness | NO-GO | Mainnet-hardening gates remain open. |
+| Public validator / public multi-validator BFT readiness | NO-GO | Independent validator/operator evidence remains required. |
+| Live economics | NO-GO | Fees, transfers, rewards, slashing, treasury spend, and production economics remain locked by default. |
+| Automatic protocol upgrade execution | NO-GO | Upgrade records are deterministic public metadata only; software apply, migration execution, and rollback execution are not enabled. |
+| Legal/compliance approval | NO-GO | Legal materials are non-lawyer drafts pending counsel or controlled external review. |
+| Public storage-market readiness | NO-GO | Storage/IPFS proof is not yet a public storage-provider market claim. |
 
-It is **not** a claim of production validator readiness, public network readiness, security-audited deployment, or adversarial multi-node safety.
+Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 
----
+Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
 
-## Project Direction
+The checked-in public testnet seed registry is `configs/public_testnet_seed_registry.json`, the checked-in public testnet trust roots are `configs/public_testnet_trust_roots.json`, and the pinned testnet chain identity config is `configs/chains/weall-testnet-v1.json`. It is a repository-pinned discovery input for observer bootstrapping; it is not provider authority, validator authority, or proof of public beta readiness.
 
-WeAll is being designed as a familiar social application with deterministic protocol state underneath.
+## Reviewer verification path
 
-The product goal is to support:
-
-- social posting
-- media upload
-- groups
-- messaging
-- community decisions
-- reports and reviews
-- account verification
-- trusted responsibilities
-
-The frontend is intentionally moving toward plain human language rather than crypto-native dashboard language.
-
-For normal users, the target experience is closer to:
-
-> a social app with built-in verification, community decisions, community review, and trusted responsibilities
-
-rather than:
-
-> a blockchain dashboard with social features
-
----
-
-## Identity and Verification Direction
-
-WeAll has moved away from the previous three-tier identity model that included email verification.
-
-The current target direction is a protocol-native two-tier human verification model:
-
-- **Tier 1** — async Turing-style verification
-- **Tier 2** — live Turing-style verification
-
-The intent is to avoid required dependency on centralized identity infrastructure.
-
-The target model does **not** require:
-
-- email verification
-- inbox control
-- DNS verification
-- SMTP infrastructure
-- CAPTCHA
-- OAuth
-- KYC providers
-- government ID providers
-- centralized identity providers as required gates
-
-The goal is to make human verification part of the protocol process itself through challenge, evidence commitment, juror review, threshold finalization, receipts, and deterministic state transitions.
-
-This area is implemented as the current protocol-native direction and remains under active review and hardening.
-
----
-
-## What Works in the Local Demo
-
-The current local demo can show:
-
-- a pre-seeded demo account
-- account verification state
-- a social feed
-- media-backed posts
-- post detail pages
-- reporting content
-- review assignment flow
-- review outcome flow
-- community decisions
-- messaging surfaces
-- frontend/backend session handoff
-- deterministic demo bootstrap output
-
-The demo is intended to make the current architecture inspectable and easier to test.
-
----
-
-## What Is Not Claimed Yet
-
-This repository does **not** currently claim:
-
-- public mainnet readiness
-- public user/social launch readiness
-- full external security audit completion
-- economic activation readiness
-- stable public API guarantees
-- final protocol semantics
-- complete frontend product maturity
-
-Those require additional testing, review, hardening, documentation, and operational validation.
-
----
-
-## Current Verification Checkpoint
-
-This repository snapshot is synchronized at:
-
-- **Transaction canon:** 231 tx types, version 1.25.0
-- **Latest full backend test checkpoint:** `3405 passed, 2 warnings`
-- **PoH posture:** two-tier native async/live human verification; no required email, Cloudflare, SMTP, DNS, CAPTCHA, OAuth, KYC provider, or government ID provider
-- **Live PoH quorum:** adaptive integer `n-of-m` threshold, up to 10 jurors, up to 3 active reviewers, up to 7 watchers
-- **Consensus authority hardening:** follower-side SYSTEM tx replay binding is enforced against deterministic scheduler output before apply
-- **Helper hardening:** helper execution metadata is block-header committed through `helper_execution_root`
-- **Dependency posture:** backend lockfiles and frontend `package-lock.json` are present and release-verified
-- **Release checks:** tx canon synchronization, secret guard, release-tree hygiene, and dependency-lock verification should pass before publishing changes
-
-This checkpoint is included so reviewers can compare the public README against generated artifacts without treating the repository as public-mainnet-ready.
-
----
-
-## Reviewer Starting Point
-
-For architecture and readiness review, start with these documents:
-
-1. `Weall-Protocol/docs/TRUTH_BOUNDARY.md` — current claim boundaries and what is not yet claimed.
-2. `Weall-Protocol/docs/REVIEWER_MILESTONE_GUIDE.md` — milestone-oriented review guide and remaining proof path.
-3. `Weall-Protocol/docs/REVIEWER_EVIDENCE_INDEX.md` — command evidence checklist and transcript expectations.
-4. `RELEASE_CHECKLIST.md` — release and external tester packaging checks.
-5. `Weall-Protocol/docs/EXECUTOR_REFACTOR_MODULE_BOUNDARIES.md` — runtime/executor refactor boundary map.
-
-The expected reviewer path for protocol-native verification is the controlled-devnet same-machine rehearsal below. The seeded demo path remains useful for fast UI review, but it is not the primary protocol proof path.
-
----
-
-## Requirements
-
-For the local demo path, you should have:
-
-- Linux or WSL-like development environment
-- Git
-- Docker and Docker Compose
-- Python 3.12+
-- Node.js and npm
-- network access for dependency downloads and Docker image pulls
-
-The boot script is designed to rebuild the local development environment from a fresh clone.
-
----
-
-## Fresh Clone Demo
-
-Clone the repository:
+Run these checks from a fresh checkout before relying on reviewer-facing claims:
 
 ```bash
-git clone git@github.com:errol1swaby2-bit/WeAll-Protocol.git WeAll-Protocol
-cd WeAll-Protocol
-```
-
-Run the full local demo boot:
-
-```bash
-bash scripts/dev_boot_full_stack.sh
-```
-
-Expected successful markers include:
-
-```text
-✅ FULL STACK GOLDEN PATH PASSED
-[dev-full-surface] seeded demo reviewer role persisted
-[dev-full-surface] dev full-surface environment ready
-frontend=http://127.0.0.1:5173
-backend=http://127.0.0.1:8000
-```
-
-Then open:
-
-```text
-http://127.0.0.1:5173
-```
-
-The demo account should be surfaced through the local dev bootstrap flow.
-
----
-
-## Expected Reviewer Path: Dual-Node Same-Machine Rehearsal
-
-The expected same-machine reviewer proof is the existing controlled-devnet readiness suite. It starts a controlled genesis node and a joining node on the same machine, uses normal public transaction submission paths, verifies native async/live PoH, syncs both nodes, checks same tip and state root convergence, and verifies restart/catch-up behavior. It intentionally does not rely on `/v1/dev/demo-seed`.
-
-Run from the backend directory:
-
-```bash
-cd Weall-Protocol
+cd ~/WeAll-Protocol/Weall-Protocol
 source .venv/bin/activate
-pytest -q
-WEALL_DEVNET_SUITE_RUN_TIER2=1 \
-WEALL_DEVNET_SUITE_RUN_LIVE=1 \
-bash scripts/devnet_controlled_readiness_suite.sh
+
+PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+PYTHONPATH=src python -m pytest -q \
+  tests/test_release_docs_truth_sync.py \
+  tests/test_reviewer_language_cleanup.py \
+  tests/prod/test_final_public_observer_controlled_testnet_go_gate.py \
+  tests/prod/test_public_beta_evidence_gates.py \
+  tests/prod/test_public_observer_testnet_readiness_docs.py \
+  tests/test_public_readiness_artifacts_v15.py
 ```
 
-Truth boundary: this is a local two-node rehearsal on one machine. It is stronger than the seeded browser demo, but it is not a public multi-validator adversarial network proof.
-
----
-
-## Useful Local URLs
-
-Backend:
-
-```text
-http://127.0.0.1:8000
-```
-
-Frontend:
-
-```text
-http://127.0.0.1:5173
-```
-
-Backend readiness:
-
-```text
-http://127.0.0.1:8000/v1/readyz
-```
-
-Backend status:
-
-```text
-http://127.0.0.1:8000/v1/status
-```
-
-API docs, when enabled by the local backend:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-## Demo Surfaces to Check
-
-After the fresh-clone boot completes, useful frontend routes include:
-
-```text
-/feed
-/messages
-/decisions
-/reviews
-/account-verification
-/profile
-```
-
-Suggested manual smoke test:
-
-1. Open the frontend.
-2. Load the demo tester session.
-3. Open the feed.
-4. Confirm the seeded demo post is visible.
-5. Open messages.
-6. Open decisions.
-7. Open reviews.
-8. Report content from the feed.
-9. Open the assigned review.
-10. Accept the review assignment.
-11. Test Keep Post / Remove Post behavior.
-
----
-
-## Development Checks
-
-From the backend directory:
+If README or reviewer docs changed in the commit being reviewed, also run:
 
 ```bash
-cd Weall-Protocol
-
-pytest
-python3 -S scripts/check_tx_canon_artifacts.py
-bash scripts/secret_guard.sh
-bash scripts/verify_release_tree.sh
-bash scripts/verify_release_dependencies.sh
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 ```
 
-From the frontend directory, with the backend running at `http://127.0.0.1:8000` for the contract check:
+For the bounded public-observer boot rehearsal, the operator path remains:
 
 ```bash
-cd web
-npm ci
-API_BASE=http://127.0.0.1:8000 npm run contract-check
-npm run typecheck
-npm run build
+git clone <repo-url> WeAll-Protocol
+cd WeAll-Protocol/Weall-Protocol
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.lock
+pip install -e .
+WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh
 ```
 
-These checks should pass before committing release-relevant changes.
+That boot path is a local/operator transcript path, not authority by itself. Public claims require the external evidence packages listed below.
 
----
+Frontend state is not protocol authority. Local scripts are not public-readiness authority without the external evidence gates.
 
-## Cleaning Local Runtime Artifacts
+## Evidence package map
 
-The local demo creates runtime state, generated demo files, containers, and temporary development artifacts.
+| Evidence area | Canonical location | Current meaning |
+|---|---|---|
+| Public beta blocker status | `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md` and `Weall-Protocol/generated/public_beta_blocker_report_v1_5.json` | 14 blocker catalog entries remain visible; 7 are closed in repository; 7 remain open as external evidence or mainnet-hardening gates. |
+| Final bounded go-gate | `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` and `Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` | GO only for controlled internal/public-observer rehearsal candidate. |
+| Release evidence manifest | `Weall-Protocol/generated/release_evidence_manifest_v1_5.json` | Tracks generated artifacts and preserves release claim boundaries. |
+| Reviewer evidence index | `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md` | Maps implemented evidence, generated artifacts, and external transcript templates. |
+| README-to-implementation traceability | `Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` | Maps major README claims to implementation files, tests, generated artifacts, templates, disabled gates, and open blockers. |
+| External proof templates | `Weall-Protocol/docs/proofs/` | Templates for evidence that cannot be self-certified by local scripts. |
+| Testnet runbooks | `Weall-Protocol/docs/testnet/` | Operator instructions and transcript expectations for the next rehearsal. |
+| Production posture | `Weall-Protocol/docs/PRODUCTION_POSTURE.md` | Fail-closed production constraints and disabled-readiness boundaries. |
+| Versioning strategy | `Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md` | Tx canon, chain/profile pinning, and record-only upgrade posture. |
 
-To stop the backend containers:
+## Headline claim to evidence map
 
-```bash
-cd Weall-Protocol
-docker compose down --remove-orphans
-```
+| Headline claim | Implementation path(s) | Tests / checks | Generated artifacts | Command(s) to verify | Current claim status | Explicit boundary |
+|---|---|---|---|---|---|---|
+| Deterministic transaction canon | `Weall-Protocol/specs/tx_canon/tx_canon.yaml`; `Weall-Protocol/scripts/gen_tx_index.py`; `Weall-Protocol/src/weall/runtime/tx_schema.py` | `tests/test_canon_coverage.py`; `tests/test_tx_schema_governance_dispute_receipts.py`; `tests/test_direct_message_transaction_quarantine.py` | `Weall-Protocol/generated/tx_index.json` | `PYTHONPATH=src python scripts/gen_tx_index.py --check`; `PYTHONPATH=src python -m pytest -q tests/test_canon_coverage.py tests/test_direct_message_transaction_quarantine.py` | Implemented repository canon | Canon includes public civic txs only; no active direct/private message tx claim. |
+| State root / replay determinism | `Weall-Protocol/src/weall/runtime/domain_dispatch.py`; `Weall-Protocol/src/weall/ledger/`; replay/state-root scripts | `Weall-Protocol/tests/test_state_root_ephemeral_contract.py`; `Weall-Protocol/tests/test_protocol_upgrade_height_scheduled_lifecycle.py`; replay transcript gates | `Weall-Protocol/generated/state_root_vectors_v1_5.json` | `PYTHONPATH=src python scripts/gen_state_root_vectors_v1_5.py --check`; targeted replay tests | Local/devnet evidence | External cross-machine replay remains an open evidence gate. |
+| Local block production | `Weall-Protocol/src/weall/runtime/block_builder.py`; `Weall-Protocol/src/weall/runtime/block_admission.py`; rehearsal scripts | `tests/test_block_schedule_survivability_harness.py`; block production proof tests | block schedule/rehearsal evidence artifacts where generated | `PYTHONPATH=src python -m pytest -q tests/test_block_schedule_survivability_harness.py` | Local harness evidence | Does not imply public mainnet throughput or public BFT readiness. |
+| Controlled devnet rehearsal | `Weall-Protocol/scripts/run_controlled_testnet_go_gate_v1_5.py`; testnet docs | `tests/test_controlled_testnet_go_gate.py`; `tests/prod/test_final_public_observer_controlled_testnet_go_gate.py` | `Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` | `PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check` | Controlled rehearsal candidate evidence | Public beta remains blocked. |
+| Public observer bundle | `Weall-Protocol/scripts/boot_public_observer_testnet.sh`; node discovery routes; observer docs | `tests/prod/test_public_observer_boot_and_evidence_scripts.py`; `tests/prod/test_clean_observer_boot_from_checked_in_registry.py` | `Weall-Protocol/generated/public_observer_launch_evidence_requirements_v1_5.json` | `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh`; capture transcript into `audit-metadata/reviewer-evidence-YYYY-MM-DD/` | Runbook/local proof posture | First external observer readiness requires a fresh remote/signed observer run. |
+| Observer non-authority / cannot sign as validator | observer authority gate code; node/operator surfaces | `tests/prod/test_observer_cannot_enable_validator_signing.py`; `tests/prod/test_observer_bundle_contains_no_authority_secrets.py` | release evidence manifest references observer gates | `PYTHONPATH=src python -m pytest -q tests/prod/test_observer_cannot_enable_validator_signing.py tests/prod/test_observer_bundle_contains_no_authority_secrets.py` | Implemented gate evidence | Observer paths do not grant validator signing authority. |
+| PoH current posture | `Weall-Protocol/src/weall/poh/`; PoH API/frontend pages | async/live PoH targeted tests and frontend source checks | API contract/response vectors | `PYTHONPATH=src python -m pytest -q tests/test_async_poh_reviewability_truth.py tests/test_apply_poh_live_hardening_mvp.py`; `node web/scripts/test_reviewer_critical_flows_source.mjs` | Native PoH surfaces under review | Not a complete public identity infrastructure or legal identity proof. |
+| Governance current posture | `Weall-Protocol/src/weall/api/routes_public_parts/gov.py`; governance apply/domain dispatch; frontend decisions pages | governance due-height, multi-option, rendered journey checks | tx/API contract maps | `PYTHONPATH=src python -m pytest -q tests/test_governance_due_height_trust_boundary.py tests/test_governance_multi_option_voting.py`; `node web/scripts/test_reviewer_critical_flows_source.mjs` | Bounded public governance implementation | Not production constitutional governance readiness. |
+| Protocol upgrade scheduled activation posture | `Weall-Protocol/src/weall/runtime/apply/protocol.py`; upgrade docs | `tests/test_protocol_upgrade_height_scheduled_lifecycle.py`; `tests/test_protocol_upgrade_record_only_boundary.py`; `tests/prod/test_protocol_upgrade_execution_hardening_plan.py` | `Weall-Protocol/generated/protocol_upgrade_execution_hardening_plan_v1_5.json` | `PYTHONPATH=src python -m pytest -q tests/test_protocol_upgrade_height_scheduled_lifecycle.py tests/test_protocol_upgrade_record_only_boundary.py` | Scheduled activation records implemented | Records declaration/activation only; no arbitrary migration/apply/rollback execution. |
+| Locked economics / wallet status | economics routes/runtime launch matrix; wallet status UI | economics locked tests; frontend source checks | tokenomics simulation and blocker report | `PYTHONPATH=src python -m pytest -q tests/test_wallet_treasury_governance_reputation_safety.py tests/test_civic_social_governance_fee_free_after_activation.py`; `node web/scripts/test_reviewer_critical_flows_source.mjs` | Locked/read-only status posture | Live economics, fees, rewards, transfers, and treasury spend remain false/unclaimed. |
+| Helper execution safety posture | helper runtime modules; launch matrix; helper hardening plan | helper restart/replay/merge tests; production helper topology test | `Weall-Protocol/generated/production_helper_topology_hardening_plan_v1_5.json` | `PYTHONPATH=src python -m pytest -q tests/test_helper_restart_equivalence.py tests/test_helper_replay_merge_adversarial.py tests/prod/test_helper_production_safety_checklist.py` | Experimental/gated; production helper execution disabled | Helpers do not replace consensus; production helper topology remains open future hardening. |
+| Frontend reviewer surfaces | `web/src/pages/*`; `web/src/components/*`; `web/scripts/*` | source checks and Playwright specs where backend is available | frontend evidence docs/source scripts | `cd web && npm run typecheck && npm run test:reviewer-critical-source && npm run test:accessibility-source` | Reviewer UI source coverage | Frontend state is not protocol authority; backend availability affects rendered E2E. |
+| Accessibility current posture | `web/src/styles.css`; shell/forms/status components; accessibility checklist | `web/scripts/test_accessibility_source.mjs`; reviewer-critical source check | N/A | `cd web && npm run test:accessibility-source` | Basic source-level accessibility posture | Not a full WCAG compliance claim; manual and rendered audits remain needed. |
 
-Before committing, remove local runtime artifacts and re-run release checks.
+## Major protocol surfaces
 
-Common files that should not be committed include:
+| Surface | Current implemented/reviewer surface |
+|---|---|
+| Account/profile | Account creation, profile reads, public account surfaces, native PoH state, and public API redaction checks. |
+| Public social | Public posts, public comments, media-backed content, activity notices, and transaction-status visibility. |
+| Public groups | Publicly readable group content with membership-gated posting, commenting, voting, moderation, invitation, and administration. |
+| Governance | Public proposal, voting, block-height lifecycle progression, tally/finalization records, and record-only protocol-upgrade metadata. |
+| Disputes/reviews | Public report/review surfaces, block-height lifecycle progression, reviewer assignments, votes, receipts, outcomes, and restricted private identity evidence boundaries. |
+| Transaction lifecycle | Canonical tx index, admission/status surfaces, mempool/block evidence, receipts, and current tx canon checkpoint of 236 tx types, version 1.25.0. |
+| Node/operator surfaces | Readiness/status endpoints, signed seed/validator discovery evidence, validator authority gating, observer/operator status, secret guard, and release hygiene checks. |
+| Observer boot | `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` with signed/pinned registry and chain commitment checks. |
+| External evidence packages | Clean-clone/open-download observer transcript, cross-machine replay transcript, independent validator/operator transcript, real storage/IPFS transcript, legal attestation, upgrade hardening proof, and helper-topology proof. |
 
-- local SQLite databases
-- local BFT journal files
-- local helper lane directories
-- local dev bootstrap secrets
-- frontend build artifacts
-- `node_modules`
-- `.venv`
-- `.env`
-- `.env.local`
-- generated demo bootstrap secrets
+## What is intentionally disabled
 
----
+These are deliberately not claimed by the current repository state:
 
-## Repository Layout
+- **Live economics:** fees, transfers, rewards, treasury spend, and slashing remain locked or non-live for launch claims.
+- **Public validator/BFT readiness:** public validator joining, public validator safety, and public multi-validator BFT readiness require independent operator evidence.
+- **Automatic upgrades:** protocol upgrade records are public deterministic metadata only; automatic software apply is not enabled.
+- **Executable migrations/rollbacks:** migration and rollback execution are not enabled by the current upgrade posture.
+- **Production helper execution:** helper artifacts and hardening plans do not enable production helper execution.
+- **Public storage-market readiness:** storage/IPFS surfaces and tests do not prove a public storage-provider market.
+- **Legal approval:** legal/compliance documents are drafts pending counsel or controlled external review.
+- **Private protocol-native content:** encrypted DMs, private groups, member-only-readable protocol-native group content, and opaque consensus-affecting social payloads are unsupported.
 
-High-level structure:
+## Public-only truth boundary
 
-```text
-.
-├── scripts/
-│   └── dev_boot_full_stack.sh
-├── web/
-│   ├── src/
-│   └── public/
-└── Weall-Protocol/
-    ├── src/weall/
-    ├── scripts/
-    ├── specs/
-    ├── generated/
-    ├── tests/
-    └── docker-compose.yml
-```
+Protocol-native social, civic, governance, moderation, dispute, group, reputation, validator/operator, and protocol-state activity is publicly inspectable. Group membership may gate participation or administration, but it must not gate read visibility for protocol-native group content.
 
-The repository currently contains both protocol/backend code and frontend application code.
+Public-testnet discovery uses signed/pinned seed-registry and endpoint evidence, not hosting-provider trust. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator status.
 
----
+## Reviewer starting points
 
-## Protocol Areas Under Active Work
+1. `Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md`
+2. `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md`
+3. `Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md`
+4. `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md`
+5. `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md`
+6. `Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md`
+7. `Weall-Protocol/docs/PRODUCTION_POSTURE.md`
+8. `RELEASE_CHECKLIST.md`
 
-Current active areas include:
+## Product direction
 
-- deterministic transaction execution
-- transaction canon synchronization
-- account/session handling
-- protocol-native human verification
-- role and responsibility gating
-- content posting and media declaration
-- reporting and review flows
-- decision/governance flows
-- local full-stack reproducibility
-- frontend human-readable UX
-- production-readiness audits
-
----
-
-## Frontend Direction
-
-The frontend should avoid exposing protocol internals to ordinary users by default.
-
-Preferred user-facing language includes:
-
-- Account Verification
-- Verified Person
-- Trusted Verified Person
-- Decisions
-- Reports
-- Reviews
-- Trusted Responsibilities
-- Community Reviewer
-
-Advanced protocol details may still be available for developers, reviewers, and operators, but they should not dominate normal social flows.
-
----
-
-## Security and Production Notes
-
-This repository is still under active development.
-
-Do not use this code to run production funds, public validator infrastructure, or irreversible public governance without additional review.
-
-Before any public production deployment, the project still needs deeper validation, including:
-
-- additional multi-node public-validator beta testing
-- adversarial consensus review
-- persistence and restart rehearsals
-- role/gate bypass testing
-- frontend/backend authority review
-- privacy review
-- deployment rehearsals in a fresh operator environment
-- operator documentation review
-- external security review
-
----
+WeAll is being built as a familiar public social application with deterministic protocol state underneath: public posting, groups, community decisions, reports/reviews, account verification, and trusted responsibilities. The frontend is intentionally moving toward plain human language rather than crypto-native dashboard language, while the backend remains responsible for deterministic state, evidence, and fail-closed protocol boundaries.
 
 ## License
 
-WeAll Protocol is licensed under the Mozilla Public License 2.0. See `LICENSE`.
+This repository is licensed under the Mozilla Public License 2.0. See `LICENSE` for the full license text.
 
----
+## Pass 33 crypto posture
 
-## Current Summary
+WeAll is a pre-public-testnet protocol implementation under active hardening.
 
-WeAll currently has a working local fresh-clone demo path and a production-candidate backend posture with synchronized transaction canon, release-hygiene gates, dependency locks, adaptive Live PoH, scheduler-bound SYSTEM tx replay, and helper execution root commitment.
-
-That means the project can now be cloned, booted, inspected, and audited as a running deterministic social coordination protocol prototype.
-
-The next major work is a final public-validator beta readiness rehearsal: fresh-clone operator packaging, multi-node launch practice, documentation review, and external security review before any public production network claims.
-
+The controlled-testnet signing profile has transitioned to profile-aware `pq-mldsa-v1` ML-DSA signing for protocol authority surfaces covered by this pass. `pq-mldsa-v1` is the only active protocol signing profile; `legacy-ed25519-v1` is disabled for protocol authority. This does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, production helper execution readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

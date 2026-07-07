@@ -19,7 +19,12 @@ export type NodeConnectionState = {
   detail: string;
   chainId?: string;
   height?: number;
+  finalizedHeight?: number;
   profile?: string;
+  cryptoProfile?: string;
+  cryptoVerifierAvailable?: boolean;
+  cryptoDetail: string;
+  authorityLevel: string;
 };
 
 export type SessionStateSummary = {
@@ -46,12 +51,31 @@ export function normalizeTxStatus(raw: any, txId?: string): NormalizedTxStatus {
   const resolvedTxId = String(raw?.tx_id || txId || "").trim() || undefined;
 
   if (status === "confirmed") {
+    if (raw?.local_state_synced === false) {
+      return {
+        txId: resolvedTxId,
+        phase: "submitted",
+        label: "Upstream confirmed / local sync pending",
+        detail: "Upstream status reports confirmation, but this observer has not synced local state yet; this is not final local confirmation.",
+        terminal: false,
+      };
+    }
     return {
       txId: resolvedTxId,
       phase: "confirmed",
       label: "Confirmed",
-      detail: "This transaction is confirmed by the backend status surface.",
+      detail: "This transaction is confirmed by the backend status surface after local state sync.",
       terminal: true,
+    };
+  }
+
+  if (status === "local_confirmed") {
+    return {
+      txId: resolvedTxId,
+      phase: "submitted",
+      label: "Locally included / upstream sync pending",
+      detail: "This node reports local block inclusion, but upstream synchronization is not complete; keep it separate from final local confirmation.",
+      terminal: false,
     };
   }
 
@@ -65,13 +89,23 @@ export function normalizeTxStatus(raw: any, txId?: string): NormalizedTxStatus {
     };
   }
 
+  if (status === "rejected" || status === "failed") {
+    return {
+      txId: resolvedTxId,
+      phase: "failed",
+      label: "Rejected",
+      detail: "The backend reports a rejected or failed terminal transaction status.",
+      terminal: true,
+    };
+  }
+
   if (status === "unknown") {
     return {
       txId: resolvedTxId,
       phase: "unknown",
-      label: "Unknown",
-      detail: "The backend does not currently report a final lifecycle result for this transaction.",
-      terminal: true,
+      label: "Unknown / unavailable",
+      detail: "The backend does not currently report propagation, inclusion, finality, or rejection evidence for this transaction.",
+      terminal: false,
     };
   }
 
@@ -84,6 +118,17 @@ export function normalizeTxStatus(raw: any, txId?: string): NormalizedTxStatus {
   };
 }
 
+function deriveAuthorityLevel(raw: any, profile?: string): string {
+  const localValidator = raw?.local_is_active_validator === true || raw?.validator_active === true;
+  const profileText = String(profile || raw?.mode || "").toLowerCase();
+  if (localValidator) return "active validator by chain state";
+  if (profileText.includes("validator-candidate")) return "validator candidate / fail-closed";
+  if (profileText.includes("validator")) return "validator-capable node; authority requires chain state";
+  if (profileText.includes("operator")) return "node operator diagnostics";
+  if (profileText.includes("observer")) return "observer / read-sync-forward";
+  return "unknown; treat as read-only until proven by protocol state";
+}
+
 export function summarizeNodeConnection(raw: any, fallbackBase: string): NodeConnectionState {
   const ok = raw?.ok === true;
   if (!raw || typeof raw !== "object") {
@@ -91,33 +136,61 @@ export function summarizeNodeConnection(raw: any, fallbackBase: string): NodeCon
       phase: "offline",
       label: "Offline",
       detail: fallbackBase,
+      cryptoDetail: "crypto profile unavailable until the node responds",
+      authorityLevel: "unknown; treat as read-only until the node responds",
     };
   }
 
   const chainId = raw?.chain_id ? String(raw.chain_id) : undefined;
   const height = Number.isFinite(Number(raw?.height)) ? Number(raw.height) : undefined;
+  const finalizedHeight = Number.isFinite(Number(raw?.finalized_height)) ? Number(raw.finalized_height) : undefined;
   const mode = raw?.mode ? String(raw.mode) : undefined;
   const lifecycle = raw?.node_lifecycle ? String(raw.node_lifecycle) : undefined;
   const profile = lifecycle || mode;
+  const crypto = raw?.crypto_profile && typeof raw.crypto_profile === "object" ? raw.crypto_profile : {};
+  const cryptoProfile = crypto?.active_signature_profile ? String(crypto.active_signature_profile) : undefined;
+  const cryptoVerifierAvailable = typeof crypto?.mldsa_verifier_available === "boolean" ? crypto.mldsa_verifier_available : undefined;
+  const cryptoDetail = [
+    cryptoProfile ? `active ${cryptoProfile}` : "active profile unknown",
+    crypto?.controlled_testnet_target_signature_profile ? `target ${String(crypto.controlled_testnet_target_signature_profile)}` : "target profile unknown",
+    cryptoVerifierAvailable === true ? "real ML-DSA verifier available" : cryptoVerifierAvailable === false ? "real ML-DSA verifier unavailable" : "verifier status unknown",
+  ].join(" · ");
+  const authorityLevel = deriveAuthorityLevel(raw, profile);
+  const detailParts = [
+    chainId,
+    typeof height === "number" ? `h${height}` : null,
+    typeof finalizedHeight === "number" ? `finalized h${finalizedHeight}` : null,
+    profile,
+  ].filter(Boolean);
 
   if (ok) {
     return {
       phase: "online",
       label: "Backend reachable",
-      detail: [chainId, typeof height === "number" ? `h${height}` : null, profile].filter(Boolean).join(" · "),
+      detail: detailParts.join(" · "),
       chainId,
       height,
+      finalizedHeight,
       profile,
+      cryptoProfile,
+      cryptoVerifierAvailable,
+      cryptoDetail,
+      authorityLevel,
     };
   }
 
   return {
     phase: "degraded",
     label: "Degraded",
-    detail: [chainId, typeof height === "number" ? `h${height}` : null, profile].filter(Boolean).join(" · ") || fallbackBase,
+    detail: detailParts.join(" · ") || fallbackBase,
     chainId,
     height,
+    finalizedHeight,
     profile,
+    cryptoProfile,
+    cryptoVerifierAvailable,
+    cryptoDetail,
+    authorityLevel,
   };
 }
 

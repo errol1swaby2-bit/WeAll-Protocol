@@ -14,7 +14,7 @@ from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
 from weall.runtime.tx_id import compute_tx_id
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 from weall.tx.canon import load_tx_index_json
 
 
@@ -47,7 +47,7 @@ def test_block_admission_rejects_unsigned_non_system_tx() -> None:
         params={"require_signatures": True},
     )
     idx = _load_index()
-    pub, _priv = deterministic_ed25519_keypair(label="@alice")
+    pub, _priv = deterministic_mldsa_keypair(label="@alice")
 
     env = TxEnvelope(
         tx_type="ACCOUNT_REGISTER",
@@ -70,7 +70,7 @@ def test_apply_block_rejects_forged_block_with_signature_removed(
     monkeypatch.setenv("WEALL_MODE", "prod")
     follower = _executor(tmp_path, "follower")
 
-    pub, priv = deterministic_ed25519_keypair(label="@alice")
+    pub, priv = deterministic_mldsa_keypair(label="@alice")
     msg = canonical_tx_message(
         chain_id="sig-enforce",
         tx_type="ACCOUNT_REGISTER",
@@ -155,7 +155,7 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
     monkeypatch.setenv("WEALL_MODE", "prod")
     follower = _executor(tmp_path, "follower-missing-chain-id")
 
-    pub, priv = deterministic_ed25519_keypair(label="@alice-chain")
+    pub, priv = deterministic_mldsa_keypair(label="@alice-chain")
     msg = canonical_tx_message(
         chain_id="sig-enforce",
         tx_type="ACCOUNT_REGISTER",

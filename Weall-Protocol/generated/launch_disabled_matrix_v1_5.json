@@ -1,0 +1,412 @@
+{
+  "high_risk_features": [
+    "live_economics",
+    "balance_transfer",
+    "reward_issuance",
+    "treasury_spend",
+    "public_validator_promotion",
+    "public_multi_validator_bft",
+    "automatic_protocol_upgrade_apply",
+    "protocol_migration_execution",
+    "protocol_rollback_execution",
+    "emergency_safety_controls",
+    "production_helper_execution"
+  ],
+  "phases": [
+    "local_rehearsal",
+    "external_observer",
+    "controlled_validator_rehearsal",
+    "public_beta_candidate",
+    "production_candidate"
+  ],
+  "rows": [
+    {
+      "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+      "enabled": false,
+      "feature": "live_economics",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+      "enabled": false,
+      "feature": "balance_transfer",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+      "enabled": false,
+      "feature": "reward_issuance",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+      "enabled": false,
+      "feature": "treasury_spend",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+      "enabled": false,
+      "feature": "public_validator_promotion",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+      "enabled": false,
+      "feature": "public_multi_validator_bft",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+      "enabled": false,
+      "feature": "automatic_protocol_upgrade_apply",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Migrations must not execute from upgrade records without deterministic vector tests and release manifests.",
+      "enabled": false,
+      "feature": "protocol_migration_execution",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Rollback execution requires deterministic rollback semantics and artifact verification; it is not live.",
+      "enabled": false,
+      "feature": "protocol_rollback_execution",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Emergency controls require legal/governance authority, auditability, and public policy before exposure.",
+      "enabled": false,
+      "feature": "emergency_safety_controls",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "local_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+      "enabled": false,
+      "feature": "live_economics",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+      "enabled": false,
+      "feature": "balance_transfer",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+      "enabled": false,
+      "feature": "reward_issuance",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+      "enabled": false,
+      "feature": "treasury_spend",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+      "enabled": false,
+      "feature": "public_validator_promotion",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+      "enabled": false,
+      "feature": "public_multi_validator_bft",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+      "enabled": false,
+      "feature": "automatic_protocol_upgrade_apply",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Migrations must not execute from upgrade records without deterministic vector tests and release manifests.",
+      "enabled": false,
+      "feature": "protocol_migration_execution",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Rollback execution requires deterministic rollback semantics and artifact verification; it is not live.",
+      "enabled": false,
+      "feature": "protocol_rollback_execution",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Emergency controls require legal/governance authority, auditability, and public policy before exposure.",
+      "enabled": false,
+      "feature": "emergency_safety_controls",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "external_observer",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+      "enabled": false,
+      "feature": "live_economics",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+      "enabled": false,
+      "feature": "balance_transfer",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+      "enabled": false,
+      "feature": "reward_issuance",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+      "enabled": false,
+      "feature": "treasury_spend",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+      "enabled": false,
+      "feature": "public_validator_promotion",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+      "enabled": false,
+      "feature": "public_multi_validator_bft",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+      "enabled": false,
+      "feature": "automatic_protocol_upgrade_apply",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Migrations must not execute from upgrade records without deterministic vector tests and release manifests.",
+      "enabled": false,
+      "feature": "protocol_migration_execution",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Rollback execution requires deterministic rollback semantics and artifact verification; it is not live.",
+      "enabled": false,
+      "feature": "protocol_rollback_execution",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Emergency controls require legal/governance authority, auditability, and public policy before exposure.",
+      "enabled": false,
+      "feature": "emergency_safety_controls",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "controlled_validator_rehearsal",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+      "enabled": false,
+      "feature": "live_economics",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+      "enabled": false,
+      "feature": "balance_transfer",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+      "enabled": false,
+      "feature": "reward_issuance",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+      "enabled": false,
+      "feature": "treasury_spend",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+      "enabled": false,
+      "feature": "public_validator_promotion",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+      "enabled": false,
+      "feature": "public_multi_validator_bft",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+      "enabled": false,
+      "feature": "automatic_protocol_upgrade_apply",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Migrations must not execute from upgrade records without deterministic vector tests and release manifests.",
+      "enabled": false,
+      "feature": "protocol_migration_execution",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Rollback execution requires deterministic rollback semantics and artifact verification; it is not live.",
+      "enabled": false,
+      "feature": "protocol_rollback_execution",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Emergency controls require legal/governance authority, auditability, and public policy before exposure.",
+      "enabled": false,
+      "feature": "emergency_safety_controls",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "public_beta_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+      "enabled": false,
+      "feature": "live_economics",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+      "enabled": false,
+      "feature": "balance_transfer",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+      "enabled": false,
+      "feature": "reward_issuance",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+      "enabled": false,
+      "feature": "treasury_spend",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+      "enabled": false,
+      "feature": "public_validator_promotion",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+      "enabled": false,
+      "feature": "public_multi_validator_bft",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+      "enabled": false,
+      "feature": "automatic_protocol_upgrade_apply",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Migrations must not execute from upgrade records without deterministic vector tests and release manifests.",
+      "enabled": false,
+      "feature": "protocol_migration_execution",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Rollback execution requires deterministic rollback semantics and artifact verification; it is not live.",
+      "enabled": false,
+      "feature": "protocol_rollback_execution",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Emergency controls require legal/governance authority, auditability, and public policy before exposure.",
+      "enabled": false,
+      "feature": "emergency_safety_controls",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    },
+    {
+      "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+      "enabled": false,
+      "feature": "production_helper_execution",
+      "phase": "production_candidate",
+      "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+    }
+  ],
+  "schema": "weall.launch_disabled_matrix.v1_5",
+  "truth_boundary": "This matrix prevents overclaims and drift; it does not activate or disable consensus rules by itself.",
+  "version": "2026-06-v1.5-public-readiness-batch"
+}

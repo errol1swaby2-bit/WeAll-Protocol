@@ -21,7 +21,8 @@ def test_dispute_vote_submit_enqueues_resolve_and_final_receipt_chain() -> None:
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10}
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
+            "bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
         },
         "roles": {},
         "system_queue": [],
@@ -132,7 +133,8 @@ def test_affirmative_content_dispute_resolution_enforces_content_visibility() ->
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10}
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
+            "bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
         },
         "roles": {},
         "system_queue": [],
@@ -174,7 +176,7 @@ def test_affirmative_content_dispute_resolution_enforces_content_visibility() ->
             tx_type="DISPUTE_JUROR_ASSIGN",
             signer="SYSTEM",
             nonce=1,
-            payload={"dispute_id": "d-content", "juror": "alice"},
+            payload={"dispute_id": "d-content", "juror": "bob"},
             sig="",
             parent="tx:alice:1",
             system=True,
@@ -184,7 +186,7 @@ def test_affirmative_content_dispute_resolution_enforces_content_visibility() ->
         st,
         TxEnvelope(
             tx_type="DISPUTE_JUROR_ACCEPT",
-            signer="alice",
+            signer="bob",
             nonce=2,
             payload={"dispute_id": "d-content"},
             sig="",
@@ -195,7 +197,7 @@ def test_affirmative_content_dispute_resolution_enforces_content_visibility() ->
         st,
         TxEnvelope(
             tx_type="DISPUTE_VOTE_SUBMIT",
-            signer="alice",
+            signer="bob",
             nonce=3,
             payload={
                 "dispute_id": "d-content",

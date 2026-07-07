@@ -56,7 +56,7 @@ esac
 [ -z "${WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY_FILE:-}" ] || fail "legacy authority signer private key path must not be present in a normal node environment"
 [ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY:-}" ] || fail "legacy authority private key must not be present in a normal node environment"
 [ -z "${WEALL_ORACLE_AUTHORITY_PRIVKEY_FILE:-}" ] || fail "legacy authority private key path must not be present in a normal node environment"
-[ -z "${WEALL_CLOUDFLARE_API_TOKEN:-}" ] || fail "Cloudflare token must not be present for native production PoH/onboarding"
+[ -z "${WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN:-}" ] || fail "named hosting-provider token must not be present for native production PoH/onboarding"
 [ -z "${WEALL_DNS_API_TOKEN:-}" ] || fail "DNS provider token must not be present for native production PoH/onboarding"
 [ -z "${WEALL_OAUTH_CLIENT_SECRET:-}" ] || fail "OAuth secret must not be present for native production PoH/onboarding"
 [ -z "${WEALL_KYC_PROVIDER_SECRET:-}" ] || fail "KYC provider secret must not be present for native production PoH/onboarding"

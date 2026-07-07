@@ -138,13 +138,13 @@ For the full first-external-observer proof, run against a real genesis API and p
 export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/public-observer-bundle.json
 export WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json
 export WEALL_GENESIS_API_BASE=http://GENESIS_HOST:8000
-export WEALL_ALLOW_PRIVATE_GENESIS_API=1
+export WEALL_ALLOW_LAN_GENESIS_API=1
 export WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1
 export WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1
 bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
 ```
 
-Use `WEALL_ALLOW_PRIVATE_GENESIS_API=1` only for private LAN rehearsal. Public testnet deployment requires a public security posture that is not proven by this private LAN command.
+Use `WEALL_ALLOW_LAN_GENESIS_API=1` only for LAN rehearsal. Public testnet deployment requires a public security posture that is not proven by this LAN command.
 
 ## Required evidence to capture before the reviewer package
 

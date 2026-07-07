@@ -20,7 +20,7 @@ Options:
   --producer-pubkey-file <path>   Public key file matching canonical Genesis validator.
   --producer-privkey-file <path>  Private key file for that public key; never printed.
   --genesis-api-base <url>        API base to display/test; default http://127.0.0.1:8000.
-  --allow-private-genesis-api     Required for private/LAN Genesis API rehearsal.
+  --allow-lan-genesis-api     Required for private/LAN Genesis API rehearsal.
   --producer-interval-ms <ms>     Producer interval; default 2000.
   -h, --help                      Show this help.
 USAGE
@@ -33,7 +33,7 @@ while [[ $# -gt 0 ]]; do
     --producer-pubkey-file) PUBKEY_FILE="${2:-}"; shift 2 ;;
     --producer-privkey-file) PRIVKEY_FILE="${2:-}"; shift 2 ;;
     --genesis-api-base) GENESIS_API_BASE="${2:-}"; shift 2 ;;
-    --allow-private-genesis-api) ALLOW_PRIVATE="1"; shift ;;
+    --allow-lan-genesis-api) ALLOW_PRIVATE="1"; shift ;;
     --producer-interval-ms) INTERVAL_MS="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) fail "unknown argument: $1" ;;
@@ -44,9 +44,9 @@ done
 [[ -n "${PRIVKEY_FILE}" && -f "${PRIVKEY_FILE}" ]] || fail "producer private key file is required"
 case "${GENESIS_API_BASE}" in
   http://127.*|http://localhost*|https://127.*|https://localhost*) ;;
-  http://10.*|http://172.*|http://192.168.*) [[ "${ALLOW_PRIVATE}" == "1" ]] || fail "private Genesis API requires --allow-private-genesis-api" ;;
+  http://10.*|http://172.*|http://192.168.*) [[ "${ALLOW_PRIVATE}" == "1" ]] || fail "private Genesis API requires --allow-lan-genesis-api" ;;
   https://*) ;;
-  http://*) fail "public Genesis rehearsal should use HTTPS unless --allow-private-genesis-api is used for a private network" ;;
+  http://*) fail "public Genesis rehearsal should use HTTPS unless --allow-lan-genesis-api is used for a private network" ;;
 esac
 
 EXPECTED_PUBKEY="$(python3 - "${ROOT_DIR}/configs/genesis.ledger.prod.json" <<'PY'
@@ -71,7 +71,7 @@ export WEALL_REQUIRE_VRF=1
 export WEALL_PRODUCER_INTERVAL_MS="${INTERVAL_MS}"
 export WEALL_PRODUCER_ALLOW_EMPTY=1
 export WEALL_GENESIS_API_BASE="${GENESIS_API_BASE}"
-[[ "${ALLOW_PRIVATE}" == "1" ]] && export WEALL_ALLOW_PRIVATE_GENESIS_API=1
+[[ "${ALLOW_PRIVATE}" == "1" ]] && export WEALL_ALLOW_LAN_GENESIS_API=1
 
 OVERRIDE="$(mktemp /tmp/weall-genesis-rehearsal.XXXXXX.yml)"
 trap 'rm -f "${OVERRIDE}"' EXIT

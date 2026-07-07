@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from typing import Any
 
@@ -10,7 +11,8 @@ from fastapi import APIRouter, Request
 from weall.api.errors import ApiError
 from weall.api.mode_isolation import direct_session_mutation_issue
 from weall.api.routes_public_parts import common
-from weall.crypto.sig import _decode_bytes, verify_ed25519_signature
+from weall.crypto.sig import _decode_bytes, verify_signature_for_profile
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, normalize_signature_profile_id, profile_allowed_for_context
 from weall.runtime.session_keys import session_record_for, store_session_record
 
 router = APIRouter()
@@ -51,7 +53,18 @@ def _state_now_ts(st: Json) -> int:
     return int(time.time())
 
 
-def _canonical_session_login_message(*, account: str, session_key: str, ttl_s: int, issued_at_ms: int, device_id: str) -> bytes:
+def _canonical_session_login_message(
+    *,
+    account: str,
+    session_key: str,
+    ttl_s: int,
+    issued_at_ms: int,
+    device_id: str,
+    sig_profile: str | None = None,
+    chain_id: str | None = None,
+    network_id: str | None = None,
+) -> bytes:
+    profile = normalize_signature_profile_id(sig_profile)
     payload = {
         "t": "SESSION_LOGIN",
         "account": str(account),
@@ -60,23 +73,55 @@ def _canonical_session_login_message(*, account: str, session_key: str, ttl_s: i
         "issued_at_ms": int(issued_at_ms),
         "device_id": str(device_id),
     }
+    if profile:
+        payload.update(
+            {
+                "domain_separator": "weall.session.login.v1",
+                "object_kind": "session_login",
+                "sig_profile": profile,
+            }
+        )
+        if chain_id:
+            payload["chain_id"] = str(chain_id)
+        if network_id:
+            payload["network_id"] = str(network_id)
     return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
-def _active_account_pubkeys(arec: Json) -> set[str]:
+def _state_chain_context(st: Json) -> tuple[str, str]:
+    meta = st.get("meta") if isinstance(st.get("meta"), dict) else {}
+    chain = st.get("chain") if isinstance(st.get("chain"), dict) else {}
+    cfg = st.get("config") if isinstance(st.get("config"), dict) else {}
+    chain_id = str(meta.get("chain_id") or chain.get("chain_id") or cfg.get("chain_id") or "").strip()
+    network_id = str(meta.get("network_id") or chain.get("network_id") or cfg.get("network_id") or "").strip()
+    return chain_id, network_id
+
+
+def _active_account_pubkeys(arec: Json, *, sig_profile: str = "") -> set[str]:
+    wanted = normalize_signature_profile_id(sig_profile)
     keys = arec.get("keys")
-    if not isinstance(keys, dict):
-        return set()
-    by_id = keys.get("by_id")
-    if not isinstance(by_id, dict):
-        return set()
+    records: list[Json] = []
+    if isinstance(keys, dict):
+        by_id = keys.get("by_id")
+        if isinstance(by_id, dict):
+            records.extend(rec for rec in by_id.values() if isinstance(rec, dict))
+    elif isinstance(keys, list):
+        records.extend(rec for rec in keys if isinstance(rec, dict))
+
     out: set[str] = set()
-    for rec in by_id.values():
-        if not isinstance(rec, dict):
+    for rec in records:
+        if bool(rec.get("revoked", False)) or bool(rec.get("revoked_at") not in (None, "")):
             continue
-        if bool(rec.get("revoked", False)):
+        rec_profile = normalize_signature_profile_id(rec.get("sig_profile"))
+        effective_profile = rec_profile or PQ_MLDSA_V1
+        if wanted and effective_profile != wanted:
             continue
-        pk = str(rec.get("pubkey") or "").strip()
+        pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
+        pk = ""
+        if effective_profile == PQ_MLDSA_V1:
+            pk = str(pubkeys.get("mldsa") or rec.get("mldsa_pubkey") or rec.get("pubkey") or "").strip()
+        else:
+            pk = ""
         if pk:
             out.add(pk)
     return out
@@ -87,10 +132,9 @@ def _normalize_pubkey_bytes(pubkey: str) -> bytes | None:
     if not s:
         return None
     try:
-        raw = _decode_bytes(s)
+        return _decode_bytes(s)
     except Exception:
         return None
-    return raw if len(raw) == 32 else None
 
 
 def _pubkey_is_authorized(pubkey: str, active_pubkeys: set[str]) -> bool:
@@ -114,12 +158,13 @@ def _reject_direct_session_mutation_if_forbidden() -> None:
         )
 
 
-def _session_device_record(*, account: str, pubkey: str, issued_at_ts: int, device_id: str) -> Json:
-    fp = hashlib.sha256(f"{account}|{pubkey}|{device_id}".encode("utf-8")).hexdigest()[:16]
+def _session_device_record(*, account: str, pubkey: str, sig_profile: str, issued_at_ts: int, device_id: str) -> Json:
+    fp = hashlib.sha256(f"{account}|{sig_profile}|{pubkey}|{device_id}".encode("utf-8")).hexdigest()[:16]
     return {
         "device_id": device_id,
         "device_type": "browser",
         "pubkey": pubkey,
+        "sig_profile": sig_profile,
         "revoked": False,
         "registered_at": issued_at_ts,
         "fingerprint": fp,
@@ -137,6 +182,7 @@ async def v1_session_login(request: Request):
         "ttl_s": 86400,
         "issued_at_ms": 1770000000000,
         "device_id": "browser:...",   # optional but recommended
+        "sig_profile": "pq-mldsa-v1",
         "pubkey": "<account key pubkey>",
         "sig": "<detached signature over canonical SESSION_LOGIN payload>"
       }
@@ -161,6 +207,22 @@ async def v1_session_login(request: Request):
     session_key = _norm_session_key(body.get("session_key"))
     ttl_s = _ttl_s(body.get("ttl_s", 24 * 60 * 60))
     device_id = _norm_device_id(body.get("device_id") or f"browser:{account}")
+    sig_profile = normalize_signature_profile_id(body.get("sig_profile"))
+    crypto_mode = str(os.environ.get("WEALL_CRYPTO_MODE") or "").strip().lower()
+    strict_crypto_mode = crypto_mode in {
+        "closed-testnet",
+        "closed_testnet",
+        "controlled-testnet",
+        "controlled_testnet",
+        "public-testnet",
+        "public_testnet",
+    }
+    if (
+        not sig_profile
+        and not strict_crypto_mode
+        and str(os.environ.get("WEALL_MODE") or "").strip().lower() in {"dev", "demo", "test"}
+    ):
+        sig_profile = PQ_MLDSA_V1
     pubkey = str(body.get("pubkey") or "").strip()
     sig = str(body.get("sig") or "").strip()
 
@@ -173,6 +235,15 @@ async def v1_session_login(request: Request):
         raise ApiError.bad_request("account_required", "account is required", {})
     if not session_key:
         raise ApiError.bad_request("session_key_required", "session_key is required", {})
+    if not sig_profile:
+        raise ApiError.bad_request("sig_profile_required", "sig_profile is required", {})
+    allowed, allowed_reason = profile_allowed_for_context(sig_profile, require_verifier=True)
+    if not allowed:
+        raise ApiError.forbidden(
+            allowed_reason,
+            "session login signature profile is not allowed in this runtime profile",
+            {"sig_profile": sig_profile},
+        )
     if not pubkey:
         raise ApiError.bad_request("pubkey_required", "pubkey is required", {})
     if not sig:
@@ -197,7 +268,7 @@ async def v1_session_login(request: Request):
     if not isinstance(arec, dict):
         raise ApiError.not_found("account_not_found", "account does not exist", {"account": account})
 
-    active_pubkeys = _active_account_pubkeys(arec)
+    active_pubkeys = _active_account_pubkeys(arec, sig_profile=sig_profile)
     if not _pubkey_is_authorized(pubkey, active_pubkeys):
         raise ApiError.forbidden(
             "pubkey_not_authorized",
@@ -211,8 +282,11 @@ async def v1_session_login(request: Request):
         ttl_s=ttl_s,
         issued_at_ms=issued_at_ms,
         device_id=device_id,
+        sig_profile=sig_profile,
+        chain_id=_state_chain_context(st)[0],
+        network_id=_state_chain_context(st)[1],
     )
-    if not verify_ed25519_signature(message=msg, sig=sig, pubkey=pubkey):
+    if not verify_signature_for_profile(sig_profile=sig_profile, message=msg, sig=sig, pubkey=pubkey):
         raise ApiError.forbidden(
             "bad_sig",
             "session login signature verification failed",
@@ -259,12 +333,14 @@ async def v1_session_login(request: Request):
                 "ttl_s": int(ttl_s),
                 "issued_at_height": int(st2.get("height") or 0),
                 "pubkey": pubkey,
+                "sig_profile": sig_profile,
                 "device_id": device_id,
             },
         )
         by_id[device_id] = _session_device_record(
             account=account,
             pubkey=pubkey,
+            sig_profile=sig_profile,
             issued_at_ts=int(issued_at_ts),
             device_id=device_id,
         )
@@ -277,6 +353,7 @@ async def v1_session_login(request: Request):
                 "ttl_s": int(ttl_s),
                 "device_id": device_id,
                 "pubkey": pubkey,
+                "sig_profile": sig_profile,
             }
         )
         return st2
@@ -294,6 +371,7 @@ async def v1_session_login(request: Request):
         "device": {
             "device_id": result["device_id"],
             "pubkey": result["pubkey"],
+            "sig_profile": sig_profile,
         },
         "session": {
             "session_key": result["session_key"],

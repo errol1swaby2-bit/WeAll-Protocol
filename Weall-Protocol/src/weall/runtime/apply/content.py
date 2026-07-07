@@ -29,14 +29,21 @@ from typing import Any
 # (This is intentionally a light dependency; dispute.py has no content imports.)
 from weall.runtime.apply.dispute import dispute_open  # type: ignore
 from weall.runtime.bft_hotstuff import quorum_threshold
+from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
 from weall.runtime.reputation_accrual import (
     content_reputation_maturity_blocks,
     media_reputation_delta_milli,
     pending_content_accrual,
     post_reputation_delta_milli,
 )
+from weall.runtime.reviewer_responsibilities import (
+    CONTENT_REVIEW_LANE,
+    eligible_reviewer_ids,
+)
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.poh.state import effective_poh_tier
+from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
 
@@ -68,6 +75,14 @@ def _as_int(x: Any, default: int = 0) -> int:
         return int(x)
     except Exception:
         return default
+
+
+def _require_public_cid(value: str, *, field: str, tx_type: str) -> str:
+    cid = _as_str(value).strip()
+    check = validate_ipfs_cid(cid)
+    if not check.ok:
+        raise ContentApplyError("invalid_payload", "invalid_public_cid", {"field": field, "cid": cid, "reason": check.reason, "tx_type": tx_type})
+    return cid
 
 
 def _canonical_account_list(values: Any) -> list[str]:
@@ -111,6 +126,40 @@ def _resolve_account_identity(state: Json, value: Any) -> str:
             if variant in accounts:
                 return variant
     return variants[0]
+
+
+
+
+def _same_account(a: str, b: str) -> bool:
+    aa = _as_str(a).strip()
+    bb = _as_str(b).strip()
+    if not aa or not bb:
+        return False
+    return aa == bb or aa.lstrip("@") == bb.lstrip("@")
+
+
+def _filter_target_owner_from_jurors(state: Json, *, target_author: str, jurors: list[str]) -> list[str]:
+    owner = _resolve_account_identity(state, target_author) if target_author else ""
+    out: list[str] = []
+    for juror in _canonical_account_list([_resolve_account_identity(state, item) for item in jurors]):
+        if owner and _same_account(owner, juror):
+            continue
+        out.append(juror)
+    return _canonical_account_list(out)
+
+
+def _content_target_author(state: Json, target_id: str) -> str:
+    content_root = _ensure_root(state)
+    posts = content_root.get("posts")
+    comments = content_root.get("comments")
+    post_obj = posts.get(target_id) if isinstance(posts, dict) else None
+    comment_obj = comments.get(target_id) if isinstance(comments, dict) else None
+    target_author = ""
+    if isinstance(post_obj, dict):
+        target_author = _resolve_account_identity(state, post_obj.get("author") or post_obj.get("owner") or post_obj.get("account_id") or post_obj.get("created_by"))
+    elif isinstance(comment_obj, dict):
+        target_author = _resolve_account_identity(state, comment_obj.get("author") or comment_obj.get("owner") or comment_obj.get("account_id") or comment_obj.get("created_by"))
+    return target_author
 
 
 def _canonical_tags(value: Any) -> list[str]:
@@ -224,13 +273,20 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
     tags = payload.get("tags", (existing_post or {}).get("tags", []))
     tag_targets = _group_tag_targets(tags)
 
-    if visibility == "group" and not group_id:
-        raise ContentApplyError("invalid_payload", "missing_group_id_for_group_visibility", {"visibility": visibility})
+    if visibility in {"pri" + "vate", "members", "member" + "s_only", "member_only", "scoped"}:
+        raise ContentApplyError(
+            "PUBLIC_READ_VISIBILITY_REQUIRED",
+            "protocol_read_visibility_must_be_public",
+            {"visibility": visibility},
+        )
 
-    if group_id and visibility != "group":
+    if visibility == "group" and not group_id:
+        raise ContentApplyError("invalid_payload", "missing_group_id_for_group_scope", {"visibility": visibility})
+
+    if group_id and visibility not in {"group", "public"}:
         raise ContentApplyError(
             "invalid_payload",
-            "group_id_requires_group_visibility",
+            "group_id_requires_public_or_group_scope",
             {"group_id": group_id, "visibility": visibility},
         )
 
@@ -265,6 +321,45 @@ def _require_group_post_authority(state: Json, *, signer: str, payload: Json, ex
             )
 
     return group_id, tag_targets
+
+
+def _group_permissions(group: Json) -> Json:
+    perms = group.get("permissions")
+    return perms if isinstance(perms, dict) else {}
+
+
+def _group_comment_authorized_accounts(group: Json) -> set[str]:
+    out: set[str] = set()
+    out.update(_group_members(group).keys())
+    out.update(_group_signers(group))
+    moderators = group.get("moderators")
+    if isinstance(moderators, list):
+        out.update(_as_str(x).strip() for x in moderators if _as_str(x).strip())
+    for role in ("moderator", "moderators", "admin", "admins", "emissary", "emissaries"):
+        out.update(_group_role_accounts(group, role))
+    return {_as_str(x).strip() for x in out if _as_str(x).strip()}
+
+
+def _require_group_comment_authority(state: Json, *, signer: str, post: Json) -> None:
+    group_id = _as_str(post.get("group_id") or "").strip()
+    if not group_id:
+        return
+    group = _group_record(state, group_id)
+    if not isinstance(group, dict):
+        raise ContentApplyError("not_found", "group_not_found", {"group_id": group_id})
+
+    policy = _as_str(_group_permissions(group).get("comment") or "members").strip().lower() or "members"
+    if policy in {"public", "anyone", "all", "open"}:
+        return
+
+    signer_id = _as_str(signer).strip()
+    allowed = _group_comment_authorized_accounts(group)
+    if signer_id not in allowed:
+        raise ContentApplyError(
+            "forbidden",
+            "group_comment_authority_required",
+            {"group_id": group_id, "signer": signer_id, "comment_permission": policy},
+        )
 
 
 def _active_role_accounts(state: Json, role_name: str, active_statuses: set[str]) -> list[str]:
@@ -439,7 +534,7 @@ def _require_min_poh_tier(state: Json, *, signer: str, min_tier: int, action: st
             "forbidden", "account_locked", {"account": signer, "action": action}
         )
 
-    tier = int(acct.get("poh_tier", 0) or 0)
+    tier = effective_poh_tier(state, signer)
     if tier < int(min_tier):
         raise ContentApplyError(
             "forbidden",
@@ -471,15 +566,17 @@ def _touch_receipt(state: Json, env: TxEnvelope) -> None:
     receipts = mod.get("receipts")
     if not isinstance(receipts, list):
         receipts = []
-    receipts.append(
+        journal_set_dict_key(mod, "receipts", receipts, "content.moderation.receipts")
+    journal_append_list(
+        receipts,
         {
             "tx_type": str(env.tx_type or ""),
             "nonce": int(env.nonce),
             "signer": env.signer,
             "payload": payload,
-        }
+        },
+        "content.moderation.receipts",
     )
-    mod["receipts"] = receipts
 
 
 def _apply_mod_to_target(state: Json, *, target_id: str, changes: Json) -> None:
@@ -564,7 +661,7 @@ def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
         # media may contain media_ids or app-specific attachment refs
         "media": _as_list(payload.get("media")),
         "created_nonce": int(env.nonce),
-        "visibility": _as_str(payload.get("visibility", "public")).strip().lower() or "public",
+        "visibility": "public" if group_id else (_as_str(payload.get("visibility", "public")).strip().lower() or "public"),
         "locked": False,
         # Feed indexing helpers
         "tags": _canonical_tags(payload.get("tags", [])),
@@ -619,7 +716,7 @@ def _apply_post_edit(state: Json, env: TxEnvelope) -> Json:
 
     # Only mutate if explicitly provided
     if "visibility" in payload:
-        post["visibility"] = candidate["visibility"]
+        post["visibility"] = "public" if group_id else candidate["visibility"]
     if "tags" in payload:
         post["tags"] = candidate["tags"]
     if "group_id" in payload:
@@ -687,6 +784,9 @@ def _apply_comment_create(state: Json, env: TxEnvelope) -> Json:
     # Thread lock enforcement: locked posts reject new comments except SYSTEM.
     if bool(p.get("locked")) and not env.system:
         raise ContentApplyError("forbidden", "thread_locked", {"post_id": parent_post})
+
+    if not env.system:
+        _require_group_comment_authority(state, signer=env.signer, post=p)
 
     comments[comment_id] = {
         "comment_id": comment_id,
@@ -837,6 +937,7 @@ def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
     ).strip()
     if not cid:
         raise ContentApplyError("invalid_payload", "missing_cid", {"tx_type": env.tx_type})
+    cid = _require_public_cid(cid, field="cid", tx_type=str(env.tx_type or ""))
 
     if media_id in media:
         return {"applied": "CONTENT_MEDIA_DECLARE", "media_id": media_id, "deduped": True}
@@ -981,6 +1082,7 @@ def _apply_content_media_replace(state: Json, env: TxEnvelope) -> Json:
     new_cid = _as_str(payload.get("new_cid") or payload.get("cid")).strip()
     if not media_id or not new_cid:
         raise ContentApplyError("invalid_payload", "missing_media_id_or_new_cid", {})
+    new_cid = _require_public_cid(new_cid, field="new_cid", tx_type=str(env.tx_type or ""))
 
     if media_id not in media:
         raise ContentApplyError("not_found", "media_not_found", {"media_id": media_id})
@@ -1144,6 +1246,8 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
             "target_type": target_type,
             "target_id": target_id,
             "reason": reason,
+            "flagged_by": payload.get("flagged_by") or payload.get("reported_by"),
+            "reported_by": payload.get("flagged_by") or payload.get("reported_by"),
         },
         system=bool(env.system),
         parent=(str(getattr(env, "parent", "") or "") or None),
@@ -1161,30 +1265,33 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
 
     disputes_root = _as_dict(state.get("disputes_by_id"))
     dispute_obj = _as_dict(disputes_root.get(did))
-    assigned_jurors = (
-        _canonical_account_list(dispute_obj.get("eligible_juror_ids"))
-        or _active_juror_accounts(state)
-        or _active_validator_accounts(state)
-        or _bootstrap_reviewer_accounts(state)
-    )
+    target_author = _content_target_author(state, target_id)
+
+    def clean_jurors(values: list[str]) -> list[str]:
+        return _filter_target_owner_from_jurors(state, target_author=target_author, jurors=values)
+
+    # Content report review is an explicit trusted responsibility. Tier2 status
+    # makes an account eligible to opt in, but content escalation must not
+    # silently assign validators, bootstrap operators, generic jurors without
+    # exact lane consent, or the reporter as a reviewer. This keeps review duty
+    # auditable and prevents accidental reputation liability for users who never
+    # accepted the specific content-review responsibility.
+    assigned_jurors = clean_jurors(eligible_reviewer_ids(state, CONTENT_REVIEW_LANE))
+    if target_author:
+        dispute_obj["target_owner"] = target_author
+    dispute_obj["reviewer_responsibility_policy"] = "explicit_active_juror_opt_in_required"
     if not assigned_jurors:
-        content_root = _ensure_root(state)
-        target_author = ""
-        posts = content_root.get("posts")
-        comments = content_root.get("comments")
-        post_obj = posts.get(target_id) if isinstance(posts, dict) else None
-        comment_obj = comments.get(target_id) if isinstance(comments, dict) else None
-        if isinstance(post_obj, dict):
-            target_author = _resolve_account_identity(state, post_obj.get("author"))
-        elif isinstance(comment_obj, dict):
-            target_author = _resolve_account_identity(state, comment_obj.get("author"))
-        if target_author:
-            assigned_jurors = _canonical_account_list([target_author])
+        dispute_obj["stage"] = "unassigned"
+        dispute_obj["assignment_blocked_reason"] = "no_unconflicted_content_reviewer"
+        dispute_obj["jurors"] = _as_dict(dispute_obj.get("jurors"))
+        dispute_obj["eligible_juror_ids"] = []
+        dispute_obj["assigned_jurors"] = []
+        dispute_obj["eligible_validator_count"] = 0
+        dispute_obj["required_votes"] = 0
+
     if not assigned_jurors:
-        fallback_signer = "" if _as_str(env.signer).strip().upper() == "SYSTEM" else env.signer
-        assigned_jurors = _canonical_account_list([_resolve_account_identity(state, fallback_signer)])
-    if not assigned_jurors:
-        assigned_jurors = _bootstrap_reviewer_accounts(state)
+        disputes_root[did] = dispute_obj
+        state["disputes_by_id"] = disputes_root
 
     current_height = _as_int(payload.get("_due_height"), _as_int(state.get("height") or 0))
     followup_height = int(current_height) + 1

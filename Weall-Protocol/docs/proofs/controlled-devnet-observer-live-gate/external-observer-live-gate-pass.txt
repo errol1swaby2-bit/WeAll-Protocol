@@ -9,7 +9,7 @@ OK: external observer onboarding preflight passed
 - observer mode is forced on
 - validator signing, BFT, helper authority, and block loop are forced off
 - relay recipient pubkey binding is required when relay URLs are configured
-- no external identity-provider, Cloudflare, oracle, or authority-signer secret is required
+- no external identity-provider, oracle, named hosting-provider, or authority-signer secret is required
 Next manual step on the observer machine:
   WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE='/tmp/public-observer-bundle.json' \
   WEALL_CHAIN_MANIFEST_PATH='/home/megan/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json' \

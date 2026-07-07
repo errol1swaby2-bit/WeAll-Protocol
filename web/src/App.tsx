@@ -3,7 +3,6 @@ import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import AppShell from "./components/AppShell";
 import ErrorBanner from "./components/ErrorBanner";
 import SessionRecoveryBanner from "./components/SessionRecoveryBanner";
-import MessagingKeyBootstrapper from "./components/MessagingKeyBootstrapper";
 import { getKeypair, getSession } from "./auth/session";
 import { CLIENT_SETTINGS_CHANGED_EVENT, applySettingsToDocument, loadSettings } from "./lib/settings";
 import { useAppConfig } from "./lib/config";
@@ -14,9 +13,9 @@ import { prefetchRouteChunk } from "./lib/routePrefetch";
 import { useSessionHealth } from "./hooks/useSessionHealth";
 
 const Feed = lazy(() => import("./pages/Feed"));
-const Home = lazy(() => import("./pages/Home"));
-const Messaging = lazy(() => import("./pages/Messaging"));
-const AccountVerificationPage = lazy(() => import("./pages/AccountVerificationPage"));
+const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
+const Activity = lazy(() => import("./pages/Activity"));
+const PohPage = lazy(() => import("./pages/PohPage"));
 const LiveVerificationRoom = lazy(() => import("./pages/LiveVerificationRoom"));
 const JurorDashboard = lazy(() => import("./pages/JurorDashboard"));
 const Tools = lazy(() => import("./pages/Tools"));
@@ -38,27 +37,24 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const SessionDevicesPage = lazy(() => import("./pages/SessionDevicesPage"));
 const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
 const Economics = lazy(() => import("./pages/Economics"));
+const NodeDashboard = lazy(() => import("./pages/NodeDashboard"));
 
 function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: boolean): JSX.Element {
   switch (route.path) {
     case "/login":
       return <LoginPage />;
     case "/home":
-      return readyForApp ? <Home /> : <LoginPage />;
+      return readyForApp ? <HomeDashboard /> : <LoginPage />;
     case "/feed":
       return readyForApp ? <Feed /> : <LoginPage />;
-    case "/messages":
-      return readyForApp ? <Messaging mode="hub" /> : <LoginPage />;
-    case "/messages/compose":
-      return readyForApp ? <Messaging mode="compose" /> : <LoginPage />;
-    case "/messages/:id":
-      return readyForApp ? <Messaging mode="thread" threadId={route.id} /> : <LoginPage />;
+    case "/activity":
+      return readyForApp ? <Activity /> : <LoginPage />;
     case "/profile":
       return readyForApp ? <Account account={getSession()?.account || ""} /> : <LoginPage />;
     case "/create":
       return readyForApp ? <Post /> : <LoginPage />;
     case "/verification":
-      return readyForApp ? <AccountVerificationPage /> : <LoginPage />;
+      return readyForApp ? <PohPage /> : <LoginPage />;
     case "/verification/live/:caseId":
       return readyForApp ? <LiveVerificationRoom caseId={route.caseId} /> : <LoginPage />;
     case "/reviews":
@@ -91,6 +87,8 @@ function renderPage(route: RouteMatch, readyForApp: boolean, showAdvancedMode: b
       return readyForApp && showAdvancedMode ? <TransactionsPage /> : readyForApp ? <AdvancedModeLocked /> : <LoginPage />;
     case "/economics":
       return readyForApp ? <Economics /> : <LoginPage />;
+    case "/node":
+      return <NodeDashboard />;
     case "/account/:account":
       return <Account account={route.account} />;
     case "/post/:id":
@@ -355,7 +353,6 @@ export default function App(): JSX.Element {
 
   return (
     <AppShell route={route} meta={meta} sessionHealth={sessionHealth} showAdvancedMode={showAdvancedMode}>
-      {readyForApp ? <MessagingKeyBootstrapper /> : null}
       {meta.authRequired && sessionHealth.state !== "active" ? <SessionRecoveryBanner health={sessionHealth} compact /> : null}
       <Suspense fallback={<RouteTransitionFallback route={route} />}>
         {renderPage(route, readyForApp, showAdvancedMode)}

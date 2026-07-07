@@ -1497,6 +1497,117 @@ def _apply_slash_vote(state: Json, env: TxEnvelope) -> Json:
     }
 
 
+def _current_validator_epoch(state: Json) -> int:
+    c = _ensure_consensus(state)
+    vs = c.get("validator_set") if isinstance(c.get("validator_set"), dict) else {}
+    ep = c.get("epochs") if isinstance(c.get("epochs"), dict) else {}
+    return max(_as_int(vs.get("epoch"), 0), _as_int(ep.get("current"), 0), 0)
+
+
+def _record_slash_accountability(
+    state: Json,
+    *,
+    slash_id: str,
+    account: str,
+    reason: str,
+    payload: Json,
+    parent: str,
+) -> Json:
+    """Record deterministic non-economic validator accountability for a slash event.
+
+    Economics/stake slashing remains disabled.  Batch 501 expands the mechanism
+    from a passive audit marker into an executable non-economic consequence:
+    a slash execution records accountability and, when the target is currently
+    active, queues a parent-bound VALIDATOR_SUSPEND system receipt for the next
+    validator epoch.  The queued suspension uses the existing validator lifecycle
+    machinery, so validator-set mutation remains epoch-bound, deterministic,
+    and reviewable instead of being an ad-hoc immediate side effect.
+    """
+
+    if not account:
+        return {"applied": False, "reason": "missing_account"}
+
+    vroot = _ensure_validators_root(state)
+    reg = vroot.get("registry")
+    assert isinstance(reg, dict)
+    rec = reg.get(account)
+    if not isinstance(rec, dict):
+        rec = {"account": account, "status": "unknown", "active": False}
+
+    accountability = rec.get("accountability")
+    if not isinstance(accountability, dict):
+        accountability = {}
+    slashes = accountability.get("slashes")
+    if not isinstance(slashes, dict):
+        slashes = {}
+
+    existed = slash_id in slashes
+    current_active = _ensure_roles_validators_active_set(state)
+    target_is_active = account in current_active or bool(rec.get("active", False))
+    current_epoch = _current_validator_epoch(state)
+    effective_epoch = max(current_epoch + 1, _as_int(payload.get("effective_epoch"), 0), 1)
+    parent_norm = _as_str(parent).strip() or f"slash:{slash_id}"
+    suspension_queue_id = ""
+
+    if not existed:
+        slashes[slash_id] = {
+            "slash_id": slash_id,
+            "reason": reason,
+            "payload": dict(payload),
+            "parent": parent_norm,
+            "economic_penalty_applied": False,
+            "validator_set_mutation_applied": False,
+            "requires_explicit_validator_suspend_or_remove": True,
+            "non_economic_suspension_queued": bool(target_is_active),
+            "effective_epoch": int(effective_epoch) if target_is_active else None,
+        }
+
+    if target_is_active:
+        suspension_queue_id = enqueue_system_tx(
+            state,
+            tx_type="VALIDATOR_SUSPEND",
+            payload={
+                "account": account,
+                "reason": reason or "slash_execute",
+                "slash_id": slash_id,
+                "non_economic_accountability": True,
+                "economic_penalty_applied": False,
+                "effective_epoch": int(effective_epoch),
+                "_parent_ref": parent_norm,
+            },
+            due_height=max(_as_int(state.get("height"), 0) + 1, 1),
+            signer="SYSTEM",
+            once=True,
+            parent=parent_norm,
+            phase="post",
+        )
+
+    accountability["slashes"] = slashes
+    accountability["slash_count"] = len(slashes)
+    accountability["latest_slash_id"] = slash_id
+    accountability["non_economic_suspension_queued"] = bool(target_is_active)
+    if target_is_active:
+        accountability["pending_suspension_effective_epoch"] = int(effective_epoch)
+        accountability["suspension_queue_id"] = suspension_queue_id
+    rec["accountability"] = accountability
+    rec["accountability_status"] = "slashed_non_economic"
+    rec["status"] = "pending_suspension" if target_is_active else _as_str(rec.get("status") or "unknown")
+    reg[account] = rec
+    vroot["registry"] = reg
+
+    return {
+        "applied": not existed,
+        "account": account,
+        "slash_id": slash_id,
+        "economic_penalty_applied": False,
+        "validator_set_mutation_applied": False,
+        "requires_explicit_validator_suspend_or_remove": True,
+        "non_economic_suspension_queued": bool(target_is_active),
+        "effective_epoch": int(effective_epoch) if target_is_active else None,
+        "suspension_queue_id": suspension_queue_id,
+    }
+
+
 def _apply_slash_execute(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     if not env.parent:
@@ -1534,7 +1645,21 @@ def _apply_slash_execute(state: Json, env: TxEnvelope) -> Json:
         )
         sl["events"] = ev
 
-    return {"applied": "SLASH_EXECUTE", "slash_id": slash_id, "existed": existed}
+    consequence = _record_slash_accountability(
+        state,
+        slash_id=slash_id,
+        account=account,
+        reason=reason,
+        payload=payload,
+        parent=_as_str(env.parent),
+    )
+
+    return {
+        "applied": "SLASH_EXECUTE",
+        "slash_id": slash_id,
+        "existed": existed,
+        "consequence": consequence,
+    }
 
 
 def _apply_slash_legacy(state: Json, env: TxEnvelope) -> Json:

@@ -99,7 +99,7 @@ export default function GroupCreate(): JSX.Element {
         title: "Create group",
         pendingKey: txPendingKey(["group-create", acct, group_id]),
         pendingMessage: "Submitting group creation…",
-        successMessage: "Group created.",
+        successMessage: "Group creation recorded. Track confirmation in Transactions while the group detail route reconciles.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
@@ -140,7 +140,7 @@ export default function GroupCreate(): JSX.Element {
               <div className="eyebrow">Create group</div>
               <h1 className="heroTitle heroTitleSm">Start a new group from a dedicated action route</h1>
               <p className="heroText">
-                Group creation is a deliberate action. This page keeps the form narrow and focused so the directory route can stay calm and discovery-oriented.
+                Group creation submits a public charter. It creates a public civic coordination space, not a private room or owner-controlled enclave.
               </p>
             </div>
 
@@ -177,6 +177,26 @@ export default function GroupCreate(): JSX.Element {
         </div>
       </section>
 
+      <section className="surfaceBoundaryBar" aria-label="Group public-only creation boundary">
+        <div className="surfaceBoundaryHeader">
+          <div>
+            <h2 className="surfaceBoundaryTitle">Public-only group boundary</h2>
+            <p className="surfaceBoundaryText">
+              Creating a group does not create private protocol-native content. The charter, membership effects, participation gates, and later governance records are public protocol state.
+            </p>
+          </div>
+          <div className="statusSummary">
+            <button className="btn" onClick={() => nav("/transactions")}>Open transaction status</button>
+          </div>
+        </div>
+        <div className="surfaceBoundaryList">
+          <span className="surfaceBoundaryTag">Reads: public</span>
+          <span className="surfaceBoundaryTag">Participation: may be member-gated</span>
+          <span className="surfaceBoundaryTag">Authority: group-scale governance</span>
+          <span className="surfaceBoundaryTag">Private group support: none</span>
+        </div>
+      </section>
+
       <section className="detailFocusStrip actionFocusStrip" aria-label="Group creation readiness">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Eligibility</div>
@@ -209,7 +229,7 @@ export default function GroupCreate(): JSX.Element {
       />
 
 
-      <ActionLifecycleCard intro="This route should always show the same honest sequence: validating, submitting, recorded, reconciling, visible confirmed, or failed." />
+      <ActionLifecycleCard intro="This route should always show the same honest sequence: validating, submitting, recorded, reconciling, visible, or failed. A submitted group is not final until transaction status or the group detail route confirms it." />
 
       <section className="card pageNarrow">
         <div className="cardBody formStack">

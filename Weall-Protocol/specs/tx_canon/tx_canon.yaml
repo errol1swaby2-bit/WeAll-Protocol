@@ -4,19 +4,30 @@ source: WeAll Transaction Canon v1.22.2 — Full Enforceable Production Canon
 notes:
 - IDs are never reused; exactly one canonical name per TxType.
 - All state-changing protocol interactions are TxTypes.
-- SYSTEM-origin TxTypes are BLOCK-ONLY and deterministically triggered; they MAY be state-changing.
-- GovExecutor-gated TxTypes are BLOCK-ONLY; emitted by deterministic executor logic after passing governance.
+- SYSTEM-origin TxTypes are BLOCK-ONLY and deterministically triggered; they MAY be
+  state-changing.
+- GovExecutor-gated TxTypes are BLOCK-ONLY; emitted by deterministic executor logic
+  after passing governance.
 - Receipt-only TxTypes MUST specify valid parent TxTypes.
 - Block-context TxTypes are INVALID in the mempool.
 - Implicit behavior is forbidden; all authority derives from Tx-defined state transitions.
-- 'Spec constraint (v2.1): posting requires reputation >= 0.75 (encoded as min_reputation on post/comment create).'
-- 'HARDENING: removed gate "Any" (unsafe as a reusable pattern); missing gate is only valid for SYSTEM+block-only in runtime enforcement.'
-- 'HARDENING: removed gate "Guardian"; account recovery approvals must be enforced by recovery-config rules, not a global privileged role.'
-- 'HARDENING: removed gate "GroupAdmin"; group authority must be scoped (e.g., Signer) rather than a standing admin gate.'
-- 'HARDENING: unified "GroupEmissary" -> "Emissary" (treasury access is scope-based; role name should not encode treasury type).'
-- 'SOCIAL: creator identifying tags are embedded in CONTENT_POST_CREATE and may be updated via CONTENT_POST_EDIT (no separate tagging TxTypes).'
-- 'V2.1 PoH migration: user-facing Proof-of-Humanity is two-tier only; legacy Tier2+ gates are remapped to Tier2+ while legacy POH_LIVE_* tx names remain compatibility/live-flow names.'
-- 'V2.1 native async PoH: add POH_ASYNC_* transaction family for protocol-native juror-attested Tier 1 without required external identity infrastructure.'
+- 'Spec constraint (v2.1): posting requires reputation >= 0.75 (encoded as min_reputation
+  on post/comment create).'
+- 'HARDENING: removed gate "Any" (unsafe as a reusable pattern); missing gate is only
+  valid for SYSTEM+block-only in runtime enforcement.'
+- 'HARDENING: removed gate "Guardian"; account recovery approvals must be enforced
+  by recovery-config rules, not a global privileged role.'
+- 'HARDENING: removed gate "GroupAdmin"; group authority must be scoped (e.g., Signer)
+  rather than a standing admin gate.'
+- 'HARDENING: unified "GroupEmissary" -> "Emissary" (treasury access is scope-based;
+  role name should not encode treasury type).'
+- 'SOCIAL: creator identifying tags are embedded in CONTENT_POST_CREATE and may be
+  updated via CONTENT_POST_EDIT (no separate tagging TxTypes).'
+- 'V2.1 PoH migration: user-facing Proof-of-Humanity is two-tier only; legacy Tier2+
+  gates are remapped to Tier2+ while legacy POH_LIVE_* tx names remain compatibility/live-flow
+  names.'
+- 'V2.1 native async PoH: add POH_ASYNC_* transaction family for protocol-native juror-attested
+  Tier 1 without required external identity infrastructure.'
 txs:
 - id: 1
   name: ACCOUNT_REGISTER
@@ -378,7 +389,8 @@ txs:
   receipt_only: false
   min_reputation: 1
   notes:
-  - includes creator-supplied identifying tags[] at upload (normalized/validated in domain rules)
+  - includes creator-supplied identifying tags[] at upload (normalized/validated in
+    domain rules)
 - id: 301
   name: CONTENT_POST_EDIT
   domain: Content
@@ -388,7 +400,8 @@ txs:
   receipt_only: false
   min_reputation: 1
   notes:
-  - 'allows updating identifying tags[] as part of edit (Option A: tags editable via CONTENT_POST_EDIT)'
+  - 'allows updating identifying tags[] as part of edit (Option A: tags editable via
+    CONTENT_POST_EDIT)'
 - id: 302
   name: CONTENT_POST_DELETE
   domain: Content
@@ -585,6 +598,24 @@ txs:
   context: block
   receipt_only: true
   parent: PROTOCOL_UPGRADE_DECLARE
+  via_gov_execute: true
+- id: 412
+  name: CONSTITUTION_UPGRADE_DECLARE
+  domain: Governance
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: GOV_EXECUTE
+  via_gov_execute: true
+- id: 413
+  name: CONSTITUTION_UPGRADE_ACTIVATE
+  domain: Governance
+  origin: SYSTEM
+  gate: GovExecutor
+  context: block
+  receipt_only: true
+  parent: CONSTITUTION_UPGRADE_DECLARE
   via_gov_execute: true
 - id: 500
   name: TREASURY_WALLET_CREATE
@@ -1246,20 +1277,6 @@ txs:
   receipt_only: true
   parent: CONTENT_ESCALATE_TO_DISPUTE
   system_only: true
-- id: 1500
-  name: DIRECT_MESSAGE_SEND
-  domain: Messaging
-  origin: USER
-  gate: Tier1+
-  context: mempool
-  receipt_only: false
-- id: 1501
-  name: DIRECT_MESSAGE_REDACT
-  domain: Messaging
-  origin: USER
-  gate: Tier1+
-  context: mempool
-  receipt_only: false
 - id: 1600
   name: GOV_VOTE_REVOKE
   domain: Governance
@@ -1808,7 +1825,6 @@ txs:
   receipt_only: true
   parent: POH_ASYNC_FINALIZE
   system_only: true
-
 - id: 2617
   name: NODE_OPERATOR_STORAGE_OPT_IN
   domain: Roles
@@ -1848,3 +1864,40 @@ txs:
   receipt_only: true
   parent: NODE_OPERATOR_VALIDATOR_OPT_IN
   system_only: true
+- id: 2622
+  name: DISPUTE_JUROR_WITHDRAW
+  domain: Dispute
+  origin: USER
+  gate: Juror
+  context: mempool
+  receipt_only: false
+- id: 2623
+  name: DISPUTE_JUROR_TIMEOUT
+  domain: Dispute
+  origin: SYSTEM
+  gate: Juror
+  context: block
+  receipt_only: true
+  parent: DISPUTE_JUROR_ACCEPT
+  system_only: true
+- id: 2624
+  name: REVIEWER_LANE_OPT_IN
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2625
+  name: REVIEWER_LANE_OPT_OUT
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false
+- id: 2626
+  name: NODE_OPERATOR_HELPER_OPT_IN
+  domain: Roles
+  origin: USER
+  gate: Tier2+
+  context: mempool
+  receipt_only: false

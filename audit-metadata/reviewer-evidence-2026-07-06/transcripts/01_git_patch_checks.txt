@@ -1,0 +1,57 @@
+$ git status --short
+
+$ git diff --check HEAD~1..HEAD
+exit_status=0
+
+$ git diff --stat HEAD~1..HEAD
+ README.md                                          |  30 +++++-
+ RELEASE_CHECKLIST.md                               |   2 +-
+ Weall-Protocol/README.md                           |  12 ++-
+ .../docs/LAUNCH_DISABLED_FEATURE_MATRIX.md         |   2 +-
+ Weall-Protocol/docs/PRODUCTION_POSTURE.md          |   2 +-
+ .../docs/PROTOCOL_UPGRADE_RECORD_ONLY_BOUNDARY.md  |   2 +
+ .../docs/PROTOCOL_VERSIONING_STRATEGY.md           |   2 +-
+ ...ive_protocol_flow_audit_before_two_node_v1_5.md |   2 +-
+ ..._evidence_package_audit_before_two_node_v1_5.md |   2 +-
+ .../public_observer_testnet_readiness_plan_v1_5.md |   2 +-
+ Weall-Protocol/docs/operator_runbook_prod.md       |   4 +-
+ .../production_readiness/dependency_locking.md     |   2 +-
+ .../docs/production_readiness/final_truth_sync.md  |   2 +-
+ .../reviewer/ACCESSIBILITY_REVIEW_CHECKLIST.md     |  38 ++++++++
+ .../docs/reviewer/CURRENT_READINESS_STATEMENT.md   |   9 +-
+ .../CURRENT_TESTNET_READINESS_STATEMENT.md         |   2 +-
+ .../DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md       |  36 +++++++
+ Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md     |  12 ++-
+ .../reviewer/HELPER_PRODUCTION_SAFETY_CHECKLIST.md |  46 +++++++++
+ .../docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md    |   2 +-
+ .../README_TO_IMPLEMENTATION_TRACEABILITY.md       |  10 +-
+ .../docs/testnet/ACCOUNT_PROFILE_READINESS.md      |   2 +-
+ ...L_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md |   4 +-
+ Weall-Protocol/docs/testnet/FIRST_15_MINUTES.md    |   2 +-
+ .../docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md |   2 +-
+ .../testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md  |  84 +++++++++++++++++
+ .../docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md     |  12 ++-
+ .../testnet/PUBLIC_OBSERVER_TESTNET_QUICKSTART.md  |  12 ++-
+ .../docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md   |   2 +-
+ .../docs/testnet/TESTNET_LAUNCH_CHECKLIST.md       |   4 +-
+ .../generated/public_beta_blocker_report_v1_5.json |   2 +-
+ .../generated/public_only_protocol_audit_v1_5.json |  44 ++++++++-
+ .../generated/release_evidence_manifest_v1_5.json  |   4 +-
+ .../scripts/boot_public_observer_testnet.sh        |   0
+ ...xternal_cross_machine_replay_transcript_v1_5.sh |   0
+ ...ontrolled_validator_operator_transcript_v1_5.sh |   0
+ ...ublic_observer_open_download_transcript_v1_5.sh |   0
+ ...e_real_storage_ipfs_operator_transcript_v1_5.sh |   0
+ .../rehearse_release_blocker_closure_v1_5.py       |   0
+ .../scripts/run_clean_clone_go_gate_v1_5.sh        |   0
+ .../run_frontend_contract_check_with_backend.sh    |   0
+ .../test_helper_production_safety_checklist.py     |  62 ++++++++++++
+ .../test_public_observer_testnet_readiness_docs.py |   2 +-
+ .../test_readme_to_implementation_traceability.py  |   8 +-
+ .../test_direct_message_transaction_quarantine.py  |  86 +++++++++++++++++
+ .../tests/test_release_docs_truth_sync.py          |  21 ++++-
+ scripts/run_clean_clone_go_gate_v1_5.sh            |   0
+ .../run_frontend_contract_check_with_backend.sh    |   0
+ web/package.json                                   |   3 +-
+ .../test_reviewer_critical_flows_source.mjs        | 104 +++++++++++++++++++++
+ 50 files changed, 633 insertions(+), 48 deletions(-)

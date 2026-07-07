@@ -1,0 +1,34 @@
+{
+  "acceptable_claim": "WeAll remains a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has migrated to profile-aware ML-DSA signing for active protocol authority surfaces. This supports quantum-resistance hardening but does not claim completed production cryptographic audit, public mainnet readiness, live economics, public multi-validator BFT readiness, or production constitutional governance readiness.",
+  "active_signature_profile": "pq-mldsa-v1",
+  "classical_signature_profiles_removed_from_authority": true,
+  "controlled_testnet_default": "pq-mldsa-v1",
+  "legacy_signature_profile": "legacy-ed25519-v1",
+  "legacy_signature_profile_status": "disabled",
+  "live_economics": false,
+  "mldsa_backend_status": {
+    "algorithm": "ML-DSA-65",
+    "available": true,
+    "backend": "pyca-cryptography",
+    "context": "weall:pq-mldsa-v1:protocol-signature",
+    "minimum_cryptography_version": "47.0.0",
+    "public_key_bytes": 1952,
+    "reason": "ok",
+    "repo_locked_cryptography_version": "48.0.0",
+    "signature_bytes": 3309
+  },
+  "production_crypto_audit_complete": false,
+  "public_beta_ready": false,
+  "public_mainnet_ready": false,
+  "public_multi_validator_bft_ready": false,
+  "real_mldsa_backend_required": true,
+  "real_mldsa_implemented_in_this_environment": true,
+  "remaining_blockers": [
+    "external cryptographic review",
+    "fresh post-migration observer and validator evidence",
+    "browser/client ML-DSA signing implementation or controlled signer boundary",
+    "durable PQ-signed public evidence bundle policy"
+  ],
+  "required_framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
+  "schema": "weall.quantum_resistance_readiness.v1_5"
+}

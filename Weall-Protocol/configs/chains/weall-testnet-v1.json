@@ -1,0 +1,40 @@
+{
+  "authority": {
+    "authority_snapshot_required": true,
+    "expected_profile": "public_testnet_v1",
+    "signed_snapshot_required": true
+  },
+  "authority_snapshot_version": 1,
+  "chain_id": "weall-testnet-v1",
+  "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+  "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+  "constitution_traceability_hash": "a2b9920333744a1b49d5a8788f08d07e0c300faa28f17f24db1f906a108205e1",
+  "constitution_version": "draft-2",
+  "constitutional_clock": {
+    "allowed_clock_skew_ms": 2000,
+    "block_time_derivation": "genesis_time_plus_height_times_interval",
+    "empty_blocks_enabled": true,
+    "enabled": true,
+    "genesis_time_ms": 0,
+    "no_fast_forward": true,
+    "no_height_skip": true,
+    "procedure_time_source": "finalized_block_height",
+    "target_block_interval_ms": 20000
+  },
+  "genesis_hash": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
+  "genesis_state_root": "058403718a45d030b05d2ceaf6b66d62712cc8e685f5341b1d534ba271328f50",
+  "genesis_time_ms": 0,
+  "mode": "prod",
+  "name": "WeAll Public Observer Testnet v1",
+  "network_id": "weall-public-observer-testnet-v1",
+  "notes": "Pinned resettable public observer testnet-v1 chain identity. Tokens, reputation, validator status, storage offers, and governance outcomes are resettable/non-economic unless a later governance/spec activation explicitly says otherwise. Private keys must never be committed or included in observer bundles.",
+  "profile": "public_testnet_v1_service",
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "resettable_testnet": true,
+  "schema_version": "1",
+  "trusted_authority_pubkeys": [
+    "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"
+  ],
+  "tx_index_hash": "c6863731be6076a20acb0284634d8b03fe48bad7db45cbb32e6394b10db5921f",
+  "version": 1
+}

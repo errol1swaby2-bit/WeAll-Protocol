@@ -1,6 +1,6 @@
 # Native Proof-of-Humanity bootstrap limits
 
-WeAll's primary human-verification path must be protocol-native. It must not require email, SMTP, DNS, Cloudflare, CAPTCHA, OAuth, KYC vendors, government ID, or inbox control.
+WeAll's primary human-verification path must be protocol-native. It must not require email, SMTP, DNS, named hosting providers, CAPTCHA, OAuth, KYC vendors, government ID, or input_queue control.
 
 ## Current model
 

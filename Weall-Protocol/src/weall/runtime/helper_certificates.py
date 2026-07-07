@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import hashlib
-import hmac
 import json
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 from weall.runtime.json_tools import canonical_json_str
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+
+from weall.crypto.sig import public_key_for_private_key_profile, sign_signature_for_profile, verify_signature_for_profile
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode, normalize_signature_profile_id
 
 
 CERTIFICATE_DOMAIN = "WEALL/HELPER_CERTIFICATE/V1"
@@ -79,6 +80,7 @@ class HelperCertificate:
     signature: str = ""
     manifest_hash: str = ""
     plan_id: str = ""
+    sig_profile: str = PQ_MLDSA_V1
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "tx_ids", tuple(str(x) for x in self.tx_ids))
@@ -103,6 +105,7 @@ class HelperCertificate:
             "manifest_hash": self.manifest_hash,
             "plan_id": self.plan_id,
             "signature": self.signature,
+            "sig_profile": normalize_signature_profile_id(self.sig_profile) or PQ_MLDSA_V1,
         }
 
     def to_canonical_json(self) -> str:
@@ -156,6 +159,7 @@ class HelperExecutionCertificate:
     helper_signature: str = ""
     manifest_hash: str = ""
     plan_id: str = ""
+    sig_profile: str = PQ_MLDSA_V1
 
     def __init__(self, **kwargs: Any) -> None:
         tx_ids = kwargs.get("tx_ids", ())
@@ -181,6 +185,7 @@ class HelperExecutionCertificate:
         object.__setattr__(self, "helper_signature", str(helper_signature))
         object.__setattr__(self, "manifest_hash", str(kwargs.get("manifest_hash", "")))
         object.__setattr__(self, "plan_id", str(kwargs.get("plan_id", "")))
+        object.__setattr__(self, "sig_profile", normalize_signature_profile_id(kwargs.get("sig_profile")) or PQ_MLDSA_V1)
 
     @property
     def state_delta_hash(self) -> str:
@@ -210,6 +215,7 @@ class HelperExecutionCertificate:
             "manifest_hash": self.manifest_hash,
             "plan_id": self.plan_id,
             "helper_signature": self.helper_signature,
+            "sig_profile": normalize_signature_profile_id(self.sig_profile) or PQ_MLDSA_V1,
         }
 
     def to_canonical_json(self) -> str:
@@ -319,10 +325,22 @@ def _signature_material(cert: HelperExecutionCertificate | HelperCertificate) ->
     return canonical_json(cert.signing_payload()).encode("utf-8")
 
 
+def _pq_seed_from_helper_material(value: Any) -> str:
+    raw = str(value or "").strip()
+    try:
+        data = bytes.fromhex(raw)
+        if len(data) == 32:
+            return raw.lower()
+    except Exception:
+        pass
+    return hashlib.sha256(("weall-helper-pq-material:" + raw).encode("utf-8")).hexdigest()
+
+
 def sign_helper_certificate(
     cert: HelperExecutionCertificate | HelperCertificate | None = None,
     privkey: str | None = None,
     secret: str | None = None,
+    sig_profile: str | None = None,
     **kwargs: Any,
 ) -> HelperExecutionCertificate | dict[str, Any]:
     # Newer plan-hardening API used by batch33 tests
@@ -337,8 +355,11 @@ def sign_helper_certificate(
         lane_tx_ids = tuple(str(x) for x in kwargs.get("lane_tx_ids", ()))
         descriptor_hash = str(kwargs["descriptor_hash"])
         plan_id = str(kwargs["plan_id"])
-        shared_secret = str(kwargs["shared_secret"])
+        privkey = str(kwargs.get("privkey") or privkey or "")
+        if not privkey and (kwargs.get("receipt_secret") is not None or secret is not None):
+            privkey = _pq_seed_from_helper_material(kwargs.get("receipt_secret") if kwargs.get("receipt_secret") is not None else secret)
         issued_ms = int(kwargs.get("issued_ms", 0))
+        profile = PQ_MLDSA_V1
         payload = {
             "domain": CERTIFICATE_DOMAIN,
             "chain_id": chain_id,
@@ -352,46 +373,61 @@ def sign_helper_certificate(
             "descriptor_hash": descriptor_hash,
             "plan_id": plan_id,
             "issued_ms": issued_ms,
+            "sig_profile": profile,
         }
         payload["certificate_id"] = hashlib.sha256(
             json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
         ).hexdigest()
-        payload["signature"] = hmac.new(
-            shared_secret.encode("utf-8"),
-            json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8"),
-            hashlib.sha256,
-        ).hexdigest()
+        if not privkey:
+            raise ValueError("helper certificate signing requires pq-mldsa-v1 privkey")
+        payload["signature"] = sign_signature_for_profile(
+            sig_profile=profile,
+            message=json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8"),
+            privkey=privkey,
+            encoding="hex",
+        )
         return payload
 
     # Legacy/mainline object API
     normalized = ensure_helper_execution_certificate(cert)
+    profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", "")) or default_signature_profile_for_mode()
+    unsigned_json = {**normalized.to_json(), "sig_profile": profile}
+    normalized = HelperExecutionCertificate(**unsigned_json)
+    if privkey is None and secret is not None:
+        privkey = _pq_seed_from_helper_material(secret)
     if privkey is not None:
-        key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(privkey))
-        sig = key.sign(_signature_material(normalized)).hex()
-        return HelperExecutionCertificate(**{**normalized.to_json(), "helper_signature": sig})
-    if secret is None:
-        raise ValueError("helper certificate signing requires privkey or explicit secret")
-    sig = hmac.new(str(secret).encode("utf-8"), _signature_material(normalized), hashlib.sha256).hexdigest()
-    return HelperExecutionCertificate(**{**normalized.to_json(), "helper_signature": sig})
+        sig = sign_signature_for_profile(sig_profile=profile, message=_signature_material(normalized), privkey=str(privkey), encoding="hex")
+        return HelperExecutionCertificate(**{**normalized.to_json(), "helper_signature": sig, "sig_profile": profile})
+    raise ValueError("helper certificate signing requires pq-mldsa-v1 privkey")
 
 
 def verify_helper_certificate_signature(
     cert: HelperExecutionCertificate | HelperCertificate | Mapping[str, Any],
     helper_pubkey: str | None = None,
     secret: str | None = None,
+    sig_profile: str | None = None,
 ) -> bool:
     normalized = ensure_helper_execution_certificate(cert)
-    if helper_pubkey is not None:
+    profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", "")) or PQ_MLDSA_V1
+
+    if helper_pubkey is None and secret is not None:
         try:
-            key = Ed25519PublicKey.from_public_bytes(bytes.fromhex(helper_pubkey))
-            key.verify(bytes.fromhex(normalized.helper_signature), _signature_material(normalized))
-            return True
+            helper_pubkey = public_key_for_private_key_profile(
+                sig_profile=profile,
+                privkey=_pq_seed_from_helper_material(secret),
+                encoding="hex",
+            )
         except Exception:
-            return False
-    if secret is None:
-        return False
-    expected = hmac.new(str(secret).encode("utf-8"), _signature_material(normalized), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(normalized.helper_signature, expected)
+            helper_pubkey = None
+
+    if helper_pubkey is not None:
+        return verify_signature_for_profile(
+            sig_profile=profile,
+            message=_signature_material(normalized),
+            sig=normalized.helper_signature,
+            pubkey=str(helper_pubkey),
+        )
+    return False
 
 
 def validate_certificate_scope(

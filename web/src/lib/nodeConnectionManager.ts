@@ -17,6 +17,7 @@ export type NodeCompatibilityBaseline = {
   sourceBaseUrl?: string;
   source?: "build" | "seed-manifest" | "current-node";
   chainId?: string;
+  genesisHash?: string;
   txIndexHash?: string;
   protocolProfileHash?: string;
 };
@@ -33,9 +34,11 @@ export type NodeProbe = {
   latencyMs: number | null;
   chainId?: string;
   height?: number;
+  genesisHash?: string;
   txIndexHash?: string;
   protocolProfileHash?: string;
   expectedChainId?: string;
+  expectedGenesisHash?: string;
   expectedTxIndexHash?: string;
   expectedProtocolProfileHash?: string;
   compatibilitySourceBaseUrl?: string;
@@ -133,16 +136,18 @@ function baselineFromPayload(payload: unknown): NodeCompatibilityBaseline | null
     : {};
 
   const chainId = safeStr(rec.expected_chain_id || rec.chain_id || compatibility.chain_id || manifest.chain_id);
+  const genesisHash = safeStr(rec.expected_genesis_hash || rec.genesis_hash || compatibility.genesis_hash || manifest.genesis_hash);
   const txIndexHash = safeStr(rec.expected_tx_index_hash || rec.tx_index_hash || compatibility.tx_index_hash || manifest.tx_index_hash);
   const protocolProfileHash = safeStr(
     rec.expected_protocol_profile_hash || rec.protocol_profile_hash || compatibility.protocol_profile_hash || manifest.protocol_profile_hash,
   );
 
-  if (!chainId && !txIndexHash && !protocolProfileHash) return null;
+  if (!chainId && !genesisHash && !txIndexHash && !protocolProfileHash) return null;
   return {
     source: "seed-manifest",
     sourceBaseUrl: String(rec.source || rec.manifest_url || "seed-manifest"),
     chainId,
+    genesisHash,
     txIndexHash,
     protocolProfileHash,
   };
@@ -150,13 +155,15 @@ function baselineFromPayload(payload: unknown): NodeCompatibilityBaseline | null
 
 export function buildConfiguredCompatibilityBaseline(): NodeCompatibilityBaseline | null {
   const chainId = safeStr(config.expectedChainId);
+  const genesisHash = safeStr(config.expectedGenesisHash);
   const txIndexHash = safeStr(config.expectedTxIndexHash);
   const protocolProfileHash = safeStr(config.expectedProtocolProfileHash);
-  if (!chainId && !txIndexHash && !protocolProfileHash) return null;
+  if (!chainId && !genesisHash && !txIndexHash && !protocolProfileHash) return null;
   return {
     source: "build",
     sourceBaseUrl: "build-env",
     chainId,
+    genesisHash,
     txIndexHash,
     protocolProfileHash,
   };
@@ -173,8 +180,18 @@ async function loadSeedCompatibilityBaseline(seedsUrl = config.seedsUrl): Promis
   }
 }
 
+
+async function loadBackendSeedCompatibilityBaseline(base = getApiBaseUrl()): Promise<NodeCompatibilityBaseline | null> {
+  try {
+    const payload = await fetchJsonWithTimeout(endpoint(base, "/v1/nodes/seeds"), 2500);
+    return baselineFromPayload({ ...(payload || {}), source: "/v1/nodes/seeds" });
+  } catch {
+    return null;
+  }
+}
+
 export async function loadExpectedCompatibilityBaseline(seedsUrl = config.seedsUrl): Promise<NodeCompatibilityBaseline | null> {
-  return buildConfiguredCompatibilityBaseline() || (await loadSeedCompatibilityBaseline(seedsUrl));
+  return buildConfiguredCompatibilityBaseline() || (await loadBackendSeedCompatibilityBaseline()) || (await loadSeedCompatibilityBaseline(seedsUrl));
 }
 
 function dedupeSeeds(seeds: SeedNode[]): SeedNode[] {
@@ -200,14 +217,25 @@ export async function loadSeedNodes(seedsUrl = config.seedsUrl): Promise<SeedNod
   }
 }
 
+
+export async function loadBackendSeedNodes(base = getApiBaseUrl()): Promise<SeedNode[]> {
+  try {
+    const payload = await fetchJsonWithTimeout(endpoint(base, "/v1/nodes/seeds"), 2500);
+    return dedupeSeeds(seedsFromPayload(payload));
+  } catch {
+    return [];
+  }
+}
+
 export async function discoverCandidateNodes(): Promise<SeedNode[]> {
   const current = displayBase(getApiBaseUrl());
   const defaults = [
     seedFromUnknown({ url: current, label: "Current node", description: "The backend this browser is using now." }),
     seedFromUnknown({ url: config.defaultApiBase, label: "Build default", description: "The backend configured for this frontend build." }),
   ].filter((x): x is SeedNode => !!x);
-  const seeds = await loadSeedNodes();
-  return dedupeSeeds([...defaults, ...seeds]);
+  const backendSeeds = await loadBackendSeedNodes(current);
+  const manifestSeeds = await loadSeedNodes();
+  return dedupeSeeds([...defaults, ...backendSeeds, ...manifestSeeds]);
 }
 
 function safeStr(value: unknown): string | undefined {
@@ -278,11 +306,12 @@ export function buildCompatibilityBaseline(probes: NodeProbe[]): NodeCompatibili
   ].filter((probe): probe is NodeProbe => !!probe);
 
   for (const probe of candidates) {
-    if (probe.chainId || probe.txIndexHash || probe.protocolProfileHash) {
+    if (probe.chainId || probe.genesisHash || probe.txIndexHash || probe.protocolProfileHash) {
       return {
         source: "current-node",
         sourceBaseUrl: probe.baseUrl,
         chainId: probe.chainId,
+        genesisHash: probe.genesisHash,
         txIndexHash: probe.txIndexHash,
         protocolProfileHash: probe.protocolProfileHash,
       };
@@ -292,13 +321,33 @@ export function buildCompatibilityBaseline(probes: NodeProbe[]): NodeCompatibili
   return null;
 }
 
+function publicTestnetBaselineErrors(baseline: NodeCompatibilityBaseline | null | undefined): string[] {
+  if (!config.publicTestnet) return [];
+  const errors: string[] = [];
+  if (!baseline) {
+    return ["public_testnet_config_missing:pinned_commitments_required"];
+  }
+  if (!baseline.chainId) errors.push("public_testnet_config_missing:chain_id");
+  if (!baseline.genesisHash) errors.push("public_testnet_config_missing:genesis_hash");
+  if (!baseline.txIndexHash) errors.push("public_testnet_config_missing:tx_index_hash");
+  if (!baseline.protocolProfileHash) errors.push("public_testnet_config_missing:protocol_profile_hash");
+  return errors;
+}
+
 export function compatibilityErrors(probe: NodeProbe, baseline: NodeCompatibilityBaseline | null | undefined): string[] {
-  if (!baseline || !probe.reachable) return [];
+  if (!probe.reachable) return [];
+  const publicErrors = publicTestnetBaselineErrors(baseline);
+  if (publicErrors.length) return publicErrors;
+  if (!baseline) return [];
   const errors: string[] = [];
 
   if (baseline.chainId) {
     if (!probe.chainId) errors.push("incompatible:chain_id_missing");
     else if (probe.chainId !== baseline.chainId) errors.push(`incompatible:chain_id_mismatch:${probe.chainId}`);
+  }
+  if (baseline.genesisHash) {
+    if (!probe.genesisHash) errors.push("incompatible:genesis_hash_missing");
+    else if (probe.genesisHash !== baseline.genesisHash) errors.push("incompatible:genesis_hash_mismatch");
   }
   if (baseline.txIndexHash) {
     if (!probe.txIndexHash) errors.push("incompatible:tx_index_hash_missing");
@@ -337,6 +386,7 @@ export function applyCompatibilityBaseline(
       ok: phase === "healthy",
       errors,
       expectedChainId: baseline?.chainId,
+      expectedGenesisHash: baseline?.genesisHash,
       expectedTxIndexHash: baseline?.txIndexHash,
       expectedProtocolProfileHash: baseline?.protocolProfileHash,
       compatibilitySourceBaseUrl: baseline?.sourceBaseUrl,
@@ -380,6 +430,7 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
   const statusOk = statusReady(status);
   const ready = statusReady(readyz) || statusOk;
   const chainId = safeStr(status?.chain_id || consensus?.chain_id);
+  const genesisHash = safeStr(status?.genesis_hash || consensus?.genesis_hash || status?.chain_manifest?.genesis_hash);
   const height = safeNumber(status?.height ?? consensus?.height);
   const { txIndexHash, protocolProfileHash } = extractConsensusHash(consensus, status);
 
@@ -396,6 +447,7 @@ export async function probeNode(seed: SeedNode, opts?: { timeoutMs?: number; cur
     latencyMs: reachable ? latencyMs : null,
     chainId,
     height,
+    genesisHash,
     txIndexHash,
     protocolProfileHash,
     mode: safeStr(status?.mode || consensus?.mode),
@@ -413,7 +465,7 @@ export async function discoverNodeProbes(opts?: { timeoutMs?: number }): Promise
   const seeds = await discoverCandidateNodes();
   const explicitBaseline = await loadExpectedCompatibilityBaseline();
   const rawProbes = await Promise.all(seeds.map((seed) => probeNode(seed, { timeoutMs: opts?.timeoutMs, currentBase })));
-  const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null ? undefined : explicitBaseline);
+  const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null && !config.publicTestnet ? undefined : explicitBaseline);
   return probes.sort((a, b) => {
     if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
     return b.score - a.score || String(a.baseUrl).localeCompare(String(b.baseUrl));
@@ -444,6 +496,6 @@ export function nodePhaseLabel(phase: NodeProbePhase): string {
 export function nodePhaseHint(probe: NodeProbe): string {
   if (probe.phase === "healthy") return "This node is reachable, ready, and matches the expected chain/profile identity.";
   if (probe.phase === "syncing") return "This node is reachable but may still be catching up or missing readiness details.";
-  if (probe.phase === "incompatible") return "This node responded, but its chain id, tx index hash, protocol profile hash, or required compatibility commitment is missing or different from the pinned network identity.";
+  if (probe.phase === "incompatible") return "This node responded, but its chain id, genesis hash, tx index hash, protocol profile hash, or required public testnet commitment is missing or different from the pinned network identity.";
   return "This node could not be reached from this browser.";
 }

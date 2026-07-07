@@ -1,0 +1,3 @@
+## env PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+[v15-artifacts] OK: v1.5 public-readiness artifacts are present, fresh, and release-safe
+EXIT_CODE=0

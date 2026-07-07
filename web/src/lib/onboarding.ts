@@ -124,9 +124,9 @@ export function resolveOnboardingSnapshot(args: {
   } else if (!accountCreated) {
     stage = "not_registered";
     next = {
-      route: "/login",
+      route: "/verification",
       label: "Finish account setup",
-      note: "The local signer exists, but the on-chain account record is not visible yet.",
+      note: "The local signer exists, but the on-chain account record is not visible yet. Continue on the verification page to register the basic account instead of returning to sign in.",
     };
   } else if (tier <= 0) {
     stage = "tier0";

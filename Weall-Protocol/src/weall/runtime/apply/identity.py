@@ -6,6 +6,13 @@ from typing import Any
 from ..errors import ApplyError
 from ..tx_admission_types import TxEnvelope
 from ..session_keys import revoke_session_record, store_session_record
+from ..public_protocol_policy import public_protocol_policy_violation
+from weall.crypto.account_keys import (
+    account_key_pubkey,
+    account_key_record_from_payload,
+    validate_account_key_record,
+)
+from weall.crypto.signature_profiles import default_signature_profile_for_mode
 
 Json = dict[str, Any]
 
@@ -71,91 +78,36 @@ def _mk_key_id(pubkey: str) -> str:
     return f"k:{h[:16]}"
 
 
+def _current_height(state: Json) -> int:
+    return _as_int(state.get("height") or state.get("block_height"), 0)
+
+
+def _key_record_from_payload_or_raise(state: Json, payload: Json, *, key_type: str) -> Json:
+    # Account key records must be schedule-independent. Block height may differ
+    # across equivalent replay chunking/restart schedules, so do not bake the
+    # current height into the key record itself.
+    rec = account_key_record_from_payload(
+        payload,
+        created_height=0,
+        default_profile=default_signature_profile_for_mode(),
+        key_type=key_type,
+    )
+    chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+    ok, reason = validate_account_key_record(rec, chain_config=chain_config, require_verifier=False)
+    if not ok:
+        raise ApplyError("invalid_tx", reason, {"sig_profile": rec.get("sig_profile")})
+    return rec
+
+
 def _mk_device_id_hash(device_id: str) -> str:
     h = hashlib.sha256(device_id.encode("utf-8")).hexdigest()
     return f"d:{h[:16]}"
 
 
-def _canonical_messaging_public_jwk(value: Any) -> Json:
-    jwk = value if isinstance(value, dict) else {}
-    kty = _as_str(jwk.get("kty") or "").strip()
-    crv = _as_str(jwk.get("crv") or "").strip()
-    x = _as_str(jwk.get("x") or "").strip()
-    y = _as_str(jwk.get("y") or "").strip()
-    if kty != "EC" or crv != "P-256" or not x or not y:
-        raise ApplyError("invalid_tx", "invalid_messaging_encryption_public_jwk", {"kty": kty, "crv": crv})
-    if _as_str(jwk.get("d") or "").strip():
-        raise ApplyError("invalid_tx", "messaging_encryption_private_key_forbidden", {})
-    return {"kty": "EC", "crv": "P-256", "x": x, "y": y, "ext": True}
-
-
-def _messaging_key_record(*, env: TxEnvelope, public_jwk: Json, key_id: str, previous_key_id: str, reason: str) -> Json:
-    return {
-        "key_id": key_id,
-        "public_jwk": dict(public_jwk),
-        "published_at_nonce": _as_int(getattr(env, "nonce", 0), 0),
-        "previous_key_id": previous_key_id,
-        "rotation_reason": reason,
-        "scheme": "WEALL_E2EE_V1",
-        "trust_model": "account-published-public-key",
-        "metadata_visible": True,
-    }
-
-
-def _apply_messaging_encryption_policy(policy: Json, p: Json, env: TxEnvelope) -> Json:
-    encryption_pub = p.get("messaging_encryption_public_jwk")
-    encryption_key_id = _as_str(p.get("messaging_encryption_key_id") or "").strip()
-    if not isinstance(encryption_pub, dict) and not encryption_key_id:
-        return policy
-    if not isinstance(encryption_pub, dict) or not encryption_key_id:
-        raise ApplyError("invalid_tx", "messaging_encryption_key_and_public_jwk_required", {})
-
-    public_jwk = _canonical_messaging_public_jwk(encryption_pub)
-    current_key_id = _as_str(policy.get("messaging_encryption_key_id") or "").strip()
-    previous_key_id = _as_str(p.get("messaging_encryption_previous_key_id") or "").strip()
-    rotation_reason = _as_str(p.get("messaging_encryption_rotation_reason") or "").strip()
-
-    history = policy.get("messaging_encryption_key_history")
-    if not isinstance(history, list):
-        history = []
-
-    replacing = bool(current_key_id and current_key_id != encryption_key_id)
-    if replacing:
-        if previous_key_id != current_key_id:
-            raise ApplyError(
-                "invalid_tx",
-                "messaging_encryption_key_rotation_requires_current_previous_key",
-                {"current_key_id": current_key_id, "previous_key_id": previous_key_id},
-            )
-        if len(rotation_reason) < 8:
-            raise ApplyError(
-                "invalid_tx",
-                "messaging_encryption_key_rotation_reason_required",
-                {"min_chars": 8},
-            )
-    elif previous_key_id and previous_key_id != current_key_id:
-        raise ApplyError(
-            "invalid_tx",
-            "messaging_encryption_previous_key_mismatch",
-            {"current_key_id": current_key_id, "previous_key_id": previous_key_id},
-        )
-
-    policy["messaging_encryption_public_jwk"] = dict(public_jwk)
-    policy["messaging_encryption_key_id"] = encryption_key_id
-    policy["messaging_encryption_scheme"] = "WEALL_E2EE_V1"
-    policy["messaging_encryption_trust_model"] = "account-published-public-key"
-    policy["messaging_encryption_metadata_visible"] = True
-    policy["messaging_encryption_forward_secrecy"] = False
-    policy["messaging_encryption_status"] = "static_key_v1_metadata_visible"
-    if replacing:
-        policy["messaging_encryption_previous_key_id"] = previous_key_id
-        policy["messaging_encryption_rotation_reason"] = rotation_reason
-        policy["messaging_encryption_key_changed_at_nonce"] = _as_int(getattr(env, "nonce", 0), 0)
-    if not history or replacing or all(_as_str(item.get("key_id") if isinstance(item, dict) else "") != encryption_key_id for item in history):
-        history.append(_messaging_key_record(env=env, public_jwk=public_jwk, key_id=encryption_key_id, previous_key_id=previous_key_id, reason=rotation_reason))
-    policy["messaging_encryption_key_history"] = history[-10:]
-    policy["messaging_encryption_key_change_count"] = max(0, len(policy["messaging_encryption_key_history"]) - 1)
-    return policy
+def _reject_non_public_protocol_payload(env: TxEnvelope) -> None:
+    violation = public_protocol_policy_violation(env)
+    if violation is not None:
+        raise ApplyError(violation.code, violation.reason, violation.details)
 
 
 def _extract_active_pubkeys(acct: Json) -> list[str]:
@@ -182,7 +134,7 @@ def _extract_active_pubkeys(acct: Json) -> list[str]:
                     continue
                 if bool(rec.get("revoked", False)):
                     continue
-                _add(rec.get("pubkey"))
+                _add(account_key_pubkey(rec))
             out.sort()
             return out
 
@@ -195,7 +147,7 @@ def _extract_active_pubkeys(acct: Json) -> list[str]:
                 continue
             if item.get("active", True) is False:
                 continue
-            _add(item.get("pubkey"))
+            _add(account_key_pubkey(item))
         out.sort()
         return out
 
@@ -249,7 +201,8 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("invalid_tx", "account_exists", {"account_id": signer})
 
     p = _payload(env)
-    pubkey = _as_str(p.get("pubkey") or "").strip()
+    key_record = _key_record_from_payload_or_raise(state, p, key_type="main")
+    pubkey = account_key_pubkey(key_record)
     if not pubkey:
         raise ApplyError("invalid_tx", "missing_pubkey", {})
 
@@ -263,12 +216,7 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         "reputation": "0",
         "keys": {
             "by_id": {
-                _mk_key_id(pubkey): {
-                    "pubkey": pubkey,
-                    "key_type": "main",
-                    "revoked": False,
-                    "revoked_at": None,
-                }
+                str(key_record.get("key_id") or _mk_key_id(pubkey)): key_record
             }
         },
         "devices": {"by_id": {}},
@@ -277,8 +225,6 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         # API security expects accounts[acct]["session_keys"][session_key] dicts.
         "session_keys": {},
     }
-    if isinstance(p.get("messaging_encryption_public_jwk"), dict) or _as_str(p.get("messaging_encryption_key_id") or "").strip():
-        accounts[signer]["security_policy"] = _apply_messaging_encryption_policy({}, p, env)
     _sync_account_key_views(accounts[signer])
     return state
 
@@ -288,8 +234,9 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
     _expect_nonce(a, env)
     p = _payload(env)
 
-    pubkey = _as_str(p.get("pubkey") or "").strip()
     key_type = _as_str(p.get("key_type") or "secondary").strip().lower()
+    key_record = _key_record_from_payload_or_raise(state, p, key_type=key_type)
+    pubkey = account_key_pubkey(key_record)
     if not pubkey:
         raise ApplyError("invalid_tx", "missing_pubkey", {})
 
@@ -306,12 +253,8 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
     if kid in by_id and isinstance(by_id.get(kid), dict) and by_id[kid].get("revoked") is not True:
         raise ApplyError("invalid_tx", "key_exists", {"pubkey": pubkey})
 
-    by_id[kid] = {
-        "pubkey": pubkey,
-        "key_type": key_type,
-        "revoked": False,
-        "revoked_at": None,
-    }
+    key_record["key_id"] = str(key_record.get("key_id") or kid)
+    by_id[kid] = key_record
     a["nonce"] = _as_int(a.get("nonce"), 0) + 1
     _sync_account_key_views(a)
     return state
@@ -335,7 +278,7 @@ def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
     for kid, rec in by_id.items():
         if not isinstance(rec, dict):
             continue
-        if _as_str(rec.get("pubkey") or "").strip() == pubkey and rec.get("revoked") is not True:
+        if account_key_pubkey(rec) == pubkey and rec.get("revoked") is not True:
             match_kid = kid
             break
 
@@ -686,7 +629,7 @@ def _apply_account_security_policy_set(state: Json, env: TxEnvelope) -> Json:
             policy[key] = bool(p.get(key))
     if p.get("session_ttl_s") is not None:
         policy["session_ttl_s"] = _as_int(p.get("session_ttl_s"), 0)
-    policy = _apply_messaging_encryption_policy(policy, p, env)
+    _reject_non_public_protocol_payload(env)
 
     a["security_policy"] = policy
     a["nonce"] = exp
@@ -907,12 +850,12 @@ def _apply_account_recovery_execute(state: Json, env: TxEnvelope) -> Json:
     if kid in by_id and isinstance(by_id.get(kid), dict) and by_id[kid].get("revoked") is not True:
         raise ApplyError("invalid_tx", "key_exists", {"pubkey": new_pubkey})
 
-    by_id[kid] = {
-        "pubkey": new_pubkey,
-        "key_type": "recovered",
-        "revoked": False,
-        "revoked_at": None,
-    }
+    recovery_payload = dict(prop)
+    recovery_payload.setdefault("pubkey", new_pubkey)
+    recovery_payload.setdefault("sig_profile", prop.get("sig_profile") or default_signature_profile_for_mode())
+    key_record = _key_record_from_payload_or_raise(state, recovery_payload, key_type="recovered")
+    key_record["key_id"] = str(key_record.get("key_id") or kid)
+    by_id[kid] = key_record
     prop["executed"] = True
 
     a["nonce"] = exp
@@ -1083,6 +1026,7 @@ def _apply_account_recovery_vote(state: Json, env: TxEnvelope) -> Json:
 
 
 def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
+    _reject_non_public_protocol_payload(env)
     tx = _as_str(getattr(env, "tx_type", "")).strip().upper()
 
     if tx == "ACCOUNT_REGISTER":

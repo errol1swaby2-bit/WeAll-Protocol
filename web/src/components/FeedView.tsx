@@ -13,6 +13,7 @@ import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import MediaGallery from "./MediaGallery";
 import ContentTipButton from "./ContentTipButton";
+import { FEED_ALGORITHM_SUMMARY } from "../lib/feed";
 
 type FeedScope =
   | { kind: "public" }
@@ -21,7 +22,7 @@ type FeedScope =
   | { kind: "unknown" };
 
 type FeedFilters = {
-  visibility?: "all" | "public" | "private";
+  visibility?: "all" | "public" | "group";
   tags?: string;
   author?: string;
 };
@@ -139,6 +140,12 @@ function scopeLabel(scope: FeedScope): string {
   return "Feed";
 }
 
+function scopeEndpointLabel(scope: FeedScope): string {
+  if (scope?.kind === "group") return "/v1/groups/{group_id}/feed";
+  if (scope?.kind === "account") return "/v1/accounts/{account}/feed";
+  return "/v1/feed";
+}
+
 function summarizeFeedScope(scope: FeedScope, count: number): string {
   if (scope?.kind === "group") {
     return count
@@ -176,8 +183,8 @@ function summarizeInteractionState(args: {
   }
   return {
     tone: "ok",
-    title: "Conversation actions available",
-    text: `You can react and report. Some actions may take a moment to appear everywhere.`,
+    title: "Public reply actions available",
+    text: `You can submit public reactions and reports. Submission is not final until Transactions or backend tx status shows confirmation.`,
   };
 }
 
@@ -196,13 +203,14 @@ export default function FeedView({
   defaultFilters?: FeedFilters;
   pageSize?: number;
 }): JSX.Element {
-  void defaultSort;
   const tx = useTxQueue();
   const [items, setItems] = useState<any[]>([]);
   const [mediaIndex, setMediaIndex] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [rankingInfo, setRankingInfo] = useState<any | null>(null);
+  const [sort, setSort] = useState<"new" | "top" | "hot">(defaultSort);
 
   const session = getSession();
   const viewer = session ? normalizeAccount(session.account) : null;
@@ -249,6 +257,16 @@ export default function FeedView({
     gateOk: gateTier2.ok,
     viewerSummary,
   });
+  const rankingModeLabel = String(rankingInfo?.mode || (sort === "top" ? "production" : sort === "hot" ? "balanced" : "recency"));
+  const rankingPersonalized = rankingInfo?.personalized === true;
+  const rankingTruth = rankingInfo
+    ? `Backend ranking mode: ${rankingModeLabel}. Deterministic: ${rankingInfo.deterministic === false ? "not claimed" : "yes"}. Personalized: ${rankingPersonalized ? "yes" : "no"}.`
+    : `Backend ranking mode: ${rankingModeLabel}. Waiting for response metadata from this endpoint.`;
+  const rankingOrderText = rankingModeLabel === "production"
+    ? "ordered by backend production ranking"
+    : rankingModeLabel === "balanced"
+      ? "ordered by backend balanced ranking"
+      : "ordered by backend recency ranking";
 
   function collectMediaIds(pageItems: any[]): string[] {
     const out: string[] = [];
@@ -310,6 +328,7 @@ export default function FeedView({
               filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
             tags: filters.tags,
             author: filters.author,
+            ranking: sort === "top" ? "production" : sort === "hot" ? "balanced" : undefined,
           },
           base,
           headers,
@@ -335,6 +354,7 @@ export default function FeedView({
               filters.visibility && filters.visibility !== "all" ? filters.visibility : undefined,
             tags: filters.tags,
             author: filters.author,
+            ranking: sort === "top" ? "production" : sort === "hot" ? "balanced" : undefined,
           },
           base,
           headers,
@@ -343,6 +363,7 @@ export default function FeedView({
 
       const pageItems = Array.isArray(r?.items) ? r.items : [];
       const nc = r?.next_cursor ? String(r.next_cursor) : null;
+      setRankingInfo(r?.ranking && typeof r.ranking === "object" ? r.ranking : null);
 
       if (append) {
         setItems((prev) => uniqById([...prev, ...pageItems]));
@@ -356,6 +377,7 @@ export default function FeedView({
       setErr(prettyMsg(e));
       if (!opts?.append) setItems([]);
       setNextCursor(null);
+      setRankingInfo(null);
     } finally {
       setLoading(false);
     }
@@ -378,7 +400,7 @@ export default function FeedView({
   useEffect(() => {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope?.kind, (scope as any)?.groupId, (scope as any)?.account, filters.visibility, filters.tags, filters.author]);
+  }, [scope?.kind, (scope as any)?.groupId, (scope as any)?.account, filters.visibility, filters.tags, filters.author, sort]);
 
   useEffect(() => {
     void refreshViewerState();
@@ -406,7 +428,7 @@ export default function FeedView({
         title: "React to content",
         pendingKey: txPendingKey(["content-reaction", targetId, viewer, "like"]),
         pendingMessage: "Saving your reaction…",
-        successMessage: "Your reaction was saved. Updating the feed…",
+        successMessage: "Reaction submitted. Track confirmation in Transactions while the feed refreshes…",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_REACTION_SET" } },
@@ -443,10 +465,10 @@ export default function FeedView({
         title: "Report content",
         pendingKey: txPendingKey(["content-flag", targetId, viewer]),
         pendingMessage: "Sending your report…",
-        successMessage: "Report sent. Checking community review status…",
+        successMessage: "Report submitted. Track confirmation in Transactions while community review status refreshes…",
         errorMessage: (e) => prettyMsg(e),
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
-        finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_REACTION_SET" } },
+        finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: "/feed", txType: "CONTENT_FLAG" } },
         task: async () =>
           submitSignedTx({
             account: viewer,
@@ -461,14 +483,14 @@ export default function FeedView({
       await Promise.allSettled([loadPage({ cursor: null, append: false }), refreshAccountContext()]);
       if (dispute?.id) {
         setReportInfo({
-          msg: `Report sent. This post is now visible in Community Review.`,
+          msg: `Report submitted and this post is now visible in Community Review. Confirmation is still tracked in Transactions.`,
           details: dispute,
           ctaLabel: "Open reports",
           ctaHref: "/reports",
         });
       } else {
         setReportInfo({
-          msg: "Report sent. Community Review may take a moment to appear.",
+          msg: "Report submitted. Community Review may take a moment to appear; confirmation is tracked in Transactions.",
           details: { target_id: String(targetId) },
           ctaLabel: "Open reports",
           ctaHref: "/reports",
@@ -490,7 +512,7 @@ export default function FeedView({
 
   const emptyNote =
     scope?.kind === "group"
-      ? "This group feed has not received visible posts yet. Once members publish here, they will appear newest-first."
+      ? "This group feed has not received visible posts yet. Once members publish here, they will appear according to the selected backend ranking mode."
       : scope?.kind === "account"
         ? "This account does not have visible posts in the selected view yet."
         : "This feed is empty for now. Once people start posting, new posts will appear here.";
@@ -522,9 +544,9 @@ export default function FeedView({
               <span className="surfaceSummaryHint">{summarizeFeedScope(scope, items.length)}</span>
             </div>
             <div className="surfaceSummaryCard">
-              <span className="surfaceSummaryLabel">Ordering</span>
-              <strong className="surfaceSummaryValue">Newest first</strong>
-              <span className="surfaceSummaryHint">Newest visible posts appear first.</span>
+              <span className="surfaceSummaryLabel">Backend ranking mode</span>
+              <strong className="surfaceSummaryValue">{rankingModeLabel}</strong>
+              <span className="surfaceSummaryHint">{rankingTruth} No personalized recommendation ranking is claimed unless the backend explicitly reports it.</span>
             </div>
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Viewer state</span>
@@ -536,11 +558,30 @@ export default function FeedView({
               <strong className="surfaceSummaryValue">{interactionSummary.title}</strong>
               <span className="surfaceSummaryHint">{interactionSummary.text}</span>
             </div>
+            <div className="surfaceSummaryCard">
+              <span className="surfaceSummaryLabel">Why items appear</span>
+              <strong className="surfaceSummaryValue">{scopeEndpointLabel(scope)}</strong>
+              <span className="surfaceSummaryHint">{FEED_ALGORITHM_SUMMARY}</span>
+            </div>
+          </div>
+
+
+          <div className="buttonRow" aria-label="Feed sort controls">
+            <button className={`btn ${sort === "new" ? "btnPrimary" : ""}`.trim()} onClick={() => setSort("new")}>Newest first</button>
+            <button className={`btn ${sort === "hot" ? "btnPrimary" : ""}`.trim()} onClick={() => setSort("hot")}>Balanced backend ranking</button>
+            <button className={`btn ${sort === "top" ? "btnPrimary" : ""}`.trim()} onClick={() => setSort("top")}>Production backend ranking</button>
           </div>
 
           <div className={`calloutInfo ${interactionSummary.tone === "ok" ? "calloutSuccess" : ""}`}>
             <strong>{interactionSummary.title}</strong>
             <div style={{ marginTop: 6 }}>{interactionSummary.text}</div>
+          </div>
+
+          <div className="calloutInfo" data-testid="public-social-boundary-callout">
+            <strong>Public social boundary</strong>
+            <div style={{ marginTop: 6 }}>
+              Posts, comments, reactions, reports, and group-scoped social activity are public-readable protocol records. Group membership can gate participation, not read visibility.
+            </div>
           </div>
 
           {err ? <div className="inlineError">{err}</div> : null}
@@ -611,6 +652,10 @@ export default function FeedView({
                     <div className="cardDesc" style={{ marginTop: 8 }}>
                       {itemCreatedLabel(it)}
                     </div>
+                    <div className="actionStateRow" aria-label="Feed item source">
+                      <span className="actionStateLabel">Why this appears</span>
+                      <span className="actionStateText">Returned by {scopeEndpointLabel(scope)} as visible {visibility} protocol activity; {rankingOrderText}.</span>
+                    </div>
                   </div>
 
                   <div className="statusSummary">
@@ -635,7 +680,7 @@ export default function FeedView({
                 <div className="actionStateRow">
                   <span className="actionStateLabel">What happens next</span>
                   <span className="actionStateText">
-                    Reactions and reports may take a moment to show everywhere after you save them.
+                    Reactions and reports submit signed transactions first. They are not final until Transactions or backend tx status reports confirmation.
                   </span>
                 </div>
 
@@ -644,10 +689,10 @@ export default function FeedView({
                     Open thread
                   </button>
                   <button className="btn" onClick={() => void doLike(id)} disabled={!id || likeBusyId === id || signerBusy}>
-                    {likeBusyId === id ? "Liking…" : signerBusy ? "Waiting…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
+                    {likeBusyId === id ? "Submitting reaction…" : signerBusy ? "Waiting…" : `Like${likeCount ? ` · ${likeCount}` : ""}`}
                   </button>
                   <button className="btn" onClick={() => void doReport(id)} disabled={!id || flagBusyId === id || signerBusy}>
-                    {flagBusyId === id ? "Reporting…" : signerBusy ? "Waiting…" : "Report"}
+                    {flagBusyId === id ? "Submitting report…" : signerBusy ? "Waiting…" : "Report"}
                   </button>
                 </div>
               </div>

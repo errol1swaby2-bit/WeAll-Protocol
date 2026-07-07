@@ -1,0 +1,23 @@
+{
+  "artifact_digest": "f090f3eb569f50af7e128ff73b8433661c379c67590df12f5c49c3eca0080e3a",
+  "external_evidence_required_before_launch": true,
+  "ok": true,
+  "public_observer_launch_ready": false,
+  "required_public_warning": "resettable non-economic public observer testnet; no real-world token value; validator activation is protocol-gated",
+  "required_steps": [
+    "fresh git clone from public repository",
+    "python -m venv .venv",
+    "pip install -r requirements.lock",
+    "pip install -e .",
+    "set WEALL_PUBLIC_TESTNET=1 and pinned registry signer",
+    "bash scripts/boot_public_observer_testnet.sh",
+    "verify /v1/nodes/seeds",
+    "verify /v1/nodes/validators",
+    "verify /v1/observer/edge/status",
+    "verify local frontend dashboard can load the local backend"
+  ],
+  "runtime_command": "bash scripts/run_public_observer_launch_rehearsal_v1_5.sh --api-base <seed-api> --registry configs/public_testnet_seed_registry.json --out generated/public_observer_launch_runtime_transcript_v1_5.json",
+  "runtime_transcript_attached": false,
+  "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript",
+  "version": "2026-06-b629-public-observer-transcript-gate"
+}

@@ -16,6 +16,8 @@ import { voteForAccount } from "../lib/accountSurface";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
 import {
+  governanceProposalOptionsOf,
+  governanceProposalResultOf,
   governanceProposalStageOf,
   normalizeGovernanceProposal,
   reconcileProposalEdit,
@@ -30,7 +32,7 @@ function prettyErr(e: any): { msg: string; details: any } {
 
 type Props = { id: string };
 
-type VoteMap = Record<string, { vote?: string; height?: number }>;
+type VoteMap = Record<string, { vote?: string; option_id?: string; height?: number }>;
 
 function asVoteMap(value: any): VoteMap {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -57,9 +59,44 @@ function pct(part: number, whole: number): string {
   return `${Math.round((part / whole) * 100)}%`;
 }
 
+function voteChoiceOf(rec: { vote?: string; option_id?: string } | null | undefined): string {
+  return String(rec?.option_id || rec?.vote || "").trim();
+}
+
+function choiceLabel(choice: string, options: Array<{ option_id: string; label: string }>): string {
+  const raw = String(choice || "").trim();
+  if (!raw) return "Not recorded";
+  const match = options.find((opt) => opt.option_id === raw);
+  if (match) return match.label;
+  return decisionVoteChoiceLabel(raw);
+}
+
+function optionCountsFromMap(
+  votes: VoteMap,
+  options: Array<{ option_id: string; label: string }>,
+): { optionCounts: Record<string, number>; abstain: number; total: number } {
+  const optionCounts: Record<string, number> = {};
+  for (const opt of options) optionCounts[opt.option_id] = 0;
+  let abstain = 0;
+  let total = 0;
+  for (const signer of Object.keys(votes).sort()) {
+    const choice = voteChoiceOf(votes[signer]).toLowerCase();
+    if (!choice) continue;
+    total += 1;
+    if (choice === "abstain") {
+      abstain += 1;
+    } else if (Object.prototype.hasOwnProperty.call(optionCounts, choice)) {
+      optionCounts[choice] += 1;
+    } else {
+      abstain += 1;
+    }
+  }
+  return { optionCounts, abstain, total };
+}
+
 function lifecycleSteps(stageRaw: string): Array<{ label: string; state: "done" | "active" | "todo" }> {
   const stage = String(stageRaw || "").toLowerCase();
-  const labels = ["Draft", "Early input", "Revision", "Readiness check", "Voting", "Results counted", "Changes applied", "Final result"];
+  const labels = ["draft", "poll", "revision", "validation", "voting", "closed", "tallied", "executed", "finalized"];
   const activeIndexByStage: Record<string, number> = {
     draft: 0,
     poll: 1,
@@ -70,7 +107,7 @@ function lifecycleSteps(stageRaw: string): Array<{ label: string; state: "done" 
     closed: 5,
     tallied: 5,
     executed: 6,
-    finalized: 7,
+    finalized: 8,
     withdrawn: 0,
   };
   const active = activeIndexByStage[stage] ?? 0;
@@ -98,11 +135,12 @@ function votingHelpText(params: {
   gateReason: string;
   canVote: boolean;
   currentChoice: string;
+  options: Array<{ option_id: string; label: string }>;
 }): string {
-  const { stage, gateOk, gateReason, canVote, currentChoice } = params;
+  const { stage, gateOk, gateReason, canVote, currentChoice, options } = params;
   if (!gateOk) return gateReason || "Complete live verification and keep this device signed in before voting.";
   if (canVote && currentChoice) {
-    return `Your current recorded vote is ${decisionVoteChoiceLabel(currentChoice)}. Each signed-in person has one recorded vote on this decision.`;
+    return `Your current recorded vote is ${choiceLabel(currentChoice, options)}. Each signed-in person has one recorded vote on this decision.`;
   }
   if (canVote) {
     return stage === "poll"
@@ -121,7 +159,7 @@ function votingHelpText(params: {
 }
 
 
-function sortedVoteEntries(votes: VoteMap): Array<[string, { vote?: string; height?: number }]> {
+function sortedVoteEntries(votes: VoteMap): Array<[string, { vote?: string; option_id?: string; height?: number }]> {
   return Object.entries(votes).sort((a, b) => a[0].localeCompare(b[0]));
 }
 
@@ -162,6 +200,57 @@ function actionReadinessLabel(params: { stage: string; canVote: boolean; canEdit
   return "No action available";
 }
 
+
+function governanceStageLadderText(): string {
+  return "draft → poll → revision → validation → voting → closed → tallied → executed → finalized";
+}
+
+function actionTxTypesOf(proposal: any): string[] {
+  const actions = Array.isArray(proposal?.actions) ? proposal.actions : [];
+  return actions
+    .map((action: any) => String(action?.tx_type || action?.type || "").trim().toUpperCase())
+    .filter(Boolean)
+    .sort();
+}
+
+function hasUpgradeAction(proposal: any): boolean {
+  return actionTxTypesOf(proposal).some((txType) =>
+    [
+      "PROTOCOL_UPGRADE_DECLARE",
+      "PROTOCOL_UPGRADE_ACTIVATE",
+      "CONSTITUTION_UPGRADE_DECLARE",
+      "CONSTITUTION_UPGRADE_ACTIVATE",
+    ].includes(txType),
+  );
+}
+
+function executionStateLabel(proposal: any, stage: string): string {
+  if (hasUpgradeAction(proposal)) return "Record-only upgrade boundary";
+  if (["draft", "poll", "revision", "validation", "voting", "vote", "closed"].includes(stage)) return "Not executable yet";
+  if (stage === "tallied") return "Awaiting execution/finalization record";
+  if (stage === "executed") return "Execution record visible";
+  if (stage === "finalized") return "Finalized record visible";
+  if (stage === "withdrawn") return "Withdrawn; execution disabled";
+  return "Execution state unknown";
+}
+
+function cannotExecuteReason(params: { proposal: any; stage: string; deadlineHeight: number; currentHeight: number }): string {
+  const { proposal, stage, deadlineHeight, currentHeight } = params;
+  if (hasUpgradeAction(proposal)) {
+    return "Protocol and constitution upgrade actions are public, governance-parent-bound records only. They do not fetch artifacts, execute migrations, restart nodes, auto-apply software, or activate economics in this bounded testnet.";
+  }
+  if (["draft", "poll", "revision", "validation", "voting", "vote"].includes(stage)) {
+    return deadlineHeight > 0
+      ? `Cannot execute yet: the proposal is in ${stage}; final action waits for the backend to reach block ${deadlineHeight}. Current procedure block is ${currentHeight || "unknown"}.`
+      : `Cannot execute yet: the proposal is in ${stage}; the backend has not exposed an execution deadline for this stage.`;
+  }
+  if (stage === "closed") return "Cannot execute yet: voting is closed, but the tally/final action record has not been published.";
+  if (stage === "tallied") return "Execution may only happen through the backend governance path and must be reflected as a transaction/status record; the frontend cannot execute by itself.";
+  if (stage === "executed") return "Execution has a visible record. Finalization still depends on backend state and cannot be forced by a browser timer.";
+  if (stage === "finalized") return "Finalized: this page is read-only except for inspection and transaction/status review.";
+  if (stage === "withdrawn") return "Withdrawn proposals cannot execute.";
+  return "Execution reason unavailable. Refresh the backend state and inspect the transaction lifecycle before taking action.";
+}
 
 function lifecycleActionHint(stage: string, isCreator: boolean): string {
   if (stage === "draft") {
@@ -301,7 +390,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     }
   }
 
-  async function castVote(choice: "yes" | "no" | "abstain"): Promise<void> {
+  async function castVote(choice: string): Promise<void> {
     setVoteErr(null);
     setVoteRes(null);
 
@@ -309,23 +398,30 @@ export default function Proposal({ id }: Props): JSX.Element {
       if (!gate.ok) throw new Error(gate.reason || "gated");
       if (signerBusy) throw new Error("another_action_is_saving");
 
+      const normalizedChoice = String(choice || "").trim();
+      const multiOptionVote = proposalOptions.length > 0 && normalizedChoice !== "abstain";
+      const voteLabel = choiceLabel(normalizedChoice, proposalOptions);
+      const votePayload = multiOptionVote
+        ? { proposal_id: pid, option_id: normalizedChoice }
+        : { proposal_id: pid, choice: normalizedChoice };
+
       const r = await tx.runTx({
         title: "Cast vote",
-        pendingKey: txPendingKey(["proposal-vote", pid, acct, choice]),
-        pendingMessage: `Recording ${decisionVoteChoiceLabel(choice)} vote…`,
-        successMessage: `Vote recorded: ${decisionVoteChoiceLabel(choice)}.`,
+        pendingKey: txPendingKey(["proposal-vote", pid, acct, normalizedChoice]),
+        pendingMessage: `Recording ${voteLabel} vote…`,
+        successMessage: `Vote submission tracked: ${voteLabel}. Confirm inclusion/finality in Transactions or the refreshed decision detail.`,
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
           mutation: { entityType: "proposal", entityId: pid, account: acct || undefined, routeHint: `/decisions/${encodeURIComponent(pid)}`, txType: "GOV_VOTE_CAST" },
-          reconcile: async () => reconcileProposalVote({ proposalId: pid, account: acct!, choice, base }),
+          reconcile: async () => reconcileProposalVote({ proposalId: pid, account: acct!, choice: normalizedChoice, base }),
         },
         task: async () =>
           submitSignedTx({
             account: acct!,
             tx_type: "GOV_VOTE_CAST",
-            payload: { proposal_id: pid, choice },
+            payload: votePayload,
             parent: null,
             base,
           }),
@@ -340,7 +436,7 @@ export default function Proposal({ id }: Props): JSX.Element {
   }
 
   async function revokeVote(): Promise<void> {
-    await doTx("GOV_VOTE_REVOKE", { proposal_id: pid }, "Revoke vote", "Vote revoked.");
+    await doTx("GOV_VOTE_REVOKE", { proposal_id: pid }, "Revoke vote", "Vote revoke submitted; confirm lifecycle status in Transactions.");
   }
 
   async function editProposal(): Promise<void> {
@@ -352,12 +448,12 @@ export default function Proposal({ id }: Props): JSX.Element {
         body: editBody.trim(),
       },
       "Edit decision",
-      "Decision edit saved.",
+      "Decision edit submitted; confirm visibility through the decision lifecycle.",
     );
   }
 
   async function withdrawProposal(): Promise<void> {
-    await doTx("GOV_PROPOSAL_WITHDRAW", { proposal_id: pid }, "Withdraw decision", "Decision withdrawn.");
+    await doTx("GOV_PROPOSAL_WITHDRAW", { proposal_id: pid }, "Withdraw decision", "Decision withdrawal submitted; confirm lifecycle status in Transactions.");
   }
 
   async function submitProposalComment(): Promise<void> {
@@ -370,13 +466,16 @@ export default function Proposal({ id }: Props): JSX.Element {
       "GOV_PROPOSAL_COMMENT",
       { proposal_id: pid, body },
       "Add deliberation comment",
-      "Deliberation comment recorded.",
+      "Deliberation comment submitted; confirm visibility through the decision lifecycle.",
     );
     setCommentBody("");
   }
 
   const pollVotes = asVoteMap(proposalVotes?.poll_votes ?? proposal?.poll_votes);
   const finalVotes = asVoteMap(proposalVotes?.votes ?? proposal?.votes);
+  const proposalOptions = governanceProposalOptionsOf(proposal);
+  const proposalResult = governanceProposalResultOf(proposal);
+  const hasProposalOptions = proposalOptions.length > 0;
 
   const pollCount = countFromMap(pollVotes);
   const finalCount = countFromMap(finalVotes);
@@ -388,6 +487,8 @@ export default function Proposal({ id }: Props): JSX.Element {
         ? pollVotes
         : finalVotes;
   const activeCount = countFromMap(displayedVoteMap);
+  const activeOptionCounts = optionCountsFromMap(displayedVoteMap, proposalOptions);
+  const selectedOptionId = String(proposalResult?.selected_option_id || "").trim();
 
   const yesPct = pct(activeCount.yes, activeCount.total);
   const noPct = pct(activeCount.no, activeCount.total);
@@ -399,7 +500,7 @@ export default function Proposal({ id }: Props): JSX.Element {
   const voteWindowOpen = ["poll", "voting", "vote"].includes(stage);
   const activeVoteMap = stage === "poll" ? pollVotes : displayedVoteMap;
   const currentVoteRecord = acct ? (voteForAccount(activeVoteMap, acct) || voteForAccount(finalVotes, acct) || voteForAccount(pollVotes, acct)) : null;
-  const currentChoice = String(currentVoteRecord?.vote || "").trim().toLowerCase();
+  const currentChoice = voteChoiceOf(currentVoteRecord).trim().toLowerCase();
   const canVote = gate.ok && voteWindowOpen && !currentChoice;
   const isCreator = gate.ok && acct === String(proposal?.creator || "");
   const canEdit = isCreator && ["draft", "poll", "revision", "validation", "voting", "vote"].includes(stage);
@@ -411,6 +512,7 @@ export default function Proposal({ id }: Props): JSX.Element {
     gateReason: gate.reason || "",
     canVote,
     currentChoice,
+    options: proposalOptions,
   });
   const readiness = actionReadinessLabel({ stage, canVote, canEdit, canWithdraw });
   const canRevoke = gate.ok && !signerBusy && !!currentChoice && !["closed", "tallied", "executed", "finalized", "withdrawn"].includes(stage);
@@ -419,6 +521,15 @@ export default function Proposal({ id }: Props): JSX.Element {
   const procedureIntervalMs = targetBlockIntervalMs(proposal);
   const proposalVersions = Array.isArray(proposal?.versions) ? proposal.versions : [];
   const proposalComments = Array.isArray(proposal?.comments) ? proposal.comments : [];
+  const proposalActionTxTypes = actionTxTypesOf(proposal);
+  const upgradeRecordOnlyBoundary = hasUpgradeAction(proposal);
+  const executionState = executionStateLabel(proposal, stage);
+  const executionReason = cannotExecuteReason({
+    proposal,
+    stage,
+    deadlineHeight: procedureDeadlineHeight,
+    currentHeight: procedureCurrentHeight,
+  });
   const commentWindowOpen = ["draft", "poll", "revision", "validation"].includes(stage);
   const canComment = gate.ok && commentWindowOpen && !signerBusy;
 
@@ -431,14 +542,15 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="eyebrow">Decision</div>
               <h1 className="heroTitle heroTitleSm">{title}</h1>
               <p className="heroText">
-                Decision detail keeps status, voting activity, and creator controls in one place. It separates saving an action from the final visible result.
+                Decision detail keeps stage, block-height deadlines, voting activity, execution state, and transaction evidence in one place. Saving an action is not the same as finalization.
               </p>
             </div>
             <div className="heroInfoPanel">
               <div className="heroInfoTitle">Status</div>
               <div className="heroInfoList">
                 <span className={stageBadgeClass(stage)}>{stage}</span>
-                <span className="statusPill">Votes {activeCount.total}</span>
+                <span className="statusPill">Votes {hasProposalOptions ? activeOptionCounts.total : activeCount.total}</span>
+                <span className={`statusPill ${stage === "executed" || stage === "finalized" ? "ok" : upgradeRecordOnlyBoundary ? "warn" : ""}`}>{executionState}</span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
                   {gate.ok ? "Trusted Verified Person" : "Live verification required"}
                 </span>
@@ -458,16 +570,16 @@ export default function Proposal({ id }: Props): JSX.Element {
 
           <div className="statsGrid statsGridCompact">
             <div className="statCard">
-              <span className="statLabel">Yes</span>
-              <span className="statValue">{activeCount.yes}</span>
+              <span className="statLabel">{hasProposalOptions ? "Options" : "Yes"}</span>
+              <span className="statValue">{hasProposalOptions ? proposalOptions.length : activeCount.yes}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">No</span>
-              <span className="statValue">{activeCount.no}</span>
+              <span className="statLabel">{hasProposalOptions ? "Option votes" : "No"}</span>
+              <span className="statValue">{hasProposalOptions ? Math.max(0, activeOptionCounts.total - activeOptionCounts.abstain) : activeCount.no}</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Abstain</span>
-              <span className="statValue">{activeCount.abstain}</span>
+              <span className="statValue">{hasProposalOptions ? activeOptionCounts.abstain : activeCount.abstain}</span>
             </div>
             <div className="statCard">
               <span className="statLabel">Decision id</span>
@@ -481,6 +593,23 @@ export default function Proposal({ id }: Props): JSX.Element {
       <ErrorBanner message={voteErr?.msg} details={voteErr?.details} onDismiss={() => setVoteErr(null)} />
       <ErrorBanner message={adminErr?.msg} details={adminErr?.details} onDismiss={() => setAdminErr(null)} />
 
+      <section className="surfaceBoundaryBar" aria-label="Governance rendered journey boundary">
+        <div className="surfaceBoundaryHeader">
+          <div>
+            <h2 className="surfaceBoundaryTitle">Governance stage ladder is block-height based.</h2>
+            <p className="surfaceBoundaryText">
+              Canonical stage ladder: {governanceStageLadderText()}. Wall-clock times are display estimates only; backend block height and transaction status decide eligibility, execution, and finalization.
+            </p>
+          </div>
+          <span className="statusPill">Block-height authority</span>
+        </div>
+        <div className="surfaceBoundaryList">
+          <span className="surfaceBoundaryTag">multi-option voting uses canonical option IDs</span>
+          <span className="surfaceBoundaryTag">execution requires backend state</span>
+          <span className="surfaceBoundaryTag">upgrade actions remain record-only</span>
+          <span className="surfaceBoundaryTag">transactions page confirms status</span>
+        </div>
+      </section>
 
       <ProcedureTimeline
         title="Decision timeline"
@@ -505,6 +634,16 @@ export default function Proposal({ id }: Props): JSX.Element {
             <div className="summaryCardLabel">Deliberation comments</div>
             <div className="summaryCardValue mono">{proposalComments.length}</div>
             <div className="summaryCardText">Comments are protocol-visible input before final voting.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Execution state</div>
+            <div className="summaryCardValue">{executionState}</div>
+            <div className="summaryCardText">{executionReason}</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Upgrade boundary</div>
+            <div className="summaryCardValue">{upgradeRecordOnlyBoundary ? "record-only" : "not an upgrade record"}</div>
+            <div className="summaryCardText">Automatic protocol upgrade, migration, rollback, economics activation, and node restart remain disabled from the frontend.</div>
           </article>
         </div>
       </ProcedureTimeline>
@@ -623,9 +762,9 @@ export default function Proposal({ id }: Props): JSX.Element {
       <section className="summaryCardGrid">
         <article className="summaryCard">
           <div className="summaryCardLabel">Voting model</div>
-          <div className="summaryCardValue">Direct civic voting only</div>
+          <div className="summaryCardValue">{hasProposalOptions ? "Multi-option civic voting" : "Direct civic voting"}</div>
           <div className="summaryCardText">
-            This decision uses direct voter records. Participation is personal and non-delegable.
+            {hasProposalOptions ? "Votes reference canonical option IDs, not mutable labels. Abstain remains explicit." : "This decision uses direct yes/no/abstain voter records. Participation is personal and non-delegable."}
           </div>
         </article>
         <article className="summaryCard">
@@ -633,6 +772,13 @@ export default function Proposal({ id }: Props): JSX.Element {
           <div className="summaryCardValue">Saving is not approval</div>
           <div className="summaryCardText">
             Decision edits, withdrawals, and votes are saved first. Later status changes and results remain authoritative backend state.
+          </div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Block-height truth</div>
+          <div className="summaryCardValue mono">{procedureCurrentHeight || "—"} → {procedureDeadlineHeight || "—"}</div>
+          <div className="summaryCardText">
+            Human time labels are estimates; protocol truth uses committed block heights. This page cannot finalize early or override backend lifecycle boundaries.
           </div>
         </article>
       </section>
@@ -646,7 +792,7 @@ export default function Proposal({ id }: Props): JSX.Element {
             </div>
             <div className="statusSummary">
               <span className={`statusPill ${canVote ? "ok" : ""}`}>{voteModeLabel}</span>
-              {currentChoice ? <span className="statusPill">Current: {decisionVoteChoiceLabel(currentChoice)}</span> : null}
+              {currentChoice ? <span className="statusPill">Current: {choiceLabel(currentChoice, proposalOptions)}</span> : null}
             </div>
           </div>
 
@@ -665,25 +811,52 @@ export default function Proposal({ id }: Props): JSX.Element {
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Your vote</div>
-              <div className="summaryCardValue">{decisionVoteChoiceLabel(currentChoice)}</div>
+              <div className="summaryCardValue">{choiceLabel(currentChoice, proposalOptions)}</div>
               <div className="summaryCardText">Signer-keyed direct vote</div>
             </article>
           </div>
 
-          <div className="buttonRow">
-            <button className="btn btnPrimary" onClick={() => void castVote("yes")} disabled={!canVote || signerBusy}>
-              Vote yes
-            </button>
-            <button className="btn" onClick={() => void castVote("no")} disabled={!canVote || signerBusy}>
-              Vote no
-            </button>
-            <button className="btn" onClick={() => void castVote("abstain")} disabled={!canVote || signerBusy}>
-              Abstain
-            </button>
-            <button className="btn" onClick={() => void revokeVote()} disabled={!canRevoke}>
-              Revoke vote
-            </button>
-          </div>
+          {hasProposalOptions ? (
+            <div className="pageStack">
+              <div className="summaryCardGrid">
+                {proposalOptions.map((opt) => (
+                  <article key={opt.option_id} className="summaryCard">
+                    <div className="summaryCardLabel mono">{opt.option_id}</div>
+                    <div className="summaryCardValue">{opt.label}</div>
+                    <div className="summaryCardText">Votes {activeOptionCounts.optionCounts[opt.option_id] || 0}{selectedOptionId === opt.option_id ? " · selected" : ""}</div>
+                  </article>
+                ))}
+              </div>
+              <div className="buttonRow">
+                {proposalOptions.map((opt, idx) => (
+                  <button key={opt.option_id} className={`btn ${idx === 0 ? "btnPrimary" : ""}`} onClick={() => void castVote(opt.option_id)} disabled={!canVote || signerBusy}>
+                    Vote: {opt.label}
+                  </button>
+                ))}
+                <button className="btn" onClick={() => void castVote("abstain")} disabled={!canVote || signerBusy}>
+                  Abstain
+                </button>
+                <button className="btn" onClick={() => void revokeVote()} disabled={!canRevoke}>
+                  Revoke vote
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="buttonRow">
+              <button className="btn btnPrimary" onClick={() => void castVote("yes")} disabled={!canVote || signerBusy}>
+                Vote yes
+              </button>
+              <button className="btn" onClick={() => void castVote("no")} disabled={!canVote || signerBusy}>
+                Vote no
+              </button>
+              <button className="btn" onClick={() => void castVote("abstain")} disabled={!canVote || signerBusy}>
+                Abstain
+              </button>
+              <button className="btn" onClick={() => void revokeVote()} disabled={!canRevoke}>
+                Revoke vote
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -732,8 +905,19 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="summaryCardText">{decisionStageHelp(stage)}</div>
             </article>
             <article className="summaryCard">
-              <div className="summaryCardLabel">Next step</div>
+              <div className="summaryCardLabel">Why execution cannot be forced</div>
+              <div className="summaryCardValue">{executionState}</div>
+              <div className="summaryCardText">{executionReason}</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Action tx types</div>
+              <div className="summaryCardValue">{proposalActionTxTypes.length || "none"}</div>
+              <div className="summaryCardText mono">{proposalActionTxTypes.length ? proposalActionTxTypes.join(", ") : "No executable action payload declared."}</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">What happens next</div>
               <div className="summaryCardValue">{readiness}</div>
+              <div className="summaryCardText">Exact start/end boundaries come from backend state; repeated finalization must remain idempotent.</div>
             </article>
             <article className="summaryCard">
               <div className="summaryCardLabel">Applied changes</div>
@@ -827,7 +1011,7 @@ export default function Proposal({ id }: Props): JSX.Element {
                 {sortedVoteEntries(stage === "poll" ? pollVotes : finalVotes).map(([signer, rec]) => (
                   <article key={signer} className="summaryCard">
                     <div className="summaryCardLabel mono">{signer}</div>
-                    <div className="summaryCardValue">{decisionVoteChoiceLabel(rec?.vote)}</div>
+                    <div className="summaryCardValue">{choiceLabel(voteChoiceOf(rec), proposalOptions)}</div>
                     <div className="summaryCardText">Record {Number(rec?.height || 0)}</div>
                   </article>
                 ))}
@@ -899,8 +1083,12 @@ export default function Proposal({ id }: Props): JSX.Element {
                 <div className="eyebrow">Latest result</div>
                 <h2 className="cardTitle">Latest action response</h2>
               </div>
-              
+              <div className="statusSummary">
+                <button className="btn" onClick={() => nav("/transactions")}>Open Transactions</button>
+              </div>
             </div>
+
+            <div className="calloutInfo">Submission output is evidence to follow, not a finalization claim. Use Transactions or refreshed backend state to verify included, finalized, rejected, or still pending status.</div>
 
             <div className="cardDesc mono" style={{ whiteSpace: "pre-wrap" }}>
               {JSON.stringify(voteRes || adminRes, null, 2)}

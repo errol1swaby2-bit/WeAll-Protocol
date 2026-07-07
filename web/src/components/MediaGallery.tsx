@@ -171,20 +171,72 @@ function DeferredMediaCard({
   title,
   compact,
   idx,
+  restrictedPlayback,
+  lockAfterMs,
+  allowedReplays,
 }: {
   base: string;
   item: MediaLike;
   title: string;
   compact: boolean;
   idx: number;
+  restrictedPlayback: boolean;
+  lockAfterMs: number;
+  allowedReplays: number;
 }): JSX.Element {
   const [ref, shouldLoad] = useViewportLoad();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const lockTimerRef = useRef<number | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [spent, setSpent] = useState(false);
+  const [replaysUsed, setReplaysUsed] = useState(0);
+  const [playbackKey, setPlaybackKey] = useState(0);
   const url = deriveUrl(item, base);
   const externalUrl = deriveExternalUrl(item);
   const mime = deriveMime(item);
   const cid = deriveCid(item);
   const label = deriveLabel(item);
   const kind = kindFor(item);
+  const restrictedVideo = restrictedPlayback && kind === "video";
+
+  useEffect(() => {
+    return () => {
+      if (lockTimerRef.current !== null) window.clearTimeout(lockTimerRef.current);
+    };
+  }, []);
+
+  function clearPlaybackTimer(): void {
+    if (lockTimerRef.current !== null) window.clearTimeout(lockTimerRef.current);
+    lockTimerRef.current = null;
+  }
+
+  function lockRestrictedPlayback(): void {
+    clearPlaybackTimer();
+    const node = videoRef.current;
+    try { node?.pause(); } catch { /* ignore media pause failures */ }
+    if (replaysUsed < allowedReplays) setLocked(true);
+    else setSpent(true);
+  }
+
+  function startRestrictedPlaybackWindow(): void {
+    if (!restrictedVideo || locked || spent) return;
+    clearPlaybackTimer();
+    lockTimerRef.current = window.setTimeout(lockRestrictedPlayback, lockAfterMs);
+  }
+
+  function markRestrictedPlaybackEnded(): void {
+    if (!restrictedVideo) return;
+    lockRestrictedPlayback();
+  }
+
+  function rewatchRestrictedPlayback(): void {
+    if (!restrictedVideo || replaysUsed >= allowedReplays) return;
+    clearPlaybackTimer();
+    setReplaysUsed((n) => n + 1);
+    setLocked(false);
+    setSpent(false);
+    setPlaybackKey((n) => n + 1);
+  }
 
   return (
     <div key={`${label}:${idx}`} ref={ref} className="feedMediaCard">
@@ -195,7 +247,31 @@ function DeferredMediaCard({
         </div>
       ) : null}
       {kind === "image" && url && shouldLoad ? <img src={url} alt={label} loading="lazy" decoding="async" style={{ width: "100%", borderRadius: 12, maxHeight: compact ? 280 : 360, objectFit: "cover" }} /> : null}
-      {kind === "video" && url && shouldLoad ? <video src={url} controls preload="none" style={{ width: "100%", borderRadius: 12, maxHeight: compact ? 280 : 360 }} /> : null}
+      {kind === "video" && url && shouldLoad && !(restrictedVideo && (locked || spent)) ? (
+        <video
+          key={playbackKey}
+          ref={videoRef}
+          src={url}
+          controls
+          preload="none"
+          controlsList={restrictedVideo ? "nodownload noplaybackrate noremoteplayback" : undefined}
+          disablePictureInPicture={restrictedVideo || undefined}
+          onContextMenu={restrictedVideo ? (event) => event.preventDefault() : undefined}
+          onPlay={startRestrictedPlaybackWindow}
+          onEnded={markRestrictedPlaybackEnded}
+          style={{ width: "100%", borderRadius: 12, maxHeight: compact ? 280 : 360 }}
+        />
+      ) : null}
+      {restrictedVideo && locked ? (
+        <div className="inlineNote" style={{ marginTop: 8 }}>
+          Evidence playback locked after the review window.
+          <div className="buttonRow" style={{ marginTop: 8 }}>
+            <button className="btn" type="button" onClick={rewatchRestrictedPlayback}>Rewatch once</button>
+          </div>
+        </div>
+      ) : null}
+      {restrictedVideo && spent ? <div className="inlineNote" style={{ marginTop: 8 }}>Evidence playback is locked. The one rewatch allowance has already been used.</div> : null}
+      {restrictedVideo ? <div className="feedMediaMeta">Restricted reviewer evidence: playback auto-locks after 5 minutes or when the video ends. Browser controls reduce download/remote-playback exposure, but operating systems and browsers cannot reliably prevent screen recording.</div> : null}
       {kind === "audio" && url && shouldLoad ? <audio src={url} controls preload="none" style={{ width: "100%" }} /> : null}
       {kind === "file" && url ? (
         <a href={url} target="_blank" rel="noreferrer" className="btn" style={{ width: "fit-content" }}>
@@ -226,11 +302,17 @@ export default function MediaGallery({
   media,
   title = "Media",
   compact = false,
+  restrictedPlayback = false,
+  lockAfterMs = 5 * 60 * 1000,
+  allowedReplays = 1,
 }: {
   base: string;
   media: MediaLike[];
   title?: string;
   compact?: boolean;
+  restrictedPlayback?: boolean;
+  lockAfterMs?: number;
+  allowedReplays?: number;
 }): JSX.Element | null {
   const items = asArray(media).filter((item) => item != null);
   if (!items.length) return null;
@@ -238,7 +320,7 @@ export default function MediaGallery({
   return (
     <div className="feedMediaList" style={{ gap: compact ? 10 : 12 }}>
       {items.map((item, idx) => (
-        <DeferredMediaCard key={`${deriveLabel(item)}:${idx}`} base={base} item={item} title={title} compact={compact} idx={idx} />
+        <DeferredMediaCard key={`${deriveLabel(item)}:${idx}`} base={base} item={item} title={title} compact={compact} idx={idx} restrictedPlayback={restrictedPlayback} lockAfterMs={lockAfterMs} allowedReplays={allowedReplays} />
       ))}
     </div>
   );

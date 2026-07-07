@@ -242,7 +242,7 @@ obj = {
 index_path.write_text(json.dumps(obj, sort_keys=True, indent=2) + "\n", encoding="utf-8")
 PY
 
-WEALL_ALLOW_PRIVATE_GENESIS_API=1 \
+WEALL_ALLOW_LAN_GENESIS_API=1 \
 python3 scripts/verify_node_operator_onboarding_bundle.py \
   --bundle "${BUNDLE_OUT}" \
   --manifest "${PUBLIC_MANIFEST_OUT}" \
@@ -262,7 +262,7 @@ Observer pull command:
   bash scripts/reviewer_observer_rehearsal.sh \\
     --genesis-api-base ${GENESIS_API_BASE} \\
     --pull-reviewer-artifacts \\
-    --allow-private-genesis-api
+    --allow-lan-genesis-api
 
 MSG
 
@@ -366,7 +366,7 @@ Observer command:
   bash scripts/reviewer_observer_rehearsal.sh \\
     --genesis-api-base ${GENESIS_API_BASE} \\
     --pull-reviewer-artifacts \\
-    --allow-private-genesis-api
+    --allow-lan-genesis-api
 
 Truth boundary:
   Disposable reviewer rehearsal chain.

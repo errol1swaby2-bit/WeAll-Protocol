@@ -281,6 +281,7 @@ def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tup
     baseline = evaluation.get("baseline") if isinstance(evaluation, dict) else {}
     validator = evaluation.get("validator") if isinstance(evaluation, dict) else {}
     storage = evaluation.get("storage") if isinstance(evaluation, dict) else {}
+    helper = evaluation.get("helper") if isinstance(evaluation, dict) else {}
 
     baseline_reasons = set(baseline.get("reasons") or []) if isinstance(baseline, dict) else set()
     legacy_active_without_node_device = baseline_reasons == {"node_key_missing"}
@@ -293,12 +294,17 @@ def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tup
 
     if baseline_active:
         active_roles.append("node_operator")
-        active_roles.append("helper")
     elif baseline_status not in ("", "not_opted_in"):
         # A historical active flag is not enough for production service. Current
         # centralized responsibility readiness must still be eligible, so a
         # duplicated/revoked node key or restricted account suspends authority.
         suspended_roles.append("node_operator")
+
+    helper_active = bool(isinstance(helper, dict) and helper.get("active"))
+    helper_requested = bool(isinstance(helper, dict) and helper.get("status") not in (None, "", "not_opted_in"))
+    if baseline_active and helper_active:
+        active_roles.append("helper")
+    elif helper_requested:
         suspended_roles.append("helper")
 
     # Validator/storage are optional responsibilities beneath Node Operator
@@ -407,11 +413,19 @@ def evaluate_production_preflight(
                 elif bft_requested:
                     _append_unique(maintenance_reasons, "ROLE_NOT_ACTIVE")
             elif role == "helper":
-                # Helper currently derives from baseline Node Operator posture.
-                if "node_operator" in active_roles:
+                # Helper execution is a separate responsibility lane. Baseline
+                # Node Operator status alone must not grant helper work, helper
+                # receipts, helper penalties, or helper service startup. When the
+                # baseline operator itself is inactive, keep the older, more
+                # general ROLE_NOT_ACTIVE diagnostic so operator preflight does not
+                # misreport a missing helper lane before the node-operator role is
+                # active.
+                if "helper" in active_roles:
                     effective_roles.append(role)
-                else:
+                elif "node_operator" not in active_roles:
                     _append_unique(maintenance_reasons, "ROLE_NOT_ACTIVE")
+                else:
+                    _append_unique(maintenance_reasons, "HELPER_RESPONSIBILITY_NOT_ACTIVE")
             elif role == "node_operator":
                 if "node_operator" in active_roles:
                     effective_roles.append(role)

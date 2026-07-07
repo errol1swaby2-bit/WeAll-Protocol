@@ -44,7 +44,7 @@ PROHIBITED_SECRET_KEYS = [
     "WEALL_ORACLE_PRIVKEY_FILE",
     "WEALL_LEGACY_ORACLE_PRIVKEY",
     "WEALL_LEGACY_ORACLE_PRIVKEY_FILE",
-    "WEALL_CLOUDFLARE_API_TOKEN",
+    "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN",
     "WEALL_DNS_API_TOKEN",
     "WEALL_OAUTH_CLIENT_SECRET",
     "WEALL_KYC_PROVIDER_SECRET",
@@ -144,7 +144,7 @@ def _bundle_profile(manifest: Json, authority: Json) -> str:
 
 def _verify_command_for_manifest(manifest_path: Path, bundle_profile: str) -> str:
     profile = str(bundle_profile or "").strip().lower()
-    allow = " WEALL_ALLOW_PRIVATE_GENESIS_API=1" if profile in {"controlled_devnet", "controlled_devnet_rehearsal", "rehearsal"} else ""
+    allow = " WEALL_ALLOW_LAN_GENESIS_API=1" if profile in {"controlled_devnet", "controlled_devnet_rehearsal", "rehearsal"} else ""
     return (
         f"{allow} python3 scripts/verify_node_operator_onboarding_bundle.py "
         f"--bundle <observer-bundle.json> --manifest {manifest_path.as_posix()} --json"
@@ -247,9 +247,9 @@ def main() -> int:
     parser.add_argument("--out", required=True)
     parser.add_argument("--genesis-api-base", default="")
     parser.add_argument("--relay-urls", default="")
-    parser.add_argument("--relay-recipient-pubkeys", default="", help="JSON object mapping relay peer ids to recipient Ed25519 public keys")
+    parser.add_argument("--relay-recipient-pubkeys", default="", help="JSON object mapping relay peer ids to recipient ML-DSA public keys")
     parser.add_argument("--genesis-peer-id", default="genesis", help="Relay recipient peer id for the genesis/bootstrap node")
-    parser.add_argument("--genesis-recipient-pubkey", default="", help="Genesis/bootstrap node Ed25519 public key for relay recipient binding")
+    parser.add_argument("--genesis-recipient-pubkey", default="", help="Genesis/bootstrap node ML-DSA public key for relay recipient binding")
     parser.add_argument("--authority-url", default="")
     parser.add_argument("--min-authority-height", type=int, default=int(os.environ.get("WEALL_MIN_AUTHORITY_HEIGHT") or "0"))
     parser.add_argument("--authority-snapshot-max-age-ms", type=int, default=int(os.environ.get("WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS") or "120000"))

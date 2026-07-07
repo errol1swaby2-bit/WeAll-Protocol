@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import ActionLifecycleCard from "../components/ActionLifecycleCard";
+import ProcedureTimeline from "../components/ProcedureTimeline";
 import MediaGallery from "../components/MediaGallery";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -24,6 +25,7 @@ import {
 } from "../lib/disputeSurface";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError, txPendingKey } from "../lib/txAction";
+import { currentProcedureHeight, disputeDeadlineHeight, targetBlockIntervalMs } from "../lib/procedureClock";
 
 // Compatibility anchors for older frontend/backend congruity tests. The live
 // submit buttons below include canonical outcome fields, but these summaries
@@ -138,6 +140,8 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const canAccept = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
   const canDecline = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
   const canVote = disputeReviewUnlocked({ dispute, account, tierGateOk: tierGate.ok, signerBusy: signerSubmission.busy });
+  const canWithdraw = !!dispute && !!account && !signerSubmission.busy && ["accepted", "present", "attended"].includes(selectedJurorStatus);
+  const reputationWarning = String(dispute?.reputation_warning?.text || "Accepting this dispute creates a 1-hour review obligation. Withdraw within 15 minutes with no reputation impact. Late withdrawal causes a small juror reliability penalty. Timeout causes a larger juror reliability penalty.");
   const disputeId = String(dispute?.id || dispute?.dispute_id || id || "").trim();
   const targetId = String(dispute?.target_id || "").trim();
   const contentObj = targetContent?.content;
@@ -145,6 +149,11 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const contentAuthor = String(contentObj?.author || "").trim();
   const contentGroup = String(contentObj?.group_id || contentObj?.scope_id || "").trim();
   const contentMedia = asArray(contentObj?.media);
+  const reviewProcedureHeight = currentProcedureHeight(dispute);
+  const reviewDeadline = disputeDeadlineHeight(dispute);
+  const reviewIntervalMs = targetBlockIntervalMs(dispute);
+  const withdrawalDeadline = Number(dispute?.withdrawal_deadline_height || dispute?.free_withdrawal_deadline_height || 0) || 0;
+  const finalizationHeight = Number(dispute?.finalized_height || dispute?.finalized_at_height || dispute?.resolution_height || 0) || 0;
   const removeContentActions = targetId
     ? [
         { tx_type: "CONTENT_LABEL_SET", payload: { target_id: targetId, labels: ["dispute_upheld", "policy_violation"] } },
@@ -210,7 +219,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
             <div>
               <div className="eyebrow">Community review workspace</div>
               <h1 className="heroTitle heroTitleSm">Report review</h1>
-              <p className="heroSubtitle">This page owns the final reviewer workflow. The queue lists work, the detail page explains the report, and this action page records one final review choice.</p>
+              <p className="heroSubtitle">This page owns the final content/dispute reviewer workflow. The Review Center lists lane-specific work, the detail page explains the report, and this action page records one final review choice.</p>
             </div>
             <div className="surfaceSummaryStats">
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{disputeId}</strong><span className="surfaceSummaryHint">report id</span></div>
@@ -218,6 +227,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
             </div>
           </div>
           <div className="buttonRow">
+            <button className="btn" onClick={() => nav("/reviews")}>Back to Review Center</button>
             <button className="btn" onClick={() => nav(`/reports/${encodeURIComponent(id)}`)}>Back to detail</button>
             <button className="btn" onClick={() => nav("/reports")}>Back to reports</button>
             <button className="btn" onClick={() => void refreshMutationSlices(refreshAccount, refreshAccountContext, load)}>{signerSubmission.busy ? "Waiting…" : "Refresh review state"}</button>
@@ -233,11 +243,39 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
       />
       <div className="calloutInfo">{lockReason}</div>
 
+      <ProcedureTimeline
+        title="Dispute review action timeline"
+        stage={String(dispute?.stage || "open")}
+        currentHeight={reviewProcedureHeight}
+        deadlineHeight={reviewDeadline}
+        targetBlockIntervalMs={reviewIntervalMs}
+        authorityLabel="Review, withdrawal, timeout, appeal, and finalization windows are controlled by backend block heights, not browser timers."
+        nextAction={lockReason}
+      >
+        <div className="summaryCardGrid">
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Withdrawal window</div>
+            <div className="summaryCardValue mono">{withdrawalDeadline || "backend supplied"}</div>
+            <div className="summaryCardText">Early withdrawal should remain lighter than timeout when protocol state still allows it.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Finalization height</div>
+            <div className="summaryCardValue mono">{finalizationHeight || "—"}</div>
+            <div className="summaryCardText">This page must not call a review final until backend/finalized block state says so.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Receipt path</div>
+            <div className="summaryCardValue">Transactions</div>
+            <div className="summaryCardText">Accept, decline, withdraw, and final choices are signed transactions; inspect inclusion, rejection, or finality on the Transactions page.</div>
+          </article>
+        </div>
+      </ProcedureTimeline>
+
       <section className="detailFocusStrip actionFocusStrip">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Primary object</div>
           <div className="detailFocusValue">Final reviewer action</div>
-          <div className="detailFocusText">This workspace is for one report and one reviewer account. It should feel narrower and more deliberate than the queue or detail pages.</div>
+          <div className="detailFocusText">This workspace is for one report and one reviewer account. It stays narrower and more deliberate than the Review Center or report detail pages.</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Submission rule</div>
@@ -247,7 +285,12 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Interaction boundary</div>
           <div className="detailFocusValue">Action route only</div>
-          <div className="detailFocusText">Use this page to accept, decline, or record the final review choice. Queue browsing and report explanation live on the other routes.</div>
+          <div className="detailFocusText">Use this page to accept, decline, withdraw, or record the final review choice. Queue browsing and report explanation live on the other routes.</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Evidence boundary</div>
+          <div className="detailFocusValue">Public target, protected identity material</div>
+          <div className="detailFocusText">Content under dispute is public civic state. Protected PoH/video/government identity evidence must only unlock through reviewer-specific acceptance gates.</div>
         </article>
       </section>
 
@@ -339,11 +382,13 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
           <div className="buttonRow buttonRowWide">
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: disputeId }, "Accept assignment", "Review assignment accepted.")} disabled={!canAccept}>{signerSubmission.busy ? "Waiting…" : "Accept assignment"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: disputeId }, "Decline assignment", "Review assignment declined.")} disabled={!canDecline}>{signerSubmission.busy ? "Waiting…" : "Decline assignment"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_WITHDRAW", { dispute_id: disputeId }, "Withdraw assignment", "Review assignment withdrawn.")} disabled={!canWithdraw}>{signerSubmission.busy ? "Waiting…" : "Withdraw"}</button>
             <button className="btn btnPrimary" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "no", resolution: { outcome: "report_not_upheld", summary: "Reviewer chose to keep the post visible.", actions: [] } }, "Keep Post", "Keep Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Keep Post"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "yes", resolution: { outcome: "report_upheld", summary: "Reviewer upheld the report and chose to remove the post.", actions: removeContentActions } }, "Remove Post", "Remove Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Remove Post"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "abstain" }, "Need More Review", "Need More Review choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Need More Review"}</button>
           </div>
-          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept or decline only to resolve assignment posture; once unlocked, Keep Post records that the report should not be upheld, while Remove Post records that the report should be upheld.</div>
+          <div className="infoCard compact"><div className="infoCardHeader"><span className="statusPill">Juror reputation</span><strong>Canonical review obligation</strong></div><div className="infoCardText">{reputationWarning}</div></div>
+          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept, decline, withdraw, or vote using signed protocol transactions. The backend returns canonical deadlines and classifies all reputation outcomes; the frontend only displays countdowns and warnings. A submitted review is not final until transaction status and the dispute read model reconcile.</div>
         </div>
       </section>
 

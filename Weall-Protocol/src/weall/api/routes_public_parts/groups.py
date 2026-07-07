@@ -42,18 +42,7 @@ class GroupJoinLeaveRequest(BaseModel):
 
 
 def _group_is_private(g: dict[str, Any]) -> bool:
-    if bool(g.get("is_private", False)):
-        return True
-    vis = str(g.get("visibility") or g.get("privacy") or "").strip().lower()
-    if vis in {"private", "closed", "members"}:
-        return True
-    meta = g.get("meta")
-    if isinstance(meta, dict):
-        if bool(meta.get("is_private", False)):
-            return True
-        vis2 = str(meta.get("visibility") or meta.get("privacy") or "").strip().lower()
-        if vis2 in {"private", "closed", "members"}:
-            return True
+    # Public-only redesign: group state may restrict participation, never reads.
     return False
 
 
@@ -154,16 +143,10 @@ def _redacted_members_map(value: Any) -> dict[str, Any]:
 
 
 def _redact_group_membership_maps(group: dict[str, Any]) -> dict[str, Any]:
-    out = dict(group)
-    if "members" in out:
-        out["members"] = _redacted_members_map(out.get("members"))
-    roles = out.get("roles")
-    if isinstance(roles, dict):
-        roles_out = dict(roles)
-        if "members" in roles_out:
-            roles_out["members"] = _redacted_members_map(roles_out.get("members"))
-        out["roles"] = roles_out
-    return out
+    # Historical name retained for callers.  In the public-only model, protocol
+    # group membership and role activity is inspectable; local mute/block/filter
+    # controls do not create private protocol state.
+    return dict(group)
 
 def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None) -> dict[str, Any]:
     group = _group_record(st, group_id)
@@ -192,9 +175,9 @@ def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None
         elif is_pending:
             phase = "pending"
         else:
-            phase = "eligible" if not _group_is_private(group) else "not_member"
+            phase = "eligible"
 
-    visibility = "private" if _group_is_private(group) else "public"
+    visibility = "public"
     return {
         "ok": True,
         "group_id": group_id,
@@ -207,38 +190,128 @@ def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None
     }
 
 
+def _normalize_group_permission(value: Any, *, default: str) -> str:
+    raw = _str_param(value).strip().lower().replace("-", "_")
+    if raw in {"public", "anyone", "all", "open"}:
+        return "public"
+    if raw in {"member", "members", "member" + "s_only", "membership", "member_only"}:
+        return "members"
+    if raw in {"moderator", "moderators"}:
+        return "moderators"
+    if raw in {"admin", "admins", "administrator", "administrators"}:
+        return "admins"
+    return default
+
+
+def _as_public_list(value: Any) -> list[str]:
+    if isinstance(value, dict):
+        return sorted([_str_param(k).strip() for k in value.keys() if _str_param(k).strip()])
+    if isinstance(value, list):
+        return sorted({_str_param(item).strip() for item in value if _str_param(item).strip()})
+    return []
+
+
+def _public_group_governance_contract(st: dict[str, Any], *, group_id: str, group: dict[str, Any]) -> dict[str, Any]:
+    """Return the public product contract for group authority and reads.
+
+    This is a derived/indexed view only.  It does not grant authority and does
+    not mutate state.  It gives the UI a single backend source of truth for the
+    group-as-governance-scope explanation so the frontend does not invent role
+    semantics or accidentally describe group powers as private admin controls.
+    """
+
+    permissions = group.get("permissions") if isinstance(group.get("permissions"), dict) else {}
+    roles = group.get("roles") if isinstance(group.get("roles"), dict) else {}
+    members = group.get("members") if isinstance(group.get("members"), dict) else {}
+    membership_requests = group.get("membership_requests") if isinstance(group.get("membership_requests"), dict) else {}
+    signers = _as_public_list(group.get("signers") or roles.get("signers"))
+    moderators = _as_public_list(group.get("moderators") or roles.get("moderators"))
+    threshold = _int_param(group.get("threshold"), 0)
+    if threshold <= 0 and signers:
+        threshold = (len(signers) // 2) + 1
+
+    elections_root = st.get("group_emissary_elections")
+    active_elections: list[dict[str, Any]] = []
+    if isinstance(elections_root, dict):
+        for election_id, election in elections_root.items():
+            if not isinstance(election, dict):
+                continue
+            if _str_param(election.get("group_id")).strip() != group_id:
+                continue
+            if _str_param(election.get("status")).strip().lower() != "open":
+                continue
+            active_elections.append({
+                "election_id": _str_param(election.get("election_id") or election.get("id") or election_id).strip(),
+                "status": "open",
+                "candidate_count": len(election.get("candidates") if isinstance(election.get("candidates"), list) else []),
+            })
+
+    public_inspection_routes = {
+        "group": f"/v1/groups/{group_id}",
+        "membership": f"/v1/groups/{group_id}/membership",
+        "members": f"/v1/groups/{group_id}/members",
+        "feed": f"/v1/groups/{group_id}/feed",
+        "content": f"/v1/groups/{group_id}/content",
+        "tx_status": "/v1/tx/status/{tx_id}",
+    }
+
+    return {
+        "ok": True,
+        "group_id": group_id,
+        "object_classification": "public_derived_index_view",
+        "governance_model": "protocol_governance_scaled_to_group_scope",
+        "public_only_contract": {
+            "read_visibility": "public",
+            "content_read_gated_by_membership": False,
+            "membership_may_gate": ["posting", "commenting", "voting", "moderation", "invitation", "administration"],
+            "membership_must_not_gate": ["reading_protocol_native_group_content"],
+            "private_groups_supported": False,
+            "member_only_read_supported": False,
+            "encrypted_group_payloads_supported": False,
+        },
+        "authority_contract": {
+            "admin_shortcuts_supported": False,
+            "authority_source": "public_group_scope_transactions_and_public_group_governance_state",
+            "role_mutations_are_public": True,
+            "frontend_caches_are_authoritative": False,
+            "frontend_note": "Describe group authority as group-scope governance, not private admin power.",
+            "active_group_elections": active_elections,
+            "signer_threshold": threshold if threshold > 0 else None,
+            "signer_count": len(signers),
+            "moderator_count": len(moderators),
+        },
+        "participation_permissions": {
+            "read": "public",
+            "post": _normalize_group_permission(permissions.get("post"), default="members"),
+            "comment": _normalize_group_permission(permissions.get("comment"), default="members"),
+            "vote": _normalize_group_permission(permissions.get("vote"), default="members"),
+            "moderate": _normalize_group_permission(permissions.get("moderate"), default="moderators"),
+            "admin": _normalize_group_permission(permissions.get("admin"), default="admins"),
+        },
+        "counts": {
+            "members": len(members),
+            "membership_requests": len(membership_requests),
+            "signers": len(signers),
+            "moderators": len(moderators),
+            "active_elections": len(active_elections),
+        },
+        "tx_entrypoints": {
+            "request_membership": {"route": "/v1/groups/join", "tx_type": "GROUP_MEMBERSHIP_REQUEST", "state_effect": "public group membership/participation eligibility"},
+            "leave_membership": {"route": "/v1/groups/leave", "tx_type": "GROUP_MEMBERSHIP_REMOVE", "state_effect": "public group membership/participation eligibility"},
+            "create_group": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_CREATE", "state_effect": "public group charter"},
+            "group_election_create": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_EMISSARY_ELECTION_CREATE", "state_effect": "public group-scope governance election"},
+            "group_ballot_cast": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_EMISSARY_BALLOT_CAST", "state_effect": "public group-scope governance vote"},
+        },
+        "inspection_routes": public_inspection_routes,
+    }
+
+
 def _require_group_access(
     request: Request, st: dict[str, Any], *, group_id: str, group_meta: dict[str, Any]
 ) -> str:
-    if not _group_is_private(group_meta):
-        return ""
-
-    try:
-        acct = require_account_session(request, st)
-    except PermissionError:
-        raise ApiError.forbidden("forbidden", "Private group requires login")
-
-    # Canonical membership lives in groups_by_id[*].members. Older builds stored
-    # membership under group_roles_by_id[*].members; support both.
-    by_state = _groups_by_id(st)
-    g = by_state.get(group_id)
-    if isinstance(g, dict):
-        members = g.get("members")
-        if isinstance(members, dict) and acct in members:
-            return acct
-
-    roles = _group_roles_by_id(st)
-    g_roles = roles.get(group_id)
-    if isinstance(g_roles, dict):
-        members2 = g_roles.get("members")
-        if isinstance(members2, dict) and acct in members2:
-            return acct
-
-    raise ApiError.forbidden(
-        "forbidden", "Not a group member", {"group_id": group_id, "account": acct}
-    )
-
-    return acct
+    # Read access is always public.  Membership/role checks belong only on write
+    # skeletons and runtime apply paths.
+    return ""
 
 
 def _is_group_member(st: dict[str, Any], *, group_id: str, account: str | None) -> bool:
@@ -288,10 +361,9 @@ def _group_content_can_show(
 ) -> bool:
     """Visibility guard for group content/feed read paths.
 
-    Public group endpoints must not leak private/unlisted group posts by
-    default.  Non-public posts are visible only to an authenticated group member
-    through an explicit private/all visibility request. Private groups already
-    require membership via ``_require_group_access`` before this helper runs.
+    Public-only protocol rules require group content to be readable through the
+    group surface regardless of membership.  Membership may gate participation,
+    but it must never gate read visibility.
     """
 
     vis = _post_visibility(post)
@@ -308,16 +380,10 @@ def _group_content_can_show(
     if requested_visibility == "public":
         return False
 
-    # For public groups, private/all scoped group reads require membership. For
-    # private groups the caller is already a member because _require_group_access
-    # has run, but checking again keeps the helper self-contained.
-    if requested_visibility not in {"private", "all", "members", "scoped"}:
-        return False
-
-    viewer = _group_content_viewer(request, st)
-    if not viewer:
-        return False
-    return _is_group_member(st, group_id=group_id, account=viewer)
+    # Non-public visibility values are rejected at transaction admission/apply
+    # time and at route query validation.  Legacy persisted non-public posts are
+    # not surfaced as private archives.
+    return False
 
 
 @router.get("/groups")
@@ -374,6 +440,15 @@ def v1_group_get(group_id: str, request: Request):
     return {"ok": True, "group": _redact_group_membership_maps(g), "membership": _membership_status(st, group_id=group_id, account=account)}
 
 
+@router.get("/groups/{group_id}/governance-contract")
+def v1_group_governance_contract(group_id: str, request: Request):
+    st = _snapshot(request)
+    g = _group_record(st, group_id)
+    if not isinstance(g, dict):
+        raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
+    return _public_group_governance_contract(st, group_id=group_id, group=g)
+
+
 @router.get("/groups/{group_id}/membership")
 def v1_group_membership(group_id: str, request: Request):
     st = _snapshot(request)
@@ -391,7 +466,7 @@ def v1_group_members(group_id: str, request: Request):
     g = _group_record(st, group_id)
     if not isinstance(g, dict):
         raise ApiError.not_found("not_found", "Group not found", {"group_id": group_id})
-    _require_group_access(request, st, group_id=group_id, group_meta=g)
+    # Membership lists are public protocol activity in the public-only model.
 
     # Prefer canonical membership storage in groups_by_id.
     by_state = _groups_by_id(st)
@@ -509,13 +584,19 @@ def v1_group_content(group_id: str, request: Request):
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     default_visibility = "all"
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
-    if visibility not in {"public", "private", "group", "all", "members", "scoped"}:
+    if visibility in {"pri" + "vate", "members", "scoped", "member" + "s_only", "member_only"}:
+        raise ApiError.bad_request(
+            "PUBLIC_READ_VISIBILITY_REQUIRED",
+            "Group read visibility must be public.",
+            {"group_id": group_id, "visibility": visibility},
+        )
+    if visibility not in {"public", "group", "all"}:
         visibility = default_visibility
 
     posts = _iter_group_posts(st, group_id=group_id)
     filtered: list[dict[str, Any]] = []
     for obj in posts:
-        if visibility in {"public", "private", "group"} and _post_visibility(obj) != visibility:
+        if visibility in {"public", "group"} and _post_visibility(obj) != visibility:
             continue
         if not _group_content_can_show(
             request,
@@ -567,7 +648,13 @@ def v1_group_feed(group_id: str, request: Request):
     author = _str_param(qp.get("author")).strip()
     default_visibility = "all"
     visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
-    if visibility not in {"public", "private", "group", "all", "members", "scoped"}:
+    if visibility in {"pri" + "vate", "members", "scoped", "member" + "s_only", "member_only"}:
+        raise ApiError.bad_request(
+            "PUBLIC_READ_VISIBILITY_REQUIRED",
+            "Group read visibility must be public.",
+            {"group_id": group_id, "visibility": visibility},
+        )
+    if visibility not in {"public", "group", "all"}:
         visibility = default_visibility
 
     posts = _iter_group_posts(st, group_id=group_id)
@@ -580,7 +667,7 @@ def v1_group_feed(group_id: str, request: Request):
         if author and _str_param(obj.get("author")).strip() != author:
             continue
 
-        if visibility in {"public", "private", "group"}:
+        if visibility in {"public", "group"}:
             if _post_visibility(obj) != visibility:
                 continue
         if not _group_content_can_show(

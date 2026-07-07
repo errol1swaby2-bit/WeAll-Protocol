@@ -4,13 +4,20 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
-# Rewards scheduling (Genesis v2.1): leaders enqueue deterministic reward system txs
-# inside the block. Followers never run the scheduler; they replay the included txs.
+# Rewards scheduling (Genesis v1.5): leaders enqueue deterministic epoch-issuance
+# system txs inside the block. Followers never run the scheduler; they replay the
+# included txs.
 from weall.ledger.constants import MAX_SUPPLY, MINT_POOL_ACCOUNT_ID, TREASURY_ACCOUNT_ID
-from weall.ledger.rewards import block_subsidy
+from weall.ledger.issuance import (
+    cap_issuance_by_remaining_supply,
+    epoch_issuance_subsidy_atomic,
+    issuance_due_at_height,
+    issuance_epoch_index_for_due_height,
+)
 from weall.ledger.roles_schema import ensure_roles_schema
+from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
 from weall.runtime.econ_phase import econ_allowed_from_state
 from weall.runtime.tx_admission import TxEnvelope
 from weall.tx.canon import TxIndex
@@ -182,10 +189,14 @@ def schedule_block_rewards_system_txs(
     proposer: str,
     phase: str,
 ) -> None:
-    """Enqueue Genesis block reward system txs.
+    """Enqueue Genesis v1.5 epoch issuance system txs.
 
     Gate:
-      - During the Genesis economic lock OR when economics are disabled, rewards are not emitted.
+      - During the Genesis economic lock OR when economics are disabled, issuance/rewards are not emitted.
+
+    Cadence:
+      - WeCoin issuance is epoch-based, not per-block. At the 20-second target
+        block interval, one 10-minute issuance epoch closes every 30 blocks.
 
     Split:
       - 20/20/20/20/20 across validators/proposer, operators, jurors, creators, treasury.
@@ -204,19 +215,20 @@ def schedule_block_rewards_system_txs(
     if h <= 0:
         return
 
-    reward_block_id = f"height:{h}"
+    if not issuance_due_at_height(h):
+        return
+
+    issuance_epoch = issuance_epoch_index_for_due_height(h)
+    epoch_id = f"issuance_epoch:{issuance_epoch}"
+    reward_block_id = epoch_id
 
     mp = _monetary_policy_snapshot(state)
     issued = int(mp.get("issued", 0))
 
-    raw_subsidy = int(block_subsidy(h))
-    if issued >= int(MAX_SUPPLY):
-        subsidy = 0
-    else:
-        remaining = int(MAX_SUPPLY) - int(issued)
-        subsidy = raw_subsidy if raw_subsidy <= remaining else remaining
-        if subsidy < 0:
-            subsidy = 0
+    raw_subsidy = int(epoch_issuance_subsidy_atomic(issuance_epoch))
+    subsidy, _remaining_after = cap_issuance_by_remaining_supply(
+        issued, raw_subsidy, max_supply=int(MAX_SUPPLY)
+    )
 
     fee_total = 0
     total_reward = int(subsidy) + int(fee_total)
@@ -271,6 +283,8 @@ def schedule_block_rewards_system_txs(
         payload={
             "block_id": reward_block_id,
             "height": h,
+            "issuance_epoch": int(issuance_epoch),
+            "epoch_id": epoch_id,
             "amount": int(subsidy),
             "fees": int(fee_total),
             "total": int(total_reward),
@@ -289,6 +303,8 @@ def schedule_block_rewards_system_txs(
         payload={
             "block_id": reward_block_id,
             "height": h,
+            "issuance_epoch": int(issuance_epoch),
+            "epoch_id": epoch_id,
             "subsidy": int(subsidy),
             "fees": int(fee_total),
             "total": int(total_reward),
@@ -352,12 +368,12 @@ def _queue_root(state: Json) -> list[Json]:
     root = state.get("system_queue")
     if not isinstance(root, list):
         root = []
-        state["system_queue"] = root
+        journal_set_dict_key(state, "system_queue", root, "system_queue")
     return root
 
 
-def _validated_queue_items(state: Json) -> list[SystemQueueItem]:
-    items: list[SystemQueueItem] = []
+def _validated_queue_items_with_indexes(state: Json) -> list[tuple[int, SystemQueueItem]]:
+    items: list[tuple[int, SystemQueueItem]] = []
     for idx, obj in enumerate(_queue_root(state)):
         if not isinstance(obj, dict):
             raise SystemQueueCorruptionError(f"system_queue_item_not_object:{idx}")
@@ -370,8 +386,49 @@ def _validated_queue_items(state: Json) -> list[SystemQueueItem]:
             raise SystemQueueCorruptionError(f"system_queue_item_missing_queue_id:{idx}")
         if item.phase not in {"pre", "post"}:
             raise SystemQueueCorruptionError(f"system_queue_item_bad_phase:{idx}")
-        items.append(item)
+        items.append((idx, item))
     return items
+
+
+def _validated_queue_items(state: Json) -> list[SystemQueueItem]:
+    return [item for _idx, item in _validated_queue_items_with_indexes(state)]
+
+
+def build_system_queue_lookup(state: Json) -> dict[str, Json]:
+    """Return a first-match queue-id lookup after validating the queue once.
+
+    The returned values are the live ledger dictionaries, not copied dataclasses.
+    That preserves the current in-place mutation behavior while allowing replay
+    callers to avoid rescanning the whole queue for phase and binding checks.
+    Duplicate queue IDs keep first-match semantics, matching the old linear scan.
+    """
+    lookup: dict[str, Json] = {}
+    root = _queue_root(state)
+    for idx, item in _validated_queue_items_with_indexes(state):
+        if item.queue_id not in lookup:
+            obj = root[idx]
+            if isinstance(obj, dict):
+                lookup[item.queue_id] = obj
+    return lookup
+
+
+def _lookup_queue_item(queue_objects_by_id: Mapping[str, Any] | None, qid: str) -> SystemQueueItem | None:
+    if queue_objects_by_id is None:
+        return None
+    obj = queue_objects_by_id.get(qid)
+    if obj is None:
+        return None
+    if not isinstance(obj, dict):
+        raise SystemQueueCorruptionError("system_queue_lookup_item_not_object")
+    try:
+        item = SystemQueueItem.from_ledger_obj(obj)
+    except (TypeError, ValueError) as exc:
+        raise SystemQueueCorruptionError("system_queue_lookup_item_invalid") from exc
+    if not item.queue_id:
+        raise SystemQueueCorruptionError("system_queue_lookup_item_missing_queue_id")
+    if item.phase not in {"pre", "post"}:
+        raise SystemQueueCorruptionError("system_queue_lookup_item_bad_phase")
+    return item
 
 
 def system_queue_phase_for_id(state: Json, *, queue_id: str) -> str:
@@ -426,14 +483,14 @@ def enqueue_system_tx(
     if qid in _queue_ids(state):
         return qid
 
-    _queue_root(state).append(base)
+    journal_append_list(_queue_root(state), base, "system_queue")
     return qid
 
 
-def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[SystemQueueItem]:
-    out: list[SystemQueueItem] = []
+def _select_due_items_with_indexes(state: Json, *, next_height: int, phase: str) -> list[tuple[int, SystemQueueItem]]:
+    out: list[tuple[int, SystemQueueItem]] = []
     phase_n = _as_str(phase).strip().lower() or "post"
-    for item in _validated_queue_items(state):
+    for idx, item in _validated_queue_items_with_indexes(state):
         if item.emitted_height is not None and item.once:
             continue
         if item.phase != phase_n:
@@ -441,8 +498,12 @@ def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[Syst
         if int(item.due_height) != int(next_height):
             continue
 
-        out.append(item)
+        out.append((idx, item))
     return out
+
+
+def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[SystemQueueItem]:
+    return [item for _idx, item in _select_due_items_with_indexes(state, next_height=next_height, phase=phase)]
 
 
 def system_tx_emitter(
@@ -464,10 +525,11 @@ def system_tx_emitter(
     except Exception as exc:
         raise SystemSchedulerError(f"block_rewards_schedule_failed:{type(exc).__name__}") from exc
 
-    items = _select_due_items(state, next_height=int(next_height), phase=phase)
+    items = _select_due_items_with_indexes(state, next_height=int(next_height), phase=phase)
     ledger = state
+    queue_root = _queue_root(state)
 
-    for it in items:
+    for queue_idx, it in items:
         # Internal queue emits system envelopes.
         _ = _is_system_only(canon, it.tx_type)
         _ = _canon_context(canon, it.tx_type)
@@ -521,7 +583,14 @@ def system_tx_emitter(
         )
 
         if it.once:
-            confirm_system_tx_emitted(state, queue_id=it.queue_id, emitted_height=int(next_height))
+            if (
+                0 <= int(queue_idx) < len(queue_root)
+                and isinstance(queue_root[int(queue_idx)], dict)
+                and _as_str(queue_root[int(queue_idx)].get("queue_id")).strip() == it.queue_id
+            ):
+                queue_root[int(queue_idx)]["emitted_height"] = int(next_height)
+            else:
+                confirm_system_tx_emitted(state, queue_id=it.queue_id, emitted_height=int(next_height))
 
     return out
 
@@ -562,6 +631,7 @@ def validate_system_tx_queue_binding(
     *,
     next_height: int,
     phase: str,
+    queue_objects_by_id: Mapping[str, Any] | None = None,
 ) -> tuple[bool, str]:
     """Validate that a block SYSTEM tx came from deterministic system_queue output."""
     if not bool(getattr(env, "system", False)):
@@ -571,11 +641,12 @@ def validate_system_tx_queue_binding(
     if not qid:
         return False, "missing_system_queue_id"
     phase_n = _as_str(phase).strip().lower() or "post"
-    found: SystemQueueItem | None = None
-    for item in _validated_queue_items(state):
-        if item.queue_id == qid:
-            found = item
-            break
+    found: SystemQueueItem | None = _lookup_queue_item(queue_objects_by_id, qid)
+    if found is None:
+        for item in _validated_queue_items(state):
+            if item.queue_id == qid:
+                found = item
+                break
     if found is None:
         return False, "unknown_system_queue_id"
     tx_type = _as_str(getattr(env, "tx_type", "") or "").strip().upper()
@@ -632,6 +703,7 @@ __all__ = [
     "SystemSchedulerError",
     "SystemTxEngineError",
     "SystemQueueItem",
+    "build_system_queue_lookup",
     "confirm_system_tx_emitted",
     "enqueue_system_tx",
     "prune_emitted_system_queue",

@@ -236,12 +236,37 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
             duplicate_names.append(tx_type)
             continue
         seen.add(tx_type)
+        unsupported_code = str(row.get("unsupported") or "").strip()
+        if not unsupported_code and str(row.get("domain") or "").strip().lower() == "unsupported" and str(row.get("context") or "").strip().lower() == "rejected":
+            unsupported_code = "UNSUPPORTED_TX_TYPE"
         base_tx = {"tx_type": tx_type, "type": tx_type}
         contract = helper_contract_for_tx(base_tx)
-        family_counts[contract.family] = int(family_counts.get(contract.family, 0)) + 1
-        effective_lane_counts[contract.effective_lane_id] = int(effective_lane_counts.get(contract.effective_lane_id, 0)) + 1
-        reason_counts[contract.reason] = int(reason_counts.get(contract.reason, 0)) + 1
-        if contract.degraded_to_serial:
+        contract_dict = contract.to_dict()
+        if unsupported_code:
+            # Canon-retained unsupported tx names must not be advertised as
+            # helper-executable work or as state-mutating helper subjects.
+            contract_dict.update({
+                "family": contract_dict.get("family"),
+                "helper_eligible": False,
+                "degraded_to_serial": False,
+                "effective_lane_id": LANE_SERIAL,
+                "reason": "unsupported_tx_rejected_before_helper_planning",
+                "proof_status": "UNSUPPORTED_REJECTED",
+                "proven_helper_eligible": False,
+                "requires_concrete_instance": False,
+                "unsupported": True,
+                "unsupported_code": unsupported_code,
+                "read_keys": [],
+                "write_keys": [],
+                "subject_keys": [],
+                "authority_keys": [],
+                "uses_placeholder_keys": False,
+                "placeholder_key_count": 0,
+            })
+        family_counts[str(contract_dict["family"])] = int(family_counts.get(str(contract_dict["family"]), 0)) + 1
+        effective_lane_counts[str(contract_dict["effective_lane_id"])] = int(effective_lane_counts.get(str(contract_dict["effective_lane_id"]), 0)) + 1
+        reason_counts[str(contract_dict["reason"])] = int(reason_counts.get(str(contract_dict["reason"]), 0)) + 1
+        if bool(contract_dict["degraded_to_serial"]):
             degraded_to_serial.append(tx_type)
         contracts.append(
             {
@@ -250,7 +275,7 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
                 "origin": row.get("origin"),
                 "context": row.get("context"),
                 "receipt_only": bool(row.get("receipt_only", False)),
-                **contract.to_dict(),
+                **contract_dict,
             }
         )
 

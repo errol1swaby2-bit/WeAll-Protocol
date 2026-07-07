@@ -1,0 +1,23 @@
+{
+  "artifact_digest": "8d3bfcfbdffb61eb4e34dca54f7849d1c1942d7cb116ccd88c7da6e8becc3478",
+  "launch_boundary": "Signer operations are documented and enforceable; the real public registry and key custody evidence are external launch artifacts.",
+  "ok": true,
+  "public_observer_launch_ready": false,
+  "required_operations": [
+    "generate offline registry signing key and publish only public key pin",
+    "sign registry with domain weall.public_seed_registry.v1",
+    "validate with the runtime loader before publication",
+    "rotate by accepting old and new pins during overlap",
+    "revoke compromised signer by removing the old pin and republishing registry from the new key",
+    "never commit registry private key, endpoint private keys, or endpoint-key-map files"
+  ],
+  "schema": "weall.v1_5.public_registry_signer_operations",
+  "source_checks": {
+    "placeholder_gate_present": true,
+    "runbook_present": true,
+    "runtime_rejects_unpinned_signer": true,
+    "runtime_requires_pinned_signer": true,
+    "signing_script_present": true
+  },
+  "version": "2026-06-b629-public-registry-signer-ops"
+}

@@ -67,10 +67,11 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
       <div className="cardBody formStack">
         <div className="sectionHead">
           <div>
-            <div className="eyebrow">Healthy node access</div>
+            <div className="eyebrow">Browser API access node</div>
             <h2 className="cardTitle">Connection manager</h2>
             <div className="cardDesc">
-              Switch access nodes without changing your account identity. The chain/backend remains authoritative; this browser only changes which healthy node it talks to.
+              Switch the backend this browser reads from without changing your account identity or your local mesh node. P2P peers, validator connectivity, and signing authority remain controlled by the local node and protocol state.
+              Chain mismatch warnings block switching; a browser target change is not a validator or operator role change.
             </div>
           </div>
           <button className="btn" onClick={() => void refresh()} disabled={busy}>
@@ -85,11 +86,14 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
             <strong>Current node may be stale or degraded.</strong> A healthier compatible node is available below.
           </div>
         ) : null}
+        <div className="calloutInfo">
+          <strong>Switching rule:</strong> only healthy compatible nodes may be selected. Incompatible chain id, genesis hash, tx index hash, or protocol profile hash should be treated as a chain mismatch incident, not as a normal fallback.
+        </div>
 
         {probes.length === 0 && !busy ? (
           <div className="emptyPanel">
             <strong>No node list loaded.</strong>
-            <span>The manager uses the current backend, the build default, and any nodes listed in /seeds.json.</span>
+            <span>The manager uses the current browser API node, the build default, the backend /v1/nodes/seeds route, and /seeds.json only as a frontend fallback.</span>
           </div>
         ) : null}
 
@@ -106,11 +110,11 @@ export default function NodeConnectionPanel({ compact = false }: { compact?: boo
                 {!compact ? (
                   <>
                     <span className="cardDesc">
-                      tx index <span className="mono">{compactHash(probe.txIndexHash)}</span> · profile <span className="mono">{compactHash(probe.protocolProfileHash)}</span>
+                      genesis <span className="mono">{compactHash(probe.genesisHash)}</span> · tx index <span className="mono">{compactHash(probe.txIndexHash)}</span> · profile <span className="mono">{compactHash(probe.protocolProfileHash)}</span>
                     </span>
                     {probe.compatibilitySourceBaseUrl ? (
                       <span className="cardDesc">
-                        Expected from <span className="mono">{probe.compatibilitySourceBaseUrl}</span>: chain <span className="mono">{probe.expectedChainId || "—"}</span> · tx index <span className="mono">{compactHash(probe.expectedTxIndexHash)}</span> · profile <span className="mono">{compactHash(probe.expectedProtocolProfileHash)}</span>
+                        Expected from <span className="mono">{probe.compatibilitySourceBaseUrl}</span>: chain <span className="mono">{probe.expectedChainId || "—"}</span> · genesis <span className="mono">{compactHash(probe.expectedGenesisHash)}</span> · tx index <span className="mono">{compactHash(probe.expectedTxIndexHash)}</span> · profile <span className="mono">{compactHash(probe.expectedProtocolProfileHash)}</span>
                       </span>
                     ) : null}
                     {probe.errors.length ? (

@@ -7,6 +7,7 @@ from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
+from weall.runtime.bounded_rollback import journal_set_dict_key
 from weall.runtime.group_treasury_scheduler import (
     maybe_enqueue_group_spend_execute,
     maybe_enqueue_group_spend_expire,
@@ -39,6 +40,10 @@ def _as_int(v: Any, default: int = 0) -> int:
         return int(v)
     except Exception:
         return int(default)
+
+
+def _same_journal_target(a: Any, b: Any) -> bool:
+    return getattr(a, "_target", a) is getattr(b, "_target", b)
 
 
 def _strict_positive_int_from_state(value: Any, *, field_name: str) -> int:
@@ -80,10 +85,12 @@ def _ensure_groups_root(state: Json) -> Json:
     gbid = roles.get("groups_by_id")
     if not isinstance(gbid, dict):
         gbid = {}
-        roles["groups_by_id"] = gbid
-        state["roles"] = roles
+        journal_set_dict_key(roles, "groups_by_id", gbid, "roles.groups_by_id")
+        gbid = roles.get("groups_by_id")
 
-    state["groups_by_id"] = gbid
+    existing = state.get("groups_by_id")
+    if not isinstance(existing, dict) or not _same_journal_target(existing, gbid):
+        journal_set_dict_key(state, "groups_by_id", gbid, "groups_by_id")
     return gbid
 
 
@@ -99,7 +106,8 @@ def _ensure_treasury_wallets(state: Json) -> Json:
     root = state.get("treasury_wallets")
     if not isinstance(root, dict):
         root = {}
-        state["treasury_wallets"] = root
+        journal_set_dict_key(state, "treasury_wallets", root, "treasury_wallets")
+        root = state.get("treasury_wallets")
     return root
 
 
@@ -276,28 +284,56 @@ def _group_member_snapshot(g: Json) -> list[str]:
 
 
 def _group_is_private(g: Json) -> bool:
-    if bool(g.get("is_private", False)):
-        return True
-
-    visibility = _as_str(g.get("visibility") or g.get("privacy")).strip().lower()
-    if visibility in {"private", "closed", "members"}:
-        return True
-
-    meta = g.get("meta")
-    if isinstance(meta, dict):
-        if bool(meta.get("is_private", False)):
-            return True
-        visibility = _as_str(meta.get("visibility") or meta.get("privacy")).strip().lower()
-        if visibility in {"private", "closed", "members"}:
-            return True
-
+    # Public-only redesign: no group state may gate read visibility.  Legacy
+    # fields such as is_private/privacy/visibility are ignored for read access;
+    # admission/apply-time public_protocol_policy rejects new non-public group txs.
     return False
+
+
+def _normalize_group_permission(value: Any, *, default: str) -> str:
+    raw = _as_str(value).strip().lower().replace("-", "_")
+    if raw in {"public", "anyone", "all", "open"}:
+        return "public"
+    if raw in {"member", "members", "member" + "s_only", "membership", "member_only"}:
+        return "members"
+    if raw in {"moderator", "moderators"}:
+        return "moderators"
+    if raw in {"admin", "admins", "administrator", "administrators"}:
+        return "admins"
+    return default
+
+
+def _group_permissions_from_payload(payload: Json, existing: Json | None = None) -> Json:
+    existing_permissions = existing.get("permissions") if isinstance(existing, dict) and isinstance(existing.get("permissions"), dict) else {}
+    return {
+        "read": "public",
+        "post": _normalize_group_permission(
+            payload.get("posting_permission") or payload.get("post_permission") or existing_permissions.get("post"),
+            default="members",
+        ),
+        "comment": _normalize_group_permission(
+            payload.get("commenting_permission") or payload.get("comment_permission") or existing_permissions.get("comment"),
+            default="members",
+        ),
+        "vote": _normalize_group_permission(
+            payload.get("voting_permission") or payload.get("vote_permission") or existing_permissions.get("vote"),
+            default="members",
+        ),
+        "moderate": _normalize_group_permission(
+            payload.get("moderation_permission") or payload.get("moderate_permission") or existing_permissions.get("moderate"),
+            default="moderators",
+        ),
+        "admin": _normalize_group_permission(
+            payload.get("administration_permission") or payload.get("admin_permission") or existing_permissions.get("admin"),
+            default="admins",
+        ),
+    }
 
 
 def _default_emissary_election_window_blocks(state: Json) -> int:
     """Default election window length in blocks.
 
-    Default = 1008 blocks (~7 days at 10-minute blocks).
+    Default = 1008 finalized blocks (~5.6 hours at the v1.5 20-second target; governance may change this parameter).
     Override via state.params.group_emissary_election_window_blocks.
     """
     params = state.get("params")
@@ -434,7 +470,8 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
     treasuries_by_id = roles.get("treasuries_by_id")
     if not isinstance(treasuries_by_id, dict):
         treasuries_by_id = {}
-        roles["treasuries_by_id"] = treasuries_by_id
+        journal_set_dict_key(roles, "treasuries_by_id", treasuries_by_id, "roles.treasuries_by_id")
+        treasuries_by_id = roles.get("treasuries_by_id")
 
     treasury_id = _group_treasury_id(group_id)
     creator = _as_str(env.signer).strip()
@@ -450,33 +487,48 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
             obj.setdefault("require_emissary_signers", False)
             obj.setdefault("label", "group")
             obj.setdefault("group_id", group_id)
-            treasuries_by_id[treasury_id] = obj
-        roles["treasuries_by_id"] = treasuries_by_id
-        state["roles"] = roles
 
     wallets = _ensure_treasury_wallets(state)
     if treasury_id not in wallets:
-        wallets[treasury_id] = {
-            "wallet_id": treasury_id,
-            "kind": "group",
+        journal_set_dict_key(
+            wallets,
+            treasury_id,
+            {
+                "wallet_id": treasury_id,
+                "kind": "group",
+                "group_id": group_id,
+                "created_by": creator,
+                "created_at_nonce": int(env.nonce),
+            },
+            ("treasury_wallets", treasury_id),
+        )
+
+    public_meta = dict(payload)
+    public_meta["read_visibility"] = "public"
+    public_meta["visibility"] = "public"
+    public_meta["public_only"] = True
+
+    journal_set_dict_key(
+        groups,
+        group_id,
+        {
             "group_id": group_id,
             "created_by": creator,
-            "created_at_nonce": int(env.nonce),
-        }
-        state["treasury_wallets"] = wallets
-
-    groups[group_id] = {
-        "group_id": group_id,
-        "created_by": creator,
-        "charter": _as_str(payload.get("charter")).strip(),
-        "meta": payload,
-        "treasury_id": treasury_id,
-        "signers": signers,
-        "threshold": int(threshold),
-        "moderators": [],
-        "emissaries": [],
-        "members": {creator: {"account": creator, "joined_at_nonce": int(env.nonce), "role": "creator"}} if creator else {},
-    }
+            "charter": _as_str(payload.get("charter")).strip(),
+            "meta": public_meta,
+            "read_visibility": "public",
+            "visibility": "public",
+            "public_only": True,
+            "permissions": _group_permissions_from_payload(payload),
+            "treasury_id": treasury_id,
+            "signers": signers,
+            "threshold": int(threshold),
+            "moderators": [],
+            "emissaries": [],
+            "members": {creator: {"account": creator, "joined_at_nonce": int(env.nonce), "role": "creator"}} if creator else {},
+        },
+        ("groups_by_id", group_id),
+    )
     return {"applied": "GROUP_CREATE", "group_id": group_id, "treasury_id": treasury_id}
 
 
@@ -492,7 +544,15 @@ def _apply_group_update(state: Json, env: TxEnvelope) -> Json:
         raise GroupsApplyError("not_found", "group_not_found", {"group_id": group_id})
 
     g["charter"] = _as_str(payload.get("charter", g.get("charter"))).strip()
-    g["meta"] = payload
+    public_meta = dict(payload)
+    public_meta["read_visibility"] = "public"
+    public_meta["visibility"] = "public"
+    public_meta["public_only"] = True
+    g["meta"] = public_meta
+    g["read_visibility"] = "public"
+    g["visibility"] = "public"
+    g["public_only"] = True
+    g["permissions"] = _group_permissions_from_payload(payload, g)
     groups[group_id] = g
     return {"applied": "GROUP_UPDATE", "group_id": group_id}
 
@@ -561,6 +621,17 @@ def _apply_group_membership_request(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(g, dict):
         raise GroupsApplyError("not_found", "group_not_found", {"group_id": group_id})
 
+    meta = g.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+    meta["read_visibility"] = "public"
+    meta["visibility"] = "public"
+    meta["public_only"] = True
+    g["meta"] = meta
+    g["read_visibility"] = "public"
+    g["visibility"] = "public"
+    g["public_only"] = True
+
     account = _as_str(env.signer).strip()
     members = g.get("members")
     if not isinstance(members, dict):
@@ -575,35 +646,22 @@ def _apply_group_membership_request(state: Json, env: TxEnvelope) -> Json:
             "deduped": True,
         }
 
-    # Public/demo groups should behave like an actual join surface, not a moderation queue.
-    # Private groups still retain the explicit request -> moderator decision pipeline.
-    if not _group_is_private(g):
-        members[account] = {"joined_at_nonce": int(env.nonce), "joined_via": "request_auto_accept"}
-        g["members"] = members
-        reqs = g.get("membership_requests")
-        if isinstance(reqs, dict) and account in reqs:
-            reqs.pop(account, None)
-            g["membership_requests"] = reqs
-        groups[group_id] = g
-        return {
-            "applied": "GROUP_MEMBERSHIP_REQUEST",
-            "group_id": group_id,
-            "membership": "accepted",
-            "account": account,
-            "auto_accepted": True,
-        }
-
+    # Group membership may gate participation, but never read visibility.  The
+    # public-only default keeps join semantics simple and deterministic.
+    members[account] = {"joined_at_nonce": int(env.nonce), "joined_via": "request_auto_accept", "role": "member"}
+    g["members"] = members
     reqs = g.get("membership_requests")
-    if not isinstance(reqs, dict):
-        reqs = {}
-    reqs[account] = {"requested_at_nonce": int(env.nonce), "payload": payload}
-    g["membership_requests"] = reqs
+    if isinstance(reqs, dict) and account in reqs:
+        reqs.pop(account, None)
+        g["membership_requests"] = reqs
     groups[group_id] = g
     return {
         "applied": "GROUP_MEMBERSHIP_REQUEST",
         "group_id": group_id,
-        "membership": "pending",
+        "membership": "accepted",
         "account": account,
+        "auto_accepted": True,
+        "read_visibility": "public",
     }
 
 

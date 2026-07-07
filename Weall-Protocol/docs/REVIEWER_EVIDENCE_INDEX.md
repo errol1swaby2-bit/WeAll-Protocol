@@ -4,6 +4,9 @@ Status: reviewer-facing evidence index for external review.
 
 Last reviewed: 2026-06-04.
 
+> Current-status note (Pass 30): this file is a historical reviewer checklist. The canonical current evidence index for the controlled internal/public-observer rehearsal candidate is `docs/reviewer/EVIDENCE_INDEX.md`, and the current blocker truth is `generated/public_beta_blocker_report_v1_5.json` with `public_beta_ready=false`, 14 catalog entries, 7 closed in repository, and 7 still open. Do not use this historical checklist to override the current allowed claim or to close external evidence blockers.
+
+
 This document lists the evidence that should be captured for the reviewer submission package and the truth boundary for each item. It is intentionally conservative: it records what the repository can prove without claiming public mainnet, public multi-validator BFT, or live economics.
 
 ## Submission identity
@@ -34,8 +37,8 @@ If the repository is being reviewed from a zip/export, note that Git commit iden
 | Targeted backend tests | reviewer gate or targeted `pytest` list | Pass | Bounded suite; full pytest should be run from a clean dependency environment. |
 | Frontend install | `cd ../web && npm ci` | Pass, 0 vulnerabilities reported at install time | Creates `node_modules`; remove before release-tree check. |
 | Frontend typecheck | `cd ../web && npm run typecheck` | Pass | Type safety only; not browser E2E proof. |
-| Account custody source check | `node web/scripts/test_batch469_account_custody_source.mjs` from outer root | Pass | Source-level guard; browser restore E2E is still recommended. |
-| Wallet/tipping source check | `node web/scripts/test_batch482_wallet_tipping_source.mjs` from outer root | Pass | Source-level guard; economics remain locked by default. |
+| Account custody source check | `node web/scripts/test_account_custody_source.mjs` from outer root | Pass | Source-level guard; browser restore E2E is still recommended. |
+| Wallet/tipping source check | `node web/scripts/test_wallet_tipping_source.mjs` from outer root | Pass | Source-level guard; economics remain locked by default. |
 | Constitutional procedure UI source check | `node web/scripts/test_constitutional_procedure_ui_source.mjs` from outer root | Pass | Source-level guard; public governance testnet still requires integrated E2E proof. |
 | Local observer readiness | `bash scripts/local_observer_readiness_gate.sh` | Pass | Local precondition only; does not prove remote signed observer onboarding. |
 | Observer authority lock | `bash scripts/external_observer_authority_lock_gate.sh` | Pass | Proves local observer authority lock posture; does not promote observer to validator. |
@@ -177,7 +180,7 @@ Observer machine:
     bash scripts/reviewer_observer_rehearsal.sh \
       --genesis-api-base http://<GENESIS_LAN_IP>:8000 \
       --pull-reviewer-artifacts \
-      --allow-private-genesis-api
+      --allow-lan-genesis-api
 
 Truth boundary: controlled LAN/reviewer rehearsal only. It does not prove public
 mainnet readiness, public multi-validator BFT readiness, live economics, or a
@@ -198,7 +201,7 @@ Run the following against a real genesis API and public observer bundle:
 export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE=/path/to/public-observer-bundle.json
 export WEALL_CHAIN_MANIFEST_PATH=/path/to/weall-genesis.json
 export WEALL_GENESIS_API_BASE=http://GENESIS_HOST:8000
-export WEALL_ALLOW_PRIVATE_GENESIS_API=1
+export WEALL_ALLOW_LAN_GENESIS_API=1
 export WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT=1
 export WEALL_RUN_SIGNED_OBSERVER_ONBOARDING=1
 bash scripts/first_external_observer_reproducibility_gate.sh "$WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE"
@@ -262,3 +265,33 @@ audit-metadata/reviewer-evidence-YYYY-MM-DD/
 ```
 
 Only include `10_first_external_observer_remote_signed.txt` after the remote signed proof has actually passed.
+
+## v1.5 public-readiness evidence and guardrails
+
+The following artifacts were added to keep the full-scope v1.5 audit aligned with current code without overclaiming public beta, public BFT, live economics, automatic upgrades, or legal approval.
+
+| Evidence item | Command | Expected result | Truth boundary |
+|---|---|---|---|
+| v1.5 implementation evidence map | `cat docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md` | Current resolved/gap map is present | Planning/evidence artifact only. |
+| v1.5 gap register | `cat generated/v15_implementation_gap_register.json` | Recent tokenomics/runtime config drift marked resolved; remaining P0/P1 gaps listed | Does not prove the gaps are closed unless status says resolved. |
+| API contract map | `python3 scripts/gen_api_contract_map.py && pytest tests/test_api_contract_map_v15.py` | Generated route inventory is deterministic and complete for current public route decorators | Static map only; response schema vector pack remains future work. |
+| Launch-disabled matrix | `pytest tests/test_launch_disabled_matrix_v15.py` | High-risk features remain disabled across current phases | Matrix is a guardrail; apply/admission code remains authoritative. |
+| Protocol-upgrade record-only boundary | `pytest tests/test_protocol_upgrade_record_only_boundary.py` | Upgrade txs record metadata and expose no auto-apply/migration/rollback execution | Automatic protocol upgrades are not implemented. |
+| Protocol-upgrade scheduled lifecycle | `pytest tests/test_protocol_upgrade_height_scheduled_lifecycle.py` | Upgrade activation records schedule a deterministic future `activation_height`, reject configured unsupported targets, and replay identically across leader/follower/observer states | Proves record-only scheduled metadata, not automatic software delivery or migration execution. |
+| Governance/dispute height trust boundary | `pytest tests/test_governance_due_height_trust_boundary.py tests/test_dispute_height_lifecycle_boundaries.py` | User governance payloads cannot forge scheduler `_due_height`; dispute lifecycle records opening/stage/assignment heights and juror deadlines as block heights | Does not replace full multi-node replay transcript. |
+| Closed-testnet readiness checklist | review `docs/audits/closed_testnet_rehearsal_readiness_v1_5.md` | Fresh-clone, observer, civic-loop, performance-evidence, and rehearsal-evidence checklist exists | Checklist only; run transcripts are required before claiming a pass. |
+| NLnet current-state update | review `docs/reviewer/NLNET_CURRENT_STATE_UPDATE_2026_08.md` | Reviewer-facing status/rescope language exists without mainnet or live-economics overclaims | Documentation only; claims must be backed by fresh evidence. |
+| Legal/compliance draft pack | `pytest tests/test_public_readiness_artifacts_v15.py` | Counsel-review-pending docs are present | Non-lawyer draft only, not legal approval. |
+| Public validator/BFT proof plan | `cat docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md` | Required public-validator adversarial proof matrix exists | Plan only; public multi-validator readiness is not claimed. |
+
+### Batch 626 public observer discovery note
+
+Public observer launch evidence now requires the fail-closed seed registry flow documented in `PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`, recovery guidance in `PUBLIC_TESTNET_NAT_FIREWALL_TLS_RECOVERY.md`, and external transcript capture from `PUBLIC_OBSERVER_EVIDENCE_RUNBOOK.md`. A public observer can be open-download only after real public seed URLs and pinned commitments are configured; validator activation remains protocol-gated.
+
+## Controlled-testnet go-gate closure evidence
+
+- `generated/controlled_testnet_go_gate_v1_5.json` — deterministic controlled-testnet go-gate manifest. `controlled_testnet_go_gate_ready_to_run=true` is allowed only while `public_beta_ready=false`.
+- `generated/public_beta_blocker_report_v1_5.json` — classified blocker inventory. `ok=true` means the inventory is fresh and release-safe, not that public beta is ready.
+- `generated/public_only_protocol_audit_v1_5.json` — public-only protocol regression audit artifact.
+- `generated/public_discovery_provider_independence_v1_5.json` — provider-independence discovery evidence artifact.
+- `docs/audits/controlled_testnet_go_gate_closure_v1_5.md` — reviewer explanation for which blockers closed, which remain open, and why the go-gate can be ready to run without overclaiming public beta readiness.

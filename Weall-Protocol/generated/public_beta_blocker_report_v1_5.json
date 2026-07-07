@@ -1,0 +1,1039 @@
+{
+  "blocker_catalog_count": 15,
+  "blocker_classification_summary": {
+    "closed_by_artifact_or_docs": 7,
+    "external_evidence_required": 8
+  },
+  "blocker_count": 15,
+  "blockers": [
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "public_beta",
+        "mainnet"
+      ],
+      "can_be_closed_by_code_only": false,
+      "current_behavior": "Public validator readiness remains explicitly false and operator proof is simulated/local unless externally attested.",
+      "evidence_gate": "public_validator_operator_transcript_schema",
+      "expected_production_behavior": "Independent multi-process/operator BFT proof with churn, equivocation, partition/rejoin, restart/replay, and transcript digest.",
+      "gate_status": "gate_present_external_attestation_required",
+      "id": "AUD-618-P0-001",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "independently operated validator run",
+        "operator-signed transcript",
+        "fresh checkout replay of transcript digest"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P0"
+    },
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "public_beta",
+        "mainnet"
+      ],
+      "can_be_closed_by_code_only": false,
+      "current_behavior": "Legal/compliance pack is not counsel-attested.",
+      "evidence_gate": "legal_attestation_schema",
+      "expected_production_behavior": "Counsel-reviewed public claims, token/economic/governance language, and jurisdictional risk review.",
+      "gate_status": "manual_counsel_attestation_required",
+      "id": "AUD-618-P0-002",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "token/economics claims reviewed by counsel or controlled external reviewer",
+        "governance and treasury claims reviewed by counsel or controlled external reviewer",
+        "privacy/public-only, minors, sanctions, severe-harm, and NCIM posture reviewed",
+        "public validator, storage/IPFS, helper, and upgrade claims reviewed",
+        "public-beta jurisdictional risk checklist completed",
+        "marketing/docs checked against launch-disabled matrix"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P0"
+    },
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "public_beta",
+        "mainnet"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "Protocol upgrades are record-only and auto-apply remains disabled.",
+      "evidence_gate": "protocol_upgrade_execution_hardening_plan",
+      "expected_production_behavior": "Signed artifact manifests, deterministic migration vectors, rollback semantics, operator approval policy, and staged multi-node rehearsal before execution.",
+      "gate_status": "hardening_plan_present_execution_still_disabled",
+      "id": "AUD-618-P0-003",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "future production execution gate",
+        "operator approval policy",
+        "multi-node rollback transcript",
+        "strict external upgrade execution transcript"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P0"
+    },
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "closed_testnet",
+        "public_beta",
+        "mainnet"
+      ],
+      "can_be_closed_by_code_only": false,
+      "current_behavior": "The controlled-testnet crypto profile has transitioned to pq-mldsa-v1 ML-DSA for core protocol authority surfaces, but fresh post-transition evidence and external cryptographic review are still missing.",
+      "evidence_gate": "quantum_resistance_readiness",
+      "expected_production_behavior": "Fresh profile-aware closed-testnet rehearsal evidence, browser/local signing boundary review, helper/evidence-signing production gates, and external crypto review before long-lived public network claims.",
+      "gate_status": "gate_present_real_mldsa_integrated_external_review_required",
+      "id": "AUD-633-P0-004",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "fresh profile-aware testnet rehearsal",
+        "browser/local signing boundary review",
+        "helper/evidence signing production gate",
+        "external cryptographic review"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P0"
+    },
+    {
+      "blocker_category": "closed_by_artifact_or_docs",
+      "blocks": [
+        "public_beta"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "API response vectors were limited to a small high-risk set.",
+      "evidence_gate": "expanded_api_response_vector_pack",
+      "expected_production_behavior": "Expanded response vectors cover production-critical route families and auth/error boundaries.",
+      "gate_status": "closed_as_artifact_gate",
+      "id": "AUD-618-P1-001",
+      "nlnet_first_round_disposition": "closed_in_repository",
+      "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
+      "severity": "P1"
+    },
+    {
+      "blocker_category": "closed_by_artifact_or_docs",
+      "blocks": [
+        "public_beta"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "Launch-disabled matrix exists; final frontend/API public blocker snapshot was missing.",
+      "evidence_gate": "frontend_api_launch_blocker_snapshot",
+      "expected_production_behavior": "Evidence bundle proves public UI/API blocks live economics, public validator join, helper execution, and protocol upgrades.",
+      "gate_status": "closed_as_artifact_gate",
+      "id": "AUD-618-P1-002",
+      "nlnet_first_round_disposition": "closed_in_repository",
+      "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
+      "severity": "P1"
+    },
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "public_beta"
+      ],
+      "can_be_closed_by_code_only": false,
+      "current_behavior": "State-root vectors and transcript capture tooling exist, but no external cross-machine replay transcript is attached.",
+      "evidence_gate": "external_cross_machine_replay_transcript_schema",
+      "expected_production_behavior": "External/two-physical-machine replay transcript proving identical state roots, vector digest, and tx-index hash on the same commit.",
+      "gate_status": "gate_present_external_transcript_required",
+      "id": "AUD-618-P1-003",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "external machine replay transcript",
+        "same-commit state-root replay transcript",
+        "matching tx-index hash transcript"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P1"
+    },
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "public_beta"
+      ],
+      "can_be_closed_by_code_only": false,
+      "current_behavior": "Storage/IPFS durability proof is deterministic/simulated until externally operated daemon topology is attached.",
+      "evidence_gate": "storage_ipfs_operator_transcript_schema",
+      "expected_production_behavior": "Real daemon/operator topology with failure, retrieval, corrupt-content, wrong-CID, and revalidation transcript.",
+      "gate_status": "gate_present_real_operator_rehearsal_required",
+      "id": "AUD-618-P1-004",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "real IPFS daemon transcript",
+        "independent storage operator transcript"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P1"
+    },
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "public_beta"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "Production helper execution remains disabled and future topology evidence is now planned.",
+      "evidence_gate": "production_helper_topology_hardening_plan",
+      "expected_production_behavior": "Helper assignment, receipts, merge, crash, Byzantine, capacity/backpressure, operator policy, governance/release gate, and serial equivalence proven under production topology before activation.",
+      "gate_status": "hardening_plan_present_execution_still_disabled",
+      "id": "AUD-618-P1-005",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "future helper production enablement governance/release gate",
+        "multi-node helper topology transcript",
+        "serial-equivalence corpus",
+        "Byzantine helper rejection matrix"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P1"
+    },
+    {
+      "blocker_category": "closed_by_artifact_or_docs",
+      "blocks": [
+        "controlled_release_hygiene"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "Clean-clone root gate is present and now backed by a deterministic release-evidence manifest; concrete commit binding is emitted by runtime clean-gate reports.",
+      "evidence_gate": "release_evidence_manifest_and_clean_clone_gate",
+      "expected_production_behavior": "One-command clean-clone gate transcript from real checkout after commit, plus tracked manifest proving which artifacts and evidence gates were checked.",
+      "gate_status": "closed_as_release_evidence_manifest_gate",
+      "id": "AUD-618-P1-006",
+      "nlnet_first_round_disposition": "closed_in_repository",
+      "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
+      "severity": "P1"
+    },
+    {
+      "blocker_category": "external_evidence_required",
+      "blocks": [
+        "public_observer_launch"
+      ],
+      "can_be_closed_by_code_only": false,
+      "current_behavior": "Public observer discovery code is present, but an external open-download transcript is still required before claiming public observer launch readiness.",
+      "evidence_gate": "public_observer_launch_evidence_requirements",
+      "expected_production_behavior": "Clean-clone transcript proves signed registry discovery, seed/validator peer discovery, state sync, and frontend visibility from a new user environment.",
+      "gate_status": "gate_present_external_transcript_required",
+      "id": "AUD-628-P1-001",
+      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "remaining_external_evidence": [
+        "external clean-clone observer transcript",
+        "state-sync proof",
+        "rendered frontend operator journey"
+      ],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
+      "safe_to_reduce_before_nlnet_first_round": false,
+      "severity": "P1"
+    },
+    {
+      "blocker_category": "closed_by_artifact_or_docs",
+      "blocks": [
+        "new_user_ux"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "Frontend node dashboard now includes a bounded operator wizard with role boundaries and safe copyable diagnostic command categories.",
+      "evidence_gate": "frontend_operator_wizard_source_gate",
+      "expected_production_behavior": "Guided operator wizard explains blockers and safe commands without hidden state mutation.",
+      "gate_status": "closed_as_frontend_source_gate",
+      "id": "AUD-618-P2-001",
+      "nlnet_first_round_disposition": "closed_in_repository",
+      "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
+      "severity": "P2"
+    },
+    {
+      "blocker_category": "closed_by_artifact_or_docs",
+      "blocks": [
+        "testnet_ux"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "Transaction activity now shows submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool states with unknown propagation shown honestly.",
+      "evidence_gate": "tx_propagation_timeline_source_gate",
+      "expected_production_behavior": "Show submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool stages without treating mempool acceptance as confirmation.",
+      "gate_status": "closed_as_frontend_source_gate",
+      "id": "AUD-618-P2-002",
+      "nlnet_first_round_disposition": "closed_in_repository",
+      "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
+      "severity": "P2"
+    },
+    {
+      "blocker_category": "closed_by_artifact_or_docs",
+      "blocks": [
+        "observability"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "Node dashboard now includes a read-only operator incident timeline that ties node mode, chain identity, peer/seed status, mempool, block height, validator/BFT authority, storage/helper/economics/protocol-upgrade blockers, and safe diagnostics.",
+      "evidence_gate": "operator_incident_timeline_gate",
+      "expected_production_behavior": "Incident timeline ties mempool, peer sync, block, BFT, storage, and role blockers.",
+      "gate_status": "closed_as_frontend_source_gate",
+      "id": "AUD-618-P2-003",
+      "nlnet_first_round_disposition": "closed_in_repository",
+      "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
+      "severity": "P2"
+    },
+    {
+      "blocker_category": "closed_by_artifact_or_docs",
+      "blocks": [
+        "docs"
+      ],
+      "can_be_closed_by_code_only": true,
+      "current_behavior": "Many scripts exist; first-run node-mode selection is still complex.",
+      "evidence_gate": "node_mode_quickstart_doc_gate",
+      "expected_production_behavior": "One-page choose-your-node-mode quickstart.",
+      "gate_status": "closed_as_docs_gate",
+      "id": "AUD-618-P3-001",
+      "nlnet_first_round_disposition": "closed_in_repository",
+      "remaining_external_evidence": [],
+      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
+      "safe_to_reduce_before_nlnet_first_round": true,
+      "severity": "P3"
+    }
+  ],
+  "closed_blocker_count": 7,
+  "closed_code_gate_ids": [
+    "AUD-618-P1-001",
+    "AUD-618-P1-002",
+    "AUD-618-P1-006",
+    "AUD-618-P2-001",
+    "AUD-618-P2-002",
+    "AUD-618-P2-003",
+    "AUD-618-P3-001"
+  ],
+  "closed_in_repository_count": 7,
+  "controlled_testnet_candidate": true,
+  "count_meanings": {
+    "blocker_catalog_count": "Total blocker catalog entries kept visible for audit continuity.",
+    "blocker_count": "Compatibility alias for blocker_catalog_count; it is the full historical blocker catalog size, not the number still open.",
+    "closed_in_repository_count": "Catalog entries closed by tracked repository evidence, generated artifacts, docs, or source-level UX gates.",
+    "p*_open_count": "Open blocker count by severity, using remaining_blocker_count semantics rather than catalog size.",
+    "remaining_blocker_count": "Open blockers that still require external evidence, counsel attestation, or future mainnet-readiness hardening before public beta can be claimed.",
+    "remaining_external_evidence_required_count": "Open blockers with missing independent transcript, real-operator proof, counsel attestation, or other external evidence.",
+    "remaining_mainnet_hardening_count": "Open blockers whose final closure depends on future public-validator, protocol-upgrade, storage, or production-helper hardening beyond the bounded observer/controlled-testnet candidate."
+  },
+  "evidence_gate_summaries": {
+    "api_response_vectors": {
+      "ok": true,
+      "vector_count": 42
+    },
+    "clean_clone_gate": {
+      "backend_wrapper_path": "Weall-Protocol/scripts/run_clean_clone_go_gate_v1_5.sh",
+      "backend_wrapper_present": true,
+      "frontend_contract_gate_path": "scripts/run_frontend_contract_check_with_backend.sh",
+      "frontend_contract_gate_present": true,
+      "ok": true,
+      "requires_fresh_checkout_transcript_after_commit": true,
+      "root_gate_executable_in_this_checkout": true,
+      "root_gate_path": "scripts/run_clean_clone_go_gate_v1_5.sh",
+      "root_gate_present": true
+    },
+    "frontend_p2_ux_observability": {
+      "artifact_digest": "926b7ffa628915869fcb5dd25963eb829f21901db3e8aca217723ffb051430da",
+      "checks": {
+        "no_readiness_or_confirmation_overclaim_in_product_copy": true,
+        "node_dashboard_source_contract_updated": true,
+        "operator_incident_timeline_present": true,
+        "operator_wizard_surface_present": true,
+        "source_contract_test_present": true,
+        "tx_lifecycle_timeline_present": true
+      },
+      "node_dashboard_source_gate": "web/scripts/test_node_dashboard_source.mjs",
+      "ok": true,
+      "source_gate": "web/scripts/test_step9_p2_ux_source.mjs"
+    },
+    "helper_production_topology": {
+      "batch": "593",
+      "block_candidate": {
+        "height": 10,
+        "helper_root": "a0b6a11d4bd28d0dbfbcc5c51cfc42258a2d2a9d45b3b618dd8eb5f93a4df92b",
+        "receipts_root": "b31209a3b9ac0974adc6db3e79692e5a1312975e1fba071ad4fe054601412b7c",
+        "serial_root": "a0b6a11d4bd28d0dbfbcc5c51cfc42258a2d2a9d45b3b618dd8eb5f93a4df92b",
+        "tx_ids": [
+          "tx1",
+          "tx2",
+          "tx3",
+          "tx4"
+        ]
+      },
+      "byzantine_helper_output_rejected": true,
+      "deterministic_merge_preserves_tx_order": true,
+      "helper_lane_count": 4,
+      "helper_root": "a0b6a11d4bd28d0dbfbcc5c51cfc42258a2d2a9d45b3b618dd8eb5f93a4df92b",
+      "mechanism": "helper_block_path_adversarial_rehearsal_without_activation",
+      "missing_helper_fallback_to_serial": true,
+      "ok": true,
+      "production_helper_execution_enabled": false,
+      "public_helper_execution_claimed": false,
+      "restart_replay_root_equal": true,
+      "serial_equivalence_ok": true,
+      "serial_root": "a0b6a11d4bd28d0dbfbcc5c51cfc42258a2d2a9d45b3b618dd8eb5f93a4df92b",
+      "tx_count": 4
+    },
+    "legal_compliance": {
+      "attestation_template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
+      "counsel_review_attached": false,
+      "evidence_pack": "docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
+      "legal_compliance_ready": false,
+      "ok": true,
+      "public_claims_require_counsel_review": true,
+      "required_attestations": [
+        "token/economics claims reviewed by counsel or controlled external reviewer",
+        "governance and treasury claims reviewed by counsel or controlled external reviewer",
+        "privacy/public-only, minors, sanctions, severe-harm, and NCIM posture reviewed",
+        "public validator, storage/IPFS, helper, and upgrade claims reviewed",
+        "public-beta jurisdictional risk checklist completed",
+        "marketing/docs checked against launch-disabled matrix"
+      ],
+      "runbook": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
+      "validation_command": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
+    },
+    "production_helper_topology_hardening_plan": {
+      "artifact_digest": "e843d29a1fc6259d288df8b54e7248226f3c8187186e08335d05f5fb207e9ff6",
+      "blocker": "AUD-618-P1-005",
+      "blocker_status": "open_future_mainnet_hardening",
+      "ok": true,
+      "production_helper_execution_enabled": false,
+      "production_helper_execution_ready": false,
+      "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+    },
+    "protocol_upgrade_execution_hardening_plan": {
+      "artifact_digest": "b6e8fb7c28bcaf2b78c2ddc9819524b3ab84ac6daec3f6bfb34c6965bb87ace7",
+      "automatic_protocol_upgrades_ready": false,
+      "blocker": "AUD-618-P0-003",
+      "blocker_status": "open_future_mainnet_hardening",
+      "execution_enabled": false,
+      "ok": true,
+      "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan"
+    },
+    "protocol_upgrade_staging": {
+      "auto_apply_rejected": true,
+      "automatic_protocol_upgrade_enabled": false,
+      "batch": "589",
+      "manifest": {
+        "artifact_cid": "bafytestnetstagedartifact0000000000000000000000000000000",
+        "artifact_hash": "97000aa7baaa2aeb8f19ac4530d9259f29d130c77b062940e721e5069795cb42",
+        "artifact_sha256": "43e9dd1539f945a2cb4d37a1dff53dbb7cc9533a6189d99130b7bab09a7658d1",
+        "auto_apply": false,
+        "chain_id": "weall-testnet-candidate",
+        "compatibility_window_heights": [
+          1200,
+          1800
+        ],
+        "execute_migration": false,
+        "migration_vector_hash": "c03ed1b2e1b3a648987d7f8dbd9a6579c8f52d1916bce38b4abeca5a96224f8d",
+        "operator_action_required": true,
+        "rollback_execute": false,
+        "rollback_vector_hash": "eb2772d3200711cd5807bd839639f1ae2c4cc32c0e787ee1906e016398818cc7",
+        "schema": "weall.protocol_upgrade.signed_staging_manifest.v1",
+        "signature": "d813bdf3ce26bfc88d49c95679a68cd302cea460b72a30bf69cb2ae5189a8525",
+        "signer_id": "weall-release-signer-testnet-staging-v1",
+        "upgrade_id": "upgrade:testnet-readiness-mechanism-pack:589",
+        "version": "v1.5-testnet-mechanism-b589"
+      },
+      "mechanism": "signed_artifact_staging_manifest_verification_without_execution",
+      "ok": true,
+      "operator_action_required": true,
+      "side_effects": {
+        "artifact_fetched": false,
+        "migration_executed": false,
+        "node_restarted": false,
+        "rollback_executed": false,
+        "software_applied": false
+      },
+      "tampered_manifest_rejected": true,
+      "valid_manifest_reason": "verified_for_staging_only",
+      "valid_manifest_verified": true,
+      "wrong_signer_rejected": true
+    },
+    "public_observer_launch_evidence_requirements": {
+      "digest": "daa9ef3d37629e758b8672e1c549c88cade0c0574b5f7efb747d169a2ca45377",
+      "ok": true,
+      "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
+      "present": true,
+      "schema": "weall.v1_5.public_observer_launch_evidence_requirements"
+    },
+    "public_validator": {
+      "batch": "590",
+      "equivocation_rejected": true,
+      "final_roots": {
+        "validator-0": "9289992a9c7db9e11899816c252784406828b71bb98bab2bcb0e9bca9f994073",
+        "validator-1": "9289992a9c7db9e11899816c252784406828b71bb98bab2bcb0e9bca9f994073",
+        "validator-2": "9289992a9c7db9e11899816c252784406828b71bb98bab2bcb0e9bca9f994073",
+        "validator-3": "9289992a9c7db9e11899816c252784406828b71bb98bab2bcb0e9bca9f994073"
+      },
+      "fresh_node_catchup_exercised": true,
+      "machine_count": 4,
+      "mechanism": "external_multi_machine_validator_rehearsal_harness",
+      "minority_partition_cannot_finalize": true,
+      "node_count": 4,
+      "observer_vote_rejected": true,
+      "ok": true,
+      "partition_rejoin_exercised": true,
+      "public_validator_enabled": false,
+      "public_validator_readiness_claimed": false,
+      "requires_independent_operator_run": true,
+      "restart_replay_root_stability_exercised": true,
+      "rounds": 12,
+      "state_roots_match": true,
+      "threshold": 3,
+      "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
+    },
+    "release_evidence_manifest": {
+      "artifact_digest": "61ba6b027c558f81a378a84faf03d1e6e443b994a322d719c72b07bac4ef6ad6",
+      "ok": true,
+      "runtime_commit_binding_required": true,
+      "schema": "weall.v1_5.release_evidence_manifest",
+      "tracked_manifest_is_commit_agnostic": true
+    },
+    "state_root_cross_machine_export": {
+      "artifact_digest": "793991d9fb418c23a4bc48478634bc4266df5455c7152e2ac4bd1584bdf08ec1",
+      "capture_script": "scripts/capture_external_cross_machine_replay_transcript_v1_5.sh",
+      "cross_machine_replay_exported": true,
+      "external_cross_machine_attestation_required": true,
+      "external_cross_machine_replay_runbook_present": true,
+      "external_cross_machine_transcript_capture_script_present": true,
+      "external_cross_machine_transcript_template_present": true,
+      "ok": true,
+      "template": "docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json",
+      "validation_command": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind external_cross_machine_replay_transcript --strict-release --path <transcript.json>",
+      "vector_count": 9
+    },
+    "storage_ipfs": {
+      "batch": "591",
+      "cid": "bafy1dd7b141fcef87ec2d467dd318b578432724f1f43a912453650b1cb0",
+      "corrupt_content_rejected_by_hash": true,
+      "expected_sha256": "1dd7b141fcef87ec2d467dd318b578432724f1f43a912453650b1cb084930ad4",
+      "fresh_node_retrieval_path_exercised": true,
+      "machine_count": 5,
+      "mechanism": "multi_machine_ipfs_durability_rehearsal",
+      "ok": true,
+      "origin_failure_exercised": true,
+      "origin_machine": "machine-0",
+      "public_decentralized_media_durability_claimed": false,
+      "public_storage_provider_market_claimed": false,
+      "reassigned_to": [
+        "machine-3",
+        "machine-4"
+      ],
+      "replication_factor_after_reassignment": 5,
+      "requires_real_operator_rehearsal": true,
+      "restricted_identity_evidence_deletion_policy_checked": true,
+      "restricted_identity_evidence_retention_policy_checked": true,
+      "retrieval_from_non_origin_machine": true,
+      "retrieval_sources": [
+        "machine-1",
+        "machine-2",
+        "machine-3",
+        "machine-4"
+      ],
+      "wrong_cid_rejected": true
+    },
+    "testnet_capability_surface": {
+      "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": [
+        "b587_b594_mechanism_completion",
+        "public_beta_blocker_report"
+      ],
+      "artifact_blockers": [],
+      "blocked_capabilities": [
+        "live_transfers",
+        "live_rewards",
+        "treasury_spend",
+        "live_economics",
+        "public_validator_join",
+        "public_multi_validator_bft",
+        "automatic_protocol_upgrade_apply",
+        "production_helper_execution"
+      ],
+      "capabilities": {
+        "automatic_protocol_upgrade_apply": {
+          "blocked_by_launch_matrix": true,
+          "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+          "enabled": false,
+          "feature": "automatic_protocol_upgrade_apply",
+          "phase": "public_beta_candidate",
+          "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+        },
+        "live_economics": {
+          "blocked_by_launch_matrix": true,
+          "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+          "enabled": false,
+          "feature": "live_economics",
+          "phase": "public_beta_candidate",
+          "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+        },
+        "live_rewards": {
+          "blocked_by_launch_matrix": true,
+          "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+          "enabled": false,
+          "feature": "reward_issuance",
+          "phase": "public_beta_candidate",
+          "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+        },
+        "live_transfers": {
+          "blocked_by_launch_matrix": true,
+          "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+          "enabled": false,
+          "feature": "balance_transfer",
+          "phase": "public_beta_candidate",
+          "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+        },
+        "production_helper_execution": {
+          "blocked_by_launch_matrix": true,
+          "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+          "enabled": false,
+          "feature": "production_helper_execution",
+          "phase": "public_beta_candidate",
+          "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+        },
+        "public_multi_validator_bft": {
+          "blocked_by_launch_matrix": true,
+          "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+          "enabled": false,
+          "feature": "public_multi_validator_bft",
+          "phase": "public_beta_candidate",
+          "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+        },
+        "public_validator_join": {
+          "blocked_by_launch_matrix": true,
+          "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+          "enabled": false,
+          "feature": "public_validator_promotion",
+          "phase": "public_beta_candidate",
+          "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+        },
+        "treasury_spend": {
+          "blocked_by_launch_matrix": true,
+          "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+          "enabled": false,
+          "feature": "treasury_spend",
+          "phase": "public_beta_candidate",
+          "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+        }
+      },
+      "controlled_mechanism_artifact_blockers": [],
+      "controlled_testnet_mechanisms_complete": true,
+      "dispute_lifecycle": {
+        "deterministic_receipt_txs": [
+          "DISPUTE_JUROR_TIMEOUT",
+          "DISPUTE_FINAL_RECEIPT"
+        ],
+        "manual_wall_clock_protocol_state_allowed": false,
+        "private_identity_evidence_publicly_exposed": false,
+        "progression_clock": "block_height",
+        "public_record_state": true,
+        "reviewer_surface": "GET /v1/status/testnet-capabilities",
+        "scheduler": "tick_dispute_lifecycle",
+        "truth_boundary": "Dispute windows, juror deadlines, appeal closure, and public outcomes are block-height bound; raw PoH/private identity evidence remains restricted.",
+        "ui_time_estimates_only": true
+      },
+      "governance_lifecycle": {
+        "deterministic_receipt_txs": [
+          "GOV_STAGE_SET",
+          "GOV_VOTING_CLOSE",
+          "GOV_TALLY_PUBLISH",
+          "GOV_EXECUTE",
+          "GOV_PROPOSAL_FINALIZE"
+        ],
+        "manual_wall_clock_protocol_state_allowed": false,
+        "progression_clock": "block_height",
+        "public_record_state": true,
+        "reviewer_surface": "GET /v1/status/testnet-capabilities",
+        "scheduler": "tick_governance_lifecycle",
+        "truth_boundary": "Governance procedure truth is block-height based; UI may render approximate human time but must not mutate protocol state from local wall-clock time.",
+        "ui_time_estimates_only": true
+      },
+      "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
+      "minimum_reviewer_civic_loop": {
+        "api_evidence_surfaces": {
+          "account_identity_state": [
+            "GET /v1/session/me",
+            "GET /v1/accounts/{account}/profile"
+          ],
+          "dispute_review_outcome_visibility": [
+            "GET /v1/disputes",
+            "GET /v1/disputes/current",
+            "GET /v1/disputes/{dispute_id}",
+            "GET /v1/disputes/{dispute_id}/votes"
+          ],
+          "economics_locked_status": [
+            "GET /v1/economics/status",
+            "GET /v1/treasury/status",
+            "GET /v1/wallet/{account}"
+          ],
+          "governance_create_vote_finalize": [
+            "GET /v1/gov/proposals",
+            "GET /v1/gov/proposals/{proposal_id}",
+            "GET /v1/gov/proposals/{proposal_id}/votes",
+            "POST /v1/tx/submit"
+          ],
+          "human_verification_state": [
+            "GET /v1/poh/async/my-cases",
+            "GET /v1/poh/live/my-cases"
+          ],
+          "observer_node_status": [
+            "GET /v1/status",
+            "GET /v1/chain/identity",
+            "GET /v1/nodes/seeds",
+            "GET /v1/nodes/validators",
+            "GET /v1/observer/edge/status"
+          ],
+          "protocol_upgrade_record_lifecycle": [
+            "POST /v1/tx/submit",
+            "GET /v1/status/testnet-capabilities"
+          ],
+          "public_group_read_with_member_gated_participation": [
+            "GET /v1/groups",
+            "GET /v1/groups/{group_id}",
+            "GET /v1/groups/{group_id}/feed",
+            "GET /v1/groups/{group_id}/governance-contract"
+          ],
+          "public_posting_or_social_activity": [
+            "GET /v1/feed",
+            "POST /v1/tx/submit",
+            "GET /v1/content/{content_id}"
+          ],
+          "reputation_outcome_visibility": [
+            "GET /v1/reputation/{account}/eligibility",
+            "GET /v1/activity/notices"
+          ]
+        },
+        "canonical_route_boundary": {
+          "dispute_label": "Reports",
+          "dispute_route": "/reports",
+          "governance_label": "Decisions",
+          "governance_route": "/decisions",
+          "legacy_aliases_removed": [
+            "/proposals",
+            "/disputes"
+          ]
+        },
+        "economics_locked_by_default": true,
+        "frontend_entrypoints": {
+          "account": "/profile",
+          "account_detail_template": "/account/:account",
+          "create_post": "/create",
+          "dispute_detail_template": "/reports/:id",
+          "disputes": "/reports",
+          "economics": "/economics",
+          "feed": "/feed",
+          "governance": "/decisions",
+          "governance_create": "/decisions/create",
+          "governance_detail_template": "/decisions/:id",
+          "group_detail_template": "/groups/:id",
+          "groups": "/groups",
+          "identity_verification": "/verification",
+          "node_status": "/node",
+          "reputation_visibility": "/activity",
+          "review_center": "/reviews",
+          "review_detail_template": "/reviews/:id"
+        },
+        "public_only_visibility": true,
+        "steps": [
+          "account_identity_state",
+          "human_verification_state",
+          "public_posting_or_social_activity",
+          "public_group_read_with_member_gated_participation",
+          "governance_create_vote_finalize",
+          "dispute_review_outcome_visibility",
+          "reputation_outcome_visibility",
+          "protocol_upgrade_record_lifecycle",
+          "observer_node_status",
+          "economics_locked_status"
+        ],
+        "truth_boundary": "This is a reviewer navigation map using current canonical frontend routes, not proof that public beta/mainnet gates are closed. Templates with ':' require a concrete public identifier before navigation."
+      },
+      "phase": "public_beta_candidate",
+      "protocol_upgrade_lifecycle": {
+        "activation_clock": "block_height",
+        "activation_record_only": true,
+        "automatic_software_apply_enabled": false,
+        "declaration_tx": "PROTOCOL_UPGRADE_DECLARE",
+        "economics_activation_enabled_by_upgrade": false,
+        "migration_execution_enabled": false,
+        "public_record_state": true,
+        "required_parent_boundary": "SYSTEM queue / receipt-only governance parent reference",
+        "reviewer_surface": "GET /v1/status/testnet-capabilities",
+        "rollback_execution_enabled": false,
+        "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
+        "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
+      },
+      "public_beta_blocker_report": {
+        "blocker_catalog_count": 15,
+        "blocker_count": 15,
+        "closed_in_repository_count": 7,
+        "mainnet_ready": false,
+        "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+        "ok": true,
+        "p0_open_count": 4,
+        "p1_open_count": 4,
+        "p2_open_count": 0,
+        "p3_open_count": 0,
+        "present": true,
+        "public_beta_ready": false,
+        "remaining_blocker_count": 8,
+        "remaining_external_evidence_required_count": 8,
+        "remaining_mainnet_hardening_count": 4
+      },
+      "public_beta_ready_claimed": false,
+      "required_artifacts": {
+        "api_contract": {
+          "ok": true,
+          "path": "generated/api_contract_map_v1_5.json",
+          "present": true,
+          "schema": "weall.api_contract_map.v1_5"
+        },
+        "api_response_vectors": {
+          "ok": true,
+          "path": "generated/api_response_vectors_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.api_response_vectors"
+        },
+        "b582_b586_proof": {
+          "ok": true,
+          "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
+        },
+        "b587_b594_mechanism_completion": {
+          "ok": true,
+          "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+        },
+        "external_operator_transcript_requirements": {
+          "ok": true,
+          "path": "generated/external_operator_transcript_requirements_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.external_operator_transcript_requirements"
+        },
+        "failure_code_registry": {
+          "ok": true,
+          "path": "generated/failure_code_registry_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.failure_code_registry"
+        },
+        "launch_disabled_matrix": {
+          "ok": true,
+          "path": "generated/launch_disabled_matrix_v1_5.json",
+          "present": true,
+          "schema": "weall.launch_disabled_matrix.v1_5"
+        },
+        "production_helper_topology_hardening_plan": {
+          "ok": true,
+          "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+        },
+        "public_beta_blocker_report": {
+          "ok": true,
+          "path": "generated/public_beta_blocker_report_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.public_beta_blocker_report"
+        },
+        "public_validator_preflight": {
+          "ok": true,
+          "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+        },
+        "state_root_vectors": {
+          "ok": true,
+          "path": "generated/state_root_vectors_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.state_root_vectors"
+        },
+        "tokenomics_simulation": {
+          "ok": true,
+          "path": "generated/tokenomics_simulation_v1_5.json",
+          "present": true,
+          "schema": "weall.v1_5.tokenomics_simulation"
+        }
+      },
+      "schema": "weall.v1_5.testnet_capability_surface",
+      "truth_boundaries": {
+        "automatic_protocol_upgrades_enabled": false,
+        "launch_matrix_is_guardrail_not_consensus": true,
+        "legal_compliance_ready_claimed": false,
+        "live_economics_enabled": false,
+        "production_helper_execution_enabled": false,
+        "public_validator_enabled": false
+      }
+    }
+  },
+  "evidence_inventory_ok": true,
+  "external_operator_transcript_requirements": {
+    "artifact_digest": "afcca91144a440f5e78ae6f0fd06b0700b40a20afa41cad45ea9c518af6ebf8b",
+    "external_attestation_required_before_public_beta": true,
+    "ok": true,
+    "schema_count": 4
+  },
+  "mainnet_ready": false,
+  "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+  "ok": true,
+  "ok_meaning": "The blocker inventory and bounded evidence gates are current; this does not mean public beta readiness.",
+  "open_blocker_count": 8,
+  "p0_open_count": 4,
+  "p1_open_count": 4,
+  "p2_open_count": 0,
+  "p3_open_count": 0,
+  "public_beta_blockers_remaining": true,
+  "public_beta_ready": false,
+  "release_claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "legal_compliance_ready": false,
+    "live_economics": false,
+    "mainnet_ready": false,
+    "production_helper_execution": false,
+    "public_beta_ready": false,
+    "public_decentralized_media_durability": false,
+    "public_multi_validator_bft": false,
+    "public_storage_provider_market": false,
+    "public_validator_enabled": false
+  },
+  "remaining_blocker_count": 8,
+  "remaining_external_evidence_required_count": 8,
+  "remaining_external_evidence_required_ids": [
+    "AUD-618-P0-001",
+    "AUD-618-P0-002",
+    "AUD-618-P0-003",
+    "AUD-633-P0-004",
+    "AUD-618-P1-003",
+    "AUD-618-P1-004",
+    "AUD-618-P1-005",
+    "AUD-628-P1-001"
+  ],
+  "remaining_mainnet_hardening_count": 4,
+  "remaining_mainnet_hardening_ids": [
+    "AUD-618-P0-001",
+    "AUD-618-P0-003",
+    "AUD-618-P1-004",
+    "AUD-618-P1-005"
+  ],
+  "schema": "weall.v1_5.public_beta_blocker_report",
+  "transcript_schemas": {
+    "legal_attestation": {
+      "must_not_claim": [
+        "legal_clearance_without_review",
+        "token_sale_ready_without_counsel"
+      ],
+      "required_fields": [
+        "schema",
+        "review_date",
+        "reviewer_or_counsel_reference",
+        "scope",
+        "approved_public_claims",
+        "restricted_claims",
+        "signature_or_controlled_reference"
+      ]
+    },
+    "production_helper_topology_hardening_plan": {
+      "must_not_claim": [
+        "production_helper_execution",
+        "helper_mode_authority",
+        "mainnet_ready",
+        "public_beta_ready"
+      ],
+      "required_fields": [
+        "schema",
+        "blocker",
+        "current_boundary",
+        "future_required_evidence",
+        "launch_matrix_status_by_phase",
+        "claim_boundaries"
+      ]
+    },
+    "protocol_upgrade_execution_hardening_plan": {
+      "must_not_claim": [
+        "automatic_protocol_upgrades",
+        "migration_execution",
+        "rollback_execution",
+        "public_beta_ready"
+      ],
+      "required_fields": [
+        "schema",
+        "blocker",
+        "current_boundary",
+        "future_required_evidence",
+        "rollback_semantics_allowed_future_models",
+        "claim_boundaries"
+      ]
+    },
+    "public_validator_operator_transcript": {
+      "must_not_claim": [
+        "mainnet",
+        "public_validator_enabled_without_gate",
+        "public_multi_validator_bft_without_external_rehearsal",
+        "economic_activation"
+      ],
+      "required_fields": [
+        "schema",
+        "blocker",
+        "chain_id",
+        "operator_ids",
+        "node_ids",
+        "machine_ids",
+        "rounds",
+        "fresh_clone",
+        "node_registration",
+        "node_operator_readiness",
+        "validator_candidate_path",
+        "readiness_receipt",
+        "activation_rehearsal",
+        "observer_bypass_rejected",
+        "restart_fail_closed_without_chain_state_signing",
+        "partition_rejoin",
+        "equivocation_rejected",
+        "restart_replay",
+        "state_root_by_node",
+        "transcript_digest",
+        "operator_signatures"
+      ]
+    },
+    "storage_ipfs_operator_transcript": {
+      "must_not_claim": [
+        "public_storage_market_enabled",
+        "restricted_identity_evidence_publicly_visible"
+      ],
+      "required_fields": [
+        "schema",
+        "operator_ids",
+        "machine_ids",
+        "ipfs_peer_ids",
+        "cid",
+        "replication_factor",
+        "origin_failure",
+        "wrong_cid_rejected",
+        "corrupt_content_rejected",
+        "fresh_node_retrieval",
+        "transcript_digest"
+      ]
+    }
+  },
+  "verification_commands": [
+    "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check",
+    "PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check",
+    "PYTHONPATH=src python scripts/gen_api_response_vectors_v1_5.py --check",
+    "PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked",
+    "PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --run-gates --require-git-tracked",
+    "PYTHONPATH=src:scripts python -m pytest -q tests/prod/test_public_beta_evidence_gates.py"
+  ],
+  "version": "2026-06-b620-public-beta-evidence-gates"
+}

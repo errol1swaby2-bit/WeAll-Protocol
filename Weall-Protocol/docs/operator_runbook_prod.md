@@ -1,7 +1,7 @@
 # WeAll Protocol — Production Operator Runbook
 
 This runbook describes the current operator-facing posture for the WeAll Genesis node software.
-It is intentionally conservative: the repository is production-candidate protocol software, but public mainnet deployment still requires a final fresh-clone operator rehearsal, public-validator beta review, and external security review.
+It is intentionally conservative: the repository is a pre-public-testnet protocol implementation under active hardening, and public mainnet deployment still requires a final fresh-clone operator rehearsal, public-validator beta review, and external security review.
 
 ## 1. Launch postures
 
@@ -43,8 +43,8 @@ bash scripts/verify_release_dependencies.sh
 Expected current checkpoint:
 
 ```text
-tx canon: 231 tx types, version 1.25.0
-latest full backend suite: 3405 passed, 2 warnings
+tx canon: 233 tx types, version 1.25.0
+latest full backend suite: 3636 passed, 3 warnings
 backend locks: requirements.lock, requirements-dev.lock
 frontend lock: ../web/package-lock.json
 ```
@@ -126,10 +126,10 @@ docker logs weall_producer --tail=200
 
 ## 7. Consensus and authority invariants operators should know
 
-Current production-candidate hardening includes:
+Current local/devnet hardening includes:
 
 - two-tier native PoH: async Tier 1 and live Tier 2
-- no required email, Cloudflare, SMTP, DNS, CAPTCHA, OAuth, KYC provider, or government ID provider for PoH authority
+- no required email, SMTP, DNS, named hosting provider, CAPTCHA, OAuth, KYC provider, or government ID provider for PoH authority
 - adaptive Live PoH quorum: up to 10 jurors, up to 3 active reviewers, up to 7 watchers
 - follower-side SYSTEM tx replay binding to deterministic scheduler output before apply
 - helper execution metadata committed through `helper_execution_root` when present

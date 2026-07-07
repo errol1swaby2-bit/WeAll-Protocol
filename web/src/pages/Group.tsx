@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { api, getApiBaseUrl, weall } from "../api/weall";
+import { api, getApiBaseUrl, weall, type GroupGovernanceContract } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import { getAuthHeaders, getKeypair, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
@@ -43,6 +43,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const [members, setMembers] = useState<any[]>([]);
   const [groupPosts, setGroupPosts] = useState<any[]>([]);
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus | null>(null);
+  const [governanceContract, setGovernanceContract] = useState<GroupGovernanceContract | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
@@ -88,6 +89,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       setMembershipStatus(r || null);
     } catch {
       setMembershipStatus(null);
+      setGovernanceContract(null);
     }
   }
 
@@ -97,6 +99,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       setMembers([]);
       setGroupPosts([]);
       setMembershipStatus(null);
+      setGovernanceContract(null);
       return;
     }
 
@@ -107,6 +110,8 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
 
       const m: any = await api.groups.members(selected, base).catch(() => ({ members: [] }));
       setMembers(Array.isArray(m?.members) ? m.members : []);
+      const contract: GroupGovernanceContract | null = await weall.groupGovernanceContract(selected, base).catch(() => null);
+      setGovernanceContract(contract);
       const feedHeaders = acct ? getAuthHeaders(acct) : undefined;
       const feedRes: any = await weall.groupFeed(selected, { limit: 6 }, base, feedHeaders).catch(() => ({ items: [] }));
       setGroupPosts(Array.isArray(feedRes?.items) ? feedRes.items.slice(0, 6) : []);
@@ -117,6 +122,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
       setMembers([]);
       setGroupPosts([]);
       setMembershipStatus(null);
+      setGovernanceContract(null);
     }
   }
 
@@ -172,29 +178,22 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         };
       }
 
-      const joinWillAutoAccept = kind === "join" && !detailIsPrivate;
-
       await tx.runTx({
         title: kind === "join" ? "Join group" : "Leave group",
         pendingKey: txPendingKey(["group-membership", kind, selected, acct]),
-        pendingMessage: kind === "join" ? (joinWillAutoAccept ? "Joining group…" : "Submitting membership request…") : "Leaving group…",
-        successMessage: kind === "join" ? (joinWillAutoAccept ? "Joined group." : "Membership request submitted.") : "Left group.",
+        pendingMessage: kind === "join" ? "Joining group…" : "Leaving group…",
+        successMessage: kind === "join" ? "Joined group." : "Left group.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         finality: {
           timeoutMs: 16000,
           mutation: { entityType: "group", entityId: selected, account: acct || undefined, routeHint: `/groups/${encodeURIComponent(selected)}`, txType: String(skeletonTx.tx_type) },
-          reconcile: async () => {
-            if (kind === "join" && detailIsPrivate) {
-              return reconcileMembershipPending({ groupId: selected, account: acct, base });
-            }
-            return reconcileMembershipState({
-              groupId: selected,
-              account: acct,
-              expectMember: kind === "join",
-              base,
-            });
-          },
+          reconcile: async () => reconcileMembershipState({
+            groupId: selected,
+            account: acct,
+            expectMember: kind === "join",
+            base,
+          }),
         },
         task: async () =>
           submitSignedTx({
@@ -293,19 +292,22 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
   const detailDescription = String(
     detail?.charter?.description || detail?.meta?.description || detail?.description || detailCharterParts.slice(1).join("\n\n") || "",
   );
-  const detailVisibility = String(
-    detail?.visibility ||
-      detail?.privacy ||
-      detail?.meta?.visibility ||
-      detail?.meta?.privacy ||
-      "public",
-  ).toLowerCase();
-  const detailIsPrivate = ["private", "closed", "members"].includes(detailVisibility);
   const membershipPhase = String(membershipStatus?.phase || "").trim().toLowerCase();
   const isPendingMembership = membershipPhase === "pending";
   const isMember =
     (!!acct && !!membershipStatus?.is_member) ||
     (!!acct && members.some((m: any) => String(m?.account || "").toLowerCase() === String(acct).toLowerCase()));
+  const groupGovernanceModel = String(governanceContract?.governance_model || "protocol_governance_scaled_to_group_scope");
+  const groupReadVisibility = String(governanceContract?.public_only_contract?.read_visibility || "public");
+  const adminShortcutsSupported = governanceContract?.authority_contract?.admin_shortcuts_supported === true;
+  const permissionSummary = governanceContract?.participation_permissions || {};
+  const activeGroupElections = Array.isArray(governanceContract?.authority_contract?.active_group_elections)
+    ? governanceContract?.authority_contract?.active_group_elections || []
+    : [];
+  const contractCounts = governanceContract?.counts || {};
+  const signerThreshold = governanceContract?.authority_contract?.signer_threshold;
+  const signerCount = governanceContract?.authority_contract?.signer_count;
+  const moderatorCount = governanceContract?.authority_contract?.moderator_count;
 
   return (
     <div className="pageStack groupDetailPage">
@@ -316,7 +318,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="eyebrow">Group detail</div>
               <h1 className="heroTitle heroTitleSm">{detailName}</h1>
               <p className="heroText">
-                See what this group is about, check your membership status, and preview recent posts from the community.
+                Read the public group charter, inspect membership and governance posture, and use signed actions only for participation changes.
               </p>
             </div>
 
@@ -324,7 +326,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <div className="heroInfoTitle">Group status</div>
               <div className="heroInfoList">
                 <span className="statusPill mono">{selected || "No group id"}</span>
-                <span className="statusPill">{detailIsPrivate ? "Private" : "Public"}</span>
+                <span className="statusPill">Public reads · member-gated participation</span>
                 <span className={`statusPill ${membershipGate.ok ? "ok" : ""}`}>
                   {membershipGate.ok ? "Can join" : "Complete verification to join"}
                 </span>
@@ -343,12 +345,12 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <span className="statValue">{acct ? (isMember ? "Member" : isPendingMembership ? "Pending" : "Not a member") : "Read-only"}</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Visibility</span>
-              <span className="statValue">{detailIsPrivate ? "Private" : "Public"}</span>
+              <span className="statLabel">Read visibility</span>
+              <span className="statValue">Public</span>
             </div>
             <div className="statCard">
-              <span className="statLabel">Recent posts</span>
-              <span className="statValue">{groupPosts.length}</span>
+              <span className="statLabel">Active elections</span>
+              <span className="statValue">{Number(contractCounts.active_elections || activeGroupElections.length || 0)}</span>
             </div>
           </div>
         </div>
@@ -368,8 +370,89 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
         </div>
         <div className="surfaceBoundaryList">
           <span className="surfaceBoundaryTag">Selected group</span>
-          <span className="surfaceBoundaryTag">Action: {isMember ? "Leave group" : isPendingMembership ? "Await membership decision" : detailIsPrivate ? "Request membership" : "Join group"}</span>
+          <span className="surfaceBoundaryTag">Action: {isMember ? "Leave group" : isPendingMembership ? "Await membership decision" : "Join group"}</span>
           <span className="surfaceBoundaryTag">Posting uses the create-post page</span>
+        </div>
+      </section>
+
+      <section className="card" aria-label="Group governance contract">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Group governance contract</div>
+              <h2 className="cardTitle">Protocol governance scaled to group scope</h2>
+              <div className="cardDesc">
+                This is a public derived read model. It does not grant authority; it explains how this group surface maps reads, membership, actions, emissary records, and audit trails.
+              </div>
+            </div>
+          </div>
+          <div className="surfaceBoundaryList">
+            <span className="surfaceBoundaryTag">Model: {groupGovernanceModel.replace(/_/g, " ")}</span>
+            <span className="surfaceBoundaryTag">Reads: {groupReadVisibility}</span>
+            <span className="surfaceBoundaryTag">Signer threshold: {signerThreshold == null ? "not returned" : String(signerThreshold)}</span>
+            <span className="surfaceBoundaryTag">Signers: {signerCount == null ? "not returned" : String(signerCount)}</span>
+            <span className="surfaceBoundaryTag">Moderators: {moderatorCount == null ? "not returned" : String(moderatorCount)}</span>
+            <span className="surfaceBoundaryTag">Admin shortcuts: {adminShortcutsSupported ? "unsupported contract violated" : "not exposed"}</span>
+            <span className="surfaceBoundaryTag">Frontend cache authority: never</span>
+          </div>
+          <div className="detailFocusStrip actionFocusStrip">
+            <article className="detailFocusCard">
+              <div className="detailFocusLabel">Public-only rule</div>
+              <div className="detailFocusValue">Read access is public</div>
+              <div className="detailFocusText">Group membership may gate posting, commenting, voting, moderation, invitation, and administration, but not reading protocol-native group content.</div>
+            </article>
+            <article className="detailFocusCard">
+              <div className="detailFocusLabel">Participation gates</div>
+              <div className="detailFocusValue">{String(permissionSummary.post || "members")} posting</div>
+              <div className="detailFocusText">Comment: {String(permissionSummary.comment || "members")} · Vote: {String(permissionSummary.vote || "members")} · Moderate: {String(permissionSummary.moderate || "moderators")}.</div>
+            </article>
+            <article className="detailFocusCard">
+              <div className="detailFocusLabel">Audit trail</div>
+              <div className="detailFocusValue">Receipts inspectable</div>
+              <div className="detailFocusText">Membership changes are signed transactions; use transaction status and this group feed/members view to inspect the public result.</div>
+            </article>
+            <article className="detailFocusCard">
+              <div className="detailFocusLabel">Emissary elections</div>
+              <div className="detailFocusValue">Public candidate records</div>
+              <div className="detailFocusText">Candidate lists, candidate votes, term activation, and term expiration must be public group-governance records; the UI should not present admin-only appointment as group authority.</div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" aria-label="Group emissary election records">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Emissary election records</div>
+              <h2 className="cardTitle">Public group-governance records</h2>
+              <div className="cardDesc">
+                Emissaries are seated through public group election records. Candidate lists, ballots/counts, winners, term activation, and term expiration must be inspectable when present in chain state.
+              </div>
+            </div>
+            <div className="statusSummary">
+              <button className="btn" onClick={() => nav("/transactions")}>Track related transactions</button>
+            </div>
+          </div>
+
+          {activeGroupElections.length ? (
+            <div className="milestoneList">
+              {activeGroupElections.map((election: Record<string, unknown>, idx: number) => (
+                <span key={String(election.election_id || idx)} className="miniTag">
+                  {String(election.election_id || "election")} · {String(election.status || "open")} · {String(election.candidate_count ?? "?")} candidate(s)
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="cardDesc">No active emissary election records were returned for this group. That is an honest empty state, not an admin appointment path.</div>
+          )}
+
+          <div className="surfaceBoundaryList">
+            <span className="surfaceBoundaryTag">Election creation: signed group tx</span>
+            <span className="surfaceBoundaryTag">Ballots: public group-scope governance tx</span>
+            <span className="surfaceBoundaryTag">Finalization: deterministic group outcome</span>
+            <span className="surfaceBoundaryTag">Owner appointment path: unsupported</span>
+          </div>
         </div>
       </section>
 
@@ -384,21 +467,19 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                 ? "Your membership request is already pending."
                 : isMember
                   ? "You are a member of this group."
-                  : detailIsPrivate
-                    ? "This private group requires a membership request."
-                    : "You can join this public group from here."}
+                  : "You can join this public group from here."}
           </div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Visibility</div>
-          <div className="detailFocusValue">{detailIsPrivate ? "Private" : "Public"}</div>
+          <div className="detailFocusValue">Public</div>
           <div className="detailFocusText">
-            Private groups require approval before members-only activity is visible. Public groups are easier to join.
+            Group content and moderation activity are public. Membership can gate posting, commenting, voting, moderation, and administration only.
           </div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Next step</div>
-          <div className="detailFocusValue">{selected && acct && (isMember || !detailIsPrivate) ? "Create a group post" : !acct || !canSign ? "Sign in" : isPendingMembership ? "Wait for approval" : "Join or request access"}</div>
+          <div className="detailFocusValue">{selected && acct && isMember ? "Create a group post" : !acct || !canSign ? "Sign in" : isPendingMembership ? "Wait for approval" : "Join group"}</div>
           <div className="detailFocusText">
             Use the main button below for the next membership step.
           </div>
@@ -470,9 +551,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                       ? "Leave group"
                       : isPendingMembership
                         ? "Membership pending"
-                        : detailIsPrivate
-                          ? "Request membership"
-                          : "Join group"}
+                        : "Join group"}
               </button>
             ) : null}
           </div>
@@ -511,7 +590,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
               <h3 className="cardTitle">Recent group activity</h3>
             </div>
           </div>
-          <div className="cardDesc">Open a post to read the full conversation. Use Create Post when you want to share something with this group.</div>
+          <div className="cardDesc">Open a post to read the public replies. Use Create Post when you want to share something with this group. Posting is participation and may be member-gated; reading remains public.</div>
           {groupPosts.length ? (
             <div className="pageStack">
               {groupPosts.map((post: any) => {
@@ -521,7 +600,7 @@ export default function Group({ groupId }: { groupId?: string }): JSX.Element {
                     <button className="quickCardMain" onClick={() => nav(`/content/${encodeURIComponent(pid)}`)}>
                       <span>
                         <strong>{String(post?.body || "Untitled post").slice(0, 100) || pid}</strong>
-                        <small>{String(post?.author || "unknown")} · {String(post?.visibility || "public")}</small>
+                        <small>{String(post?.author || "unknown")} · {String(post?.visibility || "public")} · public group record</small>
                       </span>
                     </button>
                     <button

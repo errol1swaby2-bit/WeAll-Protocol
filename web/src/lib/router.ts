@@ -15,7 +15,7 @@ export type RightRailContext =
   | "review_item"
   | "reviews"
   | "post_create"
-  | "messaging"
+  | "activity"
   | "verification"
   | "live_room"
   | "account"
@@ -25,6 +25,7 @@ export type RightRailContext =
   | "advanced"
   | "transactions"
   | "economics"
+  | "node"
   | "content_detail"
   | "thread";
 
@@ -72,13 +73,10 @@ export type RouteMatch =
   | { path: "/verification/live/:caseId"; caseId: string }
   | { path: "/reviews" }
   | { path: "/reviews/:id"; id: string }
-  | { path: "/juror" }
   | { path: "/groups" }
   | { path: "/groups/create" }
   | { path: "/groups/:id"; id: string }
-  | { path: "/messages" }
-  | { path: "/messages/compose" }
-  | { path: "/messages/:id"; id: string }
+  | { path: "/activity" }
   | { path: "/decisions" }
   | { path: "/decisions/create" }
   | { path: "/decisions/:id"; id: string }
@@ -87,9 +85,9 @@ export type RouteMatch =
   | { path: "/settings" }
   | { path: "/session" }
   | { path: "/advanced" }
-  | { path: "/tools" }
   | { path: "/transactions" }
   | { path: "/economics" }
+  | { path: "/node" }
   | { path: "/profile" }
   | { path: "/account/:account"; account: string }
   | { path: "/content/:id"; id: string }
@@ -173,7 +171,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     section: "Feed",
     label: "Feed",
     title: "Feed",
-    description: "Read posts, join conversations, react, share, and report harmful content when eligible.",
+    description: "Read posts, join public replies, react, share, and report harmful content when eligible.",
     public: false,
     authRequired: true,
     requiresReady: true,
@@ -210,7 +208,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     section: "Feed",
     label: "Post Detail",
     title: "Post Detail",
-    description: "Read one post, its conversation, reactions, and report or review status.",
+    description: "Read one post, its public replies, reactions, and report or review status.",
     public: true,
     authRequired: false,
     mode: "detail",
@@ -263,10 +261,10 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     }),
   },
   "/reviews": {
-    section: "Reviews",
-    label: "Reviews",
-    title: "Review Queue",
-    description: "Review assigned community issues and verification tasks when you hold the right responsibility.",
+    section: "Review Center",
+    label: "Review Center",
+    title: "Review Center",
+    description: "A lane-separated hub for content review, dispute juror review, PoH async review, and PoH live review duties.",
     public: false,
     authRequired: true,
     requiresReady: true,
@@ -276,15 +274,15 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     rightRail: "reviews",
     normalNav: true,
     dataContract: contract({
-      primaryObject: "Review queue",
-      contextPanelData: "Assigned review work and reviewer eligibility",
-      blockingDependencies: ["Account session", "Trusted account status", "Community Reviewer responsibility", "Assigned review work"],
+      primaryObject: "Review Center",
+      contextPanelData: "Lane-separated review work, reviewer opt-in state, eligibility blockers, and assigned duties",
+      blockingDependencies: ["Account session", "Trusted account status", "Exact reviewer lane responsibility", "Assigned review work"],
     }),
   },
   "/reviews/:id": {
-    section: "Reviews",
-    label: "Review Item",
-    title: "Review Item",
+    section: "Review Center",
+    label: "Content review workspace",
+    title: "Content review workspace",
     description: "Complete one assigned review with simple choices and clear outcome feedback.",
     public: false,
     authRequired: true,
@@ -294,30 +292,11 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     fab: "none",
     rightRail: "review_item",
     normalNav: false,
-    breadcrumbs: [{ label: "Reviews", href: "/reviews" }],
+    breadcrumbs: [{ label: "Review Center", href: "/reviews" }],
     dataContract: contract({
       primaryObject: "Assigned review",
       contextPanelData: "Review instructions, assignment state, and action feedback",
-      blockingDependencies: ["Account session", "Community Reviewer responsibility", "Assignment state"],
-    }),
-  },
-  "/juror": {
-    section: "Reviews",
-    label: "Review Queue",
-    title: "Review Queue",
-    description: "Legacy reviewer route alias for assigned community review work. Requires Active Juror role or badge.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
-    minPohTier: 2,
-    mode: "hub",
-    fab: "none",
-    rightRail: "reviews",
-    normalNav: false,
-    dataContract: contract({
-      primaryObject: "Review queue",
-      contextPanelData: "Assigned reports, verification reviews, and review eligibility",
-      blockingDependencies: ["Account session", "Trusted verification", "Active Juror role or badge"],
+      blockingDependencies: ["Account session", "Exact reviewer lane responsibility", "Assignment state"],
     }),
   },
   "/groups": {
@@ -375,63 +354,22 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       blockingDependencies: [],
     }),
   },
-  "/messages": {
-    section: "Messages",
-    label: "Messages",
-    title: "Messages",
-    description: "Send and read direct messages when your account status allows it.",
+  "/activity": {
+    section: "Activity",
+    label: "Activity",
+    title: "Activity",
+    description: "Review public-event-derived mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts.",
     public: false,
     authRequired: true,
     requiresReady: true,
-    minPohTier: 1,
     mode: "hub",
     fab: "none",
-    rightRail: "messaging",
+    rightRail: "activity",
     normalNav: true,
     dataContract: contract({
-      primaryObject: "Messages",
-      contextPanelData: "Conversation list and messaging eligibility",
-      blockingDependencies: ["Account session", "Messaging eligibility"],
-    }),
-  },
-  "/messages/compose": {
-    section: "Messages",
-    label: "New Message",
-    title: "New Message",
-    description: "Compose one focused direct message.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
-    minPohTier: 1,
-    mode: "action",
-    fab: "none",
-    rightRail: "messaging",
-    normalNav: false,
-    breadcrumbs: [{ label: "Messages", href: "/messages" }],
-    dataContract: contract({
-      primaryObject: "Message composer",
-      contextPanelData: "Messaging eligibility and active session",
-      blockingDependencies: ["Account session", "Messaging eligibility"],
-    }),
-  },
-  "/messages/:id": {
-    section: "Messages",
-    label: "Conversation",
-    title: "Conversation",
-    description: "Read and respond to one direct conversation.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
-    minPohTier: 1,
-    mode: "detail",
-    fab: "none",
-    rightRail: "messaging",
-    normalNav: false,
-    breadcrumbs: [{ label: "Messages", href: "/messages" }],
-    dataContract: contract({
-      primaryObject: "Conversation",
-      contextPanelData: "Conversation thread and reply eligibility",
-      blockingDependencies: ["Account session", "Messaging eligibility"],
+      primaryObject: "Public activity notifications",
+      contextPanelData: "Public protocol events relevant to this account",
+      blockingDependencies: ["Account session", "Public protocol event index"],
     }),
   },
   "/decisions": {
@@ -499,7 +437,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     mode: "hub",
     fab: "none",
     rightRail: "reports",
-    normalNav: false,
+    normalNav: true,
     dataContract: contract({
       primaryObject: "Reports",
       contextPanelData: "Report status and community review context",
@@ -579,25 +517,6 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       blockingDependencies: ["Account session", "Advanced mode"],
     }),
   },
-  "/tools": {
-    section: "Advanced",
-    label: "Tools",
-    title: "Tools",
-    description: "Legacy technical tools route alias hidden from normal social navigation.",
-    public: false,
-    authRequired: true,
-    requiresReady: true,
-    mode: "advanced",
-    fab: "none",
-    rightRail: "advanced",
-    normalNav: false,
-    advancedOnly: true,
-    dataContract: contract({
-      primaryObject: "Advanced tools",
-      contextPanelData: "Developer and operator tools",
-      blockingDependencies: ["Advanced mode"],
-    }),
-  },
   "/transactions": {
     section: "Advanced",
     label: "Technical Action History",
@@ -636,6 +555,27 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
       blockingDependencies: ["Account session", "Economics status"],
     }),
   },
+  "/node": {
+    section: "Node",
+    label: "Personal Node",
+    title: "Personal Node",
+    description: "Operate the local node connection, status, validator/helper/storage readiness, and storage contribution preferences.",
+    public: true,
+    authRequired: false,
+    requiresReady: false,
+    mode: "utility",
+    fab: "none",
+    rightRail: "node",
+    normalNav: true,
+    operatorOnly: true,
+    dataContract: contract({
+      primaryObject: "Personal node dashboard",
+      accountSnapshot: false,
+      contextPanelData: "Node health, chain identity, runtime readiness, storage/IPFS contribution controls, and launch boundaries",
+      blockingDependencies: ["Backend reachability", "Node status surfaces"],
+    }),
+  },
+
   "/profile": {
     section: "Profile",
     label: "Profile",
@@ -675,7 +615,7 @@ const ROUTE_REGISTRY: Record<RouteMatch["path"], RouteMeta> = {
     section: "Feed",
     label: "Post Detail",
     title: "Post Detail",
-    description: "Inspect a post, its conversation, and related actions.",
+    description: "Inspect a post, its public replies, and related actions.",
     public: true,
     authRequired: false,
     mode: "detail",
@@ -720,12 +660,14 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/home", label: "Home", description: "Your starting point and pending actions.", icon: "⌂", public: false, requiresReady: true },
       { href: "/feed", label: "Feed", description: "Read and create posts.", icon: "≋", public: false, requiresReady: true },
       { href: "/groups", label: "Groups", description: "Communities and membership.", icon: "◌", public: true },
-      { href: "/messages", label: "Messages", description: "Direct conversations.", icon: "✉", public: false, requiresReady: true, minPohTier: 1 },
+      { href: "/activity", label: "Activity", description: "Public notices and assignments.", icon: "✉", public: false, requiresReady: true },
       { href: "/decisions", label: "Decisions", description: "Community votes and results.", icon: "▣", public: true },
-      { href: "/reviews", label: "Reviews", description: "Assigned community review work.", icon: "✓", public: false, requiresReady: true, minPohTier: 2 },
+      { href: "/reports", label: "Reports", description: "Reported content and case status.", icon: "!", public: true },
+      { href: "/reviews", label: "Review Center", description: "Lane-separated review duties.", icon: "✓", public: false, requiresReady: true, minPohTier: 2 },
       { href: "/verification", label: "Account Verification", description: "Account status and next steps.", icon: "◇", public: false, requiresReady: true },
       { href: "/profile", label: "Profile", description: "Profile and trusted responsibilities.", icon: "☺", public: false, requiresReady: true },
       { href: "/economics", label: "Economics", description: "Locked WeCoin and treasury status.", icon: "◎", public: false, requiresReady: true },
+      { href: "/node", label: "Personal Node", description: "Local node health, readiness, and storage controls.", icon: "⬡", public: true },
       { href: "/settings", label: "Settings", description: "Preferences and account safety.", icon: "⚙", public: true },
       { href: "/advanced", label: "Advanced", description: "Technical records and network status.", icon: "⋯", public: false, requiresReady: true, advancedOnly: true },
     ],
@@ -748,33 +690,25 @@ export function matchRoute(path: string): RouteMatch {
   if (r === "/" || r === "/login") return { path: "/login" };
   if (r === "/home") return { path: "/home" };
   if (r === "/feed") return { path: "/feed" };
-  if (r === "/create" || r === "/post") return { path: "/create" };
-  if (r === "/verification" || r === "/poh") return { path: "/verification" };
+  if (r === "/create") return { path: "/create" };
+  if (r === "/verification") return { path: "/verification" };
   if (r.startsWith("/verification/live/")) {
     const caseId = decodeRoutePart(r.slice("/verification/live/".length));
     if (caseId) return { path: "/verification/live/:caseId", caseId };
   }
-  if (r.startsWith("/live/")) {
-    const caseId = decodeRoutePart(r.slice("/live/".length));
-    if (caseId) return { path: "/verification/live/:caseId", caseId };
-  }
-  if (r === "/reviews" || r === "/juror") return { path: "/reviews" };
+  if (r === "/reviews") return { path: "/reviews" };
   if (r === "/groups") return { path: "/groups" };
   if (r === "/groups/create") return { path: "/groups/create" };
-  if (r === "/messages") return { path: "/messages" };
-  if (r === "/messages/compose") return { path: "/messages/compose" };
-  if (r.startsWith("/messages/")) {
-    const id = decodeRoutePart(r.slice("/messages/".length));
-    if (id) return { path: "/messages/:id", id };
-  }
-  if (r === "/decisions" || r === "/proposals") return { path: "/decisions" };
-  if (r === "/decisions/create" || r === "/proposals/create") return { path: "/decisions/create" };
-  if (r === "/reports" || r === "/disputes") return { path: "/reports" };
+  if (r === "/activity") return { path: "/activity" };
+  if (r === "/decisions") return { path: "/decisions" };
+  if (r === "/decisions/create") return { path: "/decisions/create" };
+  if (r === "/reports") return { path: "/reports" };
   if (r === "/settings") return { path: "/settings" };
   if (r === "/session") return { path: "/session" };
-  if (r === "/advanced" || r === "/tools" || r === "/network" || r === "/operator" || r === "/developer") return { path: "/advanced" };
+  if (r === "/node") return { path: "/node" };
+  if (r === "/advanced") return { path: "/advanced" };
   if (r === "/transactions") return { path: "/transactions" };
-  if (r === "/economics" || r === "/wallet") return { path: "/economics" };
+  if (r === "/economics") return { path: "/economics" };
   if (r === "/profile") return { path: "/profile" };
 
   if (r.startsWith("/reviews/")) {
@@ -787,16 +721,6 @@ export function matchRoute(path: string): RouteMatch {
     if (id) return { path: "/reports/:id", id };
   }
 
-  if (r.startsWith("/disputes/")) {
-    const tail = r.slice("/disputes/".length);
-    if (tail.endsWith("/review")) {
-      const id = decodeRoutePart(tail.slice(0, -"/review".length));
-      if (id) return { path: "/reviews/:id", id };
-    }
-    const id = decodeRoutePart(tail);
-    if (id) return { path: "/reports/:id", id };
-  }
-
   if (r.startsWith("/groups/")) {
     const id = decodeRoutePart(r.slice("/groups/".length));
     if (id) return { path: "/groups/:id", id };
@@ -804,16 +728,6 @@ export function matchRoute(path: string): RouteMatch {
 
   if (r.startsWith("/decisions/")) {
     const id = decodeRoutePart(r.slice("/decisions/".length));
-    if (id) return { path: "/decisions/:id", id };
-  }
-
-  if (r.startsWith("/proposal/")) {
-    const id = decodeRoutePart(r.slice("/proposal/".length));
-    if (id) return { path: "/decisions/:id", id };
-  }
-
-  if (r.startsWith("/proposals/")) {
-    const id = decodeRoutePart(r.slice("/proposals/".length));
     if (id) return { path: "/decisions/:id", id };
   }
 
@@ -875,7 +789,7 @@ export function isActiveNavPath(currentPath: string, href: string): boolean {
   const target = matchRoute(href).path;
   if (target === "/home") return current === "/home";
   if (target === "/feed") return current === "/feed" || current === "/content/:id" || current === "/thread/:id" || current === "/post/:id";
-  if (target === "/messages") return current === "/messages" || current === "/messages/compose" || current === "/messages/:id";
+  if (target === "/activity") return current === "/activity";
   if (target === "/decisions") return current === "/decisions" || current === "/decisions/:id" || current === "/decisions/create";
   if (target === "/reports") return current === "/reports" || current === "/reports/:id";
   if (target === "/reviews") return current === "/reviews" || current === "/reviews/:id";

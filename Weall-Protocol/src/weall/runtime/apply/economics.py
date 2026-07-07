@@ -91,6 +91,59 @@ def _ensure_params(state: Json) -> Json:
     return params
 
 
+
+
+def _activation_precondition_report(state: Json) -> Json:
+    econ = _ensure_econ_root(state)
+    sim = state.get("tokenomics_simulation")
+    launch = state.get("launch_disabled_matrix")
+    treasury_wallets = state.get("treasury_wallets")
+    reward_policy = econ.get("reward_policy")
+    wallet_policy = econ.get("wallet_policy")
+    anti_farming = econ.get("anti_farming_policy")
+    treasury_policy = econ.get("treasury_accountability_policy")
+    transfer_policy = econ.get("transfer_receipt_policy")
+    checks = {
+        "tokenomics_simulation_present": isinstance(sim, dict) or bool(econ.get("tokenomics_simulation_hash")),
+        "reward_policy_present": isinstance(reward_policy, dict),
+        "reward_recipient_eligibility_present": isinstance(reward_policy, dict) and (isinstance(reward_policy.get("recipient_eligibility"), dict) or isinstance(reward_policy.get("eligible_roles"), list)),
+        "wallet_policy_present": isinstance(wallet_policy, dict),
+        "wallet_initialization_policy_present": isinstance(wallet_policy, dict) and bool(wallet_policy.get("initialization")),
+        "treasury_wallets_present": isinstance(treasury_wallets, dict) and bool(treasury_wallets),
+        "treasury_accountability_policy_present": isinstance(treasury_policy, dict),
+        "anti_farming_policy_present": isinstance(anti_farming, dict),
+        "transfer_receipt_policy_present": isinstance(transfer_policy, dict),
+        "fee_free_civic_policy_present": isinstance(econ.get("fee_policy"), dict),
+        "activation_authority_system": True,
+    }
+    required = [
+        "tokenomics_simulation_present",
+        "reward_policy_present",
+        "reward_recipient_eligibility_present",
+        "wallet_policy_present",
+        "wallet_initialization_policy_present",
+        "treasury_wallets_present",
+        "fee_free_civic_policy_present",
+        "activation_authority_system",
+    ]
+    strict_v2 = bool(_as_dict(_as_dict(state.get("params")).get("economics", {})).get("strict_activation_preconditions_v2") or _as_dict(state.get("params")).get("economics_strict_activation_preconditions_v2"))
+    if strict_v2:
+        required.extend(["treasury_accountability_policy_present", "anti_farming_policy_present", "transfer_receipt_policy_present"])
+    missing = [k for k in required if not bool(checks.get(k))]
+    advisory_missing = [k for k, ok in sorted(checks.items()) if not bool(ok) and k not in missing]
+    return {"checks": checks, "missing": missing, "advisory_missing": advisory_missing, "ready": not missing}
+
+
+def _require_activation_preconditions(state: Json) -> Json:
+    report = _activation_precondition_report(state)
+    if not bool(report.get("ready")):
+        raise EconomicsApplyError(
+            "forbidden",
+            "economics_activation_preconditions_not_satisfied",
+            {"missing": report.get("missing", []), "checks": report.get("checks", {})},
+        )
+    return report
+
 def _ensure_econ_root(state: Json) -> Json:
     econ = state.get("economics")
     if not isinstance(econ, dict):
@@ -107,6 +160,250 @@ def _ensure_econ_root(state: Json) -> Json:
     econ.setdefault("fee_payments", [])
     return econ
 
+
+
+
+def economics_locked_read_models(state: Json) -> Json:
+    """Return deterministic economics read models while live economics is locked.
+
+    The read model is intentionally side-effect free. It gives reviewers and UI
+    surfaces a canonical view of pending/failed transfers, reward claims, and
+    treasury reports before activation, without enabling balance mutation.
+    """
+
+    econ = _ensure_econ_root(state)
+    params = _ensure_params(state)
+    transfers = econ.get("transfers")
+    if not isinstance(transfers, dict):
+        transfers = {}
+        econ["transfers"] = transfers
+    pending = transfers.get("pending")
+    if not isinstance(pending, dict):
+        pending = {}
+        transfers["pending"] = pending
+    failed = transfers.get("failed")
+    if not isinstance(failed, dict):
+        failed = {}
+        transfers["failed"] = failed
+    rewards = econ.get("reward_claim_ledger")
+    if not isinstance(rewards, dict):
+        rewards = {"claims": {}, "by_epoch": {}}
+        econ["reward_claim_ledger"] = rewards
+    treasury_reports = econ.get("treasury_reports")
+    if not isinstance(treasury_reports, dict):
+        treasury_reports = {"reports": {}, "events": []}
+        econ["treasury_reports"] = treasury_reports
+    return {
+        "economics_enabled": bool(params.get("economics_enabled")),
+        "pending_transfers": dict(sorted(pending.items())),
+        "failed_transfers": dict(sorted(failed.items())),
+        "reward_claim_ledger": rewards,
+        "treasury_reporting": treasury_reports,
+        "live_mutation_enabled": False,
+    }
+
+
+def record_locked_transfer_attempt(state: Json, *, transfer_id: str, from_account: str, to_account: str, amount: int, status: str, reason: str) -> Json:
+    econ = _ensure_econ_root(state)
+    transfers = econ.setdefault("transfers", {})
+    pending = transfers.setdefault("pending", {})
+    failed = transfers.setdefault("failed", {})
+    tid = _as_str(transfer_id).strip() or f"transfer:{from_account}:{to_account}:{amount}"
+    rec = {
+        "transfer_id": tid,
+        "from_account": _as_str(from_account),
+        "to_account": _as_str(to_account),
+        "amount": _as_int(amount),
+        "status": _as_str(status) or "pending",
+        "reason": _as_str(reason),
+        "height": _as_int(state.get("height"), 0),
+    }
+    if rec["status"] == "failed":
+        failed[tid] = rec
+        pending.pop(tid, None)
+    else:
+        pending[tid] = rec
+    return dict(rec)
+
+
+def record_locked_reward_claim(state: Json, *, claim_id: str, account_id: str, epoch: int, amount: int, status: str, reason: str = "") -> Json:
+    econ = _ensure_econ_root(state)
+    ledger = econ.setdefault("reward_claim_ledger", {"claims": {}, "by_epoch": {}})
+    claims = ledger.setdefault("claims", {})
+    by_epoch = ledger.setdefault("by_epoch", {})
+    cid = _as_str(claim_id).strip() or f"reward:{account_id}:{epoch}"
+    rec = {
+        "claim_id": cid,
+        "account_id": _as_str(account_id),
+        "epoch": _as_int(epoch),
+        "amount": _as_int(amount),
+        "status": _as_str(status) or "pending",
+        "reason": _as_str(reason),
+        "height": _as_int(state.get("height"), 0),
+    }
+    claims[cid] = rec
+    ep = str(rec["epoch"])
+    by_epoch.setdefault(ep, [])
+    if cid not in by_epoch[ep]:
+        by_epoch[ep].append(cid)
+    by_epoch[ep].sort()
+    return dict(rec)
+
+
+def record_treasury_report(state: Json, *, report_id: str, period: str, opening_balance: int, closing_balance: int, spends: list[Json] | None = None) -> Json:
+    econ = _ensure_econ_root(state)
+    reports_root = econ.setdefault("treasury_reports", {"reports": {}, "events": []})
+    reports = reports_root.setdefault("reports", {})
+    events = reports_root.setdefault("events", [])
+    rid = _as_str(report_id).strip() or f"treasury-report:{period}"
+    clean_spends = list(spends or [])
+    rec = {
+        "report_id": rid,
+        "period": _as_str(period),
+        "opening_balance": _as_int(opening_balance),
+        "closing_balance": _as_int(closing_balance),
+        "spend_count": len(clean_spends),
+        "spends": clean_spends,
+        "height": _as_int(state.get("height"), 0),
+        "public_accountability_report": True,
+    }
+    reports[rid] = rec
+    events.append({"event": "treasury_report_recorded", "report_id": rid, "height": rec["height"]})
+    return dict(rec)
+
+
+def economics_locked_long_run_stress_summary(
+    state: Json,
+    *,
+    epochs: int = 16,
+    accounts: list[str] | None = None,
+    max_claims_per_epoch: int = 3,
+) -> Json:
+    """Run a deterministic locked-economics stress simulation without balances mutating.
+
+    The simulation records rejected farming patterns and treasury reporting
+    expectations while preserving economics_enabled=false.  It is used by
+    controlled-testnet candidate evidence only; it is not an activation switch.
+    """
+
+    econ = _ensure_econ_root(state)
+    params = _ensure_params(state)
+    actors = sorted({_as_str(a).strip() for a in (accounts or []) if _as_str(a).strip()}) or ["alice", "bob", "carol", "dave"]
+    epoch_count = max(1, min(_as_int(epochs, 16), 10_000))
+    max_per_epoch = max(1, min(_as_int(max_claims_per_epoch, 3), 100))
+    accepted_claims: list[Json] = []
+    rejected_claims: list[Json] = []
+    seen_work: set[str] = set()
+    per_actor_epoch: dict[str, dict[str, int]] = {}
+    for epoch in range(1, epoch_count + 1):
+        for i, actor in enumerate(actors):
+            # Every fifth epoch intentionally repeats the same work id to prove duplicate farming rejection.
+            work_id = f"work:{actor}:{epoch if epoch % 5 else epoch - 1}:{i % 2}"
+            key = f"{epoch}:{actor}"
+            actor_epochs = per_actor_epoch.setdefault(actor, {})
+            actor_epochs.setdefault(str(epoch), 0)
+            if work_id in seen_work:
+                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "duplicate_work_id"})
+                continue
+            if actor_epochs[str(epoch)] >= max_per_epoch:
+                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "max_claims_per_epoch"})
+                continue
+            if actor.startswith("locked") or actor.startswith("banned"):
+                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "recipient_not_eligible"})
+                continue
+            seen_work.add(work_id)
+            actor_epochs[str(epoch)] += 1
+            accepted_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "amount": 1})
+    rejected_transfer = {"status": "failed", "reason": "economics_disabled", "height": _as_int(state.get("height"), 0)}
+    sim_id = f"locked-econ-stress:{epoch_count}:{len(actors)}:{max_per_epoch}"
+    simulations = econ.setdefault("locked_stress_simulations", {})
+    rec = {
+        "simulation_id": sim_id,
+        "epochs": epoch_count,
+        "account_count": len(actors),
+        "accepted_claim_count": len(accepted_claims),
+        "rejected_claim_count": len(rejected_claims),
+        "duplicate_work_rejections": sum(1 for r in rejected_claims if r.get("reason") == "duplicate_work_id"),
+        "recipient_eligibility_rejections": sum(1 for r in rejected_claims if r.get("reason") == "recipient_not_eligible"),
+        "max_claim_rejections": sum(1 for r in rejected_claims if r.get("reason") == "max_claims_per_epoch"),
+        "treasury_report_epochs": epoch_count,
+        "pending_failed_transfer_read_model_present": True,
+        "economics_enabled": bool(params.get("economics_enabled")),
+        "live_mutation_enabled": False,
+        "transfer_before_activation": rejected_transfer,
+        "live_economics_claimed": False,
+        "legal_compliance_review_boundary": "required_before_activation",
+    }
+    simulations[sim_id] = rec
+    return dict(rec)
+
+
+def economics_locked_sybil_farming_adversarial_summary(
+    state: Json,
+    *,
+    epochs: int = 36,
+    honest_accounts: list[str] | None = None,
+    sybil_accounts: list[str] | None = None,
+    max_claims_per_epoch: int = 2,
+) -> Json:
+    """Stress locked economics against coordinated Sybil/farming patterns.
+
+    This remains a read-model/stress primitive only.  It records deterministic
+    rejection categories and leaves economics_enabled=false and balances
+    untouched.
+    """
+
+    econ = _ensure_econ_root(state)
+    params = _ensure_params(state)
+    epoch_count = max(1, min(_as_int(epochs, 36), 20_000))
+    max_claims = max(1, min(_as_int(max_claims_per_epoch, 2), 100))
+    honest = sorted({_as_str(a).strip() for a in (honest_accounts or ["alice", "bob", "carol"]) if _as_str(a).strip()})
+    sybils = sorted({_as_str(a).strip() for a in (sybil_accounts or ["sybil-a", "sybil-b", "sybil-c", "sybil-d"]) if _as_str(a).strip()})
+    accepted: list[Json] = []
+    rejected: list[Json] = []
+    seen_work: set[str] = set()
+    per_epoch_actor: dict[str, int] = {}
+    for epoch in range(1, epoch_count + 1):
+        actors = honest + sybils
+        for actor_index, actor in enumerate(actors):
+            base = f"work:{epoch}:{actor_index % 3}"
+            # Sybil accounts deliberately reuse work IDs across the ring.
+            work_id = base if actor.startswith("sybil") else f"{base}:{actor}"
+            key = f"{epoch}:{actor}"
+            if work_id in seen_work:
+                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "duplicate_or_ring_reused_work"})
+                continue
+            if actor.startswith("sybil"):
+                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "sybil_ring_recipient_not_eligible"})
+                seen_work.add(work_id)
+                continue
+            per_epoch_actor[key] = per_epoch_actor.get(key, 0) + 1
+            if per_epoch_actor[key] > max_claims:
+                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "max_claims_per_epoch"})
+                continue
+            seen_work.add(work_id)
+            accepted.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "amount": 1})
+
+    sim_id = f"locked-econ-sybil-farming:{epoch_count}:{len(honest)}:{len(sybils)}"
+    rec = {
+        "simulation_id": sim_id,
+        "epochs": epoch_count,
+        "honest_account_count": len(honest),
+        "sybil_account_count": len(sybils),
+        "accepted_claim_count": len(accepted),
+        "rejected_claim_count": len(rejected),
+        "duplicate_or_ring_reuse_rejections": sum(1 for r in rejected if r.get("reason") == "duplicate_or_ring_reused_work"),
+        "sybil_recipient_rejections": sum(1 for r in rejected if r.get("reason") == "sybil_ring_recipient_not_eligible"),
+        "max_claim_rejections": sum(1 for r in rejected if r.get("reason") == "max_claims_per_epoch"),
+        "economics_enabled": bool(params.get("economics_enabled")),
+        "live_mutation_enabled": False,
+        "balances_mutated": False,
+        "treasury_report_required_before_activation": True,
+        "legal_compliance_review_boundary": "required_before_activation",
+        "live_economics_claimed": False,
+    }
+    econ.setdefault("locked_sybil_farming_simulations", {})[sim_id] = rec
+    return dict(rec)
 
 def _wrap_time_lock(state: Json) -> None:
     """
@@ -342,6 +639,10 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
     elif "enabled" in payload:
         desired = _as_bool(payload.get("enabled"), True)
 
+    activation_report: Json | None = None
+    if bool(desired) and (_as_bool(payload.get("enforce_preconditions"), False) or bool(params.get("economics_activation_preconditions_required", False))):
+        activation_report = _require_activation_preconditions(state)
+
     current = bool(params.get("economics_enabled", False))
     if bool(desired) == bool(current):
         raise EconomicsApplyError(
@@ -351,7 +652,9 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
         )
 
     params["economics_enabled"] = bool(desired)
-    _ensure_econ_root(state)
+    econ = _ensure_econ_root(state)
+    if activation_report is not None:
+        econ["activation_preconditions"] = activation_report
 
     return {"applied": "ECONOMICS_ACTIVATION", "enabled": bool(params["economics_enabled"])}
 

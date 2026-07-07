@@ -340,12 +340,18 @@ def _decode_key_bytes(s: str) -> bytes:
 
 
 def sign_manifest(manifest: Json, *, privkey: str, signer_pubkey: str) -> Json:
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from weall.crypto.sig import sign_signature_for_profile
+    from weall.crypto.signature_profiles import PQ_MLDSA_V1
 
     payload = dict(_manifest_payload(manifest))
+    payload["sig_profile"] = PQ_MLDSA_V1
     payload["manifest_hash"] = _computed_manifest_hash(payload)
-    sk = Ed25519PrivateKey.from_private_bytes(_decode_key_bytes(privkey))
-    sig = sk.sign(payload["manifest_hash"].encode("utf-8")).hex()
+    sig = sign_signature_for_profile(
+        sig_profile=PQ_MLDSA_V1,
+        message=payload["manifest_hash"].encode("utf-8"),
+        privkey=str(privkey),
+        encoding="hex",
+    )
     payload["signer_pubkey"] = str(signer_pubkey or "").strip()
     payload["signature"] = sig
     return payload
@@ -365,14 +371,18 @@ def _verify_manifest_signature(manifest: Json, *, expected_pubkey: str) -> list[
         issues.append("manifest signer pubkey mismatch")
 
     try:
-        from cryptography.exceptions import InvalidSignature
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        from weall.crypto.sig import verify_signature_for_profile
+        from weall.crypto.signature_profiles import PQ_MLDSA_V1, normalize_signature_profile_id
 
-        pk = Ed25519PublicKey.from_public_bytes(_decode_key_bytes(expected_pubkey))
+        profile = normalize_signature_profile_id(manifest.get("sig_profile") or PQ_MLDSA_V1)
         current_hash = _computed_manifest_hash(manifest)
-        pk.verify(bytes.fromhex(signature), current_hash.encode("utf-8"))
-    except InvalidSignature:
-        issues.append("manifest signature verification failed")
+        if not verify_signature_for_profile(
+            sig_profile=profile,
+            message=current_hash.encode("utf-8"),
+            sig=signature,
+            pubkey=expected_pubkey,
+        ):
+            issues.append("manifest signature verification failed")
     except Exception as exc:
         issues.append(f"manifest signature verification failed: {exc}")
 

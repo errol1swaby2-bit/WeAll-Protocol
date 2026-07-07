@@ -7,7 +7,7 @@ Threat model notes
 ------------------
 TLS protects against *passive* network observers.
 
-Peer identity is enforced at the WeAll handshake layer (account_id + Ed25519
+Peer identity is enforced at the WeAll handshake layer (account_id + ML-DSA
 proof). However, *active* MITM resistance at the transport layer requires the
 client to authenticate the server certificate.
 

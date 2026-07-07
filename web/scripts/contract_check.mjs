@@ -8,7 +8,7 @@
  *   (or via npm run contract-check)
  *
  * Optional:
- *   ACCOUNT=@alice SESSION_KEY=... to test account-private endpoints
+ *   ACCOUNT=@alice SESSION_KEY=... to test account-sensitive endpoints
  */
 
 const API_BASE = (process.env.API_BASE || process.env.VITE_WEALL_API_BASE || "").replace(/\/+$/, "");
@@ -126,6 +126,32 @@ async function main() {
   }
 
   {
+    console.log("\nNode/operator readiness surfaces");
+    const endpoints = [
+      ["GET /v1/status/operator", "/v1/status/operator"],
+      ["GET /v1/status/consensus", "/v1/status/consensus"],
+      ["GET /v1/status/mempool", "/v1/status/mempool"],
+      ["GET /v1/storage/ipfs/ops", "/v1/storage/ipfs/ops"],
+      ["GET /v1/chain/head", "/v1/chain/head"],
+      ["GET /v1/chain/identity", "/v1/chain/identity"],
+      ["GET /v1/status/testnet-capabilities", "/v1/status/testnet-capabilities"],
+      ["GET /v1/consensus/block-production/readiness", "/v1/consensus/block-production/readiness"],
+      ["GET /v1/status/helper/readiness", "/v1/status/helper/readiness"],
+      ["GET /v1/net/self", "/v1/net/self"],
+      ["GET /v1/nodes/seeds", "/v1/nodes/seeds"],
+      ["GET /v1/nodes/validators", "/v1/nodes/validators"],
+      ["GET /v1/observer/edge/status", "/v1/observer/edge/status"],
+    ];
+    for (const [label, path] of endpoints) {
+      const r = await fetchJson(path);
+      if (assertOk(label, r)) {
+        if (!r.body || typeof r.body !== "object") fail(`${label} body is not JSON object`);
+        else assertHas(r.body, "ok", `${label} body`);
+      }
+    }
+  }
+
+  {
     const r = await fetchJson("/v1/gov/proposals?limit=5");
     assertOk("GET /v1/gov/proposals", r);
   }
@@ -161,18 +187,26 @@ async function main() {
     }
 
     {
+      const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}/reviewer-status`);
+      if (assertOk(`GET /v1/accounts/${ACCOUNT}/reviewer-status`, r)) {
+        if (r.body && typeof r.body === "object") {
+          assertHas(r.body, "ok", "reviewer status body");
+          assertHas(r.body, "reviewer", "reviewer status body");
+        }
+      }
+    }
+
+    {
       const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}/feed?limit=5&visibility=public`);
       assertOk(`GET /v1/accounts/${ACCOUNT}/feed (public)`, r);
     }
 
-    if (SESSION_KEY) {
-      const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}/feed?limit=5&visibility=private`);
-      assertOk(`GET /v1/accounts/${ACCOUNT}/feed (private)`, r);
-    } else {
-      pass("Skipping private account feed (set SESSION_KEY to test)");
+    {
+      const r = await fetchJson(`/v1/accounts/${encodeURIComponent(ACCOUNT)}/feed?limit=5&visibility=all`);
+      assertOk(`GET /v1/accounts/${ACCOUNT}/feed (public all)`, r);
     }
   } else {
-    pass("Skipping account checks (set ACCOUNT to test)");
+    pass("Skipping account checks and reviewer-status contract check (set ACCOUNT to test)");
   }
 
   console.log("");

@@ -109,9 +109,9 @@ Emergency limits may exist for immediate safety, but emergency actions must be r
 
 ### Section 5. Right to Privacy and Limited Disclosure
 
-Every user has the right to privacy in personal evidence, identity materials, verification materials, private messages, sensitive dispute materials, and other information not intentionally made public.
+Every user has the right to privacy in personal evidence, identity materials, verification materials, sensitive dispute materials, and other information not intentionally made public outside the protocol-native public content model.
 
-Proof-of-Humanity evidence, dispute evidence, and private communications shall be handled according to privacy-preserving procedures wherever possible.
+Proof-of-Humanity evidence, dispute evidence, and external communications outside protocol scope shall be handled according to privacy-preserving procedures wherever possible.
 
 The protocol should prefer commitments, hashes, scoped reviewer access, consent-based disclosure, and minimal public exposure over unnecessary publication of sensitive material.
 
@@ -235,7 +235,7 @@ Verification levels must be transparent, appealable, and governed by protocol ru
 
 Proof-of-Humanity evidence shall be handled with strict privacy discipline.
 
-The protocol should avoid publishing raw sensitive identity evidence where cryptographic commitments, reviewer-private access, hashes, or other privacy-preserving methods are sufficient.
+The protocol should avoid publishing raw sensitive identity evidence where cryptographic commitments, assigned-reviewer protected access, hashes, or other privacy-preserving methods are sufficient.
 
 ### Section 4. No Permanent Identity Caste
 

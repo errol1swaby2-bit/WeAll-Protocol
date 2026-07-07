@@ -7,7 +7,7 @@
   "authority_snapshot_version": 1,
   "chain_id": "weall-prod",
   "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
-  "constitution_hash": "ba271fc6a70aad1c16e7d0f55b58bb14db7050f3898cdfc277762ce94cf16d1e",
+  "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
   "constitution_traceability_hash": "a2b9920333744a1b49d5a8788f08d07e0c300faa28f17f24db1f906a108205e1",
   "constitution_version": "draft-2",
   "constitutional_clock": {
@@ -33,6 +33,6 @@
   "trusted_authority_pubkeys": [
     "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"
   ],
-  "tx_index_hash": "5f5735d60bfeed6b45a2f36485cb5cd68e0a4f0efafdc1d3d4df37b674d74b3d",
+  "tx_index_hash": "c6863731be6076a20acb0284634d8b03fe48bad7db45cbb32e6394b10db5921f",
   "version": 1
 }

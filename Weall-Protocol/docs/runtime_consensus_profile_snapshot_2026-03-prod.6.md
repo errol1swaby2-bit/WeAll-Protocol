@@ -4,7 +4,7 @@ Repository snapshot date: 2026-05-02
 Protocol version: `2026.03-prod.6`
 Protocol profile hash: `a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6`
 Transaction canon index: `1.25.0`
-Transaction canon count: `231`
+Transaction canon count: `233`
 
 ## Enforced production posture
 
@@ -43,12 +43,12 @@ change them through local environment drift.
 ## Production safety deltas reflected in this snapshot
 
 - Native two-tier PoH is the required identity path: Tier 1 async, Tier 2 live.
-- Email, SMTP, DNS, Cloudflare, CAPTCHA, phone, OAuth, KYC, app-store identity,
+- Email, SMTP, DNS, named hosting providers, CAPTCHA, phone, OAuth, KYC, app-store identity,
   and third-party AI scoring are not required PoH authorities.
 - Public validator service/signing posture requires BFT enabled.
 - Validator signing and observer mode cannot be mixed.
 - Production tx payload limits are profile-pinned.
-- Public snapshots and unauthenticated account reads redact private/session/device/evidence internals.
+- Public snapshots and unauthenticated account reads redact sensitive session/device/evidence internals.
 - Release-tree verification rejects local runtime DBs, devnet state, helper lanes,
   demo bootstrap secret/result artifacts, and generated JSON secret artifacts.
 
@@ -68,13 +68,14 @@ Before enabling signing, validators should verify:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
-- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- No required email, SMTP, DNS, or named hosting provider is part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
 - Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
 - Public API redaction is required for public snapshots and unauthenticated account reads.
 - Release safety requires tx canon artifact verification, secret guard, and release tree verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
+Current tx canon checkpoint: 236 tx types, version 1.25.0.

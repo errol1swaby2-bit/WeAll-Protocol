@@ -14,6 +14,9 @@ import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { verificationLabel } from "../lib/userLanguage";
+import { REVIEW_CENTER_LABEL, REVIEW_LANES, reviewLaneStatusFromTruth, reviewLaneStatusPillClass, type ReviewLaneId } from "../lib/reviewLanes";
+
+const REVIEWER_LANE_IDS: ReviewLaneId[] = ["content_review", "dispute_review", "poh_async_review", "poh_live_review"];
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
@@ -37,12 +40,12 @@ function reputationTone(rep: number): { label: string; note: string } {
   if (rep < 0.75) {
     return {
       label: "Building trust",
-      note: "Participation is possible, but the account is not in the higher-trust posting band.",
+      note: "Participation is possible; reputation can still affect future trusted responsibilities and ranking.",
     };
   }
   return {
     label: "Strong standing",
-    note: "Reputation is in the creator-safe range.",
+    note: "Reputation is in the higher-trust service range.",
   };
 }
 
@@ -75,6 +78,48 @@ function isNodeDevice(deviceId: string, rec: DeviceRecord): boolean {
   return deviceType === "node" || did.startsWith("node:") || label.startsWith("node");
 }
 
+type ProfileFormState = {
+  display_name: string;
+  bio: string;
+  avatar_cid: string;
+  website: string;
+  location: string;
+  tags_text: string;
+};
+
+function emptyProfileForm(): ProfileFormState {
+  return { display_name: "", bio: "", avatar_cid: "", website: "", location: "", tags_text: "" };
+}
+
+function profileFormFromPublicProfile(profile: Record<string, any>, account: string): ProfileFormState {
+  const tags = Array.isArray(profile.tags) ? profile.tags.map((tag: any) => String(tag || "").trim()).filter(Boolean) : [];
+  return {
+    display_name: String(profile.display_name || account || "").trim(),
+    bio: String(profile.bio || ""),
+    avatar_cid: String(profile.avatar_cid || ""),
+    website: String(profile.website || ""),
+    location: String(profile.location || ""),
+    tags_text: tags.join(", "),
+  };
+}
+
+function splitProfileTags(value: string): string[] {
+  return String(value || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function optionalField(value: string): string | undefined {
+  const clean = String(value || "").trim();
+  return clean ? clean : undefined;
+}
+
+function txIdFromResult(value: any): string {
+  return String(value?.result?.tx_id || value?.tx_id || value?.submit?.tx_id || "").trim();
+}
+
 export default function Account({ account }: { account: string }): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const acct = useMemo(() => normalizeAccount(account), [account]);
@@ -87,7 +132,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [poh, setPoh] = useState<any>(null);
   const [nonce, setNonce] = useState<any>(null);
   const [acctView, setAcctView] = useState<any>(null);
+  const [profileView, setProfileView] = useState<any>(null);
   const [operatorStatus, setOperatorStatus] = useState<any>(null);
+  const [reviewerStatus, setReviewerStatus] = useState<any>(null);
+  const [reputationMatrix, setReputationMatrix] = useState<any>(null);
   const [registered, setRegistered] = useState<any>(null);
   const [following, setFollowing] = useState<any>(null);
   const [socialMe, setSocialMe] = useState<any>(null);
@@ -95,7 +143,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
 
   const [opErr, setOpErr] = useState<{ msg: string; details: any } | null>(null);
   const [opResult, setOpResult] = useState<any>(null);
-  const [busy, setBusy] = useState<"register" | "enroll" | "validator" | "storage" | null>(null);
+  const [profileResult, setProfileResult] = useState<any>(null);
+  const [profileErr, setProfileErr] = useState<{ msg: string; details: any } | null>(null);
+  const [profileForm, setProfileForm] = useState<ProfileFormState>(() => emptyProfileForm());
+  const [profileDirty, setProfileDirty] = useState<boolean>(false);
+  const [busy, setBusy] = useState<"profile" | "register" | "enroll" | "validator" | "storage" | "helper" | "reviewerLane" | "reviewerLaneExit" | "jurorPause" | "jurorResume" | "validatorPause" | "nodePause" | null>(null);
   const [nodeDeviceId, setNodeDeviceId] = useState<string>("");
   const [nodeLabel, setNodeLabel] = useState<string>("Primary node");
   const [nodeKeyFile, setNodeKeyFile] = useState<NodeKeyFile | null>(null);
@@ -111,7 +163,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
       poh: weall.pohState(acct, base),
       nonce: weall.accountNonce(acct, base),
       account: weall.account(acct, base),
+      profile: weall.accountProfile(acct, base, headers),
       operatorStatus: weall.accountOperatorStatus(acct, base, headers),
+      reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
+      reputationMatrix: weall.reputationSummary(acct, base, headers),
       registered: weall.accountRegistered(acct, base),
       following: weall.socialFollowing(acct, base),
     };
@@ -132,7 +187,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setPoh(out.poh ?? null);
     setNonce(out.nonce ?? null);
     setAcctView(out.account ?? null);
+    setProfileView(out.profile ?? null);
+    if (!profileDirty) {
+      setProfileForm(profileFormFromPublicProfile(asRecord(out.profile?.profile), acct));
+    }
     setOperatorStatus(out.operatorStatus ?? null);
+    setReviewerStatus(out.reviewerStatus ?? null);
+    setReputationMatrix(out.reputationMatrix ?? null);
     setRegistered(out.registered ?? null);
     setFollowing(out.following ?? null);
     setSocialMe(out.socialMe ?? null);
@@ -148,6 +209,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
   }
 
   useEffect(() => {
+    setProfileDirty(false);
+    setProfileResult(null);
+    setProfileForm(emptyProfileForm());
     void load();
   }, [acct, isSelf]);
 
@@ -165,12 +229,42 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const locked = !!state?.locked;
   const follows = Array.isArray(following?.following) ? following.following : [];
   const tone = reputationTone(reputation);
+  const matrixDimensions = asRecord(reputationMatrix?.dimensions);
+  const matrixPublicDimensionRows = Object.values(matrixDimensions).filter(
+    (row: any) => row && typeof row === "object" && row.visibility === "public",
+  );
+  const matrixAggregateScore = num(reputationMatrix?.aggregate_public_score_milli, 0);
   const accountExists = !!acctView?.ok && !!state;
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
-  const canPost = tier >= 2 && accountExists && !banned && !locked && reputation >= 0.75;
+  const canPost = tier >= 2 && accountExists && !banned && !locked;
   const canServe = tier >= 2 && accountExists && !banned && !locked;
 
+  const publicProfile = asRecord(profileView?.profile);
+  const publicActivity = asRecord(profileView?.public_activity);
+  const publicProfileName = String(publicProfile.display_name || acct);
+  const publicProfileBio = String(publicProfile.bio || "").trim();
+  const publicProfileTags = Array.isArray(publicProfile.tags) ? publicProfile.tags.map((tag: any) => String(tag || "").trim()).filter(Boolean) : [];
+  const profileAvatarMedia = asRecord(publicProfile.avatar_media);
+  const profileAvatarPath = String(profileAvatarMedia.fetch_path || "");
+  const profileTruthBoundary = String(profileView?.truth_boundary || "public_derived_index_view_of_chain_state");
+  const profileReceiptStatusTemplate = String(profileView?.receipt_paths?.status_template || "/v1/tx/status/{tx_id}");
+  const profileResultTxId = txIdFromResult(profileResult);
+
+  const reviewerTruth = asRecord(reviewerStatus?.reviewer);
+  const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
+  const reviewerEnrolled = reviewerTruth.enrolled === true;
+  const reviewerActive = reviewerTruth.active === true;
+  const reviewerLaneLabels = REVIEW_LANES.filter((lane) => REVIEWER_LANE_IDS.includes(lane.id)).map((lane) => ({ lane: lane.id, label: lane.label, duty: lane.purpose }));
+  const reviewerLaneStatus = (lane: string) => reviewLaneStatusFromTruth(reviewerLaneTruth[lane]);
+  const reviewerLaneActive = (lane: string): boolean => reviewerLaneStatus(lane).active;
+  const reviewerEligibilityBlockers = Array.isArray(reviewerTruth.eligibility_blockers) ? reviewerTruth.eligibility_blockers.map((x: any) => String(x)) : [];
+  const contentReviewActive = reviewerLaneActive("content_review");
+  const anyReviewerLaneActive = reviewerLaneLabels.some((row) => reviewerLaneStatus(row.lane).active);
+  const anyReviewerLanePaused = reviewerLaneLabels.some((row) => reviewerLaneStatus(row.lane).paused);
+  const anyReviewerLanePending = reviewerLaneLabels.some((row) => { const status = reviewerLaneStatus(row.lane); return status.optedIn && !status.active && !status.paused; });
+
+  const rolesState = asRecord(state?.roles);
   const localKeypair = isSelf ? getKeypair(acct) : null;
   const localPubkey = String(localKeypair?.pubkeyB64 || "");
   const devicesById = asRecord(asRecord(state?.devices).by_id);
@@ -186,23 +280,43 @@ export default function Account({ account }: { account: string }): JSX.Element {
           ...((rec as Record<string, any>) || {}),
         }) as DeviceRecord,
     );
+  const accountKeyRows = Array.isArray(state?.keys)
+    ? state.keys
+        .map((row: any) => (row && typeof row === "object" ? row : { pubkey: row, active: true }))
+        .filter((row: any) => String(row?.pubkey || "").trim())
+    : Object.entries(asRecord(state?.keys)).map(([pubkey, row]) => ({
+        pubkey,
+        active: row && typeof row === "object" ? (row as Record<string, any>).active !== false : true,
+      }));
+  const activeAccountPubkey = String(accountKeyRows.find((row: any) => row?.active !== false)?.pubkey || "").trim();
+  const accountKeySummary = accountKeyRows.length
+    ? `${accountKeyRows.filter((row: any) => row?.active !== false).length} active / ${accountKeyRows.length} total`
+    : isSelf && localPubkey
+      ? "1 local signer available on this browser"
+      : "No public account key summary exposed";
 
   const nodeDevices: DeviceRecord[] = activeDevices.filter((rec) =>
     isNodeDevice(String(rec.deviceId || ""), rec),
   );
-  const nodePubkey = String(nodeKeyFile?.publicKeyB64 || "").trim();
+  const generatedNodePubkey = String(nodeKeyFile?.publicKeyB64 || "").trim();
+  const registeredNodePubkey = String(nodeDevices.find((rec) => String(rec.pubkey || "").trim())?.pubkey || "").trim();
+  const nodePubkey = generatedNodePubkey || registeredNodePubkey;
+  const operatorSetupRequested = typeof window !== "undefined" && /[?&]operator=1(?:&|$)/.test(String(window.location.hash || ""));
   const matchingNodeDevice =
     nodeDevices.find((rec) => !!nodePubkey && String(rec.pubkey || "") === nodePubkey) || null;
   const hasAnyNodeDevice = nodeDevices.length > 0;
-  const nodeOperatorBucket = asRecord(asRecord(state?.roles).node_operators);
+  const usingRegisteredNodePubkey = !generatedNodePubkey && !!registeredNodePubkey;
+  const nodeOperatorBucket = asRecord(rolesState.node_operators);
   const nodeOperatorById = asRecord(nodeOperatorBucket.by_id);
   const nodeOperatorRecord = asRecord(nodeOperatorById[acct]);
   const operatorTruth = asRecord(operatorStatus?.node_operator);
   const baselineTruth = asRecord(operatorTruth.baseline);
   const validatorTruth = asRecord(operatorTruth.validator);
   const storageTruth = asRecord(operatorTruth.storage);
+  const helperTruth = asRecord(operatorTruth.helper);
   const validatorDetails = asRecord(validatorTruth.details);
   const storageDetails = asRecord(storageTruth.details);
+  const helperDetails = asRecord(helperTruth.details);
   const nodeOperatorEnrolled = !!nodeOperatorRecord.enrolled || String(baselineTruth.status || "") !== "not_opted_in";
   const nodeOperatorActive =
     baselineTruth.active === true ||
@@ -226,8 +340,13 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const baselineReasons = Array.isArray(baselineTruth.reasons) ? baselineTruth.reasons : [];
   const validatorReasons = Array.isArray(validatorTruth.reasons) ? validatorTruth.reasons : [];
   const storageReasons = Array.isArray(storageTruth.reasons) ? storageTruth.reasons : [];
+  const helperStatus = String(helperTruth.status || "not_opted_in");
+  const helperReasons = Array.isArray(helperTruth.reasons) ? helperTruth.reasons : [];
+  const helperOptedIn = helperDetails.opted_in === true || (!!helperStatus && helperStatus !== "not_opted_in");
+  const helperActive = helperTruth.active === true;
   const nodeDeviceReady = canServe && !!nodePubkey && !!matchingNodeDevice;
   const operatorReady = nodeDeviceReady && nodeOperatorActive;
+  const shouldOpenOperatorPanel = isSelf && (operatorSetupRequested || nodeOperatorActive || nodeOperatorEnrolled || hasAnyNodeDevice);
   const activationPending = nodeOperatorEnrolled && !nodeOperatorActive;
   const configDeviceId =
     String(nodeDeviceId || `node:${acct}`).trim() || `node:${acct}`;
@@ -236,7 +355,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     `WEALL_ACCOUNT_ID=${acct}`,
     `WEALL_NODE_ID=${configDeviceId}`,
     `WEALL_PEER_ID=${configDeviceId}`,
-    `WEALL_NODE_PUBKEY=${nodePubkey || "<GENERATE_NODE_KEY_FIRST>"}`,
+    `WEALL_NODE_PUBKEY=${nodePubkey || "<GENERATE_OR_REGISTER_NODE_KEY_FIRST>"}`,
     `WEALL_NODE_PRIVKEY_FILE=/secure/path/${nodeKeyFile ? "weall-node.key" : "weall-node-key.json"}`,
     `WEALL_NET_REQUIRE_PEER_IDENTITY=1`,
     `# Optional but recommended`,
@@ -252,6 +371,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
   });
 
   const requirements = summarizeNextRequirements(snapshot);
+
+  function updateProfileForm<K extends keyof ProfileFormState>(key: K, value: ProfileFormState[K]): void {
+    setProfileDirty(true);
+    setProfileForm((prev) => ({ ...prev, [key]: value }));
+  }
 
   const localOwnership = isSelf
     ? localKeypair
@@ -269,6 +393,67 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(isSelf ? acct : null);
   const signerBusy = signerSubmission.busy;
 
+  async function runProfileUpdate() {
+    if (!isSelf) return;
+
+    setBusy("profile");
+    setProfileErr(null);
+    setProfileResult(null);
+
+    try {
+      if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
+      if (!localPubkey) throw new Error("missing_account_signer");
+
+      const skeleton = await weall.profileUpdateTx({
+        account_id: acct,
+        display_name: optionalField(profileForm.display_name),
+        bio: profileForm.bio,
+        avatar_cid: optionalField(profileForm.avatar_cid),
+        website: optionalField(profileForm.website),
+        location: optionalField(profileForm.location),
+        tags: splitProfileTags(profileForm.tags_text),
+      }, base, getAuthHeaders(acct));
+      const skeletonTx = skeleton?.tx || {};
+      if (!skeletonTx?.tx_type) throw new Error("profile_update_skeleton_missing_tx_type");
+
+      const result = await tx.runTx({
+        title: "Update public profile",
+        pendingMessage: "Submitting public profile update…",
+        successMessage: "Profile update submitted. Track the transaction status before treating this profile as committed chain state.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          base,
+          mutation: {
+            entityType: "account",
+            entityId: acct,
+            account: acct,
+            routeHint: `/account/${acct}`,
+            txType: "PROFILE_UPDATE",
+          },
+        },
+        task: async () =>
+          submitSignedTx({
+            account: acct,
+            tx_type: String(skeletonTx.tx_type),
+            payload: skeletonTx.payload || {},
+            parent: skeletonTx.parent ?? null,
+            base,
+          }),
+      });
+
+      setProfileResult(result);
+      setProfileDirty(false);
+      await load();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setProfileErr(prettyErr(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   function generateAndDownloadNodeKey(): void {
     const next = createNodeKeyFile({
       account: acct,
@@ -280,7 +465,121 @@ export default function Account({ account }: { account: string }): JSX.Element {
     downloadNodeKeyFile(next);
   }
 
-  async function runOperatorTx(kind: "register" | "enroll" | "validator" | "storage") {
+  async function runReviewerTx(lane: string, active = true) {
+    if (!isSelf) return;
+
+    setBusy(active ? "reviewerLane" : "reviewerLaneExit");
+    setOpErr(null);
+    setOpResult(null);
+
+    try {
+      if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
+      if (tier < 2) throw new Error("trusted_verified_person_required_for_reviewer_responsibility");
+      if (!localPubkey) throw new Error("missing_account_signer");
+
+      const r = await tx.runTx({
+        title: active ? "Opt into reviewer lane responsibility" : "Opt out of reviewer lane responsibility",
+        pendingMessage: active ? "Submitting reviewer lane opt-in…" : "Submitting reviewer lane opt-out…",
+        successMessage: active
+          ? "Reviewer lane availability is active only for the selected responsibility lane."
+          : "Reviewer lane opt-out recorded. Active assignments may still need to be resolved by protocol policy.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: active ? "REVIEWER_LANE_OPT_IN" : "REVIEWER_LANE_OPT_OUT",
+          payload: {
+            account_id: acct,
+            lane,
+          },
+          base,
+        }),
+      });
+
+      setOpResult(r);
+      await load();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setOpErr(prettyErr(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runResponsibilityPause(kind: "juror" | "validator" | "node") {
+    if (!isSelf) return;
+
+    const busyKind = kind === "juror" ? "jurorPause" : kind === "validator" ? "validatorPause" : "nodePause";
+    setBusy(busyKind);
+    setOpErr(null);
+    setOpResult(null);
+
+    try {
+      if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
+      if (!localPubkey) throw new Error("missing_account_signer");
+      const txType = kind === "juror" ? "ROLE_JUROR_SUSPEND" : kind === "validator" ? "ROLE_VALIDATOR_SUSPEND" : "ROLE_NODE_OPERATOR_SUSPEND";
+      const title = kind === "juror" ? "Pause all reviewer responsibilities" : kind === "validator" ? "Pause validator authority" : "Pause node operator service";
+      const r = await tx.runTx({
+        title,
+        pendingMessage: "Submitting responsibility pause…",
+        successMessage: "Pause request recorded. The backend state remains the source of truth for when active work is fully withdrawn.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: txType,
+          payload: { account_id: acct },
+          base,
+        }),
+      });
+      setOpResult(r);
+      await load();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setOpErr(prettyErr(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runReviewerResume() {
+    if (!isSelf) return;
+
+    setBusy("jurorResume");
+    setOpErr(null);
+    setOpResult(null);
+
+    try {
+      if (!accountExists) throw new Error("register_the_account_first");
+      if (signerBusy) throw new Error("signer_submission_busy");
+      if (tier < 2) throw new Error("trusted_verified_person_required_for_reviewer_responsibility");
+      if (!localPubkey) throw new Error("missing_account_signer");
+      const r = await tx.runTx({
+        title: "Resume reviewer responsibilities",
+        pendingMessage: "Submitting reviewer resume…",
+        successMessage: "Reviewer resume request recorded. Lane activity remains backend-authoritative.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: "ROLE_JUROR_REINSTATE",
+          payload: { account_id: acct },
+          base,
+        }),
+      });
+      setOpResult(r);
+      await load();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setOpErr(prettyErr(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runOperatorTx(kind: "register" | "enroll" | "validator" | "storage" | "helper") {
     if (!isSelf) return;
 
     setBusy(kind);
@@ -292,8 +591,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
       if (signerBusy) throw new Error("signer_submission_busy");
       if (tier < 2) throw new Error("live_verification_required_for_regular_node_onboarding");
       if (!localPubkey) throw new Error("missing_account_signer");
-      if (kind === "register" && !nodePubkey) throw new Error("generate_node_key_first");
-      if ((kind === "validator" || kind === "storage") && !nodeOperatorActive) throw new Error("baseline_node_operator_required");
+      if (kind === "register" && !generatedNodePubkey) throw new Error("generate_node_key_first");
+      if ((kind === "validator" || kind === "storage" || kind === "helper") && !nodePubkey) throw new Error("registered_node_key_required");
+      if ((kind === "validator" || kind === "storage" || kind === "helper") && !nodeOperatorActive) throw new Error("baseline_node_operator_required");
 
       const r = await tx.runTx({
         title:
@@ -303,7 +603,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
               ? "Opt into validator responsibility"
               : kind === "storage"
                 ? "Opt into storage responsibility"
-                : "Submit node operator enrollment",
+                : kind === "helper"
+                  ? "Opt into helper execution responsibility"
+                  : "Submit node operator enrollment",
         pendingMessage: "Submitting operator action…",
         successMessage:
           kind === "register"
@@ -324,7 +626,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 device_id: configDeviceId,
                 device_type: "node",
                 label: String(nodeLabel || "Primary node").trim() || "Primary node",
-                pubkey: nodePubkey,
+                pubkey: generatedNodePubkey,
               },
               base,
             });
@@ -338,6 +640,19 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 validator_opt_in: true,
                 node_pubkey: nodePubkey,
                 validator_readiness_commitment: String(validatorReadinessCommitment || "").trim() || undefined,
+              },
+              base,
+            });
+          }
+          if (kind === "helper") {
+            return submitSignedTx({
+              account: acct,
+              tx_type: "NODE_OPERATOR_HELPER_OPT_IN",
+              payload: {
+                account_id: acct,
+                helper_opt_in: true,
+                node_pubkey: nodePubkey,
+                helper_capacity_units: 4,
               },
               base,
             });
@@ -458,10 +773,211 @@ export default function Account({ account }: { account: string }): JSX.Element {
               <div className="detailFocusText">Use the main action above when there is a setup or verification step to finish.</div>
             </article>
           </div>
+
+          <div className="calloutInfo">
+            <strong>Account/profile readiness boundary</strong>
+            <div style={{ marginTop: 6 }}>
+              PoH/Tier status is protocol eligibility, not real-world identity certainty. Local browser keys, drafts, and UI preferences help this device submit actions, but only committed protocol state controls account standing, reputation, profile metadata, and responsibility eligibility.
+            </div>
+          </div>
         </div>
       </section>
 
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={refreshAccountSurface} onDismiss={() => setErr(null)} />
+
+      <section className="summaryCardGrid" aria-label="Account and profile protocol state summary">
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Canonical account id</div>
+          <div className="summaryCardValue mono">{acct}</div>
+          <div className="summaryCardText">This is the protocol account id used in signed transactions and public read models.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Account public key summary</div>
+          <div className="summaryCardValue">{accountKeySummary}</div>
+          <div className="summaryCardText mono">{activeAccountPubkey || localPubkey || "No active public key visible from this view."}</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">PoH / Tier status</div>
+          <div className="summaryCardValue">{verificationLabel(tier)}</div>
+          <div className="summaryCardText">PoH/Tier status is protocol eligibility, not real-world identity certainty or legal identity proof.</div>
+        </article>
+        <article className="summaryCard">
+          <div className="summaryCardLabel">Public profile source</div>
+          <div className="summaryCardValue">Chain read model</div>
+          <div className="summaryCardText mono">{profileTruthBoundary}</div>
+        </article>
+      </section>
+
+      <section className="card publicProfileCard">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div className="profileIdentityRow">
+              {profileAvatarPath ? (
+                <img className="profileAvatarPreview" src={`${base}${profileAvatarPath}`} alt="Public profile avatar" loading="lazy" />
+              ) : (
+                <div className="profileAvatarFallback" aria-hidden="true">
+                  {publicProfileName.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <div className="eyebrow">Public civic profile</div>
+                <h2 className="cardTitle">{publicProfileName}</h2>
+                <p className="cardDesc mono">{acct}</p>
+              </div>
+            </div>
+            <span className="statusPill ok">Public read model</span>
+          </div>
+
+          <p className="heroText">
+            {publicProfileBio || "This account has not published a bio yet."}
+          </p>
+
+          <div className="detailFocusStrip utilityFocusStrip">
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Posts</div>
+              <div className="detailFocusValue">{num(publicActivity.posts, 0)}</div>
+              <div className="detailFocusText">Public posts visible through chain-derived indexes.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Comments</div>
+              <div className="detailFocusValue">{num(publicActivity.comments, 0)}</div>
+              <div className="detailFocusText">Public comments visible through thread and profile surfaces.</div>
+            </article>
+            <article className="detailFocusCard utilityFocusCard">
+              <div className="detailFocusLabel">Reposts</div>
+              <div className="detailFocusValue">{num(publicActivity.reposts, 0)}</div>
+              <div className="detailFocusText">Prepared from the existing public share primitive.</div>
+            </article>
+          </div>
+
+          {publicProfileTags.length ? (
+            <div className="buttonRow">
+              {publicProfileTags.map((tag: string) => (
+                <span key={tag} className="statusPill">{tag}</span>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="calloutInfo">
+            <strong>Public-state boundary</strong>
+            <div style={{ marginTop: 6 }}>
+              Profile edits are signed <span className="mono">PROFILE_UPDATE</span> transactions. They become public protocol metadata only after commit; raw PoH evidence, recovery secrets, and device secrets are not part of this profile contract. Receipts remain inspectable through <span className="mono">{profileReceiptStatusTemplate}</span>.
+            </div>
+          </div>
+
+          {profileResult ? (
+            <div className="calloutInfo" data-testid="profile-tx-status-callout">
+              <strong>Profile action submitted</strong>
+              <div style={{ marginTop: 6 }}>
+                The profile form has produced a signed <span className="mono">PROFILE_UPDATE</span> action. This is not a committed profile change until transaction status or the public profile read model confirms it.
+              </div>
+              {profileResultTxId ? (
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <span className="statusPill">tx pending/finalizing</span>
+                  <span className="mono">{profileResultTxId}</span>
+                  <button className="btn" onClick={() => nav("/transactions")}>Track in Transactions</button>
+                </div>
+              ) : (
+                <div className="feedMediaMeta">No transaction id was returned; refresh the account and check the Transactions page before retrying.</div>
+              )}
+            </div>
+          ) : null}
+
+          {isSelf ? (
+            <details className="detailsPanel" open={profileDirty}>
+              <summary>Edit public profile</summary>
+              <div className="formStack">
+                <div className="infoCard compact">
+                  <div className="feedMediaTitle">Protocol-state versus local draft</div>
+                  <div className="infoCardText">
+                    Local form fields are not protocol state. They become public profile state only after this browser signs a <span className="mono">PROFILE_UPDATE</span>, the backend accepts it into the transaction lifecycle, and the public profile read model reflects the committed result.
+                  </div>
+                </div>
+                <ErrorBanner
+                  message={profileErr?.msg}
+                  details={profileErr?.details}
+                  onRetry={() => void runProfileUpdate()}
+                  onDismiss={() => setProfileErr(null)}
+                />
+                <label>
+                  <div className="eyebrow">Display name</div>
+                  <input
+                    value={profileForm.display_name}
+                    maxLength={80}
+                    onChange={(e) => updateProfileForm("display_name", e.target.value)}
+                    placeholder="Your public display name"
+                  />
+                </label>
+                <label>
+                  <div className="eyebrow">Bio</div>
+                  <textarea
+                    value={profileForm.bio}
+                    maxLength={500}
+                    onChange={(e) => updateProfileForm("bio", e.target.value)}
+                    placeholder="A short public bio"
+                  />
+                </label>
+                <div className="grid2">
+                  <label>
+                    <div className="eyebrow">Profile picture CID</div>
+                    <input
+                      value={profileForm.avatar_cid}
+                      onChange={(e) => updateProfileForm("avatar_cid", e.target.value)}
+                      placeholder="Public media CID"
+                    />
+                  </label>
+                  <label>
+                    <div className="eyebrow">Website</div>
+                    <input
+                      value={profileForm.website}
+                      onChange={(e) => updateProfileForm("website", e.target.value)}
+                      placeholder="https://example.org"
+                    />
+                  </label>
+                </div>
+                <div className="grid2">
+                  <label>
+                    <div className="eyebrow">Location</div>
+                    <input
+                      value={profileForm.location}
+                      onChange={(e) => updateProfileForm("location", e.target.value)}
+                      placeholder="Public location label"
+                    />
+                  </label>
+                  <label>
+                    <div className="eyebrow">Tags</div>
+                    <input
+                      value={profileForm.tags_text}
+                      onChange={(e) => updateProfileForm("tags_text", e.target.value)}
+                      placeholder="civic tech, local organizer"
+                    />
+                  </label>
+                </div>
+                <div className="buttonRow">
+                  <button
+                    className="btn btnPrimary"
+                    disabled={busy !== null || !profileDirty || !accountExists || !localPubkey || signerBusy}
+                    onClick={() => void runProfileUpdate()}
+                  >
+                    {busy === "profile" ? "Submitting profile update…" : "Submit public profile update"}
+                  </button>
+                  <button
+                    className="btn"
+                    disabled={busy !== null}
+                    onClick={() => {
+                      setProfileDirty(false);
+                      setProfileErr(null);
+                      setProfileForm(profileFormFromPublicProfile(publicProfile, acct));
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </details>
+          ) : null}
+        </div>
+      </section>
 
       <section className="summaryCardGrid">
         <article className="summaryCard">
@@ -500,7 +1016,188 @@ export default function Account({ account }: { account: string }): JSX.Element {
         </article>
       </section>
 
+      <section className="card">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Trusted responsibilities</div>
+              <h2 className="cardTitle">Opt into reviewer and service duties</h2>
+            </div>
+            <span className={`statusPill ${canServe ? "ok" : ""}`}>
+              {canServe ? "Eligible" : "Locked until Trusted Verified Person"}
+            </span>
+          </div>
+          <p className="heroText">
+            Tier 2 unlocks eligibility, but responsibility is explicit. Opt in before the protocol can assign
+            you unconflicted review work or storage validation duties. Accepted assignments may affect reputation
+            if they are missed or abandoned late.
+          </p>
+
+          <div className="grid2">
+            <article className="feedMediaCard">
+              <div className="feedMediaTitle">Community reviewer</div>
+              <div className="feedMediaMeta">
+                Choose exact review lanes rather than a generic reviewer bucket. Content disputes, dispute juror work,
+                PoH async review, and PoH live review stay separated so assignments are never implied by Tier-2 status alone.
+              </div>
+              <div className="progressList">
+                <div className="progressRow">
+                  <span>Base reviewer enrollment</span>
+                  <span className={`statusPill ${reviewerEnrolled ? "ok" : ""}`}>{reviewerEnrolled ? "Submitted" : "Not enrolled"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Exact lane availability</span>
+                  <span className={`statusPill ${anyReviewerLaneActive ? "ok" : (anyReviewerLanePaused || anyReviewerLanePending) ? "warning" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : anyReviewerLanePaused ? "Paused" : anyReviewerLanePending ? "Opted in, activation pending" : "No lane active"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Reviewer truth source</span>
+                  <span className="miniMuted">/v1/accounts/{account}/reviewer-status</span>
+                </div>
+                <div className="progressRow">
+                  <span>Conflict rule</span>
+                  <span className="statusPill ok">Original poster excluded</span>
+                </div>
+              </div>
+              {reviewerEligibilityBlockers.length ? (
+                <div className="inlineNote">Reviewer responsibility is not assignment-ready yet: {reviewerEligibilityBlockers.join(", ")}</div>
+              ) : null}
+              <div className="milestoneList">
+                {reviewerLaneLabels.map((row) => {
+                  const status = reviewerLaneStatus(row.lane);
+                  return (
+                    <div key={row.lane} className="feedMediaCard">
+                      <div className="feedMediaTitle">{row.label}</div>
+                      <div className="feedMediaMeta">{row.duty}</div>
+                      <div className="buttonRow">
+                        <span className={reviewLaneStatusPillClass(status)}>{status.label}</span>
+                        {status.canOptIn ? (
+                          <button className="btn btnPrimary" disabled={busy !== null || !canServe || !localPubkey} onClick={() => void runReviewerTx(row.lane, true)}>
+                            {busy === "reviewerLane" ? "Opting in…" : `Opt into ${row.label}`}
+                          </button>
+                        ) : (
+                          <button className="btn" disabled={busy !== null || !localPubkey} onClick={() => void runReviewerTx(row.lane, false)}>
+                            {busy === "reviewerLaneExit" ? "Opting out…" : `Opt out of ${row.label}`}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="calloutInfo">
+                <strong>Responsibility exit controls</strong>
+                <div style={{ marginTop: 6 }}>
+                  Individual reviewer lanes can be opted out above. Use the whole-role pause only when you intend to pause all reviewer duties; active or already-accepted work may still have protocol-specific withdrawal consequences.
+                </div>
+              </div>
+              <div className="buttonRow">
+                <button className="btn" onClick={() => nav("/reviews")}>Open {REVIEW_CENTER_LABEL}</button>
+                <button className="btn" disabled={busy !== null || !reviewerEnrolled || !localPubkey} onClick={() => void runResponsibilityPause("juror")}>
+                  {busy === "jurorPause" ? "Pausing reviewer role…" : "Pause all reviewer duties"}
+                </button>
+                <button className="btn" disabled={busy !== null || !reviewerEnrolled || !localPubkey || reviewerActive} onClick={() => void runReviewerResume()}>
+                  {busy === "jurorResume" ? "Resuming reviewer role…" : "Resume reviewer duties"}
+                </button>
+              </div>
+            </article>
+
+            <article className="feedMediaCard">
+              <div className="feedMediaTitle">Storage validation and provider duty</div>
+              <div className="feedMediaMeta">
+                Storage is also opt-in. Register a node device, enroll as a node operator, then declare capacity.
+                The protocol must still verify capacity before assigning storage obligations.
+              </div>
+              <div className="progressList">
+                <div className="progressRow">
+                  <span>Node operator</span>
+                  <span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>{nodeOperatorActive ? "Active" : nodeOperatorEnrolled ? "Pending" : "Not enrolled"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Storage opt-in</span>
+                  <span className={`statusPill ${storageOptedIn ? "ok" : ""}`}>{storageOptedIn ? "Declared" : "Not opted in"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Capacity proof</span>
+                  <span className={`statusPill ${storageProvenCapacityBytes > 0 ? "ok" : ""}`}>{storageProvenCapacityBytes > 0 ? "Proven" : storageProofStatus}</span>
+                </div>
+              </div>
+              <div className="buttonRow">
+                <button className="btn" disabled={busy !== null || !nodeOperatorActive || !nodePubkey || storageOptedIn} onClick={() => void runOperatorTx("storage")}>
+                  {busy === "storage" ? "Recording storage opt-in…" : storageOptedIn ? "Storage opt-in recorded" : "Opt into storage validation"}
+                </button>
+                <button className="btn" onClick={() => nav("/node")}>Open node controls</button>
+              </div>
+              {!nodeOperatorActive || !nodePubkey ? (
+                <div className="feedMediaMeta">Finish node setup in the advanced network helper section below before storage validation can be submitted. If this account already has a registered node device, the page will use that public key for signed opt-in transactions.</div>
+              ) : null}
+            </article>
+          </div>
+        </div>
+      </section>
+
       <WalletPanel account={acct} base={base} />
+
+      <section className="card">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Reputation Matrix</div>
+              <h2 className="cardTitle">Public trust dimensions</h2>
+            </div>
+            <span className="statusPill ok">Deterministic read model</span>
+          </div>
+
+          <div className="summaryCardGrid">
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Public aggregate</div>
+              <div className="summaryCardValue">{matrixAggregateScore}</div>
+              <div className="summaryCardText">
+                Derived from canonical protocol state and public matrix dimensions only.
+              </div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Formula version</div>
+              <div className="summaryCardValue">v{num(reputationMatrix?.version, 1)}</div>
+              <div className="summaryCardText">
+                Integer milli-units, no frontend-only scoring, and no local wall-clock penalties.
+              </div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Private boundary</div>
+              <div className="summaryCardValue">{reputationMatrix?.visibility?.restricted_revealed ? "Owner view" : "Public view"}</div>
+              <div className="summaryCardText">
+                Internal abuse-risk signals stay hidden unless the account owner is authenticated.
+              </div>
+            </article>
+          </div>
+
+          <div className="infoGrid">
+            {matrixPublicDimensionRows.length ? (
+              matrixPublicDimensionRows.map((row: any) => (
+                <div key={String(row.dimension)} className="infoCard compact">
+                  <div className="infoCardHeader">
+                    <span className={`statusPill ${num(row.score_milli, 0) >= 0 ? "ok" : ""}`}>
+                      {String(row.level || "neutral")}
+                    </span>
+                    <strong>{String(row.dimension || "dimension").replace(/_/g, " ")}</strong>
+                  </div>
+                  <div className="infoCardText">
+                    {num(row.score_milli, 0)} milli • {num(row.event_count, 0)} event{num(row.event_count, 0) === 1 ? "" : "s"}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="infoCard compact">
+                <div className="infoCardHeader">
+                  <span className="statusPill">Loading</span>
+                  <strong>Matrix unavailable</strong>
+                </div>
+                <div className="infoCardText">The reputation matrix read model has not loaded yet.</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="card">
         <div className="cardBody formStack">
@@ -600,8 +1297,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
       </section>
 
       {isSelf ? (
-        <details className="detailsPanel accountAdvancedOperatorPanel">
-          <summary>Advanced: Network helper setup</summary>
+        <details className="detailsPanel accountAdvancedOperatorPanel" open={shouldOpenOperatorPanel}>
+          <summary>Network service opt-ins: validator, storage, and helper setup</summary>
           <section className="card">
           <div className="cardBody formStack">
             <div className="sectionHead">
@@ -740,7 +1437,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
                       Generate and download node key
                     </button>
                   </div>
-                  {nodePubkey ? <div className="feedMediaMeta mono">Node public key: {nodePubkey}</div> : null}
+                  {generatedNodePubkey ? <div className="feedMediaMeta mono">Generated node public key: {generatedNodePubkey}</div> : null}
+                  {usingRegisteredNodePubkey ? <div className="feedMediaMeta mono">Using registered node public key: {registeredNodePubkey}</div> : null}
                 </div>
                 <div className="buttonRow buttonRowWide">
                   <button
@@ -825,6 +1523,43 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </div>
 
             <div className="feedMediaCard">
+              <div className="feedMediaTitle">Helper Execution Responsibility</div>
+              <div className="feedMediaMeta">
+                Helper execution is optional and separate from baseline Node Operator status. Opting in does not override the production helper release gate; it only records your exact consent for helper work if the lane is active.
+              </div>
+              <div className="progressList">
+                <div className="progressRow">
+                  <span>Helper opt-in</span>
+                  <span className={`statusPill ${helperOptedIn ? "ok" : ""}`}>{helperOptedIn ? "Opted in" : "Not opted in"}</span>
+                </div>
+                <div className="progressRow">
+                  <span>Helper active state</span>
+                  <span className={`statusPill ${helperActive ? "ok" : ""}`}>{helperActive ? "Active" : helperStatus}</span>
+                </div>
+              </div>
+              {helperReasons.length ? (
+                <div className="feedMediaMeta">Backend helper blockers: {helperReasons.join(", ")}</div>
+              ) : null}
+              <div className="buttonRow">
+                <button
+                  className="btn"
+                  disabled={busy !== null || !nodeOperatorActive || !nodePubkey || helperOptedIn}
+                  onClick={() => void runOperatorTx("helper")}
+                >
+                  {busy === "helper"
+                    ? "Recording helper opt-in…"
+                    : helperOptedIn
+                      ? "Helper opt-in recorded"
+                      : "Opt into helper execution"}
+                </button>
+                <button className="btn" disabled>
+                  Helper-specific opt-out not yet available in UI
+                </button>
+              </div>
+              <div className="feedMediaMeta">Helper-specific withdrawal does not have a dedicated UI transaction yet. Pause the baseline node operator role only if you intend to pause all node service responsibilities.</div>
+            </div>
+
+            <div className="feedMediaCard">
               <div className="feedMediaTitle">Validator Responsibility</div>
               <div className="feedMediaMeta">
                 Help finalize blocks and secure the network. Validator responsibility is optional. Baseline Node Operator status does not grant validator authority; validator readiness and reputation checks must pass first.
@@ -869,6 +1604,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     : validatorOptedIn
                       ? "Validator opt-in recorded"
                       : "Opt into validator responsibility"}
+                </button>
+                <button className="btn" disabled={busy !== null || !validatorOptedIn || !localPubkey} onClick={() => void runResponsibilityPause("validator")}>
+                  {busy === "validatorPause" ? "Pausing validator…" : "Pause validator authority"}
                 </button>
               </div>
             </div>
@@ -929,7 +1667,14 @@ export default function Account({ account }: { account: string }): JSX.Element {
                       ? "Storage capacity declared"
                       : "Opt into storage responsibility"}
                 </button>
+                <button className="btn" disabled>
+                  Storage-specific opt-out not yet available in UI
+                </button>
+                <button className="btn" disabled={busy !== null || !nodeOperatorActive || !localPubkey} onClick={() => void runResponsibilityPause("node")}>
+                  {busy === "nodePause" ? "Pausing node operator…" : "Pause node operator service"}
+                </button>
               </div>
+              <div className="feedMediaMeta">Storage-specific withdrawal is not exposed as a separate UI action yet. Pausing node operator service is broader and may affect validator, helper, and storage duties together.</div>
             </div>
 
             <div className="feedMediaCard">

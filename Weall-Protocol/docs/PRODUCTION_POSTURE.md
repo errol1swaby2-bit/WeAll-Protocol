@@ -4,6 +4,42 @@ Version: 1.1
 Applies to: WeAll Genesis Node (HotStuff BFT runtime)  
 Status: REQUIRED for public-validator and production deployment
 
+Reviewer current-state boundary after Passes 10–27:
+
+> WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.
+
+This document is a production posture specification and truth boundary. It is not a claim that the repository is public beta ready, public mainnet ready, public validator safe, public multi-validator BFT ready, live-economics ready, automatic-upgrade ready, production-helper ready, legal approval granted, or public storage-market ready.
+
+Current tx canon checkpoint: **236 tx types, version 1.25.0**. Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
+
+## 0. Current Reviewer Go / No-Go Boundary
+
+| Claim area | Status | Production-posture meaning |
+|---|---:|---|
+| Controlled internal/public-observer rehearsal candidate | GO | Local/generated evidence supports the next bounded rehearsal candidate only. |
+| Public beta readiness | NO-GO | `public_beta_ready=false` remains the public-readiness truth boundary. |
+| Public mainnet readiness | NO-GO | Mainnet hardening remains future work. |
+| Public validator/BFT readiness | NO-GO | Independent operator and public multi-validator evidence remains required. |
+| Live economics | NO-GO | Fees, transfers, rewards, treasury spend, and slashing are locked or not live launch claims. |
+| Automatic protocol upgrades | NO-GO | Upgrade records are deterministic metadata; automatic software apply is disabled. |
+| Executable migrations/rollbacks | NO-GO | Migration and rollback execution are not enabled. |
+| Production helper execution | NO-GO | Helper topology remains a future hardening gate. |
+| Legal/compliance approval | NO-GO | Counsel/control attestation remains required. |
+| Public storage-market readiness | NO-GO | Storage/IPFS evidence is not yet a public storage-provider market claim. |
+
+Reviewer verification path for this posture:
+
+```bash
+cd ~/WeAll-Protocol/Weall-Protocol
+source .venv/bin/activate
+
+PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
+```
+
 ## 1. Purpose
 
 This document defines the strict production posture for the WeAll Protocol.
@@ -107,7 +143,16 @@ HotStuff/BFT enabled. The following mixed posture is forbidden:
 - `WEALL_VALIDATOR_SIGNING_ENABLED=1` without `WEALL_BFT_ENABLED=1`
 - `WEALL_NODE_LIFECYCLE_STATE=production_service` with `validator` in `WEALL_SERVICE_ROLES` without `WEALL_BFT_ENABLED=1`
 
-### 3.5 Production Consensus Profile Pinning
+### 3.5 v1.5 Block Timing and Economics Configuration
+
+Production and public-testnet chain configuration MUST use the v1.5 block cadence and locked-economics posture:
+
+- `block_interval_ms: 20000`
+- `block_reward: 0`
+
+`block_interval_ms` is block-production cadence only. WeCoin issuance is not configured as a per-block reward; it is scheduled by the v1.5 issuance-epoch constants and remains locked unless the existing governance activation path proves activation.
+
+### 3.6 Production Consensus Profile Pinning
 
 Consensus-affecting limits MUST be profile-pinned and included in the production
 profile hash. In production, local `WEALL_MAX_TX_PAYLOAD_*` overrides are not
@@ -126,7 +171,7 @@ Current pinned tx payload limits:
 | `max_tx_payload_str_len` | 65536 |
 | `max_tx_payload_nodes` | 50000 |
 
-### 3.6 SYSTEM Transaction Replay Binding
+### 3.7 SYSTEM Transaction Replay Binding
 
 Mutating SYSTEM transactions are protocol authority actions, not proposer discretion.
 A received block MUST reject a SYSTEM tx before domain apply unless the tx is bound
@@ -230,7 +275,7 @@ Production launch requires:
 - posting/media flows verified
 - secrets validated
 - no dev fallbacks reachable
-- public snapshots and unauthenticated account reads redact private/session/device/evidence internals
+- public snapshots and unauthenticated account reads redact sensitive session/device/evidence internals
 - helper mode either disabled or fully proven
 
 ## 10. Enforcement
@@ -244,12 +289,12 @@ Violations of this production posture MUST result in:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
-- Latest full backend test checkpoint: **3405 passed, 2 warnings**.
+- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
+- Latest full backend test checkpoint: **3636 passed, 3 warnings**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.
-- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- No required email, no required SMTP, no required DNS, and no required named hosting provider are part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
 - SYSTEM txs received in blocks must be scheduler-bound before apply.
 - Helper execution metadata is committed by `helper_execution_root` when present.
@@ -258,3 +303,4 @@ Violations of this production posture MUST result in:
 - Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
+Current tx canon checkpoint: 236 tx types, version 1.25.0.

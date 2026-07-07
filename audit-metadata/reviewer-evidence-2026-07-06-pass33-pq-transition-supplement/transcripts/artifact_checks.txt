@@ -1,0 +1,6 @@
+OK: generated/api_contract_map_v1_5.json is current (145 routes)
+OK: generated/failure_code_registry_v1_5.json is current (209 entries)
+OK: generated/public_observer_launch_evidence_requirements_v1_5.json is current (9 gates)
+OK: generated/public_beta_blocker_report_v1_5.json is current (15 catalog entries; 8 still open; public_beta_ready=false)
+[v15-artifacts] OK: v1.5 public-readiness artifacts are present, fresh, and release-safe
+[truth-boundary] OK: no high-risk unbounded reviewer readiness claims found

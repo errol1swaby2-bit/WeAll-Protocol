@@ -79,7 +79,7 @@ function deriveContextSummary(args: {
     case "feed":
       return {
         title: "Feed context",
-        body: `${asCountLabel("decision", activeProposalCount)} and ${asCountLabel("report", activeDisputeCount)} are available in their own sections. This page stays focused on posts and conversations.`,
+        body: `${asCountLabel("decision", activeProposalCount)} and ${asCountLabel("report", activeDisputeCount)} are available in their own sections. This page stays focused on posts and public replies.`,
         actions: [{ label: "Create post", href: "/create" }],
       };
     case "groups":
@@ -133,7 +133,7 @@ function deriveContextSummary(args: {
         body: `This is one assigned review item. Current status: ${stage}. Reviewer posture: ${reviewerStatus}. Final choices belong here, not on the queue.`,
         actions: [
           { label: "Open report detail", href: route.path === "/reviews/:id" ? `/reports/${encodeURIComponent(String((route as any).id || ""))}` : "/reports" },
-          { label: "Back to reviews", href: "/reviews" },
+          { label: "Back to Review Center", href: "/reviews" },
         ],
       };
     }
@@ -143,10 +143,10 @@ function deriveContextSummary(args: {
         body: "Post creation should show saving, done, needs attention, or failed states. Do not show final success until the result is visible or confirmed.",
         actions: [{ label: "Back to feed", href: "/feed" }],
       };
-    case "messaging":
+    case "activity":
       return {
-        title: "Messaging context",
-        body: "Messages belong on a dedicated communication surface. Keep conversation state separate from posts, decisions, and reports.",
+        title: "Activity context",
+        body: "This surface is derived only from public protocol events: mentions, replies, group invitations, moderation notices, assigned reviews, decisions, and node/operator alerts.",
         actions: [{ label: "Open profile", href: "/profile" }],
       };
     case "group_create":
@@ -195,7 +195,7 @@ function deriveContextSummary(args: {
     case "content_detail":
       return {
         title: "Post context",
-        body: "Post detail should foreground the conversation and review status while keeping technical records collapsed by default.",
+        body: "Post detail should foreground public replies and review status while keeping technical records collapsed by default.",
       };
     case "thread":
       return {
@@ -204,8 +204,8 @@ function deriveContextSummary(args: {
       };
     case "reviews":
       return {
-        title: "Review queue context",
-        body: "Community review work should stay narrow, assigned, and explicit about eligibility and lock states.",
+        title: "Review Center context",
+        body: "Review work stays lane-separated: content review, dispute juror review, PoH async review, and PoH live review each disclose assignment, opt-in, and lock states.",
       };
     case "verification":
       return {
@@ -477,6 +477,8 @@ export default function AppRightRail({
             <span className={`railMetaPill railMetaPill-${nodeSummary.phase}`}>{nodeSummary.phase}</span>
           </div>
           <div className="railSupportText">{[chainId, nodeHeight, nodeSummary.profile || "profile unknown"].join(" · ")}</div>
+          <div className="railSupportText">Crypto profile: {nodeSummary.cryptoProfile || "unknown"}</div>
+          <div className="railSupportText">{nodeSummary.cryptoDetail}</div>
           <div className="railSupportText">{nodeSummary.detail || base}</div>
           <div className="railActionRow">
             <button className="railSecondaryAction" onClick={() => void refreshRail()} disabled={refreshingRail}>

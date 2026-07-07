@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from typing import Any
 
@@ -23,6 +24,12 @@ from weall.runtime.poh.live_quorum import (
     required_live_passes,
 )
 from weall.runtime.poh.bootstrap_quorum import adaptive_bootstrap_review_policy
+from weall.runtime.reviewer_responsibilities import (
+    POH_ASYNC_REVIEW_LANE,
+    POH_LIVE_REVIEW_LANE,
+    POH_TIER2_REVIEW_LANE,
+    reviewer_lane_active,
+)
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
     require_valid_poh_tier,
@@ -240,6 +247,43 @@ def _require_account_min_tier(
     return acct
 
 
+def _grant_active_poh_tier(
+    state: Json,
+    *,
+    account_id: str,
+    tier: int,
+    verified_at_height: int | None = None,
+    proof_commitment: str | None = None,
+    issuer_authority_id: str | None = None,
+) -> Json:
+    """Persist a PoH award in both legacy and canonical account status views.
+
+    Central PoH eligibility reads ``poh.account_status`` when a canonical record
+    exists, while some older domain appliers still read ``accounts[*].poh_tier``.
+    Award paths must update both views atomically so a successful live/Tier-2
+    verification unlocks exactly the protocol actions gated by Tier 2 without
+    implying optional reviewer, operator, storage, or validator responsibility
+    opt-ins.
+    """
+
+    acct = _require_registered_account(state, account_id)
+    awarded_tier = require_valid_poh_tier(max(v2_poh_tier(acct.get("poh_tier")), int(tier)))
+    height = int(state.get("height") or 0) if verified_at_height is None else int(verified_at_height)
+    rec = set_account_poh_status(
+        state,
+        account_id=account_id,
+        poh_tier=awarded_tier,
+        status=POH_STATUS_ACTIVE,
+        verified_at_height=height,
+        proof_commitment=_as_str(proof_commitment or "").strip() or None,
+        issuer_authority_id=_as_str(issuer_authority_id or "").strip() or None,
+        last_updated_height=height,
+    )
+    acct["poh_tier"] = max(v2_poh_tier(acct.get("poh_tier")), awarded_tier)
+    acct["poh_status"] = POH_STATUS_ACTIVE
+    return rec
+
+
 
 def _async_cases(state: Json) -> Json:
     poh = _poh_root(state)
@@ -353,6 +397,203 @@ def _challenges(state: Json) -> Json:
         poh["challenges"] = challenges
     return challenges
 
+
+def _reverification_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("reverification")
+    if not isinstance(root, dict):
+        root = {}
+        poh["reverification"] = root
+    by_account = root.get("by_account")
+    if not isinstance(by_account, dict):
+        by_account = {}
+        root["by_account"] = by_account
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+def _evidence_retention_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("evidence_retention")
+    if not isinstance(root, dict):
+        root = {"by_challenge": {}, "events": []}
+        poh["evidence_retention"] = root
+    by_challenge = root.get("by_challenge")
+    if not isinstance(by_challenge, dict):
+        by_challenge = {}
+        root["by_challenge"] = by_challenge
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+def _record_challenge_evidence_retention_policy(
+    state: Json,
+    *,
+    challenge_id: str,
+    account_id: str,
+    status: str,
+    reason: str,
+    case_id: str = "",
+) -> Json:
+    """Record deterministic retention/remedy policy for PoH challenge evidence.
+
+    This is protocol state, not a storage delete command.  It makes the evidence
+    lifecycle explicit for controlled-testnet review: upheld challenges retain
+    evidence until appeal/reverification/remedy is complete; dismissed
+    challenges retain only minimal audit metadata unless another policy keeps
+    the evidence alive.
+    """
+
+    root = _evidence_retention_root(state)
+    by_challenge = root["by_challenge"]
+    events = root["events"]
+    height = int(state.get("height") or 0)
+    status_norm = _as_str(status or "").strip() or "retained"
+    rec: Json = {
+        "challenge_id": challenge_id,
+        "account_id": account_id,
+        "case_id": case_id,
+        "status": status_norm,
+        "reason": reason,
+        "updated_height": height,
+        "deletion_eligible": status_norm in {"dismissed_minimal_retention", "remedy_completed_minimal_retention"},
+        "appeal_remedy_available": status_norm in {"retain_until_reverification_or_appeal", "retain_until_remedy_complete"},
+        "history": [],
+    }
+    prev = by_challenge.get(challenge_id)
+    if isinstance(prev, dict) and isinstance(prev.get("history"), list):
+        rec["history"] = list(prev.get("history") or [])
+    event = {
+        "event": "poh_challenge_evidence_retention_policy",
+        "challenge_id": challenge_id,
+        "account_id": account_id,
+        "case_id": case_id,
+        "status": status_norm,
+        "height": height,
+    }
+    rec["history"].append(event)
+    by_challenge[challenge_id] = rec
+    events.append(event)
+    return dict(rec)
+
+
+def _record_reverification_required(
+    state: Json,
+    *,
+    account_id: str,
+    challenge_id: str,
+    reason: str,
+) -> Json:
+    root = _reverification_root(state)
+    by_account = root.get("by_account")
+    assert isinstance(by_account, dict)
+    events = root.get("events")
+    assert isinstance(events, list)
+
+    height = int(state.get("height") or 0)
+    rec = by_account.get(account_id)
+    existed = isinstance(rec, dict)
+    if not existed:
+        rec = {"account_id": account_id, "history": []}
+    history = rec.get("history")
+    if not isinstance(history, list):
+        history = []
+    event = {
+        "event": "reverification_required",
+        "account_id": account_id,
+        "challenge_id": challenge_id,
+        "reason": reason,
+        "height": height,
+    }
+    history.append(event)
+    rec["status"] = "required"
+    rec["reason"] = reason
+    rec["challenge_id"] = challenge_id
+    rec["required_at_height"] = height
+    rec["history"] = history
+    by_account[account_id] = rec
+    events.append(event)
+    root["by_account"] = by_account
+    root["events"] = events
+    return dict(rec)
+
+
+
+def _mark_reverification_completed(
+    state: Json,
+    *,
+    account_id: str,
+    case_id: str,
+    height: int,
+) -> Json:
+    """Close a pending challenge-driven reverification after successful PoH proof.
+
+    Batch 507 keeps the challenge consequence deterministic but adds the missing
+    completion mechanic: once a revoked account completes a fresh native PoH
+    verification, the prior reverification requirement is closed with an audit
+    event.  This does not bypass review; it only records completion after the
+    existing finalize path has already awarded active PoH status.
+    """
+
+    root = _reverification_root(state)
+    by_account = root.get("by_account")
+    assert isinstance(by_account, dict)
+    events = root.get("events")
+    assert isinstance(events, list)
+
+    rec = by_account.get(account_id)
+    if not isinstance(rec, dict):
+        return {"applied": False, "reason": "no_reverification_required"}
+    if _as_str(rec.get("status") or "").strip().lower() != "required":
+        return {"applied": False, "reason": "reverification_not_required"}
+
+    history = rec.get("history")
+    if not isinstance(history, list):
+        history = []
+    event = {
+        "event": "reverification_completed",
+        "account_id": account_id,
+        "case_id": case_id,
+        "challenge_id": _as_str(rec.get("challenge_id") or "").strip(),
+        "height": int(height),
+    }
+    history.append(event)
+    rec["status"] = "completed"
+    rec["completed_by_case_id"] = case_id
+    rec["completed_at_height"] = int(height)
+    rec["history"] = history
+    by_account[account_id] = rec
+    events.append(event)
+    root["by_account"] = by_account
+    root["events"] = events
+
+    challenge_id = _as_str(rec.get("challenge_id") or "").strip()
+    challenges = _challenges(state)
+    ch = challenges.get(challenge_id) if challenge_id else None
+    if isinstance(ch, dict):
+        ch["post_challenge_reverification"] = {
+            "status": "completed",
+            "case_id": case_id,
+            "height": int(height),
+        }
+        ch["status"] = "resolved_reverified"
+        challenges[challenge_id] = ch
+        _record_challenge_evidence_retention_policy(
+            state,
+            challenge_id=challenge_id,
+            account_id=account_id,
+            case_id=case_id,
+            status="remedy_completed_minimal_retention",
+            reason="reverification_completed",
+        )
+
+    return {"applied": True, "account_id": account_id, "case_id": case_id, "status": "completed", "challenge_id": challenge_id}
 
 def _poh_nfts_root(state: Json) -> Json:
     root = state.get("poh_nfts")
@@ -718,6 +959,17 @@ def _require_active_live(state: Json, account_id: str, *, case_id: str = "") -> 
     return acct
 
 
+def _require_active_reviewer_lane(state: Json, account_id: str, *, lane: str, case_id: str = "") -> Json:
+    acct = _require_active_live(state, account_id, case_id=case_id)
+    if not reviewer_lane_active(state, account_id, lane):
+        raise ApplyError(
+            "invalid_tx",
+            "reviewer_responsibility_not_active",
+            {"case_id": case_id, "juror": account_id, "lane": lane},
+        )
+    return acct
+
+
 def _get_env(env: Any, key: str, default: Any = None) -> Any:
     if isinstance(env, dict):
         return env.get(key, default)
@@ -789,6 +1041,22 @@ def apply_poh_tier_set(state: Json, tx: Json) -> None:
 
     acct = _require_registered_account(state, account_id)
     acct["poh_tier"] = tier
+    if tier > 0:
+        set_account_poh_status(
+            state,
+            account_id=account_id,
+            poh_tier=tier,
+            status=POH_STATUS_ACTIVE,
+            verified_at_height=int(state.get("height") or 0),
+            last_updated_height=int(state.get("height") or 0),
+        )
+    else:
+        revoke_account_poh_status(
+            state,
+            account_id=account_id,
+            reason="tier_set_zero",
+            last_updated_height=int(state.get("height") or 0),
+        )
 
 
 def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
@@ -855,7 +1123,13 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
         if expected_pubkey and not _account_has_pubkey(acct, expected_pubkey):
             raise ApplyError("forbidden", "bootstrap_pubkey_mismatch", {"account_id": account_id})
 
-        acct["poh_tier"] = 2
+        _grant_active_poh_tier(
+            state,
+            account_id=account_id,
+            tier=2,
+            verified_at_height=current_height,
+            issuer_authority_id="poh_bootstrap_open",
+        )
         acct["poh_bootstrap_granted"] = True
         acct["poh_bootstrap_mode"] = "open"
         acct["poh_bootstrap_height"] = current_height
@@ -911,7 +1185,13 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
     if expected_pubkey and not _account_has_pubkey(acct, expected_pubkey):
         raise ApplyError("forbidden", "bootstrap_pubkey_mismatch", {"account_id": account_id})
 
-    acct["poh_tier"] = 2
+    _grant_active_poh_tier(
+        state,
+        account_id=account_id,
+        tier=2,
+        verified_at_height=current_height,
+        issuer_authority_id="poh_bootstrap_allowlist",
+    )
     acct["poh_bootstrap_granted"] = True
     acct["poh_bootstrap_mode"] = "allowlist"
     acct["poh_bootstrap_height"] = current_height
@@ -936,6 +1216,542 @@ def apply_poh_bootstrap_tier2_grant(state: Json, tx: Json) -> None:
     _mint_poh_nft(state, owner=account_id, tier=2, source_id="bootstrap", ts_ms=0)
 
 
+
+
+def _reviewer_accountability_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("reviewer_accountability")
+    if not isinstance(root, dict):
+        root = {"by_reviewer": {}, "events": []}
+        poh["reviewer_accountability"] = root
+    by_reviewer = root.get("by_reviewer")
+    if not isinstance(by_reviewer, dict):
+        by_reviewer = {}
+        root["by_reviewer"] = by_reviewer
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+
+
+def _reviewer_collusion_suspicion_root(state: Json) -> Json:
+    poh = _poh_root(state)
+    root = poh.get("reviewer_collusion_suspicions")
+    if not isinstance(root, dict):
+        root = {"by_case": {}, "events": []}
+        poh["reviewer_collusion_suspicions"] = root
+    by_case = root.get("by_case")
+    if not isinstance(by_case, dict):
+        by_case = {}
+        root["by_case"] = by_case
+    events = root.get("events")
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    return root
+
+
+def _record_reviewer_collusion_suspicion(
+    state: Json,
+    *,
+    challenge_id: str,
+    case_id: str,
+    account_id: str,
+    reviewers: list[str],
+) -> Json:
+    cleaned = sorted({str(r).strip() for r in reviewers if str(r).strip()})
+    if len(cleaned) < 2 or not case_id:
+        return {"applied": False, "reason": "insufficient_common_prior_approvals", "reviewer_count": len(cleaned)}
+    root = _reviewer_collusion_suspicion_root(state)
+    by_case = root["by_case"]
+    events = root["events"]
+    height = int(state.get("height") or 0)
+    suspicion_id = f"poh-reviewer-collusion:{case_id}:{challenge_id}"
+    rec = {
+        "suspicion_id": suspicion_id,
+        "challenge_id": challenge_id,
+        "case_id": case_id,
+        "account_id": account_id,
+        "reviewers": cleaned,
+        "reviewer_count": len(cleaned),
+        "status": "suspected_prior_approval_cluster",
+        "reason": "challenge_upheld_multiple_prior_approvals",
+        "height": height,
+        "requires_followup_review": True,
+        "escalation_level": "review_required",
+        "review_window_open_height": height,
+        "review_window_close_height": height + 1440,
+        "recovery_eligible_after_height": height + 1440,
+        "recovery_policy": "eligible_after_followup_review_or_successful_reverification",
+    }
+    by_case[suspicion_id] = rec
+    events.append({"event": "poh_reviewer_collusion_suspicion", **rec})
+    return {"applied": True, "suspicion_id": suspicion_id, "reviewers": cleaned, "reviewer_count": len(cleaned)}
+
+
+
+def record_poh_collusion_adjudication(
+    state: Json,
+    *,
+    suspicion_id: str,
+    decision: str,
+    adjudicator_panel_id: str = "",
+    note: str = "",
+) -> Json:
+    """Record deterministic follow-up adjudication for a reviewer-collusion suspicion.
+
+    This is intentionally a state-level primitive used by system/governance
+    rehearsal paths.  It does not claim automatic collusion detection; it turns
+    a suspicion record into an auditable adjudication outcome with deterministic
+    reviewer history scoring and recovery windows.
+    """
+
+    sid = _as_str(suspicion_id).strip()
+    dec = _as_str(decision).strip().lower()
+    if not sid:
+        raise ApplyError("invalid_tx", "missing_suspicion_id", {})
+    if dec not in {"confirmed", "dismissed", "needs_more_review"}:
+        raise ApplyError("invalid_tx", "bad_collusion_adjudication_decision", {"decision": decision})
+
+    root = _reviewer_collusion_suspicion_root(state)
+    by_case = root["by_case"]
+    events = root["events"]
+    rec = by_case.get(sid)
+    if not isinstance(rec, dict):
+        raise ApplyError("not_found", "reviewer_collusion_suspicion_not_found", {"suspicion_id": sid})
+
+    height = int(state.get("height") or 0)
+    reviewers = [str(r) for r in rec.get("reviewers", []) if str(r)]
+    outcome_status = {
+        "confirmed": "adjudicated_confirmed",
+        "dismissed": "adjudicated_dismissed",
+        "needs_more_review": "adjudication_pending_followup",
+    }[dec]
+    rec["status"] = outcome_status
+    rec["adjudication_decision"] = dec
+    rec["adjudicated_height"] = height
+    rec["adjudicator_panel_id"] = _as_str(adjudicator_panel_id).strip()
+    if note:
+        rec["adjudication_note"] = note
+    rec["requires_followup_review"] = dec == "needs_more_review"
+    if dec == "dismissed":
+        rec["recovery_policy"] = "reviewers_reinstatable_after_false_positive_dismissal"
+    elif dec == "confirmed":
+        rec["recovery_policy"] = "reviewers_recover_after_remediation_window"
+
+    poh = _poh_root(state)
+    scores = poh.get("reviewer_history_scores")
+    if not isinstance(scores, dict):
+        scores = {}
+        poh["reviewer_history_scores"] = scores
+    roles = state.setdefault("roles", {}) if isinstance(state.get("roles"), dict) else {}
+    state["roles"] = roles
+    poh_reviewers = roles.setdefault("poh_reviewers", {}) if isinstance(roles.get("poh_reviewers"), dict) else {}
+    roles["poh_reviewers"] = poh_reviewers
+    suspended = poh_reviewers.setdefault("suspended", {}) if isinstance(poh_reviewers.get("suspended"), dict) else {}
+    active = poh_reviewers.setdefault("active", {}) if isinstance(poh_reviewers.get("active"), dict) else {}
+
+    reviewer_updates: list[Json] = []
+    for reviewer in reviewers:
+        score = scores.get(reviewer)
+        if not isinstance(score, dict):
+            score = {"reviewer_id": reviewer, "confirmed_collusion_count": 0, "false_positive_recovery_count": 0, "missed_duty_count": 0, "eligible": True}
+        if dec == "confirmed":
+            score["confirmed_collusion_count"] = _as_int(score.get("confirmed_collusion_count"), 0) + 1
+            score["eligible"] = False
+            score["suspended_until_height"] = height + 4320
+            suspended[reviewer] = {"reason": "collusion_adjudicated_confirmed", "suspicion_id": sid, "until_height": height + 4320}
+            active[reviewer] = False
+        elif dec == "dismissed":
+            score["false_positive_recovery_count"] = _as_int(score.get("false_positive_recovery_count"), 0) + 1
+            score["eligible"] = True
+            score.pop("suspended_until_height", None)
+            if isinstance(suspended, dict):
+                suspended.pop(reviewer, None)
+            active[reviewer] = True
+        else:
+            score["eligible"] = False
+            suspended[reviewer] = {"reason": "collusion_adjudication_pending_followup", "suspicion_id": sid}
+            active[reviewer] = False
+        score["last_adjudication_height"] = height
+        scores[reviewer] = score
+        reviewer_updates.append(dict(score))
+
+    event = {
+        "event": "poh_reviewer_collusion_adjudication",
+        "suspicion_id": sid,
+        "decision": dec,
+        "status": outcome_status,
+        "height": height,
+        "reviewer_count": len(reviewers),
+    }
+    events.append(event)
+    return {"applied": True, "suspicion_id": sid, "decision": dec, "status": outcome_status, "reviewer_updates": reviewer_updates, "event": event}
+
+
+def execute_poh_evidence_deletion(state: Json, *, challenge_id: str, reason: str = "retention_policy_completed") -> Json:
+    """Execute deterministic evidence-deletion eligibility as protocol state.
+
+    Raw evidence remains off-chain; this records that protocol-controlled
+    retention reached deletion eligibility and preserves only bounded audit
+    metadata.  It fails closed unless the retention record is already marked
+    deletion_eligible.
+    """
+
+    cid = _as_str(challenge_id).strip()
+    if not cid:
+        raise ApplyError("invalid_tx", "missing_challenge_id", {})
+    root = _evidence_retention_root(state)
+    by_challenge = root["by_challenge"]
+    events = root["events"]
+    rec = by_challenge.get(cid)
+    if not isinstance(rec, dict):
+        raise ApplyError("not_found", "evidence_retention_not_found", {"challenge_id": cid})
+    if not bool(rec.get("deletion_eligible")):
+        raise ApplyError("forbidden", "evidence_deletion_not_eligible", {"challenge_id": cid, "status": rec.get("status")})
+    height = int(state.get("height") or 0)
+    audit_material = {
+        "challenge_id": cid,
+        "account_id": rec.get("account_id", ""),
+        "case_id": rec.get("case_id", ""),
+        "status": rec.get("status", ""),
+        "reason": reason,
+    }
+    audit_hash = _sha256_hex(json.dumps(audit_material, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    rec["deleted"] = True
+    rec["deleted_height"] = height
+    rec["deletion_reason"] = reason
+    rec["minimal_audit_hash"] = audit_hash
+    rec["raw_evidence_retained"] = False
+    event = {"event": "poh_evidence_deletion_executed", "challenge_id": cid, "height": height, "minimal_audit_hash": audit_hash}
+    events.append(event)
+    return {"applied": True, "challenge_id": cid, "deleted": True, "minimal_audit_hash": audit_hash, "height": height}
+
+
+def aggregate_poh_sybil_signals(
+    state: Json,
+    *,
+    subject_account: str,
+    signal_id: str,
+    signals: Json,
+    reason: str = "scheduled_signal_aggregation",
+) -> Json:
+    """Aggregate bounded anti-Sybil suspicion signals without adjudicating guilt.
+
+    This primitive deliberately records a suspicion score and review requirement; it
+    does not claim automatic duplicate-human detection.  Inputs must be canonical
+    counts or lists already produced by deterministic protocol/state analysis.
+    """
+
+    subject = _as_str(subject_account).strip()
+    sid = _as_str(signal_id).strip() or f"poh-sybil-signal:{subject}"
+    if not subject:
+        raise ApplyError("invalid_tx", "missing_subject_account", {})
+    if not isinstance(signals, dict):
+        raise ApplyError("invalid_tx", "sybil_signals_must_be_object", {"signal_id": sid})
+
+    def _count(name: str) -> int:
+        value = signals.get(name)
+        if isinstance(value, list):
+            return len(value)
+        if isinstance(value, dict):
+            return len(value)
+        return _as_int(value, 0)
+
+    components = {
+        "duplicate_evidence_commitment_count": _count("duplicate_evidence_commitments"),
+        "reviewer_overlap_count": _count("reviewer_overlap"),
+        "shared_device_hint_count": _count("shared_device_hints"),
+        "challenge_history_count": _count("challenge_history"),
+        "coordinated_review_window_count": _count("coordinated_review_windows"),
+    }
+    score = (
+        components["duplicate_evidence_commitment_count"] * 15
+        + components["reviewer_overlap_count"] * 10
+        + components["shared_device_hint_count"] * 5
+        + components["challenge_history_count"] * 4
+        + components["coordinated_review_window_count"] * 8
+    )
+    severity = "high" if score >= 30 else "medium" if score >= 15 else "low"
+    height = int(state.get("height") or 0)
+    poh = _poh_root(state)
+    root = poh.get("sybil_signal_aggregations")
+    if not isinstance(root, dict):
+        root = {"by_subject": {}, "events": []}
+        poh["sybil_signal_aggregations"] = root
+    by_subject = root.setdefault("by_subject", {})
+    if not isinstance(by_subject, dict):
+        by_subject = {}
+        root["by_subject"] = by_subject
+    events = root.setdefault("events", [])
+    if not isinstance(events, list):
+        events = []
+        root["events"] = events
+    subject_records = by_subject.setdefault(subject, {})
+    if not isinstance(subject_records, dict):
+        subject_records = {}
+        by_subject[subject] = subject_records
+    rec = {
+        "signal_id": sid,
+        "subject_account": subject,
+        "components": components,
+        "suspicion_score": score,
+        "severity": severity,
+        "requires_adjudication_panel": score >= 15,
+        "status": "signals_aggregated_review_required" if score >= 15 else "signals_aggregated_monitor",
+        "height": height,
+        "reason": _as_str(reason),
+        "automatic_duplicate_human_detection_claimed": False,
+        "automatic_collusion_detection_claimed": False,
+    }
+    subject_records[sid] = rec
+    events.append({"event": "poh_sybil_signals_aggregated", "signal_id": sid, "subject_account": subject, "score": score, "severity": severity, "height": height})
+    return dict(rec)
+
+
+def select_poh_adjudication_panel(
+    state: Json,
+    *,
+    signal_id: str,
+    candidate_reviewers: list[str],
+    panel_size: int = 3,
+    seed: str = "",
+) -> Json:
+    """Select a deterministic adjudication panel from eligible reviewer candidates."""
+
+    sid = _as_str(signal_id).strip()
+    if not sid:
+        raise ApplyError("invalid_tx", "missing_signal_id", {})
+    size = max(1, _as_int(panel_size, 3))
+    poh = _poh_root(state)
+    scores = poh.get("reviewer_history_scores")
+    if not isinstance(scores, dict):
+        scores = {}
+        poh["reviewer_history_scores"] = scores
+    cleaned: list[str] = []
+    for reviewer in sorted({_as_str(r).strip() for r in candidate_reviewers if _as_str(r).strip()}):
+        score = scores.get(reviewer)
+        if isinstance(score, dict) and score.get("eligible") is False:
+            continue
+        acct = state.get("accounts", {}).get(reviewer) if isinstance(state.get("accounts"), dict) else None
+        if isinstance(acct, dict) and (acct.get("banned") or acct.get("locked")):
+            continue
+        cleaned.append(reviewer)
+    ranked = sorted(
+        cleaned,
+        key=lambda r: (
+            _sha256_hex(f"{sid}|{seed}|{r}".encode("utf-8")),
+            r,
+        ),
+    )
+    panel = ranked[:size]
+    panel_id = "poh-panel:" + _sha256_hex(json.dumps({"signal_id": sid, "panel": panel}, sort_keys=True, separators=(",", ":")).encode("utf-8"))[:16]
+    panels = poh.get("adjudication_panels")
+    if not isinstance(panels, dict):
+        panels = {"by_signal": {}, "events": []}
+        poh["adjudication_panels"] = panels
+    by_signal = panels.setdefault("by_signal", {})
+    events = panels.setdefault("events", [])
+    rec = {
+        "panel_id": panel_id,
+        "signal_id": sid,
+        "panel_size_requested": size,
+        "eligible_candidate_count": len(cleaned),
+        "selected_reviewers": panel,
+        "selected_count": len(panel),
+        "selection_seed_hash": _sha256_hex(f"{sid}|{seed}".encode("utf-8")),
+        "status": "panel_selected" if len(panel) == size else "insufficient_eligible_reviewers",
+        "height": int(state.get("height") or 0),
+        "deterministic_selection": True,
+    }
+    by_signal[sid] = rec
+    if isinstance(events, list):
+        events.append({"event": "poh_adjudication_panel_selected", "signal_id": sid, "panel_id": panel_id, "selected_count": len(panel), "height": rec["height"]})
+    return dict(rec)
+
+
+def select_poh_adjudication_panel_conflict_aware(
+    state: Json,
+    *,
+    signal_id: str,
+    candidate_reviewers: list[str],
+    excluded_reviewers: list[str] | None = None,
+    panel_size: int = 3,
+    seed: str = "",
+    conflict_reason: str = "prior_case_involvement",
+) -> Json:
+    """Select an adjudication panel while deterministically excluding conflicts.
+
+    This is a controlled-testnet mechanics primitive.  It separates suspicion from
+    adjudication by preventing reviewers with known conflicts from joining the
+    panel, then records the exclusion set for auditability.
+    """
+
+    excluded = sorted({_as_str(r).strip() for r in (excluded_reviewers or []) if _as_str(r).strip()})
+    candidates = sorted({_as_str(r).strip() for r in candidate_reviewers if _as_str(r).strip() and _as_str(r).strip() not in set(excluded)})
+    panel = select_poh_adjudication_panel(
+        state,
+        signal_id=signal_id,
+        candidate_reviewers=candidates,
+        panel_size=panel_size,
+        seed=seed,
+    )
+    poh = _poh_root(state)
+    panels = poh.setdefault("adjudication_panels", {"by_signal": {}, "events": []})
+    by_signal = panels.setdefault("by_signal", {})
+    rec = by_signal.get(_as_str(signal_id).strip())
+    if isinstance(rec, dict):
+        rec["conflict_exclusion_applied"] = True
+        rec["excluded_reviewers"] = excluded
+        rec["conflict_reason"] = _as_str(conflict_reason)
+        rec["conflict_free_panel"] = not any(r in set(excluded) for r in rec.get("selected_reviewers", []))
+    panel.update({
+        "conflict_exclusion_applied": True,
+        "excluded_reviewers": excluded,
+        "conflict_reason": _as_str(conflict_reason),
+        "conflict_free_panel": not any(r in set(excluded) for r in panel.get("selected_reviewers", [])),
+    })
+    return panel
+
+
+def record_poh_adjudication_appeal(
+    state: Json,
+    *,
+    signal_id: str,
+    panel_id: str,
+    appellant: str,
+    decision: str,
+    reason: str = "",
+) -> Json:
+    """Record deterministic appeal/recovery outcome for an adjudication panel.
+
+    The appeal path intentionally does not erase the original adjudication.  It
+    appends a bounded recovery record and, when granted, marks associated
+    reviewer-history entries eligible again.
+    """
+
+    sid = _as_str(signal_id).strip()
+    pid = _as_str(panel_id).strip()
+    actor = _as_str(appellant).strip()
+    dec = _as_str(decision).strip().lower()
+    if not sid:
+        raise ApplyError("invalid_tx", "missing_signal_id", {})
+    if not pid:
+        raise ApplyError("invalid_tx", "missing_panel_id", {})
+    if not actor:
+        raise ApplyError("invalid_tx", "missing_appellant", {})
+    if dec not in {"remedy_granted", "dismissed", "needs_more_review"}:
+        raise ApplyError("invalid_tx", "bad_adjudication_appeal_decision", {"decision": decision})
+
+    poh = _poh_root(state)
+    panels = poh.setdefault("adjudication_panels", {"by_signal": {}, "events": []})
+    appeals = panels.setdefault("appeals", {})
+    events = panels.setdefault("events", [])
+    panel = panels.setdefault("by_signal", {}).get(sid)
+    selected = list(panel.get("selected_reviewers", [])) if isinstance(panel, dict) else []
+    scores = poh.setdefault("reviewer_history_scores", {})
+    recovered: list[str] = []
+    if dec == "remedy_granted":
+        # Recovery is limited to the appellant when present in reviewer history,
+        # otherwise to no one.  This avoids a broad silent rollback.
+        score = scores.get(actor)
+        if isinstance(score, dict):
+            score["eligible"] = True
+            score["appeal_recovery_count"] = _as_int(score.get("appeal_recovery_count"), 0) + 1
+            score.pop("suspended_until_height", None)
+            recovered.append(actor)
+        roles = state.get("roles") if isinstance(state.get("roles"), dict) else {}
+        poh_reviewers = roles.get("poh_reviewers") if isinstance(roles.get("poh_reviewers"), dict) else {}
+        if isinstance(poh_reviewers, dict):
+            active = poh_reviewers.setdefault("active", {})
+            suspended = poh_reviewers.setdefault("suspended", {})
+            active[actor] = True
+            suspended.pop(actor, None)
+
+    appeal_id = "poh-adjudication-appeal:" + _sha256_hex(f"{sid}|{pid}|{actor}|{dec}".encode("utf-8"))[:16]
+    rec = {
+        "appeal_id": appeal_id,
+        "signal_id": sid,
+        "panel_id": pid,
+        "appellant": actor,
+        "decision": dec,
+        "reason": _as_str(reason),
+        "height": int(state.get("height") or 0),
+        "selected_reviewers_at_appeal": selected,
+        "recovered_reviewers": recovered,
+        "recovery_applied": bool(recovered),
+    }
+    appeals[appeal_id] = rec
+    if isinstance(events, list):
+        events.append({"event": "poh_adjudication_appeal_recorded", **rec})
+    return dict(rec)
+
+def _record_challenge_reviewer_accountability(state: Json, *, challenge_id: str, case_id: str, account_id: str) -> Json:
+    if not case_id:
+        return {"applied": False, "reason": "missing_case_id"}
+    cases = _async_cases(state)
+    case = cases.get(case_id)
+    if not isinstance(case, dict):
+        return {"applied": False, "reason": "case_not_found", "case_id": case_id}
+    reviews = case.get("reviews")
+    if not isinstance(reviews, dict) or not reviews:
+        return {"applied": False, "reason": "no_reviews", "case_id": case_id}
+
+    root = _reviewer_accountability_root(state)
+    by_reviewer = root["by_reviewer"]
+    events = root["events"]
+    recorded: list[str] = []
+    for reviewer_id in sorted(str(k) for k in reviews.keys() if str(k).strip()):
+        review = reviews.get(reviewer_id)
+        if not isinstance(review, dict):
+            continue
+        verdict = _as_str(review.get("verdict") or "").strip().lower()
+        if verdict not in {"approve", "approved", "pass", "yes"}:
+            continue
+        rec = by_reviewer.get(reviewer_id)
+        if not isinstance(rec, dict):
+            rec = {"reviewer_id": reviewer_id, "challenge_upheld_review_count": 0, "events": []}
+        event = {
+            "event": "challenge_upheld_prior_approval",
+            "challenge_id": challenge_id,
+            "case_id": case_id,
+            "account_id": account_id,
+            "height": int(state.get("height") or 0),
+        }
+        rec["challenge_upheld_review_count"] = _as_int(rec.get("challenge_upheld_review_count") or 0, 0) + 1
+        rec["status"] = "reviewer_accountability_flagged"
+        rec["eligible_for_poh_review"] = False
+        rec["eligibility_reason"] = "prior_approval_challenge_upheld"
+        rec.setdefault("events", []).append(event)
+        by_reviewer[reviewer_id] = rec
+        acct = state.get("accounts", {}).get(reviewer_id) if isinstance(state.get("accounts"), dict) else None
+        if isinstance(acct, dict):
+            acct["poh_reviewer_eligible"] = False
+            acct["poh_reviewer_suspended_reason"] = "prior_approval_challenge_upheld"
+            acct["poh_reviewer_suspended_at_height"] = int(state.get("height") or 0)
+        roles = state.get("roles")
+        if isinstance(roles, dict):
+            reviewers = roles.get("poh_reviewers")
+            if isinstance(reviewers, dict):
+                suspended = reviewers.get("suspended")
+                if not isinstance(suspended, dict):
+                    suspended = {}
+                    reviewers["suspended"] = suspended
+                suspended[reviewer_id] = {"reason": "prior_approval_challenge_upheld", "challenge_id": challenge_id, "case_id": case_id}
+        events.append({"reviewer_id": reviewer_id, **event})
+        recorded.append(reviewer_id)
+    collusion = _record_reviewer_collusion_suspicion(
+        state,
+        challenge_id=challenge_id,
+        case_id=case_id,
+        account_id=account_id,
+        reviewers=recorded,
+    )
+    return {"applied": bool(recorded), "reviewers": recorded, "case_id": case_id, "collusion_suspicion": collusion}
+
 def _challenge_id(*, account_id: str, nonce: int) -> str:
     return f"pohc:{account_id}:{max(0, int(nonce))}"
 
@@ -955,6 +1771,9 @@ def apply_poh_challenge_open(state: Json, env: Any) -> Json:
         "reason": reason,
         "status": "open",
     }
+    case_id = _as_str(p.get("case_id") or p.get("target_case_id") or "").strip()
+    if case_id:
+        ch["case_id"] = case_id
 
     challenges = _challenges(state)
     challenges[cid] = ch
@@ -983,11 +1802,77 @@ def apply_poh_challenge_resolve(state: Json, env: Any) -> Json:
     if note:
         ch["note"] = note
 
-    return {"applied": "POH_CHALLENGE_RESOLVE", "challenge_id": cid, "resolution": resolution}
+    consequence: Json = {"applied": False}
+    if resolution == "upheld":
+        account_id = _as_str(ch.get("account_id") or "").strip()
+        if not account_id:
+            raise ApplyError("invalid_tx", "challenge_missing_account_id", {"challenge_id": cid})
+        rec = revoke_account_poh_status(
+            state,
+            account_id=account_id,
+            reason="challenge_upheld",
+            last_updated_height=int(state.get("height") or 0),
+        )
+        reverify = _record_reverification_required(
+            state,
+            account_id=account_id,
+            challenge_id=cid,
+            reason="challenge_upheld",
+        )
+        retention = _record_challenge_evidence_retention_policy(
+            state,
+            challenge_id=cid,
+            account_id=account_id,
+            case_id=_as_str(p.get("case_id") or ch.get("case_id") or "").strip(),
+            status="retain_until_reverification_or_appeal",
+            reason="challenge_upheld",
+        )
+        accountability = _record_challenge_reviewer_accountability(
+            state,
+            challenge_id=cid,
+            case_id=_as_str(p.get("case_id") or ch.get("case_id") or "").strip(),
+            account_id=account_id,
+        )
+        ch["consequence"] = {
+            "type": "poh_status_revoked",
+            "account_id": account_id,
+            "poh_tier": 0,
+            "status": _as_str(rec.get("status") or "revoked"),
+            "reverification_status": _as_str(reverify.get("status") or "required"),
+            "reverification_required": True,
+            "evidence_retention": retention,
+            "reviewer_accountability": accountability,
+        }
+        consequence = dict(ch["consequence"])
+        consequence["applied"] = True
+    else:
+        account_id = _as_str(ch.get("account_id") or "").strip()
+        retention = _record_challenge_evidence_retention_policy(
+            state,
+            challenge_id=cid,
+            account_id=account_id,
+            case_id=_as_str(p.get("case_id") or ch.get("case_id") or "").strip(),
+            status="dismissed_minimal_retention",
+            reason="challenge_dismissed",
+        )
+        # Preserve the legacy dismissed/no-op consequence shape for callers and
+        # older compatibility tests.  The evidence-retention policy is still
+        # recorded on the challenge record and canonical PoH evidence-retention
+        # state, but it must not change the stable no-op consequence envelope.
+        ch["evidence_retention"] = retention
+        ch["consequence"] = {"type": "none", "applied": False}
+        consequence = dict(ch["consequence"])
+
+    return {
+        "applied": "POH_CHALLENGE_RESOLVE",
+        "challenge_id": cid,
+        "resolution": resolution,
+        "consequence": consequence,
+    }
 
 
 
-ASYNC_PRIVATE_FIELD_DENYLIST: frozenset[str] = frozenset(
+ASYNC_SENSITIVE_IDENTITY_FIELD_DENYLIST: frozenset[str] = frozenset(
     {
         "raw_response",
         "raw_video",
@@ -1008,10 +1893,10 @@ ASYNC_PRIVATE_FIELD_DENYLIST: frozenset[str] = frozenset(
 )
 
 
-def _reject_native_async_private_fields(payload: Json) -> None:
-    leaked = sorted(k for k in ASYNC_PRIVATE_FIELD_DENYLIST if k in payload and payload.get(k) not in (None, ""))
+def _reject_native_async_sensitive_identity_fields(payload: Json) -> None:
+    leaked = sorted(k for k in ASYNC_SENSITIVE_IDENTITY_FIELD_DENYLIST if k in payload and payload.get(k) not in (None, ""))
     if leaked:
-        raise ApplyError("invalid_tx", "native_async_private_field_forbidden", {"fields": leaked})
+        raise ApplyError("invalid_tx", "native_async_sensitive_identity_field_forbidden", {"fields": leaked})
 
 
 def _validate_async_review_policy(
@@ -1113,8 +1998,8 @@ def _async_case_has_declared_evidence(case: Json) -> bool:
     commitments = case.get("evidence_commitments")
     if isinstance(commitments, dict) and any(_as_str(k).strip() for k in commitments.keys()):
         return True
-    reviewer_private = case.get("reviewer_private_evidence")
-    if isinstance(reviewer_private, dict) and any(_as_str(k).strip() for k in reviewer_private.keys()):
+    reviewer_restricted = case.get("reviewer_restricted_evidence")
+    if isinstance(reviewer_restricted, dict) and any(_as_str(k).strip() for k in reviewer_restricted.keys()):
         return True
     binds = case.get("evidence_binds")
     if isinstance(binds, dict) and any(_as_str(k).strip() for k in binds.keys()):
@@ -1173,7 +2058,7 @@ def _async_review_counts(case: Json) -> tuple[int, int, int]:
 
 def apply_poh_async_request_open(state: Json, env: Any) -> Json:
     p = _payload(env)
-    _reject_native_async_private_fields(p)
+    _reject_native_async_sensitive_identity_fields(p)
     account_id = _as_str(p.get("account_id") or _signer(env)).strip()
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account_id", {})
@@ -1278,7 +2163,7 @@ def apply_poh_async_request_open(state: Json, env: Any) -> Json:
 
 def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
     p = _payload(env)
-    _reject_native_async_private_fields(p)
+    _reject_native_async_sensitive_identity_fields(p)
     case_id = _as_str(p.get("case_id") or "").strip()
     evidence_commitment = _as_str(p.get("evidence_commitment") or "").strip()
     response_commitment = _as_str(p.get("response_commitment") or "").strip()
@@ -1319,17 +2204,17 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
     if response_commitment:
         case["response_commitment"] = response_commitment
 
-    # Option B privacy posture: async evidence remains reviewer-private by
-    # default.  Public case state keeps only commitments.  Content-addressed
-    # evidence references are stored in a separate reviewer-private envelope and
-    # are exposed only through scoped reviewer/subject APIs.
-    private_rec: Json = {
+    # Identity-protection posture: async PoH evidence may contain sensitive
+    # identity material. Public case state keeps commitments, assignments,
+    # votes, outcomes, and review receipts inspectable. Content-addressed
+    # evidence references remain in a protected reviewer/subject envelope.
+    protected_rec: Json = {
         "evidence_id": evidence_id,
         "evidence_commitment": evidence_commitment,
         "response_commitment": response_commitment,
         "kind": rec["kind"],
         "declared_height": rec["declared_height"],
-        "visibility": "reviewer_private",
+        "visibility": "reviewer_restricted",
     }
     for key in ("evidence_cid", "mime", "name", "filename", "size"):
         value = p.get(key)
@@ -1339,24 +2224,24 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
             value = value.strip()
             if not value:
                 continue
-        private_rec[key] = value
+        protected_rec[key] = value
 
     uri = _validate_ipfs_uri(p.get("uri"), field="uri", case_id=case_id)
     if uri:
-        private_rec["uri"] = uri
+        protected_rec["uri"] = uri
 
     video_commitment = _validate_commitment_format(
         p.get("video_commitment"), field="video_commitment", case_id=case_id, required=False
     )
     if video_commitment:
-        private_rec["video_commitment"] = video_commitment
+        protected_rec["video_commitment"] = video_commitment
 
-    reviewer_private = case.get("reviewer_private_evidence")
-    if not isinstance(reviewer_private, dict):
-        reviewer_private = {}
-        case["reviewer_private_evidence"] = reviewer_private
-    if any(k in private_rec for k in ("evidence_cid", "uri", "video_commitment")):
-        reviewer_private[evidence_id] = private_rec
+    reviewer_restricted = case.get("reviewer_restricted_evidence")
+    if not isinstance(reviewer_restricted, dict):
+        reviewer_restricted = {}
+        case["reviewer_restricted_evidence"] = reviewer_restricted
+    if any(k in protected_rec for k in ("evidence_cid", "uri", "video_commitment")):
+        reviewer_restricted[evidence_id] = protected_rec
 
     # Preserve the old fields as explicitly empty public surfaces so stale
     # clients/tests do not mistake absence for unredacted public evidence.
@@ -1369,7 +2254,7 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
 
 def apply_poh_async_evidence_bind(state: Json, env: Any) -> Json:
     p = _payload(env)
-    _reject_native_async_private_fields(p)
+    _reject_native_async_sensitive_identity_fields(p)
     case_id = _as_str(p.get("case_id") or "").strip()
     evidence_id = _as_str(p.get("evidence_id") or "").strip()
     if not case_id or not evidence_id:
@@ -1451,7 +2336,7 @@ def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
     for jid in jurors:
         if jid == account_id:
             raise ApplyError("invalid_tx", "subject_cannot_review_self", {"case_id": case_id, "juror": jid})
-        _require_active_live(state, jid, case_id=case_id)
+        _require_active_reviewer_lane(state, jid, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
 
     _validate_async_review_policy(
         assigned_jurors=assigned_needed,
@@ -1480,7 +2365,7 @@ def apply_poh_async_juror_accept(state: Json, env: Any) -> Json:
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
     juror_id = _signer(env)
-    _require_active_live(state, juror_id, case_id=case_id)
+    _require_active_reviewer_lane(state, juror_id, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
     if juror_id not in list(case.get("assigned_jurors") or []):
         raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
     if juror_id in list(case.get("declined_jurors") or []):
@@ -1500,7 +2385,7 @@ def apply_poh_async_juror_decline(state: Json, env: Any) -> Json:
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
     juror_id = _signer(env)
-    _require_active_live(state, juror_id, case_id=case_id)
+    _require_active_reviewer_lane(state, juror_id, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
     if juror_id not in list(case.get("assigned_jurors") or []):
         raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
     if juror_id in list(case.get("accepted_jurors") or []):
@@ -1514,7 +2399,7 @@ def apply_poh_async_juror_decline(state: Json, env: Any) -> Json:
 
 def apply_poh_async_review_submit(state: Json, env: Any) -> Json:
     p = _payload(env)
-    _reject_native_async_private_fields(p)
+    _reject_native_async_sensitive_identity_fields(p)
     case_id = _as_str(p.get("case_id") or "").strip()
     verdict = _as_str(p.get("verdict") or "").strip().lower()
     if not case_id:
@@ -1524,7 +2409,7 @@ def apply_poh_async_review_submit(state: Json, env: Any) -> Json:
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
     juror_id = _signer(env)
-    _require_active_live(state, juror_id, case_id=case_id)
+    _require_active_reviewer_lane(state, juror_id, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
     if juror_id not in list(case.get("assigned_jurors") or []):
         raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
     if juror_id not in list(case.get("accepted_jurors") or []):
@@ -1637,6 +2522,11 @@ def apply_poh_async_finalize(state: Json, env: Any) -> Json:
         token_id = _mint_poh_nft(
             state, owner=account_id, tier=1, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
         )
+        reverify_completion = _mark_reverification_completed(
+            state, account_id=account_id, case_id=case_id, height=height
+        )
+        if bool(reverify_completion.get("applied")):
+            case["reverification_completed"] = dict(reverify_completion)
 
     case["status"] = outcome
     case["outcome"] = outcome
@@ -1948,7 +2838,7 @@ def apply_poh_tier2_juror_assign(state: Json, env: Any) -> Json:
     for jid in normalized_jurors:
         if jid == target_account:
             raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": jid})
-        _require_active_live(state, jid, case_id=case_id)
+        _require_active_reviewer_lane(state, jid, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
         jm[jid] = {"verdict": None, "ts_ms": None, "assigned_height": int(state.get("height") or 0)}
 
     if len(jm) != n_jurors:
@@ -1976,7 +2866,7 @@ def apply_poh_tier2_juror_accept(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -2004,7 +2894,7 @@ def apply_poh_tier2_juror_decline(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -2043,7 +2933,7 @@ def apply_poh_tier2_review_submit(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "jurors_not_assigned", {"case_id": case_id})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
     if signer == _as_str(case.get("account_id") or "").strip():
         raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": signer})
     jrec = jm.get(signer)
@@ -2102,7 +2992,7 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
         jid = _as_str(_jid).strip()
         if jid == target_account:
             raise ApplyError("forbidden", "juror_self_review_forbidden", {"case_id": case_id, "juror": jid})
-        _require_active_live(state, jid, case_id=case_id)
+        _require_active_reviewer_lane(state, jid, lane=POH_TIER2_REVIEW_LANE, case_id=case_id)
         jrec = jrec_any if isinstance(jrec_any, dict) else {}
         v = _as_str(jrec.get("verdict") or "").strip().lower()
         if v not in ("pass", "fail"):
@@ -2121,7 +3011,14 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
 
     token_id = ""
     if outcome == "pass":
-        target_acct["poh_tier"] = max(_as_int(target_acct.get("poh_tier") or 0), 2)
+        _grant_active_poh_tier(
+            state,
+            account_id=target_account,
+            tier=2,
+            verified_at_height=int(state.get("height") or 0),
+            proof_commitment=_as_str(case.get("video_commitment") or "").strip() or None,
+            issuer_authority_id="poh_tier2_finalize",
+        )
         token_id = _mint_poh_nft(
             state, owner=target_account, tier=2, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
         )
@@ -2331,7 +3228,7 @@ def apply_poh_live_juror_assign(state: Json, env: Any) -> Json:
                 "invalid_tx", "subject_cannot_be_juror", {"case_id": case_id, "juror": jid}
             )
         seen.add(jid)
-        _require_active_live(state, jid, case_id=case_id)
+        _require_active_reviewer_lane(state, jid, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
         cleaned.append(jid)
 
     threshold_num, threshold_den = _live_threshold_from_assignment(state, p)
@@ -2362,7 +3259,7 @@ def apply_poh_live_juror_accept(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_case_id", {})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     case = _get_live_case(state, case_id)
     jm = case.get("jurors")
@@ -2405,7 +3302,7 @@ def apply_poh_live_juror_decline(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "missing_case_id", {})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     case = _get_live_case(state, case_id)
     jm = case.get("jurors")
@@ -2500,7 +3397,7 @@ def apply_poh_live_juror_replace(state: Json, env: Any) -> Json:
             "invalid_tx", "juror_not_replaceable", {"case_id": case_id, "juror": old_id}
         )
 
-    _require_active_live(state, new_id, case_id=case_id)
+    _require_active_reviewer_lane(state, new_id, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     role = _as_str(old_rec.get("role") or "").strip() or "observing"
 
@@ -2542,7 +3439,7 @@ def apply_poh_live_attendance_mark(state: Json, env: Any) -> Json:
             {"case_id": case_id, "juror_id": juror_id, "signer": signer},
         )
 
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     case = _get_live_case(state, case_id)
     status = _as_str(case.get("status") or "").strip().lower()
@@ -2603,7 +3500,7 @@ def apply_poh_live_verdict_submit(state: Json, env: Any) -> Json:
         raise ApplyError("invalid_tx", "bad_verdict", {"verdict": verdict})
 
     signer = _signer(env)
-    _require_active_live(state, signer, case_id=case_id)
+    _require_active_reviewer_lane(state, signer, lane=POH_LIVE_REVIEW_LANE, case_id=case_id)
 
     case = _get_live_case(state, case_id)
     status = _as_str(case.get("status") or "").strip().lower()
@@ -2762,7 +3659,14 @@ def apply_poh_live_finalize(state: Json, env: Any) -> Json:
 
     token_id = ""
     if outcome == "pass":
-        target_acct["poh_tier"] = max(_as_int(target_acct.get("poh_tier") or 0), 2)
+        _grant_active_poh_tier(
+            state,
+            account_id=target_account,
+            tier=2,
+            verified_at_height=int(state.get("height") or 0),
+            proof_commitment=_as_str(case.get("session_commitment") or "").strip() or None,
+            issuer_authority_id="poh_live_finalize",
+        )
         token_id = _mint_poh_nft(
             state, owner=target_account, tier=2, source_id=case_id, ts_ms=_as_int(p.get("ts_ms") or 0)
         )

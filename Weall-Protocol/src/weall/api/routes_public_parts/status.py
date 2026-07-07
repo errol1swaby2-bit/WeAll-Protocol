@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 import os
-import time
 from typing import Any, Mapping
 
 from fastapi import APIRouter, Request
@@ -21,7 +20,12 @@ from weall.runtime.helper_startup_integration import (
 )
 from weall.runtime.helper_status_route_adapter import build_api_status_response_shape
 from weall.runtime.helper_status_surface import build_helper_status_surface
+from weall.runtime.launch_matrix import launch_matrix_from_state, launch_matrix_payload
 from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
+from weall.crypto.pq_mldsa import mldsa_backend_status
+from weall.crypto.signature_profiles import PQ_MLDSA_V1, PQ_MLKEM_V1, signature_profile_registry_json
+from weall.runtime.testnet_capabilities import build_testnet_capability_surface
+from weall.runtime.protocol_time import protocol_time_height
 from weall.runtime.runtime_authority import (
     authority_contract_from_lifecycle,
     startup_authority_contract_from_app_state,
@@ -104,21 +108,6 @@ def _safe_bool(v: Any, default: bool = False) -> bool:
         return bool(default)
 
 
-def _now_ms() -> int:
-    return int(time.time() * 1000)
-
-
-def _try_executor_snapshot(ex: Any) -> dict[str, Any] | None:
-    if ex is None:
-        return None
-    snap = getattr(ex, "snapshot", None)
-    if not callable(snap):
-        return None
-    try:
-        out = snap()
-        return out if isinstance(out, dict) else None
-    except Exception:
-        return None
 
 
 def _try_read_state(ex: Any) -> dict[str, Any] | None:
@@ -126,12 +115,12 @@ def _try_read_state(ex: Any) -> dict[str, Any] | None:
         return None
     fn = getattr(ex, "read_state", None)
     if not callable(fn):
-        return _try_executor_snapshot(ex)
+        return None
     try:
         out = fn()
         return out if isinstance(out, dict) else None
     except Exception:
-        return _try_executor_snapshot(ex)
+        return None
 
 
 def _tx_index_hash(ex: Any, state: Mapping[str, Any]) -> str:
@@ -216,6 +205,85 @@ def _helper_surface(request: Request, chain_id: str):
     )
     diagnostic = build_helper_operator_diagnostic(status=status)
     return build_helper_status_surface(diagnostic=diagnostic)
+
+
+def _operator_incident_timeline(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Build a compact operator timeline from status truth sources.
+
+    This is intentionally derived-only: it does not create protocol state and it
+    avoids implying readiness.  The frontend can render the rows as incident
+    breadcrumbs for bootstrap, peer sync, mempool, block loop, helper, storage,
+    validator signing, and consensus posture.
+    """
+    rows: list[dict[str, Any]] = []
+
+    def add(event: str, status: str, message: str, *, severity: str = "info", details: Any = None) -> None:
+        rows.append(
+            {
+                "event": event,
+                "status": status,
+                "severity": severity,
+                "message": message,
+                "details": details if isinstance(details, (dict, list, str, int, float, bool)) or details is None else _safe_str(details),
+            }
+        )
+
+    mode = _safe_str(payload.get("mode"), "")
+    add("node_mode", "observed" if mode else "unknown", f"Node mode: {mode or 'unknown'}")
+
+    block_loop = payload.get("block_loop") if isinstance(payload.get("block_loop"), dict) else {}
+    if block_loop:
+        unhealthy = _safe_bool(block_loop.get("unhealthy"), False)
+        running = _safe_bool(block_loop.get("running"), False)
+        add(
+            "block_loop",
+            "unhealthy" if unhealthy else ("running" if running else "stopped"),
+            _safe_str(block_loop.get("last_error"), "Block loop running" if running else "Block loop stopped"),
+            severity="error" if unhealthy else ("ok" if running else "warn"),
+            details={"consecutive_failures": _safe_int(block_loop.get("consecutive_failures"), 0)},
+        )
+
+    mempool_size = _safe_int(payload.get("mempool_size"), 0)
+    add("mempool", "queued" if mempool_size else "empty", f"Mempool size: {mempool_size}", severity="warn" if mempool_size else "ok")
+
+    net = payload.get("net") if isinstance(payload.get("net"), dict) else {}
+    peer_counts = net.get("peer_counts") if isinstance(net.get("peer_counts"), dict) else {}
+    peer_total = sum(_safe_int(v, 0) for v in peer_counts.values()) if peer_counts else len(net.get("peers") or []) if isinstance(net.get("peers"), list) else 0
+    add(
+        "peer_sync",
+        "connected" if peer_total else ("enabled_no_peers" if _safe_bool(net.get("enabled"), False) else "disabled"),
+        f"Peer connections observed: {peer_total}",
+        severity="ok" if peer_total else ("warn" if _safe_bool(net.get("enabled"), False) else "info"),
+        details={"peer_counts": peer_counts},
+    )
+
+    consensus = payload.get("consensus") if isinstance(payload.get("consensus"), dict) else {}
+    if consensus:
+        stalled = _safe_bool(consensus.get("stalled"), False)
+        add(
+            "consensus",
+            "stalled" if stalled else "observed",
+            _safe_str(consensus.get("stall_reason"), "Consensus diagnostics loaded"),
+            severity="error" if stalled else "ok",
+            details={"bft_enabled": _safe_bool(consensus.get("bft_enabled"), False)},
+        )
+
+    operator = payload.get("operator") if isinstance(payload.get("operator"), dict) else {}
+    if operator:
+        add(
+            "validator_signing",
+            "allowed" if _safe_bool(operator.get("signing_allowed_by_consensus_state"), False) else "blocked",
+            _safe_str(operator.get("signing_block_reason"), "Validator signing status reported"),
+            severity="ok" if _safe_bool(operator.get("signing_allowed_by_consensus_state"), False) else "warn",
+        )
+        add(
+            "helper",
+            _safe_str(operator.get("helper_severity"), "unknown"),
+            _safe_str(operator.get("helper_summary"), "Helper status unavailable"),
+            severity=_safe_str(operator.get("helper_severity"), "info"),
+        )
+
+    return rows
 
 
 def _peer_debug(app_state: Any) -> dict[str, Any]:
@@ -358,7 +426,7 @@ def _transition_guardrail_diagnostics(ex: Any) -> dict[str, Any]:
 
 
 def _mempool_selection_last_diagnostics(ex: Any) -> dict[str, Any]:
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     persisted = meta.get("mempool_selection_last") if isinstance(meta.get("mempool_selection_last"), dict) else None
     if isinstance(persisted, dict):
@@ -387,7 +455,7 @@ def _node_lifecycle_diagnostics(ex: Any) -> dict[str, Any]:
                 return dict(out)
         except Exception:
             pass
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     node_lifecycle = meta.get("node_lifecycle") if isinstance(meta.get("node_lifecycle"), dict) else None
     if isinstance(node_lifecycle, dict):
@@ -498,7 +566,7 @@ def _genesis_bootstrap_diagnostics(state: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _startup_posture_diagnostics(ex: Any, app_state: Any = None) -> dict[str, Any]:
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     authority_contract = _authority_contract_diagnostics(ex, state, app_state)
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     warning = meta.get("clock_warning") if isinstance(meta.get("clock_warning"), dict) else None
@@ -535,7 +603,7 @@ def _helper_reputation_diagnostics(ex: Any) -> dict[str, Any]:
         state = nested.get("state") if isinstance(nested.get("state"), dict) else None
         if isinstance(state, dict):
             return dict(state)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     rep = meta.get("helper_reputation") if isinstance(meta.get("helper_reputation"), dict) else None
     if isinstance(rep, dict):
@@ -764,21 +832,61 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
             "public_multi_validator_bft_ready": False,
             "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass",
         },
-        "p2p_encrypted_messaging": {
-            "scheme": "WEALL_E2EE_V1",
-            "body_plaintext_rejected": True,
-            "metadata_visible": True,
-            "forward_secrecy": False,
-            "signal_grade": False,
-            "production_ready": False,
-            "claim": "direct-message bodies are client-side encrypted and plaintext is rejected; metadata remains visible and production P2P private messaging requires ratcheting, device lifecycle, key verification, and external crypto review",
+        "public_only_protocol_surface": {
+            "public_inspectability_required": True,
+            "opaque_protocol_payloads_supported": False,
+            "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events.",
         },
         "poh": poh_policy,
+        "launch_matrix_capabilities": build_testnet_capability_surface(state if isinstance(state, dict) else {}),
+    }
+
+
+def _crypto_profile_payload(state: Mapping[str, Any]) -> dict[str, Any]:
+    """Return read-only cryptographic posture for normal observer UI surfaces.
+
+    This is status/claim-control metadata only. It does not make a node
+    authoritative and does not claim completed production cryptographic review.
+    """
+
+    chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), Mapping) else {}
+    crypto = chain_config.get("crypto") if isinstance(chain_config, Mapping) and isinstance(chain_config.get("crypto"), Mapping) else {}
+    active_profile = _safe_str(
+        crypto.get("active_signature_profile")
+        or state.get("active_signature_profile")
+        or os.environ.get("WEALL_ACTIVE_SIGNATURE_PROFILE")
+        or PQ_MLDSA_V1,
+        PQ_MLDSA_V1,
+    )
+    allowed_profiles = crypto.get("allowed_signature_profiles") if isinstance(crypto, Mapping) else None
+    if not isinstance(allowed_profiles, list):
+        allowed_profiles = [PQ_MLDSA_V1]
+    allowed_profiles = [_safe_str(x, "").strip() for x in allowed_profiles if _safe_str(x, "").strip()]
+    backend = mldsa_backend_status()
+    return {
+        "schema": "weall.crypto_profile.status.v1_5",
+        "active_signature_profile": active_profile,
+        "controlled_testnet_target_signature_profile": PQ_MLDSA_V1,
+        "transport_key_establishment_target_profile": PQ_MLKEM_V1,
+        "allowed_signature_profiles": allowed_profiles,
+        "mldsa_verifier_available": bool(backend.get("available") is True),
+        "mldsa_backend_status": backend,
+        "classical_signature_profiles_removed": True,
+        "production_crypto_audit_complete": False,
+        "production_post_quantum_security_claimed": False,
+        "quantum_proof_claimed": False,
+        "public_mainnet_ready": False,
+        "public_beta_ready": False,
+        "public_multi_validator_bft_ready": False,
+        "live_economics": False,
+        "public_only_protocol_surface": True,
+        "signature_profile_registry": signature_profile_registry_json(),
+        "claim": "Controlled-testnet signing uses profile-aware pq-mldsa-v1 on active protocol authority surfaces, while external cryptographic review remains required before any durable public-network or mainnet claim.",
     }
 
 def _base_status_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
 
     chain_id = _safe_str(state.get("chain_id") or os.environ.get("WEALL_CHAIN_ID"), "")
     node_id = _safe_str(
@@ -799,15 +907,17 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "ok": True,
         "service": "weall-node",
         "version": "v1",
-        "ts_ms": _now_ms(),
+        "protocol_time": protocol_time_height(state if isinstance(state, dict) else {}),
         "chain_id": chain_id or None,
         "node_id": node_id or None,
         "mode": _status_mode_label(ex, state),
         "height": _safe_int(state.get("height"), 0),
+        "finalized_height": _safe_int((state.get("finalized") or {}).get("height") if isinstance(state.get("finalized"), dict) else 0, 0),
         "tip": _safe_str(state.get("tip"), ""),
         "schema_version": _schema_version(ex, state if isinstance(state, dict) else {}),
         "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),
         "protocol_profile_hash": runtime_protocol_profile_hash(),
+        "crypto_profile": _crypto_profile_payload(state if isinstance(state, dict) else {}),
         "constitution": constitution,
         "constitutional_clock": constitutional_clock,
         "testnet_readiness": testnet_readiness,
@@ -830,10 +940,52 @@ def status(request: Request) -> dict[str, Any]:
     payload = shape["status_payload"]
     # Keep normal-user node compatibility fields on /v1/status so the frontend
     # can fail closed without relying on operator-only endpoints.
-    for key in ("schema_version", "tx_index_hash", "protocol_profile_hash", "constitution", "constitutional_clock", "testnet_readiness"):
+    for key in ("schema_version", "tx_index_hash", "protocol_profile_hash", "crypto_profile", "constitution", "constitutional_clock", "testnet_readiness"):
         if key in base:
             payload[key] = base[key]
     return payload
+
+
+@router.get("/status/launch-matrix")
+def status_launch_matrix(request: Request) -> dict[str, Any]:
+    """Return the read-only v1.5 launch-disabled capability matrix.
+
+    This is a public-readiness truth-boundary surface. It does not activate live
+    economics, public validators, helper production execution, automatic
+    upgrades, migrations, rollbacks, treasury spending, or emergency controls.
+    Runtime apply/admission paths remain authoritative for actual mutation.
+    """
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or {}
+    runtime = launch_matrix_from_state(state if isinstance(state, dict) else {})
+    canonical = launch_matrix_payload()
+    return {
+        "ok": True,
+        "schema": canonical["schema"],
+        "version": canonical["version"],
+        "phase": runtime["phase"],
+        "disabled_features": runtime["disabled_features"],
+        "feature_status": runtime["feature_status"],
+        "high_risk_features": canonical["high_risk_features"],
+        "phases": canonical["phases"],
+        "truth_boundary": canonical["truth_boundary"],
+        "protocol_time": protocol_time_height(state if isinstance(state, dict) else {}),
+    }
+
+
+@router.get("/status/testnet-capabilities")
+def status_testnet_capabilities(request: Request) -> dict[str, Any]:
+    """Return launch-matrix-bound controlled-testnet capability posture.
+
+    This public read model is a claim-control surface. It reports which
+    mechanisms have proof artifacts and which high-risk capabilities remain
+    blocked. It does not enable live economics, public validators, automatic
+    protocol upgrades, or production helper execution.
+    """
+    ex = getattr(request.app.state, "executor", None)
+    state = _try_read_state(ex) or {}
+    payload = build_testnet_capability_surface(state if isinstance(state, dict) else {})
+    return {"ok": True, **payload, "protocol_time": protocol_time_height(state if isinstance(state, dict) else {})}
 
 
 @router.get("/status/operator")
@@ -842,7 +994,7 @@ def status_operator(request: Request) -> dict[str, Any]:
     _env_bool("WEALL_ENABLE_PUBLIC_DEBUG", False)
 
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     validators = _active_validators(state)
     diag = _consensus_diagnostics(ex)
     helper_exec = _helper_execution_diagnostics(ex)
@@ -924,13 +1076,15 @@ def status_operator(request: Request) -> dict[str, Any]:
         "signing_allowed_by_consensus_state": bool(getattr(ex, "validator_signing_enabled", lambda: False)()),
         "signing_block_reason": _safe_str(getattr(ex, "_effective_signing_block_reason", lambda: "")(), ""),
     }
+    payload["operator"]["incident_timeline"] = _operator_incident_timeline(payload)
+    payload["operator"]["incident_timeline_policy"] = "derived_status_only_no_readiness_claim"
     return payload
 
 
 @router.get("/status/consensus")
 def status_consensus(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     validators = _active_validators(state)
     diag = _consensus_diagnostics(ex)
     helper_exec = _helper_execution_diagnostics(ex)
@@ -1000,7 +1154,7 @@ def status_consensus_forensics(request: Request) -> dict[str, Any]:
     helper_reputation = _helper_reputation_diagnostics(ex)
     transition_guardrails = _transition_guardrail_diagnostics(ex)
     startup_posture = _startup_posture_diagnostics(ex, request.app.state)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     return {
         "ok": True,
         "chain_id": _safe_str(getattr(ex, "chain_id", None), _safe_str(state.get("chain_id"), "")),
@@ -1067,7 +1221,7 @@ def status_attestations(request: Request) -> dict[str, Any]:
 
 def _chain_identity_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     finalized = state.get("finalized") if isinstance(state.get("finalized"), dict) else {}
 
@@ -1172,7 +1326,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
 
     ident = _chain_identity_payload(request)
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     mode = _safe_str(os.environ.get("WEALL_MODE") or ident.get("chain_manifest", {}).get("mode"), "prod")
     manifest = ident.get("chain_manifest") if isinstance(ident.get("chain_manifest"), dict) else {}
     constitution = ident.get("constitution") if isinstance(ident.get("constitution"), dict) else {}
@@ -1188,7 +1342,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
     return {
         "ok": bool(chain_id and tx_index_hash and protocol_profile_hash and not manifest_issues),
         "stage": "first_trusted_external_observer_rehearsal",
-        "claim": "Remote Genesis API compatibility/readiness surface only; signed onboarding still requires the external observer live gate and does not prove public multi-validator BFT, live economics, mainnet readiness, or production-grade private messaging.",
+        "claim": "Remote Genesis API compatibility/readiness surface only; signed onboarding still requires the external observer live gate and does not prove public multi-validator BFT, live economics, or mainnet readiness.",
         "compatibility": {
             "chain_id": chain_id,
             "height": _safe_int(ident.get("height"), 0),
@@ -1254,7 +1408,7 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
             "validator promotion",
             "public multi-validator BFT",
             "live economics or treasury spending",
-            "production-grade private messaging",
+            "protocol-native non-public social surfaces",
             "mainnet readiness",
         ],
         "mode": mode,
@@ -1322,7 +1476,7 @@ def chain_manifest(request: Request) -> dict[str, Any]:
 @router.get("/chain/head")
 def chain_head(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
-    state = _try_read_state(ex) or _try_executor_snapshot(ex) or {}
+    state = _try_read_state(ex) or {}
     return {
         "ok": True,
         "chain_id": _safe_str(state.get("chain_id"), ""),

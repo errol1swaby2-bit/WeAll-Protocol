@@ -1,0 +1,22 @@
+{
+  "artifact_digest": "544a700111be4a280c7ca465b4ac7d687fe07e8c59a9503eb16fd22a2318f433",
+  "external_evidence_required_before_launch": true,
+  "ok": true,
+  "public_observer_launch_ready": false,
+  "required_observations": [
+    "registry signature verified and signer pinned",
+    "seed API URLs discovered from signed registry",
+    "seed P2P URLs discovered from signed registry",
+    "active validators read from protocol state",
+    "verified fresh endpoint counts surfaced",
+    "unsigned validator endpoint hints do not become auto-dial targets"
+  ],
+  "runtime_discovery_proven": false,
+  "schema": "weall.v1_5.public_observer_auto_discovery_proof",
+  "source_gates_present": [
+    "tests/prod/test_public_observer_default_registry_and_placeholder_gate.py",
+    "tests/prod/test_public_observer_registry_auto_dial.py",
+    "tests/prod/test_public_validator_endpoint_discovery.py"
+  ],
+  "version": "2026-06-b629-public-observer-transcript-gate"
+}

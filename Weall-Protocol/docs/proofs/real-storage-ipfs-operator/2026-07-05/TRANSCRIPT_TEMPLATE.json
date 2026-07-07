@@ -1,0 +1,72 @@
+{
+  "schema": "weall.v1_5.storage_ipfs_operator_transcript",
+  "blocker": "AUD-618-P1-004",
+  "operator_ids": [
+    "<external-storage-operator-a>",
+    "<external-storage-operator-b>",
+    "<external-storage-operator-c>"
+  ],
+  "machine_ids": [
+    "<external-storage-machine-a>",
+    "<external-storage-machine-b>",
+    "<external-storage-machine-c>"
+  ],
+  "ipfs_peer_ids": [
+    "<12D3KooW-real-peer-a>",
+    "<12D3KooW-real-peer-b>",
+    "<12D3KooW-real-peer-c>"
+  ],
+  "daemon_versions": {
+    "<external-storage-machine-a>": "<kubo-version-output>",
+    "<external-storage-machine-b>": "<kubo-version-output>",
+    "<external-storage-machine-c>": "<kubo-version-output>"
+  },
+  "payload_sha256": "<sha256-of-original-payload>",
+  "cid": "<real-cid-from-ipfs-add>",
+  "replication_factor": 3,
+  "publish_proofs": {
+    "origin_machine": "<external-storage-machine-a>",
+    "origin_packet": "<path-to-origin-LOCAL_STORAGE_IPFS_EVIDENCE.json>",
+    "ipfs_add_output": "<path-to-api/ipfs_add.json>"
+  },
+  "pin_proofs": {
+    "<external-storage-machine-a>": "<path-to-api/ipfs_pin_ls.json>",
+    "<external-storage-machine-b>": "<path-to-api/ipfs_pin_ls.json>",
+    "<external-storage-machine-c>": "<path-to-api/ipfs_pin_ls.json>"
+  },
+  "retrieval_proofs": {
+    "<external-storage-machine-a>": "<retrieved-payload-sha256>",
+    "<external-storage-machine-b>": "<retrieved-payload-sha256>",
+    "<external-storage-machine-c>": "<retrieved-payload-sha256>"
+  },
+  "durability_window": {
+    "started_utc": "<timestamp>",
+    "ended_utc": "<timestamp>",
+    "minimum_minutes": 30
+  },
+  "origin_failure": true,
+  "retrieval_from_non_origin_machine": true,
+  "fresh_node_retrieval": true,
+  "wrong_cid_rejected": true,
+  "corrupt_content_rejected": true,
+  "revalidation_exercised": true,
+  "real_daemon_topology": true,
+  "external_attestation_attached": true,
+  "operator_attestation": "external_storage_operator_signed",
+  "operator_signatures": [
+    "<operator-a-signature-or-controlled-attestation-reference>",
+    "<operator-b-signature-or-controlled-attestation-reference>",
+    "<operator-c-signature-or-controlled-attestation-reference>"
+  ],
+  "claim_boundaries": {
+    "public_storage_provider_market": false,
+    "public_decentralized_media_durability": false,
+    "public_beta_ready": false,
+    "mainnet_ready": false,
+    "live_economics": false,
+    "automatic_protocol_upgrades": false,
+    "production_helper_execution": false,
+    "legal_compliance_ready": false
+  },
+  "transcript_digest": "<sha256-of-canonical-transcript-without-this-field>"
+}

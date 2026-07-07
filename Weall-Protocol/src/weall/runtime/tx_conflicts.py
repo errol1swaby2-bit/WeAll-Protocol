@@ -21,7 +21,6 @@ class TxFamily(str, Enum):
     DISPUTE = "DISPUTE"
     CASES = "CASES"
     MODERATION = "MODERATION"
-    MESSAGING = "MESSAGING"
     NETWORKING = "NETWORKING"
     NOTIFICATIONS = "NOTIFICATIONS"
     INDEXING = "INDEXING"
@@ -70,7 +69,6 @@ LANE_BY_FAMILY: dict[TxFamily, str] = {
     TxFamily.POH: "IDENTITY",
     TxFamily.CONTENT: "CONTENT",
     TxFamily.SOCIAL: "SOCIAL",
-    TxFamily.MESSAGING: "SOCIAL",
     TxFamily.NOTIFICATIONS: "SOCIAL",
     TxFamily.REPUTATION: "SOCIAL",
     TxFamily.GOVERNANCE: "GOVERNANCE",
@@ -193,9 +191,6 @@ def _comment_id(tx: Mapping[str, Any]) -> str:
 def _media_id(tx: Mapping[str, Any]) -> str:
     return _field(tx, "media_id", "cid") or _stable_tx_id(tx)
 
-
-def _thread_id(tx: Mapping[str, Any]) -> str:
-    return _field(tx, "thread_id", "conversation_id") or _stable_tx_id(tx)
 
 
 def _peer_id(tx: Mapping[str, Any]) -> str:
@@ -325,7 +320,18 @@ _register_many(
     BarrierClass.AUTHORITY_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["GOV_EXECUTE", "PROTOCOL_UPGRADE_DECLARE", "PROTOCOL_UPGRADE_ACTIVATE"], TxFamily.GOVERNANCE, BarrierClass.GLOBAL_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    [
+        "GOV_EXECUTE",
+        "PROTOCOL_UPGRADE_DECLARE",
+        "PROTOCOL_UPGRADE_ACTIVATE",
+        "CONSTITUTION_UPGRADE_DECLARE",
+        "CONSTITUTION_UPGRADE_ACTIVATE",
+    ],
+    TxFamily.GOVERNANCE,
+    BarrierClass.GLOBAL_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
 _register_many(
     [
@@ -333,6 +339,8 @@ _register_many(
         "ROLE_JUROR_ACTIVATE",
         "ROLE_JUROR_SUSPEND",
         "ROLE_JUROR_REINSTATE",
+        "REVIEWER_LANE_OPT_IN",
+        "REVIEWER_LANE_OPT_OUT",
         "ROLE_VALIDATOR_ACTIVATE",
         "ROLE_VALIDATOR_SUSPEND",
         "ROLE_NODE_OPERATOR_ENROLL",
@@ -340,6 +348,7 @@ _register_many(
         "ROLE_NODE_OPERATOR_SUSPEND",
         "NODE_OPERATOR_STORAGE_OPT_IN",
         "NODE_OPERATOR_VALIDATOR_OPT_IN",
+        "NODE_OPERATOR_HELPER_OPT_IN",
         "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
         "VALIDATOR_READINESS_VERIFY",
         "ROLE_EMISSARY_NOMINATE",
@@ -515,6 +524,7 @@ _register_many(
         "DISPUTE_EVIDENCE_BIND",
         "DISPUTE_JUROR_ACCEPT",
         "DISPUTE_JUROR_DECLINE",
+        "DISPUTE_JUROR_WITHDRAW",
         "DISPUTE_VOTE_SUBMIT",
         "DISPUTE_APPEAL",
         "DISPUTE_FINAL_RECEIPT",
@@ -523,11 +533,10 @@ _register_many(
     BarrierClass.SUBJECT_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["DISPUTE_STAGE_SET", "DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_ATTENDANCE", "DISPUTE_RESOLVE"], TxFamily.DISPUTE, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
+_register_many(["DISPUTE_STAGE_SET", "DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_TIMEOUT", "DISPUTE_JUROR_ATTENDANCE", "DISPUTE_RESOLVE"], TxFamily.DISPUTE, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
 
 _register_many(["CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE", "CASE_OUTCOME_RECEIPT"], TxFamily.CASES, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["MOD_ACTION_RECEIPT", "FLAG_ESCALATION_RECEIPT"], TxFamily.MODERATION, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["DIRECT_MESSAGE_SEND", "DIRECT_MESSAGE_REDACT"], TxFamily.MESSAGING, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["PEER_ADVERTISE", "PEER_REQUEST_CONNECT", "PEER_RENDEZVOUS_TICKET_CREATE", "PEER_RENDEZVOUS_TICKET_REVOKE"], TxFamily.NETWORKING, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
 _register_many(["PEER_BAN_SET"], TxFamily.NETWORKING, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
 _register_many(["PEER_REPUTATION_SIGNAL"], TxFamily.NETWORKING, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
@@ -748,12 +757,6 @@ def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, 
         subject.append(_key("moderation:action", action_id))
         writes.append(_key("moderation:action", action_id))
         authority.append("authority:moderation")
-
-    elif rule.family == TxFamily.MESSAGING:
-        thread_id = _thread_id(tx)
-        message_id = _field(tx, "message_id") or tx_id
-        subject.append(_key("messaging:thread", thread_id))
-        writes.extend([_key("messaging:thread", thread_id), _key("messaging:message", message_id)])
 
     elif rule.family == TxFamily.NETWORKING:
         peer_id = _peer_id(tx)

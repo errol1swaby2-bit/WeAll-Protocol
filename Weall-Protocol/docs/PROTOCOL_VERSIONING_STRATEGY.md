@@ -1,5 +1,22 @@
 # Protocol State and Versioning Strategy
 
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
+
+This document defines versioning and activation boundaries. It does not claim public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness.
+
+## Current status
+
+| Surface | Status | Versioning meaning |
+|---|---:|---|
+| Controlled internal/public-observer rehearsal candidate | GO | Versioned artifacts and docs support the next bounded rehearsal candidate. |
+| Public beta readiness | NO-GO | `public_beta_ready=false` remains authoritative. |
+| Public mainnet readiness | NO-GO | Mainnet hardening remains future work. |
+| Automatic protocol upgrades | NO-GO | Upgrade records are public metadata only; automatic software apply is disabled. |
+| Executable migrations/rollbacks | NO-GO | Migration and rollback execution are disabled. |
+| Live economics | NO-GO | Economics activation is not enabled by upgrade records. |
+
+Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+
 ## Principles
 1. Consensus validity must never depend on undocumented local environment flags.
 2. Consensus messages must carry enough metadata to be self-verifying.
@@ -43,7 +60,7 @@ Current audited production profile:
 
 - protocol version: `2026.03-prod.6`
 - protocol profile hash: `a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6`
-- transaction canon: `231 tx types, version 1.25.0`
+- transaction canon: `236 tx types, version 1.25.0`
 
 The production profile includes tx payload limits. Public validators must not
 change these through local environment drift; mismatched values are startup or
@@ -59,13 +76,14 @@ hash compatibility before signing.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **231 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
-- No required email, no required Cloudflare, no required SMTP, and no required DNS are part of PoH authority.
+- No required email, no required SMTP, no required DNS, and no required named hosting provider are part of PoH authority.
 - Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
 - Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
 - Public API redaction is required for public snapshots and unauthenticated account reads.
 - Release safety requires tx canon artifact verification, secret guard, and release tree verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
+Current tx canon checkpoint: 236 tx types, version 1.25.0.

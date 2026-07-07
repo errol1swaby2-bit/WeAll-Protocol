@@ -16,17 +16,27 @@ const required = [
   "incompatible:tx_index_hash_mismatch",
   "incompatible:protocol_profile_hash_mismatch",
   "expectedChainId",
+  "publicTestnetBaselineErrors",
+  "public_testnet_config_missing:pinned_commitments_required",
+  "public_testnet_config_missing:genesis_hash",
+  "incompatible:genesis_hash_mismatch",
+  "expectedGenesisHash",
+  "genesisHash",
+  "config.publicTestnet",
   "expectedTxIndexHash",
   "expectedProtocolProfileHash",
   "compatibilitySourceBaseUrl",
   "buildConfiguredCompatibilityBaseline",
   "loadExpectedCompatibilityBaseline",
+  "loadBackendSeedCompatibilityBaseline",
+  "loadBackendSeedNodes",
+  "/v1/nodes/seeds",
   "baselineFromPayload",
   "source: \"build\"",
   "source: \"seed-manifest\"",
   "source: \"current-node\"",
   "const explicitBaseline = await loadExpectedCompatibilityBaseline();",
-  "const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null ? undefined : explicitBaseline);",
+  "const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null && !config.publicTestnet ? undefined : explicitBaseline);",
 ];
 
 for (const token of required) {
@@ -37,7 +47,7 @@ const expectedOrdering = [
   "const currentBase = displayBase(getApiBaseUrl());",
   "const explicitBaseline = await loadExpectedCompatibilityBaseline();",
   "const rawProbes = await Promise.all",
-  "const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null ? undefined : explicitBaseline);",
+  "const probes = applyCompatibilityBaseline(rawProbes, explicitBaseline === null && !config.publicTestnet ? undefined : explicitBaseline);",
   "return probes.sort",
 ];
 

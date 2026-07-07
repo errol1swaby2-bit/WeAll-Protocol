@@ -1,0 +1,84 @@
+{
+  "route_count": 11,
+  "routes": [
+    {
+      "auth": "account_session_required",
+      "method": "GET",
+      "path": "/v1/reputation/me",
+      "purpose": "owner_matrix_summary",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "method": "GET",
+      "path": "/v1/reputation/{actor_id}",
+      "purpose": "public_matrix_summary",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "method": "GET",
+      "path": "/v1/reputation/{actor_id}/events",
+      "purpose": "public_or_owner_events",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "method": "GET",
+      "path": "/v1/reputation/{actor_id}/matrix",
+      "purpose": "public_or_owner_matrix",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "method": "GET",
+      "path": "/v1/reputation/{actor_id}/eligibility",
+      "purpose": "role_eligibility_reasons",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "public_read_static_registry",
+      "method": "GET",
+      "path": "/v1/reputation/event-codes",
+      "purpose": "event_registry",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "GET",
+      "path": "/v1/disputes/eligible",
+      "purpose": "eligible_dispute_assignments",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "GET",
+      "path": "/v1/disputes/current",
+      "purpose": "current_dispute_assignments",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "POST",
+      "path": "/v1/disputes/{id}/accept",
+      "purpose": "dispute_accept_tx_template",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "POST",
+      "path": "/v1/disputes/{id}/vote",
+      "purpose": "dispute_vote_tx_template",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    },
+    {
+      "auth": "account_session_required",
+      "method": "POST",
+      "path": "/v1/disputes/{id}/withdraw",
+      "purpose": "dispute_withdraw_tx_template",
+      "truth_boundary": "backend canonical state; writes require signed tx inclusion"
+    }
+  ],
+  "schema": "weall.reputation_api_contract_map.v1_5",
+  "version": "2026-06-v1.5-reputation-matrix"
+}

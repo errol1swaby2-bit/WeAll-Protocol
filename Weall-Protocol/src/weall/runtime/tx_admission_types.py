@@ -26,6 +26,9 @@ class TxEnvelope(BaseModel):
     nonce: int = 0
     payload: Json = Field(default_factory=dict)
     sig: str = ""
+    sig_profile: str = ""
+    signature: Json = Field(default_factory=dict)
+    network_id: str = ""
     parent: str | None = None
     system: bool = False
     chain_id: str = ""
@@ -49,7 +52,10 @@ class TxEnvelope(BaseModel):
                 signer=str(v.get("signer") or ""),
                 nonce=int(v.get("nonce") or 0),
                 payload=payload if isinstance(payload, dict) else {"value": payload},
-                sig=str(v.get("sig") or ""),
+                sig=str((v.get("signature") if isinstance(v.get("signature"), dict) else {}).get("sig") or v.get("sig") or ""),
+                sig_profile=str(v.get("sig_profile") or ""),
+                signature=v.get("signature") if isinstance(v.get("signature"), dict) else {},
+                network_id=str(v.get("network_id") or ""),
                 parent=v.get("parent"),
                 system=bool(v.get("system") or False),
                 chain_id=str(v.get("chain_id") or ""),
@@ -68,6 +74,9 @@ class TxEnvelope(BaseModel):
             "nonce": self.nonce,
             "payload": self.payload or {},
             "sig": self.sig,
+            **({"sig_profile": self.sig_profile} if self.sig_profile else {}),
+            **({"signature": self.signature} if self.signature else {}),
+            **({"network_id": self.network_id} if self.network_id else {}),
             **({"parent": self.parent} if self.parent is not None else {}),
             **({"system": True} if self.system else {}),
             **({"chain_id": self.chain_id} if self.chain_id else {}),

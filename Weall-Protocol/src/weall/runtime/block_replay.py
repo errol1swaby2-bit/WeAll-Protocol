@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 """Follower-side received block replay and commitment verification delegate.
 
 This module is intentionally a structural extraction from ``weall.runtime.executor``.
@@ -30,16 +32,20 @@ from weall.runtime.executor import (
     compute_block_id,
     compute_helper_execution_root,
     compute_receipts_root,
+    compute_recent_block_anchor,
     compute_state_root,
     copy,
     effective_bft_enabled,
     ensure_block_hash,
+    recent_block_ids_from_state,
+    recent_block_anchor_required_for_height,
     runtime_mode,
     runtime_vrf_required,
     validate_system_tx_queue_binding,
     verify_vrf_record,
 )
 
+from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
@@ -48,6 +54,7 @@ from weall.runtime.scheduler_pipeline import (
     run_replay_post_schedulers,
     run_replay_pre_schedulers,
 )
+from weall.runtime.system_tx_engine import build_system_queue_lookup
 
 
 
@@ -132,15 +139,21 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     if ts_ms <= 0:
         return ExecutorMeta(ok=False, error="bad_block:ts", height=0, block_id="")
     chain_floor_ms = self.chain_time_floor_ms()
-    successor_ts_ms = max(1, int(chain_floor_ms) + 1)
-    if ts_ms < successor_ts_ms:
-        return ExecutorMeta(
-            ok=False, error="bad_block:ts_before_chain_floor", height=0, block_id=""
-        )
-    if ts_ms > int(chain_floor_ms) + int(MAX_BLOCK_TIME_ADVANCE_MS):
-        return ExecutorMeta(
-            ok=False, error="bad_block:ts_beyond_chain_time_window", height=0, block_id=""
-        )
+    time_verdict = validate_block_timestamp(
+        state=self.state,
+        height=int(height),
+        block_ts_ms=int(ts_ms),
+        chain_floor_ms=int(chain_floor_ms),
+        max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
+        mode=str(os.environ.get("WEALL_MODE", "") or ""),
+    )
+    if not bool(time_verdict.ok):
+        code = str(time_verdict.code or "ts")
+        if code == "not_constitutional_slot":
+            return ExecutorMeta(ok=False, error="bad_block:ts_not_constitutional_slot", height=0, block_id="")
+        if code == "before_constitutional_slot":
+            return ExecutorMeta(ok=False, error="bad_block:ts_before_constitutional_slot", height=0, block_id="")
+        return ExecutorMeta(ok=False, error=f"bad_block:{code}", height=0, block_id="")
 
     txs = block2.get("txs")
     if not isinstance(txs, list):
@@ -148,25 +161,55 @@ def apply_block(self, block: Json) -> ExecutorMeta:
 
     # Replay exactly the tx list the leader committed to.
     working: Json = copy.deepcopy(self.state)
+    clock_policy = runtime_block_clock_policy(
+        state=self.state, mode=str(os.environ.get("WEALL_MODE", "") or "")
+    )
+    if bool(clock_policy.enabled):
+        from weall.runtime.constitutional_clock import commit_clock_policy_to_state
+
+        commit_clock_policy_to_state(working, clock_policy)
 
     # IMPORTANT: match deterministic scheduler/elector side-effects that occur
     # during block production. These may initialize subtrees and/or enqueue
     # system queue items (and confirm emission) which affect state_root.
     next_height = int(height)
 
+    queue_lookup_cache: tuple[int, int, dict[str, Json]] | None = None
+
+    def _invalidate_queue_lookup() -> None:
+        nonlocal queue_lookup_cache
+        queue_lookup_cache = None
+
+    def _queue_lookup() -> dict[str, Json]:
+        nonlocal queue_lookup_cache
+        root = working.get("system_queue")
+        marker = (id(root), len(root) if isinstance(root, list) else -1)
+        if queue_lookup_cache is None or queue_lookup_cache[0] != marker[0] or queue_lookup_cache[1] != marker[1]:
+            queue_lookup_cache = (marker[0], marker[1], build_system_queue_lookup(working))
+        return queue_lookup_cache[2]
+
     def _run_poh_schedulers() -> None:
         run_replay_pre_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
 
     def _run_post_schedulers() -> None:
         run_replay_post_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
 
     def _run_system_emitter_side_effects(phase: str) -> None:
         # We discard envelopes; the block already contains the tx list.
         _ = emit_system_txs(
             working, self.tx_index, next_height=next_height, phase=str(phase), proposer="", scheduler_set=scheduler_set
         )
+        _invalidate_queue_lookup()
 
     def _queue_item_phase(queue_id: str) -> str:
+        qid = str(queue_id or "").strip()
+        if not qid:
+            return ""
+        obj = _queue_lookup().get(qid)
+        if isinstance(obj, dict):
+            return str(obj.get("phase") or "").strip().lower()
         return queue_item_phase(working, queue_id)
 
     # Production path: pre schedulers + pre emitter side-effects.
@@ -195,11 +238,13 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     invalid_ids: list[str] = []
     receipts: list[Json] = []
     env_objs: list[TxEnvelope] = []
+    env_parse_ok: list[bool] = []
     tx_ids: list[str] = []
 
     for env in txs:
         if not isinstance(env, dict):
             env_objs.append(TxEnvelope.from_json({}))
+            env_parse_ok.append(False)
             tx_ids.append("")
             continue
 
@@ -207,8 +252,10 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         tx_ids.append(tx_id)
         try:
             env_objs.append(TxEnvelope.from_json(env))
+            env_parse_ok.append(True)
         except Exception:
             env_objs.append(TxEnvelope.from_json({}))
+            env_parse_ok.append(False)
 
     # Inclusion gates (fail-closed)
     ledger_for_block = LedgerView.from_ledger(working)
@@ -239,7 +286,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     post_ran = False
     blocked_signers_after_apply_reject: set[str] = set()
 
-    for env, env_obj, tx_id, rej in zip(txs, env_objs, tx_ids, per_tx, strict=False):
+    for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
         if not post_ran and bool(getattr(env_obj, "system", False)):
             try:
                 payload = env.get("payload") if isinstance(env, dict) else None
@@ -342,6 +389,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 env_obj,
                 next_height=next_height,
                 phase=phase_for_binding or "post",
+                queue_objects_by_id=_queue_lookup(),
             )
             if not ok_binding:
                 return ExecutorMeta(
@@ -363,7 +411,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(working, env_obj if parse_ok else env, consume_nonce_on_fail=False)
                 applied_ok = meta is not None
             except ApplyError as e:
                 applied_ok = False
@@ -551,6 +599,14 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         if runtime_vrf_required() and not self._pytest_local_missing_vrf_allowed():
             return ExecutorMeta(ok=False, error="bad_block:vrf:missing", height=0, block_id="")
 
+    helper_execution_for_root = block2.get("helper_execution")
+    if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
+        helper_rep = helper_execution_for_root.get("helper_reputation")
+        if isinstance(helper_rep, dict):
+            rep_state = helper_rep.get("state")
+            if isinstance(rep_state, dict):
+                working["helper_reputation"] = dict(rep_state)
+
     state_root = compute_state_root(working)
     have_sr = str(header.get("state_root") or "").strip()
     if not have_sr:
@@ -562,7 +618,38 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             ok=False, error="bad_block:state_root_mismatch", height=0, block_id=""
         )
 
-    helper_execution_for_root = block2.get("helper_execution")
+    recent_anchor_required = recent_block_anchor_required_for_height(
+        state=self.state,
+        height=int(height),
+    )
+    expected_recent_anchor = compute_recent_block_anchor(
+        block_ids=recent_block_ids_from_state(state=self.state)
+    )
+    have_recent_anchor = str(header.get("recent_block_anchor") or "").strip()
+    if recent_anchor_required and not have_recent_anchor:
+        return ExecutorMeta(
+            ok=False, error="bad_block:missing_recent_block_anchor", height=0, block_id=""
+        )
+    if have_recent_anchor and have_recent_anchor != expected_recent_anchor:
+        return ExecutorMeta(
+            ok=False, error="bad_block:recent_block_anchor_mismatch", height=0, block_id=""
+        )
+
+    if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
+        from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
+
+        advertised_plan_id = str(helper_execution_for_root.get("plan_id") or "").strip()
+        ok_helper_meta, helper_reason = verify_block_helper_plan_metadata(
+            helper_execution=helper_execution_for_root,
+            expected_plan_id=advertised_plan_id,
+        )
+        if not ok_helper_meta:
+            return ExecutorMeta(
+                ok=False,
+                error=f"bad_block:helper_execution_metadata_invalid:{helper_reason}",
+                height=0,
+                block_id="",
+            )
     header_helper_root = str(header.get("helper_execution_root") or "").strip()
     if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
         computed_helper_root = compute_helper_execution_root(helper_execution=helper_execution_for_root)

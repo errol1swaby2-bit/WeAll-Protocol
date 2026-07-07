@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _repo_root() -> Path:
@@ -16,7 +16,7 @@ def test_genesis_mode_uses_validator_identity_and_enables_operator_bundle(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     acct = "@genesis-operator"
-    pub, _sk = deterministic_ed25519_keypair(label=acct)
+    pub, _sk = deterministic_mldsa_keypair(label=acct)
 
     monkeypatch.setenv("WEALL_GENESIS_MODE", "1")
     monkeypatch.setenv("WEALL_NODE_ID", acct)

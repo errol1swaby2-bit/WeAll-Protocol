@@ -28,6 +28,7 @@ from weall.runtime.executor import (
     compute_block_id,
     compute_helper_execution_root,
     compute_receipts_root,
+    compute_recent_block_anchor,
     compute_state_root,
     compute_tx_id,
     constitutional_procedure_height,
@@ -37,6 +38,8 @@ from weall.runtime.executor import (
     is_too_early,
     load_chain_manifest,
     make_block_header,
+    recent_block_ids_from_state,
+    recent_block_anchor_required_for_height,
     make_vrf_record,
     os,
     policy_from_manifest,
@@ -45,6 +48,8 @@ from weall.runtime.executor import (
     validate_system_tx_queue_binding,
 )
 
+from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
+from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
@@ -53,6 +58,7 @@ from weall.runtime.scheduler_pipeline import (
     run_leader_pre_schedulers,
     queue_item_phase,
 )
+from weall.runtime.system_tx_engine import build_system_queue_lookup
 
 
 
@@ -148,35 +154,44 @@ def build_block_candidate(
     chain_floor_ms = self.chain_time_floor_ms()
     successor_ts_ms = max(1, int(chain_floor_ms) + 1)
 
-    try:
-        _clock_manifest = load_chain_manifest(required=False, mode=str(os.environ.get("WEALL_MODE", "") or ""))
-    except Exception:
-        _clock_manifest = None
-    clock_policy = policy_from_manifest(_clock_manifest)
+    clock_policy = runtime_block_clock_policy(
+        state=self.state, mode=str(os.environ.get("WEALL_MODE", "") or "")
+    )
     next_height_for_clock = int(height) + 1
     if bool(clock_policy.enabled):
-        expected_ts_ms = expected_block_time_ms(clock_policy, height=next_height_for_clock)
-        if force_ts_ms is not None and int(force_ts_ms) != int(expected_ts_ms):
-            return None, None, [], [], "invalid_block_ts:not_constitutional_slot"
-        # The wall clock may only decide whether a producer is too early; it
-        # never decides procedure eligibility.  genesis_time_ms=0 is kept as
-        # a legacy/dev fixture value and intentionally disables real-time
-        # not-before gating until a launch manifest pins a real genesis time.
-        if int(getattr(clock_policy, "genesis_time_ms", 0) or 0) > 0 and is_too_early(
-            clock_policy, height=next_height_for_clock
-        ):
-            return None, None, [], [], "invalid_block_ts:before_constitutional_slot"
-        ts_ms = int(expected_ts_ms)
+        ts_ms = int(expected_block_time_ms(clock_policy, height=next_height_for_clock))
+        candidate_ts_ms = int(force_ts_ms) if force_ts_ms is not None else int(ts_ms)
+        time_verdict = validate_block_timestamp(
+            state=self.state,
+            height=next_height_for_clock,
+            block_ts_ms=candidate_ts_ms,
+            chain_floor_ms=int(chain_floor_ms),
+            max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
+            mode=str(os.environ.get("WEALL_MODE", "") or ""),
+            enforce_not_before=True,
+        )
+        if not bool(time_verdict.ok):
+            return None, None, [], [], f"invalid_block_ts:{time_verdict.code}"
     elif force_ts_ms is not None:
         ts_ms = int(force_ts_ms)
     else:
         ts_ms = successor_ts_ms
 
     if not bool(clock_policy.enabled):
-        if ts_ms < successor_ts_ms:
-            return None, None, [], [], "invalid_block_ts:before_chain_floor"
-        if ts_ms > int(chain_floor_ms) + int(MAX_BLOCK_TIME_ADVANCE_MS):
-            return None, None, [], [], "invalid_block_ts:beyond_chain_time_window"
+        time_verdict = validate_block_timestamp(
+            state=self.state,
+            height=next_height_for_clock,
+            block_ts_ms=int(ts_ms),
+            chain_floor_ms=int(chain_floor_ms),
+            max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
+            mode=str(os.environ.get("WEALL_MODE", "") or ""),
+        )
+        if not bool(time_verdict.ok):
+            if str(time_verdict.code) == "ts_before_chain_floor":
+                return None, None, [], [], "invalid_block_ts:before_chain_floor"
+            if str(time_verdict.code) == "ts_beyond_chain_time_window":
+                return None, None, [], [], "invalid_block_ts:beyond_chain_time_window"
+            return None, None, [], [], f"invalid_block_ts:{time_verdict.code}"
 
     runtime_selection_policy = _normalize_mempool_selection_policy(
         str(getattr(self._mempool, "selection_policy", lambda: "canonical")())
@@ -187,9 +202,15 @@ def build_block_candidate(
     )
     fetch_for_block = getattr(self._mempool, "fetch_for_block", None)
     if callable(fetch_for_block):
-        txs = list(fetch_for_block(limit=int(max_txs), policy=pinned_selection_policy))
+        txs = list(
+            fetch_for_block(
+                limit=min(int(max_txs), int(DEFAULT_MAX_BLOCK_TXS)),
+                policy=pinned_selection_policy,
+                candidate_height=int(next_height_for_clock),
+            )
+        )
     else:
-        txs = self._mempool.peek(limit=int(max_txs))
+        txs = self._mempool.peek(limit=min(int(max_txs), int(DEFAULT_MAX_BLOCK_TXS)))
     runtime_helper_execution_profile = self._requested_helper_execution_profile()
     pinned_helper_execution_profile = _pinned_helper_execution_profile(
         self.state,
@@ -217,6 +238,30 @@ def build_block_candidate(
     receipts: list[Json] = []
 
     next_height = int(height) + 1
+    final_block_tx_cap = int(DEFAULT_MAX_BLOCK_TXS)
+
+    queue_lookup_cache: tuple[int, int, dict[str, Json]] | None = None
+
+    def _invalidate_queue_lookup() -> None:
+        nonlocal queue_lookup_cache
+        queue_lookup_cache = None
+
+    def _queue_lookup() -> dict[str, Json]:
+        nonlocal queue_lookup_cache
+        root = working.get("system_queue")
+        marker = (id(root), len(root) if isinstance(root, list) else -1)
+        if queue_lookup_cache is None or queue_lookup_cache[0] != marker[0] or queue_lookup_cache[1] != marker[1]:
+            queue_lookup_cache = (marker[0], marker[1], build_system_queue_lookup(working))
+        return queue_lookup_cache[2]
+
+    def _queue_item_phase(queue_id: str) -> str:
+        qid = str(queue_id or "").strip()
+        if not qid:
+            return ""
+        obj = _queue_lookup().get(qid)
+        if isinstance(obj, dict):
+            return str(obj.get("phase") or "").strip().lower()
+        return queue_item_phase(working, queue_id)
 
     def _apply_system_env(env: TxEnvelope) -> None:
         try:
@@ -250,6 +295,7 @@ def build_block_candidate(
     # same way follower-side replay does.
     try:
         run_leader_pre_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], [], f"poh_schedule_failed:{type(exc).__name__}"
@@ -258,6 +304,7 @@ def build_block_candidate(
     # must not be swallowed during local proposal construction in production.
     try:
         sys_pre = emit_system_txs(working, self.tx_index, next_height=next_height, phase="pre", scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
         for env in sys_pre:
             _apply_system_env(env)
     except Exception as exc:
@@ -266,11 +313,13 @@ def build_block_candidate(
 
     # Parse envelopes
     env_objs: list[TxEnvelope] = []
+    env_parse_ok: list[bool] = []
     tx_ids: list[str] = []
 
     for env in txs:
         if not isinstance(env, dict):
             env_objs.append(TxEnvelope.from_json({}))
+            env_parse_ok.append(False)
             tx_ids.append("")
             continue
 
@@ -279,8 +328,10 @@ def build_block_candidate(
 
         try:
             env_objs.append(TxEnvelope.from_json(env))
+            env_parse_ok.append(True)
         except Exception:
             env_objs.append(TxEnvelope.from_json({}))
+            env_parse_ok.append(False)
 
     # Block-level + per-tx admission for inclusion
     #
@@ -298,6 +349,7 @@ def build_block_candidate(
         env_objs,
         ledger_for_block,
         self.tx_index,
+        max_block_txs=int(DEFAULT_MAX_BLOCK_TXS),
         verify_signatures=verify_candidate_signatures,
     )
     if (not ok) and block_reject is not None:
@@ -310,7 +362,9 @@ def build_block_candidate(
     # deterministically within this block.
     blocked_signers_after_apply_reject: set[str] = set()
 
-    for env, env_obj, tx_id, rej in zip(txs, env_objs, tx_ids, per_tx, strict=False):
+    for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
+        if len(applied_envs) >= final_block_tx_cap:
+            break
         if not tx_id:
             invalid_ids.append(tx_id)
             continue
@@ -322,13 +376,14 @@ def build_block_candidate(
                 if isinstance(payload_for_phase, dict)
                 else ""
             )
-            phase_for_binding = queue_item_phase(working, qid_for_phase) or "post"
+            phase_for_binding = _queue_item_phase(qid_for_phase) or "post"
             ok_binding, why_binding = validate_system_tx_queue_binding(
                 working,
                 self.tx_index,
                 env_obj,
                 next_height=next_height,
                 phase=phase_for_binding,
+                queue_objects_by_id=_queue_lookup(),
             )
             if not ok_binding:
                 return (
@@ -358,7 +413,7 @@ def build_block_candidate(
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(working, env_obj if parse_ok else env, consume_nonce_on_fail=False)
                 applied_ok = meta is not None
             except ApplyError as e:
                 applied_ok = False
@@ -399,6 +454,7 @@ def build_block_candidate(
     # side effects are consensus-adjacent and must fail closed.
     try:
         run_leader_post_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], invalid_ids, f"poh_schedule_failed:{type(exc).__name__}"
@@ -406,6 +462,7 @@ def build_block_candidate(
     # Phase: system emitter post. Same fail-closed rule in production.
     try:
         sys_post = emit_system_txs(working, self.tx_index, next_height=next_height, phase="post", scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
         for env in sys_post:
             _apply_system_env(env)
     except Exception as exc:
@@ -426,6 +483,7 @@ def build_block_candidate(
     # when replaying later blocks from the durable committed state.
     try:
         prune_emitted(working, scheduler_set=scheduler_set)
+        _invalidate_queue_lookup()
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], invalid_ids, f"system_queue_prune_failed:{type(exc).__name__}"
@@ -449,6 +507,9 @@ def build_block_candidate(
     meta_root_working["helper_execution_profile_hash"] = _helper_execution_profile_hash(
         pinned_helper_execution_profile
     )
+
+    if len(applied_envs) > final_block_tx_cap:
+        return None, None, [], invalid_ids, "block_reject:too_large:block_txs_exceeds_limit"
 
     if not applied_envs and not bool(allow_empty):
         return None, None, [], invalid_ids, "no_applicable"
@@ -556,9 +617,23 @@ def build_block_candidate(
         if isinstance(helper_execution, dict) and helper_execution
         else ""
     )
+    if isinstance(helper_execution, dict) and helper_execution:
+        helper_rep = helper_execution.get("helper_reputation")
+        if isinstance(helper_rep, dict):
+            rep_state = helper_rep.get("state")
+            if isinstance(rep_state, dict):
+                # Helper reputation influences future helper assignment/quarantine,
+                # so it must be committed state, not only stripped meta.
+                working["helper_reputation"] = dict(rep_state)
 
     # Production commitment to post-apply state.
     state_root = compute_state_root(working)
+
+    recent_block_anchor = (
+        compute_recent_block_anchor(block_ids=recent_block_ids_from_state(state=self.state))
+        if recent_block_anchor_required_for_height(state=self.state, height=int(new_height))
+        else ""
+    )
 
     header = make_block_header(
         chain_id=self.chain_id,
@@ -570,6 +645,7 @@ def build_block_candidate(
         state_root=state_root,
         helper_execution_root=helper_execution_root or None,
         vrf=vrf,
+        recent_block_anchor=recent_block_anchor,
     )
     block: Json = {
         "block_id": block_id,

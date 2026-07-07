@@ -1,0 +1,1940 @@
+{
+  "by_domain": {
+    "api": 102,
+    "launch_readiness": 32,
+    "runtime": 7,
+    "runtime_apply": 69
+  },
+  "codes": [
+    {
+      "code": "CLASSICAL_SIGNATURE_PROFILE_REMOVED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_API_UNREACHABLE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_DIRECT_P2P_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_ENDPOINT_PLACEHOLDER",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_P2P_UNREACHABLE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_REGISTRY_SIGNATURE_INVALID",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_REGISTRY_SIGNER_UNPINNED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_RELAY_ONLY_NOT_READY",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_CHAIN_ID",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_GENESIS_HASH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_NETWORK_ID",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_PROFILE_HASH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "GENESIS_TESTNET_WRONG_TX_INDEX_HASH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "MLDSA_VERIFIER_UNAVAILABLE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "NON_PUBLIC_GROUP_UNSUPPORTED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OBSERVER_BOOT_CHAIN_ID_MISMATCH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OBSERVER_BOOT_GENESIS_HASH_MISMATCH",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OBSERVER_BOOT_NO_DIRECT_P2P_SEED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OBSERVER_BOOT_NO_VALID_REGISTRY_SOURCE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "PQ_SEED_REGISTRY_RESIGN_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
+      "source": "src/weall/api/routes_public_parts/accounts.py",
+      "source_lineno": 500
+    },
+    {
+      "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "Group read visibility must be public.",
+      "source": "src/weall/api/routes_public_parts/groups.py",
+      "source_lineno": 588
+    },
+    {
+      "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
+      "domain": "runtime_apply",
+      "family": "ContentApplyError",
+      "http_status": null,
+      "sample_reason": "protocol_read_visibility_must_be_public",
+      "source": "src/weall/runtime/apply/content.py",
+      "source_lineno": 277
+    },
+    {
+      "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
+      "domain": "api",
+      "family": "ApiError.bad_gateway",
+      "http_status": 502,
+      "sample_reason": "public observer has no verified tx upstream for required propagation",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1677
+    },
+    {
+      "code": "SIGNATURE_PROFILE_MISSING",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "SIGNATURE_PROFILE_NOT_ALLOWED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "SIGNATURE_PROFILE_UNKNOWN",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "SIGNATURE_PROFILE_VERIFIER_UNAVAILABLE",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_OPERATOR_OPT_IN_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_POH_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_PROTOCOL_STATE_BLOCKED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_THRESHOLD_NOT_MET",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_TIER2_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "VALIDATOR_PROMOTION_VALIDATION_OPT_IN_REQUIRED",
+      "domain": "launch_readiness",
+      "family": "LaunchReadiness",
+      "http_status": null,
+      "sample_reason": "stable public genesis launch readiness failure code",
+      "source": "scripts/gen_failure_code_registry_v1_5.py",
+      "source_lineno": 0
+    },
+    {
+      "code": "account_not_found",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "account does not exist",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 269
+    },
+    {
+      "code": "account_required",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 169
+    },
+    {
+      "code": "account_required",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "account is required",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 235
+    },
+    {
+      "code": "already_exists",
+      "domain": "runtime_apply",
+      "family": "GroupsApplyError",
+      "http_status": null,
+      "sample_reason": "group_exists",
+      "source": "src/weall/runtime/apply/groups.py",
+      "source_lineno": 467
+    },
+    {
+      "code": "bad_payload",
+      "domain": "runtime_apply",
+      "family": "GroupsApplyError",
+      "http_status": null,
+      "sample_reason": "threshold_exceeds_signers",
+      "source": "src/weall/runtime/apply/groups.py",
+      "source_lineno": 744
+    },
+    {
+      "code": "bad_payload",
+      "domain": "runtime_apply",
+      "family": "RolesApplyError",
+      "http_status": null,
+      "sample_reason": "threshold_exceeds_signers",
+      "source": "src/weall/runtime/apply/roles.py",
+      "source_lineno": 1629
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "missing account_id",
+      "source": "src/weall/api/routes_public_parts/accounts.py",
+      "source_lineno": 254
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "invalid JSON body",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 81
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "Body must be a tx envelope object",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 67
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "missing group_id",
+      "source": "src/weall/api/routes_public_parts/groups.py",
+      "source_lineno": 528
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "Body must be a tx envelope object",
+      "source": "src/weall/api/routes_public_parts/mempool.py",
+      "source_lineno": 98
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "invalid relay fetch body",
+      "source": "src/weall/api/routes_public_parts/net_relay.py",
+      "source_lineno": 202
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "missing account",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 520
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "invalid JSON body",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 204
+    },
+    {
+      "code": "bad_request",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "missing tx_id",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1241
+    },
+    {
+      "code": "bad_sig",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "signature verification failed",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 113
+    },
+    {
+      "code": "bad_sig",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "signature verification failed",
+      "source": "src/weall/api/routes_public_parts/mempool.py",
+      "source_lineno": 135
+    },
+    {
+      "code": "bad_sig",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "session login signature verification failed",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 290
+    },
+    {
+      "code": "bad_sig",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "signature verification failed",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1651
+    },
+    {
+      "code": "banned",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "account is banned",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 270
+    },
+    {
+      "code": "chain_id_mismatch",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "attestation chain_id does not match this node",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 39
+    },
+    {
+      "code": "chain_id_mismatch",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "tx chain_id does not match this node",
+      "source": "src/weall/api/routes_public_parts/mempool.py",
+      "source_lineno": 67
+    },
+    {
+      "code": "chain_id_mismatch",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "tx chain_id does not match this node",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1396
+    },
+    {
+      "code": "conflict",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "proposal_already_exists",
+      "source": "src/weall/runtime/apply/governance.py",
+      "source_lineno": 927
+    },
+    {
+      "code": "conflict",
+      "domain": "runtime_apply",
+      "family": "GroupsApplyError",
+      "http_status": null,
+      "sample_reason": "group_treasury_wallet_exists",
+      "source": "src/weall/runtime/apply/groups.py",
+      "source_lineno": 837
+    },
+    {
+      "code": "conflict",
+      "domain": "runtime_apply",
+      "family": "ProtocolApplyError",
+      "http_status": null,
+      "sample_reason": "upgrade_already_scheduled",
+      "source": "src/weall/runtime/apply/protocol.py",
+      "source_lineno": 311
+    },
+    {
+      "code": "conflict",
+      "domain": "runtime_apply",
+      "family": "TreasuryApplyError",
+      "http_status": null,
+      "sample_reason": "spend_id_exists",
+      "source": "src/weall/runtime/apply/treasury.py",
+      "source_lineno": 265
+    },
+    {
+      "code": "dev_bootstrap_secret_account_mismatch",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "Dev bootstrap secret not available for that account",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 138
+    },
+    {
+      "code": "dev_bootstrap_secret_invalid",
+      "domain": "api",
+      "family": "ApiError.server_error",
+      "http_status": null,
+      "sample_reason": "Dev bootstrap secret file is invalid",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 135
+    },
+    {
+      "code": "dev_bootstrap_secret_missing",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "Dev bootstrap secret not available",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 131
+    },
+    {
+      "code": "domain_error",
+      "domain": "runtime",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "exception",
+      "source": "src/weall/runtime/domain_dispatch.py",
+      "source_lineno": 328
+    },
+    {
+      "code": "duplicate",
+      "domain": "runtime_apply",
+      "family": "DisputeApplyError",
+      "http_status": null,
+      "sample_reason": "dispute_id_exists",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "source_lineno": 977
+    },
+    {
+      "code": "duplicate",
+      "domain": "runtime_apply",
+      "family": "RolesApplyError",
+      "http_status": null,
+      "sample_reason": "treasury_id_exists",
+      "source": "src/weall/runtime/apply/roles.py",
+      "source_lineno": 1562
+    },
+    {
+      "code": "executor_missing",
+      "domain": "api",
+      "family": "ApiError.server_error",
+      "http_status": null,
+      "sample_reason": "Executor not available",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 502
+    },
+    {
+      "code": "executor_read_state_required",
+      "domain": "api",
+      "family": "ApiError.internal",
+      "http_status": 500,
+      "sample_reason": "executor must expose read_state",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 95
+    },
+    {
+      "code": "forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "Account state unavailable",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 634
+    },
+    {
+      "code": "forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "live_room_participant_required",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 1195
+    },
+    {
+      "code": "forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "bad_observer_edge_operator_token",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 376
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "invalid_stage_transition",
+      "source": "src/weall/runtime/apply/governance.py",
+      "source_lineno": 729
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "account_banned",
+      "source": "src/weall/runtime/apply/identity.py",
+      "source_lineno": 69
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/poh.py",
+      "source_lineno": 52
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "receipt_only_requires_parent",
+      "source": "src/weall/runtime/domain_dispatch.py",
+      "source_lineno": 227
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "removed_legacy_poh_tier_action",
+      "source": "src/weall/runtime/poh/eligibility.py",
+      "source_lineno": 154
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "ConsensusApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/consensus.py",
+      "source_lineno": 131
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "ContentApplyError",
+      "http_status": null,
+      "sample_reason": "group_post_authority_required",
+      "source": "src/weall/runtime/apply/content.py",
+      "source_lineno": 317
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "DisputeApplyError",
+      "http_status": null,
+      "sample_reason": "unsupported_dispute_target_type",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "source_lineno": 78
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "EconomicsApplyError",
+      "http_status": null,
+      "sample_reason": "system_tx_required",
+      "source": "src/weall/runtime/apply/economics.py",
+      "source_lineno": 77
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "GroupsApplyError",
+      "http_status": null,
+      "sample_reason": "group_emissary_election_open",
+      "source": "src/weall/runtime/apply/groups.py",
+      "source_lineno": 757
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "IndexingApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/indexing.py",
+      "source_lineno": 97
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "NetworkingApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/networking.py",
+      "source_lineno": 81
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "NotificationApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/notifications.py",
+      "source_lineno": 54
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "ProtocolApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/protocol.py",
+      "source_lineno": 87
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "ReputationApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/reputation.py",
+      "source_lineno": 88
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "RewardsApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/rewards.py",
+      "source_lineno": 73
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "RolesApplyError",
+      "http_status": null,
+      "sample_reason": "",
+      "source": "src/weall/runtime/apply/roles.py",
+      "source_lineno": 220
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "SocialApplyError",
+      "http_status": null,
+      "sample_reason": "account_not_registered",
+      "source": "src/weall/runtime/apply/social.py",
+      "source_lineno": 96
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "StorageApplyError",
+      "http_status": null,
+      "sample_reason": "system_only",
+      "source": "src/weall/runtime/apply/storage.py",
+      "source_lineno": 55
+    },
+    {
+      "code": "forbidden",
+      "domain": "runtime_apply",
+      "family": "TreasuryApplyError",
+      "http_status": null,
+      "sample_reason": "system_tx_required",
+      "source": "src/weall/runtime/apply/treasury.py",
+      "source_lineno": 42
+    },
+    {
+      "code": "gate_denied",
+      "domain": "runtime",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "bootstrap_founder_expired",
+      "source": "src/weall/runtime/domain_dispatch.py",
+      "source_lineno": 182
+    },
+    {
+      "code": "insufficient_poh_tier",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "PoH Tier 2 / Live Verified Human is required to create/edit/delete posts",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 324
+    },
+    {
+      "code": "insufficient_storage",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 848
+    },
+    {
+      "code": "insufficient_tier",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 359
+    },
+    {
+      "code": "internal_error",
+      "domain": "runtime_apply",
+      "family": "GroupsApplyError",
+      "http_status": null,
+      "sample_reason": "treasury_signer_sync_failed",
+      "source": "src/weall/runtime/apply/groups.py",
+      "source_lineno": 787
+    },
+    {
+      "code": "invalid_block",
+      "domain": "runtime_apply",
+      "family": "ConsensusApplyError",
+      "http_status": null,
+      "sample_reason": "bad_proposer",
+      "source": "src/weall/runtime/apply/consensus.py",
+      "source_lineno": 1075
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "missing signer",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 253
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "missing payload.block_id",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 129
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "api",
+      "family": "ApiError.invalid",
+      "http_status": null,
+      "sample_reason": "empty_file",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 831
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "api",
+      "family": "ApiError.invalid",
+      "http_status": null,
+      "sample_reason": "video_file_required",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 140
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "proposal_options_require_at_least_two",
+      "source": "src/weall/runtime/apply/governance.py",
+      "source_lineno": 117
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "ConsensusApplyError",
+      "http_status": null,
+      "sample_reason": "bft_activation_requires_minimum_validator_count",
+      "source": "src/weall/runtime/apply/consensus.py",
+      "source_lineno": 257
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "ContentApplyError",
+      "http_status": null,
+      "sample_reason": "invalid_public_cid",
+      "source": "src/weall/runtime/apply/content.py",
+      "source_lineno": 84
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "DisputeApplyError",
+      "http_status": null,
+      "sample_reason": "invalid_public_cid",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "source_lineno": 122
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "EconomicsApplyError",
+      "http_status": null,
+      "sample_reason": "",
+      "source": "src/weall/runtime/apply/economics.py",
+      "source_lineno": 501
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "GroupsApplyError",
+      "http_status": null,
+      "sample_reason": "missing_group_id",
+      "source": "src/weall/runtime/apply/groups.py",
+      "source_lineno": 463
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "IndexingApplyError",
+      "http_status": null,
+      "sample_reason": "missing_anchor_id",
+      "source": "src/weall/runtime/apply/indexing.py",
+      "source_lineno": 176
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "NetworkingApplyError",
+      "http_status": null,
+      "sample_reason": "ambiguous_node_device_for_peer_advertise",
+      "source": "src/weall/runtime/apply/networking.py",
+      "source_lineno": 180
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "NotificationApplyError",
+      "http_status": null,
+      "sample_reason": "missing_topic",
+      "source": "src/weall/runtime/apply/notifications.py",
+      "source_lineno": 96
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "ProtocolApplyError",
+      "http_status": null,
+      "sample_reason": "missing_upgrade_target_version",
+      "source": "src/weall/runtime/apply/protocol.py",
+      "source_lineno": 294
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "ReputationApplyError",
+      "http_status": null,
+      "sample_reason": "missing_account_id",
+      "source": "src/weall/runtime/apply/reputation.py",
+      "source_lineno": 341
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "RewardsApplyError",
+      "http_status": null,
+      "sample_reason": "missing_issuance_epoch",
+      "source": "src/weall/runtime/apply/rewards.py",
+      "source_lineno": 231
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "RolesApplyError",
+      "http_status": null,
+      "sample_reason": "declared_capacity_required",
+      "source": "src/weall/runtime/apply/roles.py",
+      "source_lineno": 547
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "SocialApplyError",
+      "http_status": null,
+      "sample_reason": "missing_target",
+      "source": "src/weall/runtime/apply/social.py",
+      "source_lineno": 145
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "StorageApplyError",
+      "http_status": null,
+      "sample_reason": "missing_offer_id",
+      "source": "src/weall/runtime/apply/storage.py",
+      "source_lineno": 579
+    },
+    {
+      "code": "invalid_payload",
+      "domain": "runtime_apply",
+      "family": "TreasuryApplyError",
+      "http_status": null,
+      "sample_reason": "missing_treasury_id",
+      "source": "src/weall/runtime/apply/treasury.py",
+      "source_lineno": 202
+    },
+    {
+      "code": "invalid_signer",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "signer does not match required account id format",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 256
+    },
+    {
+      "code": "invalid_state",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "accounts root missing",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 166
+    },
+    {
+      "code": "invalid_state",
+      "domain": "api",
+      "family": "ApiError.server_error",
+      "http_status": null,
+      "sample_reason": "roles root missing",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 214
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "accounts_not_dict",
+      "source": "src/weall/runtime/apply/identity.py",
+      "source_lineno": 64
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "live_session_commitment_missing",
+      "source": "src/weall/runtime/apply/poh.py",
+      "source_lineno": 366
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "gate_engine_unavailable",
+      "source": "src/weall/runtime/gates.py",
+      "source_lineno": 57
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "EconomicsApplyError",
+      "http_status": null,
+      "sample_reason": "missing_accounts",
+      "source": "src/weall/runtime/apply/economics.py",
+      "source_lineno": 55
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "GroupsApplyError",
+      "http_status": null,
+      "sample_reason": "state_param_not_integer",
+      "source": "src/weall/runtime/apply/groups.py",
+      "source_lineno": 53
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "StorageApplyError",
+      "http_status": null,
+      "sample_reason": "offer_missing_operator_id",
+      "source": "src/weall/runtime/apply/storage.py",
+      "source_lineno": 618
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "TreasuryApplyError",
+      "http_status": null,
+      "sample_reason": "missing_accounts",
+      "source": "src/weall/runtime/apply/treasury.py",
+      "source_lineno": 78
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "attestation envelope failed schema validation",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 72
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "tx envelope failed schema validation",
+      "source": "src/weall/api/routes_public_parts/mempool.py",
+      "source_lineno": 103
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "tx envelope failed schema validation",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1601
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "bad_nonce",
+      "source": "src/weall/runtime/apply/identity.py",
+      "source_lineno": 57
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "bad_commitment_format",
+      "source": "src/weall/runtime/apply/poh.py",
+      "source_lineno": 73
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "runtime",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "missing_signer",
+      "source": "src/weall/runtime/domain_apply.py",
+      "source_lineno": 131
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "runtime",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "noncanonical_tx_type",
+      "source": "src/weall/runtime/domain_dispatch.py",
+      "source_lineno": 217
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "runtime_apply",
+      "family": "NetworkingApplyError",
+      "http_status": null,
+      "sample_reason": "missing_signer",
+      "source": "src/weall/runtime/apply/networking.py",
+      "source_lineno": 146
+    },
+    {
+      "code": "invalid_tx_type",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "public attestation endpoint only accepts BLOCK_ATTEST",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 80
+    },
+    {
+      "code": "ipfs_error",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 864
+    },
+    {
+      "code": "ipfs_error",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 160
+    },
+    {
+      "code": "issued_at_ms_required",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "issued_at_ms is required",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 252
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
+      "source": "src/weall/api/routes_nodes.py",
+      "source_lineno": 492
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "direct media gateway redirect has been removed; use /v1/media/proxy/{cid}",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 969
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "unsigned relay fetch has been removed; use POST /v1/net/relay/fetch with a signed access_request",
+      "source": "src/weall/api/routes_public_parts/net_relay.py",
+      "source_lineno": 185
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
+      "source": "src/weall/api/routes_public_parts/nodes.py",
+      "source_lineno": 17
+    },
+    {
+      "code": "legacy_endpoint_removed",
+      "domain": "api",
+      "family": "ApiError.gone",
+      "http_status": null,
+      "sample_reason": "/v1/poh/live/juror-cases has been removed; use /v1/poh/live/assigned",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 970
+    },
+    {
+      "code": "locked",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "account is locked",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 272
+    },
+    {
+      "code": "login_proof_stale",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "login proof timestamp is outside the accepted clock skew window",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 258
+    },
+    {
+      "code": "media_byte_hash_mismatch",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "media bytes did not match committed sha256",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 352
+    },
+    {
+      "code": "media_cid_multihash_mismatch",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "media bytes did not match CID multihash",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 368
+    },
+    {
+      "code": "media_fetch_busy",
+      "domain": "api",
+      "family": "ApiError.too_many",
+      "http_status": 429,
+      "sample_reason": "observer media fetch budget is busy",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 1133
+    },
+    {
+      "code": "media_integrity_verification_unavailable",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "media requires committed sha256 or a CID format this observer can verify directly",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 380
+    },
+    {
+      "code": "media_not_cached",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "media is not cached on this observer",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 1124
+    },
+    {
+      "code": "media_provider_unavailable",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "media provider unavailable or failed verification",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 592
+    },
+    {
+      "code": "media_range_invalid",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "only byte range requests are supported",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 411
+    },
+    {
+      "code": "media_too_large",
+      "domain": "api",
+      "family": "ApiError.payload_too_large",
+      "http_status": 413,
+      "sample_reason": "media exceeds local observer fetch budget",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 525
+    },
+    {
+      "code": "media_unverified_redirect_forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "media proxy cache-disabled redirect bypasses observer integrity verification",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 1097
+    },
+    {
+      "code": "missing_chain_id",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "chain_id is required for public attestation submission",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 32
+    },
+    {
+      "code": "missing_chain_id",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "chain_id is required for public mempool submission",
+      "source": "src/weall/api/routes_public_parts/mempool.py",
+      "source_lineno": 60
+    },
+    {
+      "code": "missing_chain_id",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "chain_id is required for public tx submission",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1389
+    },
+    {
+      "code": "missing_env",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "WEALL_OPERATOR_TOKEN must be set when operator endpoints are enabled",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 2496
+    },
+    {
+      "code": "missing_live_session_commitment",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 2941
+    },
+    {
+      "code": "missing_sig",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "signature is required for public attestation submission",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 104
+    },
+    {
+      "code": "missing_sig",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "signature is required for public mempool submission",
+      "source": "src/weall/api/routes_public_parts/mempool.py",
+      "source_lineno": 129
+    },
+    {
+      "code": "missing_sig",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "signature is required for public tx submission",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1643
+    },
+    {
+      "code": "not_found",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "Dispute not found",
+      "source": "src/weall/api/routes_public_parts/disputes.py",
+      "source_lineno": 354
+    },
+    {
+      "code": "not_found",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "Proposal not found",
+      "source": "src/weall/api/routes_public_parts/gov.py",
+      "source_lineno": 166
+    },
+    {
+      "code": "not_found",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "Group not found",
+      "source": "src/weall/api/routes_public_parts/groups.py",
+      "source_lineno": 448
+    },
+    {
+      "code": "not_found",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "Not Found",
+      "source": "src/weall/api/routes_public_parts/net_relay.py",
+      "source_lineno": 136
+    },
+    {
+      "code": "not_found",
+      "domain": "api",
+      "family": "ApiError.not_found",
+      "http_status": 404,
+      "sample_reason": "endpoint_disabled",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 130
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "proposal_not_found",
+      "source": "src/weall/runtime/apply/governance.py",
+      "source_lineno": 684
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "ApplyError",
+      "http_status": null,
+      "sample_reason": "reviewer_collusion_suspicion_not_found",
+      "source": "src/weall/runtime/apply/poh.py",
+      "source_lineno": 1324
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "ContentApplyError",
+      "http_status": null,
+      "sample_reason": "group_not_found",
+      "source": "src/weall/runtime/apply/content.py",
+      "source_lineno": 313
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "DisputeApplyError",
+      "http_status": null,
+      "sample_reason": "dispute_not_found",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "source_lineno": 959
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "EconomicsApplyError",
+      "http_status": null,
+      "sample_reason": "",
+      "source": "src/weall/runtime/apply/economics.py",
+      "source_lineno": 62
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "GroupsApplyError",
+      "http_status": null,
+      "sample_reason": "",
+      "source": "src/weall/runtime/apply/groups.py",
+      "source_lineno": 129
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "IndexingApplyError",
+      "http_status": null,
+      "sample_reason": "snapshot_declare_not_found",
+      "source": "src/weall/runtime/apply/indexing.py",
+      "source_lineno": 233
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "NetworkingApplyError",
+      "http_status": null,
+      "sample_reason": "ticket_not_found",
+      "source": "src/weall/runtime/apply/networking.py",
+      "source_lineno": 355
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "ProtocolApplyError",
+      "http_status": null,
+      "sample_reason": "upgrade_not_declared",
+      "source": "src/weall/runtime/apply/protocol.py",
+      "source_lineno": 380
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "RewardsApplyError",
+      "http_status": null,
+      "sample_reason": "",
+      "source": "src/weall/runtime/apply/rewards.py",
+      "source_lineno": 120
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "RolesApplyError",
+      "http_status": null,
+      "sample_reason": "account_not_found",
+      "source": "src/weall/runtime/apply/roles.py",
+      "source_lineno": 242
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "StorageApplyError",
+      "http_status": null,
+      "sample_reason": "offer_not_found",
+      "source": "src/weall/runtime/apply/storage.py",
+      "source_lineno": 584
+    },
+    {
+      "code": "not_found",
+      "domain": "runtime_apply",
+      "family": "TreasuryApplyError",
+      "http_status": null,
+      "sample_reason": "",
+      "source": "src/weall/runtime/apply/treasury.py",
+      "source_lineno": 85
+    },
+    {
+      "code": "not_ready",
+      "domain": "api",
+      "family": "ApiError.internal",
+      "http_status": 500,
+      "sample_reason": "executor not attached to app.state",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 87
+    },
+    {
+      "code": "not_ready",
+      "domain": "api",
+      "family": "ApiError.internal",
+      "http_status": 500,
+      "sample_reason": "ledger store update primitive unavailable",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 299
+    },
+    {
+      "code": "not_registered",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "signer account is not registered",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 266
+    },
+    {
+      "code": "not_validator",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "signer is not in the active validator set",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 347
+    },
+    {
+      "code": "observer_edge_mempool_submit_disabled",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "local observer edge nodes must use /v1/tx/submit so txs enter the durable upstream tx queue",
+      "source": "src/weall/api/routes_public_parts/mempool.py",
+      "source_lineno": 85
+    },
+    {
+      "code": "observer_edge_operator_token_required",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "observer edge operator endpoints require WEALL_OPERATOR_TOKEN or WEALL_OBSERVER_EDGE_OPERATOR_TOKEN",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 369
+    },
+    {
+      "code": "payload_too_large",
+      "domain": "api",
+      "family": "ApiError.payload_too_large",
+      "http_status": 413,
+      "sample_reason": "request body exceeds size limit",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 60
+    },
+    {
+      "code": "payload_too_large",
+      "domain": "api",
+      "family": "ApiError.payload_too_large",
+      "http_status": 413,
+      "sample_reason": "media upload exceeds local observer byte budget",
+      "source": "src/weall/api/routes_public_parts/media.py",
+      "source_lineno": 678
+    },
+    {
+      "code": "post_required",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "",
+      "source": "src/weall/api/routes_public_parts/demo_seed.py",
+      "source_lineno": 364
+    },
+    {
+      "code": "pubkey_not_authorized",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "pubkey is not an active key on this account",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 273
+    },
+    {
+      "code": "pubkey_required",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "pubkey is required",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 248
+    },
+    {
+      "code": "receipt_submission_forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "block receipts cannot be submitted through the public tx endpoint",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1629
+    },
+    {
+      "code": "relay_not_ready",
+      "domain": "api",
+      "family": "ApiError.internal",
+      "http_status": 500,
+      "sample_reason": "relay cannot determine chain_id or tx_index_hash",
+      "source": "src/weall/api/routes_public_parts/net_relay.py",
+      "source_lineno": 102
+    },
+    {
+      "code": "session_key_required",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "session_key is required",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 237
+    },
+    {
+      "code": "session_mismatch",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 457
+    },
+    {
+      "code": "session_not_ready",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "Live session not initialized yet (missing session_commitment)",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 3022
+    },
+    {
+      "code": "session_required",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "",
+      "source": "src/weall/api/routes_public_parts/poh.py",
+      "source_lineno": 438
+    },
+    {
+      "code": "sig_profile_required",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "sig_profile is required",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 239
+    },
+    {
+      "code": "sig_required",
+      "domain": "api",
+      "family": "ApiError.bad_request",
+      "http_status": 400,
+      "sample_reason": "sig is required",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 250
+    },
+    {
+      "code": "state_invalid",
+      "domain": "api",
+      "family": "ApiError.internal",
+      "http_status": 500,
+      "sample_reason": "accounts subtree missing",
+      "source": "src/weall/api/routes_public_parts/session.py",
+      "source_lineno": 266
+    },
+    {
+      "code": "system_tx_forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "SYSTEM-signed txs are not accepted via public submission endpoints",
+      "source": "src/weall/api/routes_public_parts/common.py",
+      "source_lineno": 290
+    },
+    {
+      "code": "system_tx_forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "system-only txs cannot be submitted through the public attestation endpoint",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 87
+    },
+    {
+      "code": "system_tx_forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "system-only txs cannot be submitted through the public mempool endpoint",
+      "source": "src/weall/api/routes_public_parts/mempool.py",
+      "source_lineno": 119
+    },
+    {
+      "code": "system_tx_forbidden",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "system-only txs cannot be submitted through the public tx endpoint",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 1618
+    },
+    {
+      "code": "tx_unimplemented",
+      "domain": "runtime_apply",
+      "family": "DisputeApplyError",
+      "http_status": null,
+      "sample_reason": "case_tx_not_implemented",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "source_lineno": 1920
+    },
+    {
+      "code": "validator_mismatch",
+      "domain": "api",
+      "family": "ApiError.forbidden",
+      "http_status": 403,
+      "sample_reason": "payload.validator must match signer",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 133
+    }
+  ],
+  "entry_count": 210,
+  "scanner": {
+    "families": [
+      "ApiError.bad_gateway",
+      "ApiError.bad_request",
+      "ApiError.forbidden",
+      "ApiError.gone",
+      "ApiError.internal",
+      "ApiError.invalid",
+      "ApiError.not_found",
+      "ApiError.payload_too_large",
+      "ApiError.server_error",
+      "ApiError.too_many",
+      "ApplyError",
+      "ConsensusApplyError",
+      "ContentApplyError",
+      "DisputeApplyError",
+      "EconomicsApplyError",
+      "GroupsApplyError",
+      "IndexingApplyError",
+      "LaunchReadiness",
+      "NetworkingApplyError",
+      "NotificationApplyError",
+      "ProtocolApplyError",
+      "ReputationApplyError",
+      "RewardsApplyError",
+      "RolesApplyError",
+      "SocialApplyError",
+      "StorageApplyError",
+      "TreasuryApplyError"
+    ],
+    "roots": [
+      "src/weall/api",
+      "src/weall/runtime"
+    ]
+  },
+  "schema": "weall.v1_5.failure_code_registry",
+  "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
+  "unique_code_count": 101,
+  "version": "2026-06-batch10a"
+}

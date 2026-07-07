@@ -52,7 +52,7 @@ def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_
     import time
 
     st1["tip_ts_ms"] = int(time.time() * 1000) + 10_000_000_000
-    ex._store.write_state_snapshot(st1)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(st1)  # type: ignore[attr-defined]
 
     monkeypatch.delenv("WEALL_UNSAFE_DEV", raising=False)
     ex2 = WeAllExecutor(

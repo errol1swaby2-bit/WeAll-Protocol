@@ -24,10 +24,10 @@ It does not prove:
 - public mainnet readiness
 - public multi-validator BFT readiness
 - live economics readiness
-- production-grade private messaging
+- user-to-user communication tooling, which is outside protocol scope
 - public HTTPS external observer readiness
 
-Public external tester readiness still requires a reachable HTTPS Genesis API and a public observer bundle that does not rely on `WEALL_ALLOW_PRIVATE_GENESIS_API=1`.
+Public external tester readiness still requires a reachable HTTPS Genesis API and a public observer bundle that does not rely on `WEALL_ALLOW_LAN_GENESIS_API=1`.
 
 ## Fresh clone dependency setup
 
@@ -67,7 +67,7 @@ Founder/operator-only. Requires the canonical Genesis producer key outside the r
       --producer-pubkey-file "$HOME/.weall/secrets/weall_node_pubkey" \
       --producer-privkey-file "$HOME/.weall/secrets/weall_node_privkey" \
       --genesis-api-base "http://${GENESIS_IP}:8000" \
-      --allow-private-genesis-api
+      --allow-lan-genesis-api
 
 The private key must never be printed, committed, copied into the repo, or included in an observer bundle.
 
@@ -82,7 +82,7 @@ Build the bundle:
       --out /tmp/weall-observer/weall-external-observer-bundle.private-rehearsal.json \
       --genesis-api-base "http://${GENESIS_IP}:8000"
 
-Then mark the bundle as private rehearsal by setting profile=rehearsal, authority.profile=rehearsal, and rehearsal_boundary.private_genesis_api_allowed_only_with_WEALL_ALLOW_PRIVATE_GENESIS_API=true.
+Then mark the bundle as LAN rehearsal by setting profile=rehearsal, authority.profile=rehearsal, and rehearsal_boundary.lan_genesis_api_allowed_only_with_WEALL_ALLOW_LAN_GENESIS_API=true.
 
 ## One-command tester observer boot
 
@@ -94,7 +94,7 @@ Use a different local API/frontend port than Genesis:
       --bundle /tmp/weall-observer/weall-external-observer-bundle.private-rehearsal.json \
       --genesis-api-base "http://${GENESIS_IP}:8000" \
       --mode private-rehearsal \
-      --allow-private-genesis-api \
+      --allow-lan-genesis-api \
       --api-port 8001 \
       --frontend-port 5174
 

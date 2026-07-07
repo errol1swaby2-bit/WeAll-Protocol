@@ -283,7 +283,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
         title: "Report content",
         pendingKey: txPendingKey(["content-flag", loadedPostId, viewer]),
         pendingMessage: "Sending your report…",
-        successMessage: "Report sent. Checking whether the community review is visible yet…",
+        successMessage: "Report submitted. Track confirmation in Transactions while community review visibility refreshes…",
         errorMessage: (e) => prettyErr(e)?.msg || "error",
         getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
         finality: { mutation: { entityType: "content", entityId: loadedPostId, account: viewer || undefined, routeHint: `/content/${encodeURIComponent(loadedPostId)}`, txType: "CONTENT_FLAG" } },
@@ -306,14 +306,14 @@ export default function Content({ id }: { id: string }): JSX.Element {
       if (dispute?.id) {
         const disputeId = String(dispute.id);
         setTxInfo({
-          msg: `Report accepted and community review ${disputeId} is now visible. Open it directly to continue the review flow.`,
+          msg: `Report submitted and community review ${disputeId} is now visible. Track confirmation in Transactions, then open it directly to continue the review flow.`,
           details: dispute,
           ctaLabel: "Open report",
           ctaHref: `/reports/${encodeURIComponent(disputeId)}`,
         });
       } else {
         setTxInfo({
-          msg: "Report accepted. Community review may still be setting up; reopen this page or refresh Reports if it does not appear immediately.",
+          msg: "Report submitted. Community review may still be setting up; reopen this page or refresh Reports if it does not appear immediately. Track confirmation in Transactions.",
           details: { target_id: loadedPostId },
           ctaLabel: "Open reports",
           ctaHref: "/reports",
@@ -336,7 +336,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
               <div className="eyebrow">Content</div>
               <h1 className="heroTitle heroTitleSm">{isPost ? "Post detail" : "Content detail"}</h1>
               <p className="heroText">
-                View the readable post first, then use author or report actions with clear save-and-update feedback.
+                View the public-readable post first, then use author or report actions with clear transaction-status feedback.
                 Media renders inline, while final review or edit outcomes may take a moment to update everywhere.
               </p>
             </div>
@@ -370,8 +370,8 @@ export default function Content({ id }: { id: string }): JSX.Element {
             </div>
             <div className="surfaceSummaryCard">
               <span className="surfaceSummaryLabel">Action status</span>
-              <strong className="surfaceSummaryValue">Saved with confirmation</strong>
-              <span className="surfaceSummaryHint">Edits, deletes, and reports show progress first, then this page refreshes when the final visible state catches up.</span>
+              <strong className="surfaceSummaryValue">Tracked by tx status</strong>
+              <span className="surfaceSummaryHint">Edits, deletes, and reports show submission progress first, then this page refreshes when confirmed or visibly reconciled state catches up.</span>
             </div>
           </div>
         </div>
@@ -514,12 +514,12 @@ export default function Content({ id }: { id: string }): JSX.Element {
                   <div className="surfaceSummaryCard">
                     <span className="surfaceSummaryLabel">Edit</span>
                     <strong className="surfaceSummaryValue">{isOwner ? "Author-only" : "Unavailable"}</strong>
-                    <span className="surfaceSummaryHint">Edits require the original author key on this device and are saved with confirmation.</span>
+                    <span className="surfaceSummaryHint">Edits require the original author key on this device and remain pending until transaction status or visible state catches up.</span>
                   </div>
                   <div className="surfaceSummaryCard">
                     <span className="surfaceSummaryLabel">Delete</span>
                     <strong className="surfaceSummaryValue">{isOwner ? "Author-only" : "Unavailable"}</strong>
-                    <span className="surfaceSummaryHint">Deletion is saved with confirmation. Read surfaces may take a moment to update.</span>
+                    <span className="surfaceSummaryHint">Deletion is submitted as a signed transaction. Read surfaces may take a moment to update after confirmation.</span>
                   </div>
                   <div className="surfaceSummaryCard">
                     <span className="surfaceSummaryLabel">Report</span>
@@ -553,7 +553,7 @@ export default function Content({ id }: { id: string }): JSX.Element {
                     </div>
                     <div className="actionStateRow">
                       <span className="actionStateLabel">Edit truth</span>
-                      <span className="actionStateText">Editing updates the saved post body and requires the original author key on this device.</span>
+                      <span className="actionStateText">Editing submits a signed CONTENT_POST_EDIT transaction and requires the original author key on this device.</span>
                     </div>
                   </div>
                 ) : null}

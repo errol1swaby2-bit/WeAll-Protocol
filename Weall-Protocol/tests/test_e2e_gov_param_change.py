@@ -6,7 +6,7 @@ import pytest
 
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
 def _repo_root() -> Path:
@@ -36,7 +36,7 @@ def test_state_persists_across_blocks_and_restart(
         db_path=db_path, node_id="@alice", chain_id="persist", tx_index_path=tx_index_path
     )
 
-    alice_pubkey, _ = deterministic_ed25519_keypair(label="@alice")
+    alice_pubkey, _ = deterministic_mldsa_keypair(label="@alice")
 
     # Create account with a seed pubkey so later txs can be signature-verified.
     payload = {"pubkey": alice_pubkey}
@@ -46,7 +46,7 @@ def test_state_persists_across_blocks_and_restart(
         "nonce": 1,
         "payload": payload,
         "chain_id": "persist",
-        "sig": deterministic_ed25519_keypair(label="@alice")[1].sign(
+        "sig": deterministic_mldsa_keypair(label="@alice")[1].sign(
             canonical_tx_message(
                 chain_id="persist",
                 tx_type="ACCOUNT_REGISTER",

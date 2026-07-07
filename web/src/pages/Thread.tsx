@@ -9,7 +9,8 @@ import { normalizeAccount } from "../auth/keys";
 import { useAccount } from "../context/AccountContext";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import MediaGallery from "../components/MediaGallery";
-import { actionableTxError } from "../lib/txAction";
+import { actionableTxError, txPendingKey } from "../lib/txAction";
+import { useTxQueue } from "../hooks/useTxQueue";
 import { refreshMutationSlices } from "../lib/revalidation";
 
 function prettyErr(e: any): { msg: string; details: any } {
@@ -48,6 +49,7 @@ async function waitForDisputeForTarget(base: string, targetId: string, attempts 
 
 export default function Thread({ id }: { id: string }): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
+  const tx = useTxQueue();
   const [thread, setThread] = useState<any>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
 
@@ -146,12 +148,22 @@ export default function Thread({ id }: { id: string }): JSX.Element {
 
     setLikeBusyId(String(targetId));
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_REACTION_SET",
-        payload: { target_id: String(targetId), reaction: "like" },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "React to thread item",
+        pendingKey: txPendingKey(["thread-reaction", targetId, viewer, "like"]),
+        pendingMessage: "Submitting public reaction…",
+        successMessage: "Reaction submitted. Track confirmation in Transactions while the thread refreshes…",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: `/thread/${encodeURIComponent(postId)}`, txType: "CONTENT_REACTION_SET" } },
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_REACTION_SET",
+            payload: { target_id: String(targetId), reaction: "like" },
+            parent: null,
+            base,
+          }),
       });
       await reconcileAfterMutation();
     } catch (e: any) {
@@ -173,12 +185,22 @@ export default function Thread({ id }: { id: string }): JSX.Element {
 
     setBusy(true);
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_COMMENT_CREATE",
-        payload: { post_id: postId, body: b },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "Add public reply",
+        pendingKey: txPendingKey(["thread-comment-create", postId, viewer]),
+        pendingMessage: "Submitting public reply…",
+        successMessage: "Reply submitted. Track confirmation in Transactions while the thread refreshes…",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: postId, account: viewer || undefined, routeHint: `/thread/${encodeURIComponent(postId)}`, txType: "CONTENT_COMMENT_CREATE" } },
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_COMMENT_CREATE",
+            payload: { post_id: postId, body: b },
+            parent: null,
+            base,
+          }),
       });
 
       setReply("");
@@ -203,12 +225,22 @@ export default function Thread({ id }: { id: string }): JSX.Element {
 
     setBusy(true);
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_COMMENT_DELETE",
-        payload: { comment_id: commentId },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "Delete public reply",
+        pendingKey: txPendingKey(["thread-comment-delete", commentId, viewer]),
+        pendingMessage: "Submitting reply deletion…",
+        successMessage: "Delete submitted. Track confirmation in Transactions while the thread refreshes…",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: postId, account: viewer || undefined, routeHint: `/thread/${encodeURIComponent(postId)}`, txType: "CONTENT_COMMENT_DELETE" } },
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_COMMENT_DELETE",
+            payload: { comment_id: commentId },
+            parent: null,
+            base,
+          }),
       });
       await reconcileAfterMutation();
     } catch (e: any) {
@@ -228,12 +260,22 @@ export default function Thread({ id }: { id: string }): JSX.Element {
 
     setBusy(true);
     try {
-      await submitSignedTx({
-        account: viewer,
-        tx_type: "CONTENT_FLAG",
-        payload: reason ? { target_id: targetId, reason } : { target_id: targetId },
-        parent: null,
-        base,
+      await tx.runTx({
+        title: "Report thread item",
+        pendingKey: txPendingKey(["thread-flag", targetId, viewer]),
+        pendingMessage: "Submitting public report…",
+        successMessage: "Report submitted. Track confirmation in Transactions while community review status refreshes…",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => String(res?.tx_id || res?.result?.tx_id || "") || undefined,
+        finality: { mutation: { entityType: "content", entityId: String(targetId), account: viewer || undefined, routeHint: `/thread/${encodeURIComponent(postId)}`, txType: "CONTENT_FLAG" } },
+        task: async () =>
+          submitSignedTx({
+            account: viewer,
+            tx_type: "CONTENT_FLAG",
+            payload: reason ? { target_id: targetId, reason } : { target_id: targetId },
+            parent: null,
+            base,
+          }),
       });
       await reconcileAfterMutation();
       const dispute = await waitForDisputeForTarget(base, targetId);
@@ -241,14 +283,14 @@ export default function Thread({ id }: { id: string }): JSX.Element {
       setFlagReason("");
       if (dispute?.id) {
         setTxInfo({
-          msg: `Report accepted and community review ${String(dispute.id)} is now visible.`,
+          msg: `Report submitted and community review ${String(dispute.id)} is now visible. Confirmation is tracked in Transactions.`,
           details: dispute,
           ctaLabel: "Open report",
           ctaHref: "/reports",
         });
       } else {
         setTxInfo({
-          msg: "Report accepted. Community review may still be setting up; refresh Reports if it does not appear immediately.",
+          msg: "Report submitted. Community review may still be setting up; refresh Reports if it does not appear immediately. Confirmation is tracked in Transactions.",
           details: { target_id: targetId },
           ctaLabel: "Open reports",
           ctaHref: "/reports",
@@ -268,10 +310,10 @@ export default function Thread({ id }: { id: string }): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Thread view</div>
-              <h1 className="heroTitle heroTitleSm">Conversation and replies</h1>
+              <h1 className="heroTitle heroTitleSm">Public replies and review status</h1>
               <p className="heroText">
-                Read the post, react when your account status allows it, and add replies without losing the calmer visual
-                posture of the rest of the app.
+                Read the public post, react when your account status allows it, and add replies with transaction-status
+                evidence instead of treating local submission as final.
               </p>
             </div>
 
@@ -281,6 +323,13 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                 <span className={`statusPill ${viewer ? "ok" : ""}`}>{viewer || "Read-only"}</span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>{gate.ok ? "High-trust actions unlocked" : "Live verification required"}</span>
               </div>
+            </div>
+          </div>
+
+          <div className="calloutInfo" data-testid="thread-public-social-boundary">
+            <strong>Public social boundary</strong>
+            <div style={{ marginTop: 6 }}>
+              Replies, reactions, and reports are public protocol actions. They become final only through the transaction lifecycle, not because this page updated locally.
             </div>
           </div>
 
@@ -368,7 +417,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
               disabled={!gate.ok || likeBusyId === postId || signerBusy}
               title="Set reaction=like"
             >
-              {likeBusyId === postId ? "Liking…" : signerBusy ? "Waiting…" : `Like${reactionCount(post, "like") ? ` · ${reactionCount(post, "like")}` : ""}`}
+              {likeBusyId === postId ? "Submitting reaction…" : signerBusy ? "Waiting…" : `Like${reactionCount(post, "like") ? ` · ${reactionCount(post, "like")}` : ""}`}
             </button>
 
             {viewer && normalizeAccount(viewer) === postAuthor ? (
@@ -403,7 +452,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
 
               <div className="buttonRow">
                 <button className="btn btnPrimary" onClick={() => void flagTarget(postId)} disabled={busy || signerBusy}>
-                  {busy ? "Submitting…" : "Submit flag"}
+                  {busy ? "Submitting report…" : "Submit flag"}
                 </button>
                 <button className="btn" onClick={() => setFlagTargetId(null)} disabled={busy || signerBusy}>
                   Cancel
@@ -437,7 +486,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
 
           <div className="buttonRow buttonRowWide">
             <button className="btn btnPrimary" onClick={() => void submitReply()} disabled={!gate.ok || busy || signerBusy}>
-              {busy ? "Posting…" : signerBusy ? "Waiting…" : "Post reply"}
+              {busy ? "Submitting reply…" : signerBusy ? "Waiting…" : "Post reply"}
             </button>
           </div>
         </div>
@@ -478,7 +527,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                           disabled={!gate.ok || likeBusyId === cid || signerBusy}
                           title="Set reaction=like on this comment"
                         >
-                          {likeBusyId === cid ? "Liking…" : signerBusy ? "Waiting…" : `Like${reactionCount(c, "like") ? ` · ${reactionCount(c, "like")}` : ""}`}
+                          {likeBusyId === cid ? "Submitting reaction…" : signerBusy ? "Waiting…" : `Like${reactionCount(c, "like") ? ` · ${reactionCount(c, "like")}` : ""}`}
                         </button>
 
                         {isOwner ? (
@@ -515,7 +564,7 @@ export default function Thread({ id }: { id: string }): JSX.Element {
                         </label>
                         <div className="buttonRow">
                           <button className="btn btnPrimary" onClick={() => void flagTarget(cid)} disabled={busy || signerBusy}>
-                            {busy ? "Submitting…" : "Submit flag"}
+                            {busy ? "Submitting report…" : "Submit flag"}
                           </button>
                           <button className="btn" onClick={() => setFlagTargetId(null)} disabled={busy || signerBusy}>
                             Cancel

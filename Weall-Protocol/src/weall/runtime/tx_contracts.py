@@ -12,7 +12,6 @@ from weall.runtime.apply.governance import apply_governance
 from weall.runtime.apply.groups import GROUPS_TX_TYPES, apply_groups
 from weall.runtime.apply.identity import apply_identity
 from weall.runtime.apply.indexing import INDEXING_TX_TYPES, apply_indexing
-from weall.runtime.apply.messaging import MESSAGING_TX_TYPES, apply_messaging
 from weall.runtime.apply.networking import apply_networking
 from weall.runtime.apply.notifications import NOTIFICATION_TX_TYPES, apply_notifications
 from weall.runtime.apply.poh import apply_poh
@@ -156,7 +155,6 @@ HANDLER_REGISTRY: tuple[tuple[str, ApplyFn, frozenset[str]], ...] = (
     ("content", apply_content, frozenset(CONTENT_TX_TYPES)),
     ("social", apply_social, frozenset(SOCIAL_TX_TYPES)),
     ("groups", apply_groups, frozenset(GROUPS_TX_TYPES)),
-    ("messaging", apply_messaging, frozenset(MESSAGING_TX_TYPES)),
     ("notifications", apply_notifications, frozenset(NOTIFICATION_TX_TYPES)),
     ("storage", apply_storage, STORAGE_TX_TYPES),
     ("networking", apply_networking, NETWORKING_TX_TYPES),
@@ -260,6 +258,8 @@ def build_tx_contract_map(canon: TxIndex | Json | None = None) -> list[Json]:
                 "claim_handlers": claims,
                 "schema_covered": model_for_tx_type(tx_type) is not None,
                 "subject_gate": str(txdef.get("subject_gate") or ""),
+                "unsupported": False,
+                "unsupported_code": "",
             }
         )
     rows.sort(key=lambda row: str(row["tx_type"]))

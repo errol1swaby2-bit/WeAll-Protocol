@@ -8,7 +8,7 @@ GENESIS_API_BASE="${WEALL_GENESIS_API_BASE:-}"
 ARTIFACT_DIR="${WEALL_REVIEWER_ARTIFACT_DIR:-${HOME}/weall-observer}"
 BUNDLE_PATH="${WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE:-}"
 MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-}"
-ALLOW_PRIVATE="${WEALL_ALLOW_PRIVATE_GENESIS_API:-0}"
+ALLOW_PRIVATE="${WEALL_ALLOW_LAN_GENESIS_API:-0}"
 RUN_SIGNED="${WEALL_REVIEWER_RUN_SIGNED_ONBOARDING:-1}"
 PULL_ARTIFACTS="${WEALL_REVIEWER_PULL_ARTIFACTS:-0}"
 EVIDENCE_DIR="${WEALL_REVIEWER_EVIDENCE_DIR:-}"
@@ -24,7 +24,7 @@ Options:
   --artifact-dir <path>          Local artifact directory. Default: ~/weall-observer.
   --bundle <path>                Public observer bundle JSON.
   --manifest <path>              Reviewer chain manifest path.
-  --allow-private-genesis-api    Allow private/LAN Genesis API for controlled rehearsal.
+  --allow-lan-genesis-api    Allow private/LAN Genesis API for controlled rehearsal.
   --preflight-only               Run remote preflight but skip signed onboarding.
   --evidence-dir <path>          Directory for captured command output.
   -h, --help                     Show this help.
@@ -55,7 +55,7 @@ while [[ $# -gt 0 ]]; do
     --artifact-dir) ARTIFACT_DIR="${2:-}"; shift 2 ;;
     --bundle) BUNDLE_PATH="${2:-}"; shift 2 ;;
     --manifest) MANIFEST_PATH="${2:-}"; shift 2 ;;
-    --allow-private-genesis-api) ALLOW_PRIVATE="1"; shift ;;
+    --allow-lan-genesis-api) ALLOW_PRIVATE="1"; shift ;;
     --preflight-only) RUN_SIGNED="0"; shift ;;
     --evidence-dir) EVIDENCE_DIR="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -121,11 +121,11 @@ export WEALL_GENESIS_API_BASE="${GENESIS_API_BASE}"
 export WEALL_API_BASE="${GENESIS_API_BASE}"
 export WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE="${BUNDLE_PATH}"
 export WEALL_CHAIN_MANIFEST_PATH="${MANIFEST_PATH}"
-export WEALL_ALLOW_PRIVATE_GENESIS_API="${ALLOW_PRIVATE}"
+export WEALL_ALLOW_LAN_GENESIS_API="${ALLOW_PRIVATE}"
 
 echo "[reviewer-observer] verifying public observer bundle"
 
-WEALL_ALLOW_PRIVATE_GENESIS_API="${ALLOW_PRIVATE}" \
+WEALL_ALLOW_LAN_GENESIS_API="${ALLOW_PRIVATE}" \
 python3 scripts/verify_node_operator_onboarding_bundle.py \
   --bundle "${BUNDLE_PATH}" \
   --manifest "${MANIFEST_PATH}" \

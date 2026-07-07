@@ -61,7 +61,7 @@ def main() -> int:
     parser.add_argument(
         "--release-pubkey",
         default=None,
-        help="Release manifest signer Ed25519 public key. Defaults to WEALL_RELEASE_PUBKEY/FILE.",
+        help="Release manifest signer ML-DSA public key. Defaults to WEALL_RELEASE_PUBKEY/FILE.",
     )
     parser.add_argument(
         "--json", action="store_true", help="Emit compact JSON instead of pretty text."

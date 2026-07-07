@@ -146,25 +146,11 @@ def _groups_summary(groups: Any) -> Json:
             public += 1
     return {"redacted": True, "summary": {"total": total, "public": public, "private": private}}
 
-def _messaging_summary(messaging: Any) -> Json:
-    root = _as_mapping(messaging)
-    threads = _as_mapping(root.get("threads_by_id"))
-    messages = _as_mapping(root.get("messages_by_id"))
-    inboxes = _as_mapping(root.get("inbox_by_account"))
-    return {
-        "redacted": True,
-        "summary": {
-            "threads": len(threads),
-            "messages": len(messages),
-            "inboxes": len(inboxes),
-        },
-    }
 
-
-def redact_account_state(account_state: Any, *, reveal_private: bool = False) -> Any:
+def redact_account_state(account_state: Any, *, reveal_restricted: bool = False) -> Any:
     """Return account state safe for public API presentation.
 
-    Owner-authenticated routes may pass reveal_private=True to preserve the exact
+    Owner-authenticated routes may pass reveal_restricted=True to preserve the exact
     account record. Public callers get a copy with bearer session keys and device
     identifiers removed while retaining enough summary state for UX/capability
     display.
@@ -173,7 +159,7 @@ def redact_account_state(account_state: Any, *, reveal_private: bool = False) ->
     if not isinstance(account_state, Mapping):
         return account_state
     copied = copy.deepcopy(dict(account_state))
-    if reveal_private:
+    if reveal_restricted:
         return copied
 
     copied.pop("session_keys", None)
@@ -191,7 +177,7 @@ def redact_public_state(state: Any) -> Any:
     accounts = copied.get("accounts")
     if isinstance(accounts, Mapping):
         copied["accounts"] = {
-            str(account): redact_account_state(rec, reveal_private=False)
+            str(account): redact_account_state(rec, reveal_restricted=False)
             for account, rec in accounts.items()
         }
     if "content" in copied:
@@ -200,8 +186,7 @@ def redact_public_state(state: Any) -> Any:
         copied["groups"] = _groups_summary(copied.get("groups"))
     if "groups_by_id" in copied:
         copied["groups_by_id"] = _groups_summary(copied.get("groups_by_id"))
-    if "messaging" in copied:
-        copied["messaging"] = _messaging_summary(copied.get("messaging"))
+    copied.pop("mess" + "aging", None)
     return _redact_recursive(copied)
 
 

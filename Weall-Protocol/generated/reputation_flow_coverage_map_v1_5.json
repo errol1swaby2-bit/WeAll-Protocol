@@ -1,0 +1,147 @@
+{
+  "coverage_assertions": {
+    "api_read_models_present": true,
+    "dispute_juror_flow_p0_wired": true,
+    "event_registry_complete_for_required_families": true,
+    "frontend_surfaces_receive_backend_deadlines": true
+  },
+  "event_families": {
+    "appeal": [
+      "APPEAL_ACCEPTED",
+      "APPEAL_FRIVOLOUS_PATTERN_CONFIRMED",
+      "APPEAL_REJECTED",
+      "APPEAL_REPUTATION_RESTORED",
+      "JUROR_PARTICIPATED_IN_APPEAL_REVIEW",
+      "REPUTATION_EVENT_REVERSED",
+      "SAFETY_FRIVOLOUS_APPEAL_PATTERN",
+      "SAFETY_REVERSED_MODERATION_ACTION"
+    ],
+    "content": [
+      "CREATOR_EDUCATIONAL_CONTENT",
+      "CREATOR_HELPFUL_CONTRIBUTION",
+      "CREATOR_POST_UPHELD_AFTER_REPORT"
+    ],
+    "dispute": [
+      "DISPUTE_JUROR_ACCEPTED",
+      "DISPUTE_JUROR_TIMED_OUT",
+      "DISPUTE_JUROR_VOTED_ON_TIME",
+      "DISPUTE_JUROR_WITHDREW_EARLY",
+      "DISPUTE_JUROR_WITHDREW_LATE",
+      "JUROR_ABUSIVE_REASONING",
+      "JUROR_ACCEPTED_AND_COMPLETED_CASE",
+      "JUROR_CONFLICT_OF_INTEREST_VIOLATION",
+      "JUROR_LATE_WITHDRAWAL",
+      "JUROR_PATTERN_OF_BAD_FAITH_VOTES",
+      "JUROR_PROVIDED_REQUIRED_REASONING",
+      "JUROR_TIMEOUT",
+      "JUROR_VOTED_BEFORE_DEADLINE"
+    ],
+    "governance": [
+      "GOVERNANCE_COMMENTED_DURING_DELIBERATION",
+      "GOVERNANCE_CONFIRMED_BRIBERY_OR_COLLUSION",
+      "GOVERNANCE_CREATED_VALID_PROPOSAL",
+      "GOVERNANCE_DUPLICATE_OR_ABUSIVE_PROPOSAL",
+      "GOVERNANCE_MALFORMED_UPGRADE_PATCH",
+      "GOVERNANCE_PROPOSAL_PASSED_WITHOUT_SAFETY_ISSUE",
+      "GOVERNANCE_SPAM_PROPOSAL",
+      "GOVERNANCE_VOTED"
+    ],
+    "groups": [
+      "CREATOR_GROUP_CONTRIBUTION"
+    ],
+    "helper": [
+      "HELPER_CONTEXT_MISMATCH",
+      "HELPER_MALFORMED_RECEIPT",
+      "HELPER_NONDETERMINISTIC_OUTPUT",
+      "HELPER_REPLAY_ATTEMPT",
+      "HELPER_SERIAL_EQUIVALENCE_CONFIRMED",
+      "HELPER_TIMELY_EXECUTION",
+      "HELPER_VALID_RECEIPT"
+    ],
+    "moderation": [
+      "CONTENT_CONFIRMED_VIOLATION",
+      "CONTENT_EVASION_AFTER_MODERATION",
+      "CONTENT_HARASSMENT",
+      "CONTENT_MANIPULATION",
+      "CONTENT_SPAM",
+      "SAFETY_ACCURATE_REPORT",
+      "SAFETY_CONFIRMED_MODERATION_ACTION",
+      "SAFETY_FALSE_OR_ABUSIVE_REPORT"
+    ],
+    "poh": [
+      "POH_DUPLICATE_ATTEMPT",
+      "POH_FRAUDULENT_EVIDENCE",
+      "POH_LIVENESS_FAILURE_AFTER_ACCEPTED_REVIEW",
+      "POH_REVERIFICATION_COMPLETED",
+      "POH_REVOKED_BY_FINAL_DISPUTE",
+      "POH_TIER1_VERIFIED",
+      "POH_TIER2_APPROVED",
+      "POH_TIER3_APPROVED"
+    ],
+    "storage": [
+      "STORAGE_FAILED_REVALIDATION",
+      "STORAGE_FALSE_AVAILABILITY_CLAIM",
+      "STORAGE_MISSING_REQUIRED_CONTENT",
+      "STORAGE_PIN_CONFIRMED",
+      "STORAGE_REVALIDATION_PASSED",
+      "STORAGE_SERVED_REQUIRED_CONTENT"
+    ],
+    "validator": [
+      "VALIDATOR_COMPLETED_VERSION_UPGRADE",
+      "VALIDATOR_DOUBLE_SIGN",
+      "VALIDATOR_DOWNTIME",
+      "VALIDATOR_INVALID_BLOCK",
+      "VALIDATOR_MAINTAINED_UPTIME",
+      "VALIDATOR_PASSED_REHEARSAL",
+      "VALIDATOR_SIGNED_VALID_BLOCK",
+      "VALIDATOR_STATE_DIVERGENCE",
+      "VALIDATOR_UNSAFE_VERSION"
+    ]
+  },
+  "schema": "weall.reputation_flow_coverage_map.v1_5",
+  "version": "2026-06-v1.5-reputation-matrix",
+  "wired_surfaces": {
+    "appeal": [
+      "DISPUTE_APPEAL",
+      "DISPUTE_FINAL_RECEIPT appeal_resolution"
+    ],
+    "content": [
+      "CONTENT_POST_CREATE",
+      "CONTENT_COMMENT_CREATE",
+      "CONTENT_LABEL_SET",
+      "CONTENT_VISIBILITY_SET"
+    ],
+    "dispute": [
+      "DISPUTE_JUROR_ACCEPT",
+      "DISPUTE_JUROR_WITHDRAW",
+      "DISPUTE_JUROR_TIMEOUT",
+      "DISPUTE_VOTE_SUBMIT",
+      "DISPUTE_FINAL_RECEIPT"
+    ],
+    "governance": [
+      "GOV_PROPOSAL_CREATE",
+      "GOV_PROPOSAL_COMMENT",
+      "GOV_VOTE_CAST",
+      "GOV_PROPOSAL_FINALIZE"
+    ],
+    "helper": [
+      "helper_execution_runtime metadata; serial-equivalence diagnostics"
+    ],
+    "poh": [
+      "POH_TIER_SET",
+      "POH_ASYNC_FINALIZE",
+      "POH_TIER2_FINALIZE",
+      "POH_LIVE_FINALIZE"
+    ],
+    "storage": [
+      "IPFS_PIN_CONFIRM",
+      "STORAGE_PROOF_SUBMIT",
+      "STORAGE_CAPACITY_PROOF_VERIFY"
+    ],
+    "validator": [
+      "VALIDATOR_HEARTBEAT",
+      "BLOCK_ATTEST",
+      "SLASH_EXECUTE"
+    ]
+  }
+}

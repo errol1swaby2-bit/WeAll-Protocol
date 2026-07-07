@@ -5,12 +5,25 @@ from typing import Any
 from weall.ledger.state import LedgerView
 from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from weall.runtime.block_time_admission import (
+    block_height_from_header,
+    block_ts_from_header,
+    chain_time_floor_ms_from_state,
+    has_material_block_timestamp,
+    validate_block_timestamp,
+)
 from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
+from weall.runtime.block_signature_profiles import validate_block_signature_profile
+from weall.crypto.signature_profiles import mode_requires_explicit_sig_profile
+from weall.runtime.protocol_profile import runtime_max_block_future_drift_ms
+from weall.runtime.public_protocol_policy import mark_public_protocol_policy_checked
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
 from weall.runtime.tx_id import compute_tx_id_from_envelope
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
+
+DEFAULT_MAX_BLOCK_TXS = 50_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +64,19 @@ def _as_str(v: Any) -> str:
 
 def _as_dict(v: Any) -> dict[str, Any]:
     return v if isinstance(v, dict) else {}
+
+
+def _ledger_with_account_nonce(ledger: LedgerView, signer: str, nonce: int) -> LedgerView:
+    """Return a ledger view with only ``signer``'s nonce cursor adjusted.
+
+    Block admission first validates signer nonce sequencing across the candidate
+    block.  Per-tx admission is then run against the state that would exist just
+    before that tx, so same-signer nonce N and N+1 can both be admitted in one
+    block without weakening replay safety.  The override is a read-only overlay,
+    not a full-ledger clone.
+    """
+
+    return ledger.with_account_nonce(str(signer or ""), max(0, int(nonce or 0)))
 
 
 def _as_list(v: Any) -> list[Any]:
@@ -268,7 +294,7 @@ def admit_block_txs(
     ledger: LedgerView,
     tx_index: TxIndex,
     *,
-    max_block_txs: int = 50_000,
+    max_block_txs: int = DEFAULT_MAX_BLOCK_TXS,
     verify_signatures: bool = True,
 ) -> tuple[bool, BlockReject | None, list[TxReject | None]]:
     """
@@ -310,9 +336,9 @@ def admit_block_txs(
     seen_signer_nonce: set[tuple[str, int]] = set()
     seen_tx_ids: set[str] = set()
 
-    chain_id = _as_str(ledger.to_ledger().get("chain_id") or "")
+    chain_id = _as_str(getattr(ledger, "chain_id", "") or "")
     if not chain_id:
-        chain_id = _as_str(_as_dict(ledger.to_ledger().get("params")).get("chain_id") or "")
+        chain_id = _as_str(_as_dict(getattr(ledger, "params", {})).get("chain_id") or "")
 
     for i, env in enumerate(txs):
         # Fail closed but deterministic: if the element isn't a TxEnvelope, mark rejected.
@@ -322,16 +348,6 @@ def admit_block_txs(
                 reason="tx_must_be_TxEnvelope",
                 details={"index": i, "type": str(type(env))},
             )
-            continue
-
-        verdict: TxVerdict = admit_tx(
-            ledger=ledger,
-            tx=env.to_json(),
-            canon=tx_index,
-            context="block" if bool(verify_signatures) else "local",
-        )
-        if not verdict.ok:
-            rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
             continue
 
         tx_id = ""
@@ -358,6 +374,17 @@ def admit_block_txs(
                     reason="system_tx_nonce_must_be_zero",
                     details={"index": i, "signer": env.signer, "have": int(env.nonce)},
                 )
+                continue
+            verdict: TxVerdict = admit_tx(
+                ledger=ledger,
+                tx=env,
+                canon=tx_index,
+                context="block" if bool(verify_signatures) else "local",
+            )
+            if not verdict.ok:
+                rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
+            else:
+                mark_public_protocol_policy_checked(env)
             continue
 
         signer = env.signer
@@ -387,6 +414,18 @@ def admit_block_txs(
             )
             continue
 
+        admission_ledger = _ledger_with_account_nonce(ledger, signer, int(env.nonce) - 1)
+        verdict: TxVerdict = admit_tx(
+            ledger=admission_ledger,
+            tx=env,
+            canon=tx_index,
+            context="block" if bool(verify_signatures) else "local",
+        )
+        if not verdict.ok:
+            rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
+            continue
+
+        mark_public_protocol_policy_checked(env)
         seen_signer_nonce.add(key)
         per_signer_next[signer] = int(expected) + 1
 
@@ -419,8 +458,31 @@ def admit_bft_block(
           * verify justify_qc threshold + signatures
           * enforce deterministic proposal leader/view validity
     """
+    if not isinstance(block, dict):
+        return False, BlockReject("bad_shape", "block_must_be_object", {"type": str(type(block))})
+
     effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
     if not effective_bft_enabled:
+        has_sig_material = bool(
+            block.get("sig_profile")
+            or block.get("signature")
+            or block.get("block_signature")
+            or block.get("proposer_signature")
+            or block.get("proposer_sig")
+        )
+        if has_sig_material and mode_requires_explicit_sig_profile():
+            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            ok_sig_profile, sig_reason = validate_block_signature_profile(
+                block,
+                chain_config=chain_config,
+                require_verifier=True,
+            )
+            if not ok_sig_profile:
+                return False, BlockReject(
+                    "bad_block_signature_profile",
+                    str(sig_reason),
+                    {"block_id": _as_str(block.get("block_id") or "")},
+                )
         return True, None
 
     if not isinstance(block, dict):
@@ -429,6 +491,24 @@ def admit_bft_block(
     ok_helper_meta, rej_helper_meta = _validate_helper_execution_metadata(block)
     if not ok_helper_meta:
         return False, rej_helper_meta
+
+    if has_material_block_timestamp(block):
+        height_hint = block_height_from_header(block)
+        ts_hint = block_ts_from_header(block)
+        time_verdict = validate_block_timestamp(
+            state=state,
+            height=int(height_hint),
+            block_ts_ms=int(ts_hint),
+            chain_floor_ms=chain_time_floor_ms_from_state(state),
+            max_block_time_advance_ms=int(runtime_max_block_future_drift_ms()),
+            mode=str(os.environ.get("WEALL_MODE", "") or ""),
+        )
+        if not bool(time_verdict.ok):
+            return False, BlockReject(
+                f"bft_block_time_{time_verdict.code or 'invalid'}",
+                str(time_verdict.reason or "block_time_invalid"),
+                dict(time_verdict.details or {}),
+            )
 
     blocks = state.get("blocks")
     blocks_map = blocks if isinstance(blocks, dict) else {}
@@ -508,6 +588,26 @@ def admit_bft_block(
         return False, BlockReject(
             "bft_missing_qc", "bft_enabled_requires_justify_qc", {"block_id": bid}
         )
+
+    if mode_requires_explicit_sig_profile():
+        has_sig_material = bool(
+            block.get("sig_profile")
+            or block.get("signature")
+            or block.get("block_signature")
+            or block.get("proposer_signature")
+            or block.get("proposer_sig")
+        )
+        if has_sig_material:
+            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            ok_sig_profile, sig_reason = validate_block_signature_profile(
+                block, chain_config=chain_config, require_verifier=True
+            )
+            if not ok_sig_profile:
+                return False, BlockReject(
+                    "bad_block_signature_profile",
+                    str(sig_reason),
+                    {"block_id": _as_str(block.get("block_id") or "")},
+                )
 
     if not isinstance(justify_qc, dict):
         return False, BlockReject(
@@ -628,6 +728,26 @@ def admit_bft_commit_block(
 
     effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
     if not effective_bft_enabled:
+        has_sig_material = bool(
+            block.get("sig_profile")
+            or block.get("signature")
+            or block.get("block_signature")
+            or block.get("proposer_signature")
+            or block.get("proposer_sig")
+        )
+        if has_sig_material and mode_requires_explicit_sig_profile():
+            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            ok_sig_profile, sig_reason = validate_block_signature_profile(
+                block,
+                chain_config=chain_config,
+                require_verifier=True,
+            )
+            if not ok_sig_profile:
+                return False, BlockReject(
+                    "bad_block_signature_profile",
+                    str(sig_reason),
+                    {"block_id": _as_str(block.get("block_id") or "")},
+                )
         return True, None
 
     effective_blocks = blocks_map if isinstance(blocks_map, dict) else {}

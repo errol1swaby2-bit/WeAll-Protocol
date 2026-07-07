@@ -7,7 +7,7 @@ import pytest
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.tx_admission import admit_tx
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 ROOT = Path(__file__).resolve().parents[1]
 API_ROOT = ROOT / "src" / "weall" / "api"
@@ -23,7 +23,7 @@ def _executor(tmp_path: Path, *, chain_id: str = "operator-ingress-prod") -> WeA
 
 
 def _signed_account_register(*, chain_id: str, signer: str = "@operatoruser", nonce: int = 1) -> dict[str, object]:
-    pub, priv = deterministic_ed25519_keypair(label=signer)
+    pub, priv = deterministic_mldsa_keypair(label=signer)
     payload = {"pubkey": pub}
     msg = canonical_tx_message(
         chain_id=chain_id,
@@ -39,6 +39,7 @@ def _signed_account_register(*, chain_id: str, signer: str = "@operatoruser", no
         "nonce": nonce,
         "payload": payload,
         "chain_id": chain_id,
+        "sig_profile": "pq-mldsa-v1",
         "sig": priv.sign(msg).hex(),
     }
 
@@ -63,6 +64,36 @@ def test_prod_operator_ingress_rejects_unsigned_user_tx(tmp_path: Path, monkeypa
     submitted = ex.submit_tx(unsigned, ingress="operator")
     assert submitted["ok"] is False
     assert submitted["error"] == "missing_sig"
+
+
+@pytest.mark.parametrize("context", ["http", "operator"])
+def test_explicit_public_ingress_rejects_malformed_modeled_payload_before_acceptance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, context: str
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "dev")
+    monkeypatch.setenv("WEALL_SIGVERIFY", "0")
+    ex = _executor(tmp_path, chain_id="explicit-ingress-schema")
+    state = ex.read_state()
+    state.setdefault("accounts", {})["@alice"] = {
+        "nonce": 0,
+        "poh_tier": 2,
+        "reputation_milli": 1_000_000,
+        "pubkey": "test-pubkey",
+    }
+
+    malformed_comment = {
+        "tx_type": "CONTENT_COMMENT_CREATE",
+        "signer": "@alice",
+        "nonce": 1,
+        "payload": {"post_id": "post-1"},
+        "chain_id": ex.chain_id,
+    }
+
+    verdict = admit_tx(malformed_comment, state, ex.tx_index, context=context)
+
+    assert verdict.ok is False
+    assert verdict.code == "invalid_payload"
+    assert verdict.reason == "schema_validation_failed"
 
 
 

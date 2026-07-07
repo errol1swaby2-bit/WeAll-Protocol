@@ -31,7 +31,7 @@ cd "${PROTO_DIR}"
 # Fast, high-signal subset that covers the web<->backend surface congruity
 pytest -q \
   tests/test_api_contract_shapes_minimal.py \
-  tests/test_no_email_poh_code_remaining_batch254.py
+  tests/test_no_email_poh_code_remaining.py
 
 # Core PoH flows + auth hardening
 pytest -q \
@@ -43,9 +43,9 @@ pytest -q \
 # Content + governance high-signal invariants (keep these if they stay fast)
 pytest -q \
   tests/test_gates_scoped_and_reputation.py \
-  tests/test_poh_async_native_tier1_batch252.py \
-  tests/test_no_required_external_identity_provider_artifacts_batch255.py \
-  tests/test_prod_preflight_external_identity_free_batch255.py
+  tests/test_poh_async_native_tier1.py \
+  tests/test_no_required_external_identity_provider_artifacts.py \
+  tests/test_prod_preflight_external_identity_free.py
 
 echo
 

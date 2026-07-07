@@ -18,7 +18,7 @@ fail() {
 
 # Shared boundary rejects WEALL_AUTHORITY_SIGNER_PRIVKEY, WEALL_AUTHORITY_PRIVKEY,
 # WEALL_ORACLE_AUTHORITY_SIGNER_PRIVKEY, WEALL_ORACLE_AUTHORITY_PRIVKEY,
-# WEALL_CLOUDFLARE_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
+# WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN, and SMTP_SECRET_VAR="WEALL_SM""TP_PASSWORD".
 # It also rejects *_FILE variants and other external identity-provider secrets.
 # shellcheck disable=SC1091
 . "${ROOT_DIR}/scripts/lib/observer_secret_boundary.sh"
@@ -71,8 +71,8 @@ GENESIS_API_BASE="${GENESIS_API_BASE%/}"
 # Reject obvious local/self/metadata endpoints.  Historical cases covered here
 # include http://127.0.0.1*, http://localhost*, https://127.0.0.1*, and
 # https://localhost*.  IPv6 loopback, unspecified addresses, link-local hosts,
-# and private LAN IPs require WEALL_ALLOW_PRIVATE_GENESIS_API=1.
-python3 - "${GENESIS_API_BASE}" "${WEALL_ALLOW_PRIVATE_GENESIS_API:-0}" <<'PY_NONLOCAL_API'
+# and LAN IPs require WEALL_ALLOW_LAN_GENESIS_API=1.
+python3 - "${GENESIS_API_BASE}" "${WEALL_ALLOW_LAN_GENESIS_API:-0}" <<'PY_NONLOCAL_API'
 from __future__ import annotations
 
 import ipaddress
@@ -98,7 +98,7 @@ if ip is not None:
     if str(ip) == "169.254.169.254":
         raise SystemExit("external_observer_genesis_api_metadata_service_forbidden")
     if ip.is_private and allow_private not in {"1", "true", "TRUE", "yes", "YES", "on", "ON"}:
-        raise SystemExit("external_observer_private_genesis_api_requires_WEALL_ALLOW_PRIVATE_GENESIS_API=1")
+        raise SystemExit("external_observer_lan_genesis_api_requires_WEALL_ALLOW_LAN_GENESIS_API=1")
 print("OK: genesis API base is non-local for external observer live gate")
 PY_NONLOCAL_API
 
@@ -211,14 +211,15 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from nacl.signing import SigningKey
+from weall.crypto.pq_mldsa import generate_mldsa65_keypair
 path = Path(sys.argv[1])
-sk = SigningKey.generate()
+kp = generate_mldsa65_keypair(encoding="hex")
 out = {
-    "key_type": "ed25519",
+    "key_type": "mldsa",
+    "sig_profile": "pq-mldsa-v1",
     "purpose": "external_observer_node_identity",
-    "private_key_hex": sk.encode().hex(),
-    "public_key_hex": sk.verify_key.encode().hex(),
+    "private_key_hex": kp["privkey"],
+    "public_key_hex": kp["pubkey"],
 }
 path.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 path.chmod(0o600)

@@ -1,0 +1,222 @@
+{
+  "anti_sybil_evidence_retention_recovery": {
+    "batch": "552",
+    "challenge_id": "pohc:@alice:2",
+    "collusion_detection_claimed": false,
+    "duplicate_human_detection_claimed": false,
+    "false_positive_recovery_path_present": true,
+    "ok": true,
+    "resolution": "upheld",
+    "retention_after_reverification": {
+      "account_id": "@alice",
+      "appeal_remedy_available": false,
+      "case_id": "case-r",
+      "challenge_id": "pohc:@alice:2",
+      "deletion_eligible": true,
+      "history": [
+        {
+          "account_id": "@alice",
+          "case_id": "case-a",
+          "challenge_id": "pohc:@alice:2",
+          "event": "poh_challenge_evidence_retention_policy",
+          "height": 12,
+          "status": "retain_until_reverification_or_appeal"
+        },
+        {
+          "account_id": "@alice",
+          "case_id": "case-r",
+          "challenge_id": "pohc:@alice:2",
+          "event": "poh_challenge_evidence_retention_policy",
+          "height": 12,
+          "status": "remedy_completed_minimal_retention"
+        }
+      ],
+      "reason": "reverification_completed",
+      "status": "remedy_completed_minimal_retention",
+      "updated_height": 12
+    },
+    "retention_before_reverification": {
+      "account_id": "@alice",
+      "appeal_remedy_available": true,
+      "case_id": "case-a",
+      "challenge_id": "pohc:@alice:2",
+      "deletion_eligible": false,
+      "history": [
+        {
+          "account_id": "@alice",
+          "case_id": "case-a",
+          "challenge_id": "pohc:@alice:2",
+          "event": "poh_challenge_evidence_retention_policy",
+          "height": 12,
+          "status": "retain_until_reverification_or_appeal"
+        }
+      ],
+      "reason": "challenge_upheld",
+      "status": "retain_until_reverification_or_appeal",
+      "updated_height": 12
+    },
+    "reverification_status": "completed",
+    "reviewer_accountability_recorded": true,
+    "subject_status_after_upheld": null
+  },
+  "batch_range": "549-553",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "complete_anti_sybil_solved": false,
+    "live_economics": false,
+    "mainnet_readiness": false,
+    "personalized_feed_ranking": false,
+    "production_helper_execution": false,
+    "public_multi_validator_bft": false,
+    "public_validator_readiness": false
+  },
+  "controlled_testnet_candidate_evidence": {
+    "controlled_testnet_rehearsal_candidate": true,
+    "evidence_retention_policy_present": true,
+    "poh_challenge_public_client_gap_closed": true,
+    "public_beta_ready": false,
+    "storage_operator_count": 3,
+    "validator_rehearsal_node_count": 4
+  },
+  "long_lived_validator_network_skeleton": {
+    "all_nodes_replayed_committed_blocks": true,
+    "batch": "550",
+    "block_producer_surface_used": "weall.services.block_producer._produce_once",
+    "long_lived_tick_window_ms": 400,
+    "net_loop_class": "weall.net.net_loop.NetMeshLoop",
+    "node_count": 4,
+    "ok": true,
+    "peer_uris_configured_count": 12,
+    "ports_bound_count": 4,
+    "produced_height": 2,
+    "producer_delegate": "WeAllExecutor.produce_block",
+    "public_beta_ready": false,
+    "public_validator_enabled": false,
+    "restart_exercised": true,
+    "restart_root_matches": true,
+    "roots_after": [
+      "1a69d3bc1ea2eaaa33ccb69090d21927450786dc050a983cf3c715f76c35306a",
+      "1a69d3bc1ea2eaaa33ccb69090d21927450786dc050a983cf3c715f76c35306a",
+      "1a69d3bc1ea2eaaa33ccb69090d21927450786dc050a983cf3c715f76c35306a",
+      "1a69d3bc1ea2eaaa33ccb69090d21927450786dc050a983cf3c715f76c35306a"
+    ],
+    "roots_before": [
+      "1a69d3bc1ea2eaaa33ccb69090d21927450786dc050a983cf3c715f76c35306a",
+      "1a69d3bc1ea2eaaa33ccb69090d21927450786dc050a983cf3c715f76c35306a",
+      "1a69d3bc1ea2eaaa33ccb69090d21927450786dc050a983cf3c715f76c35306a",
+      "1a69d3bc1ea2eaaa33ccb69090d21927450786dc050a983cf3c715f76c35306a"
+    ],
+    "transport": "tcp://127.0.0.1"
+  },
+  "multi_operator_storage_durability": {
+    "availability_status": "available",
+    "base_worker_proof": {
+      "availability_status": "available",
+      "batch": "546",
+      "confirmation_receipt": {
+        "applied": "IPFS_PIN_CONFIRM",
+        "ok": true,
+        "pin_id": "pin-b546",
+        "reassignment": {
+          "failed_operator_id": "op-a",
+          "reassigned": true,
+          "replacement_operator_id": "op-b",
+          "targets": [
+            "op-b"
+          ]
+        },
+        "receipt": true
+      },
+      "enqueue_initial": {
+        "cid": "QmYwAPJzv5CZsnAzt8auVTLuRtKfXVDRzi4PhN6dZm8D8h",
+        "job_id": 1,
+        "ok": true,
+        "targets": [
+          "op-a"
+        ]
+      },
+      "enqueue_replacement": {
+        "cid": "QmYwAPJzv5CZsnAzt8auVTLuRtKfXVDRzi4PhN6dZm8D8h",
+        "job_id": 2,
+        "ok": true,
+        "targets": [
+          "op-b"
+        ]
+      },
+      "failed_operator": "op-a",
+      "failed_worker_stats": {
+        "dry_run": false,
+        "failed": 1,
+        "ok": true,
+        "pinned": 0,
+        "processed": 1,
+        "skipped": 0
+      },
+      "failure_api_requests": 1,
+      "failure_receipt": {
+        "applied": "IPFS_PIN_CONFIRM",
+        "ok": false,
+        "pin_id": "pin-b546",
+        "reassignment": {
+          "failed_operator_id": "op-a",
+          "reassigned": true,
+          "replacement_operator_id": "op-b",
+          "targets": [
+            "op-b"
+          ]
+        },
+        "receipt": true
+      },
+      "ipfs_enabled": true,
+      "ok": true,
+      "reassignment_recorded": true,
+      "replacement_operator": "op-b",
+      "replacement_worker_stats": {
+        "dry_run": false,
+        "failed": 0,
+        "ok": true,
+        "pinned": 1,
+        "processed": 1,
+        "skipped": 0
+      },
+      "retrieval_confirmed": true,
+      "retrieval_proof_count": 1,
+      "success_api_requests": 1,
+      "worker_model": "IpfsPinWorker_with_local_http_ipfs_api"
+    },
+    "batch": "551",
+    "failed_operator": "op-a",
+    "multi_operator_count": 3,
+    "ok": true,
+    "operators_modeled": [
+      "op-a",
+      "op-b",
+      "op-c"
+    ],
+    "public_decentralized_media_claimed": false,
+    "reassignment_recorded": true,
+    "replacement_operator": "op-b",
+    "retrieval_confirmed": true,
+    "truth_boundary": "Local IPFS-compatible worker proof with multiple operators modeled; not a multi-machine IPFS durability claim."
+  },
+  "ok": true,
+  "poh_challenge_public_write": {
+    "batch": "549",
+    "challenge_case_id": "case-a",
+    "challenge_id": "pohc:@alice:2",
+    "challenge_status": "open",
+    "ok": true,
+    "public_client_write_gap_closed": true,
+    "skeleton_route": "POST /v1/poh/challenge/tx/open",
+    "submit_route": "POST /v1/tx/submit POH_CHALLENGE_OPEN",
+    "system_or_receipt_submission_required": false
+  },
+  "remaining_public_testnet_gaps": [
+    "public validator readiness still requires long-running full production BFT gossip/QC/mempool multi-node proof",
+    "storage durability proof is local IPFS-compatible worker/operator rehearsal, not a public multi-machine IPFS network",
+    "PoH challenge public write path is available, but duplicate-human and reviewer-collusion detection are not fully solved",
+    "live economics remains locked pending reward-farming, wallet, treasury, legal, and long-run simulation review",
+    "production helper execution remains disabled pending full serial-equivalence and adversarial multi-node proof"
+  ],
+  "schema": "weall.v1_5.batch549_553.controlled_testnet_candidate_proof"
+}

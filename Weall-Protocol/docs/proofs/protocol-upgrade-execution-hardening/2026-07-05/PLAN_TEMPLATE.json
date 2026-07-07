@@ -1,0 +1,34 @@
+{
+  "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan",
+  "blocker": "AUD-618-P0-003",
+  "template_only": true,
+  "external_execution_evidence_attached": false,
+  "current_record_only_boundary": {
+    "protocol_upgrade_records_only": true,
+    "constitution_upgrade_records_only": true,
+    "automatic_protocol_upgrades": false,
+    "artifact_fetch_enabled": false,
+    "software_apply_enabled": false,
+    "migration_execution_enabled": false,
+    "rollback_execution_enabled": false,
+    "node_restart_enabled": false,
+    "economics_activation_enabled": false
+  },
+  "future_required_evidence": {
+    "signed_artifact_manifest": "required",
+    "compatibility_window": "required",
+    "deterministic_migration_vectors": "required",
+    "rollback_or_forward_repair_semantics": "required",
+    "operator_approval_policy": "required",
+    "multi_node_staged_rollout": "required",
+    "crash_restart_recovery": "required",
+    "external_transcript": "required"
+  },
+  "claim_boundaries": {
+    "public_beta_ready": false,
+    "mainnet_ready": false,
+    "automatic_protocol_upgrades": false,
+    "live_economics": false,
+    "public_validator_enabled": false
+  }
+}

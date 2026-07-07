@@ -18,6 +18,12 @@ class ApiConfig:
     mode: str  # "gateway" | "node" | free-form deployment mode tag
     nodes_registry_token: str | None
     nodes_registry_path: str | None
+    public_testnet: bool
+    public_seed_registry_path: str | None
+    expected_chain_id: str
+    expected_genesis_hash: str
+    expected_tx_index_hash: str
+    expected_protocol_profile_hash: str
 
 
 _EMPTY_REGISTRY = {"version": 1, "nodes": []}
@@ -37,6 +43,7 @@ def load_api_config() -> ApiConfig:
     mode = str(os.getenv("WEALL_API_MODE", "gateway") or "gateway").strip().lower() or "gateway"
     token_raw = os.getenv("WEALL_NODES_REGISTRY_TOKEN")
     path_raw = os.getenv("WEALL_NODES_REGISTRY_PATH")
+    public_seed_path_raw = os.getenv("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH") or os.getenv("WEALL_PUBLIC_SEED_REGISTRY_PATH")
 
     token = str(token_raw).strip() if token_raw is not None else None
     if token == "":
@@ -46,10 +53,26 @@ def load_api_config() -> ApiConfig:
     if path == "":
         path = None
 
+    public_seed_path = str(public_seed_path_raw).strip() if public_seed_path_raw is not None else None
+    if public_seed_path == "":
+        public_seed_path = None
+
     if _is_prod() and path_raw is not None and path is None:
         raise ApiConfigError("api_nodes_registry_path_empty")
+    if _is_prod() and public_seed_path_raw is not None and public_seed_path is None:
+        raise ApiConfigError("api_public_seed_registry_path_empty")
 
-    return ApiConfig(mode=mode, nodes_registry_token=token, nodes_registry_path=path)
+    return ApiConfig(
+        mode=mode,
+        nodes_registry_token=token,
+        nodes_registry_path=path,
+        public_testnet=_is_truthy(os.getenv("WEALL_PUBLIC_TESTNET")),
+        public_seed_registry_path=public_seed_path,
+        expected_chain_id=str(os.getenv("WEALL_EXPECTED_CHAIN_ID") or os.getenv("WEALL_CHAIN_ID") or "").strip(),
+        expected_genesis_hash=str(os.getenv("WEALL_EXPECTED_GENESIS_HASH") or os.getenv("WEALL_GENESIS_HASH") or "").strip(),
+        expected_tx_index_hash=str(os.getenv("WEALL_EXPECTED_TX_INDEX_HASH") or "").strip(),
+        expected_protocol_profile_hash=str(os.getenv("WEALL_EXPECTED_PROTOCOL_PROFILE_HASH") or "").strip(),
+    )
 
 
 def read_nodes_registry(path: str | None) -> dict:

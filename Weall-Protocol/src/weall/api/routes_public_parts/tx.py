@@ -18,6 +18,14 @@ from fastapi import APIRouter, Request
 from pydantic import ValidationError
 
 from weall.api.errors import ApiError
+from weall.api.public_seed_registry import (
+    PublicSeedRegistryError,
+    commitment_payload,
+    load_public_seed_registry,
+    public_seed_registry_path,
+    public_testnet_enabled,
+    verified_tx_upstreams_from_registry,
+)
 from weall.api.routes_public_parts.common import (
     _executor,
     _mempool,
@@ -35,18 +43,19 @@ router = APIRouter()
 
 Json = dict[str, Any]
 
-_OUTBOX_AUTODRAIN_LOCK = threading.Lock()
-_OUTBOX_AUTODRAIN_STOP: threading.Event | None = None
-_OUTBOX_AUTODRAIN_THREAD: threading.Thread | None = None
+_TX_QUEUE_AUTODRAIN_LOCK = threading.Lock()
+_TX_QUEUE_AUTODRAIN_STOP: threading.Event | None = None
+_TX_QUEUE_AUTODRAIN_THREAD: threading.Thread | None = None
 
 
 _TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
     "BLOCK_ATTEST": ["/v1/consensus/attest/submit"],
-    "POH_TIER2_REQUEST_OPEN": ["/v1/poh/tier2/tx/request", "/v1/tx/submit"],
+    "POH_CHALLENGE_OPEN": ["/v1/poh/challenge/tx/open", "/v1/tx/submit"],
+    "POH_TIER2_REQUEST_OPEN": ["/v1/tx/submit"],
     "POH_LIVE_REQUEST_OPEN": ["/v1/poh/live/tx/request", "/v1/tx/submit"],
-    "POH_TIER2_JUROR_ACCEPT": ["/v1/poh/tier2/tx/juror-accept", "/v1/tx/submit"],
-    "POH_TIER2_JUROR_DECLINE": ["/v1/poh/tier2/tx/juror-decline", "/v1/tx/submit"],
-    "POH_TIER2_REVIEW_SUBMIT": ["/v1/poh/tier2/tx/review", "/v1/tx/submit"],
+    "POH_TIER2_JUROR_ACCEPT": ["/v1/tx/submit"],
+    "POH_TIER2_JUROR_DECLINE": ["/v1/tx/submit"],
+    "POH_TIER2_REVIEW_SUBMIT": ["/v1/tx/submit"],
     "POH_LIVE_JUROR_ACCEPT": ["/v1/poh/live/tx/juror-accept", "/v1/tx/submit"],
     "POH_LIVE_JUROR_DECLINE": ["/v1/poh/live/tx/juror-decline", "/v1/tx/submit"],
     "POH_LIVE_ATTENDANCE_MARK": ["/v1/poh/live/tx/attendance", "/v1/tx/submit"],
@@ -126,8 +135,8 @@ def _observer_edge_mode() -> bool:
     )
 
 
-def _normalized_tx_upstream_urls() -> list[str]:
-    """Return explicitly configured tx upstream API bases.
+def _normalized_tx_upstream_urls(request: Request | None = None) -> list[str]:
+    """Return configured or verified public tx upstream API bases.
 
     A local observer edge node may accept signed user txs from its local
     frontend, then forward the identical envelope to genesis or another upstream
@@ -143,10 +152,22 @@ def _normalized_tx_upstream_urls() -> list[str]:
             or os.environ.get("WEALL_BOOTSTRAP_URL")
             or ""
         ).strip()
+    max_upstreams = _env_int_safe("WEALL_TX_UPSTREAM_MAX_TARGETS", 4, minimum=1, maximum=16)
+
+    if not raw and public_testnet_enabled():
+        cfg = getattr(request.app.state, "cfg", None) if request is not None else None
+        try:
+            registry = load_public_seed_registry(
+                public_seed_registry_path(getattr(cfg, "public_seed_registry_path", None) if cfg is not None else None)
+            )
+            derived = verified_tx_upstreams_from_registry(registry)[:max_upstreams]
+            raw = ",".join(derived)
+        except PublicSeedRegistryError:
+            raw = ""
+
     if not raw:
         return []
 
-    max_upstreams = _env_int_safe("WEALL_TX_UPSTREAM_MAX_TARGETS", 4, minimum=1, maximum=16)
     out: list[str] = []
     seen: set[str] = set()
     for item in raw.replace("\n", ",").split(","):
@@ -171,6 +192,40 @@ def _normalized_tx_upstream_urls() -> list[str]:
     return out
 
 
+def _public_commitments_for_request(request: Request | None = None) -> Json:
+    if not public_testnet_enabled():
+        return {}
+    cfg = getattr(request.app.state, "cfg", None) if request is not None else None
+    try:
+        registry = load_public_seed_registry(
+            public_seed_registry_path(getattr(cfg, "public_seed_registry_path", None) if cfg is not None else None)
+        )
+        return commitment_payload(registry)
+    except PublicSeedRegistryError:
+        return {}
+
+
+def _expected_upstream_commitments_from_env() -> Json:
+    return {
+        "chain_id": str(os.environ.get("WEALL_EXPECTED_CHAIN_ID") or os.environ.get("WEALL_CHAIN_ID") or "").strip(),
+        "genesis_hash": str(os.environ.get("WEALL_EXPECTED_GENESIS_HASH") or os.environ.get("WEALL_GENESIS_HASH") or "").strip(),
+        "tx_index_hash": str(os.environ.get("WEALL_EXPECTED_TX_INDEX_HASH") or "").strip(),
+        "protocol_profile_hash": str(os.environ.get("WEALL_EXPECTED_PROTOCOL_PROFILE_HASH") or "").strip(),
+    }
+
+
+def _merge_expected_commitments(*values: Json) -> Json:
+    out: Json = {}
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        for key in ("chain_id", "genesis_hash", "tx_index_hash", "protocol_profile_hash"):
+            v = str(value.get(key) or "").strip()
+            if v:
+                out[key] = v
+    return out
+
+
 def _redact_upstream_url(url: str) -> str:
     try:
         parsed = urllib.parse.urlparse(str(url or ""))
@@ -182,9 +237,14 @@ def _redact_upstream_url(url: str) -> str:
         return "<invalid>"
 
 
-def _forward_tx_to_upstream(url: str, body: Json, *, tx_id: str, timeout_s: int) -> Json:
+def _forward_tx_to_upstream(url: str, body: Json, *, tx_id: str, timeout_s: int, expected_commitments: Json | None = None) -> Json:
     expected_chain_id = str(body.get("chain_id") or "").strip() if isinstance(body, dict) else ""
-    identity = _verify_upstream_identity(url, expected_chain_id=expected_chain_id, timeout_s=timeout_s)
+    identity = _verify_upstream_identity(
+        url,
+        expected_chain_id=expected_chain_id,
+        timeout_s=timeout_s,
+        expected_commitments=expected_commitments,
+    )
     if not bool(identity.get("ok")):
         return {"ok": False, "error": str(identity.get("error") or "upstream_identity_failed"), "identity": identity, "upstream": _redact_upstream_url(url)}
 
@@ -252,12 +312,27 @@ def _propagate_tx_to_configured_upstreams(request: Request, body: Json, *, tx_id
     if str(request.headers.get("x-weall-observer-forwarded") or "").strip() == "1":
         return {"attempted": False, "accepted": False, "skipped": "already_forwarded", "results": []}
 
-    urls = _normalized_tx_upstream_urls()
+    urls = _normalized_tx_upstream_urls(request)
     if not urls:
-        return {"attempted": False, "accepted": False, "skipped": "no_upstreams_configured", "results": []}
+        skipped = "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "no_upstreams_configured"
+        return {"attempted": False, "accepted": False, "skipped": skipped, "error": skipped, "results": []}
 
     timeout_s = _env_int_safe("WEALL_TX_UPSTREAM_TIMEOUT_S", 5, minimum=1, maximum=60)
-    results = [_forward_tx_to_upstream(url, body, tx_id=tx_id, timeout_s=timeout_s) for url in urls]
+    expected_commitments = _merge_expected_commitments(
+        _expected_upstream_commitments_from_env(),
+        _public_commitments_for_request(request),
+        {"chain_id": str(body.get("chain_id") or "").strip()} if isinstance(body, dict) else {},
+    )
+    results = [
+        _forward_tx_to_upstream(
+            url,
+            body,
+            tx_id=tx_id,
+            timeout_s=timeout_s,
+            expected_commitments=expected_commitments,
+        )
+        for url in urls
+    ]
     accepted = any(bool(r.get("ok")) for r in results if isinstance(r, dict))
     return {"attempted": True, "accepted": bool(accepted), "results": results}
 
@@ -305,25 +380,25 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def _tx_outbox_path() -> Path:
-    raw = str(os.environ.get("WEALL_TX_OUTBOX_PATH") or "").strip()
+def _tx_queue_path() -> Path:
+    raw = str(os.environ.get("WEALL_TX_QUEUE_PATH") or "").strip()
     if raw:
         return Path(raw).expanduser()
-    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "observer_tx_outbox.json"
+    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "observer_tx_queue.json"
 
 
 @contextlib.contextmanager
-def _tx_outbox_lock():
-    """Serialize observer outbox read/modify/write cycles.
+def _tx_queue_lock():
+    """Serialize observer tx queue read/modify/write cycles.
 
-    The observer outbox is intentionally a small local durability queue, not
+    The observer tx queue is intentionally a small local durability queue, not
     consensus state.  A file lock is sufficient for the single-machine observer
     edge posture and prevents concurrent frontend submissions from racing the
     JSON file.  The lock file itself is not secret and may live beside the
-    outbox.
+    tx_queue.
     """
 
-    path = _tx_outbox_path()
+    path = _tx_queue_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_suffix(path.suffix + ".lock")
     with lock_path.open("a+", encoding="utf-8") as fh:
@@ -334,7 +409,7 @@ def _tx_outbox_lock():
             fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
-def _quarantine_corrupt_outbox(path: Path, reason: str) -> None:
+def _quarantine_corrupt_tx_queue(path: Path, reason: str) -> None:
     try:
         if not path.exists():
             return
@@ -348,8 +423,8 @@ def _quarantine_corrupt_outbox(path: Path, reason: str) -> None:
         return
 
 
-def _load_tx_outbox_unlocked(*, quarantine_corrupt: bool = True) -> list[Json]:
-    path = _tx_outbox_path()
+def _load_tx_queue_unlocked(*, quarantine_corrupt: bool = True) -> list[Json]:
+    path = _tx_queue_path()
     try:
         raw_text = path.read_text(encoding="utf-8")
         raw = json.loads(raw_text)
@@ -357,29 +432,29 @@ def _load_tx_outbox_unlocked(*, quarantine_corrupt: bool = True) -> list[Json]:
         return []
     except Exception:
         if quarantine_corrupt:
-            _quarantine_corrupt_outbox(path, "json_parse_failed")
+            _quarantine_corrupt_tx_queue(path, "json_parse_failed")
         return []
     rows = raw.get("records") if isinstance(raw, dict) else raw
     if not isinstance(rows, list):
         if quarantine_corrupt:
-            _quarantine_corrupt_outbox(path, "bad_shape")
+            _quarantine_corrupt_tx_queue(path, "bad_shape")
         return []
     return [r for r in rows if isinstance(r, dict)]
 
 
-def _outbox_created_ms(rec: Json) -> int:
+def _tx_queue_created_ms(rec: Json) -> int:
     try:
         return int(rec.get("created_ms") or rec.get("updated_ms") or 0)
     except Exception:
         return 0
 
 
-def _prune_tx_outbox_rows(rows: list[Json]) -> list[Json]:
+def _prune_tx_queue_rows(rows: list[Json]) -> list[Json]:
     now = _now_ms()
-    ttl_ms = _env_int_safe("WEALL_TX_OUTBOX_TTL_MS", 7 * 24 * 60 * 60 * 1000, minimum=60_000, maximum=365 * 24 * 60 * 60 * 1000)
-    confirmed_ttl_ms = _env_int_safe("WEALL_TX_OUTBOX_CONFIRMED_TTL_MS", 24 * 60 * 60 * 1000, minimum=60_000, maximum=365 * 24 * 60 * 60 * 1000)
-    max_records = _env_int_safe("WEALL_TX_OUTBOX_MAX_RECORDS", 5000, minimum=1, maximum=50000)
-    max_bytes = _env_int_safe("WEALL_TX_OUTBOX_MAX_BYTES", 10 * 1024 * 1024, minimum=64 * 1024, maximum=1024 * 1024 * 1024)
+    ttl_ms = _env_int_safe("WEALL_TX_QUEUE_TTL_MS", 7 * 24 * 60 * 60 * 1000, minimum=60_000, maximum=365 * 24 * 60 * 60 * 1000)
+    confirmed_ttl_ms = _env_int_safe("WEALL_TX_QUEUE_CONFIRMED_TTL_MS", 24 * 60 * 60 * 1000, minimum=60_000, maximum=365 * 24 * 60 * 60 * 1000)
+    max_records = _env_int_safe("WEALL_TX_QUEUE_MAX_RECORDS", 5000, minimum=1, maximum=50000)
+    max_bytes = _env_int_safe("WEALL_TX_QUEUE_MAX_BYTES", 10 * 1024 * 1024, minimum=64 * 1024, maximum=1024 * 1024 * 1024)
 
     kept: list[Json] = []
     for rec in rows:
@@ -389,7 +464,7 @@ def _prune_tx_outbox_rows(rows: list[Json]) -> list[Json]:
         if not tx_id:
             continue
         status = str(rec.get("upstream_status") or "pending").strip() or "pending"
-        created_ms = _outbox_created_ms(rec)
+        created_ms = _tx_queue_created_ms(rec)
         updated_ms = int(rec.get("updated_ms") or created_ms or now)
         envelope = rec.get("envelope") if isinstance(rec.get("envelope"), dict) else {}
         expires_ms = 0
@@ -405,7 +480,7 @@ def _prune_tx_outbox_rows(rows: list[Json]) -> list[Json]:
             continue
         kept.append(rec)
 
-    kept.sort(key=_outbox_created_ms, reverse=True)
+    kept.sort(key=_tx_queue_created_ms, reverse=True)
     kept = kept[:max_records]
 
     # Enforce a coarse disk budget. Prefer dropping oldest confirmed records,
@@ -417,52 +492,52 @@ def _prune_tx_outbox_rows(rows: list[Json]) -> list[Json]:
             return max_bytes + 1
 
     if _size(kept) > max_bytes:
-        kept.sort(key=lambda r: (0 if str(r.get("upstream_status") or "") == "confirmed" else 1, _outbox_created_ms(r)))
+        kept.sort(key=lambda r: (0 if str(r.get("upstream_status") or "") == "confirmed" else 1, _tx_queue_created_ms(r)))
         while kept and _size(kept) > max_bytes:
             kept.pop(0)
-    kept.sort(key=_outbox_created_ms)
+    kept.sort(key=_tx_queue_created_ms)
     return kept
 
 
-def _write_tx_outbox_unlocked(rows: list[Json]) -> None:
-    path = _tx_outbox_path()
+def _write_tx_queue_unlocked(rows: list[Json]) -> None:
+    path = _tx_queue_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    rows = _prune_tx_outbox_rows(rows)
+    rows = _prune_tx_queue_rows(rows)
     payload = {"version": 2, "records": rows}
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, sort_keys=True, indent=2), encoding="utf-8")
     os.replace(tmp, path)
 
 
-def _read_tx_outbox() -> list[Json]:
-    with _tx_outbox_lock():
-        rows = _load_tx_outbox_unlocked()
-        pruned = _prune_tx_outbox_rows(rows)
+def _read_tx_queue() -> list[Json]:
+    with _tx_queue_lock():
+        rows = _load_tx_queue_unlocked()
+        pruned = _prune_tx_queue_rows(rows)
         if len(pruned) != len(rows):
-            _write_tx_outbox_unlocked(pruned)
+            _write_tx_queue_unlocked(pruned)
         return [dict(r) for r in pruned]
 
 
-def _read_tx_outbox_best_effort() -> list[Json]:
-    """Read observer outbox for public status paths without crashing.
+def _read_tx_queue_best_effort() -> list[Json]:
+    """Read observer tx queue for public status paths without crashing.
 
-    The observer tx outbox is local diagnostic/propagation state, not consensus
+    The observer tx queue is local diagnostic/propagation state, not consensus
     state. Public tx-status must remain read-only-safe even when a deployment
-    runs with a read-only application tree or the outbox path is unavailable.
-    In that case, fail closed by reporting no local outbox record.
+    runs with a read-only application tree or the tx queue path is unavailable.
+    In that case, fail closed by reporting no local tx queue record.
     """
     try:
-        return _read_tx_outbox()
+        return _read_tx_queue()
     except OSError:
         return []
 
 
-def _write_tx_outbox(rows: list[Json]) -> None:
-    with _tx_outbox_lock():
-        _write_tx_outbox_unlocked(rows)
+def _write_tx_queue(rows: list[Json]) -> None:
+    with _tx_queue_lock():
+        _write_tx_queue_unlocked(rows)
 
 
-def _outbox_record_for(rows: list[Json], tx_id: str) -> Json | None:
+def _tx_queue_record_for(rows: list[Json], tx_id: str) -> Json | None:
     want = str(tx_id or "").strip()
     for rec in rows:
         if str(rec.get("tx_id") or "").strip() == want:
@@ -470,7 +545,7 @@ def _outbox_record_for(rows: list[Json], tx_id: str) -> Json | None:
     return None
 
 
-def _outbox_counts(rows: list[Json]) -> Json:
+def _tx_queue_counts(rows: list[Json]) -> Json:
     counts: dict[str, int] = {}
     for rec in rows:
         status = str(rec.get("upstream_status") or rec.get("status") or "pending").strip() or "pending"
@@ -478,12 +553,73 @@ def _outbox_counts(rows: list[Json]) -> Json:
     return counts
 
 
-def _compact_tx_outbox_result(value: Any, *, _depth: int = 0) -> Json:
-    """Return a bounded, non-recursive observer outbox diagnostic result.
+def _tx_queue_pending_max_nonce_for_account(account: str) -> int:
+    signer = str(account or "").strip()
+    if not signer:
+        return 0
+    max_nonce = 0
+    for rec in _read_tx_queue_best_effort():
+        if not isinstance(rec, dict):
+            continue
+        status = str(rec.get("upstream_status") or rec.get("status") or "pending").strip() or "pending"
+        if status == "confirmed" and bool(rec.get("local_state_synced", False)):
+            continue
+        env = rec.get("envelope") if isinstance(rec.get("envelope"), dict) else {}
+        if str(env.get("signer") or "").strip() != signer:
+            continue
+        try:
+            nonce = int(env.get("nonce") or 0)
+        except Exception:
+            continue
+        if nonce > max_nonce:
+            max_nonce = nonce
+    return max_nonce
 
-    Outbox records are operator diagnostics, not consensus state.  They should
+
+def _mempool_pending_max_nonce_for_account(request: Request, account: str) -> int:
+    signer = str(account or "").strip()
+    if not signer:
+        return 0
+    try:
+        mp = _mempool(request)
+        fn = getattr(mp, "pending_max_nonce", None)
+        if callable(fn):
+            return max(0, int(fn(signer)))
+    except Exception:
+        return 0
+    return 0
+
+
+def _account_nonce_summary(request: Request, account: str) -> Json:
+    signer = str(account or "").strip()
+    st = _snapshot(request)
+    ledger = LedgerView.from_ledger(st)
+    acct = ledger.accounts.get(signer) if isinstance(ledger.accounts, dict) else None
+    try:
+        chain_nonce = int(acct.get("nonce") or 0) if isinstance(acct, dict) else 0
+    except Exception:
+        chain_nonce = 0
+    mempool_pending_max = _mempool_pending_max_nonce_for_account(request, signer)
+    observer_queue_pending_max = _tx_queue_pending_max_nonce_for_account(signer)
+    cursor = max(int(chain_nonce), int(mempool_pending_max), int(observer_queue_pending_max))
+    return {
+        "ok": True,
+        "account": signer,
+        "nonce": int(chain_nonce),
+        "chain_nonce": int(chain_nonce),
+        "mempool_pending_max_nonce": int(mempool_pending_max),
+        "observer_queue_pending_max_nonce": int(observer_queue_pending_max),
+        "nonce_cursor": int(cursor),
+        "next_nonce": int(cursor) + 1,
+    }
+
+
+def _compact_tx_queue_result(value: Any, *, _depth: int = 0) -> Json:
+    """Return a bounded, non-recursive observer tx queue diagnostic result.
+
+    Tx queue records are operator diagnostics, not consensus state.  They should
     help explain whether an upstream accepted/confirmed a tx without embedding
-    previous outbox summaries recursively inside later status probes.
+    previous tx queue summaries recursively inside later status probes.
     """
 
     if _depth > 2:
@@ -533,12 +669,12 @@ def _compact_tx_outbox_result(value: Any, *, _depth: int = 0) -> Json:
     return out
 
 
-def _enqueue_tx_outbox(body: Json, *, tx_id: str, chain_id: str) -> Json:
-    with _tx_outbox_lock():
-        rows = _load_tx_outbox_unlocked()
+def _enqueue_tx_queue(body: Json, *, tx_id: str, chain_id: str, request: Request | None = None) -> Json:
+    with _tx_queue_lock():
+        rows = _load_tx_queue_unlocked()
         now = _now_ms()
-        rec = _outbox_record_for(rows, tx_id)
-        urls = [_redact_upstream_url(u) for u in _normalized_tx_upstream_urls()]
+        rec = _tx_queue_record_for(rows, tx_id)
+        urls = [_redact_upstream_url(u) for u in _normalized_tx_upstream_urls(request)]
         if rec is None:
             rec = {
                 "tx_id": str(tx_id),
@@ -556,28 +692,28 @@ def _enqueue_tx_outbox(body: Json, *, tx_id: str, chain_id: str) -> Json:
             rec.setdefault("envelope", body)
             rec["updated_ms"] = now
             rec["upstreams"] = urls
-        _write_tx_outbox_unlocked(rows)
+        _write_tx_queue_unlocked(rows)
         return dict(rec)
 
 
-def _update_tx_outbox_record(tx_id: str, updates: Json) -> Json:
-    with _tx_outbox_lock():
-        rows = _load_tx_outbox_unlocked()
-        rec = _outbox_record_for(rows, tx_id)
+def _update_tx_queue_record(tx_id: str, updates: Json) -> Json:
+    with _tx_queue_lock():
+        rows = _load_tx_queue_unlocked()
+        rec = _tx_queue_record_for(rows, tx_id)
         if rec is None:
             rec = {"tx_id": str(tx_id), "created_ms": _now_ms()}
             rows.append(rec)
         safe_updates = dict(updates)
         if "last_result" in safe_updates:
-            safe_updates["last_result"] = _compact_tx_outbox_result(safe_updates.get("last_result"))
+            safe_updates["last_result"] = _compact_tx_queue_result(safe_updates.get("last_result"))
         if "last_status_probe" in safe_updates and isinstance(safe_updates.get("last_status_probe"), list):
             safe_updates["last_status_probe"] = [
-                _compact_tx_outbox_result(item) if isinstance(item, dict) else {}
+                _compact_tx_queue_result(item) if isinstance(item, dict) else {}
                 for item in safe_updates.get("last_status_probe", [])[:10]
             ]
         rec.update(safe_updates)
         rec["updated_ms"] = _now_ms()
-        _write_tx_outbox_unlocked(rows)
+        _write_tx_queue_unlocked(rows)
         return dict(rec)
 
 
@@ -642,48 +778,110 @@ def _upstream_post_json(url: str, path: str, payload: Json, *, timeout_s: int) -
         return parsed
 
 
-def _verify_upstream_identity(url: str, *, expected_chain_id: str, timeout_s: int) -> Json:
+def _extract_commitment(obj: Json, key: str) -> str:
+    if not isinstance(obj, dict):
+        return ""
+    manifest_obj = obj.get("manifest") if isinstance(obj.get("manifest"), dict) else {}
+    chain_manifest = obj.get("chain_manifest") if isinstance(obj.get("chain_manifest"), dict) else {}
+    candidates = [
+        obj.get(key),
+        manifest_obj.get(key),
+        chain_manifest.get(key),
+    ]
+    if key == "chain_id":
+        candidates.extend([obj.get("chainId"), manifest_obj.get("chainId"), obj.get("id"), manifest_obj.get("id")])
+    if key == "genesis_hash":
+        anchor = obj.get("snapshot_anchor") if isinstance(obj.get("snapshot_anchor"), dict) else {}
+        candidates.extend([anchor.get("genesis_hash"), chain_manifest.get("genesis_hash")])
+    for candidate in candidates:
+        value = str(candidate or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _verify_commitment_value(
+    *,
+    source: Json,
+    key: str,
+    expected: str,
+    error_prefix: str,
+    upstream: str,
+) -> Json | None:
+    want = str(expected or "").strip()
+    if not want:
+        return None
+    observed = _extract_commitment(source, key)
+    if not observed:
+        return {"ok": False, "error": f"{error_prefix}_{key}_missing", f"expected_{key}": want, "upstream": upstream}
+    if observed != want:
+        return {
+            "ok": False,
+            "error": f"{error_prefix}_{key}_mismatch",
+            f"expected_{key}": want,
+            key: observed,
+            "upstream": upstream,
+        }
+    return None
+
+
+def _verify_upstream_identity(
+    url: str,
+    *,
+    expected_chain_id: str,
+    timeout_s: int,
+    expected_commitments: Json | None = None,
+) -> Json:
     if not _tx_upstream_verify_identity_enabled():
         return {"ok": True, "skipped": "identity_verification_disabled", "upstream": _redact_upstream_url(url)}
-    expected = str(expected_chain_id or "").strip()
+    upstream = _redact_upstream_url(url)
+    commitments = _merge_expected_commitments(
+        _expected_upstream_commitments_from_env(),
+        expected_commitments or {},
+        {"chain_id": expected_chain_id},
+    )
+    expected = str(commitments.get("chain_id") or expected_chain_id or "").strip()
     if not expected:
-        return {"ok": False, "error": "missing_expected_chain_id", "upstream": _redact_upstream_url(url)}
+        return {"ok": False, "error": "missing_expected_chain_id", "upstream": upstream}
     try:
         identity = _upstream_get_json(url, "/v1/chain/identity", timeout_s=timeout_s)
     except Exception as exc:
-        return {"ok": False, "error": "upstream_identity_unreachable", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
-    observed_chain = str(identity.get("chain_id") or "").strip()
+        return {"ok": False, "error": "upstream_identity_unreachable", "detail": str(exc)[:256], "upstream": upstream}
+    observed_chain = _extract_commitment(identity, "chain_id")
     if observed_chain != expected:
         return {
             "ok": False,
             "error": "upstream_chain_id_mismatch",
             "expected_chain_id": expected,
             "chain_id": observed_chain,
-            "upstream": _redact_upstream_url(url),
+            "upstream": upstream,
         }
+    if public_testnet_enabled():
+        for key in ("genesis_hash", "tx_index_hash", "protocol_profile_hash"):
+            err = _verify_commitment_value(
+                source=identity,
+                key=key,
+                expected=str(commitments.get(key) or ""),
+                error_prefix="upstream_identity",
+                upstream=upstream,
+            )
+            if err is not None:
+                return err
 
     manifest_result: Json = {"checked": False}
     if _tx_upstream_require_manifest():
         try:
             manifest = _upstream_get_json(url, "/v1/chain/manifest", timeout_s=timeout_s)
         except Exception as exc:
-            return {"ok": False, "error": "upstream_manifest_unreachable", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
+            return {"ok": False, "error": "upstream_manifest_unreachable", "detail": str(exc)[:256], "upstream": upstream}
         manifest_obj = manifest.get("manifest") if isinstance(manifest.get("manifest"), dict) else {}
-        manifest_chain = str(
-            manifest.get("chain_id")
-            or manifest_obj.get("chain_id")
-            or manifest.get("chainId")
-            or manifest_obj.get("chainId")
-            or manifest.get("id")
-            or manifest_obj.get("id")
-            or ""
-        ).strip()
+        manifest_chain = _extract_commitment(manifest, "chain_id")
         if not manifest_chain:
             return {
                 "ok": False,
                 "error": "upstream_manifest_chain_id_missing",
                 "expected_chain_id": expected,
-                "upstream": _redact_upstream_url(url),
+                "upstream": upstream,
             }
         if manifest_chain != expected:
             return {
@@ -691,8 +889,19 @@ def _verify_upstream_identity(url: str, *, expected_chain_id: str, timeout_s: in
                 "error": "upstream_manifest_chain_id_mismatch",
                 "expected_chain_id": expected,
                 "chain_id": manifest_chain,
-                "upstream": _redact_upstream_url(url),
+                "upstream": upstream,
             }
+        if public_testnet_enabled():
+            for key in ("genesis_hash", "tx_index_hash", "protocol_profile_hash"):
+                err = _verify_commitment_value(
+                    source=manifest,
+                    key=key,
+                    expected=str(commitments.get(key) or ""),
+                    error_prefix="upstream_manifest",
+                    upstream=upstream,
+                )
+                if err is not None:
+                    return err
         expected_hash = str(os.environ.get("WEALL_EXPECTED_UPSTREAM_MANIFEST_HASH") or os.environ.get("WEALL_CHAIN_MANIFEST_HASH") or "").strip()
         manifest_hash = str(
             manifest.get("manifest_hash")
@@ -706,7 +915,7 @@ def _verify_upstream_identity(url: str, *, expected_chain_id: str, timeout_s: in
                 "ok": False,
                 "error": "upstream_manifest_hash_missing",
                 "expected_manifest_hash": expected_hash,
-                "upstream": _redact_upstream_url(url),
+                "upstream": upstream,
             }
         if expected_hash and manifest_hash != expected_hash:
             return {
@@ -714,10 +923,20 @@ def _verify_upstream_identity(url: str, *, expected_chain_id: str, timeout_s: in
                 "error": "upstream_manifest_hash_mismatch",
                 "expected_manifest_hash": expected_hash,
                 "manifest_hash": manifest_hash,
-                "upstream": _redact_upstream_url(url),
+                "upstream": upstream,
             }
         manifest_result = {"checked": True, "manifest_hash": manifest_hash, "chain_id": manifest_chain}
-    return {"ok": True, "upstream": _redact_upstream_url(url), "identity": {"chain_id": observed_chain}, "manifest": manifest_result}
+    return {
+        "ok": True,
+        "upstream": upstream,
+        "identity": {
+            "chain_id": observed_chain,
+            "genesis_hash": _extract_commitment(identity, "genesis_hash"),
+            "tx_index_hash": _extract_commitment(identity, "tx_index_hash"),
+            "protocol_profile_hash": _extract_commitment(identity, "protocol_profile_hash"),
+        },
+        "manifest": manifest_result,
+    }
 
 
 def _trusted_anchor_from_upstream(url: str, *, expected_chain_id: str, timeout_s: int) -> Json:
@@ -773,18 +992,18 @@ def _status_from_upstream(url: str, tx_id: str, *, timeout_s: int) -> Json:
         return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
 
 
-def _drain_tx_outbox(*, only_tx_id: str | None = None, limit: int | None = None) -> Json:
-    urls = _normalized_tx_upstream_urls()
-    with _tx_outbox_lock():
-        rows = _load_tx_outbox_unlocked()
-        rows = _prune_tx_outbox_rows(rows)
+def _drain_tx_queue(*, request: Request | None = None, only_tx_id: str | None = None, limit: int | None = None) -> Json:
+    urls = _normalized_tx_upstream_urls(request)
+    with _tx_queue_lock():
+        rows = _load_tx_queue_unlocked()
+        rows = _prune_tx_queue_rows(rows)
         if not rows:
-            _write_tx_outbox_unlocked(rows)
+            _write_tx_queue_unlocked(rows)
             return {"attempted": False, "accepted": False, "queued": 0, "results": []}
         if not urls:
-            _write_tx_outbox_unlocked(rows)
+            _write_tx_queue_unlocked(rows)
             return {"attempted": False, "accepted": False, "queued": len(rows), "skipped": "no_upstreams_configured", "results": []}
-        max_items = int(limit if limit is not None else _env_int_safe("WEALL_TX_OUTBOX_DRAIN_LIMIT", 25, minimum=1, maximum=500))
+        max_items = int(limit if limit is not None else _env_int_safe("WEALL_TX_QUEUE_DRAIN_LIMIT", 25, minimum=1, maximum=500))
         selected: list[Json] = []
         for rec in rows:
             tx_id = str(rec.get("tx_id") or "").strip()
@@ -801,24 +1020,41 @@ def _drain_tx_outbox(*, only_tx_id: str | None = None, limit: int | None = None)
             rec["attempts"] = int(rec.get("attempts") or 0) + 1
             rec["last_attempt_ms"] = _now_ms()
             selected.append({"tx_id": tx_id, "body": dict(body), "chain_id": str(rec.get("chain_id") or body.get("chain_id") or "")})
-        _write_tx_outbox_unlocked(rows)
+        _write_tx_queue_unlocked(rows)
 
     if not selected:
-        return {"attempted": False, "accepted": False, "queued": len(_read_tx_outbox()), "results": []}
+        return {"attempted": False, "accepted": False, "queued": len(_read_tx_queue()), "results": []}
 
     timeout_s = _env_int_safe("WEALL_TX_UPSTREAM_TIMEOUT_S", 5, minimum=1, maximum=60)
     results: list[Json] = []
     accepted_any = False
+    expected_commitments = _merge_expected_commitments(
+        _expected_upstream_commitments_from_env(),
+        _public_commitments_for_request(request),
+    )
     for item in selected:
         tx_id = str(item.get("tx_id") or "")
         body = item.get("body") if isinstance(item.get("body"), dict) else {}
-        per_tx_results = [_forward_tx_to_upstream(url, body, tx_id=tx_id, timeout_s=timeout_s) for url in urls]
+        per_tx_commitments = _merge_expected_commitments(
+            expected_commitments,
+            {"chain_id": str(item.get("chain_id") or body.get("chain_id") or "").strip()},
+        )
+        per_tx_results = [
+            _forward_tx_to_upstream(
+                url,
+                body,
+                tx_id=tx_id,
+                timeout_s=timeout_s,
+                expected_commitments=per_tx_commitments,
+            )
+            for url in urls
+        ]
         accepted = any(bool(r.get("ok")) for r in per_tx_results if isinstance(r, dict))
         if accepted:
             accepted_any = True
-        with _tx_outbox_lock():
-            rows = _load_tx_outbox_unlocked()
-            rec = _outbox_record_for(rows, tx_id)
+        with _tx_queue_lock():
+            rows = _load_tx_queue_unlocked()
+            rec = _tx_queue_record_for(rows, tx_id)
             if rec is not None:
                 if accepted:
                     rec["upstream_status"] = "accepted"
@@ -827,15 +1063,15 @@ def _drain_tx_outbox(*, only_tx_id: str | None = None, limit: int | None = None)
                 else:
                     rec["upstream_status"] = "pending"
                     rec["last_error"] = ";".join(str(r.get("error") or "upstream_rejected") for r in per_tx_results if isinstance(r, dict))[:512]
-                rec["last_result"] = _compact_tx_outbox_result({"attempted": True, "accepted": bool(accepted), "results": per_tx_results})
+                rec["last_result"] = _compact_tx_queue_result({"attempted": True, "accepted": bool(accepted), "results": per_tx_results})
                 rec["updated_ms"] = _now_ms()
-                _write_tx_outbox_unlocked(rows)
+                _write_tx_queue_unlocked(rows)
         results.append({"tx_id": tx_id, "accepted": bool(accepted), "results": per_tx_results})
-    return {"attempted": True, "accepted": bool(accepted_any), "queued": len(_read_tx_outbox()), "results": results}
+    return {"attempted": True, "accepted": bool(accepted_any), "queued": len(_read_tx_queue()), "results": results}
 
 
-def _outbox_summary_for_tx(tx_id: str) -> Json | None:
-    rec = _outbox_record_for(_read_tx_outbox_best_effort(), tx_id)
+def _tx_queue_summary_for_tx(tx_id: str) -> Json | None:
+    rec = _tx_queue_record_for(_read_tx_queue_best_effort(), tx_id)
     if not isinstance(rec, dict):
         return None
     return {
@@ -849,22 +1085,22 @@ def _outbox_summary_for_tx(tx_id: str) -> Json | None:
         "confirmed_height": int(rec.get("confirmed_height") or 0),
         "confirmed_block_id": str(rec.get("confirmed_block_id") or ""),
         "local_state_synced": bool(rec.get("local_state_synced", False)),
-        "last_result": _compact_tx_outbox_result(rec.get("last_result")),
+        "last_result": _compact_tx_queue_result(rec.get("last_result")),
     }
 
 
-def _reconcile_outbox_confirmation(tx_id: str) -> Json | None:
-    rec = _outbox_record_for(_read_tx_outbox(), tx_id)
+def _reconcile_tx_queue_confirmation(tx_id: str) -> Json | None:
+    rec = _tx_queue_record_for(_read_tx_queue(), tx_id)
     if not isinstance(rec, dict):
         return None
     urls = _normalized_tx_upstream_urls()
     if not urls:
-        return _outbox_summary_for_tx(tx_id)
+        return _tx_queue_summary_for_tx(tx_id)
     timeout_s = _env_int_safe("WEALL_TX_UPSTREAM_STATUS_TIMEOUT_S", 3, minimum=1, maximum=30)
     results = [_status_from_upstream(url, tx_id, timeout_s=timeout_s) for url in urls]
     confirmed = next((r for r in results if isinstance(r, dict) and r.get("ok") and str(r.get("status") or "") == "confirmed"), None)
     if isinstance(confirmed, dict):
-        _update_tx_outbox_record(
+        _update_tx_queue_record(
             tx_id,
             {
                 "upstream_status": "confirmed",
@@ -876,15 +1112,15 @@ def _reconcile_outbox_confirmation(tx_id: str) -> Json | None:
                 "last_error": "",
             },
         )
-        return _outbox_summary_for_tx(tx_id)
-    _update_tx_outbox_record(tx_id, {"last_status_probe_ms": _now_ms(), "last_status_probe": results})
-    return _outbox_summary_for_tx(tx_id)
+        return _tx_queue_summary_for_tx(tx_id)
+    _update_tx_queue_record(tx_id, {"last_status_probe_ms": _now_ms(), "last_status_probe": results})
+    return _tx_queue_summary_for_tx(tx_id)
 
 
 def _local_height_for_request(request: Request) -> int:
     ex = _safe_executor(request)
     try:
-        st = ex.snapshot() if ex is not None and callable(getattr(ex, "snapshot", None)) else {}
+        st = ex.read_state() if ex is not None and callable(getattr(ex, "read_state", None)) else {}
         return int((st or {}).get("height") or 0)
     except Exception:
         return 0
@@ -972,7 +1208,7 @@ def _request_and_apply_state_sync_from_upstream(
 
     local = _locally_confirmed_tx(request, tx_id)
     if isinstance(local, dict):
-        _update_tx_outbox_record(
+        _update_tx_queue_record(
             tx_id,
             {
                 "upstream_status": "confirmed",
@@ -1004,19 +1240,19 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
     if not t:
         raise ApiError.bad_request("bad_request", "missing tx_id", {})
 
-    outbound_existing = _outbox_summary_for_tx(t)
+    outbound_existing = _tx_queue_summary_for_tx(t)
     local = _locally_confirmed_tx(request, t)
 
     if not isinstance(outbound_existing, dict):
         if isinstance(local, dict):
             return {"ok": True, "tx_id": t, "local_state_synced": True, "source": "local", "local_confirmation": local}
-        return {"ok": False, "tx_id": t, "error": "tx_not_in_observer_outbox"}
+        return {"ok": False, "tx_id": t, "error": "tx_not_in_observer_tx_queue"}
 
     # observer_local_confirmed_not_upstream_synced: an observer may optimistically
     # apply an outbound tx locally before genesis confirms it. Never convert a
     # local tx-index hit into upstream confirmation; first prove upstream
     # confirmation, then apply/verify trusted state sync.
-    outbound = _reconcile_outbox_confirmation(t)
+    outbound = _reconcile_tx_queue_confirmation(t)
     if not isinstance(outbound, dict):
         outbound = outbound_existing
     if str(outbound.get("upstream_status") or "") != "confirmed":
@@ -1052,7 +1288,7 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
         )
         results.append(result)
         if bool(result.get("ok")) and bool(result.get("local_state_synced")):
-            synced = _outbox_summary_for_tx(t) or {}
+            synced = _tx_queue_summary_for_tx(t) or {}
             return {
                 "ok": True,
                 "tx_id": t,
@@ -1062,24 +1298,24 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
                 "outbound_propagation": synced,
             }
 
-    _update_tx_outbox_record(t, {"last_local_sync_ms": _now_ms(), "last_local_sync_results": results})
+    _update_tx_queue_record(t, {"last_local_sync_ms": _now_ms(), "last_local_sync_results": results})
     return {
         "ok": False,
         "tx_id": t,
         "error": "local_state_sync_failed",
         "local_state_synced": False,
         "results": results,
-        "outbound_propagation": _outbox_summary_for_tx(t) or outbound,
+        "outbound_propagation": _tx_queue_summary_for_tx(t) or outbound,
     }
 
 
 
-def _tx_outbox_autodrain_enabled() -> bool:
-    return bool(_observer_edge_mode() and _env_bool("WEALL_TX_OUTBOX_AUTODRAIN", False))
+def _tx_queue_autodrain_enabled() -> bool:
+    return bool(_observer_edge_mode() and _env_bool("WEALL_TX_QUEUE_AUTODRAIN", False))
 
 
-def _tx_outbox_autodrain_interval_s() -> float:
-    raw = os.environ.get("WEALL_TX_OUTBOX_DRAIN_INTERVAL_S")
+def _tx_queue_autodrain_interval_s() -> float:
+    raw = os.environ.get("WEALL_TX_QUEUE_DRAIN_INTERVAL_S")
     try:
         value = float(str(raw).strip()) if raw is not None and str(raw).strip() else 2.0
     except Exception:
@@ -1087,61 +1323,61 @@ def _tx_outbox_autodrain_interval_s() -> float:
     return max(0.25, min(60.0, value))
 
 
-def _tx_outbox_autodrain_batch() -> int:
-    return _env_int_safe("WEALL_TX_OUTBOX_DRAIN_BATCH", 25, minimum=1, maximum=500)
+def _tx_queue_autodrain_batch() -> int:
+    return _env_int_safe("WEALL_TX_QUEUE_DRAIN_BATCH", 25, minimum=1, maximum=500)
 
 
-def start_observer_outbox_autodrain() -> threading.Thread | None:
-    """Start the observer-edge durable outbox worker when explicitly enabled.
+def start_observer_tx_queue_autodrain() -> threading.Thread | None:
+    """Start the observer-edge durable tx_queue worker when explicitly enabled.
 
     This worker is deliberately opt-in and only runs for observer-edge posture.
     It never grants authority, produces blocks, or signs validator artifacts; it
     only retries already-admitted, client-signed tx envelopes from the local
-    durable outbox to configured upstreams.
+    durable tx_queue to configured upstreams.
     """
 
-    global _OUTBOX_AUTODRAIN_STOP, _OUTBOX_AUTODRAIN_THREAD
-    if not _tx_outbox_autodrain_enabled():
+    global _TX_QUEUE_AUTODRAIN_STOP, _TX_QUEUE_AUTODRAIN_THREAD
+    if not _tx_queue_autodrain_enabled():
         return None
-    with _OUTBOX_AUTODRAIN_LOCK:
-        if _OUTBOX_AUTODRAIN_THREAD is not None and _OUTBOX_AUTODRAIN_THREAD.is_alive():
-            return _OUTBOX_AUTODRAIN_THREAD
+    with _TX_QUEUE_AUTODRAIN_LOCK:
+        if _TX_QUEUE_AUTODRAIN_THREAD is not None and _TX_QUEUE_AUTODRAIN_THREAD.is_alive():
+            return _TX_QUEUE_AUTODRAIN_THREAD
         stop = threading.Event()
-        _OUTBOX_AUTODRAIN_STOP = stop
+        _TX_QUEUE_AUTODRAIN_STOP = stop
 
         def _worker() -> None:
             # Make one best-effort pass immediately so short-lived operator
             # sessions/tests do not wait for the first interval.
             while not stop.is_set():
                 try:
-                    _drain_tx_outbox(limit=_tx_outbox_autodrain_batch())
+                    _drain_tx_queue(limit=_tx_queue_autodrain_batch())
                 except Exception:
                     pass
-                stop.wait(_tx_outbox_autodrain_interval_s())
+                stop.wait(_tx_queue_autodrain_interval_s())
 
         thread = threading.Thread(
             target=_worker,
-            name="weall-observer-tx-outbox-drain",
+            name="weall-observer-tx-tx_queue-drain",
             daemon=True,
         )
-        _OUTBOX_AUTODRAIN_THREAD = thread
+        _TX_QUEUE_AUTODRAIN_THREAD = thread
         thread.start()
         return thread
 
 
-def stop_observer_outbox_autodrain(_thread: threading.Thread | None = None) -> None:
-    global _OUTBOX_AUTODRAIN_STOP, _OUTBOX_AUTODRAIN_THREAD
-    with _OUTBOX_AUTODRAIN_LOCK:
-        stop = _OUTBOX_AUTODRAIN_STOP
-        thread = _OUTBOX_AUTODRAIN_THREAD
+def stop_observer_tx_queue_autodrain(_thread: threading.Thread | None = None) -> None:
+    global _TX_QUEUE_AUTODRAIN_STOP, _TX_QUEUE_AUTODRAIN_THREAD
+    with _TX_QUEUE_AUTODRAIN_LOCK:
+        stop = _TX_QUEUE_AUTODRAIN_STOP
+        thread = _TX_QUEUE_AUTODRAIN_THREAD
         if stop is not None:
             stop.set()
     if thread is not None and thread.is_alive():
         thread.join(timeout=2.0)
-    with _OUTBOX_AUTODRAIN_LOCK:
-        if _OUTBOX_AUTODRAIN_THREAD is thread:
-            _OUTBOX_AUTODRAIN_THREAD = None
-            _OUTBOX_AUTODRAIN_STOP = None
+    with _TX_QUEUE_AUTODRAIN_LOCK:
+        if _TX_QUEUE_AUTODRAIN_THREAD is thread:
+            _TX_QUEUE_AUTODRAIN_THREAD = None
+            _TX_QUEUE_AUTODRAIN_STOP = None
 
 
 def _validate_public_tx_chain_id(*, body: Json, expected_chain_id: str) -> None:
@@ -1421,6 +1657,29 @@ async def tx_submit(request: Request) -> Json:
     # Compute deterministic id for idempotency (chain_id-aware).
     tx_id = compute_tx_id(body, chain_id=str(getattr(ex, "chain_id", "") or "").strip() or None)
 
+    # Public observer mode must not create a local-only mempool trap. If no
+    # verified public upstream can be derived from explicit config or the seed
+    # registry, fail before local admission mutates the observer mempool.
+    if (
+        _observer_edge_mode()
+        and public_testnet_enabled()
+        and str(request.headers.get("x-weall-observer-forwarded") or "").strip() != "1"
+        and not _normalized_tx_upstream_urls(request)
+    ):
+        upstream = {
+            "attempted": False,
+            "accepted": False,
+            "queued": 0,
+            "skipped": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
+            "error": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
+            "results": [],
+        }
+        raise ApiError.bad_gateway(
+            "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM",
+            "public observer has no verified tx upstream for required propagation",
+            {"tx_id": tx_id, "upstream_propagation": upstream},
+        )
+
     already = False
     try:
         already = bool(getattr(mp, "contains", lambda _t: False)(tx_id))
@@ -1458,25 +1717,31 @@ async def tx_submit(request: Request) -> Json:
         gossip_ok = False
 
     if _observer_edge_mode() and str(request.headers.get("x-weall-observer-forwarded") or "").strip() != "1":
-        urls = _normalized_tx_upstream_urls()
-        if _tx_upstream_required() and not urls:
-            upstream = {"attempted": False, "accepted": False, "queued": 0, "skipped": "no_upstreams_configured", "results": []}
-            raise ApiError(
-                502,
-                "tx_upstream_propagation_failed",
-                "local observer has no configured upstream for required propagation",
+        urls = _normalized_tx_upstream_urls(request)
+        if (public_testnet_enabled() or _tx_upstream_required()) and not urls:
+            upstream = {
+                "attempted": False,
+                "accepted": False,
+                "queued": 0,
+                "skipped": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "no_upstreams_configured",
+                "error": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "no_upstreams_configured",
+                "results": [],
+            }
+            raise ApiError.bad_gateway(
+                "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "tx_upstream_propagation_failed",
+                "public observer has no verified tx upstream for required propagation" if public_testnet_enabled() else "local observer has no configured upstream for required propagation",
                 {"tx_id": out_tx_id, "upstream_propagation": upstream},
             )
-        _enqueue_tx_outbox(forward_body, tx_id=out_tx_id, chain_id=str(getattr(ex, "chain_id", "") or ""))
+        _enqueue_tx_queue(forward_body, tx_id=out_tx_id, chain_id=str(getattr(ex, "chain_id", "") or ""), request=request)
         if _env_bool("WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT", False):
-            upstream = _drain_tx_outbox(only_tx_id=out_tx_id, limit=1)
+            upstream = _drain_tx_queue(request=request, only_tx_id=out_tx_id, limit=1)
         else:
             upstream = {
                 "attempted": False,
                 "accepted": False,
-                "queued": len(_read_tx_outbox()),
+                "queued": len(_read_tx_queue()),
                 "status": "queued",
-                "mode": "durable_outbox",
+                "mode": "durable_tx_queue",
                 "results": [],
             }
     else:
@@ -1492,11 +1757,24 @@ async def tx_submit(request: Request) -> Json:
     }
 
 
+@router.get("/accounts/{account}/nonce")
+def account_nonce_status(account: str, request: Request) -> Json:
+    """Return confirmed and pending-aware nonce cursors for client signing.
+
+    ``next_nonce`` includes confirmed chain state, live local mempool entries, and
+    observer-edge tx-queue records that may already be upstream accepted but not
+    yet reconciled into local observer state. It is advisory/client UX state;
+    consensus/block admission still enforces canonical sequential nonces.
+    """
+
+    return _account_nonce_summary(request, account)
+
+
 @router.get("/observer/edge/status")
 def observer_edge_status(request: Request) -> Json:
     _require_observer_edge_operator(request)
-    urls = _normalized_tx_upstream_urls()
-    outbox_rows = _read_tx_outbox()
+    urls = _normalized_tx_upstream_urls(request)
+    tx_queue_rows = _read_tx_queue()
     return {
         "ok": True,
         "observer_edge_mode": bool(_observer_edge_mode()),
@@ -1504,24 +1782,24 @@ def observer_edge_status(request: Request) -> Json:
         "upstream_count": len(urls),
         "upstreams": [_redact_upstream_url(u) for u in urls],
         "autodrain": {
-            "enabled": _tx_outbox_autodrain_enabled(),
-            "interval_s": _tx_outbox_autodrain_interval_s(),
-            "batch": _tx_outbox_autodrain_batch(),
+            "enabled": _tx_queue_autodrain_enabled(),
+            "interval_s": _tx_queue_autodrain_interval_s(),
+            "batch": _tx_queue_autodrain_batch(),
         },
-        "outbox": {
-            "count": len(outbox_rows),
-            "counts": _outbox_counts(outbox_rows),
-            "max_records": _env_int_safe("WEALL_TX_OUTBOX_MAX_RECORDS", 5000, minimum=1, maximum=50000),
+        "tx_queue": {
+            "count": len(tx_queue_rows),
+            "counts": _tx_queue_counts(tx_queue_rows),
+            "max_records": _env_int_safe("WEALL_TX_QUEUE_MAX_RECORDS", 5000, minimum=1, maximum=50000),
         },
     }
 
 
-@router.post("/observer/edge/outbox/drain")
-def observer_edge_outbox_drain(request: Request) -> Json:
+@router.post("/observer/edge/tx-queue/drain")
+def observer_edge_tx_queue_drain(request: Request) -> Json:
     _require_observer_edge_operator(request)
-    result = _drain_tx_outbox()
-    rows = _read_tx_outbox()
-    return {"ok": True, "result": result, "outbox": {"count": len(rows), "counts": _outbox_counts(rows)}}
+    result = _drain_tx_queue(request=request)
+    rows = _read_tx_queue()
+    return {"ok": True, "result": result, "tx_queue": {"count": len(rows), "counts": _tx_queue_counts(rows)}}
 
 
 @router.post("/observer/edge/reconcile/{tx_id}")
@@ -1553,12 +1831,12 @@ def tx_status(request: Request, tx_id: str) -> Json:
     if not t:
         raise ApiError.bad_request("bad_request", "missing tx_id", {})
 
-    outbound = _outbox_summary_for_tx(t)
+    outbound = _tx_queue_summary_for_tx(t)
 
     idx = _tx_index_lookup(request, t)
     if isinstance(idx, dict):
         if outbound:
-            reconciled = _reconcile_outbox_confirmation(t)
+            reconciled = _reconcile_tx_queue_confirmation(t)
             if isinstance(reconciled, dict):
                 outbound = reconciled
             local_synced = bool(isinstance(outbound, dict) and outbound.get("local_state_synced") is True)
@@ -1614,7 +1892,7 @@ def tx_status(request: Request, tx_id: str) -> Json:
     mp = _safe_mempool(request)
     try:
         if bool(getattr(mp, "contains", lambda _t: False)(t)):
-            reconciled = _reconcile_outbox_confirmation(t) if outbound else None
+            reconciled = _reconcile_tx_queue_confirmation(t) if outbound else None
             if isinstance(reconciled, dict) and str(reconciled.get("upstream_status") or "") == "confirmed":
                 return {
                     "ok": True,
@@ -1630,7 +1908,7 @@ def tx_status(request: Request, tx_id: str) -> Json:
     except Exception:
         pass
 
-    reconciled = _reconcile_outbox_confirmation(t) if outbound else None
+    reconciled = _reconcile_tx_queue_confirmation(t) if outbound else None
     if isinstance(reconciled, dict) and str(reconciled.get("upstream_status") or "") == "confirmed":
         return {
             "ok": True,

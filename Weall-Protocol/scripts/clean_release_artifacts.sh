@@ -90,6 +90,7 @@ log "repo: $ROOT"
 
 # Local runtime directories and state roots.
 rm_path ".weall-devnet"
+rm_path ".weall-media-cache"
 rm_path ".weall"
 rm_path "data"
 rm_path "data_local"

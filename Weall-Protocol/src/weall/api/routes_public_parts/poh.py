@@ -318,7 +318,7 @@ class PohAsyncCaseModel(BaseModel):
     evidence_binds: dict[str, object] = Field(default_factory=dict)
     public_evidence_ids: list[object] = Field(default_factory=list)
     reviewable_evidence: dict[str, object] = Field(default_factory=dict)
-    reviewer_private_evidence: dict[str, object] = Field(default_factory=dict)
+    reviewer_restricted_evidence: dict[str, object] = Field(default_factory=dict)
     receipt: dict[str, object] = Field(default_factory=dict)
     evidence_declared: bool = False
     evidence_bound: bool = False
@@ -328,7 +328,7 @@ class PohAsyncCaseModel(BaseModel):
     reviewer_queue_reason: str | None = None
 
 
-def _as_async_case(case_id: str, r: dict[str, object], *, include_private_evidence: bool = False) -> PohAsyncCaseModel:
+def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evidence: bool = False) -> PohAsyncCaseModel:
     def _list(v: Any) -> list[object]:
         return list(v) if isinstance(v, list) else []
 
@@ -339,7 +339,7 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_private_eviden
     evidence_binds = _dict(r.get("evidence_binds"))
     public_evidence_ids = _list(r.get("public_evidence_ids"))
     reviewable_evidence_raw = _dict(r.get("reviewable_evidence"))
-    reviewer_private_raw = _dict(r.get("reviewer_private_evidence"))
+    reviewer_restricted_raw = _dict(r.get("reviewer_restricted_evidence"))
     assigned_jurors = _list(r.get("assigned_jurors"))
     jurors = _dict(r.get("jurors"))
     status = str(r.get("status") or "unknown").strip() or "unknown"
@@ -350,13 +350,13 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_private_eviden
         or _dict(r.get("receipt"))
         or _opt_int_value(r.get("finalized_height")) is not None
     )
-    evidence_declared = bool(evidence_commitments or public_evidence_ids or reviewable_evidence_raw or reviewer_private_raw or final_or_reviewed)
+    evidence_declared = bool(evidence_commitments or public_evidence_ids or reviewable_evidence_raw or reviewer_restricted_raw or final_or_reviewed)
     # Batch 422: older rehearsal runs could enqueue POH_ASYNC_JUROR_ASSIGN after
     # evidence declare and before evidence bind, making the bind tx fail while
-    # reviewer-private evidence still became visible and the case finalized.
+    # reviewer-restricted evidence still became visible and the case finalized.
     # Surface that case as effectively complete instead of leaving the observer
     # UI stuck on missing evidence_bind.  New scheduler logic prevents the race.
-    evidence_bound = bool(evidence_binds or public_evidence_ids or reviewable_evidence_raw or reviewer_private_raw or final_or_reviewed)
+    evidence_bound = bool(evidence_binds or public_evidence_ids or reviewable_evidence_raw or reviewer_restricted_raw or final_or_reviewed)
     assigned = bool([j for j in assigned_jurors if str(j or "").strip()] or jurors)
     reviewable = bool(final_or_reviewed or (evidence_declared and evidence_bound))
     missing_steps: list[str] = []
@@ -394,8 +394,8 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_private_eviden
         evidence_commitments=evidence_commitments,
         evidence_binds=evidence_binds,
         public_evidence_ids=public_evidence_ids,
-        reviewable_evidence=_dict(r.get("reviewer_private_evidence") if include_private_evidence else r.get("reviewable_evidence")),
-        reviewer_private_evidence=_dict(r.get("reviewer_private_evidence") if include_private_evidence else {}),
+        reviewable_evidence=_dict(r.get("reviewer_restricted_evidence") if include_restricted_evidence else r.get("reviewable_evidence")),
+        reviewer_restricted_evidence=_dict(r.get("reviewer_restricted_evidence") if include_restricted_evidence else {}),
         receipt=_dict(r.get("receipt")),
         evidence_declared=evidence_declared,
         evidence_bound=evidence_bound,
@@ -410,31 +410,29 @@ def _request_account(request: Request) -> str:
     return str(request.headers.get("x-weall-account") or "").strip()
 
 
-def _allow_header_scoped_private_poh_compat() -> bool:
-    """Allow legacy header-only PoH private access only outside production.
+def _allow_header_scoped_restricted_poh_compat() -> bool:
+    """Header-only restricted PoH evidence access has been removed.
 
-    Production private evidence and live-room transport control must be bound to
-    an authenticated backend session, not a forgeable account header.  Local
-    rehearsal and older tests keep a deliberate opt-out compatibility path.
+    Restricted evidence and live-room transport control must be bound to an
+    authenticated backend session in every mode.
     """
 
-    return (not _is_prod()) and _env_bool("WEALL_DEV_ALLOW_HEADER_SCOPED_PRIVATE_POH", True)
+    return False
 
-
-def _session_principal_for_private_poh(request: Request, st: Json) -> str:
+def _session_principal_for_restricted_poh(request: Request, st: Json) -> str:
     try:
         return str(require_account_session(request, st) or "").strip()
     except PermissionError:
-        if _allow_header_scoped_private_poh_compat():
+        if _allow_header_scoped_restricted_poh_compat():
             return _request_account(request)
         return ""
 
 
-def _require_session_principal_for_poh_private(request: Request, st: Json, *, purpose: str) -> str:
+def _require_session_principal_for_poh_identity_evidence(request: Request, st: Json, *, purpose: str) -> str:
     try:
         acct = str(require_account_session(request, st) or "").strip()
     except PermissionError as exc:
-        if _allow_header_scoped_private_poh_compat():
+        if _allow_header_scoped_restricted_poh_compat():
             acct = _request_account(request)
         else:
             raise ApiError.forbidden(
@@ -451,17 +449,41 @@ def _require_session_principal_for_poh_private(request: Request, st: Json, *, pu
     return acct
 
 
-def _async_case_allows_private_evidence(raw: dict[str, object], *, account: str) -> bool:
+
+
+def _require_poh_session_matches(request: Request, st: Json, *, expected: str, purpose: str) -> str:
+    principal = _require_session_principal_for_poh_identity_evidence(request, st, purpose=purpose)
+    if str(principal or "").strip() != str(expected or "").strip():
+        raise ApiError.forbidden(
+            "session_mismatch",
+            f"authenticated session does not match {purpose}",
+            {"expected": str(expected or "").strip(), "principal": str(principal or "").strip(), "purpose": purpose},
+        )
+    return principal
+
+def _async_case_allows_restricted_evidence(raw: dict[str, object], *, account: str) -> bool:
     if not account:
         return False
-    if str(raw.get("account_id") or "").strip() == account:
+    acct = str(account or "").strip()
+    if str(raw.get("account_id") or "").strip() == acct:
         return True
-    assigned = raw.get("assigned_jurors")
-    if isinstance(assigned, list) and account in [str(x) for x in assigned]:
+
+    # Reviewer evidence is intentionally withheld until the reviewer accepts the
+    # assignment.  Assignment alone should only reveal commitments/metadata so a
+    # reviewer cannot inspect raw PoH video and then decline without creating the
+    # chain-visible acceptance record.
+    accepted = raw.get("accepted_jurors")
+    if isinstance(accepted, list) and acct in [str(x or "").strip() for x in accepted]:
         return True
+
     jurors = raw.get("jurors")
-    if isinstance(jurors, dict) and account in jurors:
-        return True
+    if isinstance(jurors, dict):
+        direct = jurors.get(acct)
+        if isinstance(direct, dict) and direct.get("accepted") is True:
+            return True
+        for key, value in jurors.items():
+            if str(key or "").strip() == acct and isinstance(value, dict) and value.get("accepted") is True:
+                return True
     return False
 
 
@@ -484,9 +506,9 @@ def poh_async_case(case_id: str, request: Request) -> PohAsyncCaseResponse:
     raw = cases.get(cid)
     if not isinstance(raw, dict):
         raise ApiError.not_found("not_found", "async_case_not_found")
-    principal = _session_principal_for_private_poh(request, st)
-    include_private = _async_case_allows_private_evidence(raw, account=principal)
-    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, raw, include_private_evidence=include_private))
+    principal = _session_principal_for_restricted_poh(request, st)
+    include_private = _async_case_allows_restricted_evidence(raw, account=principal)
+    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, raw, include_restricted_evidence=include_private))
 
 
 @router.get(
@@ -503,9 +525,9 @@ def poh_async_my_cases(account: str, request: Request) -> PohAsyncCaseListRespon
         if not isinstance(raw, dict):
             continue
         if str(raw.get("account_id") or "").strip() == acct:
-            principal = _session_principal_for_private_poh(request, st)
+            principal = _session_principal_for_restricted_poh(request, st)
             include_private = principal == acct
-            out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
+            out.append(_as_async_case(str(cid), raw, include_restricted_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     return PohAsyncCaseListResponse(
         ok=True,
@@ -538,15 +560,15 @@ def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListRespo
         if (isinstance(assigned, list) and j in assigned) or (isinstance(jurors, dict) and j in jurors):
             if _async_case_finalized(raw) and not _query_truthy(request, "include_completed", False):
                 continue
-            principal = _session_principal_for_private_poh(request, st)
+            principal = _session_principal_for_restricted_poh(request, st)
             include_private = principal == j
-            out.append(_as_async_case(str(cid), raw, include_private_evidence=include_private))
+            out.append(_as_async_case(str(cid), raw, include_restricted_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     roles = st.get("roles") if isinstance(st.get("roles"), dict) else {}
     juror_roles = roles.get("jurors") if isinstance(roles.get("jurors"), dict) else {}
     active_set = juror_roles.get("active_set") if isinstance(juror_roles.get("active_set"), list) else []
     active_juror = j in [str(x) for x in active_set]
-    modeled_cases = [_as_async_case(str(cid), raw, include_private_evidence=False) for cid, raw in cases.items() if isinstance(raw, dict)]
+    modeled_cases = [_as_async_case(str(cid), raw, include_restricted_evidence=False) for cid, raw in cases.items() if isinstance(raw, dict)]
     return PohAsyncCaseListResponse(
         ok=True,
         cases=out,
@@ -600,6 +622,49 @@ def _live_session_participants_from_snapshot(st: Json) -> Json:
         return {}
     sp = poh.get("live_session_participants")
     return sp if isinstance(sp, dict) else {}
+
+
+def _case_session_commitment(st: Json, case_id: str) -> str:
+    """Return the canonical live-session commitment for a live PoH case.
+
+    Attendance and verdict skeletons must bind signed user txs to the same
+    session commitment consensus apply-time validation checks.  The live case
+    record is the canonical source after request/init, with live_sessions as a
+    migration/recovery fallback for older or partially initialized rehearsal
+    states.
+    """
+
+    cid = str(case_id or "").strip()
+    if not cid:
+        return ""
+
+    cases = _live_cases_from_snapshot(st)
+    case = cases.get(cid)
+    if not isinstance(case, dict):
+        raise ApiError.not_found("not_found", "live_case_not_found", {"case_id": cid})
+
+    direct = str(case.get("session_commitment") or "").strip()
+    if direct:
+        return direct
+
+    sessions = _live_sessions_from_snapshot(st)
+    expected_sid = f"session:{cid}"
+    session = sessions.get(expected_sid)
+    if isinstance(session, dict):
+        fallback = str(session.get("session_commitment") or "").strip()
+        if fallback:
+            return fallback
+
+    for raw in sessions.values():
+        if not isinstance(raw, dict):
+            continue
+        if str(raw.get("case_id") or "").strip() != cid:
+            continue
+        fallback = str(raw.get("session_commitment") or "").strip()
+        if fallback:
+            return fallback
+
+    return ""
 
 
 def _query_truthy(request: Request, key: str, default: bool = False) -> bool:
@@ -898,8 +963,15 @@ def poh_live_assigned(juror: str, request: Request) -> PohLiveAssignedResponse:
     "/poh/live/juror-cases", response_model=PohLiveAssignedResponse, name="poh_live_juror_cases"
 )
 def poh_live_juror_cases(juror: str, request: Request) -> PohLiveAssignedResponse:
-    # Compatibility alias for async juror-cases and operator probes.
-    return poh_live_assigned(juror=juror, request=request)
+    """Removed legacy live juror-cases alias.
+
+    Live PoH reviewer work is exposed through /poh/live/assigned.
+    """
+    raise ApiError.gone(
+        "legacy_endpoint_removed",
+        "/v1/poh/live/juror-cases has been removed; use /v1/poh/live/assigned",
+        {"canonical_endpoint": "/v1/poh/live/assigned"},
+    )
 
 
 @router.get(
@@ -1241,7 +1313,7 @@ def poh_live_session_presence_update(
         )
 
     st = _snapshot(request)
-    principal = _require_session_principal_for_poh_private(
+    principal = _require_session_principal_for_poh_identity_evidence(
         request, st, purpose="live room presence"
     )
     if principal != account_id:
@@ -1538,7 +1610,7 @@ def _webrtc_bridge_diag() -> Json:
     diag.setdefault("last_drain_result", {})
     diag.setdefault("rejected_peers", {})
     diag.setdefault("stale_signal_pruned", 0)
-    diag.setdefault("stale_outbox_pruned", 0)
+    diag.setdefault("stale_tx_queue_pruned", 0)
     diag.setdefault("max_record_pruned", 0)
     return diag
 
@@ -1818,16 +1890,16 @@ def _bridge_payload_for_signal(rec: Json, spec: Json | None = None) -> Json:
     return payload
 
 
-def _webrtc_signal_outbox_path() -> Path:
-    raw = str(os.environ.get("WEALL_WEBRTC_SIGNAL_OUTBOX_PATH") or "").strip()
+def _webrtc_signal_queue_path() -> Path:
+    raw = str(os.environ.get("WEALL_WEBRTC_SIGNAL_QUEUE_PATH") or "").strip()
     if raw:
         return Path(raw)
-    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_outbox.json"
+    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_tx_queue.json"
 
 
-def _webrtc_signal_outbox_lock():
-    path = _webrtc_signal_outbox_path()
-    locks = globals().setdefault("_WEALL_WEBRTC_SIGNAL_OUTBOX_LOCKS", {})
+def _webrtc_signal_queue_lock():
+    path = _webrtc_signal_queue_path()
+    locks = globals().setdefault("_WEALL_WEBRTC_SIGNAL_QUEUE_LOCKS", {})
     lock = locks.get(str(path))
     if lock is None:
         lock = threading.Lock()
@@ -1835,8 +1907,8 @@ def _webrtc_signal_outbox_lock():
     return lock
 
 
-def _load_webrtc_signal_outbox_unlocked() -> list[Json]:
-    path = _webrtc_signal_outbox_path()
+def _load_webrtc_signal_queue_unlocked() -> list[Json]:
+    path = _webrtc_signal_queue_path()
     if not path.exists():
         return []
     try:
@@ -1851,30 +1923,30 @@ def _load_webrtc_signal_outbox_unlocked() -> list[Json]:
     return data if isinstance(data, list) else []
 
 
-def _write_webrtc_signal_outbox_unlocked(rows: list[Json]) -> None:
-    path = _webrtc_signal_outbox_path()
+def _write_webrtc_signal_queue_unlocked(rows: list[Json]) -> None:
+    path = _webrtc_signal_queue_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    max_rows = max(16, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ROWS", 1024))
-    ttl_ms = max(10_000, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_TTL_MS", _webrtc_signal_ttl_ms()))
+    max_rows = max(16, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ROWS", 1024))
+    ttl_ms = max(10_000, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_TTL_MS", _webrtc_signal_ttl_ms()))
     now = _now_ms()
     clean: list[Json] = []
     seen: set[str] = set()
-    stale_outbox_pruned = 0
+    stale_tx_queue_pruned = 0
     for row in rows:
         if not isinstance(row, dict):
             continue
         created = int(row.get("created_ms") or 0)
         if created and now - created > ttl_ms:
-            stale_outbox_pruned += 1
+            stale_tx_queue_pruned += 1
             continue
-        key = str(row.get("outbox_id") or "").strip() or json.dumps(row, sort_keys=True, default=str)
+        key = str(row.get("tx_queue_id") or "").strip() or json.dumps(row, sort_keys=True, default=str)
         if key in seen:
             continue
         seen.add(key)
         clean.append(row)
-    if stale_outbox_pruned:
+    if stale_tx_queue_pruned:
         diag = _webrtc_bridge_diag()
-        diag["stale_outbox_pruned"] = int(diag.get("stale_outbox_pruned") or 0) + stale_outbox_pruned
+        diag["stale_tx_queue_pruned"] = int(diag.get("stale_tx_queue_pruned") or 0) + stale_tx_queue_pruned
     overflow_pruned = max(0, len(clean) - max_rows)
     if overflow_pruned:
         diag = _webrtc_bridge_diag()
@@ -1885,20 +1957,20 @@ def _write_webrtc_signal_outbox_unlocked(rows: list[Json]) -> None:
     tmp.replace(path)
 
 
-def _read_webrtc_signal_outbox() -> list[Json]:
-    with _webrtc_signal_outbox_lock():
-        rows = _load_webrtc_signal_outbox_unlocked()
-        _write_webrtc_signal_outbox_unlocked(rows)
-        return _load_webrtc_signal_outbox_unlocked()
+def _read_webrtc_signal_queue() -> list[Json]:
+    with _webrtc_signal_queue_lock():
+        rows = _load_webrtc_signal_queue_unlocked()
+        _write_webrtc_signal_queue_unlocked(rows)
+        return _load_webrtc_signal_queue_unlocked()
 
 
 def _enqueue_webrtc_signal_bridge(rec: Json) -> Json:
     specs = _webrtc_signal_peer_specs()
     if not specs:
-        return {"attempted": False, "queued": 0, "mode": "durable_outbox", "results": []}
+        return {"attempted": False, "queued": 0, "mode": "durable_tx_queue", "results": []}
     created = _now_ms()
-    with _webrtc_signal_outbox_lock():
-        rows = _load_webrtc_signal_outbox_unlocked()
+    with _webrtc_signal_queue_lock():
+        rows = _load_webrtc_signal_queue_unlocked()
         queued = 0
         for spec in specs:
             url = str(spec.get("url") or "").strip()
@@ -1906,11 +1978,11 @@ def _enqueue_webrtc_signal_bridge(rec: Json) -> Json:
             if not url or not node_id:
                 continue
             payload = _bridge_payload_for_signal(rec, spec)
-            outbox_id = hashlib.sha256(json.dumps({"peer": node_id, "signal": payload}, sort_keys=True).encode("utf-8")).hexdigest()
-            if any(isinstance(r, dict) and r.get("outbox_id") == outbox_id for r in rows):
+            tx_queue_id = hashlib.sha256(json.dumps({"peer": node_id, "signal": payload}, sort_keys=True).encode("utf-8")).hexdigest()
+            if any(isinstance(r, dict) and r.get("tx_queue_id") == tx_queue_id for r in rows):
                 continue
             rows.append({
-                "outbox_id": outbox_id,
+                "tx_queue_id": tx_queue_id,
                 "peer_url": url,
                 "peer_node_id": node_id,
                 "peer_chain_id": str(spec.get("chain_id") or _webrtc_chain_id()),
@@ -1921,11 +1993,11 @@ def _enqueue_webrtc_signal_bridge(rec: Json) -> Json:
                 "last_error": "",
             })
             queued += 1
-        _write_webrtc_signal_outbox_unlocked(rows)
-    return {"attempted": bool(specs), "queued": queued, "mode": "durable_outbox", "results": []}
+        _write_webrtc_signal_queue_unlocked(rows)
+    return {"attempted": bool(specs), "queued": queued, "mode": "durable_tx_queue", "results": []}
 
 
-def _post_webrtc_signal_outbox_row(row: Json, *, timeout_s: int) -> Json:
+def _post_webrtc_signal_queue_row(row: Json, *, timeout_s: int) -> Json:
     url = str(row.get("peer_url") or "").strip()
     payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
     signal = payload.get("signal") if isinstance(payload.get("signal"), dict) else {}
@@ -1961,13 +2033,13 @@ def _post_webrtc_signal_outbox_row(row: Json, *, timeout_s: int) -> Json:
         return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:160], "peer": _redact_webrtc_peer_url(url)}
 
 
-def _drain_webrtc_signal_outbox(*, limit: int | None = None) -> Json:
-    limit_n = max(1, int(limit or _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_DRAIN_BATCH", 32)))
+def _drain_webrtc_signal_queue(*, limit: int | None = None) -> Json:
+    limit_n = max(1, int(limit or _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_DRAIN_BATCH", 32)))
     timeout_s = max(1, _env_int("WEALL_WEBRTC_SIGNAL_PEER_TIMEOUT_S", 3))
     results: list[Json] = []
-    with _webrtc_signal_outbox_lock():
-        rows = _load_webrtc_signal_outbox_unlocked()
-        rows = rows[-max(16, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ROWS", 1024)):]
+    with _webrtc_signal_queue_lock():
+        rows = _load_webrtc_signal_queue_unlocked()
+        rows = rows[-max(16, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ROWS", 1024)):]
         keep: list[Json] = []
         selected = 0
         for row in rows:
@@ -1975,15 +2047,15 @@ def _drain_webrtc_signal_outbox(*, limit: int | None = None) -> Json:
                 keep.append(row)
                 continue
             selected += 1
-            result = _post_webrtc_signal_outbox_row(row, timeout_s=timeout_s)
+            result = _post_webrtc_signal_queue_row(row, timeout_s=timeout_s)
             results.append(result)
             if not bool(result.get("ok")):
                 row["attempts"] = int(row.get("attempts") or 0) + 1
                 row["last_error"] = str(result.get("error") or "peer_rejected")
-                if int(row.get("attempts") or 0) < max(1, _env_int("WEALL_WEBRTC_SIGNAL_OUTBOX_MAX_ATTEMPTS", 5)):
+                if int(row.get("attempts") or 0) < max(1, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ATTEMPTS", 5)):
                     keep.append(row)
-        _write_webrtc_signal_outbox_unlocked(keep)
-    summary = {"ok": True, "attempted": bool(results), "accepted": any(bool(r.get("ok")) for r in results), "queued": len(_read_webrtc_signal_outbox()), "results": results}
+        _write_webrtc_signal_queue_unlocked(keep)
+    summary = {"ok": True, "attempted": bool(results), "accepted": any(bool(r.get("ok")) for r in results), "queued": len(_read_webrtc_signal_queue()), "results": results}
     diag = _webrtc_bridge_diag()
     diag["last_drain_result"] = summary
     diag["last_drain_ms"] = _now_ms()
@@ -2015,7 +2087,7 @@ def start_webrtc_signal_bridge_autodrain() -> threading.Thread | None:
     def _loop() -> None:
         while not stop.is_set():
             try:
-                _drain_webrtc_signal_outbox()
+                _drain_webrtc_signal_queue()
             except Exception:
                 pass
             stop.wait(_webrtc_signal_bridge_interval_s())
@@ -2206,7 +2278,7 @@ def poh_live_webrtc_relay_config() -> PohLiveWebRTCRelayConfigResponse:
 def poh_live_webrtc_signal_diagnostics(request: Request) -> Json:
     _require_webrtc_bridge_operator(request)
     diag = dict(_webrtc_bridge_diag())
-    rows = _read_webrtc_signal_outbox()
+    rows = _read_webrtc_signal_queue()
     diag.update({
         "ok": True,
         "authority": "transport_only_operator_diagnostics",
@@ -2218,10 +2290,10 @@ def poh_live_webrtc_signal_diagnostics(request: Request) -> Json:
     return diag
 
 
-@router.post("/poh/live/webrtc/signals/outbox/drain")
-def poh_live_webrtc_signal_outbox_drain(request: Request, limit: int | None = None) -> Json:
+@router.post("/poh/live/webrtc/signals/queue/drain")
+def poh_live_webrtc_signal_queue_drain(request: Request, limit: int | None = None) -> Json:
     _require_webrtc_bridge_operator(request)
-    return _drain_webrtc_signal_outbox(limit=limit)
+    return _drain_webrtc_signal_queue(limit=limit)
 
 @router.get(
     "/poh/live/session/{session_id}/webrtc/signals",
@@ -2236,7 +2308,7 @@ def poh_live_webrtc_signals(
         raise ApiError.bad_request("bad_request", "missing session_id", {})
 
     st = _snapshot(request)
-    account = _require_session_principal_for_poh_private(
+    account = _require_session_principal_for_poh_identity_evidence(
         request, st, purpose="WebRTC live-room signaling"
     )
     case_id, case = _live_case_for_session(st, sid)
@@ -2369,7 +2441,7 @@ def poh_live_webrtc_signal_send(
         raise ApiError.bad_request("bad_request", "missing account_id", {})
 
     st = _snapshot(request)
-    account = _require_session_principal_for_poh_private(
+    account = _require_session_principal_for_poh_identity_evidence(
         request, st, purpose="WebRTC live-room signaling"
     )
     if account != account_id:
@@ -2630,6 +2702,14 @@ class PohTier2RequestSkeletonRequest(BaseModel):
     target_tier: int | None = Field(default=None, ge=2, le=3)
 
 
+class PohLiveRequestSkeletonRequest(BaseModel):
+    account_id: str = Field(..., min_length=1)
+    session_commitment: str | None = Field(default=None, max_length=256)
+    room_commitment: str | None = Field(default=None, max_length=256)
+    prompt_commitment: str | None = Field(default=None, max_length=256)
+    device_pairing_commitment: str | None = Field(default=None, max_length=256)
+
+
 class PohTier2JurorActionSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
 
@@ -2661,6 +2741,50 @@ class PohAsyncReviewSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
     verdict: str = Field(..., min_length=1)
     reason_code: str | None = Field(default=None, max_length=128)
+
+
+class PohChallengeOpenSkeletonRequest(BaseModel):
+    account_id: str = Field(..., min_length=1)
+    reason: str | None = Field(default=None, max_length=512)
+    case_id: str | None = Field(default=None, max_length=128)
+
+
+@router.post(
+    "/poh/challenge/tx/open",
+    response_model=TxSkeletonResponseAsync,
+    name="poh_challenge_tx_open",
+)
+def poh_challenge_tx_open(
+    req: PohChallengeOpenSkeletonRequest, request: Request
+) -> TxSkeletonResponseAsync:
+    """Return a public-client tx skeleton for opening a PoH challenge.
+
+    This route does not mutate consensus state.  It makes the previously
+    direct-apply-only POH_CHALLENGE_OPEN path visible as an ordinary signed
+    user transaction that clients submit through /v1/tx/submit.  The resulting
+    transaction is still subject to canonical tx admission, signer registration,
+    nonce checks, and public HTTP system/receipt fail-closed guards.
+    """
+
+    acct = str(req.account_id or "").strip()
+    if not acct:
+        raise ApiError.bad_request("bad_request", "missing account_id", {})
+    payload: Json = {"account_id": acct}
+    reason = str(req.reason or "").strip()
+    if reason:
+        payload["reason"] = reason
+    case_id = str(req.case_id or "").strip()
+    if case_id:
+        payload["case_id"] = case_id
+    return TxSkeletonResponseAsync(
+        ok=True,
+        tx=TxSkeletonAsync(
+            tx_type="POH_CHALLENGE_OPEN",
+            signer_hint="<CHALLENGER_ACCOUNT_ID>",
+            parent=None,
+            payload=payload,
+        ),
+    )
 
 
 @router.post(
@@ -2742,118 +2866,33 @@ def poh_async_tx_review(req: PohAsyncReviewSkeletonRequest, request: Request) ->
 def poh_tier2_tx_request(
     req: PohTier2RequestSkeletonRequest, request: Request
 ) -> TxSkeletonResponseTier2:
-    """Return a tx skeleton for the legacy Tier-2 async escalation request.
+    """Removed legacy Tier-2 async escalation skeleton.
 
-    Client must sign and submit via /v1/tx/submit. target_tier=2 is legacy
-    compatibility and should move to the Live Verification request endpoint.
+    Tier-2 human verification now uses the native live verification request
+    skeleton at /poh/live/tx/request.
     """
-
-    acct = str(req.account_id or "").strip()
-    if not acct:
-        raise ApiError.bad_request("bad_request", "missing account_id", {})
-
-    vc = (req.video_commitment or "").strip()
-    cid = (req.video_cid or "").strip()
-
-    # Legacy target_tier=2 requests may not have video evidence at case open.
-    # The apply path rejects this form and points clients to POH_LIVE_REQUEST_OPEN,
-    # which is now treated as the Live Verification compatibility tx.
-    target_tier = int(req.target_tier) if req.target_tier is not None else 2
-
-    if target_tier == 2 and not vc and not cid:
-        raise ApiError.bad_request("bad_request", "missing video_commitment or video_cid", {})
-
-    payload: Json = {"account_id": acct, "target_tier": int(target_tier)}
-    if vc:
-        payload["video_commitment"] = vc
-    if cid:
-        payload["video_cid"] = cid
-
-    return TxSkeletonResponseTier2(
-        ok=True,
-        tx=TxSkeletonTier2(
-            tx_type="POH_TIER2_REQUEST_OPEN",
-            signer_hint=acct,
-            parent=None,
-            payload=payload,
-        ),
+    raise ApiError.gone(
+        "legacy_endpoint_removed",
+        "/v1/poh/tier2/tx/request has been removed; use /v1/poh/live/tx/request",
+        {"canonical_endpoint": "/v1/poh/live/tx/request"},
     )
 
 
-@router.post(
-    "/poh/tier2/tx/juror-accept",
-    response_model=TxSkeletonResponseTier2,
-    name="poh_tier2_tx_juror_accept",
-)
-def poh_tier2_tx_juror_accept(
-    req: PohTier2JurorActionSkeletonRequest, request: Request
-) -> TxSkeletonResponseTier2:
-    cid = str(req.case_id or "").strip()
-    if not cid:
-        raise ApiError.bad_request("bad_request", "missing case_id", {})
-
-    return TxSkeletonResponseTier2(
-        ok=True,
-        tx=TxSkeletonTier2(
-            tx_type="POH_TIER2_JUROR_ACCEPT",
-            signer_hint="<JUROR_ACCOUNT_ID>",
-            parent=None,
-            payload={"case_id": cid},
-        ),
-    )
 
 
-@router.post(
-    "/poh/tier2/tx/juror-decline",
-    response_model=TxSkeletonResponseTier2,
-    name="poh_tier2_tx_juror_decline",
-)
-def poh_tier2_tx_juror_decline(
-    req: PohTier2JurorActionSkeletonRequest, request: Request
-) -> TxSkeletonResponseTier2:
-    cid = str(req.case_id or "").strip()
-    if not cid:
-        raise ApiError.bad_request("bad_request", "missing case_id", {})
-
-    return TxSkeletonResponseTier2(
-        ok=True,
-        tx=TxSkeletonTier2(
-            tx_type="POH_TIER2_JUROR_DECLINE",
-            signer_hint="<JUROR_ACCOUNT_ID>",
-            parent=None,
-            payload={"case_id": cid},
-        ),
-    )
+class PohLiveJurorCaseSkeletonRequest(BaseModel):
+    case_id: str = Field(..., min_length=1)
 
 
-@router.post(
-    "/poh/tier2/tx/review", response_model=TxSkeletonResponseTier2, name="poh_tier2_tx_review"
-)
-def poh_tier2_tx_review(
-    req: PohTier2ReviewSkeletonRequest, request: Request
-) -> TxSkeletonResponseTier2:
-    cid = str(req.case_id or "").strip()
-    verdict = str(req.verdict or "").strip().lower()
-    if not cid:
-        raise ApiError.bad_request("bad_request", "missing case_id", {})
-    if verdict not in ("pass", "fail"):
-        raise ApiError.bad_request(
-            "bad_request", "verdict must be 'pass' or 'fail'", {"verdict": verdict}
-        )
-
-    return TxSkeletonResponseTier2(
-        ok=True,
-        tx=TxSkeletonTier2(
-            tx_type="POH_TIER2_REVIEW_SUBMIT",
-            signer_hint="<JUROR_ACCOUNT_ID>",
-            parent=None,
-            payload={"case_id": cid, "verdict": verdict, "ts_ms": 0},
-        ),
-    )
+class PohLiveAttendanceSkeletonRequest(BaseModel):
+    case_id: str = Field(..., min_length=1)
+    juror_id: str = Field(..., min_length=1)
+    attended: bool = True
 
 
-# PoH Live: Tx skeleton helpers (client signs + submits via /v1/tx/submit)
-# ---------------------------------------------------------------------------
+class PohLiveVerdictSkeletonRequest(BaseModel):
+    case_id: str = Field(..., min_length=1)
+    verdict: str = Field(..., min_length=1)
 
 
 class TxSkeleton(BaseModel):
@@ -2866,37 +2905,6 @@ class TxSkeleton(BaseModel):
 class TxSkeletonResponse(BaseModel):
     ok: bool
     tx: TxSkeleton
-
-
-class PohLiveRequestSkeletonRequest(BaseModel):
-    account_id: str = Field(..., min_length=1)
-    session_commitment: str | None = Field(default=None, max_length=128)
-    room_commitment: str | None = Field(default=None, max_length=128)
-    prompt_commitment: str | None = Field(default=None, max_length=128)
-    device_pairing_commitment: str | None = Field(default=None, max_length=128)
-
-
-class PohLiveJurorCaseSkeletonRequest(BaseModel):
-    case_id: str = Field(..., min_length=1)
-
-
-class PohLiveAttendanceSkeletonRequest(BaseModel):
-    case_id: str = Field(..., min_length=1)
-    juror_id: str = Field(..., min_length=1)
-    attended: bool = Field(...)
-
-
-class PohLiveVerdictSkeletonRequest(BaseModel):
-    case_id: str = Field(..., min_length=1)
-    verdict: str = Field(..., min_length=1)
-
-
-def _case_session_commitment(st: Json, case_id: str) -> str:
-    cases = _live_cases_from_snapshot(st)
-    raw = cases.get(case_id)
-    if not isinstance(raw, dict):
-        return ""
-    return str(raw.get("session_commitment") or "").strip()
 
 
 @router.post(

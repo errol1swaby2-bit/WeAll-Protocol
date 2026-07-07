@@ -1,0 +1,104 @@
+{
+  "artifact": "b499_b503_mechanics_proof_v1_5",
+  "batches": {
+    "499": {
+      "ok": true,
+      "status": "proof_harness_added_public_validators_still_disabled",
+      "title": "Public BFT multi-process proof harness"
+    },
+    "500": {
+      "ok": true,
+      "status": "trusted_anchor_snapshot_proof_added",
+      "title": "Fresh-node state sync proof"
+    },
+    "501": {
+      "ok": true,
+      "status": "slash_execute_records_non_economic_accountability_and_queues_epoch_bound_suspend",
+      "title": "Validator slash/accountability consequence expansion"
+    },
+    "502": {
+      "ok": true,
+      "status": "upheld_challenge_revokes_poh_and_marks_reverification_required",
+      "title": "PoH challenge revocation/reverification lifecycle"
+    },
+    "503": {
+      "ok": true,
+      "status": "final_receipt_applies_delayed_enforcement_after_window_or_appeal_decision",
+      "title": "Dispute appeal enforcement lifecycle"
+    }
+  },
+  "ok": true,
+  "proofs": {
+    "fresh_node_state_sync": {
+      "artifact": "fresh_node_state_sync_proof_v1_5",
+      "bad_anchor_rejected": true,
+      "fresh_node_state_root": "85d443f02275ecd3cdd8b506bb651fc8f9c14813bd86fb188f69e0a9b28e85b7",
+      "ok": true,
+      "same_state_root": true,
+      "source_height": 12,
+      "source_state_root": "85d443f02275ecd3cdd8b506bb651fc8f9c14813bd86fb188f69e0a9b28e85b7",
+      "trusted_anchor_finalized_height": 12,
+      "trusted_anchor_height": 12
+    },
+    "public_bft_multi_process": {
+      "artifact": "public_bft_multi_process_proof_v1_5",
+      "automatic_protocol_upgrade_apply_enabled": false,
+      "economics_enabled": false,
+      "leader": "validator-b",
+      "ok": true,
+      "process_count": 4,
+      "public_validator_enabled": false,
+      "quorum_threshold": 3,
+      "rows": [
+        {
+          "block_id": "block-candidate-0007",
+          "leader": "validator-b",
+          "parent_id": "block-candidate-0006",
+          "process_validator": "validator-a",
+          "threshold": 3,
+          "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1",
+          "view": 7,
+          "vote_payload_sha256": "1a533d1c40002018a6f729a3827d383cdff65ee8e866bc4ee8edc34bd0a243b4"
+        },
+        {
+          "block_id": "block-candidate-0007",
+          "leader": "validator-b",
+          "parent_id": "block-candidate-0006",
+          "process_validator": "validator-b",
+          "threshold": 3,
+          "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1",
+          "view": 7,
+          "vote_payload_sha256": "936c065ecf5895d02600e6612d168604459017f6a7de0f63a7abea0956d133db"
+        },
+        {
+          "block_id": "block-candidate-0007",
+          "leader": "validator-b",
+          "parent_id": "block-candidate-0006",
+          "process_validator": "validator-c",
+          "threshold": 3,
+          "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1",
+          "view": 7,
+          "vote_payload_sha256": "821125771b200fddb3e2ee1d56cc9a5208027ec78b8c03c3ff0e2824f13e9b34"
+        },
+        {
+          "block_id": "block-candidate-0007",
+          "leader": "validator-b",
+          "parent_id": "block-candidate-0006",
+          "process_validator": "validator-d",
+          "threshold": 3,
+          "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1",
+          "view": 7,
+          "vote_payload_sha256": "25f61bac4f8f6ee2bc3f874e07393a123f936831986d0d7cac7c789b0e64aaa6"
+        }
+      ],
+      "validator_count": 4,
+      "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1"
+    }
+  },
+  "truth_boundaries": {
+    "automatic_protocol_upgrades_enabled": false,
+    "live_economics_enabled": false,
+    "production_helper_execution_claimed": false,
+    "public_validators_enabled": false
+  }
+}

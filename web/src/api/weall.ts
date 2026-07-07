@@ -270,6 +270,37 @@ export type StatusResponse = {
   tip?: string;
 };
 
+export type GroupGovernanceContract = {
+  ok?: boolean;
+  group_id?: string;
+  object_classification?: string;
+  governance_model?: string;
+  public_only_contract?: {
+    read_visibility?: string;
+    content_read_gated_by_membership?: boolean;
+    membership_may_gate?: string[];
+    membership_must_not_gate?: string[];
+    private_groups_supported?: boolean;
+    member_only_read_supported?: boolean;
+    encrypted_group_payloads_supported?: boolean;
+  };
+  authority_contract?: {
+    admin_shortcuts_supported?: boolean;
+    authority_source?: string;
+    role_mutations_are_public?: boolean;
+    frontend_caches_are_authoritative?: boolean;
+    frontend_note?: string;
+    active_group_elections?: Array<Record<string, unknown>>;
+    signer_threshold?: number | null;
+    signer_count?: number;
+    moderator_count?: number;
+  };
+  participation_permissions?: Record<string, string>;
+  counts?: Record<string, number>;
+  tx_entrypoints?: Record<string, Record<string, string>>;
+  inspection_routes?: Record<string, string>;
+};
+
 export type FeedItem = {
   cid?: string;
   tx_id?: string;
@@ -295,12 +326,55 @@ export type FeedParams = {
   cursor?: string | null;
   tags?: string[] | string;
   author?: string;
+  ranking?: string;
+  rank?: string;
 };
 
 export type FeedResponse = {
   ok?: boolean;
   items?: FeedItem[];
   next_cursor?: string | null;
+};
+
+export type PublicProfile = {
+  account_id?: string;
+  display_name?: string;
+  bio?: string;
+  avatar_cid?: string;
+  banner_cid?: string;
+  website?: string;
+  location?: string;
+  tags?: string[];
+  created_at_nonce?: number;
+  updated_at_nonce?: number;
+  public_links?: Array<{ label?: string; url?: string }>;
+  avatar_media?: { cid?: string; fetch_path?: string; kind?: string; source?: string } | null;
+  banner_media?: { cid?: string; fetch_path?: string; kind?: string; source?: string } | null;
+  pinned_post_id?: string;
+};
+
+export type PublicProfileResponse = {
+  ok?: boolean;
+  schema?: string;
+  account?: string;
+  exists?: boolean;
+  profile?: PublicProfile;
+  public_activity?: Record<string, unknown>;
+  capabilities?: Record<string, unknown>;
+  receipt_paths?: Record<string, string>;
+  truth_boundary?: string;
+  privacy_boundary?: string;
+};
+
+export type ProfileUpdateTxRequest = {
+  account_id: string;
+  display_name?: string;
+  bio?: string;
+  avatar_cid?: string;
+  banner_cid?: string;
+  website?: string;
+  location?: string;
+  tags?: string[];
 };
 
 
@@ -325,6 +399,7 @@ export async function createBrowserSession(input: {
   ttl_s: number;
   issued_at_ms: number;
   device_id: string;
+  sig_profile?: string;
   pubkey: string;
   sig?: string;
   signature?: string;
@@ -340,6 +415,7 @@ export async function createBrowserSession(input: {
         ttl_s: input.ttl_s,
         issued_at_ms: input.issued_at_ms,
         device_id: input.device_id,
+        ...(input.sig_profile ? { sig_profile: input.sig_profile } : {}),
         pubkey: input.pubkey,
         sig,
       }),
@@ -359,6 +435,7 @@ export async function fetchFeed(params?: FeedParams, base?: string): Promise<Fee
     cursor: params?.cursor,
     tags: normalizeTagsParam(params?.tags),
     author: params?.author,
+    ranking: params?.ranking || params?.rank,
   });
   return request<FeedResponse>(qs, { method: "GET" }, base);
 }
@@ -492,6 +569,62 @@ export const weall = {
     return apiGet("/v1/health", base);
   },
 
+  operatorStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/operator", base, headers);
+  },
+
+  consensusStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/consensus", base, headers);
+  },
+
+  mempoolStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/mempool", base, headers);
+  },
+
+  storageIpfsOps(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/storage/ipfs/ops", base, headers);
+  },
+
+  chainHead(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/chain/head", base, headers);
+  },
+
+  chainIdentity(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/chain/identity", base, headers);
+  },
+
+  launchMatrix(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/launch-matrix", base, headers);
+  },
+
+  testnetCapabilities(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/testnet-capabilities", base, headers);
+  },
+
+  blockProductionReadiness(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/consensus/block-production/readiness", base, headers);
+  },
+
+  helperReadiness(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/status/helper/readiness", base, headers);
+  },
+
+  netSelf(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/net/self", base, headers);
+  },
+
+  publicSeeds(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/nodes/seeds", base, headers);
+  },
+
+  publicValidators(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/nodes/validators", base, headers);
+  },
+
+  observerEdgeStatus(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/observer/edge/status", base, headers);
+  },
+
   account(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers);
   },
@@ -500,8 +633,20 @@ export const weall = {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers);
   },
 
+  accountProfile(account: string, base?: string, headers?: HeadersInit): Promise<PublicProfileResponse> {
+    return apiGet(`/v1/accounts/${encodeURIComponent(account)}/profile`, base, headers);
+  },
+
+  profileUpdateTx(payload: ProfileUpdateTxRequest, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost("/v1/accounts/tx/profile-update", payload, base, headers);
+  },
+
   accountRegistered(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}/registered`, base, headers);
+  },
+
+  accountReviewerStatus(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/accounts/${encodeURIComponent(account)}/reviewer-status`, base, headers);
   },
 
   accountOperatorStatus(
@@ -514,8 +659,41 @@ export const weall = {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}/operator-status${query}`, base, headers);
   },
 
+  reputationMe(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/reputation/me", base, headers);
+  },
+
+  reputationSummary(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/reputation/${encodeURIComponent(account)}/summary`, base, headers);
+  },
+
+  reputationMatrix(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/reputation/${encodeURIComponent(account)}/matrix`, base, headers);
+  },
+
+  reputationEligibility(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/reputation/${encodeURIComponent(account)}/eligibility`, base, headers);
+  },
+
+  reputationEventCodes(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/reputation/event-codes", base, headers);
+  },
+
+  reputationEvents(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/reputation/${encodeURIComponent(account)}/events`, base, headers);
+  },
+
   accountNonce(account: string, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers).then((r: any) => ({ ok: true, account, nonce: r?.state?.nonce ?? 0, next_nonce: r?.state?.nonce ?? 0 }));
+    return apiGet(`/v1/accounts/${encodeURIComponent(account)}/nonce`, base, headers)
+      .catch(() => apiGet(`/v1/accounts/${encodeURIComponent(account)}`, base, headers)
+        .then((r: any) => ({
+          ok: true,
+          account,
+          nonce: r?.state?.nonce ?? 0,
+          chain_nonce: r?.state?.nonce ?? 0,
+          nonce_cursor: r?.state?.nonce ?? 0,
+          next_nonce: Number(r?.state?.nonce ?? 0) + 1,
+        })));
   },
 
   accountFeed(
@@ -553,6 +731,7 @@ export const weall = {
         cursor: params?.cursor,
         tags: normalizeTagsParam(params?.tags),
         author: params?.author,
+        ranking: params?.ranking || params?.rank,
       }),
       base,
       headers,
@@ -576,38 +755,6 @@ export const weall = {
     );
   },
 
-  messageThreads(
-    a?: { limit?: number; cursor?: string | null } | string,
-    b?: string | HeadersInit,
-    c?: HeadersInit,
-  ): Promise<any> {
-    const { params, base, headers } = splitParamsBaseHeaders(a, b, c);
-    return apiGet(
-      withSearch("/v1/messages/threads", {
-        limit: params?.limit as number | undefined,
-        cursor: params?.cursor as string | null | undefined,
-      }),
-      base,
-      headers,
-    );
-  },
-
-  messageThread(
-    id: string,
-    a?: { limit?: number; cursor?: string | null } | string,
-    b?: string | HeadersInit,
-    c?: HeadersInit,
-  ): Promise<any> {
-    const { params, base, headers } = splitParamsBaseHeaders(a, b, c);
-    return apiGet(
-      withSearch(`/v1/messages/threads/${encodeURIComponent(id)}`, {
-        limit: params?.limit as number | undefined,
-        cursor: params?.cursor as string | null | undefined,
-      }),
-      base,
-      headers,
-    );
-  },
 
   proposals(
     a?: { limit?: number; stage?: string; activeOnly?: boolean; includeSummary?: boolean } | string,
@@ -639,6 +786,10 @@ export const weall = {
     return apiGet("/v1/state/snapshot", base, headers);
   },
 
+  activityNotices(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/activity/notices", base, headers);
+  },
+
   disputes(
     a?: { limit?: number; targetId?: string } | string,
     b?: string | HeadersInit,
@@ -664,6 +815,26 @@ export const weall = {
 
   disputeVotes(id: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/disputes/${encodeURIComponent(id)}/votes`, base, headers);
+  },
+
+  disputesEligible(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/disputes/eligible", base, headers);
+  },
+
+  disputesCurrent(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/disputes/current", base, headers);
+  },
+
+  disputeAccept(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost(`/v1/disputes/${encodeURIComponent(id)}/accept`, {}, base, headers);
+  },
+
+  disputeWithdraw(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost(`/v1/disputes/${encodeURIComponent(id)}/withdraw`, {}, base, headers);
+  },
+
+  disputeVote(id: string, payload: Record<string, unknown>, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiPost(`/v1/disputes/${encodeURIComponent(id)}/vote`, payload || {}, base, headers);
   },
 
   content(id: string, base?: string, headers?: HeadersInit): Promise<any> {
@@ -696,6 +867,11 @@ export const weall = {
       headers,
     );
   },
+
+  groupGovernanceContract(id: string, base?: string, headers?: HeadersInit): Promise<GroupGovernanceContract> {
+    return apiGet(`/v1/groups/${encodeURIComponent(id)}/governance-contract`, base, headers);
+  },
+
 
   socialFollowing(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/social/${encodeURIComponent(account)}/following`, base, headers);
@@ -752,10 +928,6 @@ export const weall = {
     return apiGet(withSearch('/v1/poh/live/assigned', { juror: account }), base, headers);
   },
 
-  pohLiveJurorCases(account: string, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiGet(withSearch('/v1/poh/live/juror-cases', { juror: account }), base, headers);
-  },
-
   pohLiveMyCases(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(withSearch('/v1/poh/live/my-cases', { account }), base, headers);
   },
@@ -797,10 +969,6 @@ export const weall = {
     return apiPost("/v1/poh/operator/live/finalize", payload, base, headers);
   },
 
-  pohTier2TxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier2/tx/request", payload, base, headers);
-  },
-
   pohLiveTxRequest(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/live/tx/request", payload, base, headers);
   },
@@ -816,18 +984,6 @@ export const weall = {
 
   pohAsyncTxReview(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
     return apiPost("/v1/poh/async/tx/review", payload, base, headers);
-  },
-
-  pohTier2TxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier2/tx/juror-accept", payload, base, headers);
-  },
-
-  pohTier2TxJurorDecline(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier2/tx/juror-decline", payload, base, headers);
-  },
-
-  pohTier2TxReview(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
-    return apiPost("/v1/poh/tier2/tx/review", payload, base, headers);
   },
 
   pohLiveTxJurorAccept(payload: unknown, base?: string, headers?: HeadersInit): Promise<any> {
@@ -910,6 +1066,9 @@ export const api = {
     },
     get(id: string, base?: string, headers?: HeadersInit) {
       return apiGet(`/v1/groups/${encodeURIComponent(id)}`, base, headers);
+    },
+    governanceContract(id: string, base?: string, headers?: HeadersInit) {
+      return apiGet(`/v1/groups/${encodeURIComponent(id)}/governance-contract`, base, headers);
     },
     members(id: string, base?: string, headers?: HeadersInit) {
       return apiGet(`/v1/groups/${encodeURIComponent(id)}/members`, base, headers);

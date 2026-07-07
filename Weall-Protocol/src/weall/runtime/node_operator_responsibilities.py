@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.storage_revalidation_scheduler import (
     storage_max_failed_challenges,
     storage_max_missed_challenges,
@@ -183,10 +184,11 @@ def responsibility_record(state: Mapping[str, Any], account_id: str, name: str) 
 def baseline_requirements(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> tuple[list[str], Json]:
     account = account_record(state, account_id)
     reasons: list[str] = []
+    effective_tier = effective_poh_tier(dict(state), account_id)
     details: Json = {
         "account_id": account_id,
         "poh_tier_required": 2,
-        "poh_tier_actual": _as_int(account.get("poh_tier"), 0),
+        "poh_tier_actual": effective_tier,
         "node_pubkey": node_pubkey,
         "duplicate_node_pubkeys": list(duplicate_node_keys_for_account(state, account_id)),
     }
@@ -197,7 +199,7 @@ def baseline_requirements(state: Mapping[str, Any], account_id: str, *, node_pub
         _append_unique(reasons, "account_banned")
     if bool(account.get("locked", False)):
         _append_unique(reasons, "account_locked")
-    if _as_int(account.get("poh_tier"), 0) < 2:
+    if effective_tier < 2:
         _append_unique(reasons, "poh_tier_insufficient")
     if not has_registered_node_key(state, account_id, node_pubkey=node_pubkey):
         _append_unique(reasons, "node_key_missing")
@@ -355,11 +357,91 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
     return ResponsibilityEvaluation("validator", status, not reasons, active, tuple(reasons), ("baseline_node_operator_active", "validator_opt_in", "reputation", "validator_readiness"), details)
 
 
+def evaluate_helper_responsibility(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> ResponsibilityEvaluation:
+    account = account_record(state, account_id)
+    rec = responsibility_record(state, account_id, "helper")
+    opted_in = bool(rec.get("opted_in", False))
+    active_flag = bool(rec.get("active", False))
+    required = _as_int(rec.get("reputation_required_milli"), 2000)
+    actual = account_reputation_units(account, default=0)
+    details: Json = {
+        "account_id": account_id,
+        "opted_in": opted_in,
+        "reputation_required_milli": required,
+        "reputation_actual_milli": actual,
+        "node_pubkey": node_pubkey,
+        "helper_endpoint_commitment": _as_str(rec.get("helper_endpoint_commitment")),
+        "helper_capacity_units": _as_int(rec.get("helper_capacity_units"), 0),
+    }
+    if not opted_in:
+        # Exact helper opt-in is required for newly enrolled operators. For
+        # historical fixtures and pre-Batch-616 ledgers that contain an already
+        # active node-operator record but no responsibilities object at all,
+        # preserve deterministic replay by treating the coarse helper request as
+        # a legacy migrated helper opt-in. New ROLE_NODE_OPERATOR_ACTIVATE stamps
+        # responsibilities, so it remains fail-closed without NODE_OPERATOR_HELPER_OPT_IN.
+        op_rec = node_operator_record(state, account_id)
+        if bool(op_rec.get("enrolled", False)) and "responsibilities" not in op_rec:
+            reasons: list[str] = []
+            baseline = evaluate_baseline_node_operator(state, account_id, node_pubkey=node_pubkey)
+            if not baseline.active:
+                _append_unique(reasons, "baseline_node_operator_inactive")
+            if not baseline.eligible:
+                legacy_reasons = set(baseline.reasons)
+                if legacy_reasons != {"node_key_missing"}:
+                    for reason in baseline.reasons:
+                        _append_unique(reasons, reason)
+            if actual < required:
+                _append_unique(reasons, "helper_reputation_insufficient")
+            legacy_details = dict(details)
+            legacy_details["legacy_migration_compat"] = True
+            active = not reasons
+            return ResponsibilityEvaluation(
+                "helper",
+                "active" if active else "blocked",
+                not reasons,
+                active,
+                tuple(reasons),
+                ("baseline_node_operator_active", "helper_opt_in", "reputation", "active_node_key"),
+                legacy_details,
+            )
+        return ResponsibilityEvaluation(
+            "helper",
+            "not_opted_in",
+            False,
+            False,
+            ("not_opted_in",),
+            ("baseline_node_operator_active", "helper_opt_in", "reputation", "active_node_key"),
+            details,
+        )
+    reasons: list[str] = []
+    baseline = evaluate_baseline_node_operator(state, account_id, node_pubkey=node_pubkey)
+    if not baseline.active:
+        _append_unique(reasons, "baseline_node_operator_inactive")
+    if not baseline.eligible:
+        for reason in baseline.reasons:
+            _append_unique(reasons, reason)
+    if actual < required:
+        _append_unique(reasons, "helper_reputation_insufficient")
+    active = bool(active_flag and not reasons)
+    status = "active" if active else ("blocked" if reasons else "eligible")
+    return ResponsibilityEvaluation(
+        "helper",
+        status,
+        not reasons,
+        active,
+        tuple(reasons),
+        ("baseline_node_operator_active", "helper_opt_in", "reputation", "active_node_key"),
+        details,
+    )
+
+
 def evaluate_node_operator_responsibilities(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> Json:
     return {
         "baseline": evaluate_baseline_node_operator(state, account_id, node_pubkey=node_pubkey).as_dict(),
         "validator": evaluate_validator_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict(),
         "storage": evaluate_storage_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict(),
+        "helper": evaluate_helper_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict(),
     }
 
 

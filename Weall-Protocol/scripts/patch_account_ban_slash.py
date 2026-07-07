@@ -168,7 +168,7 @@ def _patch_apply_account_ban(src: str) -> str:
 
     injection = r"""
     # Optional balance slashing on ban (opt-in via payload).
-    # If present, slashed value is routed into fees.pending_reward for next block reward.
+    # If present, slashed value is routed into fees.pending_reward for next epoch issuance/reward distribution.
     try:
         payload = _as_dict(env.payload)
     except Exception:

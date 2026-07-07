@@ -30,11 +30,16 @@ export function getDurableOperatorTarget(): number {
   return Math.max(1, envInt("VITE_WEALL_MEDIA_DURABLE_OPERATOR_COUNT", 2));
 }
 
+export function getShowTestnetCapabilitySurface(): boolean {
+  return envBool("VITE_WEALL_SHOW_TESTNET_CAPABILITY_SURFACE", true);
+}
+
 export function getFrontendCapabilities() {
   return {
     pohTier2VideoUploadEnabled: getTier2VideoUploadEnabled(),
     bootstrapLiveEnabled: getBootstrapLiveEnabled(),
     mediaReplicationTarget: getMediaReplicationTarget(),
     mediaDurableOperatorTarget: getDurableOperatorTarget(),
+    showTestnetCapabilitySurface: getShowTestnetCapabilitySurface(),
   };
 }

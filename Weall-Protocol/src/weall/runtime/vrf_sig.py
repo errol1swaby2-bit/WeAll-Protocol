@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-"""Verifiable randomness based on Ed25519 signatures ("sig-VRF").
+"""Verifiable randomness based on ML-DSA signatures ("sig-VRF").
 
-We implement a VRF-like primitive using deterministic Ed25519 signatures:
+We implement a VRF-like primitive using deterministic ML-DSA signatures:
 
-  proof = Ed25519Sign(privkey, message)
+  proof = ML-DSASign(privkey, message)
   output = sha256(proof_bytes)
 
 Anyone can verify the proof with the public key and reproduce `output`.
@@ -21,11 +21,11 @@ Security notes:
 import hashlib
 from typing import Any
 
-from weall.crypto.sig import sign_ed25519, verify_ed25519_signature
+from weall.crypto.sig import sign_mldsa, verify_mldsa_signature
 
 Json = dict[str, Any]
 
-SCHEME = "ed25519_sig_v1"
+SCHEME = "mldsa_sig_v1"
 DOMAIN = "weall-vrf"
 
 
@@ -62,7 +62,7 @@ def make_vrf_record(
         prev_block_hash=prev_block_hash,
         block_ts_ms=block_ts_ms,
     )
-    proof = sign_ed25519(message=msg, privkey=privkey, encoding="hex")
+    proof = sign_mldsa(message=msg, privkey=privkey, encoding="hex")
     out = vrf_output_from_proof(proof)
     return {
         "scheme": SCHEME,
@@ -101,7 +101,7 @@ def verify_vrf_record(
         block_ts_ms=block_ts_ms,
     )
 
-    if not verify_ed25519_signature(message=msg, sig=proof, pubkey=pubkey):
+    if not verify_mldsa_signature(message=msg, sig=proof, pubkey=pubkey):
         return False, "vrf_bad_signature"
 
     want_out = vrf_output_from_proof(proof)

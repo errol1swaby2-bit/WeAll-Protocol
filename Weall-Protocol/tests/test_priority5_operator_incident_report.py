@@ -106,7 +106,7 @@ def test_operator_incident_report_escalates_remote_stall_to_critical(
 
 
 
-def test_operator_incident_report_surfaces_runtime_authority_contract_batch131(tmp_path: Path, monkeypatch) -> None:
+def test_operator_incident_report_surfaces_runtime_authority_contract(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator,helper")

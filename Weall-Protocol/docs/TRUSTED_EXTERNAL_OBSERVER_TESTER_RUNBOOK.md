@@ -1,4 +1,8 @@
-# Trusted External Observer Tester Runbook
+# Legacy Controlled External Observer Tester Runbook
+
+> Legacy controlled-observer runbook. For the updated open-download public observer testnet path, use `PUBLIC_OBSERVER_TESTNET_QUICKSTART.md`. This legacy trusted-tester path is not the public launch path and must not be used to imply the testnet is invite-only.
+
+Legacy contract alias: **Trusted External Observer**. The first trusted observer is a no-go unless every command above passes; the updated public-observer launch path keeps that no-go gate as a controlled rehearsal baseline while making observer access open through the signed public seed registry.
 
 This runbook is for the first controlled external observer-node tester. It is intentionally observer-first: the tester can read/sync state, verify chain identity, submit onboarding transactions, and serve a local onboarding UI, but cannot propose blocks, vote in BFT, sign validator messages, act as a helper authority, or earn service rewards.
 
@@ -9,10 +13,10 @@ The observer tester must not receive or configure:
 - genesis private keys
 - validator private keys
 - authority signer private keys
-- Cloudflare credentials
+- named hosting-provider credentials
 - SMTP credentials
 - email oracle credentials
-- OAuth, CAPTCHA, KYC, DNS, or inbox-provider credentials
+- OAuth, CAPTCHA, KYC, DNS, or input_queue-provider credentials
 
 The only required trust material is the public chain manifest and public onboarding bundle.
 
@@ -36,7 +40,7 @@ If you cannot perform the real two-machine rehearsal yet, run the local readines
 bash scripts/local_observer_readiness_gate.sh
 ```
 
-This does not replace the two-machine rehearsal. It proves the local prerequisites: the manifest is pinned, the public observer bundle can be generated and verified, observer-only posture is enforced, and no genesis/validator/authority/Cloudflare/SMTP/oracle secret is required by the observer path.
+This does not replace the two-machine rehearsal. It proves the local prerequisites: the manifest is pinned, the public observer bundle can be generated and verified, observer-only posture is enforced, and no genesis/validator/authority/named hosting-provider/SMTP/oracle secret is required by the observer path.
 
 ## Founder / genesis operator export
 
@@ -99,7 +103,7 @@ This smoke path verifies:
 - the remote genesis live API is reachable when `WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API=1` is set
 - `/v1/health`, `/v1/status`, `/v1/ready` or `/v1/readyz`, `/v1/chain/identity`, and `/v1/tx/status/:tx_id` respond with the expected contract shape
 - the remote genesis chain identity matches the bundle when `WEALL_GENESIS_API_BASE` is provided
-- relay recipient public-key binding is present whenever relay URLs are configured
+- relay recipient identity binding is present whenever relay URLs are configured
 - observer mode is forced on
 - validator signing is forced off
 - BFT is forced off
@@ -158,7 +162,7 @@ The test is successful only if:
 - the observer submits signed onboarding txs to the genesis node
 - the genesis node includes the txs through normal mempool/block flow
 - receipts and committed state become visible to the observer
-- no email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, KYC, or inbox-provider authority is required
+- no email, SMTP, DNS, OAuth, CAPTCHA, KYC, named hosting-provider, or input_queue-provider authority is required
 
 ## Hard stop conditions
 
@@ -172,7 +176,7 @@ Stop the external test if any of these occur:
 - observer boot enables validator signing
 - observer boot enables BFT
 - observer receives or asks for genesis/private authority secrets
-- onboarding requires email, Cloudflare, SMTP, DNS, OAuth, CAPTCHA, or KYC
+- onboarding requires email, SMTP, DNS, OAuth, CAPTCHA, named hosting-provider, or KYC
 - the frontend/API shows success before a committed receipt or visible state reconciliation
 
 ## Batch 337 live-gate command sequence
@@ -200,7 +204,7 @@ API_BASE="$WEALL_GENESIS_API_BASE" npm run contract-check
 npm run production-safety-check
 ```
 
-The first trusted observer is a no-go unless every command above passes, the live gate confirms the signed account/device/peer/async-PoH-case onboarding sequence, and the observer remains unable to sign validator blocks. This does not prove Tier 1 finalization, Tier 2/live verification, node-operator activation, validator readiness, or BFT participation.
+The first controlled external observer is a no-go unless every command above passes, the live gate confirms the signed account/device/peer/async-PoH-case onboarding sequence, and the observer remains unable to sign validator blocks. This does not prove Tier 1 finalization, Tier 2/live verification, node-operator activation, validator readiness, or BFT participation.
 
 ## Batch 464: Production-oriented Genesis API check
 

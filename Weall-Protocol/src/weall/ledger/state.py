@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,13 +9,136 @@ from weall.runtime.reputation_units import account_reputation_units, units_to_re
 Json = dict[str, Any]
 
 
+class _AccountNonceRecordOverlay(dict):
+    """Read-only account record that exposes one deterministic nonce override.
+
+    The admission path needs to evaluate a transaction as if the signer nonce
+    cursor had advanced inside the candidate block.  The old implementation
+    achieved that by deep-copying the whole ledger and mutating one account.
+    This overlay preserves the same read semantics without cloning unrelated
+    account state.
+    """
+
+    def __init__(self, account: dict[str, Any], nonce: int) -> None:
+        dict.__init__(self)
+        self._account = account
+        self._nonce = max(0, int(nonce or 0))
+
+    def __contains__(self, key: object) -> bool:
+        return key == "nonce" or key in self._account
+
+    def __len__(self) -> int:
+        return len(set(self._account.keys()) | {"nonce"})
+
+    def __iter__(self):
+        seen = set()
+        yield "nonce"
+        seen.add("nonce")
+        for key in self._account:
+            if key not in seen:
+                yield key
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __getitem__(self, key: Any) -> Any:
+        if key == "nonce":
+            return self._nonce
+        return self._account[key]
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        if key == "nonce":
+            return self._nonce
+        return self._account.get(key, default)
+
+    def keys(self):  # type: ignore[override]
+        return list(iter(self))
+
+    def values(self):  # type: ignore[override]
+        for key in self:
+            yield self.get(key)
+
+    def items(self):  # type: ignore[override]
+        for key in self:
+            yield key, self.get(key)
+
+    def copy(self) -> dict[str, Any]:  # type: ignore[override]
+        out = dict(self._account)
+        out["nonce"] = self._nonce
+        return out
+
+
+class _AccountsNonceOverlay(dict):
+    """Read-only accounts mapping with one account nonce override."""
+
+    def __init__(self, accounts: dict[str, Any], account_id: str, nonce: int) -> None:
+        dict.__init__(self)
+        self._accounts = accounts
+        self._account_id = str(account_id or "")
+        self._nonce = max(0, int(nonce or 0))
+
+    def __contains__(self, key: object) -> bool:
+        return key == self._account_id or key in self._accounts
+
+    def __len__(self) -> int:
+        keys = set(self._accounts.keys())
+        if self._account_id:
+            keys.add(self._account_id)
+        return len(keys)
+
+    def __iter__(self):
+        seen = set()
+        for key in self._accounts:
+            seen.add(key)
+            yield key
+        if self._account_id and self._account_id not in seen:
+            yield self._account_id
+
+    def __bool__(self) -> bool:
+        return bool(self._accounts) or bool(self._account_id)
+
+    def _account_view(self) -> _AccountNonceRecordOverlay:
+        raw = self._accounts.get(self._account_id)
+        acct = raw if isinstance(raw, dict) else {}
+        return _AccountNonceRecordOverlay(acct, self._nonce)
+
+    def __getitem__(self, key: Any) -> Any:
+        if key == self._account_id:
+            return self._account_view()
+        return self._accounts[key]
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        if key == self._account_id:
+            return self._account_view()
+        return self._accounts.get(key, default)
+
+    def keys(self):  # type: ignore[override]
+        return list(iter(self))
+
+    def values(self):  # type: ignore[override]
+        for key in self:
+            yield self.get(key)
+
+    def items(self):  # type: ignore[override]
+        for key in self:
+            yield key, self.get(key)
+
+    def copy(self) -> dict[str, Any]:  # type: ignore[override]
+        out = dict(self._accounts)
+        if self._account_id:
+            out[self._account_id] = self._account_view().copy()
+        return out
+
+
 @dataclass(frozen=True, slots=True)
 class LedgerView:
     """Immutable read-only ledger view used by runtime components.
 
-    NOTE: This view is used at admission-time as well as in other runtime components.
-    It intentionally copies only the stable, consensus-relevant subtrees needed for
-    authorization and gating.
+    The view intentionally holds references to canonical ledger subtrees instead
+    of deep-copying them.  Runtime admission and replay are read-only consumers;
+    consensus mutation must happen through the executor/apply paths.  Candidate
+    block nonce cursors are represented by deterministic overlay views rather
+    than by cloning the full accounts map.
 
     We include a minimal `poh` subtree so gate expressions like "Juror" can be
     resolved deterministically during admission.
@@ -47,29 +169,55 @@ class LedgerView:
 
     @classmethod
     def from_ledger(cls, state: dict[str, Any]) -> LedgerView:
+        accounts = state.get("accounts", {})
+        roles = state.get("roles", {})
+        params = state.get("params", {})
+        poh = state.get("poh", {})
+        disputes_by_id = state.get("disputes_by_id", {})
+        consensus = state.get("consensus", {})
         return cls(
-            accounts=copy.deepcopy(state.get("accounts", {})),
-            roles=copy.deepcopy(state.get("roles", {})),
+            accounts=accounts if isinstance(accounts, dict) else {},
+            roles=roles if isinstance(roles, dict) else {},
             chain_id=str(state.get("chain_id") or ""),
-            params=copy.deepcopy(state.get("params", {}))
-            if isinstance(state.get("params"), dict)
-            else {},
+            params=params if isinstance(params, dict) else {},
             last_block_ts_ms=int(state.get("last_block_ts_ms", 0) or 0),
-            poh=copy.deepcopy(state.get("poh", {})) if isinstance(state.get("poh"), dict) else {},
-            disputes_by_id=copy.deepcopy(state.get("disputes_by_id", {})) if isinstance(state.get("disputes_by_id"), dict) else {},
-            consensus=copy.deepcopy(state.get("consensus", {})) if isinstance(state.get("consensus"), dict) else {},
+            poh=poh if isinstance(poh, dict) else {},
+            disputes_by_id=disputes_by_id if isinstance(disputes_by_id, dict) else {},
+            consensus=consensus if isinstance(consensus, dict) else {},
+        )
+
+    def with_account_nonce(self, account_id: str, nonce: int) -> LedgerView:
+        """Return a view with ``account_id``'s nonce overridden.
+
+        This is a consensus-safe read overlay used for intra-block nonce
+        admission.  It does not mutate the underlying ledger and does not clone
+        the account map.
+        """
+
+        return LedgerView(
+            accounts=_AccountsNonceOverlay(self.accounts, account_id, int(nonce or 0)),
+            roles=self.roles,
+            chain_id=str(self.chain_id or ""),
+            params=self.params,
+            last_block_ts_ms=int(self.last_block_ts_ms),
+            poh=self.poh,
+            disputes_by_id=self.disputes_by_id,
+            consensus=self.consensus,
         )
 
     def to_ledger(self) -> dict[str, Any]:
+        # Read-only ledger materialization for verification/gating callers.  The
+        # returned mapping intentionally shares subtrees with the view to avoid
+        # full-state clone costs in admission and block replay.
         return {
-            "accounts": copy.deepcopy(self.accounts),
-            "roles": copy.deepcopy(self.roles),
+            "accounts": self.accounts,
+            "roles": self.roles,
             "chain_id": str(self.chain_id or ""),
-            "params": copy.deepcopy(self.params),
+            "params": self.params,
             "last_block_ts_ms": int(self.last_block_ts_ms),
-            "poh": copy.deepcopy(self.poh),
-            "disputes_by_id": copy.deepcopy(self.disputes_by_id),
-            "consensus": copy.deepcopy(self.consensus),
+            "poh": self.poh,
+            "disputes_by_id": self.disputes_by_id,
+            "consensus": self.consensus,
         }
 
     @property

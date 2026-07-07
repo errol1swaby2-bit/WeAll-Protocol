@@ -7,6 +7,7 @@ export type PlainErrorCode =
   | "needs_refresh"
   | "session_needs_attention"
   | "service_unavailable"
+  | "rate_limited"
   | "not_found"
   | "account_restricted"
   | "action_unavailable"
@@ -97,6 +98,26 @@ export function translateBackendError(error: unknown, fallback = "This action co
   const rawMessage = backendMessageOf(error) || fallback;
   const needle = `${code} ${rawMessage}`.toLowerCase();
   const technicalMessage = rawMessage && rawMessage !== fallback ? rawMessage : undefined;
+
+
+  if (includesAny(needle, ["non_public_group_unsupported", "opaque_protocol_payload_unsupported", "protocol_read_visibility_must_be_public", "public_read_visibility_required"])) {
+    return {
+      code: "action_unavailable",
+      title: "Public-only protocol rule",
+      message: "WeAll protocol content is publicly inspectable. Restricted-read groups and non-inspectable protocol payloads are not supported.",
+      technicalMessage,
+    };
+  }
+
+  if (includesAny(needle, ["rate_limited", "too many requests", "429"])) {
+    return {
+      code: "rate_limited",
+      title: "Node is catching up",
+      message: "The local node is receiving actions too quickly. Wait a moment for the current action to settle before trying again.",
+      technicalMessage,
+    };
+  }
+
 
   if (includesAny(needle, ["duplicate_submission_blocked", "already submitting", "signer_submission_busy", "signed action", "busy"])) {
     return {

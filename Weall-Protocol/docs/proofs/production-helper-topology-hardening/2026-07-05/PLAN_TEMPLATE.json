@@ -1,0 +1,36 @@
+{
+  "schema": "weall.v1_5.production_helper_topology_hardening_plan.template",
+  "template_only": true,
+  "blocker": "AUD-618-P1-005",
+  "external_topology_evidence_attached": false,
+  "production_helper_execution_ready": false,
+  "production_helper_execution_enabled": false,
+  "current_disabled_boundary": {
+    "launch_matrix_blocks_production_helper_execution": true,
+    "helper_mode_grants_protocol_authority": false,
+    "frontend_state_authority": false,
+    "local_script_authority": false,
+    "missing_helpers_halt_block_production": false,
+    "serial_fallback_required": true
+  },
+  "future_required_evidence": {
+    "signed_helper_topology_manifest": null,
+    "serial_equivalence_corpus_sha256": null,
+    "byzantine_rejection_matrix_sha256": null,
+    "restart_replay_vector_sha256": null,
+    "multi_node_topology_transcript_sha256": null,
+    "capacity_backpressure_transcript_sha256": null,
+    "operator_policy_sha256": null,
+    "governance_record_tx_id": null,
+    "release_gate_digest": null,
+    "strict_validation_output_sha256": null
+  },
+  "claim_boundaries": {
+    "public_beta_ready": false,
+    "mainnet_ready": false,
+    "production_helper_execution": false,
+    "helper_mode_authority": false,
+    "public_validator_ready": false,
+    "live_economics_ready": false
+  }
+}

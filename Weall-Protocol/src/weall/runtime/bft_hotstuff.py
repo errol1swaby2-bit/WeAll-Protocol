@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from typing import Any
 from weall.runtime.runtime_time import now_ms as _now_ms
 
-from weall.crypto.sig import verify_ed25519_signature
+from weall.crypto.sig import verify_signature_for_profile
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    mode_requires_explicit_sig_profile,
+    normalize_signature_profile_id,
+    profile_allowed_for_context,
+)
 from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.sqlite_db import _canon_json
 
@@ -107,6 +113,27 @@ def _as_str(v: Any) -> str:
     return str(v).strip() if isinstance(v, (str, int, float)) else ""
 
 
+def _bft_sig_profile(value: Any) -> str:
+    profile = normalize_signature_profile_id(value)
+    if profile:
+        return profile
+    return PQ_MLDSA_V1
+
+
+def _bft_sig_allowed(profile: str) -> bool:
+    if not profile:
+        return False
+    ok, _reason = profile_allowed_for_context(profile, purpose="signing", require_verifier=True)
+    return bool(ok)
+
+
+def _verify_bft_signature(*, sig_profile: str, message: bytes, sig: str, pubkey: str) -> bool:
+    profile = _bft_sig_profile(sig_profile)
+    if not _bft_sig_allowed(profile):
+        return False
+    return verify_signature_for_profile(sig_profile=profile, message=message, sig=sig, pubkey=pubkey)
+
+
 def normalize_validators(validators: list[str]) -> list[str]:
     """
     Deterministic validator ordering.
@@ -167,8 +194,13 @@ def canonical_vote_message(
     signer: str,
     validator_epoch: int = 0,
     validator_set_hash: str = "",
+    sig_profile: str = PQ_MLDSA_V1,
 ) -> bytes:
+    profile = _bft_sig_profile(sig_profile)
     payload = {
+        "domain_separator": "weall.bft.vote.v1",
+        "object_kind": "bft_vote",
+        "sig_profile": profile,
         "t": "VOTE",
         "chain_id": str(chain_id),
         "view": int(view),
@@ -190,8 +222,13 @@ def canonical_timeout_message(
     signer: str,
     validator_epoch: int = 0,
     validator_set_hash: str = "",
+    sig_profile: str = PQ_MLDSA_V1,
 ) -> bytes:
+    profile = _bft_sig_profile(sig_profile)
     payload = {
+        "domain_separator": "weall.bft.timeout.v1",
+        "object_kind": "bft_timeout",
+        "sig_profile": profile,
         "t": "TIMEOUT",
         "chain_id": str(chain_id),
         "view": int(view),
@@ -214,8 +251,13 @@ def canonical_proposal_message(
     validator_epoch: int = 0,
     validator_set_hash: str = "",
     justify_qc_id: str = "",
+    sig_profile: str = PQ_MLDSA_V1,
 ) -> bytes:
+    profile = _bft_sig_profile(sig_profile)
     payload = {
+        "domain_separator": "weall.bft.proposal.v1",
+        "object_kind": "bft_proposal",
+        "sig_profile": profile,
         "t": "PROPOSAL",
         "chain_id": str(chain_id),
         "view": int(view),
@@ -249,6 +291,7 @@ class BftVote:
     signer: str
     pubkey: str
     sig: str
+    sig_profile: str = PQ_MLDSA_V1
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
@@ -263,6 +306,7 @@ class BftVote:
             "signer": self.signer,
             "pubkey": self.pubkey,
             "sig": self.sig,
+            "sig_profile": _bft_sig_profile(self.sig_profile),
             "validator_epoch": int(self.validator_epoch),
             "validator_set_hash": self.validator_set_hash,
         }
@@ -281,8 +325,9 @@ class BftVote:
             signer=self.signer,
             validator_epoch=int(self.validator_epoch),
             validator_set_hash=self.validator_set_hash,
+            sig_profile=_bft_sig_profile(self.sig_profile),
         )
-        return verify_ed25519_signature(message=msg, sig=self.sig, pubkey=self.pubkey)
+        return _verify_bft_signature(sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey)
 
 
 @dataclass(frozen=True, slots=True)
@@ -341,6 +386,7 @@ class BftTimeout:
     signer: str
     pubkey: str
     sig: str
+    sig_profile: str = PQ_MLDSA_V1
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
@@ -353,6 +399,7 @@ class BftTimeout:
             "signer": self.signer,
             "pubkey": self.pubkey,
             "sig": self.sig,
+            "sig_profile": _bft_sig_profile(self.sig_profile),
             "validator_epoch": int(self.validator_epoch),
             "validator_set_hash": self.validator_set_hash,
         }
@@ -369,8 +416,9 @@ class BftTimeout:
             signer=self.signer,
             validator_epoch=int(self.validator_epoch),
             validator_set_hash=self.validator_set_hash,
+            sig_profile=_bft_sig_profile(self.sig_profile),
         )
-        return verify_ed25519_signature(message=msg, sig=self.sig, pubkey=self.pubkey)
+        return _verify_bft_signature(sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey)
 
 
 # -----------------------------
@@ -453,7 +501,7 @@ def verify_qc(
         vote must verify against the fully bound canonical message that includes
         block_hash, validator_epoch, and validator_set_hash.
     """
-    if not qc.chain_id or not qc.block_id or not qc.block_hash:
+    if not qc.chain_id or not qc.block_id:
         return False
 
     vset = set(normalize_validators(validators))
@@ -520,6 +568,7 @@ def verify_qc(
             sig=sig,
             validator_epoch=vote_epoch,
             validator_set_hash=vote_set_hash,
+            sig_profile=_bft_sig_profile(vj.get("sig_profile") or vj.get("signature_profile")),
         )
 
         strict_meta_match = True
@@ -575,6 +624,7 @@ def verify_proposal_json(
     sig = _as_str(proposal.get("proposer_sig") or "")
     if not pubkey or not sig or not _as_str(proposal.get("block_hash") or ""):
         return False
+    sig_profile = _bft_sig_profile(proposal.get("proposer_sig_profile") or proposal.get("sig_profile"))
     msg = canonical_proposal_message(
         chain_id=_as_str(proposal.get("chain_id") or ""),
         view=_as_int(proposal.get("view"), 0),
@@ -585,8 +635,9 @@ def verify_proposal_json(
         validator_epoch=_as_int(proposal.get("validator_epoch"), 0),
         validator_set_hash=_as_str(proposal.get("validator_set_hash") or ""),
         justify_qc_id=_as_str(_as_dict(proposal.get("justify_qc") or {}).get("block_id") or ""),
+        sig_profile=sig_profile,
     )
-    return verify_ed25519_signature(message=msg, sig=sig, pubkey=pubkey)
+    return _verify_bft_signature(sig_profile=sig_profile, message=msg, sig=sig, pubkey=pubkey)
 
 
 def _as_dict(v: Any) -> dict[str, Any]:
@@ -1113,12 +1164,13 @@ class HotStuffBFT:
             signer=_as_str(vote_json.get("signer") or ""),
             pubkey=_as_str(vote_json.get("pubkey") or ""),
             sig=_as_str(vote_json.get("sig") or ""),
+            sig_profile=_bft_sig_profile(vote_json.get("sig_profile") or vote_json.get("signature_profile")),
             validator_epoch=_as_int(vote_json.get("validator_epoch"), 0),
             validator_set_hash=_as_str(vote_json.get("validator_set_hash") or ""),
         )
         if vote.chain_id != self.chain_id:
             return None
-        if not vote.block_id or not vote.block_hash or not vote.signer:
+        if not vote.block_id or not vote.signer:
             return None
 
         # Verify signature and membership.
@@ -1137,6 +1189,7 @@ class HotStuffBFT:
             signer=vote.signer,
             pubkey=pubkey,
             sig=vote.sig,
+            sig_profile=_bft_sig_profile(vote.sig_profile),
             validator_epoch=int(vote.validator_epoch),
             validator_set_hash=vote.validator_set_hash,
         )
@@ -1191,6 +1244,7 @@ class HotStuffBFT:
             signer=_as_str(timeout_json.get("signer") or ""),
             pubkey=_as_str(timeout_json.get("pubkey") or ""),
             sig=_as_str(timeout_json.get("sig") or ""),
+            sig_profile=_bft_sig_profile(timeout_json.get("sig_profile") or timeout_json.get("signature_profile")),
             validator_epoch=_as_int(timeout_json.get("validator_epoch"), 0),
             validator_set_hash=_as_str(timeout_json.get("validator_set_hash") or ""),
         )
@@ -1211,6 +1265,7 @@ class HotStuffBFT:
             signer=tmo.signer,
             pubkey=pubkey,
             sig=tmo.sig,
+            sig_profile=_bft_sig_profile(tmo.sig_profile),
             validator_epoch=int(tmo.validator_epoch),
             validator_set_hash=tmo.validator_set_hash,
         )

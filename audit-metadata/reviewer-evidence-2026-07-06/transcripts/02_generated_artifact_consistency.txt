@@ -1,0 +1,32 @@
+$ PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+OK: generated/public_beta_blocker_report_v1_5.json is current (14 catalog entries; 7 still open; public_beta_ready=false)
+exit_status=0
+
+$ PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py --check
+OK: generated/release_evidence_manifest_v1_5.json is current (22 artifacts)
+exit_status=0
+
+$ PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py --check
+OK: generated/public_only_protocol_audit_v1_5.json is current (16 hits)
+exit_status=0
+
+$ PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check
+OK: generated/protocol_upgrade_execution_hardening_plan_v1_5.json is current (AUD-618-P0-003 open; execution_enabled=false)
+exit_status=0
+
+$ PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check
+OK: generated/production_helper_topology_hardening_plan_v1_5.json is current (AUD-618-P1-005 open; production_helper_execution_enabled=false)
+exit_status=0
+
+$ PYTHONPATH=src python scripts/gen_tx_index.py --out /tmp/weall_tx_index_check.json && cmp -s generated/tx_index.json /tmp/weall_tx_index_check.json && echo tx_index current
+✅ wrote /tmp/weall_tx_index_check.json (236 tx types)
+tx_index current
+exit_status=0
+
+$ PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+[v15-artifacts] OK: v1.5 public-readiness artifacts are present, fresh, and release-safe
+exit_status=0
+
+$ PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+[truth-boundary] OK: no high-risk unbounded reviewer readiness claims found
+exit_status=0

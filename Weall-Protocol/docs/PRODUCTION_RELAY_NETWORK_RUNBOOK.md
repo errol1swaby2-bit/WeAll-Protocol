@@ -18,7 +18,7 @@ Every relay envelope is:
 - expiration bounded
 - replay/dedupe safe at the receiver
 
-The relay server stores and returns signed envelopes. It cannot safely mutate payloads because mutation breaks the payload hash and Ed25519 signature.
+The relay server stores and returns signed envelopes. It cannot safely mutate payloads because mutation breaks the payload hash and ML-DSA signature.
 
 Relayed messages still pass the normal receiving path:
 
@@ -59,6 +59,7 @@ Recommended reverse-proxy controls:
 On an observer/onboarding node behind NAT:
 
 ```bash
+export WEALL_NET_NAT_MODE=relay_only
 export WEALL_NET_RELAY_CLIENT_ENABLED=1
 export WEALL_NET_RELAY_URLS=https://<bootstrap-or-relay-host>
 export WEALL_NET_RELAY_RECIPIENTS=<genesis-peer-id-or-validator-peer-id>
@@ -67,6 +68,19 @@ export WEALL_NET_RELAY_POLL_MS=1000
 export WEALL_NODE_PUBKEY=<observer-node-public-key>
 export WEALL_NODE_PRIVKEY=<observer-node-private-key>
 ```
+
+After boot, verify the observer reports relay-only posture:
+
+```bash
+curl -sS http://127.0.0.1:8000/v1/net/self | python -m json.tool
+```
+
+Expected values:
+
+- `nat.recommended_profile` is `relay_only` or `outbound_relay_only`
+- `nat.relay.client_ready=true`
+- `nat.relay.authority=transport_only`
+- no `inbound_required_without_public_advertise_uri` warning unless this node is trying to operate as a seed/validator
 
 Observer safety flags remain mandatory:
 
@@ -78,7 +92,7 @@ export WEALL_HELPER_MODE_ENABLED=0
 export WEALL_BLOCK_LOOP_AUTOSTART=0
 ```
 
-## Message flow
+## Relay envelope flow
 
 ### Observer submits tx through relay
 
@@ -86,9 +100,9 @@ export WEALL_BLOCK_LOOP_AUTOSTART=0
 2. Observer wraps the corresponding `TX_ENVELOPE` in a signed relay envelope.
 3. Observer posts it to `/v1/net/relay/submit`.
 4. Genesis/bootstrap node polls `POST /v1/net/relay/fetch` with a signed recipient access request.
-5. The relay returns only messages bound to the genesis recipient public key.
+5. The relay returns only signed tx envelopes bound to the genesis relay identity.
 6. Genesis verifies the relay envelope.
-7. Genesis decodes the wire message.
+7. Genesis decodes the wire envelope.
 8. Genesis runs normal tx admission.
 9. If valid, tx enters mempool and can be included in a block.
 10. Genesis acks the relay envelope with a signed recipient access request.
@@ -98,7 +112,7 @@ export WEALL_BLOCK_LOOP_AUTOSTART=0
 If a relay mutates any payload field, the receiver rejects the envelope because either:
 
 - `payload_hash` no longer matches the payload, or
-- the Ed25519 signature no longer verifies, or
+- the ML-DSA signature no longer verifies, or
 - the recomputed `relay_id` no longer matches.
 
 ### Wrong-chain relay attempt

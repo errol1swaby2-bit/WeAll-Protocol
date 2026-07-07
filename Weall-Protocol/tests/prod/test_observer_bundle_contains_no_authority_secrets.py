@@ -86,7 +86,7 @@ def test_observer_bundle_contains_no_authority_secrets(tmp_path: Path) -> None:
         "genesis-private",
         "authority-private",
         "validator-private",
-        "cloudflare-token",
+        "hosting-provider-token",
         "smtp-password",
         "email-oracle-secret",
     ]
@@ -97,7 +97,7 @@ def test_observer_bundle_contains_no_authority_secrets(tmp_path: Path) -> None:
     assert "WEALL_NODE_PRIVKEY" in prohibited
     assert "WEALL_AUTHORITY_SIGNER_PRIVKEY" in prohibited
     assert "WEALL_AUTHORITY_PRIVKEY" in prohibited
-    assert "WEALL_CLOUDFLARE_API_TOKEN" in prohibited
+    assert "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN" in prohibited
     assert data["observer"]["validator_signing_enabled"] is False
     assert data["observer"]["bft_enabled"] is False
     assert data["operator_requirements"]["no_genesis_authority_material_required"] is True

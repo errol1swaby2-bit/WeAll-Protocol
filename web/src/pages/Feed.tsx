@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import FeedView from "../components/FeedView";
-import { getApiBaseUrl } from "../api/weall";
+import { getApiBaseUrl, weall } from "../api/weall";
 import { getKeypair, getSession } from "../auth/session";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
 import { verificationLabel } from "../lib/userLanguage";
+import { FEED_ALGORITHM_SUMMARY, FEED_PUBLIC_BETA_BLOCKER } from "../lib/feed";
 
 type FeedTab = "global" | "mine";
 
@@ -32,24 +33,50 @@ export default function Feed(): JSX.Element {
   const kp = acct ? getKeypair(acct) : null;
 
   const [tab, setTab] = useState<FeedTab>(acct ? "mine" : "global");
+  const [accountView, setAccountView] = useState<any | null>(null);
+  const [registrationView, setRegistrationView] = useState<any | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!acct) {
+      setAccountView(null);
+      setRegistrationView(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void Promise.all([
+      weall.account(acct, base).catch(() => null),
+      weall.accountRegistered(acct, base).catch(() => null),
+    ]).then(([nextAccountView, nextRegistrationView]) => {
+      if (cancelled) return;
+      setAccountView(nextAccountView);
+      setRegistrationView(nextRegistrationView);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [acct, base]);
 
   const snapshot = resolveOnboardingSnapshot({
     account: acct,
     session,
     keypair: kp,
-    accountView: null,
-    registrationView: null,
+    accountView,
+    registrationView,
   });
 
   const requirements = summarizeNextRequirements(snapshot);
   const unmet = requirements.filter((item) => !item.ok);
 
-  const title = tab === "mine" && acct ? "My posts" : "Feed";
+  const title = tab === "mine" && acct ? "My posts" : "Latest protocol activity";
   const defaultFilters = { visibility: "public" as const };
   const scope = tab === "mine" && acct ? ({ kind: "account", account: acct } as const) : ({ kind: "public" } as const);
 
   const stageText = !snapshot.hasSession
-    ? "You can read public posts now. Sign in when you want to create posts or join conversations."
+    ? "You can read public posts now. Sign in when you want to create posts or join public replies."
     : !snapshot.hasLocalSigner
       ? "This device needs your saved account key before it can save actions."
       : !snapshot.registered
@@ -65,9 +92,9 @@ export default function Feed(): JSX.Element {
           <div className="heroSplit">
             <div>
               <div className="eyebrow">Feed</div>
-              <h1 className="heroTitle heroTitleSm">See what people are sharing</h1>
+              <h1 className="heroTitle heroTitleSm">Latest protocol activity</h1>
               <p className="heroText">
-                Read posts, open conversations, react, and report harmful content when your account is ready.
+                Read visible public activity returned by the backend feed endpoint. Default newest-first protocol activity remains available, with optional backend ranking modes; it is not a personalized recommendation feed.
               </p>
             </div>
 
@@ -82,7 +109,7 @@ export default function Feed(): JSX.Element {
           </div>
 
           <div className="socialHeroActions">
-            <TabButton active={tab === "global"} onClick={() => setTab("global")}>All posts</TabButton>
+            <TabButton active={tab === "global"} onClick={() => setTab("global")}>Recent public activity</TabButton>
             <TabButton active={tab === "mine"} onClick={() => setTab("mine")}>My posts</TabButton>
             <button className="btn btnPrimary" onClick={() => nav("/create")}>Create post</button>
             {!snapshot.canPost ? (
@@ -105,6 +132,12 @@ export default function Feed(): JSX.Element {
               <div style={{ marginTop: 6 }}>Sign in or restore your device session to see your own posts.</div>
             </div>
           ) : null}
+
+          <div className="calloutInfo">
+            <strong>Feed ranking truth</strong>
+            <div style={{ marginTop: 6 }}>{FEED_ALGORITHM_SUMMARY}</div>
+            <div style={{ marginTop: 6 }}>{FEED_PUBLIC_BETA_BLOCKER}</div>
+          </div>
         </div>
       </section>
 

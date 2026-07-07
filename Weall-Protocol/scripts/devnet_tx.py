@@ -24,8 +24,7 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from nacl.signing import SigningKey  # noqa: E402
-
+from weall.crypto.pq_mldsa import generate_mldsa65_keypair, mldsa65_public_key_from_seed  # noqa: E402
 from weall.crypto.sig import sign_tx_envelope_dict  # noqa: E402
 
 Json = dict[str, Any]
@@ -53,26 +52,17 @@ def _normalize_account(value: str | None, *, fallback_pubkey: str = "", existing
     return f"@devnet-{suffix}"
 
 
-def _seed_bytes_from_private_hex(private_key_hex: str) -> bytes:
-    raw = bytes.fromhex(str(private_key_hex or "").strip())
-    if len(raw) == 64:
-        raw = raw[:32]
-    if len(raw) != 32:
-        raise ValueError("private_key_hex must be a 32-byte seed or 64-byte expanded key")
-    return raw
-
-
 def _derive_public_key_hex(private_key_hex: str) -> str:
-    return SigningKey(_seed_bytes_from_private_hex(private_key_hex)).verify_key.encode().hex()
+    return mldsa65_public_key_from_seed(privkey=private_key_hex, encoding="hex")
 
 
 def _new_keypair() -> tuple[str, str]:
-    sk = SigningKey.generate()
-    return sk.encode().hex(), sk.verify_key.encode().hex()
+    kp = generate_mldsa65_keypair(encoding="hex")
+    return kp["privkey"], kp["pubkey"]
 
 
 def _key_material(keyfile: Path, *, account: str = "", fresh: bool = False) -> tuple[str, str, str, Json]:
-    """Load or create controlled-devnet Ed25519 key material.
+    """Load or create controlled-devnet ML-DSA key material.
 
     The helper is intentionally file-backed so shell harnesses can share one
     account/key across create-account, native PoH verification, and
@@ -113,7 +103,7 @@ def _key_material(keyfile: Path, *, account: str = "", fresh: bool = False) -> t
             "account": acct,
             "private_key_hex": priv,
             "public_key_hex": pub,
-            "key_type": "ed25519",
+            "key_type": "mldsa",
         }
     )
     if "created_at_ms" not in out:
@@ -376,7 +366,12 @@ def _live_session_participants(api: str, session_id: str) -> Json:
 
 
 def _live_case_id(*, account: str, nonce: int) -> str:
-    return f"poh3:{str(account or '').strip()}:{max(0, int(nonce))}"
+    # Must mirror runtime apply_poh_live_request_open(), which creates
+    # case ids via _case_id("poh_live", account_id=..., nonce=...).
+    # Older rehearsal helpers derived legacy poh3:* ids, causing the
+    # production-style Live request to submit successfully but then poll
+    # a non-existent case.
+    return f"poh_live:{str(account or '').strip()}:{max(0, int(nonce))}"
 
 
 def _devnet_video_commitment(*, chain_id: str, account: str) -> str:
@@ -849,7 +844,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
     s.set_defaults(func=cmd_submit_tx)
 
-    k = sub.add_parser("ensure-keyfile", help="Generate/load a devnet ed25519 keyfile without submitting txs")
+    k = sub.add_parser("ensure-keyfile", help="Generate/load a devnet mldsa keyfile without submitting txs")
     k.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
     k.add_argument("--keyfile", required=True)
     k.add_argument("--print-private", action="store_true")

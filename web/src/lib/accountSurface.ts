@@ -22,8 +22,8 @@ export function recordForAccount(mapping: unknown, account: string): Record<stri
   return null;
 }
 
-export function voteForAccount(mapping: unknown, account: string): { vote?: string; height?: number } | null {
+export function voteForAccount(mapping: unknown, account: string): { vote?: string; option_id?: string; height?: number } | null {
   const record = recordForAccount(mapping, account);
   if (!record) return null;
-  return record as { vote?: string; height?: number };
+  return record as { vote?: string; option_id?: string; height?: number };
 }

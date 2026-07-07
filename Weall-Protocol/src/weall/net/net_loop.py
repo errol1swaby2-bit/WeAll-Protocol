@@ -58,6 +58,13 @@ from weall.net.node import NetConfig, NetNode
 from weall.net.peer_list_store import PeerListStore
 from weall.net.state_sync import StateSyncService
 from weall.net.transport import PeerAddr
+from weall.api.public_seed_registry import (
+    PublicSeedRegistryError,
+    load_public_seed_registry,
+    public_seed_registry_path,
+    public_testnet_enabled,
+    verified_peer_uris_from_registry,
+)
 from weall.runtime.mempool import compute_tx_id
 from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
@@ -172,6 +179,19 @@ def _split_csv(raw: str) -> list[str]:
 def _is_peer_uri(uri: str) -> bool:
     s = str(uri or "").strip()
     return s.startswith("tcp://") or s.startswith("tls://")
+
+
+def _public_registry_peer_uris() -> list[str]:
+    if not public_testnet_enabled():
+        return []
+    try:
+        registry = load_public_seed_registry(public_seed_registry_path())
+    except PublicSeedRegistryError as exc:
+        if _is_prod():
+            raise NetStartupError(str(exc) or "public_seed_registry_error") from exc
+        return []
+    peers = verified_peer_uris_from_registry(registry, include_seeds=True, include_validators=True)
+    return [uri for uri in peers if _is_peer_uri(uri)]
 
 
 def _seed_net_self_url(seed: str) -> str:
@@ -382,6 +402,9 @@ class NetMeshLoop:
         env_peers_raw = (os.environ.get("WEALL_PEERS") or "").strip()
         env_seed_peers_raw = (os.environ.get("WEALL_SEED_PEERS") or "").strip()
         env_peer_uris = _split_csv(env_peers_raw + "," + env_seed_peers_raw)
+        public_registry_peers = _public_registry_peer_uris()
+        if public_registry_peers:
+            env_peer_uris.extend(public_registry_peers)
         if env_peer_uris:
             try:
                 self._peers_store.merge(env_peer_uris, force=True)
@@ -392,6 +415,13 @@ class NetMeshLoop:
         self._seed_nodes = _split_csv(
             os.environ.get("WEALL_SEED_NODES", "") or os.environ.get("WEALL_SEED_URLS", "")
         )
+        if public_testnet_enabled():
+            try:
+                registry = load_public_seed_registry(public_seed_registry_path())
+                self._seed_nodes.extend(str(url) for url in registry.get("seed_api_urls", []) if str(url).strip())
+            except PublicSeedRegistryError as exc:
+                if _is_prod():
+                    raise NetStartupError(str(exc) or "public_seed_registry_error") from exc
         try:
             self._seed_discover_timeout_s = float(
                 os.environ.get("WEALL_SEED_TIMEOUT_S", "2.0") or "2.0"
@@ -399,6 +429,17 @@ class NetMeshLoop:
         except Exception:
             self._seed_discover_timeout_s = 2.0
         self._seed_discover_done = False
+        # Public observers need discovery to self-heal after seed/validator endpoint
+        # churn. A zero value preserves the old one-shot behavior outside public
+        # testnet unless explicitly configured.
+        self._seed_discovery_refresh_ms = max(0, _env_int(
+            "WEALL_SEED_DISCOVERY_REFRESH_MS",
+            60_000 if public_testnet_enabled() else 0,
+        ))
+        self._last_seed_discover_ms = 0
+        self._seed_discovery_last_ok = False
+        self._seed_discovery_last_learned = 0
+        self._seed_discovery_last_error = ""
 
         self.node: NetNode | None = None
 
@@ -485,7 +526,7 @@ class NetMeshLoop:
 
     def _state_snapshot(self) -> Json:
         try:
-            st = self._executor.snapshot()
+            st = self._executor.read_state()
         except Exception:
             if _is_prod():
                 raise NetStateSnapshotError("state_snapshot_failed")
@@ -580,12 +621,17 @@ class NetMeshLoop:
         )
         return node
 
-    def _seed_discover_once(self) -> None:
-        if self._seed_discover_done:
+    def _seed_discover_once(self, *, force: bool = False) -> None:
+        if self._seed_discover_done and not force:
             return
         self._seed_discover_done = True
+        self._last_seed_discover_ms = _now_ms()
+        self._seed_discovery_last_ok = False
+        self._seed_discovery_last_learned = 0
+        self._seed_discovery_last_error = ""
 
         if not self._seed_nodes:
+            self._seed_discovery_last_error = "no_seed_nodes_configured"
             return
 
         learned: list[str] = []
@@ -602,12 +648,36 @@ class NetMeshLoop:
         if learned:
             try:
                 self._peers_store.merge(learned, force=True)
+                self._seed_discovery_last_ok = True
+                self._seed_discovery_last_learned = len(learned)
                 try:
-                    log_event(_LOG, "net_seed_discovery", learned=learned, count=len(learned))
+                    log_event(_LOG, "net_seed_discovery", learned=learned, count=len(learned), refresh=bool(force))
                 except Exception:
                     pass
             except Exception:
-                pass
+                self._seed_discovery_last_error = "peer_store_merge_failed"
+                if _is_prod():
+                    raise NetPeerConfigError("peer_store_merge_failed")
+        else:
+            self._seed_discovery_last_error = "no_advertise_uri_learned"
+
+    def _seed_discovery_tick(self) -> None:
+        if int(self._seed_discovery_refresh_ms or 0) <= 0:
+            return
+        now = _now_ms()
+        if (now - int(self._last_seed_discover_ms or 0)) < int(self._seed_discovery_refresh_ms):
+            return
+        self._seed_discover_once(force=True)
+
+    def seed_discovery_debug(self) -> Json:
+        return {
+            "seed_nodes_configured": len(list(self._seed_nodes or [])),
+            "refresh_ms": int(self._seed_discovery_refresh_ms or 0),
+            "last_refresh_ms": int(self._last_seed_discover_ms or 0),
+            "last_ok": bool(self._seed_discovery_last_ok),
+            "last_learned": int(self._seed_discovery_last_learned or 0),
+            "last_error": str(self._seed_discovery_last_error or ""),
+        }
 
     def start(self) -> bool:
         if not self._cfg.enabled:
@@ -678,6 +748,11 @@ class NetMeshLoop:
             except Exception:
                 if _is_prod():
                     raise NetLoopRuntimeError("node_poll_failed")
+
+            try:
+                self._seed_discovery_tick()
+            except Exception:
+                pass
 
             try:
                 self._dial_peers_tick()
@@ -843,7 +918,7 @@ class NetMeshLoop:
     def _relay_recipient_pubkey(self, recipient: str) -> str:
         """Return an optional relay-recipient pubkey for mailbox binding.
 
-        Preferred production config is JSON: {"peer-id":"ed25519-pubkey"} in
+        Preferred production config is JSON: {"peer-id":"mldsa-pubkey"} in
         WEALL_NET_RELAY_RECIPIENT_PUBKEYS. If the recipient itself is a 64-char
         hex key, it can also be used directly for key-addressed relay mailboxes.
         """
@@ -1060,9 +1135,17 @@ class NetMeshLoop:
                 inc_counter(f"net_tx_reject_{code}")
                 return
 
-            # Submit to mempool (best-effort)
+            # Submit to mempool (best-effort). Persist the local admission height
+            # as protocol metadata so block-candidate eligibility is anchored to
+            # candidate height rather than wall-clock expiry.
             try:
-                self._mempool.add(tx)
+                current_height = 0
+                if isinstance(st, dict):
+                    try:
+                        current_height = int(st.get("height") or 0)
+                    except Exception:
+                        current_height = 0
+                self._mempool.add(tx, current_height=current_height)
             except Exception as e:
                 if _is_prod():
                     raise TxIngressProcessingError("tx_ingress_mempool_add_failed") from e
@@ -1892,7 +1975,13 @@ class NetMeshLoop:
                     raise TxGossipBridgeError("tx_gossip_entry_not_object")
                 continue
             try:
-                tx_id = compute_tx_id(tx)
+                local_chain_id = str(
+                    getattr(getattr(self.node, "cfg", None), "chain_id", "")
+                    or getattr(self._executor, "chain_id", "")
+                    or os.environ.get("WEALL_CHAIN_ID", "")
+                    or ""
+                ).strip()
+                tx_id = compute_tx_id(tx, chain_id=local_chain_id or None)
             except Exception:
                 tx_id = ""
             if not tx_id:

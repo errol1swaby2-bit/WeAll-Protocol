@@ -5,22 +5,26 @@ import json
 import os
 from typing import Any
 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed, sign_mldsa65, verify_mldsa65_signature
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    default_signature_profile_for_mode,
+    mode_requires_explicit_sig_profile,
+    normalize_signature_profile_id,
+    profile_allowed_for_context,
+)
 
 Json = dict[str, Any]
 
 
 def _decode_bytes(s: str) -> bytes:
-    s = s.strip()
+    s = str(s or "").strip()
     if not s:
         raise ValueError("empty string")
-    # hex
     try:
         return bytes.fromhex(s)
     except Exception:
         pass
-    # base64 / base64url
     try:
         padding = "=" * (-len(s) % 4)
         s2 = (s + padding).replace("-", "+").replace("_", "/")
@@ -44,28 +48,31 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def strict_tx_sig_domain_enabled() -> bool:
-    """Return True when tx signatures must include chain_id.
-
-    Production default is fail-closed. Legacy no-chain-id signatures remain
-    available only outside prod, or when explicitly re-enabled via
-    WEALL_ALLOW_LEGACY_SIG_DOMAIN=1.
-    """
-    mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
-    allow_legacy = _env_bool("WEALL_ALLOW_LEGACY_SIG_DOMAIN", default=(mode != "prod"))
-    return not allow_legacy
+    return True
 
 
 def canonical_tx_message(
     *,
     chain_id: str | None = None,
+    network_id: str | None = None,
+    domain_separator: str | None = None,
+    object_kind: str = "tx",
+    sig_profile: str | None = None,
+    activation_height: int | None = None,
     tx_type: str,
     signer: str,
     nonce: int,
     payload: Json,
     parent: str | None = None,
 ) -> bytes:
+    profile = normalize_signature_profile_id(sig_profile or PQ_MLDSA_V1)
     obj: Json = {
         **({"chain_id": str(chain_id)} if (isinstance(chain_id, str) and chain_id.strip()) else {}),
+        **({"network_id": str(network_id)} if (isinstance(network_id, str) and network_id.strip()) else {}),
+        "domain_separator": str(domain_separator or "weall.tx.v1"),
+        "object_kind": str(object_kind or "tx"),
+        "sig_profile": profile,
+        **({"activation_height": int(activation_height)} if activation_height is not None else {}),
         "tx_type": str(tx_type),
         "signer": str(signer),
         "nonce": int(nonce),
@@ -73,99 +80,87 @@ def canonical_tx_message(
     }
     if parent is not None:
         obj["parent"] = str(parent)
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-        "utf-8"
-    )
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def verify_ed25519_signature(*, message: bytes, sig: str, pubkey: str) -> bool:
-    try:
-        sig_b = _decode_bytes(sig)
-        pk_b = _decode_bytes(pubkey)
-        key = Ed25519PublicKey.from_public_bytes(pk_b)
-        key.verify(sig_b, message)
-        return True
-    except (InvalidSignature, ValueError):
-        return False
+def _extract_signature_fields(tx: Json) -> tuple[str, str, str, str]:
+    profile = normalize_signature_profile_id(tx.get("sig_profile"))
+    nested = tx.get("signature") if isinstance(tx.get("signature"), dict) else {}
+    alg = str(nested.get("alg") or tx.get("sig_alg") or "").strip()
+    pubkey = str(nested.get("pubkey") or tx.get("pubkey") or "").strip()
+    sig = str(nested.get("sig") or tx.get("sig") or "").strip()
+    return profile, alg, pubkey, sig
 
 
 def sign_tx_envelope_dict(*, tx: Json, privkey: str, encoding: str = "hex") -> Json:
-    """Return a copy of tx with its 'sig' field populated.
-
-    Expected shape (extra keys allowed):
-      {
-        "tx_type": str,
-        "signer": str,
-        "nonce": int,
-        "payload": dict,
-        "parent": Optional[str],
-        "chain_id": Optional[str]
-      }
-    """
     tx_type = str(tx.get("tx_type") or tx.get("type") or "")
     signer = str(tx.get("signer") or "")
     nonce = int(tx.get("nonce") or 0)
     payload = tx.get("payload") if isinstance(tx.get("payload"), dict) else {}
     parent = tx.get("parent")
     chain_id = tx.get("chain_id")
+    network_id = tx.get("network_id")
+    sig_profile = normalize_signature_profile_id(tx.get("sig_profile") or default_signature_profile_for_mode())
+    if sig_profile != PQ_MLDSA_V1:
+        raise ValueError("unsupported_signature_profile")
 
     msg = canonical_tx_message(
         chain_id=str(chain_id) if isinstance(chain_id, str) else None,
+        network_id=str(network_id) if isinstance(network_id, str) else None,
         tx_type=tx_type,
         signer=signer,
         nonce=nonce,
         payload=payload,
         parent=parent,
+        sig_profile=sig_profile,
     )
-    sig = sign_ed25519(message=msg, privkey=privkey, encoding=encoding)
 
     out = dict(tx)
     out["tx_type"] = tx_type
     out["signer"] = signer
     out["nonce"] = nonce
     out["payload"] = payload
-    out["sig"] = sig
+    out["sig_profile"] = sig_profile
     if parent is not None:
         out["parent"] = str(parent)
     if isinstance(chain_id, str) and chain_id.strip():
         out["chain_id"] = chain_id.strip()
+    if isinstance(network_id, str) and network_id.strip():
+        out["network_id"] = network_id.strip()
+
+    sig = sign_signature_for_profile(sig_profile=sig_profile, message=msg, privkey=privkey, encoding=encoding)
+    pubkey = str(out.get("pubkey") or "").strip() or public_key_for_private_key_profile(
+        sig_profile=sig_profile, privkey=privkey, encoding=encoding
+    )
+    out["signature"] = {"alg": "ML-DSA", "pubkey": pubkey, "sig": sig}
+    out["sig"] = sig
+    out["pubkey"] = pubkey
     return out
 
 
-def sign_ed25519(*, message: bytes, privkey: str, encoding: str = "hex") -> str:
-    """Sign a message with an Ed25519 private key.
-
-    privkey: hex or base64/base64url string representing 32-byte seed or 64-byte private key.
-    encoding: "hex" (default) or "b64".
-    """
-    pk_b = _decode_bytes(privkey)
-
-    if len(pk_b) == 64:
-        pk_b = pk_b[:32]
-
-    if len(pk_b) != 32:
-        raise ValueError("ed25519 privkey must be 32-byte seed (or 64-byte expanded key)")
-
-    key = Ed25519PrivateKey.from_private_bytes(pk_b)
-    sig_b = key.sign(message)
-    if encoding == "hex":
-        return sig_b.hex()
-    if encoding in {"b64", "base64"}:
-        return base64.b64encode(sig_b).decode("ascii")
-    raise ValueError("unsupported encoding")
+def sign_mldsa(*, message: bytes, privkey: str, encoding: str = "hex") -> str:
+    return sign_signature_for_profile(sig_profile=PQ_MLDSA_V1, message=message, privkey=privkey, encoding=encoding)
 
 
-def extract_active_account_pubkeys(ledger: Json, account_id: str) -> list[str]:
-    """
-    STRICT schema:
+def verify_mldsa_signature(*, message: bytes, sig: str, pubkey: str) -> bool:
+    return verify_signature_for_profile(sig_profile=PQ_MLDSA_V1, message=message, sig=sig, pubkey=pubkey)
 
-      ledger["accounts"][account_id]["keys"] = [
-        {"pubkey": "<hex|b64>", "active": true|false},
-        ...
-      ]
 
-    If the schema does not match, returns [] (caller should treat as no keys).
-    """
+def sign_signature_for_profile(*, sig_profile: str, message: bytes, privkey: str, encoding: str = "hex") -> str:
+    profile = normalize_signature_profile_id(sig_profile)
+    if profile == PQ_MLDSA_V1:
+        return sign_mldsa65(message=message, privkey=privkey, encoding=encoding)
+    raise ValueError("unsupported_signature_profile")
+
+
+def public_key_for_private_key_profile(*, sig_profile: str, privkey: str, encoding: str = "hex") -> str:
+    profile = normalize_signature_profile_id(sig_profile)
+    if profile == PQ_MLDSA_V1:
+        return mldsa65_public_key_from_seed(privkey=privkey, encoding=encoding)
+    raise ValueError("public_key_derivation_not_supported_for_profile")
+
+
+def extract_active_account_pubkeys(ledger: Json, account_id: str, *, sig_profile: str | None = None) -> list[str]:
     accounts = ledger.get("accounts")
     if not isinstance(accounts, dict):
         return []
@@ -173,26 +168,32 @@ def extract_active_account_pubkeys(ledger: Json, account_id: str) -> list[str]:
     if not isinstance(acct, dict):
         return []
 
+    wanted_profile = normalize_signature_profile_id(sig_profile or PQ_MLDSA_V1)
     keys = acct.get("keys")
     if not isinstance(keys, list):
         return []
 
     out: list[str] = []
     seen = set()
-
     for rec in keys:
-        if not isinstance(rec, dict):
+        if not isinstance(rec, dict) or not rec.get("active", True):
             continue
-        if not rec.get("active", True):
+        rec_profile = normalize_signature_profile_id(rec.get("sig_profile") or PQ_MLDSA_V1)
+        if rec_profile != wanted_profile:
             continue
-        pk = rec.get("pubkey")
-        if isinstance(pk, str):
-            pk = pk.strip()
-            if pk and pk not in seen:
-                seen.add(pk)
-                out.append(pk)
-
+        pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
+        pk = str(pubkeys.get("mldsa") or rec.get("pubkey") or "").strip()
+        if pk and pk not in seen:
+            seen.add(pk)
+            out.append(pk)
     return out
+
+
+def verify_signature_for_profile(*, sig_profile: str, message: bytes, sig: str, pubkey: str) -> bool:
+    profile = normalize_signature_profile_id(sig_profile)
+    if profile == PQ_MLDSA_V1:
+        return verify_mldsa65_signature(message=message, sig=sig, pubkey=pubkey)
+    return False
 
 
 def verify_tx_sig_against_any_key(
@@ -205,41 +206,37 @@ def verify_tx_sig_against_any_key(
     sig: str,
     parent: str | None = None,
     chain_id: str | None = None,
+    network_id: str | None = None,
+    sig_profile: str | None = None,
+    chain_config: Json | None = None,
 ) -> tuple[bool, dict[str, Any]]:
-    keys = extract_active_account_pubkeys(ledger, signer)
+    profile = normalize_signature_profile_id(sig_profile)
+    if not profile:
+        return False, {"reason": "missing_signature_profile"}
+    allowed, reason = profile_allowed_for_context(profile, chain_config=chain_config, require_verifier=True)
+    if not allowed:
+        return False, {"reason": reason, "sig_profile": profile}
+
+    keys = extract_active_account_pubkeys(ledger, signer, sig_profile=profile)
     if not keys:
         return False, {"reason": "no_active_keys"}
 
     chain_id2 = str(chain_id).strip() if isinstance(chain_id, str) else ""
-    if strict_tx_sig_domain_enabled() and not chain_id2:
+    if not chain_id2:
         return False, {"reason": "missing_chain_id"}
 
-    msg_candidates: list[bytes] = []
-    if chain_id2:
-        msg_candidates.append(
-            canonical_tx_message(
-                chain_id=chain_id2,
-                tx_type=tx_type,
-                signer=signer,
-                nonce=nonce,
-                payload=payload,
-                parent=parent,
-            )
-        )
-    if not strict_tx_sig_domain_enabled():
-        msg_candidates.append(
-            canonical_tx_message(
-                tx_type=tx_type,
-                signer=signer,
-                nonce=nonce,
-                payload=payload,
-                parent=parent,
-            )
-        )
-
+    msg = canonical_tx_message(
+        chain_id=chain_id2,
+        network_id=network_id,
+        sig_profile=profile,
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        parent=parent,
+    )
     for pk in keys:
-        for msg in msg_candidates:
-            if verify_ed25519_signature(message=msg, sig=sig, pubkey=pk):
-                return True, {"pubkey": pk}
+        if verify_signature_for_profile(sig_profile=profile, message=msg, sig=sig, pubkey=pk):
+            return True, {"pubkey": pk, "sig_profile": profile}
 
-    return False, {"reason": "invalid_signature"}
+    return False, {"reason": "invalid_signature", "sig_profile": profile}

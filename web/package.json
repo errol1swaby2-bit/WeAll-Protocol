@@ -13,21 +13,44 @@
     "dependency-audit": "npm audit --audit-level=moderate",
     "test:node-manager": "node scripts/test_node_connection_manager_source.mjs",
     "contract-check:api": "bash ../scripts/run_frontend_contract_check.sh",
-    "test:procedure-ui": "node scripts/test_constitutional_procedure_ui_source.mjs"
+    "test:procedure-ui": "node scripts/test_constitutional_procedure_ui_source.mjs",
+    "contract-check:local": "bash ../scripts/run_frontend_contract_check_with_backend.sh",
+    "test:node-dashboard": "node scripts/test_node_dashboard_source.mjs",
+    "test:accessibility-source": "node scripts/test_accessibility_source.mjs",
+    "test:responsibility-control-surface": "node scripts/test_responsibility_control_surface_source.mjs",
+    "test:operator-journey-source": "node scripts/test_operator_journey_and_accent_source.mjs",
+    "test:rendered-operator-journey": "playwright test tests/e2e/operator_journey_rendered.spec.ts",
+    "test:public-observer-rendered": "playwright test tests/e2e/public_observer_dashboard.spec.ts",
+    "test:public-only-protocol-source": "node scripts/test_public_only_protocol_source.mjs",
+    "test:public-profile-source": "node scripts/test_public_profile_source.mjs",
+    "test:group-governance-source": "node scripts/test_group_governance_source.mjs",
+    "test:rendered-civic-loop": "playwright test tests/e2e/reviewer_civic_loop_rendered.spec.ts",
+    "test:rendered-civic-loop-source": "node scripts/test_rendered_civic_loop_source.mjs",
+    "test:launch-prep-governance-source": "node scripts/test_launch_prep_governance_source.mjs",
+    "test:step2-ux-clarity-source": "node scripts/test_step2_ux_clarity_source.mjs",
+    "test:step9-p2-ux-source": "node scripts/test_step9_p2_ux_source.mjs",
+    "test:first-run-tester-journey-source": "node scripts/test_first_run_tester_journey_source.mjs",
+    "test:account-profile-readiness-source": "node scripts/test_account_profile_readiness_source.mjs",
+    "test:public-social-flow-readiness-source": "node scripts/test_public_social_flow_readiness_source.mjs",
+    "test:group-flow-readiness-source": "node scripts/test_group_flow_readiness_source.mjs",
+    "test:governance-rendered-journey-source": "node scripts/test_governance_rendered_journey_source.mjs",
+    "test:dispute-review-rendered-journey-source": "node scripts/test_dispute_review_rendered_journey_source.mjs",
+    "test:transaction-lifecycle-rendered-evidence-source": "node scripts/test_transaction_lifecycle_rendered_evidence_source.mjs",
+    "test:node-operator-journey-incident-response-source": "node scripts/test_node_operator_journey_incident_response_source.mjs",
+    "test:reviewer-critical-source": "node scripts/test_reviewer_critical_flows_source.mjs"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.30.3",
-    "tweetnacl": "1.0.3"
+    "react-router-dom": "6.30.4"
   },
   "devDependencies": {
     "@playwright/test": "1.59.1",
     "@types/react": "18.3.5",
     "@types/react-dom": "18.3.0",
-    "@vitejs/plugin-react": "5.1.2",
+    "@vitejs/plugin-react": "5.2.0",
     "typescript": "5.6.3",
-    "vite": "7.3.3"
+    "vite": "8.0.16"
   },
   "engines": {
     "node": ">=20.19.0",

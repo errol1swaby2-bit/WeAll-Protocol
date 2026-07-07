@@ -1,6 +1,8 @@
 # src/weall/runtime/apply/governance.py
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from weall.runtime.apply.economics import EconomicsApplyError, _normalize_rate_limit_policy_payload
@@ -40,12 +42,157 @@ def _sorted_dict(d: dict[str, Any]) -> dict[str, Any]:
         out[str(k)] = d[k]
     return out
 
+def _canonical_json_hash(value: Any) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+
+_RESERVED_BINARY_VOTE_CHOICES = frozenset({"yes", "no", "abstain"})
+
+
+def _canonical_option_id(raw_id: Any, label: str) -> str:
+    explicit = _s(raw_id).strip().lower()
+    if explicit:
+        normalized = "".join(ch if ch.isalnum() or ch in {"-", "_", ":", "."} else "-" for ch in explicit)
+        normalized = "-".join(part for part in normalized.split("-") if part)
+        if normalized:
+            return normalized
+    digest = hashlib.sha256(label.strip().encode("utf-8")).hexdigest()[:16]
+    return f"option:{digest}"
+
+
+def _normalize_proposal_options(raw: Any) -> list[dict[str, Any]]:
+    """Normalize multi-option proposal choices into immutable canonical ids.
+
+    Votes reference the option_id snapshot stored at proposal creation/edit time,
+    never mutable labels.  Sorting by option_id gives every node the same public
+    read model regardless of client ordering.
+    """
+
+    if not isinstance(raw, list):
+        return []
+    out_by_id: dict[str, dict[str, Any]] = {}
+    for idx, item in enumerate(raw):
+        if isinstance(item, dict):
+            label = _s(item.get("label") or item.get("title") or item.get("name") or item.get("option_id") or item.get("id")).strip()
+            oid = _canonical_option_id(item.get("option_id") or item.get("id"), label)
+            description = _s(item.get("description") or item.get("body")).strip()
+        else:
+            label = _s(item).strip()
+            oid = _canonical_option_id("", label)
+            description = ""
+        if not label or not oid:
+            continue
+        if oid in _RESERVED_BINARY_VOTE_CHOICES:
+            oid = f"option:{oid}"
+        if oid in out_by_id:
+            # Duplicate option ids are unsafe because labels could diverge while
+            # votes point to the same id.  Fail normalization by marking the id;
+            # creation/edit will raise a deterministic invalid_payload error.
+            out_by_id[oid]["_duplicate"] = True
+            continue
+        rec: dict[str, Any] = {
+            "option_id": oid,
+            "label": label,
+            "ordinal_hint": int(idx),
+        }
+        if description:
+            rec["description"] = description
+        out_by_id[oid] = rec
+    return [out_by_id[k] for k in sorted(out_by_id)]
+
+
+def _proposal_options_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    raw = payload.get("options")
+    if raw is None:
+        rules = _d(payload.get("rules"))
+        raw = rules.get("options")
+    return _normalize_proposal_options(raw)
+
+
+def _assert_valid_proposal_options(options: list[dict[str, Any]], *, proposal_id: str) -> None:
+    if not options:
+        return
+    if len(options) < 2:
+        raise ApplyError("invalid_payload", "proposal_options_require_at_least_two", {"proposal_id": proposal_id})
+    if len(options) > 32:
+        raise ApplyError("invalid_payload", "proposal_options_too_many", {"proposal_id": proposal_id, "max_options": 32})
+    seen: set[str] = set()
+    for option in options:
+        oid = _s(option.get("option_id")).strip()
+        if not oid:
+            raise ApplyError("invalid_payload", "proposal_option_missing_id", {"proposal_id": proposal_id})
+        if oid in seen or bool(option.get("_duplicate")):
+            raise ApplyError("invalid_payload", "proposal_option_duplicate_id", {"proposal_id": proposal_id, "option_id": oid})
+        seen.add(oid)
+
+
+def _proposal_option_ids(pr: dict[str, Any]) -> set[str]:
+    options = pr.get("options")
+    if not isinstance(options, list):
+        return set()
+    return {_s(o.get("option_id")).strip() for o in options if isinstance(o, dict) and _s(o.get("option_id")).strip()}
+
+
+def _tally_option_votes(pr: dict[str, Any], votes: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    option_ids = _proposal_option_ids(pr)
+    if not option_ids:
+        return {}
+    counts = {oid: 0 for oid in sorted(option_ids)}
+    abstain = 0
+    invalid = 0
+    for rec in votes.values():
+        choice = _s(rec.get("option_id") or rec.get("vote") or rec.get("choice")).strip()
+        if choice == "abstain":
+            abstain += 1
+        elif choice in option_ids:
+            counts[choice] += 1
+        elif choice:
+            invalid += 1
+    total_non_abstain = sum(counts.values())
+    if total_non_abstain <= 0:
+        return {
+            "option_tallies": counts,
+            "abstain": abstain,
+            "invalid_option_votes": invalid,
+            "selected_option_id": "",
+            "tie": False,
+            "outcome": "no_option_votes",
+        }
+    high = max(counts.values())
+    leaders = sorted([oid for oid, count in counts.items() if count == high])
+    tie = len(leaders) > 1
+    selected = "" if tie else leaders[0]
+    return {
+        "option_tallies": counts,
+        "abstain": abstain,
+        "invalid_option_votes": invalid,
+        "selected_option_id": selected,
+        "tie": bool(tie),
+        "tie_option_ids": leaders if tie else [],
+        "outcome": "tie" if tie else "selected",
+        "deterministic_tie_break": "no automatic winner; tied option_ids are published in lexicographic order",
+    }
+
+def _execution_audit_root(state: Json) -> list[Json]:
+    root = state.get("governance_execution_audit")
+    if not isinstance(root, list):
+        root = []
+        state["governance_execution_audit"] = root
+    return root
+
 
 def _height_hint(state: Json, env: TxEnvelope) -> int:
-    p = _d(env.payload)
-    dh = p.get("_due_height")
-    if isinstance(dh, int) and dh > 0:
-        return int(dh)
+    # _due_height is a consensus/scheduler binding for SYSTEM follow-up txs.
+    # It must never be trusted from user-submitted governance payloads, because
+    # otherwise a proposer or voter could forge future/past lifecycle heights in
+    # committed protocol state. External txs use the next block height derived
+    # from canonical chain state.
+    if bool(getattr(env, "system", False)):
+        p = _d(env.payload)
+        dh = p.get("_due_height")
+        if isinstance(dh, int) and dh > 0:
+            return int(dh)
     return int(_i(state.get("height"), 0) + 1)
 
 
@@ -356,17 +503,29 @@ def _maybe_schedule_governance_auto_progress(state: Json, pr: dict[str, Any], pr
         return
 
     tally = _vote_choice_tally(active_votes)
+    option_tally = _tally_option_votes(pr, active_votes)
+    if option_tally:
+        quorum_met = bool(required_votes > 0 and total_votes >= required_votes)
+        selected_option_id = _s(option_tally.get("selected_option_id")).strip()
+        passed = bool(quorum_met and selected_option_id)
+    else:
+        quorum_met = bool(required_votes > 0 and total_votes >= required_votes)
+        passed = bool(tally["yes"] >= required_votes)
     tally_payload = {
         "proposal_id": proposal_id,
         "vote_window": "poll" if stage == "poll" else "final",
+        "vote_model": _s(pr.get("vote_model") or ("multi_option_plurality" if option_tally else "binary_yes_no_abstain")),
         "eligible_validator_count": int(eligible_count),
         "required_votes": int(required_votes),
         "total_votes": int(total_votes),
+        "quorum_met": bool(quorum_met),
         "yes": int(tally["yes"]),
         "no": int(tally["no"]),
-        "abstain": int(tally["abstain"]),
-        "passed": bool(tally["yes"] >= required_votes),
+        "abstain": int(option_tally.get("abstain", tally["abstain"])) if option_tally else int(tally["abstain"]),
+        "passed": bool(passed),
     }
+    if option_tally:
+        tally_payload.update(option_tally)
     if parent_ref:
         tally_payload["_parent_ref"] = parent_ref
 
@@ -649,6 +808,10 @@ DEFAULT_GOV_ACTION_ALLOWLIST = frozenset(
         "VALIDATOR_CANDIDATE_APPROVE",
         "VALIDATOR_SUSPEND",
         "VALIDATOR_REMOVE",
+        "PROTOCOL_UPGRADE_DECLARE",
+        "PROTOCOL_UPGRADE_ACTIVATE",
+        "CONSTITUTION_UPGRADE_DECLARE",
+        "CONSTITUTION_UPGRADE_ACTIVATE",
     }
 )
 
@@ -664,6 +827,19 @@ def _allowed_gov_action_types(state: Json) -> frozenset[str]:
         if out:
             return frozenset(sorted(out))
     return DEFAULT_GOV_ACTION_ALLOWLIST
+
+
+def _governance_action_payload_without_queue_metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return the governance action payload without system-queue metadata.
+
+    Governance execution enqueues receipt-only action txs through the shared
+    SYSTEM queue, which attaches deterministic replay metadata such as
+    ``_due_height`` and ``_system_queue_id``. Action-specific validators must
+    validate the approved user/governance payload, not reject the queue envelope
+    metadata that consensus needs for replay binding.
+    """
+
+    return {str(k): v for k, v in dict(payload or {}).items() if not str(k).startswith("_")}
 
 
 def _validate_gov_quorum_payload(payload: dict[str, Any]) -> None:
@@ -752,6 +928,14 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     rules = _d(p.get("rules"))
     actions = _extract_actions(p)
+    options = _proposal_options_from_payload(p)
+    _assert_valid_proposal_options(options, proposal_id=proposal_id)
+    if options and actions:
+        raise ApplyError(
+            "forbidden",
+            "multi_option_executable_actions_not_supported",
+            {"proposal_id": proposal_id, "reason": "multi-option proposals are record-only decisions in this testnet slice"},
+        )
     _assert_governance_actions_allowed(state, actions)
     _enforce_genesis_econ_lock(state, actions)
 
@@ -786,6 +970,8 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
         "stage": start_stage,
         "rules": rules,
         "actions": actions,
+        "options": list(options),
+        "vote_model": "multi_option_plurality" if options else "binary_yes_no_abstain",
         "created_at_height": int(h),
         "updated_at_height": int(h),
         # Poll vs final vote storage (both use GOV_VOTE_CAST)
@@ -811,6 +997,7 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
                 "title": _s(p.get("title")).strip(),
                 "body": _s(p.get("body")).strip(),
                 "actions": list(actions),
+                "options": list(options),
                 "created_by": str(env.signer),
                 "created_at_height": int(h),
                 "revision_reason": "initial proposal",
@@ -872,6 +1059,12 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     if "actions" in p:
         actions = _extract_actions(p)
+        if _proposal_options_from_payload(p) or _proposal_option_ids(pr):
+            raise ApplyError(
+                "forbidden",
+                "multi_option_executable_actions_not_supported",
+                {"proposal_id": proposal_id, "reason": "multi-option proposals are record-only decisions in this testnet slice"},
+            )
         _assert_governance_actions_allowed(state, actions)
         _enforce_genesis_econ_lock(state, actions)
         pr["actions"] = actions
@@ -885,6 +1078,18 @@ def _apply_gov_proposal_edit(state: Json, env: TxEnvelope) -> dict[str, Any]:
                 "executable_governance_requires_explicit_electorate",
                 {"proposal_id": proposal_id},
             )
+
+    if "options" in p or ("rules" in p and isinstance(p.get("rules"), dict) and "options" in p.get("rules")):
+        if _l(pr.get("actions")):
+            raise ApplyError(
+                "forbidden",
+                "multi_option_executable_actions_not_supported",
+                {"proposal_id": proposal_id, "reason": "multi-option proposals are record-only decisions in this testnet slice"},
+            )
+        options = _proposal_options_from_payload(p)
+        _assert_valid_proposal_options(options, proposal_id=proposal_id)
+        pr["options"] = list(options)
+        pr["vote_model"] = "multi_option_plurality" if options else "binary_yes_no_abstain"
 
     h = _height_hint(state, env)
     if stg in {"draft", "revision"}:
@@ -971,23 +1176,34 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> dict[str, Any]:
     p = _d(env.payload)
     proposal_id = _s(p.get("proposal_id")).strip()
 
-    # Backward/forward compatibility: web UI may send either vote or choice.
-    vote = _s(p.get("vote") or p.get("choice")).strip().lower()
+    # Backward/forward compatibility: web UI may send vote, choice, or option_id.
+    raw_vote = _s(p.get("option_id") or p.get("vote") or p.get("choice")).strip()
 
     if not proposal_id:
         raise ApplyError("invalid_payload", "missing_proposal_id", {})
-    if not vote:
+    if not raw_vote:
         raise ApplyError("invalid_payload", "missing_vote", {})
 
-    allowed_votes = {"yes", "no", "abstain"}
-    if vote not in allowed_votes:
-        raise ApplyError(
-            "invalid_payload",
-            "invalid_vote_choice",
-            {"proposal_id": proposal_id, "vote": vote, "allowed": sorted(allowed_votes)},
-        )
-
     pr = _proposal(root, proposal_id)
+    option_ids = _proposal_option_ids(pr)
+    if option_ids:
+        vote = raw_vote if raw_vote == "abstain" else _canonical_option_id(raw_vote, raw_vote)
+        if vote not in option_ids and vote != "abstain":
+            raise ApplyError(
+                "invalid_payload",
+                "invalid_option_vote",
+                {"proposal_id": proposal_id, "vote": raw_vote, "allowed_option_ids": sorted(option_ids) + ["abstain"]},
+            )
+    else:
+        vote = raw_vote.lower()
+        allowed_votes = {"yes", "no", "abstain"}
+        if vote not in allowed_votes:
+            raise ApplyError(
+                "invalid_payload",
+                "invalid_vote_choice",
+                {"proposal_id": proposal_id, "vote": vote, "allowed": sorted(allowed_votes)},
+            )
+
     stg = _stage(pr)
     if stg not in {"poll", "voting", "vote"}:
         raise ApplyError(
@@ -1012,7 +1228,10 @@ def _apply_gov_vote_cast(state: Json, env: TxEnvelope) -> dict[str, Any]:
     for alias in _identity_variants(env.signer):
         if alias != signer_key:
             votes.pop(alias, None)
-    votes[signer_key] = {"vote": vote, "height": int(h)}
+    vote_record = {"vote": vote, "height": int(h)}
+    if option_ids and vote != "abstain":
+        vote_record["option_id"] = vote
+    votes[signer_key] = vote_record
     pr["updated_at_height"] = int(h)
 
     parent_ref = env.parent or _s(p.get("_parent_ref")).strip() or f"tx:{env.signer}:{int(env.nonce)}"
@@ -1111,11 +1330,31 @@ def _apply_gov_tally_publish(state: Json, env: TxEnvelope) -> dict[str, Any]:
     pr["tallied_at_height"] = int(h)
     pr["updated_at_height"] = int(h)
 
+    # Prefer scheduler-supplied payload, but for multi-option proposals make the
+    # canonical result explicit in proposal state even if a legacy caller only
+    # emitted GOV_TALLY_PUBLISH with proposal_id.
+    votes_key = "poll_votes" if _s(p.get("vote_window")).strip().lower() == "poll" else "votes"
+    votes_raw = pr.get(votes_key)
+    votes_d = votes_raw if isinstance(votes_raw, dict) else {}
+    eligible_validators = _proposal_eligible_validator_ids(state, pr)
+    active_votes, eligible_count, required_votes = _active_validator_vote_snapshot(votes_d, eligible_validators)
+    option_tally = _tally_option_votes(pr, active_votes)
+    final_payload = dict(p)
+    if option_tally:
+        final_payload.setdefault("vote_model", "multi_option_plurality")
+        final_payload.setdefault("eligible_validator_count", int(eligible_count))
+        final_payload.setdefault("required_votes", int(required_votes))
+        final_payload.setdefault("total_votes", int(len(active_votes)))
+        final_payload.setdefault("quorum_met", bool(required_votes > 0 and len(active_votes) >= required_votes))
+        final_payload.update(option_tally)
+        final_payload["passed"] = bool(final_payload.get("quorum_met") and _s(final_payload.get("selected_option_id")).strip())
+        pr["result"] = {k: v for k, v in final_payload.items() if not str(k).startswith("_")}
+
     tallies = pr.get("tallies")
     if not isinstance(tallies, list):
         tallies = []
         pr["tallies"] = tallies
-    tallies.append({"height": int(h), "payload": dict(p)})
+    tallies.append({"height": int(h), "payload": dict(final_payload)})
     return {"applied": True, "proposal_id": proposal_id}
 
 def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
@@ -1165,7 +1404,8 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
     _assert_governance_actions_allowed(state, actions)
 
     parent_ref = env.parent or _s(p.get("_parent_ref")).strip() or None
-    for a in actions:
+    emitted_actions: list[dict[str, Any]] = []
+    for index, a in enumerate(actions):
         tx_type = _s(a.get("tx_type")).strip().upper()
         if not tx_type:
             continue
@@ -1173,7 +1413,7 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
         if parent_ref:
             ap.setdefault("_parent_ref", parent_ref)
 
-        enqueue_system_tx(
+        queue_id = enqueue_system_tx(
             state,
             tx_type=tx_type,
             payload=ap,
@@ -1183,12 +1423,28 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
             phase="post",
             once=True,
         )
+        emitted_actions.append({
+            "index": int(index),
+            "tx_type": tx_type,
+            "payload_hash": _canonical_json_hash(ap),
+            "queue_id": str(queue_id or ""),
+            "due_height": int(h + 1),
+        })
+
+    execution_hash = _canonical_json_hash({"proposal_id": proposal_id, "height": int(h), "emitted_actions": emitted_actions})
+    _execution_audit_root(state).append({
+        "proposal_id": proposal_id,
+        "height": int(h),
+        "parent": parent_ref or "",
+        "execution_hash": execution_hash,
+        "emitted_actions": list(emitted_actions),
+    })
 
     execs = pr.get("executions")
     if not isinstance(execs, list):
         execs = []
         pr["executions"] = execs
-    execs.append({"height": int(h), "actions": actions})
+    execs.append({"height": int(h), "actions": actions, "execution_hash": execution_hash, "emitted_actions": list(emitted_actions)})
 
     pr["stage"] = "executed"
     pr["executed_at_height"] = int(h)
@@ -1207,6 +1463,9 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
         once=True,
     )
 
+    # Keep the public apply return shape stable for older callers/tests.
+    # The deterministic execution audit data is committed to proposal state and
+    # state["governance_execution_audit"] above, where replay/reviewer tooling reads it.
     return {"applied": True, "proposal_id": proposal_id}
 
 
@@ -1265,8 +1524,11 @@ def _apply_gov_execution_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]
     if not isinstance(lst, list):
         lst = []
         state["gov_execution_receipts"] = lst
-    lst.append(dict(p))
-    return {"applied": True}
+    rec = dict(p)
+    if rec not in lst:
+        lst.append(rec)
+        return {"applied": True, "deduped": False}
+    return {"applied": True, "deduped": True}
 
 
 def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
@@ -1276,8 +1538,11 @@ def _apply_gov_proposal_receipt(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if not isinstance(lst, list):
         lst = []
         state["gov_proposal_receipts"] = lst
-    lst.append(dict(p))
-    return {"applied": True}
+    rec = dict(p)
+    if rec not in lst:
+        lst.append(rec)
+        return {"applied": True, "deduped": False}
+    return {"applied": True, "deduped": True}
 
 
 def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
@@ -1346,7 +1611,8 @@ def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if not bool(getattr(env, "system", False)) and str(getattr(env, "signer", "")) != "SYSTEM":
         raise ApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type})
 
-    p = _d(env.payload)
+    raw_payload = _d(env.payload)
+    p = _governance_action_payload_without_queue_metadata(raw_payload)
     _validate_gov_quorum_payload(p)
 
     # Minimal bounds safety: if a quorum numeric field is present, keep it sane.
@@ -1386,7 +1652,8 @@ def _apply_gov_rules_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if not bool(getattr(env, "system", False)) and str(getattr(env, "signer", "")) != "SYSTEM":
         raise ApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type})
 
-    p = _d(env.payload)
+    raw_payload = _d(env.payload)
+    p = _governance_action_payload_without_queue_metadata(raw_payload)
     _validate_gov_rules_payload(p)
 
     rec = _sorted_dict(dict(p))

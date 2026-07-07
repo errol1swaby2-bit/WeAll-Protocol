@@ -1,0 +1,296 @@
+{
+  "activation_blockade_checklist": [
+    "economics_enabled remains false in public readiness phases",
+    "balance transfers reject while economics is locked",
+    "reward mint/distribute rejects while economics is locked",
+    "treasury spend rejects while economics is locked",
+    "positive fees for civic/social/governance actions are rejected",
+    "launch matrix keeps live_economics, balance_transfer, reward_issuance, and treasury_spend disabled",
+    "legal/compliance artifacts remain counsel-review-pending drafts",
+    "public validator/BFT proof is complete before any validator reward claim"
+  ],
+  "additional_truth_boundaries": {
+    "civic_social_governance_actions_fee_free_required": true,
+    "fee_markets_enabled": false
+  },
+  "cap_sample": {
+    "issued_atomic": 9999999999,
+    "issued_before_atomic": 2099990000000001,
+    "raw_requested_atomic": 10000000000,
+    "remaining_after_atomic": 0
+  },
+  "constants": {
+    "halving_interval_issuance_epochs": 105120,
+    "initial_issuance_per_epoch_atomic": 10000000000,
+    "issuance_epoch_blocks": 30,
+    "max_supply_atomic": 2100000000000000,
+    "target_block_interval_seconds": 20
+  },
+  "farming_and_capture_scenarios": [
+    {
+      "current_live_reward_result": "blocked_economics_locked",
+      "required_before_activation": [
+        "one-human-one-account adversarial proof",
+        "reviewer assignment manipulation tests",
+        "reward concentration simulation using real reviewer distributions"
+      ],
+      "risk": "malicious users try to create many accounts or reviewer identities to farm future rewards",
+      "scenario_id": "sybil_review_farming_placeholder"
+    },
+    {
+      "current_live_reward_result": "blocked_public_validator_and_economics_locked",
+      "required_before_activation": [
+        "public validator proof harness evidence",
+        "stake/identity neutrality review",
+        "reward share cap or transparent distribution proof if introduced later"
+      ],
+      "risk": "small validator set captures issuance when validator rewards activate",
+      "scenario_id": "validator_reward_concentration_placeholder"
+    },
+    {
+      "current_live_reward_result": "blocked_treasury_spend_locked",
+      "required_before_activation": [
+        "governance capture simulation",
+        "deliberation/vote/finalization bypass tests",
+        "public legal/compliance review"
+      ],
+      "risk": "governance capture attempts to route treasury funds before public readiness",
+      "scenario_id": "treasury_spend_capture_placeholder"
+    }
+  ],
+  "halving_samples": [
+    {
+      "due_height": 30,
+      "issuance_epoch": 0,
+      "subsidy_atomic": 10000000000
+    },
+    {
+      "due_height": 3153630,
+      "issuance_epoch": 105120,
+      "subsidy_atomic": 5000000000
+    },
+    {
+      "due_height": 6307230,
+      "issuance_epoch": 210240,
+      "subsidy_atomic": 2500000000
+    },
+    {
+      "due_height": 9460830,
+      "issuance_epoch": 315360,
+      "subsidy_atomic": 1250000000
+    },
+    {
+      "due_height": 12614430,
+      "issuance_epoch": 420480,
+      "subsidy_atomic": 625000000
+    },
+    {
+      "due_height": 15768030,
+      "issuance_epoch": 525600,
+      "subsidy_atomic": 312500000
+    }
+  ],
+  "sample_epochs": [
+    {
+      "due_height": 30,
+      "issuance_epoch": 0,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099990000000000,
+      "total_issued_atomic": 10000000000
+    },
+    {
+      "due_height": 60,
+      "issuance_epoch": 1,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099980000000000,
+      "total_issued_atomic": 20000000000
+    },
+    {
+      "due_height": 90,
+      "issuance_epoch": 2,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099970000000000,
+      "total_issued_atomic": 30000000000
+    },
+    {
+      "due_height": 120,
+      "issuance_epoch": 3,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099960000000000,
+      "total_issued_atomic": 40000000000
+    },
+    {
+      "due_height": 150,
+      "issuance_epoch": 4,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099950000000000,
+      "total_issued_atomic": 50000000000
+    },
+    {
+      "due_height": 180,
+      "issuance_epoch": 5,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099940000000000,
+      "total_issued_atomic": 60000000000
+    },
+    {
+      "due_height": 210,
+      "issuance_epoch": 6,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099930000000000,
+      "total_issued_atomic": 70000000000
+    },
+    {
+      "due_height": 240,
+      "issuance_epoch": 7,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099920000000000,
+      "total_issued_atomic": 80000000000
+    },
+    {
+      "due_height": 270,
+      "issuance_epoch": 8,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099910000000000,
+      "total_issued_atomic": 90000000000
+    },
+    {
+      "due_height": 300,
+      "issuance_epoch": 9,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099900000000000,
+      "total_issued_atomic": 100000000000
+    },
+    {
+      "due_height": 330,
+      "issuance_epoch": 10,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099890000000000,
+      "total_issued_atomic": 110000000000
+    },
+    {
+      "due_height": 360,
+      "issuance_epoch": 11,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099880000000000,
+      "total_issued_atomic": 120000000000
+    },
+    {
+      "due_height": 390,
+      "issuance_epoch": 12,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099870000000000,
+      "total_issued_atomic": 130000000000
+    },
+    {
+      "due_height": 420,
+      "issuance_epoch": 13,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099860000000000,
+      "total_issued_atomic": 140000000000
+    },
+    {
+      "due_height": 450,
+      "issuance_epoch": 14,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099850000000000,
+      "total_issued_atomic": 150000000000
+    },
+    {
+      "due_height": 480,
+      "issuance_epoch": 15,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099840000000000,
+      "total_issued_atomic": 160000000000
+    },
+    {
+      "due_height": 510,
+      "issuance_epoch": 16,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099830000000000,
+      "total_issued_atomic": 170000000000
+    },
+    {
+      "due_height": 540,
+      "issuance_epoch": 17,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099820000000000,
+      "total_issued_atomic": 180000000000
+    },
+    {
+      "due_height": 570,
+      "issuance_epoch": 18,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099810000000000,
+      "total_issued_atomic": 190000000000
+    },
+    {
+      "due_height": 600,
+      "issuance_epoch": 19,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099800000000000,
+      "total_issued_atomic": 200000000000
+    },
+    {
+      "due_height": 630,
+      "issuance_epoch": 20,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099790000000000,
+      "total_issued_atomic": 210000000000
+    },
+    {
+      "due_height": 660,
+      "issuance_epoch": 21,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099780000000000,
+      "total_issued_atomic": 220000000000
+    },
+    {
+      "due_height": 690,
+      "issuance_epoch": 22,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099770000000000,
+      "total_issued_atomic": 230000000000
+    },
+    {
+      "due_height": 720,
+      "issuance_epoch": 23,
+      "issued_atomic": 10000000000,
+      "raw_subsidy_atomic": 10000000000,
+      "remaining_supply_atomic": 2099760000000000,
+      "total_issued_atomic": 240000000000
+    }
+  ],
+  "sample_total_issued_atomic": 240000000000,
+  "schema": "weall.v1_5.tokenomics_simulation",
+  "truth_boundaries": {
+    "balance_transfer_enabled": false,
+    "live_economics_enabled": false,
+    "reward_issuance_enabled": false,
+    "treasury_spend_enabled": false
+  },
+  "version": "2026-06-batch14-expanded"
+}

@@ -1,6 +1,5 @@
 {
-  "duplicate_claim_count": 0,
-  "rows": [
+  "contracts": [
     {
       "claim_count": 1,
       "claim_handlers": [
@@ -13,7 +12,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "ACCOUNT_BAN"
+      "tx_type": "ACCOUNT_BAN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -27,7 +28,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_DEVICE_REGISTER"
+      "tx_type": "ACCOUNT_DEVICE_REGISTER",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -41,7 +44,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_DEVICE_REVOKE"
+      "tx_type": "ACCOUNT_DEVICE_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -55,7 +60,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_GUARDIAN_ADD"
+      "tx_type": "ACCOUNT_GUARDIAN_ADD",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -69,7 +76,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_GUARDIAN_REMOVE"
+      "tx_type": "ACCOUNT_GUARDIAN_REMOVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -83,7 +92,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_KEY_ADD"
+      "tx_type": "ACCOUNT_KEY_ADD",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -97,7 +108,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_KEY_REVOKE"
+      "tx_type": "ACCOUNT_KEY_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -111,7 +124,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "ACCOUNT_LOCK"
+      "tx_type": "ACCOUNT_LOCK",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -125,7 +140,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_RECOVERY_APPROVE"
+      "tx_type": "ACCOUNT_RECOVERY_APPROVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -139,7 +156,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_RECOVERY_CANCEL"
+      "tx_type": "ACCOUNT_RECOVERY_CANCEL",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -153,7 +172,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_RECOVERY_CONFIG_SET"
+      "tx_type": "ACCOUNT_RECOVERY_CONFIG_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -167,7 +188,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "ACCOUNT_RECOVERY_FINALIZE"
+      "tx_type": "ACCOUNT_RECOVERY_FINALIZE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -181,7 +204,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "ACCOUNT_RECOVERY_RECEIPT"
+      "tx_type": "ACCOUNT_RECOVERY_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -195,7 +220,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_RECOVERY_REQUEST"
+      "tx_type": "ACCOUNT_RECOVERY_REQUEST",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -209,7 +236,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_REGISTER"
+      "tx_type": "ACCOUNT_REGISTER",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -223,7 +252,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "ACCOUNT_REINSTATE"
+      "tx_type": "ACCOUNT_REINSTATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -237,7 +268,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_SECURITY_POLICY_SET"
+      "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -251,7 +284,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_SESSION_KEY_ISSUE"
+      "tx_type": "ACCOUNT_SESSION_KEY_ISSUE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -265,7 +300,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "ACCOUNT_SESSION_KEY_REVOKE"
+      "tx_type": "ACCOUNT_SESSION_KEY_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -279,7 +316,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "ACCOUNT_UNLOCK"
+      "tx_type": "ACCOUNT_UNLOCK",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -293,7 +332,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "BALANCE_TRANSFER"
+      "tx_type": "BALANCE_TRANSFER",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -307,7 +348,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "BLOCK_ATTEST"
+      "tx_type": "BLOCK_ATTEST",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -321,7 +364,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "BLOCK_FINALIZE"
+      "tx_type": "BLOCK_FINALIZE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -335,7 +380,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "BLOCK_PROPOSE"
+      "tx_type": "BLOCK_PROPOSE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -349,7 +396,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "BLOCK_REWARD_DISTRIBUTE"
+      "tx_type": "BLOCK_REWARD_DISTRIBUTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -363,7 +412,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "BLOCK_REWARD_MINT"
+      "tx_type": "BLOCK_REWARD_MINT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -377,7 +428,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "BLOCK_SET"
+      "tx_type": "BLOCK_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -391,7 +444,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "CASE_BIND_TO_DISPUTE"
+      "tx_type": "CASE_BIND_TO_DISPUTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -405,7 +460,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "CASE_OUTCOME_RECEIPT"
+      "tx_type": "CASE_OUTCOME_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -419,7 +476,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "CASE_TYPE_REGISTER"
+      "tx_type": "CASE_TYPE_REGISTER",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -433,7 +492,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "COLD_SYNC_COMPLETE"
+      "tx_type": "COLD_SYNC_COMPLETE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -447,7 +508,41 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "COLD_SYNC_REQUEST"
+      "tx_type": "COLD_SYNC_REQUEST",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "protocol"
+      ],
+      "context": "block",
+      "domain": "Governance",
+      "handler": "protocol",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "GovExecutor",
+      "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "protocol"
+      ],
+      "context": "block",
+      "domain": "Governance",
+      "handler": "protocol",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "GovExecutor",
+      "tx_type": "CONSTITUTION_UPGRADE_DECLARE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -461,7 +556,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_COMMENT_CREATE"
+      "tx_type": "CONTENT_COMMENT_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -475,7 +572,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_COMMENT_DELETE"
+      "tx_type": "CONTENT_COMMENT_DELETE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -489,7 +588,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "CONTENT_ESCALATE_TO_DISPUTE"
+      "tx_type": "CONTENT_ESCALATE_TO_DISPUTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -503,7 +604,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_FLAG"
+      "tx_type": "CONTENT_FLAG",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -517,7 +620,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "CONTENT_LABEL_SET"
+      "tx_type": "CONTENT_LABEL_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -531,7 +636,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_MEDIA_BIND"
+      "tx_type": "CONTENT_MEDIA_BIND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -545,7 +652,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_MEDIA_DECLARE"
+      "tx_type": "CONTENT_MEDIA_DECLARE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -559,7 +668,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_MEDIA_REPLACE"
+      "tx_type": "CONTENT_MEDIA_REPLACE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -573,7 +684,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_MEDIA_UNBIND"
+      "tx_type": "CONTENT_MEDIA_UNBIND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -587,7 +700,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_POST_CREATE"
+      "tx_type": "CONTENT_POST_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -601,7 +716,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_POST_DELETE"
+      "tx_type": "CONTENT_POST_DELETE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -615,7 +732,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_POST_EDIT"
+      "tx_type": "CONTENT_POST_EDIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -629,7 +748,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CONTENT_REACTION_SET"
+      "tx_type": "CONTENT_REACTION_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -643,7 +764,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "CONTENT_SHARE_CREATE"
+      "tx_type": "CONTENT_SHARE_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -657,7 +780,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "CONTENT_THREAD_LOCK_SET"
+      "tx_type": "CONTENT_THREAD_LOCK_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -671,7 +796,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "CONTENT_VISIBILITY_SET"
+      "tx_type": "CONTENT_VISIBILITY_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -685,7 +812,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "CREATOR_PERFORMANCE_REPORT"
+      "tx_type": "CREATOR_PERFORMANCE_REPORT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -699,35 +828,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "CREATOR_REWARD_ALLOCATE"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "messaging"
-      ],
-      "context": "mempool",
-      "domain": "Messaging",
-      "handler": "messaging",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Tier1+",
-      "tx_type": "DIRECT_MESSAGE_REDACT"
-    },
-    {
-      "claim_count": 1,
-      "claim_handlers": [
-        "messaging"
-      ],
-      "context": "mempool",
-      "domain": "Messaging",
-      "handler": "messaging",
-      "origin": "USER",
-      "receipt_only": false,
-      "schema_covered": true,
-      "subject_gate": "Tier1+",
-      "tx_type": "DIRECT_MESSAGE_SEND"
+      "tx_type": "CREATOR_REWARD_ALLOCATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -741,7 +844,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "DISPUTE_APPEAL"
+      "tx_type": "DISPUTE_APPEAL",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -755,7 +860,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "DISPUTE_EVIDENCE_BIND"
+      "tx_type": "DISPUTE_EVIDENCE_BIND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -769,7 +876,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "DISPUTE_EVIDENCE_DECLARE"
+      "tx_type": "DISPUTE_EVIDENCE_DECLARE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -783,7 +892,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "DISPUTE_FINAL_RECEIPT"
+      "tx_type": "DISPUTE_FINAL_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -797,7 +908,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "DISPUTE_JUROR_ACCEPT"
+      "tx_type": "DISPUTE_JUROR_ACCEPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -811,7 +924,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "DISPUTE_JUROR_ASSIGN"
+      "tx_type": "DISPUTE_JUROR_ASSIGN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -825,7 +940,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "DISPUTE_JUROR_ATTENDANCE"
+      "tx_type": "DISPUTE_JUROR_ATTENDANCE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -839,7 +956,41 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "DISPUTE_JUROR_DECLINE"
+      "tx_type": "DISPUTE_JUROR_DECLINE",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "dispute"
+      ],
+      "context": "block",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "origin": "SYSTEM",
+      "receipt_only": true,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "DISPUTE_JUROR_TIMEOUT",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "dispute"
+      ],
+      "context": "mempool",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Juror",
+      "tx_type": "DISPUTE_JUROR_WITHDRAW",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -853,7 +1004,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "DISPUTE_OPEN"
+      "tx_type": "DISPUTE_OPEN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -867,7 +1020,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "DISPUTE_RESOLVE"
+      "tx_type": "DISPUTE_RESOLVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -881,7 +1036,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "DISPUTE_STAGE_SET"
+      "tx_type": "DISPUTE_STAGE_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -895,7 +1052,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "DISPUTE_VOTE_SUBMIT"
+      "tx_type": "DISPUTE_VOTE_SUBMIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -909,7 +1068,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ECONOMICS_ACTIVATION"
+      "tx_type": "ECONOMICS_ACTIVATION",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -923,7 +1084,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "EPOCH_CLOSE"
+      "tx_type": "EPOCH_CLOSE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -937,7 +1100,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "EPOCH_OPEN"
+      "tx_type": "EPOCH_OPEN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -951,7 +1116,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "FEE_PAY"
+      "tx_type": "FEE_PAY",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -965,7 +1132,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "FEE_POLICY_SET"
+      "tx_type": "FEE_POLICY_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -979,7 +1148,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "FLAG_ESCALATION_RECEIPT"
+      "tx_type": "FLAG_ESCALATION_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -993,7 +1164,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "FOLLOW_SET"
+      "tx_type": "FOLLOW_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1007,7 +1180,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "FORFEITURE_APPLY"
+      "tx_type": "FORFEITURE_APPLY",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1021,7 +1196,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GOV_EXECUTE"
+      "tx_type": "GOV_EXECUTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1035,7 +1212,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "GOV_EXECUTION_RECEIPT"
+      "tx_type": "GOV_EXECUTION_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1049,7 +1228,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "GOV_PROPOSAL_COMMENT"
+      "tx_type": "GOV_PROPOSAL_COMMENT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1063,7 +1244,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "GOV_PROPOSAL_CREATE"
+      "tx_type": "GOV_PROPOSAL_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1077,7 +1260,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "GOV_PROPOSAL_EDIT"
+      "tx_type": "GOV_PROPOSAL_EDIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1091,7 +1276,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GOV_PROPOSAL_FINALIZE"
+      "tx_type": "GOV_PROPOSAL_FINALIZE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1105,7 +1292,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "GOV_PROPOSAL_RECEIPT"
+      "tx_type": "GOV_PROPOSAL_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1119,7 +1308,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "GOV_PROPOSAL_WITHDRAW"
+      "tx_type": "GOV_PROPOSAL_WITHDRAW",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1133,7 +1324,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GOV_QUORUM_SET"
+      "tx_type": "GOV_QUORUM_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1147,7 +1340,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GOV_RULES_SET"
+      "tx_type": "GOV_RULES_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1161,7 +1356,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GOV_STAGE_SET"
+      "tx_type": "GOV_STAGE_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1175,7 +1372,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GOV_TALLY_PUBLISH"
+      "tx_type": "GOV_TALLY_PUBLISH",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1189,7 +1388,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "GOV_VOTE_CAST"
+      "tx_type": "GOV_VOTE_CAST",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1203,7 +1404,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "GOV_VOTE_REVOKE"
+      "tx_type": "GOV_VOTE_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1217,7 +1420,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GOV_VOTING_CLOSE"
+      "tx_type": "GOV_VOTING_CLOSE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1231,7 +1436,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "GROUP_CREATE"
+      "tx_type": "GROUP_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1245,7 +1452,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "GROUP_EMISSARY_BALLOT_CAST"
+      "tx_type": "GROUP_EMISSARY_BALLOT_CAST",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1259,7 +1468,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "GROUP_EMISSARY_ELECTION_CREATE"
+      "tx_type": "GROUP_EMISSARY_ELECTION_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1273,7 +1484,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "GROUP_EMISSARY_ELECTION_FINALIZE"
+      "tx_type": "GROUP_EMISSARY_ELECTION_FINALIZE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1287,7 +1500,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "GroupModerator",
-      "tx_type": "GROUP_MEMBERSHIP_DECIDE"
+      "tx_type": "GROUP_MEMBERSHIP_DECIDE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1301,7 +1516,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "GroupModerator",
-      "tx_type": "GROUP_MEMBERSHIP_REMOVE"
+      "tx_type": "GROUP_MEMBERSHIP_REMOVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1315,7 +1532,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "GROUP_MEMBERSHIP_REQUEST"
+      "tx_type": "GROUP_MEMBERSHIP_REQUEST",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1329,7 +1548,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "GROUP_MODERATORS_SET"
+      "tx_type": "GROUP_MODERATORS_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1343,7 +1564,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "GROUP_ROLE_GRANT"
+      "tx_type": "GROUP_ROLE_GRANT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1357,7 +1580,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "GROUP_ROLE_REVOKE"
+      "tx_type": "GROUP_ROLE_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1371,7 +1596,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "GROUP_SIGNERS_SET"
+      "tx_type": "GROUP_SIGNERS_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1385,7 +1612,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GROUP_TREASURY_AUDIT_ANCHOR_SET"
+      "tx_type": "GROUP_TREASURY_AUDIT_ANCHOR_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1399,7 +1628,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GROUP_TREASURY_CREATE"
+      "tx_type": "GROUP_TREASURY_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1413,7 +1644,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GROUP_TREASURY_POLICY_SET"
+      "tx_type": "GROUP_TREASURY_POLICY_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1427,7 +1660,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Emissary",
-      "tx_type": "GROUP_TREASURY_SPEND_CANCEL"
+      "tx_type": "GROUP_TREASURY_SPEND_CANCEL",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1441,7 +1676,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GROUP_TREASURY_SPEND_EXECUTE"
+      "tx_type": "GROUP_TREASURY_SPEND_EXECUTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1455,7 +1692,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "GROUP_TREASURY_SPEND_EXPIRE"
+      "tx_type": "GROUP_TREASURY_SPEND_EXPIRE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1469,7 +1708,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Emissary",
-      "tx_type": "GROUP_TREASURY_SPEND_PROPOSE"
+      "tx_type": "GROUP_TREASURY_SPEND_PROPOSE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1483,7 +1724,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "GroupSigner",
-      "tx_type": "GROUP_TREASURY_SPEND_SIGN"
+      "tx_type": "GROUP_TREASURY_SPEND_SIGN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1497,7 +1740,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "GROUP_UPDATE"
+      "tx_type": "GROUP_UPDATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1511,7 +1756,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "INDEX_ANCHOR_SET"
+      "tx_type": "INDEX_ANCHOR_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1525,7 +1772,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "INDEX_TOPIC_ANCHOR_SET"
+      "tx_type": "INDEX_TOPIC_ANCHOR_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1539,7 +1788,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "INDEX_TOPIC_REGISTER"
+      "tx_type": "INDEX_TOPIC_REGISTER",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1553,7 +1804,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "NodeOperator",
-      "tx_type": "IPFS_PIN_CONFIRM"
+      "tx_type": "IPFS_PIN_CONFIRM",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1567,7 +1820,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "IPFS_PIN_REQUEST"
+      "tx_type": "IPFS_PIN_REQUEST",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1581,7 +1836,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "MEMPOOL_REJECT_RECEIPT"
+      "tx_type": "MEMPOOL_REJECT_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1595,7 +1852,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "MOD_ACTION_RECEIPT"
+      "tx_type": "MOD_ACTION_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1609,7 +1868,25 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "MUTE_SET"
+      "tx_type": "MUTE_SET",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "NODE_OPERATOR_HELPER_OPT_IN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1623,7 +1900,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "NodeOperator",
-      "tx_type": "NODE_OPERATOR_PERFORMANCE_REPORT"
+      "tx_type": "NODE_OPERATOR_PERFORMANCE_REPORT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1637,7 +1916,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "NODE_OPERATOR_RESPONSIBILITY_UPDATE"
+      "tx_type": "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1651,7 +1932,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "NODE_OPERATOR_STORAGE_OPT_IN"
+      "tx_type": "NODE_OPERATOR_STORAGE_OPT_IN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1665,7 +1948,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN"
+      "tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1679,7 +1964,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "NOTIFICATION_EMIT_RECEIPT"
+      "tx_type": "NOTIFICATION_EMIT_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1693,7 +1980,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "NOTIFICATION_SUBSCRIBE"
+      "tx_type": "NOTIFICATION_SUBSCRIBE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1707,7 +1996,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "NOTIFICATION_UNSUBSCRIBE"
+      "tx_type": "NOTIFICATION_UNSUBSCRIBE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1721,7 +2012,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "PEER_ADVERTISE"
+      "tx_type": "PEER_ADVERTISE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1735,7 +2028,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "PEER_BAN_SET"
+      "tx_type": "PEER_BAN_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1749,7 +2044,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "PEER_RENDEZVOUS_TICKET_CREATE"
+      "tx_type": "PEER_RENDEZVOUS_TICKET_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1763,7 +2060,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "PEER_RENDEZVOUS_TICKET_REVOKE"
+      "tx_type": "PEER_RENDEZVOUS_TICKET_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1777,7 +2076,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "PEER_REPUTATION_SIGNAL"
+      "tx_type": "PEER_REPUTATION_SIGNAL",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1791,7 +2092,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "PEER_REQUEST_CONNECT"
+      "tx_type": "PEER_REQUEST_CONNECT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1805,7 +2108,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "PERFORMANCE_EVALUATE"
+      "tx_type": "PERFORMANCE_EVALUATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1819,7 +2124,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "PERFORMANCE_SCORE_APPLY"
+      "tx_type": "PERFORMANCE_SCORE_APPLY",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1833,7 +2140,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "POH_APPLICATION_SUBMIT"
+      "tx_type": "POH_APPLICATION_SUBMIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1847,7 +2156,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "POH_ASYNC_EVIDENCE_BIND"
+      "tx_type": "POH_ASYNC_EVIDENCE_BIND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1861,7 +2172,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "POH_ASYNC_EVIDENCE_DECLARE"
+      "tx_type": "POH_ASYNC_EVIDENCE_DECLARE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1875,7 +2188,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_ASYNC_FINALIZE"
+      "tx_type": "POH_ASYNC_FINALIZE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1889,7 +2204,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_ASYNC_JUROR_ACCEPT"
+      "tx_type": "POH_ASYNC_JUROR_ACCEPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1903,7 +2220,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_ASYNC_JUROR_ASSIGN"
+      "tx_type": "POH_ASYNC_JUROR_ASSIGN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1917,7 +2236,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_ASYNC_JUROR_DECLINE"
+      "tx_type": "POH_ASYNC_JUROR_DECLINE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1931,7 +2252,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "POH_ASYNC_RECEIPT"
+      "tx_type": "POH_ASYNC_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1945,7 +2268,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "POH_ASYNC_REQUEST_OPEN"
+      "tx_type": "POH_ASYNC_REQUEST_OPEN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1959,7 +2284,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_ASYNC_REVIEW_SUBMIT"
+      "tx_type": "POH_ASYNC_REVIEW_SUBMIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1973,7 +2300,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "POH_BOOTSTRAP_TIER2_GRANT"
+      "tx_type": "POH_BOOTSTRAP_TIER2_GRANT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -1987,7 +2316,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "POH_CHALLENGE_OPEN"
+      "tx_type": "POH_CHALLENGE_OPEN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2001,7 +2332,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_CHALLENGE_RESOLVE"
+      "tx_type": "POH_CHALLENGE_RESOLVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2015,7 +2348,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "POH_EVIDENCE_BIND"
+      "tx_type": "POH_EVIDENCE_BIND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2029,7 +2364,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "POH_EVIDENCE_DECLARE"
+      "tx_type": "POH_EVIDENCE_DECLARE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2043,7 +2380,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_ATTENDANCE_MARK"
+      "tx_type": "POH_LIVE_ATTENDANCE_MARK",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2057,7 +2396,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_FINALIZE"
+      "tx_type": "POH_LIVE_FINALIZE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2071,7 +2412,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_JUROR_ACCEPT"
+      "tx_type": "POH_LIVE_JUROR_ACCEPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2085,7 +2428,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_JUROR_ASSIGN"
+      "tx_type": "POH_LIVE_JUROR_ASSIGN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2099,7 +2444,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_JUROR_DECLINE"
+      "tx_type": "POH_LIVE_JUROR_DECLINE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2113,7 +2460,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_JUROR_REPLACE"
+      "tx_type": "POH_LIVE_JUROR_REPLACE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2127,7 +2476,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "POH_LIVE_RECEIPT"
+      "tx_type": "POH_LIVE_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2141,7 +2492,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "POH_LIVE_REQUEST_OPEN"
+      "tx_type": "POH_LIVE_REQUEST_OPEN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2155,7 +2508,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "POH_LIVE_SESSION_INIT"
+      "tx_type": "POH_LIVE_SESSION_INIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2169,7 +2524,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_LIVE_VERDICT_SUBMIT"
+      "tx_type": "POH_LIVE_VERDICT_SUBMIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2183,7 +2540,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER2_FINALIZE"
+      "tx_type": "POH_TIER2_FINALIZE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2197,7 +2556,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER2_JUROR_ACCEPT"
+      "tx_type": "POH_TIER2_JUROR_ACCEPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2211,7 +2572,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER2_JUROR_ASSIGN"
+      "tx_type": "POH_TIER2_JUROR_ASSIGN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2225,7 +2588,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER2_JUROR_DECLINE"
+      "tx_type": "POH_TIER2_JUROR_DECLINE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2239,7 +2604,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "POH_TIER2_RECEIPT"
+      "tx_type": "POH_TIER2_RECEIPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2253,7 +2620,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier1+",
-      "tx_type": "POH_TIER2_REQUEST_OPEN"
+      "tx_type": "POH_TIER2_REQUEST_OPEN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2267,7 +2636,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Juror",
-      "tx_type": "POH_TIER2_REVIEW_SUBMIT"
+      "tx_type": "POH_TIER2_REVIEW_SUBMIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2281,7 +2652,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "POH_TIER_REVOKE"
+      "tx_type": "POH_TIER_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2295,7 +2668,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "POH_TIER_SET"
+      "tx_type": "POH_TIER_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2309,7 +2684,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier0+",
-      "tx_type": "PROFILE_UPDATE"
+      "tx_type": "PROFILE_UPDATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2323,7 +2700,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "PROTOCOL_UPGRADE_ACTIVATE"
+      "tx_type": "PROTOCOL_UPGRADE_ACTIVATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2337,7 +2716,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "PROTOCOL_UPGRADE_DECLARE"
+      "tx_type": "PROTOCOL_UPGRADE_DECLARE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2351,7 +2732,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "RATE_LIMIT_POLICY_SET"
+      "tx_type": "RATE_LIMIT_POLICY_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2365,7 +2748,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "RATE_LIMIT_STRIKE_APPLY"
+      "tx_type": "RATE_LIMIT_STRIKE_APPLY",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2379,7 +2764,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "REPUTATION_DELTA_APPLY"
+      "tx_type": "REPUTATION_DELTA_APPLY",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2393,7 +2780,41 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "REPUTATION_THRESHOLD_CROSS"
+      "tx_type": "REPUTATION_THRESHOLD_CROSS",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "REVIEWER_LANE_OPT_IN",
+      "unsupported": false,
+      "unsupported_code": ""
+    },
+    {
+      "claim_count": 1,
+      "claim_handlers": [
+        "roles"
+      ],
+      "context": "mempool",
+      "domain": "Roles",
+      "handler": "roles",
+      "origin": "USER",
+      "receipt_only": false,
+      "schema_covered": true,
+      "subject_gate": "Tier2+",
+      "tx_type": "REVIEWER_LANE_OPT_OUT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2407,7 +2828,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "REWARD_POOL_OPT_IN_SET"
+      "tx_type": "REWARD_POOL_OPT_IN_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2421,7 +2844,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "ROLE_ELIGIBILITY_REVOKE"
+      "tx_type": "ROLE_ELIGIBILITY_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2435,7 +2860,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "ROLE_ELIGIBILITY_SET"
+      "tx_type": "ROLE_ELIGIBILITY_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2449,7 +2876,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "ROLE_EMISSARY_NOMINATE"
+      "tx_type": "ROLE_EMISSARY_NOMINATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2463,7 +2892,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_EMISSARY_REMOVE"
+      "tx_type": "ROLE_EMISSARY_REMOVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2477,7 +2908,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_EMISSARY_SEAT"
+      "tx_type": "ROLE_EMISSARY_SEAT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2491,7 +2924,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "ROLE_EMISSARY_VOTE"
+      "tx_type": "ROLE_EMISSARY_VOTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2505,7 +2940,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_GOV_EXECUTOR_SET"
+      "tx_type": "ROLE_GOV_EXECUTOR_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2519,7 +2956,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_JUROR_ACTIVATE"
+      "tx_type": "ROLE_JUROR_ACTIVATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2533,7 +2972,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "ROLE_JUROR_ENROLL"
+      "tx_type": "ROLE_JUROR_ENROLL",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2547,7 +2988,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_JUROR_REINSTATE"
+      "tx_type": "ROLE_JUROR_REINSTATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2561,7 +3004,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_JUROR_SUSPEND"
+      "tx_type": "ROLE_JUROR_SUSPEND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2575,7 +3020,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE"
+      "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2589,7 +3036,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "ROLE_NODE_OPERATOR_ENROLL"
+      "tx_type": "ROLE_NODE_OPERATOR_ENROLL",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2603,7 +3052,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_NODE_OPERATOR_SUSPEND"
+      "tx_type": "ROLE_NODE_OPERATOR_SUSPEND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2617,7 +3068,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_VALIDATOR_ACTIVATE"
+      "tx_type": "ROLE_VALIDATOR_ACTIVATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2631,7 +3084,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "ROLE_VALIDATOR_SUSPEND"
+      "tx_type": "ROLE_VALIDATOR_SUSPEND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2645,7 +3100,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "SLASH_EXECUTE"
+      "tx_type": "SLASH_EXECUTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2659,7 +3116,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "SLASH_PROPOSE"
+      "tx_type": "SLASH_PROPOSE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2673,7 +3132,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "SLASH_VOTE"
+      "tx_type": "SLASH_VOTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2687,7 +3148,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "STATE_SNAPSHOT_ACCEPT"
+      "tx_type": "STATE_SNAPSHOT_ACCEPT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2701,7 +3164,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "STATE_SNAPSHOT_DECLARE"
+      "tx_type": "STATE_SNAPSHOT_DECLARE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2715,7 +3180,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "STORAGE_CAPACITY_PROOF_VERIFY"
+      "tx_type": "STORAGE_CAPACITY_PROOF_VERIFY",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2729,7 +3196,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "STORAGE_CHALLENGE_ISSUE"
+      "tx_type": "STORAGE_CHALLENGE_ISSUE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2743,7 +3212,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "NodeOperator",
-      "tx_type": "STORAGE_CHALLENGE_RESPOND"
+      "tx_type": "STORAGE_CHALLENGE_RESPOND",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2757,7 +3228,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "STORAGE_LEASE_CREATE"
+      "tx_type": "STORAGE_LEASE_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2771,7 +3244,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "STORAGE_LEASE_RENEW"
+      "tx_type": "STORAGE_LEASE_RENEW",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2785,7 +3260,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "NodeOperator",
-      "tx_type": "STORAGE_LEASE_REVOKE"
+      "tx_type": "STORAGE_LEASE_REVOKE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2799,7 +3276,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "NodeOperator",
-      "tx_type": "STORAGE_OFFER_CREATE"
+      "tx_type": "STORAGE_OFFER_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2813,7 +3292,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "NodeOperator",
-      "tx_type": "STORAGE_OFFER_WITHDRAW"
+      "tx_type": "STORAGE_OFFER_WITHDRAW",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2827,7 +3308,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "STORAGE_PAYOUT_EXECUTE"
+      "tx_type": "STORAGE_PAYOUT_EXECUTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2841,7 +3324,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "NodeOperator",
-      "tx_type": "STORAGE_PROOF_SUBMIT"
+      "tx_type": "STORAGE_PROOF_SUBMIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2855,7 +3340,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "STORAGE_REPORT_ANCHOR"
+      "tx_type": "STORAGE_REPORT_ANCHOR",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2869,7 +3356,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_AUDIT_ANCHOR_SET"
+      "tx_type": "TREASURY_AUDIT_ANCHOR_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2883,7 +3372,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "TREASURY_CREATE"
+      "tx_type": "TREASURY_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2897,7 +3388,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_POLICY_SET"
+      "tx_type": "TREASURY_POLICY_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2911,7 +3404,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_PROGRAM_CLOSE"
+      "tx_type": "TREASURY_PROGRAM_CLOSE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2925,7 +3420,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_PROGRAM_CREATE"
+      "tx_type": "TREASURY_PROGRAM_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2939,7 +3436,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_PROGRAM_UPDATE"
+      "tx_type": "TREASURY_PROGRAM_UPDATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2953,7 +3452,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "TREASURY_REWARD_ALLOCATE"
+      "tx_type": "TREASURY_REWARD_ALLOCATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2967,7 +3468,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "TREASURY_SIGNERS_SET"
+      "tx_type": "TREASURY_SIGNERS_SET",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2981,7 +3484,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_SIGNER_ADD"
+      "tx_type": "TREASURY_SIGNER_ADD",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -2995,7 +3500,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_SIGNER_REMOVE"
+      "tx_type": "TREASURY_SIGNER_REMOVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3009,7 +3516,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Emissary",
-      "tx_type": "TREASURY_SPEND_CANCEL"
+      "tx_type": "TREASURY_SPEND_CANCEL",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3023,7 +3532,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_SPEND_EXECUTE"
+      "tx_type": "TREASURY_SPEND_EXECUTE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3037,7 +3548,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_SPEND_EXPIRE"
+      "tx_type": "TREASURY_SPEND_EXPIRE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3051,7 +3564,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Emissary",
-      "tx_type": "TREASURY_SPEND_PROPOSE"
+      "tx_type": "TREASURY_SPEND_PROPOSE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3065,7 +3580,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Signer",
-      "tx_type": "TREASURY_SPEND_SIGN"
+      "tx_type": "TREASURY_SPEND_SIGN",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3079,7 +3596,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "TREASURY_WALLET_CREATE"
+      "tx_type": "TREASURY_WALLET_CREATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3093,7 +3612,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "TX_RECEIPT_EMIT"
+      "tx_type": "TX_RECEIPT_EMIT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3107,7 +3628,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "VALIDATOR_CANDIDATE_APPROVE"
+      "tx_type": "VALIDATOR_CANDIDATE_APPROVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3121,7 +3644,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Tier2+",
-      "tx_type": "VALIDATOR_CANDIDATE_REGISTER"
+      "tx_type": "VALIDATOR_CANDIDATE_REGISTER",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3135,7 +3660,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "VALIDATOR_DEREGISTER"
+      "tx_type": "VALIDATOR_DEREGISTER",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3149,7 +3676,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "VALIDATOR_HEARTBEAT"
+      "tx_type": "VALIDATOR_HEARTBEAT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3163,7 +3692,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "Validator",
-      "tx_type": "VALIDATOR_PERFORMANCE_REPORT"
+      "tx_type": "VALIDATOR_PERFORMANCE_REPORT",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3177,7 +3708,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "",
-      "tx_type": "VALIDATOR_READINESS_VERIFY"
+      "tx_type": "VALIDATOR_READINESS_VERIFY",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3191,7 +3724,9 @@
       "receipt_only": false,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "VALIDATOR_REGISTER"
+      "tx_type": "VALIDATOR_REGISTER",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3205,7 +3740,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "VALIDATOR_REMOVE"
+      "tx_type": "VALIDATOR_REMOVE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3219,7 +3756,9 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "VALIDATOR_SET_UPDATE"
+      "tx_type": "VALIDATOR_SET_UPDATE",
+      "unsupported": false,
+      "unsupported_code": ""
     },
     {
       "claim_count": 1,
@@ -3233,11 +3772,3794 @@
       "receipt_only": true,
       "schema_covered": true,
       "subject_gate": "GovExecutor",
-      "tx_type": "VALIDATOR_SUSPEND"
+      "tx_type": "VALIDATOR_SUSPEND",
+      "unsupported": false,
+      "unsupported_code": ""
     }
   ],
-  "schema_covered_count": 231,
-  "single_claim_count": 231,
-  "tx_count": 231,
-  "unclaimed_count": 0
+  "summary": {
+    "duplicate_claim_count": 0,
+    "rows": [
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "reputation"
+        ],
+        "context": "block",
+        "domain": "Reputation",
+        "handler": "reputation",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "ACCOUNT_BAN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_DEVICE_REGISTER",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_DEVICE_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_GUARDIAN_ADD",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_GUARDIAN_REMOVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_KEY_ADD",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_KEY_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "block",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "ACCOUNT_LOCK",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_RECOVERY_APPROVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_RECOVERY_CANCEL",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_RECOVERY_CONFIG_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "block",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "ACCOUNT_RECOVERY_FINALIZE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "block",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "ACCOUNT_RECOVERY_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_RECOVERY_REQUEST",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_REGISTER",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "reputation"
+        ],
+        "context": "block",
+        "domain": "Reputation",
+        "handler": "reputation",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "ACCOUNT_REINSTATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_SESSION_KEY_ISSUE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "mempool",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "ACCOUNT_SESSION_KEY_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "identity"
+        ],
+        "context": "block",
+        "domain": "Identity",
+        "handler": "identity",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "ACCOUNT_UNLOCK",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "economics"
+        ],
+        "context": "mempool",
+        "domain": "Economics",
+        "handler": "economics",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "BALANCE_TRANSFER",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "VALIDATOR",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "BLOCK_ATTEST",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "BLOCK_FINALIZE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "VALIDATOR",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "BLOCK_PROPOSE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "block",
+        "domain": "Rewards",
+        "handler": "rewards",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "BLOCK_REWARD_DISTRIBUTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "block",
+        "domain": "Rewards",
+        "handler": "rewards",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "BLOCK_REWARD_MINT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "social"
+        ],
+        "context": "mempool",
+        "domain": "Social",
+        "handler": "social",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "BLOCK_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Cases",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "CASE_BIND_TO_DISPUTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Cases",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "CASE_OUTCOME_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Cases",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "CASE_TYPE_REGISTER",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "indexing"
+        ],
+        "context": "block",
+        "domain": "Indexing",
+        "handler": "indexing",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "COLD_SYNC_COMPLETE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "indexing"
+        ],
+        "context": "block",
+        "domain": "Indexing",
+        "handler": "indexing",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "COLD_SYNC_REQUEST",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "protocol"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "protocol",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "protocol"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "protocol",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "CONSTITUTION_UPGRADE_DECLARE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_COMMENT_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_COMMENT_DELETE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "block",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "CONTENT_ESCALATE_TO_DISPUTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_FLAG",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "block",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "CONTENT_LABEL_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_MEDIA_BIND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_MEDIA_DECLARE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_MEDIA_REPLACE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_MEDIA_UNBIND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_POST_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_POST_DELETE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_POST_EDIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "mempool",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CONTENT_REACTION_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "social"
+        ],
+        "context": "mempool",
+        "domain": "Social",
+        "handler": "social",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "CONTENT_SHARE_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "block",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "CONTENT_THREAD_LOCK_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "block",
+        "domain": "Content",
+        "handler": "content",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "CONTENT_VISIBILITY_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "mempool",
+        "domain": "Performance",
+        "handler": "rewards",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "CREATOR_PERFORMANCE_REPORT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "block",
+        "domain": "Rewards",
+        "handler": "rewards",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "CREATOR_REWARD_ALLOCATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "mempool",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "DISPUTE_APPEAL",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "mempool",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "DISPUTE_EVIDENCE_BIND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "mempool",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "DISPUTE_EVIDENCE_DECLARE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "DISPUTE_FINAL_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "mempool",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_JUROR_ACCEPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_JUROR_ASSIGN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_JUROR_ATTENDANCE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "mempool",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_JUROR_DECLINE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_JUROR_TIMEOUT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "mempool",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_JUROR_WITHDRAW",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "mempool",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "DISPUTE_OPEN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_RESOLVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "block",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_STAGE_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "dispute"
+        ],
+        "context": "mempool",
+        "domain": "Dispute",
+        "handler": "dispute",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "DISPUTE_VOTE_SUBMIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "economics"
+        ],
+        "context": "block",
+        "domain": "Economics",
+        "handler": "economics",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ECONOMICS_ACTIVATION",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "EPOCH_CLOSE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "EPOCH_OPEN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "economics"
+        ],
+        "context": "mempool",
+        "domain": "Economics",
+        "handler": "economics",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "FEE_PAY",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "economics"
+        ],
+        "context": "block",
+        "domain": "Economics",
+        "handler": "economics",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "FEE_POLICY_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "block",
+        "domain": "Moderation",
+        "handler": "content",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "FLAG_ESCALATION_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "social"
+        ],
+        "context": "mempool",
+        "domain": "Social",
+        "handler": "social",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "FOLLOW_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "block",
+        "domain": "Rewards",
+        "handler": "rewards",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "FORFEITURE_APPLY",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GOV_EXECUTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "GOV_EXECUTION_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "mempool",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "GOV_PROPOSAL_COMMENT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "mempool",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "GOV_PROPOSAL_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "mempool",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "GOV_PROPOSAL_EDIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GOV_PROPOSAL_FINALIZE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "GOV_PROPOSAL_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "mempool",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "GOV_PROPOSAL_WITHDRAW",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GOV_QUORUM_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GOV_RULES_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GOV_STAGE_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GOV_TALLY_PUBLISH",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "mempool",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "GOV_VOTE_CAST",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "mempool",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "GOV_VOTE_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "governance"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "governance",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GOV_VOTING_CLOSE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "GROUP_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "GROUP_EMISSARY_BALLOT_CAST",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "GROUP_EMISSARY_ELECTION_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "GROUP_EMISSARY_ELECTION_FINALIZE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "GroupModerator",
+        "tx_type": "GROUP_MEMBERSHIP_DECIDE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "GroupModerator",
+        "tx_type": "GROUP_MEMBERSHIP_REMOVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "GROUP_MEMBERSHIP_REQUEST",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "GROUP_MODERATORS_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "GROUP_ROLE_GRANT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "GROUP_ROLE_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "GROUP_SIGNERS_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "block",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GROUP_TREASURY_AUDIT_ANCHOR_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "block",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GROUP_TREASURY_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "block",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GROUP_TREASURY_POLICY_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Emissary",
+        "tx_type": "GROUP_TREASURY_SPEND_CANCEL",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "block",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GROUP_TREASURY_SPEND_EXECUTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "block",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "GROUP_TREASURY_SPEND_EXPIRE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Emissary",
+        "tx_type": "GROUP_TREASURY_SPEND_PROPOSE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "GroupSigner",
+        "tx_type": "GROUP_TREASURY_SPEND_SIGN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "groups"
+        ],
+        "context": "mempool",
+        "domain": "Groups",
+        "handler": "groups",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "GROUP_UPDATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "indexing"
+        ],
+        "context": "block",
+        "domain": "Indexing",
+        "handler": "indexing",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "INDEX_ANCHOR_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "indexing"
+        ],
+        "context": "block",
+        "domain": "Indexing",
+        "handler": "indexing",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "INDEX_TOPIC_ANCHOR_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "indexing"
+        ],
+        "context": "block",
+        "domain": "Indexing",
+        "handler": "indexing",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "INDEX_TOPIC_REGISTER",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "block",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "NodeOperator",
+        "tx_type": "IPFS_PIN_CONFIRM",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "mempool",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "IPFS_PIN_REQUEST",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "economics"
+        ],
+        "context": "block",
+        "domain": "Economics",
+        "handler": "economics",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "MEMPOOL_REJECT_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "content"
+        ],
+        "context": "block",
+        "domain": "Moderation",
+        "handler": "content",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "MOD_ACTION_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "social"
+        ],
+        "context": "mempool",
+        "domain": "Social",
+        "handler": "social",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "MUTE_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "NODE_OPERATOR_HELPER_OPT_IN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "mempool",
+        "domain": "Performance",
+        "handler": "rewards",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "NodeOperator",
+        "tx_type": "NODE_OPERATOR_PERFORMANCE_REPORT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "NODE_OPERATOR_STORAGE_OPT_IN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "notifications"
+        ],
+        "context": "block",
+        "domain": "Notifications",
+        "handler": "notifications",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "NOTIFICATION_EMIT_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "notifications"
+        ],
+        "context": "mempool",
+        "domain": "Notifications",
+        "handler": "notifications",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "NOTIFICATION_SUBSCRIBE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "notifications"
+        ],
+        "context": "mempool",
+        "domain": "Notifications",
+        "handler": "notifications",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "NOTIFICATION_UNSUBSCRIBE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "networking"
+        ],
+        "context": "mempool",
+        "domain": "Networking",
+        "handler": "networking",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "PEER_ADVERTISE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "networking"
+        ],
+        "context": "block",
+        "domain": "Networking",
+        "handler": "networking",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "PEER_BAN_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "networking"
+        ],
+        "context": "mempool",
+        "domain": "Networking",
+        "handler": "networking",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "PEER_RENDEZVOUS_TICKET_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "networking"
+        ],
+        "context": "mempool",
+        "domain": "Networking",
+        "handler": "networking",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "PEER_RENDEZVOUS_TICKET_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "networking"
+        ],
+        "context": "block",
+        "domain": "Networking",
+        "handler": "networking",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "PEER_REPUTATION_SIGNAL",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "networking"
+        ],
+        "context": "mempool",
+        "domain": "Networking",
+        "handler": "networking",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "PEER_REQUEST_CONNECT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "block",
+        "domain": "Performance",
+        "handler": "rewards",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "PERFORMANCE_EVALUATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "block",
+        "domain": "Performance",
+        "handler": "rewards",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "PERFORMANCE_SCORE_APPLY",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "POH_APPLICATION_SUBMIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "POH_ASYNC_EVIDENCE_BIND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "POH_ASYNC_EVIDENCE_DECLARE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_ASYNC_FINALIZE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_ASYNC_JUROR_ACCEPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_ASYNC_JUROR_ASSIGN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_ASYNC_JUROR_DECLINE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "POH_ASYNC_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "POH_ASYNC_REQUEST_OPEN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_ASYNC_REVIEW_SUBMIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "POH_BOOTSTRAP_TIER2_GRANT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "POH_CHALLENGE_OPEN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_CHALLENGE_RESOLVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "POH_EVIDENCE_BIND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "POH_EVIDENCE_DECLARE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_LIVE_ATTENDANCE_MARK",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_LIVE_FINALIZE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_LIVE_JUROR_ACCEPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_LIVE_JUROR_ASSIGN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_LIVE_JUROR_DECLINE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_LIVE_JUROR_REPLACE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "POH_LIVE_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "POH_LIVE_REQUEST_OPEN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "POH_LIVE_SESSION_INIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_LIVE_VERDICT_SUBMIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_TIER2_FINALIZE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_TIER2_JUROR_ACCEPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_TIER2_JUROR_ASSIGN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_TIER2_JUROR_DECLINE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "POH_TIER2_RECEIPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier1+",
+        "tx_type": "POH_TIER2_REQUEST_OPEN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "mempool",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Juror",
+        "tx_type": "POH_TIER2_REVIEW_SUBMIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "POH_TIER_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "poh"
+        ],
+        "context": "block",
+        "domain": "PoH",
+        "handler": "poh",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "POH_TIER_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "social"
+        ],
+        "context": "mempool",
+        "domain": "Social",
+        "handler": "social",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier0+",
+        "tx_type": "PROFILE_UPDATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "protocol"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "protocol",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "PROTOCOL_UPGRADE_ACTIVATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "protocol"
+        ],
+        "context": "block",
+        "domain": "Governance",
+        "handler": "protocol",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "PROTOCOL_UPGRADE_DECLARE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "economics"
+        ],
+        "context": "block",
+        "domain": "Economics",
+        "handler": "economics",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "RATE_LIMIT_POLICY_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "economics"
+        ],
+        "context": "block",
+        "domain": "Economics",
+        "handler": "economics",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "RATE_LIMIT_STRIKE_APPLY",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "reputation"
+        ],
+        "context": "block",
+        "domain": "Reputation",
+        "handler": "reputation",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "REPUTATION_DELTA_APPLY",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "reputation"
+        ],
+        "context": "block",
+        "domain": "Reputation",
+        "handler": "reputation",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "REPUTATION_THRESHOLD_CROSS",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "REVIEWER_LANE_OPT_IN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "REVIEWER_LANE_OPT_OUT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "mempool",
+        "domain": "Rewards",
+        "handler": "rewards",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "REWARD_POOL_OPT_IN_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "reputation"
+        ],
+        "context": "block",
+        "domain": "Reputation",
+        "handler": "reputation",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "ROLE_ELIGIBILITY_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "reputation"
+        ],
+        "context": "block",
+        "domain": "Reputation",
+        "handler": "reputation",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "ROLE_ELIGIBILITY_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "ROLE_EMISSARY_NOMINATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_EMISSARY_REMOVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_EMISSARY_SEAT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "ROLE_EMISSARY_VOTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_GOV_EXECUTOR_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_JUROR_ACTIVATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "ROLE_JUROR_ENROLL",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_JUROR_REINSTATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_JUROR_SUSPEND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "ROLE_NODE_OPERATOR_ENROLL",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_NODE_OPERATOR_SUSPEND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_VALIDATOR_ACTIVATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "ROLE_VALIDATOR_SUSPEND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "SLASH_EXECUTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "mempool",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "SLASH_PROPOSE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "mempool",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "SLASH_VOTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "indexing"
+        ],
+        "context": "block",
+        "domain": "Indexing",
+        "handler": "indexing",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "STATE_SNAPSHOT_ACCEPT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "indexing"
+        ],
+        "context": "block",
+        "domain": "Indexing",
+        "handler": "indexing",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "STATE_SNAPSHOT_DECLARE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "block",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "STORAGE_CAPACITY_PROOF_VERIFY",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "block",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "STORAGE_CHALLENGE_ISSUE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "mempool",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "NodeOperator",
+        "tx_type": "STORAGE_CHALLENGE_RESPOND",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "mempool",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "STORAGE_LEASE_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "mempool",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "STORAGE_LEASE_RENEW",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "mempool",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "NodeOperator",
+        "tx_type": "STORAGE_LEASE_REVOKE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "mempool",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "NodeOperator",
+        "tx_type": "STORAGE_OFFER_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "mempool",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "NodeOperator",
+        "tx_type": "STORAGE_OFFER_WITHDRAW",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "block",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "STORAGE_PAYOUT_EXECUTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "mempool",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "NodeOperator",
+        "tx_type": "STORAGE_PROOF_SUBMIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "storage"
+        ],
+        "context": "block",
+        "domain": "Storage",
+        "handler": "storage",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "STORAGE_REPORT_ANCHOR",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_AUDIT_ANCHOR_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Treasury",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "TREASURY_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_POLICY_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_PROGRAM_CLOSE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_PROGRAM_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_PROGRAM_UPDATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "rewards"
+        ],
+        "context": "block",
+        "domain": "Rewards",
+        "handler": "rewards",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "TREASURY_REWARD_ALLOCATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "mempool",
+        "domain": "Treasury",
+        "handler": "roles",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "TREASURY_SIGNERS_SET",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_SIGNER_ADD",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_SIGNER_REMOVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "mempool",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Emissary",
+        "tx_type": "TREASURY_SPEND_CANCEL",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_SPEND_EXECUTE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_SPEND_EXPIRE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "mempool",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Emissary",
+        "tx_type": "TREASURY_SPEND_PROPOSE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "mempool",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Signer",
+        "tx_type": "TREASURY_SPEND_SIGN",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "treasury"
+        ],
+        "context": "block",
+        "domain": "Treasury",
+        "handler": "treasury",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "TREASURY_WALLET_CREATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "indexing"
+        ],
+        "context": "block",
+        "domain": "Indexing",
+        "handler": "indexing",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "TX_RECEIPT_EMIT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "VALIDATOR_CANDIDATE_APPROVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "mempool",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Tier2+",
+        "tx_type": "VALIDATOR_CANDIDATE_REGISTER",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "mempool",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "USER",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "VALIDATOR_DEREGISTER",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "mempool",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "VALIDATOR",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "VALIDATOR_HEARTBEAT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "mempool",
+        "domain": "Performance",
+        "handler": "consensus",
+        "origin": "VALIDATOR",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "Validator",
+        "tx_type": "VALIDATOR_PERFORMANCE_REPORT",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "roles"
+        ],
+        "context": "block",
+        "domain": "Roles",
+        "handler": "roles",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "",
+        "tx_type": "VALIDATOR_READINESS_VERIFY",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": false,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "VALIDATOR_REGISTER",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "VALIDATOR_REMOVE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "VALIDATOR_SET_UPDATE",
+        "unsupported": false,
+        "unsupported_code": ""
+      },
+      {
+        "claim_count": 1,
+        "claim_handlers": [
+          "consensus"
+        ],
+        "context": "block",
+        "domain": "Consensus",
+        "handler": "consensus",
+        "origin": "SYSTEM",
+        "receipt_only": true,
+        "schema_covered": true,
+        "subject_gate": "GovExecutor",
+        "tx_type": "VALIDATOR_SUSPEND",
+        "unsupported": false,
+        "unsupported_code": ""
+      }
+    ],
+    "schema_covered_count": 236,
+    "single_claim_count": 236,
+    "tx_count": 236,
+    "unclaimed_count": 0
+  }
 }

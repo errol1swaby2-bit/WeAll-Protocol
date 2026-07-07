@@ -1,0 +1,22 @@
+{
+  "artifact_digest": "0fbf9c43285303975bd2a0471fea3f0147f2a7ff11caf9f2e40436b1d2763365",
+  "external_evidence_required_before_launch": true,
+  "ok": true,
+  "public_observer_launch_ready": false,
+  "required_observations": [
+    "chain identity matches registry chain_id/genesis_hash/profile/tx_index commitments",
+    "observer catches up from genesis/current trusted head",
+    "state root reported by observer matches seed or active validator",
+    "restart preserves synced height/root/posture",
+    "mempool/block propagation remains visible after restart"
+  ],
+  "runtime_state_sync_proven": false,
+  "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof",
+  "source_gates_present": [
+    "tests/test_state_sync_trusted_anchor.py",
+    "tests/test_state_sync_trusted_anchor_aliases.py",
+    "tests/test_status_persists_height_after_restart.py",
+    "tests/prod/test_multinode_mempool_propagation_convergence.py"
+  ],
+  "version": "2026-06-b629-public-observer-transcript-gate"
+}

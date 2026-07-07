@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
+import TxPropagationTimeline from "../components/TxPropagationTimeline";
 import { getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { useTxQueue } from "../hooks/useTxQueue";
@@ -9,10 +10,12 @@ import { useAccount } from "../context/AccountContext";
 import { requestGlobalRefresh } from "../lib/revalidation";
 import { normalizeTxStatus } from "../lib/status";
 
+type TxHistoryStatus = "validating" | "submitting" | "recorded" | "refreshing" | "confirmed" | "failed" | "unknown";
+
 type TxHistoryItem = {
   id: string;
   title: string;
-  status: "validating" | "submitting" | "recorded" | "refreshing" | "confirmed" | "failed";
+  status: TxHistoryStatus;
   message?: string;
   txId?: string;
   createdAt: number;
@@ -73,6 +76,27 @@ function summarizeList(rows: TxCatalogSummaryRow[] | undefined, limit = 4): stri
     .slice(0, limit)
     .map((row) => `${row.name} (${row.count})`)
     .join(" · ");
+}
+
+function lifecycleSteps(item: TxHistoryItem): Array<{ label: string; done: boolean; detail?: string; evidence?: "observed" | "pending" | "unavailable" | "terminal" | "rejected" }> {
+  const status = item.status;
+  const hasTxId = !!item.txId;
+  const submitted = ["submitting", "recorded", "refreshing", "confirmed", "failed", "unknown"].includes(status);
+  const locallyAccepted = ["recorded", "refreshing", "confirmed"].includes(status);
+  const confirmed = status === "confirmed";
+  const rejected = status === "failed";
+  const unknown = status === "unknown";
+  return [
+    { label: "Submitted", done: submitted, evidence: submitted ? "observed" : "pending", detail: "browser attempted to send a signed envelope; not proof of admission or finality" },
+    { label: "Locally accepted", done: locallyAccepted, evidence: locallyAccepted ? "observed" : rejected ? "rejected" : "pending", detail: hasTxId ? "tx id captured; not confirmed yet" : "waiting for tx id or rejection detail" },
+    { label: "Queued / pending", done: ["recorded", "refreshing"].includes(status), evidence: ["recorded", "refreshing"].includes(status) ? "observed" : confirmed ? "terminal" : unknown ? "unavailable" : "pending", detail: confirmed ? "superseded by block inclusion evidence" : "mempool or observer queue evidence may still be local-only" },
+    { label: "Forwarded / gossiped", done: false, evidence: "unavailable", detail: "only observed when backend upstream/gossip evidence is available; otherwise unknown/unavailable and non-final" },
+    { label: "Included in block", done: confirmed, evidence: confirmed ? "terminal" : rejected ? "rejected" : "pending", detail: "backend tx status must report block inclusion; mempool acceptance is not enough" },
+    { label: "Finalized / confirmed", done: confirmed, evidence: confirmed ? "terminal" : rejected ? "rejected" : "pending", detail: "canonical state observed by this node; local_state_synced=false is not final local confirmation" },
+    { label: "Rejected", done: rejected, evidence: rejected ? "rejected" : "pending", detail: rejected ? "backend or local validation rejected the tx; inspect message before retrying" : "no rejection evidence" },
+    { label: "Removed from mempool", done: confirmed, evidence: confirmed ? "terminal" : "pending", detail: "must be proven by confirmed/removal evidence; do not infer from local acceptance" },
+    { label: "Unknown / unavailable", done: unknown, evidence: unknown ? "unavailable" : "pending", detail: unknown ? "backend cannot currently prove propagation or finality" : "not the current lifecycle state" },
+  ];
 }
 
 function summarizeEntrypoints(item: TxCatalogItem): string {
@@ -201,7 +225,7 @@ export default function TransactionsPage(): JSX.Element {
             <div className="eyebrow">Protocol</div>
             <h1 className="surfaceTitle">Transaction activity</h1>
             <p className="surfaceSummaryHint">
-              This page keeps local submission history separate from backend-confirmed transaction status and now also exposes the canonical transaction catalog, including the public HTTP entrypoints that wire frontend flows to backend tx surfaces.
+              This page keeps local submission history separate from backend-confirmed transaction status and exposes the canonical transaction catalog, including the public HTTP entrypoints that wire frontend flows to backend tx surfaces. The rendered lifecycle deliberately distinguishes submitted, locally accepted, queued/pending, forwarded/gossiped, included in block, finalized/confirmed, rejected, removed from mempool, and unknown/unavailable states.
             </p>
           </div>
           <div className="statusRowWrap">
@@ -214,7 +238,7 @@ export default function TransactionsPage(): JSX.Element {
           <article className="summaryCard">
             <span className="summaryCardLabel">Tracked history</span>
             <div className="summaryCardValue">{history.length}</div>
-            <div className="summaryCardHint">Recent local submission history stored by this browser.</div>
+            <div className="summaryCardHint">Recent local submission history stored by this browser. Clearing it does not delete protocol records.</div>
           </article>
           <article className="summaryCard">
             <span className="summaryCardLabel">Canonical tx catalog</span>
@@ -225,6 +249,37 @@ export default function TransactionsPage(): JSX.Element {
             <span className="summaryCardLabel">Top contexts</span>
             <div className="summaryCardValue" style={{ fontSize: "1rem" }}>{summarizeList(catalog?.summary?.by_context)}</div>
             <div className="summaryCardHint">Useful for seeing which flows originate in mempool versus block/system phases.</div>
+          </article>
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="cardHeaderRow">
+          <div>
+            <div className="eyebrow">Lifecycle evidence ladder</div>
+            <h2 className="cardTitle">Submitted is not confirmed</h2>
+          </div>
+          <span className="statusPill warn">Mempool acceptance is not confirmation</span>
+        </div>
+        <p className="cardDesc">
+          A signed action can move through several non-final states before this node can prove inclusion or rejection.
+          Use this page to inspect the difference between browser submission, local backend acceptance, observer queueing, gossip/upstream propagation, block inclusion, final confirmation, rejection, mempool removal, and unknown/unavailable evidence.
+        </p>
+        <div className="summaryCardGrid summaryCardGridThree">
+          <article className="summaryCard">
+            <span className="summaryCardLabel">Non-final states</span>
+            <div className="summaryCardValue" style={{ fontSize: "1rem" }}>Submitted · locally accepted · queued/pending · forwarded/gossiped</div>
+            <div className="summaryCardHint">These are useful progress signals, but none are final confirmation by themselves.</div>
+          </article>
+          <article className="summaryCard">
+            <span className="summaryCardLabel">Terminal evidence</span>
+            <div className="summaryCardValue" style={{ fontSize: "1rem" }}>Included · finalized/confirmed · rejected · removed from mempool</div>
+            <div className="summaryCardHint">Terminal labels require backend status/read-model evidence, not browser state alone.</div>
+          </article>
+          <article className="summaryCard">
+            <span className="summaryCardLabel">Unknown / unavailable</span>
+            <div className="summaryCardValue" style={{ fontSize: "1rem" }}>Stay non-final</div>
+            <div className="summaryCardHint">Observer-edge upstream accepted/confirmed is separate from local observer state synced.</div>
           </article>
         </div>
       </section>
@@ -241,7 +296,7 @@ export default function TransactionsPage(): JSX.Element {
             </div>
           </div>
           <p className="cardDesc">
-            This is the same live queue surfaced through toast notifications. It reflects the current browser runtime, not canonical chain history. Nonce collisions, duplicate submissions, and signer-busy responses now stay in a recorded state instead of being flattened into a generic failure.
+            This is the same live queue surfaced through toast notifications. It reflects the current browser runtime, not canonical chain history. Nonce collisions, duplicate submissions, and signer-busy responses keep their tx id/details when available and are not flattened into a false confirmation.
           </p>
           {queueItems.length ? (
             <div className="txRecordList compact">
@@ -271,15 +326,18 @@ export default function TransactionsPage(): JSX.Element {
               <button className="btn" disabled={refreshing || !history.length} onClick={() => void refreshPendingStatuses()}>
                 Refresh pending
               </button>
-              <button className="btn ghost" disabled={!history.length} onClick={clearHistory}>Clear local history</button>
+              <button className="btn ghost" disabled={!history.length} onClick={clearHistory}>Clear browser history only</button>
             </div>
           </div>
           <div className="stack gap12">
             <div className="summaryCallout">
-              <strong>Local history:</strong> this browser remembers recent submission attempts and the last known lifecycle state.
+              <strong>Local history:</strong> this browser remembers recent submission attempts and the last known lifecycle state. Clearing it only clears browser history.
             </div>
             <div className="summaryCallout subtle">
               <strong>Canonical tx catalog:</strong> the backend now exposes transaction surface metadata so frontend work can be explicitly aligned to real protocol tx types, contexts, gate expectations, and concrete public HTTP entrypoints.
+            </div>
+            <div className="summaryCallout subtle">
+              <strong>Block confirmation:</strong> a transaction is not treated as a final public result until the backend reports block inclusion/finality or a terminal rejection and the local observer has synced that confirmed state. Upstream validator accepted, upstream confirmed, and local acceptance are separate evidence states; local_state_synced=false stays non-final on this observer.
             </div>
           </div>
         </article>
@@ -378,8 +436,9 @@ export default function TransactionsPage(): JSX.Element {
                   </div>
                   <span className={`statusPill tx-${item.status}`}>{item.status}</span>
                 </div>
-                <div className="txRecordMessage">{item.message || "No lifecycle detail stored."}</div>
+                <div className="txRecordMessage">{item.message || "No lifecycle detail stored. Unknown/unavailable propagation remains non-final until status evidence changes."}</div>
                 {item.txId ? <div className="mono wrapAnywhere">{item.txId}</div> : <div className="mutedText">No tx id captured for this local record.</div>}
+                <TxPropagationTimeline title={item.title} steps={lifecycleSteps(item)} />
               </article>
             ))}
           </div>

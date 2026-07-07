@@ -9,6 +9,42 @@ from weall.runtime.sqlite_db import _canon_json
 
 Json = dict[str, Any]
 
+RECENT_BLOCK_ANCHOR_VERSION = 1
+RECENT_BLOCK_ANCHOR_WINDOW = 3
+RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT = 1
+
+
+def _safe_positive_int(value: Any, default: int) -> int:
+    try:
+        n = int(value)
+    except Exception:
+        return int(default)
+    return n if n > 0 else 0
+
+
+def recent_block_anchor_activation_height(*, state: Json | None = None) -> int:
+    """Return the consensus-pinned height where recent anchors become required.
+
+    The value is read from ``state["meta"]["recent_block_anchor_activation_height"]``
+    when present, so a resettable pre-genesis/testnet chain can activate at
+    height 1 while any future migration can pin a later activation height in
+    the canonical state/config.  A value <= 0 disables the requirement only for
+    explicit migration/test fixtures; the default is height 1.
+    """
+
+    meta = state.get("meta") if isinstance(state, dict) else None
+    if isinstance(meta, dict) and "recent_block_anchor_activation_height" in meta:
+        return _safe_positive_int(
+            meta.get("recent_block_anchor_activation_height"),
+            RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT,
+        )
+    return int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT)
+
+
+def recent_block_anchor_required_for_height(*, state: Json | None, height: int) -> bool:
+    activation_height = recent_block_anchor_activation_height(state=state)
+    return bool(activation_height > 0 and int(height) >= int(activation_height))
+
 
 def compute_block_hash(*, header: Json) -> str:
     """Compute a deterministic block hash.
@@ -23,6 +59,59 @@ def compute_block_hash(*, header: Json) -> str:
     payload = _canon_json(header).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
+
+
+def compute_recent_block_anchor(*, block_ids: list[str], window_size: int = RECENT_BLOCK_ANCHOR_WINDOW) -> str:
+    """Compute a deterministic commitment to recent canonical block context.
+
+    The input order is newest-to-oldest: state tip first, then its parent, up to
+    ``window_size`` block IDs.  Height-1/2/3 startup history is represented by a
+    shorter list, so early-chain anchors are deterministic without synthetic
+    genesis placeholders or full-chain scans.
+    """
+
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for bid in block_ids if isinstance(block_ids, list) else []:
+        s = str(bid or "").strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        cleaned.append(s)
+        if len(cleaned) >= int(window_size):
+            break
+
+    payload: Json = {
+        "version": int(RECENT_BLOCK_ANCHOR_VERSION),
+        "window_size": int(window_size),
+        "block_ids": cleaned,
+    }
+    return hashlib.sha256(_canon_json(payload).encode("utf-8")).hexdigest()
+
+
+def recent_block_ids_from_state(*, state: Json, window_size: int = RECENT_BLOCK_ANCHOR_WINDOW) -> list[str]:
+    """Return previous canonical block IDs from state without scanning history.
+
+    State records a bounded ancestry map at ``state["blocks"][block_id]["prev_block_id"]``.
+    Walking backward from ``state["tip"]`` for at most three links gives the
+    deterministic recent-history context needed by the block header anchor.
+    """
+
+    out: list[str] = []
+    blocks = state.get("blocks") if isinstance(state, dict) else None
+    blocks = blocks if isinstance(blocks, dict) else {}
+    cur = str(state.get("tip") or "").strip() if isinstance(state, dict) else ""
+    seen: set[str] = set()
+
+    while cur and cur not in seen and len(out) < int(window_size):
+        seen.add(cur)
+        out.append(cur)
+        rec = blocks.get(cur)
+        if not isinstance(rec, dict):
+            break
+        cur = str(rec.get("prev_block_id") or "").strip()
+
+    return out
 
 
 def compute_helper_execution_root(*, helper_execution: Json) -> str:
@@ -54,6 +143,7 @@ def make_block_header(
     state_root: str | None = None,
     helper_execution_root: str | None = None,
     vrf: Json | None = None,
+    recent_block_anchor: str | None = None,
 ) -> Json:
     """Create the canonical header structure used for hashing."""
 
@@ -73,6 +163,9 @@ def make_block_header(
 
     if isinstance(helper_execution_root, str) and helper_execution_root:
         hdr["helper_execution_root"] = helper_execution_root
+
+    if isinstance(recent_block_anchor, str) and recent_block_anchor:
+        hdr["recent_block_anchor"] = recent_block_anchor
 
     # Optional: verifiable randomness proof (VRF-ish) for deterministic juror selection.
     # Back-compat: omit if not provided so legacy block hashes remain stable.

@@ -37,7 +37,7 @@ def _observer_edge_mode() -> bool:
 
 
 def _allow_mempool_submit_in_observer_edge() -> bool:
-    # /v1/mempool/submit predates the durable local-observer outbox.  In
+    # /v1/mempool/submit predates the durable local-observer tx queue.  In
     # observer-edge mode it can create a local-only trap, so keep it disabled
     # unless an operator explicitly opts into legacy behavior.
     return _env_bool("WEALL_OBSERVER_EDGE_ALLOW_MEMPOOL_SUBMIT", False)
@@ -84,7 +84,7 @@ async def mempool_submit(request: Request):
     if _observer_edge_mode() and not _allow_mempool_submit_in_observer_edge():
         raise ApiError.forbidden(
             "observer_edge_mempool_submit_disabled",
-            "local observer edge nodes must use /v1/tx/submit so txs enter the durable upstream outbox",
+            "local observer edge nodes must use /v1/tx/submit so txs enter the durable upstream tx queue",
             {"replacement": "/v1/tx/submit"},
         )
 

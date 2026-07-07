@@ -103,7 +103,7 @@ def test_restart_tolerates_legacy_startup_clock_sanity_meta_and_heals_it(
     st.setdefault("meta", {})[
         "startup_clock_sanity_required"
     ] = not PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
-    ex._store.write_state_snapshot(st)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
 
     ex2 = WeAllExecutor(
         db_path=str(tmp_path / "weall.db"),
@@ -131,7 +131,7 @@ def test_restart_warns_and_enters_observer_mode_for_future_skewed_tip(
     ex.mark_clean_shutdown()
     st = ex.read_state()
     st["tip_ts_ms"] = 9_999_999_999_999
-    ex._store.write_state_snapshot(st)  # type: ignore[attr-defined]
+    ex._ledger_store.write_state_snapshot(st)  # type: ignore[attr-defined]
 
     ex2 = WeAllExecutor(
         db_path=str(tmp_path / "weall-clock.db"),

@@ -1,3 +1,14 @@
-[
-  {"label": "Local API", "api_base": "http://127.0.0.1:8000"}
-]
+{
+  "version": 1,
+  "network_id": "local-dev",
+  "chain_id": "",
+  "genesis_hash": "",
+  "protocol_profile_hash": "",
+  "tx_index_hash": "",
+  "resettable_testnet": true,
+  "economics_active": false,
+  "notes": "Local development manifest only. Public observer builds must replace this with pinned public testnet commitments and HTTPS seed URLs.",
+  "nodes": [
+    {"label": "Local API", "api_base": "http://127.0.0.1:8000", "description": "Local development backend only", "trusted": false}
+  ]
+}

@@ -12,11 +12,9 @@ import {
   submitSignedTxInSequence,
 } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
-import { ensureMessagingEncryptionIdentity } from "../lib/messageCrypto";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
-import { getTier2VideoUploadEnabled } from "../lib/capabilities";
 import { resolveOnboardingSnapshot, summarizeNextRequirements } from "../lib/onboarding";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
@@ -83,6 +81,10 @@ function JsonDetails({ title, value }: { title: string; value: any }): JSX.Eleme
       <pre style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{JSON.stringify(value, null, 2)}</pre>
     </details>
   );
+}
+
+function asRecord(value: any): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
 function StatusCard({ eyebrow, title, status, description, children }: StatusCardProps): JSX.Element {
@@ -268,7 +270,7 @@ async function waitForSubmittedTxVisible(
         return true;
       }
     } catch {
-      // The observer may not know the tx immediately while the durable outbox
+      // The observer may not know the tx immediately while the durable tx_queue
       // forwards it upstream. Keep polling until the bounded wait expires.
     }
     await new Promise((resolve) => window.setTimeout(resolve, intervalMs));
@@ -290,13 +292,13 @@ function asyncCaseReviewability(item: any): AsyncCaseReviewability {
   const evidenceCommitments = item?.evidence_commitments && typeof item.evidence_commitments === "object" ? item.evidence_commitments : {};
   const evidenceBinds = item?.evidence_binds && typeof item.evidence_binds === "object" ? item.evidence_binds : {};
   const reviewableEvidence = item?.reviewable_evidence && typeof item.reviewable_evidence === "object" ? item.reviewable_evidence : {};
-  const reviewerPrivateEvidence = item?.reviewer_private_evidence && typeof item.reviewer_private_evidence === "object" ? item.reviewer_private_evidence : {};
+  const reviewerRestrictedEvidence = item?.reviewer_restricted_evidence && typeof item.reviewer_restricted_evidence === "object" ? item.reviewer_restricted_evidence : {};
   const publicEvidenceIds = Array.isArray(item?.public_evidence_ids) ? item.public_evidence_ids : [];
   const assignedJurors = Array.isArray(item?.assigned_jurors) ? item.assigned_jurors : [];
   const status = String(item?.status || "").trim();
   const finalOrReviewed = ["approved", "rejected", "finalized"].includes(status.toLowerCase()) || !!item?.outcome || !!item?.receipt || item?.finalized_height != null;
-  const evidenceDeclared = Object.keys(evidenceCommitments).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerPrivateEvidence).length > 0 || finalOrReviewed;
-  const evidenceBound = Object.keys(evidenceBinds).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerPrivateEvidence).length > 0 || finalOrReviewed;
+  const evidenceDeclared = Object.keys(evidenceCommitments).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerRestrictedEvidence).length > 0 || finalOrReviewed;
+  const evidenceBound = Object.keys(evidenceBinds).length > 0 || publicEvidenceIds.length > 0 || Object.keys(reviewableEvidence).length > 0 || Object.keys(reviewerRestrictedEvidence).length > 0 || finalOrReviewed;
   const assigned = assignedJurors.some((j: any) => String(j || "").trim()) || !!item?.jurors;
   const reviewable = finalOrReviewed || (evidenceDeclared && evidenceBound);
   const missingSteps: string[] = [];
@@ -389,6 +391,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
   const [acctView, setAcctView] = useState<any | null>(null);
   const [registration, setRegistration] = useState<any | null>(null);
+  const [reviewerStatus, setReviewerStatus] = useState<any | null>(null);
   const [acctState, setAcctState] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<ErrState>(null);
@@ -396,10 +399,9 @@ export default function AccountVerificationPage(): JSX.Element {
 
   const [sessionBusy, setSessionBusy] = useState(false);
   const [registerBusy, setRegisterBusy] = useState(false);
-  const [compatUploadBusy, setCompatUploadBusy] = useState(false);
-  const [compatRequestBusy, setCompatRequestBusy] = useState(false);
   const [liveRequestBusy, setLiveRequestBusy] = useState(false);
   const [liveCommitments, setLiveCommitments] = useState<any | null>(null);
+  const [reviewerBusy, setReviewerBusy] = useState<"optIn" | "optOut" | null>(null);
   const [casesBusy, setCasesBusy] = useState(false);
   const [asyncEvidenceBusy, setAsyncEvidenceBusy] = useState(false);
 
@@ -413,12 +415,10 @@ export default function AccountVerificationPage(): JSX.Element {
   const [asyncConsent, setAsyncConsent] = useState(false);
   const [asyncUpload, setAsyncUpload] = useState<UploadState | null>(null);
 
-  const [compatUpload, setCompatUpload] = useState<UploadState | null>(null);
-  const [compatCases, setCompatCases] = useState<any[]>([]);
+  const [asyncCases, setAsyncCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
 
-  const compatibilityUploadEnabled = getTier2VideoUploadEnabled();
   const hasLocalKeypair = !!kp?.secretKeyB64;
   const sessionKeyPresent = !!session?.sessionKey;
 
@@ -430,15 +430,19 @@ export default function AccountVerificationPage(): JSX.Element {
         setAcctView(null);
         setAcctState(null);
         setRegistration(null);
+        setReviewerStatus(null);
         return;
       }
-      const [accountView, registrationView] = await Promise.all([
+      const headers = getAuthHeaders(acct);
+      const [accountView, registrationView, reviewerStatusView] = await Promise.all([
         weall.account(acct, base),
         weall.accountRegistered(acct, base).catch(() => ({ registered: false })),
+        weall.accountReviewerStatus(acct, base, headers).catch(() => ({ reviewer: null })),
       ]);
       setAcctView(accountView);
       setAcctState(accountView?.state ?? null);
       setRegistration(registrationView);
+      setReviewerStatus(reviewerStatusView);
     } catch (e: any) {
       setErr(prettyErr(e));
     } finally {
@@ -448,7 +452,7 @@ export default function AccountVerificationPage(): JSX.Element {
 
   async function loadVerificationData(): Promise<void> {
     if (!acct) {
-      setCompatCases([]);
+      setAsyncCases([]);
       setLiveCases([]);
       setLiveSessions([]);
       return;
@@ -456,12 +460,12 @@ export default function AccountVerificationPage(): JSX.Element {
     setCasesBusy(true);
     try {
       const headers = getAuthHeaders(acct);
-      const [compat, live, sessions] = await Promise.all([
+      const [asyncResponse, live, sessions] = await Promise.all([
         weall.pohAsyncMyCases(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveMyCases(acct, base, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(base, headers).catch(() => ({ sessions: [] })),
       ]);
-      setCompatCases(Array.isArray(compat?.cases) ? compat.cases : []);
+      setAsyncCases(Array.isArray(asyncResponse?.cases) ? asyncResponse.cases : []);
       setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
       setLiveSessions(Array.isArray(sessions?.sessions) ? sessions.sessions : []);
     } catch (e: any) {
@@ -503,6 +507,12 @@ export default function AccountVerificationPage(): JSX.Element {
   const contentPostingEligible = snapshot.postingEligible;
   const banned = snapshot.banned;
   const locked = snapshot.locked;
+  const reviewerTruth = asRecord(reviewerStatus?.reviewer);
+  const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
+  const contentReviewLaneTruth = asRecord(reviewerLaneTruth.content_review);
+  const contentReviewOptedIn = contentReviewLaneTruth.opted_in === true || contentReviewLaneTruth.active === true;
+  const contentReviewActive = contentReviewLaneTruth.active === true;
+  const contentReviewStatusLabel = contentReviewActive ? "Active" : contentReviewOptedIn ? "Opted in, paused" : "Not opted in";
 
   const basicStatus: "done" | "available" | "locked" = acct && hasLocalKeypair ? "done" : "available";
   const verifiedStatus: "done" | "available" | "locked" = accountLevel >= 1 ? "done" : registered ? "available" : "locked";
@@ -538,20 +548,15 @@ export default function AccountVerificationPage(): JSX.Element {
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.tx_id || res?.result?.tx_id,
         finality: { timeoutMs: 16_000, reconcile: async () => reconcileRegisteredState(acct, base) },
-        task: async () => {
-          const msgIdentity = await ensureMessagingEncryptionIdentity(acct);
-          return submitSignedTx({
-            account: acct,
-            tx_type: "ACCOUNT_REGISTER",
-            payload: {
-              pubkey: kp.pubkeyB64,
-              messaging_encryption_public_jwk: msgIdentity.publicJwk,
-              messaging_encryption_key_id: msgIdentity.keyId,
-            },
-            parent: null,
-            base,
-          });
-        },
+        task: async () => submitSignedTx({
+          account: acct,
+          tx_type: "ACCOUNT_REGISTER",
+          payload: {
+            pubkey: kp.pubkeyB64,
+          },
+          parent: null,
+          base,
+        }),
       });
       setResult(r);
       await refresh();
@@ -620,84 +625,6 @@ export default function AccountVerificationPage(): JSX.Element {
         ? ["Record and submit a fresh account-verification video.", "Refresh account status after reviewers finalize the result."]
         : ["Register the basic account first.", "Return here to start or inspect verification."],
     });
-  }
-
-  async function uploadCompatibilityVideo(file: File): Promise<void> {
-    setCompatUploadBusy(true);
-    setErr(null);
-    try {
-      const r: any = await tx.runTx({
-        title: "Upload compatibility evidence",
-        pendingMessage: "Uploading evidence…",
-        successMessage: "Evidence uploaded.",
-        errorMessage: (e) => prettyErr(e).msg,
-        task: async () => weall.pohTier2VideoUpload(file, base, getAuthHeaders(acct || undefined)),
-      });
-      setCompatUpload(r);
-      setResult(r);
-    } catch (e: any) {
-      setErr(prettyErr(e));
-    } finally {
-      setCompatUploadBusy(false);
-    }
-  }
-
-  async function submitCompatibilityRequest(): Promise<void> {
-    if (!acct) {
-      setErr({ msg: "Sign in before opening a compatibility review.", details: null });
-      return;
-    }
-    if (!compatUpload?.cid && !compatUpload?.video_commitment) {
-      setErr({ msg: "Upload evidence before opening this compatibility review.", details: null });
-      return;
-    }
-
-    setCompatRequestBusy(true);
-    setErr(null);
-    try {
-      const headers = getAuthHeaders(acct);
-      const r = await tx.runTx({
-        title: "Open compatibility review",
-        pendingMessage: "Opening compatibility review…",
-        successMessage: "Compatibility review submitted.",
-        errorMessage: (e) => prettyErr(e).msg,
-        getTxId: (res: any) => res?.submit?.result?.tx_id || res?.result?.tx_id,
-        finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCompatibilityCase(acct, base, headers) },
-        task: async () => {
-          const skel: any = await weall.pohTier2TxRequest(
-            {
-              account_id: acct,
-              video_cid: compatUpload?.cid,
-              video_commitment: compatUpload?.video_commitment,
-              target_tier: 2,
-            },
-            base,
-            headers,
-          );
-          const skeletonTx = skel?.tx;
-          if (!skeletonTx) throw new Error("The backend did not return a valid review request.");
-          const payload = { ...(skeletonTx.payload || {}) };
-          if (typeof payload.ts_ms === "number" && payload.ts_ms === 0) payload.ts_ms = Date.now();
-          const submit = await submitSignedTx({
-            account: acct,
-            tx_type: String(skeletonTx.tx_type || ""),
-            payload,
-            parent: skeletonTx.parent ?? null,
-            base,
-          });
-          return { skeleton: skel, submit };
-        },
-      });
-
-      setResult(r);
-      await refresh();
-      await loadVerificationData();
-      await refreshAccountContext();
-    } catch (e: any) {
-      setErr(prettyErr(e));
-    } finally {
-      setCompatRequestBusy(false);
-    }
   }
 
   function cleanupAsyncRecording(): void {
@@ -869,7 +796,7 @@ export default function AccountVerificationPage(): JSX.Element {
           // signer sequence.  This prevents the observer-edge UI from reusing
           // stale local nonce reservations between request-open, evidence
           // declaration, and evidence binding while still keeping each step as a
-          // normal signed protocol tx forwarded through the observer outbox.
+          // normal signed protocol tx forwarded through the observer tx queue.
           const sequence = await beginNonceSequence(acct, base);
           const openedAtMs = Date.now();
 
@@ -889,15 +816,10 @@ export default function AccountVerificationPage(): JSX.Element {
             base,
           });
 
-          // Batch 408: node admission is still sequential-nonce based.  Do not
-          // report success after request-open alone, and do not submit nonce+1
-          // until this observer has reconciled the previous nonce into account
-          // state.  Otherwise the case can be opened while evidence declare/bind
-          // never reaches genesis, leaving the reviewer queue empty.
-          const openNonceVisible = await waitForAccountNonceAtLeast(acct, Number(open?.env?.nonce || 0), base, { maxWaitMs: 120000, intervalMs: 1000 });
-          if (!openNonceVisible) {
-            throw new Error("Async verification request was opened, but the observer has not reconciled the request-open nonce yet. Evidence was not submitted; keep the observer reconcile worker running and refresh status.");
-          }
+          // Submit the remaining same-signer verification txs immediately with
+          // contiguous nonces. Mempool admission now accepts nonce N+1 when nonce
+          // N is already pending for the same signer; block admission still
+          // enforces strict replay-safe ordering.
 
           const declare = await submitSignedTxInSequence({
             sequence,
@@ -921,11 +843,6 @@ export default function AccountVerificationPage(): JSX.Element {
             parent: open?.result?.tx_id || null,
             base,
           });
-
-          const declareNonceVisible = await waitForAccountNonceAtLeast(acct, Number(declare?.env?.nonce || 0), base, { maxWaitMs: 120000, intervalMs: 1000 });
-          if (!declareNonceVisible) {
-            throw new Error("Async verification evidence was declared, but the observer has not reconciled the evidence-declare nonce yet. Evidence binding was not submitted; keep the observer reconcile worker running and refresh status.");
-          }
 
           // Evidence binding is the point where the async request becomes a
           // complete reviewable case.
@@ -1090,6 +1007,52 @@ export default function AccountVerificationPage(): JSX.Element {
       setErr(prettyErr(e));
     } finally {
       setLiveRequestBusy(false);
+    }
+  }
+
+  async function updateContentReviewLane(active: boolean): Promise<void> {
+    if (!acct) {
+      setErr({ msg: "Sign in before changing reviewer responsibilities.", details: null });
+      return;
+    }
+    if (accountLevel < 2) {
+      setErr({ msg: blockedByVerificationMessage(2), details: null });
+      return;
+    }
+    if (!hasLocalKeypair) {
+      setErr({ msg: "This device is missing the saved account key for this account.", details: null });
+      return;
+    }
+
+    setReviewerBusy(active ? "optIn" : "optOut");
+    setErr(null);
+    setResult(null);
+    try {
+      const r = await tx.runTx({
+        title: active ? "Opt into content review" : "Opt out of content review",
+        pendingMessage: active ? "Submitting content-review opt-in…" : "Submitting content-review opt-out…",
+        successMessage: active
+          ? "Content-review responsibility submitted. Pending unassigned reports can now select this account when it is unconflicted."
+          : "Content-review opt-out submitted. Already accepted work may still require protocol-specific withdrawal.",
+        errorMessage: (e) => prettyErr(e).msg,
+        getTxId: (res: any) => res?.result?.tx_id,
+        task: async () =>
+          submitSignedTx({
+            account: acct,
+            tx_type: active ? "REVIEWER_LANE_OPT_IN" : "REVIEWER_LANE_OPT_OUT",
+            payload: { account_id: acct, lane: "content_review" },
+            parent: null,
+            base,
+          }),
+      });
+      setResult(r);
+      await refresh();
+      await refreshAccountContext();
+    } catch (e: any) {
+      setErr(prettyErr(e));
+      setResult(e?.body || e?.data || null);
+    } finally {
+      setReviewerBusy(null);
     }
   }
 
@@ -1318,7 +1281,7 @@ export default function AccountVerificationPage(): JSX.Element {
           description="Complete live verification to create posts, vote in community decisions, report harmful content, and apply for trusted responsibilities."
         >
           <div className="calloutInfo">
-            Live verification requests now prepare session, room, and prompt commitments before the signed request is submitted. The chain stores commitments and review receipts, not private session recordings.
+            Live verification requests now prepare session, room, and prompt commitments before the signed request is submitted. The chain stores commitments and review receipts, not raw identity session recordings.
           </div>
           <button className="btn btnPrimary" onClick={() => void submitLiveRequest()} disabled={!acct || liveRequestBusy || accountLevel >= 2 || accountLevel < 1 || signerSubmission.busy}>
             {liveRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : accountLevel < 1 ? blockedByVerificationMessage(1) : "Open live verification"}
@@ -1333,7 +1296,7 @@ export default function AccountVerificationPage(): JSX.Element {
               {liveRoomUrlFromCommitment(liveCommitments.room_commitment) ? (
                 <div className="buttonRow" style={{ marginTop: 10 }}>
                   <a className="btn" href={liveRoomUrlFromCommitment(liveCommitments.room_commitment)} target="_blank" rel="noreferrer">
-                    Open compatibility room
+                    Open self-hosted room
                   </a>
                 </div>
               ) : (
@@ -1363,6 +1326,37 @@ export default function AccountVerificationPage(): JSX.Element {
           <p className="cardDesc">
             Verification proves account status. Responsibilities prove specific service permission, such as reviewing reports or helping operate network services.
           </p>
+          <div className="infoCard compact">
+            <div className="infoCardHeader">
+              <strong>Content review selection</strong>
+              <span className={`statusPill ${contentReviewActive ? "ok" : contentReviewOptedIn ? "warning" : ""}`}>{contentReviewStatusLabel}</span>
+            </div>
+            <div className="infoCardText">
+              Tier 2 makes you eligible, but the protocol only selects reviewers that explicitly opt into the content_review lane and are not the author of the flagged content.
+            </div>
+            <div className="buttonRowWide">
+              {!contentReviewActive ? (
+                <button
+                  className="btn btnPrimary"
+                  onClick={() => void updateContentReviewLane(true)}
+                  disabled={!acct || accountLevel < 2 || reviewerBusy !== null || signerSubmission.busy || !hasLocalKeypair}
+                >
+                  {reviewerBusy === "optIn" ? "Opting in…" : accountLevel < 2 ? blockedByVerificationMessage(2) : "Opt into content review"}
+                </button>
+              ) : (
+                <button
+                  className="btn"
+                  onClick={() => void updateContentReviewLane(false)}
+                  disabled={!acct || reviewerBusy !== null || signerSubmission.busy || !hasLocalKeypair}
+                >
+                  {reviewerBusy === "optOut" ? "Opting out…" : "Opt out of content review"}
+                </button>
+              )}
+              <button className="btn btnGhost" onClick={() => nav(acct ? `/account/${encodeURIComponent(acct)}` : "/login")} disabled={!acct}>
+                Open all responsibility controls
+              </button>
+            </div>
+          </div>
           <div className="infoGrid">
             {TRUSTED_RESPONSIBILITIES.map((responsibility) => (
               <div key={responsibility.key} className="infoCard compact">
@@ -1386,7 +1380,7 @@ export default function AccountVerificationPage(): JSX.Element {
                 <div className="eyebrow">Verification History</div>
                 <h2 className="cardTitle">Requests, reviews, and live sessions</h2>
               </div>
-              <span className="statusPill">{liveCases.length + compatCases.length} item(s)</span>
+              <span className="statusPill">{liveCases.length + asyncCases.length} item(s)</span>
             </div>
             <p className="cardDesc">
               This area shows account-verification work that is visible to this device. It is written as a history of requests and reviews, not as protocol machinery.
@@ -1405,7 +1399,7 @@ export default function AccountVerificationPage(): JSX.Element {
                         </button>
                         {roomUrl ? (
                           <a className="btn" href={roomUrl} target="_blank" rel="noreferrer">
-                            Open compatibility transport
+                            Open self-hosted transport
                           </a>
                         ) : null}
                       </div>
@@ -1421,8 +1415,8 @@ export default function AccountVerificationPage(): JSX.Element {
                 })}
               </div>
             ) : null}
-            {compatCases.length ? <div className="infoGrid">{compatCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
-            {!liveCases.length && !compatCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No verification history is visible yet.</div></div> : null}
+            {asyncCases.length ? <div className="infoGrid">{asyncCases.map((it: any, idx: number) => <CaseCard key={String(it?.case_id || idx)} item={it} />)}</div> : null}
+            {!liveCases.length && !asyncCases.length ? <div className="emptyState compactEmpty"><div className="emptyTitle">No verification history is visible yet.</div></div> : null}
             {liveSessions.length ? <JsonDetails title="Advanced: live session payloads" value={liveSessions} /> : null}
           </div>
         </article>
@@ -1443,35 +1437,6 @@ export default function AccountVerificationPage(): JSX.Element {
         </article>
       </section>
 
-      <section className="card">
-        <div className="cardBody formStack">
-          <details className="advancedDisclosure">
-            <summary>Advanced compatibility controls</summary>
-            <p className="cardDesc">
-              This section is for migration-era compatibility only. It must not be presented as the normal account verification path.
-            </p>
-            {!compatibilityUploadEnabled ? (
-              <div className="calloutInfo">Compatibility evidence upload is not enabled on this deployment.</div>
-            ) : (
-              <div className="formStack">
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void uploadCompatibilityVideo(file);
-                  }}
-                  disabled={compatUploadBusy || accountLevel >= 2}
-                />
-                {compatUpload ? <JsonDetails title="Latest compatibility upload payload" value={compatUpload} /> : null}
-                <button className="btn btnPrimary" onClick={() => void submitCompatibilityRequest()} disabled={!acct || !compatUpload || compatRequestBusy || accountLevel >= 2 || signerSubmission.busy}>
-                  {compatRequestBusy ? "Opening…" : signerSubmission.busy ? "Waiting…" : "Open compatibility review"}
-                </button>
-              </div>
-            )}
-          </details>
-        </div>
-      </section>
     </div>
   );
 }

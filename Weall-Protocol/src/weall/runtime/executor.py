@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 import threading
+import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,7 +24,6 @@ from weall.runtime.runtime_env import (
 )
 from weall.runtime.runtime_time import _now_ms
 
-from weall.crypto.sig import sign_ed25519
 from weall.ledger.roles_schema import ensure_roles_schema
 from weall.ledger.state import LedgerView
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
@@ -51,7 +51,7 @@ from weall.runtime.bft_hotstuff import (
 from weall.runtime.bft_journal import BftJournal
 from weall.runtime.block_admission import admit_bft_block, admit_bft_commit_block, admit_block_txs
 from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
-from weall.runtime.block_hash import compute_block_hash, compute_helper_execution_root, compute_receipts_root, ensure_block_hash, make_block_header
+from weall.runtime.block_hash import RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT, compute_block_hash, compute_helper_execution_root, compute_receipts_root, compute_recent_block_anchor, ensure_block_hash, make_block_header, recent_block_ids_from_state, recent_block_anchor_required_for_height
 from weall.runtime.block_id import compute_block_id
 from weall.runtime.chain_config import load_chain_config
 from weall.runtime.chain_manifest import load_chain_manifest
@@ -504,9 +504,6 @@ class WeAllExecutor:
             os.environ.get("WEALL_HELPER_TIMEOUT_MS"), 5000
         )
 
-        # Back-compat alias used by some tests that reached into the storage layer.
-        self._store = self._ledger_store
-
         # Load or initialize state.
         if self._ledger_store.exists():
             self.state = self._ledger_store.read()
@@ -559,6 +556,7 @@ class WeAllExecutor:
         )
         st_helper_execution_profile_hash = str(meta.get("helper_execution_profile_hash") or "").strip()
         st_genesis_bootstrap_profile = meta.get("genesis_bootstrap_profile") if isinstance(meta.get("genesis_bootstrap_profile"), dict) else {}
+        st_recent_block_anchor_activation = _safe_int(meta.get("recent_block_anchor_activation_height"), 0)
         st_genesis_bootstrap_profile_hash = str(meta.get("genesis_bootstrap_profile_hash") or "").strip()
         runtime_mempool_selection_policy = _normalize_mempool_selection_policy(
             getattr(self._mempool, "selection_policy", lambda: "canonical")()
@@ -685,6 +683,7 @@ class WeAllExecutor:
         meta.setdefault("helper_execution_profile_hash", current_helper_execution_profile_hash)
         meta.setdefault("genesis_bootstrap_profile", current_genesis_bootstrap_profile)
         meta.setdefault("genesis_bootstrap_profile_hash", current_genesis_bootstrap_profile_hash)
+        meta.setdefault("recent_block_anchor_activation_height", int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT))
         meta["startup_clock_sanity_required"] = bool(
             PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
         )
@@ -701,11 +700,13 @@ class WeAllExecutor:
             or not st_mempool_selection_policy
             or not st_helper_execution_profile_hash
             or not st_genesis_bootstrap_profile_hash
+            or not st_recent_block_anchor_activation
         ):
             meta["helper_execution_profile"] = current_helper_execution_profile
             meta["helper_execution_profile_hash"] = current_helper_execution_profile_hash
             meta["genesis_bootstrap_profile"] = current_genesis_bootstrap_profile
             meta["genesis_bootstrap_profile_hash"] = current_genesis_bootstrap_profile_hash
+            meta.setdefault("recent_block_anchor_activation_height", int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT))
             self._ledger_store.write(self.state)
 
         wall_now_ms = _now_ms()
@@ -1209,11 +1210,6 @@ class WeAllExecutor:
     # Tx + att submission
     # ----------------------------
 
-    # Back-compat: legacy route modules call `executor.snapshot()`.
-    def snapshot(self) -> Json:
-        from weall.runtime import diagnostics as _impl
-        return _impl.snapshot(self)
-
     def tx_index_hash(self) -> str:
         from weall.runtime import diagnostics as _impl
         return _impl.tx_index_hash(self)
@@ -1226,25 +1222,220 @@ class WeAllExecutor:
         from weall.runtime import diagnostics as _impl
         return _impl.sqlite_maintenance_tick(self)
 
+    def _ledger_with_pending_nonce_cursor(self, *, signer: str, pending_nonce: int) -> LedgerView:
+        """Return a ledger view whose account nonce reflects contiguous mempool state.
+
+        This is only used for non-block admission. It lets the mempool accept
+        ``nonce N+1`` when ``nonce N`` is already pending for the same signer,
+        while consensus/block admission continues to replay against real chain
+        state and reject duplicate or gapped nonces deterministically.
+        """
+
+        return LedgerView.from_ledger(self.read_state()).with_account_nonce(
+            str(signer or ""), max(0, int(pending_nonce or 0))
+        )
+
+    def _pending_nonce_cursor_for_submit(self, *, signer: str, chain_nonce: int) -> int:
+        mp = getattr(self, "_mempool", None) or getattr(self, "mempool", None)
+        if mp is None or not callable(getattr(mp, "contiguous_pending_nonce", None)):
+            return max(0, int(chain_nonce or 0))
+        try:
+            return int(mp.contiguous_pending_nonce(signer, after_nonce=int(chain_nonce or 0)))
+        except Exception:
+            return max(0, int(chain_nonce or 0))
+
+    def _submit_context_for_ingress(self, ingress: str = "local_fixture") -> str:
+        ingress_mode = str(ingress or "local_fixture").strip().lower()
+        context = "mempool" if ingress_mode in {"", "local", "local_fixture", "fixture", "test_fixture"} else ingress_mode
+        if context not in {"mempool", "http", "gossip", "peer", "operator"}:
+            context = "operator"
+        if context == "peer":
+            context = "gossip"
+        return context
+
+    @staticmethod
+    def _batch_timing_ms(start_ns: int) -> float:
+        elapsed_ns = max(0, time.perf_counter_ns() - int(start_ns))
+        return round(elapsed_ns / 1_000_000, 3)
+
+    @staticmethod
+    def _empty_submit_batch_timings() -> dict[str, float]:
+        return {
+            "tx_submit_total_wall_ms": 0.0,
+            "tx_signature_verify_wall_ms": 0.0,
+            "tx_canonicalize_or_hash_wall_ms": 0.0,
+            "tx_nonce_check_wall_ms": 0.0,
+            "tx_mempool_insert_wall_ms": 0.0,
+            "tx_reject_wall_ms": 0.0,
+            "tx_duplicate_check_wall_ms": 0.0,
+        }
+
+    @staticmethod
+    def _add_submit_batch_timing(timings: dict[str, float], key: str, start_ns: int) -> None:
+        current = timings.get(key, 0.0)
+        if not isinstance(current, (int, float)):
+            current = 0.0
+        timings[key] = round(current + WeAllExecutor._batch_timing_ms(start_ns), 3)
+
+    def submit_txs_batch(
+        self,
+        envs: list[Json],
+        *,
+        ingress: str = "local_fixture",
+        include_timings: bool = False,
+    ) -> list[Json]:
+        """Submit many transactions while preserving serial admission results.
+
+        The public/API semantics remain per-transaction ``submit_tx``.  This
+        method is an internal/harness fast path for deterministic load tests and
+        future batch gossip ingestion: it admits envelopes in the same order,
+        keeps the same failure codes, and writes accepted envelopes through one
+        bounded mempool batch transaction.
+        """
+
+        if not isinstance(envs, list):
+            return [{"ok": False, "error": "bad_envs:not_list"}]
+
+        timings = self._empty_submit_batch_timings() if include_timings else None
+        total_start = time.perf_counter_ns()
+        context = self._submit_context_for_ingress(ingress)
+        state = self.read_state()
+        ledger = LedgerView.from_ledger(state)
+        current_height = _safe_int(self.state.get("height"), 0)
+
+        pending_cursors: dict[str, int] = {}
+        chain_nonces: dict[str, int] = {}
+        admitted_envs: list[Json] = []
+        admitted_result_indexes: list[int] = []
+        results: list[Json] = []
+
+        for env in envs:
+            if not isinstance(env, dict):
+                start = time.perf_counter_ns()
+                results.append({"ok": False, "error": "bad_env:not_object"})
+                if timings is not None:
+                    self._add_submit_batch_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            signer = str(env.get("signer") or "").strip()
+            try:
+                wanted_nonce = int(env.get("nonce") or 0)
+            except Exception:
+                wanted_nonce = 0
+
+            admission_ledger = ledger
+            if signer:
+                start = time.perf_counter_ns()
+                if signer not in chain_nonces:
+                    acct = (ledger.accounts or {}).get(signer)
+                    chain_nonces[signer] = int(acct.get("nonce") or 0) if isinstance(acct, dict) else 0
+                chain_nonce = int(chain_nonces.get(signer, 0))
+                if signer not in pending_cursors:
+                    pending_cursors[signer] = self._pending_nonce_cursor_for_submit(
+                        signer=signer, chain_nonce=chain_nonce
+                    )
+                pending_cursor = int(pending_cursors.get(signer, chain_nonce))
+                if pending_cursor > chain_nonce and wanted_nonce == pending_cursor + 1:
+                    admission_ledger = ledger.with_account_nonce(signer, pending_cursor)
+                if timings is not None:
+                    self._add_submit_batch_timing(timings, "tx_nonce_check_wall_ms", start)
+
+            verdict = admit_tx(tx=env, ledger=admission_ledger, canon=self.tx_index, context=context)
+            if not verdict.ok and verdict.code == "bad_nonce" and context in {"mempool", "http", "gossip", "operator"} and signer:
+                start = time.perf_counter_ns()
+                chain_nonce = int(chain_nonces.get(signer, 0))
+                pending_cursor = int(pending_cursors.get(signer, chain_nonce))
+                if pending_cursor > chain_nonce and wanted_nonce == pending_cursor + 1:
+                    pending_ledger = ledger.with_account_nonce(signer, pending_cursor)
+                    verdict = admit_tx(tx=env, ledger=pending_ledger, canon=self.tx_index, context=context)
+                if timings is not None:
+                    self._add_submit_batch_timing(timings, "tx_nonce_check_wall_ms", start)
+
+            if not verdict.ok:
+                start = time.perf_counter_ns()
+                results.append(
+                    {
+                        "ok": False,
+                        "error": verdict.code,
+                        "reason": verdict.reason,
+                        "details": verdict.details,
+                    }
+                )
+                if timings is not None:
+                    self._add_submit_batch_timing(timings, "tx_reject_wall_ms", start)
+                continue
+
+            results.append({"ok": True, "_pending_mempool_add": True})
+            admitted_result_indexes.append(len(results) - 1)
+            admitted_envs.append(env)
+            if signer and wanted_nonce > 0:
+                chain_nonce = int(chain_nonces.get(signer, 0))
+                pending_cursors[signer] = max(int(pending_cursors.get(signer, chain_nonce)), int(wanted_nonce))
+
+        if admitted_envs:
+            add_many = getattr(self._mempool, "add_many", None)
+            if callable(add_many):
+                mempool_results = add_many(
+                    admitted_envs,
+                    current_height=current_height,
+                    include_timings=bool(include_timings),
+                )
+            else:
+                mempool_results = [
+                    self._mempool.add(env, current_height=current_height) for env in admitted_envs
+                ]
+            mempool_timings: dict[str, Any] | None = None
+            for result_index, mempool_result in zip(admitted_result_indexes, mempool_results):
+                results[result_index] = dict(mempool_result)
+                if mempool_timings is None and isinstance(mempool_result, dict) and isinstance(mempool_result.get("timings_ms"), dict):
+                    mempool_timings = mempool_result.get("timings_ms")
+            if timings is not None and isinstance(mempool_timings, dict):
+                for key in timings:
+                    if key == "tx_submit_total_wall_ms":
+                        continue
+                    current = timings.get(key, 0.0)
+                    incoming = mempool_timings.get(key, 0.0)
+                    if not isinstance(current, (int, float)) or not isinstance(incoming, (int, float)):
+                        continue
+                    timings[key] = round(current + incoming, 3)
+
+        if timings is not None:
+            timings["tx_submit_total_wall_ms"] = self._batch_timing_ms(total_start)
+            timings = {k: round(v, 3) if isinstance(v, (int, float)) else v for k, v in timings.items()}
+            for result in results:
+                result["timings_ms"] = dict(timings)
+        return results
+
     def submit_tx(self, env: Json, *, ingress: str = "local_fixture") -> Json:
         if not isinstance(env, dict):
             return {"ok": False, "error": "bad_env:not_object"}
 
-        ingress_mode = str(ingress or "local_fixture").strip().lower()
         # Historical tests and deterministic local fixtures use the permissive
         # mempool context. Production ingress surfaces must pass an explicit
         # boundary context so signature/origin policy mirrors HTTP/gossip.
-        context = "mempool" if ingress_mode in {"", "local", "local_fixture", "fixture", "test_fixture"} else ingress_mode
-        if context not in {"mempool", "http", "gossip", "peer", "operator"}:
-            # Unknown explicit ingress is safest as an operator boundary, not as
-            # a local fixture.  In production, tx_admission requires full
-            # signature/domain verification for this context.
-            context = "operator"
-        if context == "peer":
-            context = "gossip"
+        # Unknown explicit ingress is safest as an operator boundary, not as a
+        # local fixture. In production, tx_admission requires full
+        # signature/domain verification for this context.
+        context = self._submit_context_for_ingress(ingress)
 
-        ledger = LedgerView.from_ledger(self.read_state())
+        state = self.read_state()
+        ledger = LedgerView.from_ledger(state)
         verdict = admit_tx(tx=env, ledger=ledger, canon=self.tx_index, context=context)
+        if not verdict.ok and verdict.code == "bad_nonce" and context in {"mempool", "http", "gossip", "operator"}:
+            signer = str(env.get("signer") or "").strip()
+            try:
+                wanted_nonce = int(env.get("nonce") or 0)
+            except Exception:
+                wanted_nonce = 0
+            acct = (ledger.accounts or {}).get(signer) if signer else None
+            chain_nonce = int(acct.get("nonce") or 0) if isinstance(acct, dict) else 0
+            pending_cursor = self._pending_nonce_cursor_for_submit(signer=signer, chain_nonce=chain_nonce)
+            if pending_cursor > chain_nonce and wanted_nonce == pending_cursor + 1:
+                pending_ledger = self._ledger_with_pending_nonce_cursor(
+                    signer=signer, pending_nonce=pending_cursor
+                )
+                verdict = admit_tx(tx=env, ledger=pending_ledger, canon=self.tx_index, context=context)
+
         if not verdict.ok:
             return {
                 "ok": False,
@@ -1253,7 +1444,7 @@ class WeAllExecutor:
                 "details": verdict.details,
             }
 
-        return self._mempool.add(env)
+        return self._mempool.add(env, current_height=_safe_int(self.state.get("height"), 0))
 
     def submit_attestation(self, env: Json) -> Json:
         if not isinstance(env, dict):

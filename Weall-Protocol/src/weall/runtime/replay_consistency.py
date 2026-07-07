@@ -10,7 +10,7 @@ from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.block_hash import ensure_block_hash
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
-from weall.testing.sigtools import deterministic_ed25519_keypair
+from weall.testing.sigtools import deterministic_mldsa_keypair
 
 Json = dict[str, Any]
 
@@ -90,7 +90,7 @@ def compare_replay_manifests(expected: Json, observed: Json) -> list[str]:
 
 
 def _submit_account_register(executor: WeAllExecutor, signer: str, nonce: int) -> None:
-    pubkey_hex, sk = deterministic_ed25519_keypair(label=signer)
+    pubkey_hex, sk = deterministic_mldsa_keypair(label=signer)
     privkey_hex = sk.private_bytes(
         encoding=Encoding.Raw, format=PrivateFormat.Raw, encryption_algorithm=NoEncryption()
     ).hex()

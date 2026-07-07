@@ -15,7 +15,7 @@ from weall.api.routes_public_parts.gov import router as gov_router
 from weall.api.routes_public_parts.groups import router as groups_router
 from weall.api.routes_public_parts.health import router as health_router
 from weall.api.routes_public_parts.media import router as media_router
-from weall.api.routes_public_parts.messages import router as messages_router
+from weall.api.routes_public_parts.activity import router as activity_router
 from weall.api.routes_public_parts.mempool import router as mempool_router
 from weall.api.routes_public_parts.metrics import router as metrics_router
 from weall.api.routes_public_parts.net_debug import router as net_debug_router
@@ -23,6 +23,7 @@ from weall.api.routes_public_parts.net_relay import router as net_relay_router
 from weall.api.routes_public_parts.net_self import router as net_self_router
 from weall.api.routes_public_parts.nodes import router as nodes_router
 from weall.api.routes_public_parts.poh import router as poh_router
+from weall.api.routes_public_parts.reputation import router as reputation_router
 from weall.api.routes_public_parts.session import router as session_router
 from weall.api.routes_public_parts.social import router as social_router
 from weall.api.routes_public_parts.state import router as state_router
@@ -47,13 +48,14 @@ public_router.include_router(mempool_router, prefix="/v1", tags=["mempool"])
 public_router.include_router(tx_router, prefix="/v1", tags=["tx"])
 public_router.include_router(consensus_router, prefix="/v1", tags=["consensus"])
 public_router.include_router(poh_router, prefix="/v1", tags=["poh"])
+public_router.include_router(reputation_router, prefix="/v1", tags=["reputation"])
 public_router.include_router(content_router, prefix="/v1", tags=["content"])
 public_router.include_router(disputes_router, prefix="/v1", tags=["disputes"])
 public_router.include_router(economics_router, prefix="/v1", tags=["economics"])
 public_router.include_router(gov_router, prefix="/v1", tags=["governance"])
 public_router.include_router(groups_router, prefix="/v1", tags=["groups"])
 public_router.include_router(media_router, prefix="/v1", tags=["media"])
-public_router.include_router(messages_router, prefix="/v1", tags=["messages"])
+public_router.include_router(activity_router, prefix="/v1", tags=["activity"])
 public_router.include_router(storage_ops_router, prefix="/v1", tags=["storage"])
 public_router.include_router(social_router, prefix="/v1", tags=["social"])
 

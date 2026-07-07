@@ -1,0 +1,353 @@
+{
+  "artifact_digest": "61ba6b027c558f81a378a84faf03d1e6e443b994a322d719c72b07bac4ef6ad6",
+  "claim_boundaries": {
+    "automatic_protocol_upgrades": false,
+    "legal_compliance_ready": false,
+    "live_economics": false,
+    "mainnet_ready": false,
+    "production_helper_execution": false,
+    "public_beta_ready": false,
+    "public_decentralized_media_durability": false,
+    "public_multi_validator_bft": false,
+    "public_storage_provider_market": false,
+    "public_validator_enabled": false
+  },
+  "controlled_testnet_candidate": true,
+  "mainnet_ready": false,
+  "ok": true,
+  "public_beta_ready": false,
+  "recursive_release_artifacts_checked_by_go_gate_but_not_hashed_here": [
+    "generated/controlled_testnet_go_gate_v1_5.json",
+    "generated/public_beta_blocker_report_v1_5.json",
+    "generated/release_evidence_manifest_v1_5.json"
+  ],
+  "release_evidence_gates": {
+    "clean_clone_go_gate": {
+      "required_before_public_beta": true,
+      "runtime_report_required": true,
+      "script": "scripts/run_clean_clone_go_gate_v1_5.sh",
+      "tracked_manifest_only": true
+    },
+    "external_cross_machine_replay_transcript": {
+      "blocker": "AUD-618-P1-003",
+      "capture_script": "scripts/capture_external_cross_machine_replay_transcript_v1_5.sh",
+      "required_before_public_beta": true,
+      "required_before_public_observer_launch": true,
+      "sample_transcripts_are_rejected_in_strict_release": true,
+      "template": "docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind external_cross_machine_replay_transcript --strict-release --path <transcript.json>"
+    },
+    "external_validator_operator_transcript": {
+      "blocker": "AUD-618-P0-001",
+      "capture_script": "scripts/capture_independent_controlled_validator_operator_transcript_v1_5.sh",
+      "required_before_controlled_validator_rehearsal_claim": true,
+      "required_before_public_beta": true,
+      "sample_transcripts_are_rejected_in_strict_release": true,
+      "template": "docs/proofs/independent-controlled-validator-operator/2026-07-05/TRANSCRIPT_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind public_validator_operator_transcript --strict-release --path <transcript.json>"
+    },
+    "final_public_observer_controlled_testnet_go_gate": {
+      "artifact": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+      "controlled_rehearsal_candidate_allowed": true,
+      "public_beta_ready": false,
+      "public_observer_launch_claim_ready": false,
+      "required_before_any_public_observer_or_public_beta_claim": true,
+      "runbook": "docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check"
+    },
+    "legal_compliance_attestation": {
+      "blocker": "AUD-618-P0-002",
+      "counsel_or_control_attestation_required": true,
+      "evidence_pack": "docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
+      "required_before_public_beta": true,
+      "runbook": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
+      "sample_templates_are_rejected_in_strict_release": true,
+      "template": "docs/proofs/legal-compliance-counsel/2026-07-05/ATTESTATION_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind legal_compliance_attestation --strict-release --path <attestation.json>"
+    },
+    "post_quantum_signature_profile_transition": {
+      "inventory": "generated/crypto_inventory_v1_5.json",
+      "live_economics": false,
+      "production_crypto_audit_complete": false,
+      "profile_registry": "generated/signature_profile_registry_v1_5.json",
+      "public_multi_validator_bft_ready": false,
+      "readiness_artifact": "generated/quantum_resistance_readiness_v1_5.json",
+      "real_mldsa_required_before_controlled_testnet": false,
+      "required_before_closed_testnet_rehearsal": true,
+      "required_before_public_observer_launch": true,
+      "validator": "PYTHONPATH=src python scripts/gen_crypto_posture_v1_5.py && PYTHONPATH=src python -m pytest -q tests/test_crypto_signature_profiles.py tests/test_pq_mldsa_signature_profile.py tests/test_tx_signature_profile_admission.py tests/test_seed_registry_signature_profiles.py tests/test_net_pq_signature_profiles.py tests/test_session_pq_signature_profile.py tests/test_helper_pq_signature_profiles.py"
+    },
+    "production_helper_topology_hardening_plan": {
+      "blocker": "AUD-618-P1-005",
+      "current_execution_enabled": false,
+      "future_governance_release_gate_required": true,
+      "keeps_launch_matrix_disabled": true,
+      "plan_artifact": "generated/production_helper_topology_hardening_plan_v1_5.json",
+      "required_before_production_helper_claims": true,
+      "required_before_public_beta": true,
+      "runbook": "docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md",
+      "template": "docs/proofs/production-helper-topology-hardening/2026-07-05/PLAN_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_production_helper_topology_hardening_plan_v1_5.py --check"
+    },
+    "protocol_upgrade_execution_hardening_plan": {
+      "blocker": "AUD-618-P0-003",
+      "current_execution_enabled": false,
+      "keeps_automatic_upgrades_disabled": true,
+      "plan_artifact": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
+      "required_before_executable_upgrade_claims": true,
+      "required_before_public_beta": true,
+      "runbook": "docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md",
+      "template": "docs/proofs/protocol-upgrade-execution-hardening/2026-07-05/PLAN_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py --check"
+    },
+    "public_frontend_operator_journey": {
+      "required_before_public_observer_launch": true,
+      "runtime_report_required": true,
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_frontend_operator_journey_v1_5.py --check && cd web && npm run test:public-observer-rendered"
+    },
+    "public_observer_open_download_transcript": {
+      "required_before_public_observer_launch": true,
+      "requirements_artifact": "generated/public_observer_launch_evidence_requirements_v1_5.json",
+      "runtime_report_required": true,
+      "tracked_static_artifacts": [
+        "generated/public_seed_registry_signature_verification_v1_5.json",
+        "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+        "generated/public_observer_auto_discovery_proof_v1_5.json",
+        "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
+      ],
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_evidence_requirements_v1_5.py --check && PYTHONPATH=src:scripts python scripts/gen_public_discovery_provider_independence_v1_5.py --check && PYTHONPATH=src:scripts python scripts/gen_public_observer_launch_transcript_v1_5.py --check"
+    },
+    "public_registry_signer_operations": {
+      "required_before_public_observer_launch": true,
+      "runtime_report_required": false,
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_registry_signer_operations_v1_5.py --check"
+    },
+    "public_validator_endpoint_churn_proof": {
+      "required_before_public_observer_launch": true,
+      "runtime_report_required": true,
+      "validator": "PYTHONPATH=src:scripts python scripts/gen_public_validator_endpoint_churn_proof_v1_5.py --check"
+    },
+    "rendered_operator_journey": {
+      "clean_gate_default": "reported_not_run_unless_--run-rendered-frontend_or_WEALL_RUN_RENDERED_FRONTEND=1",
+      "command": "cd web && npm run test:rendered-operator-journey",
+      "required_before_public_beta": true,
+      "required_before_public_observer_launch": true
+    },
+    "storage_ipfs_operator_transcript": {
+      "blocker": "AUD-618-P1-004",
+      "capture_script": "scripts/capture_real_storage_ipfs_operator_transcript_v1_5.sh",
+      "required_before_public_beta": true,
+      "required_before_public_storage_claims": true,
+      "sample_transcripts_are_rejected_in_strict_release": true,
+      "template": "docs/proofs/real-storage-ipfs-operator/2026-07-05/TRANSCRIPT_TEMPLATE.json",
+      "validator": "PYTHONPATH=src:scripts python scripts/validate_external_operator_transcript_v1_5.py --kind storage_ipfs_operator_transcript --strict-release --path <transcript.json>"
+    }
+  },
+  "runtime_commit_binding_required": true,
+  "schema": "weall.v1_5.release_evidence_manifest",
+  "tracked_artifacts": {
+    "generated/api_contract_map_v1_5.json": {
+      "file_sha256": "8c6452b00878f2e65f364687e8509073bd2a318d88f5d976053d87c60616c30b",
+      "ok": true,
+      "path": "generated/api_contract_map_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.api_contract_map.v1_5"
+    },
+    "generated/api_response_vectors_v1_5.json": {
+      "file_sha256": "288d7f3264a6cdcb2dc2aefda522672b420d7e3e1396ad5c578226081b3591ff",
+      "ok": true,
+      "path": "generated/api_response_vectors_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.api_response_vectors"
+    },
+    "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
+      "file_sha256": "76627b8af53782f6c87982416a3cf0ad49ce33b00e672400ffea8e340aa4550c",
+      "ok": true,
+      "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
+    },
+    "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
+      "file_sha256": "bfbd1d6b47822136af32c411c3136f5236ef43b0b78e67da254e7e61d5290fd4",
+      "ok": true,
+      "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+    },
+    "generated/crypto_inventory_v1_5.json": {
+      "file_sha256": "a4a47b35a2167f1101448d1c9a58c8bfe8fa156190a7d8fdc97e7a6fd952ade4",
+      "ok": true,
+      "path": "generated/crypto_inventory_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.crypto_inventory.v1_5"
+    },
+    "generated/external_operator_transcript_requirements_v1_5.json": {
+      "file_sha256": "51934d08da5ad61eddd1373537e7ce3fcdb72aa7ef04c3b36daf288f7762efb5",
+      "ok": true,
+      "path": "generated/external_operator_transcript_requirements_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.external_operator_transcript_requirements"
+    },
+    "generated/failure_code_registry_v1_5.json": {
+      "file_sha256": "26c482fc0809c30dba36548ea2dd9fc80892d58bbcaa42cdf661301c7b5c235c",
+      "ok": true,
+      "path": "generated/failure_code_registry_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.failure_code_registry"
+    },
+    "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json": {
+      "file_sha256": "c1df5fd94011966fd23fa2a6ecebc7d063dfeeb04459d36fbf18787b6a04d7ac",
+      "ok": true,
+      "path": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": true,
+      "schema": "weall.v1_5.final_public_observer_controlled_testnet_go_gate"
+    },
+    "generated/production_helper_topology_hardening_plan_v1_5.json": {
+      "file_sha256": "12f5f0f86da4d05d2896446e9ec3f915bc2f782ee6e9014c3c03abed46b1954e",
+      "ok": true,
+      "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+    },
+    "generated/protocol_upgrade_execution_hardening_plan_v1_5.json": {
+      "file_sha256": "147f2f888a417ecd799348bc182645f84b9bb06e84f1cef3776fd63e73cbbd84",
+      "ok": true,
+      "path": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan"
+    },
+    "generated/public_discovery_provider_independence_v1_5.json": {
+      "file_sha256": "c674e6bc498247d76bb42c1774d56c30b061e6785150ac9ed8eee4279f58dca4",
+      "ok": true,
+      "path": "generated/public_discovery_provider_independence_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_discovery_provider_independence"
+    },
+    "generated/public_frontend_operator_journey_v1_5.json": {
+      "file_sha256": "3618ce7f69a459c968dfca84b49afa43171f926d35a54661dd4dd4a609cfd4e8",
+      "ok": true,
+      "path": "generated/public_frontend_operator_journey_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_frontend_operator_journey"
+    },
+    "generated/public_observer_auto_discovery_proof_v1_5.json": {
+      "file_sha256": "8224d51fcac10e635c09424c548fc69306e8c768250d1081cac8475231a3360f",
+      "ok": true,
+      "path": "generated/public_observer_auto_discovery_proof_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_observer_auto_discovery_proof"
+    },
+    "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json": {
+      "file_sha256": "2f1ab4ece53d6ee9d46472b16959f71b28fc2bb6f3a5abf2dc94e13ea993cef6",
+      "ok": true,
+      "path": "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_observer_clean_clone_bootstrap_transcript"
+    },
+    "generated/public_observer_launch_evidence_requirements_v1_5.json": {
+      "file_sha256": "02c83ce70376b51a9c73736baa373cc0e74e7a281a54eaaa9765f79cdb586b43",
+      "ok": true,
+      "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_observer_launch_evidence_requirements"
+    },
+    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json": {
+      "file_sha256": "ddf618f5cba1ac06688fc3d151ecacd752cda03eb659093b8406c20886190f09",
+      "ok": true,
+      "path": "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
+    },
+    "generated/public_only_protocol_audit_v1_5.json": {
+      "file_sha256": "8aaea6661ec2ab870749615e0d1da229d6806e7a06c7084b89af27e1251b9fd6",
+      "ok": true,
+      "path": "generated/public_only_protocol_audit_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.public_only_protocol_audit.v1_5"
+    },
+    "generated/public_registry_signer_operations_v1_5.json": {
+      "file_sha256": "25cf66e3a09f0e3b11529d73904315e4b4aeaa678b61f04f736312a38ac2a695",
+      "ok": true,
+      "path": "generated/public_registry_signer_operations_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_registry_signer_operations"
+    },
+    "generated/public_seed_registry_signature_verification_v1_5.json": {
+      "file_sha256": "d420e03681a9d8ad131306b67dab1dbb400f2f73996ba3a6224b4240475bd381",
+      "ok": true,
+      "path": "generated/public_seed_registry_signature_verification_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_seed_registry_signature_verification"
+    },
+    "generated/public_validator_bft_preflight_matrix_v1_5.json": {
+      "file_sha256": "2269bf3b14f5a9d2c53bb5971b79589e86936f8f44f9c739163361bc769941af",
+      "ok": true,
+      "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+    },
+    "generated/public_validator_endpoint_churn_proof_v1_5.json": {
+      "file_sha256": "d5db026733092cb9bb4a00a98958481d6d85312955e961261a40a6c69c12b6a1",
+      "ok": true,
+      "path": "generated/public_validator_endpoint_churn_proof_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.public_validator_endpoint_churn_proof"
+    },
+    "generated/quantum_resistance_readiness_v1_5.json": {
+      "file_sha256": "798732cc7bd884239694ad7157c233e342f8728dde79810d5af30f0beec58422",
+      "ok": true,
+      "path": "generated/quantum_resistance_readiness_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.quantum_resistance_readiness.v1_5"
+    },
+    "generated/signature_profile_registry_v1_5.json": {
+      "file_sha256": "27be3cb9948b5ff4d6e67f29d4e3b697a9d187e86dec4e65d80cfd39a2d79359",
+      "ok": true,
+      "path": "generated/signature_profile_registry_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.signature_profile_registry.v1_5"
+    },
+    "generated/state_root_vectors_v1_5.json": {
+      "file_sha256": "b1d86f5a659f564dff371f707009c01e4d66fbefdb449a871122ac69e7d1fabd",
+      "ok": true,
+      "path": "generated/state_root_vectors_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.state_root_vectors"
+    },
+    "generated/tokenomics_simulation_v1_5.json": {
+      "file_sha256": "04c22ae389e0ed3742efe596b6a8bc677db8e14ad87fe8cb97a24662357970e2",
+      "ok": true,
+      "path": "generated/tokenomics_simulation_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.v1_5.tokenomics_simulation"
+    }
+  },
+  "tracked_manifest_is_commit_agnostic": true,
+  "version": "2026-06-b621-release-evidence-hardening",
+  "why_commit_head_is_not_tracked_here": "A generated file cannot stably contain the commit hash of the commit that contains it; concrete HEAD binding is emitted by --runtime-json and clean-clone gate reports."
+}

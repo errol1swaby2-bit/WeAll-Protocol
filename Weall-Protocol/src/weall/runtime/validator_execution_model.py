@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 from weall.runtime.json_tools import canonical_json_bytes as _canon_json
 
-from weall.crypto.sig import sign_ed25519, verify_ed25519_signature
+from weall.crypto.sig import sign_mldsa, verify_mldsa_signature
 from weall.runtime.parallel_execution import LanePlan
 
 Json = dict[str, Any]
@@ -107,7 +107,7 @@ class ValidatorExecutionManifest:
         if not required_pubkey or not str(self.manifest_signature or ""):
             return False
         try:
-            return verify_ed25519_signature(
+            return verify_mldsa_signature(
                 message=_canon_json(self.signing_payload()),
                 sig=str(self.manifest_signature),
                 pubkey=required_pubkey,
@@ -167,7 +167,7 @@ def sign_validator_execution_manifest(
     coordinator_privkey: str,
 ) -> ValidatorExecutionManifest:
     payload = _canon_json(manifest.signing_payload())
-    signature = sign_ed25519(message=payload, privkey=str(coordinator_privkey), encoding="hex")
+    signature = sign_mldsa(message=payload, privkey=str(coordinator_privkey), encoding="hex")
     return ValidatorExecutionManifest(
         chain_id=manifest.chain_id,
         block_height=int(manifest.block_height),

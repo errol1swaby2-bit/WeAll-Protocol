@@ -9,7 +9,7 @@ import { useMutationRefresh } from "../hooks/useMutationRefresh";
 import { useAccount } from "../context/AccountContext";
 import { checkGates, summarizeAccountState } from "../lib/gates";
 import { decisionStageHelp, decisionStageLabel } from "../lib/userLanguage";
-import { loadSettings } from "../lib/settings";
+import { canShowAdvancedMode } from "../lib/config";
 import { nav } from "../lib/router";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { actionableTxError } from "../lib/txAction";
@@ -86,7 +86,7 @@ export default function Proposals(): JSX.Element {
   const { refresh: refreshAccountContext } = useAccount();
   const acct = session ? normalizeAccount(session.account) : null;
   const canSign = acct ? !!getKeypair(acct)?.secretKeyB64 : false;
-  const showAdvancedMode = loadSettings().showAdvancedMode;
+  const showAdvancedMode = canShowAdvancedMode();
 
 
   const gate = checkGates({ loggedIn: !!acct, canSign, accountState: acctState, requireTier: 2 });
@@ -205,6 +205,25 @@ export default function Proposals(): JSX.Element {
         </div>
       </section>
 
+      <section className="surfaceBoundaryBar" aria-label="Governance lifecycle guide">
+        <div className="surfaceBoundaryHeader">
+          <div>
+            <h2 className="surfaceBoundaryTitle">Decision lifecycle is protocol state, not a browser timer.</h2>
+            <p className="surfaceBoundaryText">
+              Canonical stage ladder: draft → poll → revision → validation → voting → closed → tallied → executed → finalized.
+              Block-height deadlines determine movement; wall-clock estimates only help humans orient themselves.
+            </p>
+          </div>
+          <span className="statusPill">Governance journey</span>
+        </div>
+        <div className="surfaceBoundaryList">
+          <span className="surfaceBoundaryTag">block-height deadlines</span>
+          <span className="surfaceBoundaryTag">multi-option proposals supported</span>
+          <span className="surfaceBoundaryTag">Transactions confirms submissions</span>
+          <span className="surfaceBoundaryTag">upgrade records are non-activating</span>
+        </div>
+      </section>
+
       <ErrorBanner message={err?.msg} details={err?.details} onRetry={() => void refreshMutationSlices(load, loadAccountState, refreshAccountContext)} onDismiss={() => setErr(null)} />
 
       {!gate.ok && gateNextStep ? (
@@ -308,7 +327,7 @@ export default function Proposals(): JSX.Element {
 
               <div className="pageStack">
                 {filtered.length === 0 ? (
-                  <div className="cardDesc">{scopeFilter === "active" ? "No open votes right now. Switch queue scope to all decisions to see closed decisions and final results." : "No decisions returned yet."}</div>
+                  <div className="cardDesc">{scopeFilter === "active" ? "No open votes right now. Switch queue scope to all decisions to see closed decisions and final results." : "No decisions returned yet. A normal tester should still see the lifecycle guide above and can create a low-risk test decision only after eligibility checks pass."}</div>
                 ) : (
                   filtered.map((p) => {
                     const id = governanceProposalIdOf(p);

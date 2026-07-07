@@ -38,7 +38,7 @@ Observer-to-validator scripts and runbooks are readiness gates. They must not be
 
 ## Frontend boundary
 
-The frontend is not authority. Disabled buttons and capability messages are advisory. Direct API calls must still be rejected by backend gates. Production UI must avoid stale email, Cloudflare, CAPTCHA, OAuth, KYC, oracle, or inbox-control assumptions for primary verification.
+The frontend is not authority. Disabled buttons and capability messages are advisory. Direct API calls must still be rejected by backend gates. Production UI must avoid stale email, CAPTCHA, OAuth, KYC, oracle, named hosting-provider, or input_queue-control assumptions for primary verification.
 
 
 ## Batch 437-446 remaining limits
@@ -67,14 +67,9 @@ Current intended behavior:
 
 This does not complete public moderation or constitutional due-process for mainnet. It closes the local rehearsal contradiction where successful actions remained visible as stale active work.
 
-## Messaging E2EE v1 limitations
+## Public protocol surface
 
-Direct-message plaintext is rejected and ciphertext envelopes are bound to the
-currently published account messaging keys. This is safer for trusted testnet
-use, but it is not final production-safe private messaging. Metadata remains
-visible, browser-local key storage is still a controlled-testnet compromise, and
-there is no Signal-style ratchet/forward secrecy yet. See
-`docs/MESSAGING_E2EE_SECURITY_MODEL.md`.
+WeAll records public civic state only. Backend validation and replay reject non-public group read visibility and encrypted or opaque protocol payloads. Local mute, block, filter, and draft controls do not change protocol read visibility.
 
 ## Batch 453 live-room media transport limits
 
@@ -84,24 +79,24 @@ This improves the local rehearsal, but it does not make media transport authorit
 
 ## Batch 456 production-readiness gates
 
-The repository now contains explicit production-oriented readiness gates for the remaining pre-external-tester blockers: local block-production proof with an explicit non-BFT boundary, locked tokenomics/economics, full local production-oriented rehearsal completion, reviewer/CI evidence, and production P2P encrypted messaging requirements.
+The repository now contains explicit production-oriented readiness gates for the remaining pre-external-tester blockers: local block-production proof with an explicit non-BFT boundary, locked tokenomics/economics, full local production-oriented rehearsal completion, reviewer/CI evidence, and public-only protocol enforcement.
 
 These gates do not mean the blockers are complete. They make the blockers reviewable and prevent overclaiming:
 
 - block production remains local/rehearsal-oriented until a separate production validator/BFT proof and adversarial BFT evidence pass;
 - tokenomics remain locked by default and live economics are not claimed;
-- direct-message bodies are encrypted, but metadata remains visible and Signal-grade/private P2P messaging is not claimed;
+- user-to-user communication tooling is outside protocol scope;
 - the reviewer readiness workflow is a targeted reproducibility gate, not a substitute for full pytest or a public testnet.
 
 ## Batch 458-461 implementation limits
 
 This batch begins implementation of the remaining production-oriented surfaces:
 local block-production proof with an explicit non-BFT boundary, economics activation/transfer/treasury read models,
-P2P E2EE device-key backup/recovery controls, and TURN/ICE live-room diagnostics.
+public activity-notification controls and TURN/ICE live-room diagnostics.
 
 These are still not public-testnet or mainnet claims. The repository now exposes
 stronger proof and user-facing controls, but public multi-validator BFT, live
-tokenomics, Signal-grade private messaging, and external-network media reliability
+tokenomics, public activity-notification polish, and external-network media reliability
 remain follow-up milestones.
 
 ## Batch 464 Production-oriented Genesis API boundary
@@ -125,3 +120,7 @@ bash scripts/first_external_observer_reproducibility_gate.sh <public-observer-bu
 
 Until the signed onboarding gate passes, the safe claim is limited to local observer preconditions and remote compatibility readiness, not first external observer completion.
 
+
+### Pass 33 signature-profile truth boundary
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware `pq-mldsa-v1` ML-DSA signing for protocol authority surfaces covered by this pass; `legacy-ed25519-v1` is disabled for protocol authority and retained only as a fail-closed inventory/migration identifier. This does not claim completed production cryptographic audit, mainnet readiness, live economics, public multi-validator BFT readiness, production helper execution readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.

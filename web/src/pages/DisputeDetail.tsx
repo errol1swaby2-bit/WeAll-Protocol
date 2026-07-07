@@ -62,7 +62,7 @@ function disputeActionHint(args: {
   if (!tierGateOk) return tierGateReason || "Complete live verification and keep this device signed in before reviewing reports.";
   if (jurorStatus === "unassigned") return "This report is visible, but you were not selected to review it.";
   if (jurorStatus === "declined") return "You declined this review assignment. No further actions are available from this account.";
-  if (jurorStatus === "assigned") return "Step 1 of 3: respond to the assignment here. Final choices stay on the dedicated review page.";
+  if (jurorStatus === "assigned") return "Step 1 of 3: respond to the assignment in the dedicated review workspace. Final choices stay there as well.";
   if ((jurorStatus === "accepted" || jurorStatus === "review") && !attendancePresent) return "Step 2 of 3: accepted attendance must appear before the final review choice unlocks.";
   if (currentVote) return `Step 3 of 3 is complete. Your recorded review choice is ${reviewChoiceLabel(currentVote)}, and this account cannot review it again.`;
   return "Step 3 of 3: inspect the reported content and reason here, then continue into the dedicated review workspace for the final choice.";
@@ -182,11 +182,33 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   const appealWindowOpen = disputeStage === "appeal_window" || disputeStage === "appealed" || disputeStage === "appeal_review";
   const appealDeadlinePassed = Number(dispute?.appeal_deadline_height || 0) > 0 && disputeProcedureHeight > Number(dispute?.appeal_deadline_height || 0);
   const appealEligibility = asRecord(dispute?.appeal_eligibility);
+  const outcomeRecord = asRecord(dispute?.outcome || dispute?.resolution || dispute?.final_outcome);
+  const outcomeSummary = String(outcomeRecord?.summary || outcomeRecord?.outcome || dispute?.outcome_summary || dispute?.resolution_summary || "No outcome has finalized yet.");
+  const finalizedHeight = Number(dispute?.finalized_height || dispute?.finalized_at_height || dispute?.resolution_height || 0) || 0;
+  const reasoningRecords = Array.isArray(dispute?.reviewer_notes)
+    ? dispute.reviewer_notes.length
+    : Array.isArray(dispute?.reasoning_records)
+      ? dispute.reasoning_records.length
+      : Array.isArray(dispute?.votes)
+        ? dispute.votes.length
+        : 0;
   const targetOwner = String(appealEligibility?.target_owner || dispute?.target_owner || contentAuthor || "").trim();
   const appealActorEligible =
     appealEligibility?.can_file === true ||
     (!!account && !!targetOwner && sameAccount(account, targetOwner));
   const canFileAppeal = !!dispute && !!account && tierGate.ok && !signerSubmission.busy && appealWindowOpen && !appealDeadlinePassed && appealActorEligible;
+
+  const detailCtaLabel = currentVote
+    ? "Open recorded review"
+    : reviewUnlocked
+      ? "Continue review workspace"
+      : canAccept || canDecline
+        ? "Continue to assignment response"
+        : selectedJurorStatus === "unassigned"
+          ? "Read-only report detail"
+          : "Refresh and inspect";
+  const showDetailCta = selectedJurorStatus !== "unassigned" || reviewUnlocked || currentVote || canAccept || canDecline;
+  const detailCtaDisabled = !showDetailCta;
 
   async function submitDisputeTx(txType: string, payload: any, title: string, successMessage: string): Promise<void> {
     if (!account) throw new Error("not_logged_in");
@@ -251,7 +273,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             <div>
               <div className="eyebrow">Community review</div>
               <h1 className="heroTitle heroTitleSm">Report detail</h1>
-              <p className="heroSubtitle">Inspect the report, review the flagged content, and handle assignment posture here. Final reviewer choices stay in the dedicated review workspace.</p>
+              <p className="heroSubtitle">Inspect the report and review the flagged content here. Assignment response and final reviewer choices stay in the dedicated review workspace.</p>
             </div>
             <div className="surfaceSummaryStats">
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{String(dispute?.id || id)}</strong><span className="surfaceSummaryHint">report id</span></div>
@@ -279,6 +301,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         currentHeight={disputeProcedureHeight}
         deadlineHeight={disputeDeadline}
         targetBlockIntervalMs={disputeIntervalMs}
+        authorityLabel="Dispute review uses backend block height as authority. Wall-clock time is only a display estimate and cannot trigger timeout, appeal, or finalization."
         nextAction={String(dispute?.stage || "").toLowerCase() === "appeal_window" ? "Appeals are open until the deadline block. Sanctions should not finalize before that window closes." : hint}
       >
         <div className="summaryCardGrid">
@@ -291,6 +314,16 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             <div className="summaryCardLabel">Appeals filed</div>
             <div className="summaryCardValue mono">{appealCount}</div>
             <div className="summaryCardText">Appeal records are backend state, not frontend-only notes.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Block-height truth</div>
+            <div className="summaryCardValue mono">{disputeProcedureHeight || "—"} → {disputeDeadline || "—"}</div>
+            <div className="summaryCardText">Review windows, withdrawal windows, appeal windows, missed-vote outcomes, and finalization must follow backend block heights, not browser wall-clock time.</div>
+          </article>
+          <article className="summaryCard">
+            <div className="summaryCardLabel">Canonical dispute path</div>
+            <div className="summaryCardValue">Review ladder</div>
+            <div className="summaryCardText">submission → assignment → acceptance → attendance → vote → tally → appeal window → finalization.</div>
           </article>
         </div>
       </ProcedureTimeline>
@@ -356,21 +389,57 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
       </section>
       ) : null}
 
+      <section className="card">
+        <div className="cardBody formStack">
+          <div className="sectionHead">
+            <div>
+              <div className="eyebrow">Outcome and reasoning trail</div>
+              <h2 className="cardTitle">Public records without exposing protected identity evidence</h2>
+            </div>
+            <div className="statusSummary">
+              <span className={`statusPill ${finalizedHeight ? "ok" : ""}`}>{finalizedHeight ? "Finalized by backend" : "Not finalized"}</span>
+            </div>
+          </div>
+          <div className="summaryCardGrid">
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Outcome summary</div>
+              <div className="summaryCardValue">{dispute?.resolved ? "Resolved" : "Pending"}</div>
+              <div className="summaryCardText">{outcomeSummary}</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Finalized height</div>
+              <div className="summaryCardValue mono">{finalizedHeight || "—"}</div>
+              <div className="summaryCardText">Only backend/finalized block state can mark a dispute final.</div>
+            </article>
+            <article className="summaryCard">
+              <div className="summaryCardLabel">Public reasoning records</div>
+              <div className="summaryCardValue mono">{reasoningRecords || "—"}</div>
+              <div className="summaryCardText">Reviewer notes, votes, appeals, and outcome records may be public; raw PoH/video/government identity evidence must not be rendered here.</div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section className="detailFocusStrip">
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Primary object</div>
           <div className="detailFocusValue">Report detail</div>
-          <div className="detailFocusText">Inspect the report, confirm the target, and resolve assignment posture before moving into the final review workspace.</div>
+          <div className="detailFocusText">Inspect the report and confirm the target before moving into the final review workspace when this account has an assignment.</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Next action</div>
-          <div className="detailFocusValue">{currentVote ? "Review already recorded" : reviewUnlocked ? "Open review workspace" : canAccept || canDecline ? "Resolve assignment" : "Refresh and inspect"}</div>
+          <div className="detailFocusValue">{detailCtaLabel}</div>
           <div className="detailFocusText">{hint}</div>
         </article>
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Current route rule</div>
           <div className="detailFocusValue">No final vote here</div>
           <div className="detailFocusText">This page explains the case. Final reviewer choices are intentionally isolated to the review action route.</div>
+        </article>
+        <article className="detailFocusCard">
+          <div className="detailFocusLabel">Privacy boundary</div>
+          <div className="detailFocusValue">Public reasoning, protected identity evidence</div>
+          <div className="detailFocusText">Reviewer notes and outcomes may be public, but raw PoH/video/government identity evidence must not be exposed through this route.</div>
         </article>
       </section>
 
@@ -469,10 +538,14 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
                 ))}
               </div>
             </div>
-            <div className="buttonRow buttonRowWide">
-              <button className="btn btnPrimary" onClick={() => nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)}>{currentVote ? "Open recorded review" : reviewUnlocked ? "Open review workspace" : "Open review workspace"}</button>
-              <button className="btn" onClick={() => nav("/reviews")}>Back to review queue</button>
-            </div>
+            {showDetailCta ? (
+              <div className="buttonRow buttonRowWide">
+                <button className="btn btnPrimary" disabled={detailCtaDisabled} onClick={() => nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)}>{detailCtaLabel}</button>
+                <button className="btn" onClick={() => nav("/reviews")}>Back to Review Center</button>
+              </div>
+            ) : (
+              <div className="calloutInfo">You are viewing the report in read-only mode. Review acceptance, decline, check-in, and final choices stay in the dedicated review workspace for assigned reviewers.</div>
+            )}
             <div className="cardDesc">Report detail explains what happened and which content is involved. The dedicated review workspace owns assignment acceptance, decline, and final choices so this page does not submit review transactions by accident.</div>
             {currentVote ? <div className="statusPill ok">Review choice already recorded for this account</div> : null}
           </div>

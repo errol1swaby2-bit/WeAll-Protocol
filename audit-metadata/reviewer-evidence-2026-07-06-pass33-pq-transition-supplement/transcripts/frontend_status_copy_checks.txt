@@ -1,0 +1,2 @@
+OK: reviewer-critical frontend source checks passed
+OK: public-only frontend source contract holds

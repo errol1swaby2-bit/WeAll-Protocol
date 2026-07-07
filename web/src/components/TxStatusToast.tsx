@@ -21,11 +21,11 @@ function statusHint(status: TxToastStatus): string {
     case "submitting":
       return "Saving the action.";
     case "recorded":
-      return "Recorded by the backend. Waiting for confirmation or visible state.";
+      return "Accepted or queued by the backend. This is not final confirmation.";
     case "refreshing":
-      return "Confirmed or partly visible. Updating this page so the result is clear.";
+      return "Checking status evidence and read-model visibility.";
     case "confirmed":
-      return "The action is confirmed and visible.";
+      return "The backend reports final confirmed state for this node.";
     case "failed":
     default:
       return "The action did not complete successfully.";

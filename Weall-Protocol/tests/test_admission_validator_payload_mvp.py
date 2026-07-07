@@ -75,7 +75,7 @@ def test_validator_candidate_register_requires_node_and_endpoint_fields() -> Non
         tx_type="VALIDATOR_CANDIDATE_REGISTER",
         signer="@alice",
         nonce=1,
-        payload={"pubkey": "ed25519:alice"},
+        payload={"pubkey": "mldsa:alice"},
         sig="deadbeef",
         parent=None,
     )

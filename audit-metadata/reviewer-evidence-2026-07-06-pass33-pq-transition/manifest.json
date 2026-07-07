@@ -1,0 +1,110 @@
+{
+  "controlled_testnet_target_profile": "pq-mldsa-v1",
+  "files": [
+    {
+      "bytes": 1831,
+      "path": "README.md",
+      "sha256": "c8ba6452450954f138501345151e422f478e95c81e8a7b322f9b17ad4a724060"
+    },
+    {
+      "bytes": 8013,
+      "path": "artifacts/crypto_inventory_v1_5.json",
+      "sha256": "c85707a5d50c2ff24d703da6de7ce23e20dbf19808aca536d9e19133394209dc"
+    },
+    {
+      "bytes": 47207,
+      "path": "artifacts/public_beta_blocker_report_v1_5.json",
+      "sha256": "d70384e0e01c82118a8395cbe08666c6594bf53a894e356ebdeeaab87c88a3df"
+    },
+    {
+      "bytes": 1590,
+      "path": "artifacts/quantum_resistance_readiness_v1_5.json",
+      "sha256": "f78f7d1e0ac73e700846bb2be515f9529ef35888a77089042d8da1f05b42fe68"
+    },
+    {
+      "bytes": 2645,
+      "path": "artifacts/signature_profile_registry_v1_5.json",
+      "sha256": "ee6aa95db2f9889a28938e40b0253d2c63b4e8dbbb65153e1f813a04ea02f234"
+    },
+    {
+      "bytes": 1045,
+      "path": "dependency_decision_record.md",
+      "sha256": "4403d8dc1e7a011aa07f83b43fa5f61ef32b88189f81dca4c59c40fb9263437d"
+    },
+    {
+      "bytes": 577,
+      "path": "final_claim_boundary.md",
+      "sha256": "c6c795ae6bedac6551e7bdbbd928b2c33c90ddec8f0a1ee8bef00e38254ce0ae"
+    },
+    {
+      "bytes": 584,
+      "path": "not_run.md",
+      "sha256": "07ddb85e7f50de82c68c03e7fb5ab5f39b7513033b54a6749775662f9f205bba"
+    },
+    {
+      "bytes": 734,
+      "path": "remaining_crypto_blockers.md",
+      "sha256": "975f88ff71b8dce62aeef1f3859de1d0b5bc80fa133503801607d644503fad8b"
+    },
+    {
+      "bytes": 422,
+      "path": "transcripts/affected_readiness_tests.txt",
+      "sha256": "0d52f1e0ec79b68729f105dec4583374210cdfce47d8f587ebaade0e384e5a62"
+    },
+    {
+      "bytes": 275,
+      "path": "transcripts/check_release_hygiene.txt",
+      "sha256": "d264872b62773f2245c82ee3caee3b5bf9cb9ad456f45b7f5931c0ee4f631927"
+    },
+    {
+      "bytes": 160,
+      "path": "transcripts/check_reviewer_truth_boundaries.txt",
+      "sha256": "340840b474bbb5ca1de1bb2dbafbac59fc268faf14b6107d8dde29cb9c854c2d"
+    },
+    {
+      "bytes": 178,
+      "path": "transcripts/check_v15_artifacts.txt",
+      "sha256": "fe0871dc14f3730d2031a897482ffcaff17acd2ac09772eb9f81d0d012497c14"
+    },
+    {
+      "bytes": 1040,
+      "path": "transcripts/full_pytest_attempt.txt",
+      "sha256": "036cf902cbe00ddd73299c6da11109f3298c2e948305bae7df560cea9eca268a"
+    },
+    {
+      "bytes": 226,
+      "path": "transcripts/gen_public_beta_check.txt",
+      "sha256": "5ffb53447667495a468eac822919c28e0af709e5a28e0ce82b0864531ff29b01"
+    },
+    {
+      "bytes": 7399,
+      "path": "transcripts/git_diff_check.txt",
+      "sha256": "4e7073b0dd95f0552acb706b852260f3262aa34ade444030470181309be588ac"
+    },
+    {
+      "bytes": 12,
+      "path": "transcripts/git_diff_check_reconstructed_checkout.txt",
+      "sha256": "b1ed75e26c0b0164a3e4308fc4c7bf7576c22288a848d4fa76fd185a94b7d397"
+    },
+    {
+      "bytes": 105,
+      "path": "transcripts/git_status.txt",
+      "sha256": "72daa8e6c6dbfa28159f6b621e5935071b7cf3d958123e2f8335ea642f288764"
+    },
+    {
+      "bytes": 4246,
+      "path": "transcripts/git_status_reconstructed_checkout.txt",
+      "sha256": "7b98f7ed2b5ccbfbc990d45c7e2ee2482989e409ed0fd9183b10fc599a379352"
+    },
+    {
+      "bytes": 555,
+      "path": "transcripts/targeted_crypto_tests.txt",
+      "sha256": "ed067aef18c5baafd8afe0a5c6bde373170038be10f51100c54446c11bbb291f"
+    }
+  ],
+  "forbidden_claims_preserved": true,
+  "framing": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
+  "legacy_profile": "pq-mldsa-v1",
+  "real_mldsa_implemented": false,
+  "schema": "weall.pass33.pq_transition_evidence_manifest"
+}

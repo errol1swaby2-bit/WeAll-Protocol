@@ -15,11 +15,24 @@ import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
 import { refreshMutationSlices } from "../lib/revalidation";
 import { liveRoomDescriptorText, liveRoomTransportNotice, liveRoomUrlFromCommitment } from "../lib/liveRoom";
+import { REVIEW_CENTER_LABEL, REVIEW_LANES, reviewLaneStatusFromTruth, reviewLaneStatusPillClass, type ReviewLaneId } from "../lib/reviewLanes";
 
 function prettyErr(e: any): { msg: string; details: any } {
   const details = e?.body || e?.data || e;
   const msg = details?.message || e?.error?.message || e?.message || "error";
   return { msg, details };
+}
+
+function asRecord(value: any): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function initialReviewTab(): "async" | "live" {
+  if (typeof window === "undefined") return "async";
+  const raw = String(window.location.hash || "");
+  const query = raw.includes("?") ? raw.slice(raw.indexOf("?") + 1) : "";
+  const lane = new URLSearchParams(query).get("lane");
+  return lane === "poh_live_review" ? "live" : "async";
 }
 
 function fmtTs(v: any): string {
@@ -94,9 +107,67 @@ function statusTone(statusRaw: any): "done" | "active" | "todo" {
   return "todo";
 }
 
+
+function includesAccount(value: any, account: string): boolean {
+  const acct = normalizeAccount(account);
+  if (!acct || !Array.isArray(value)) return false;
+  return value.some((item) => normalizeAccount(item) === acct);
+}
+
+function caseJurorRecord(caseRecord: any, account: string): Record<string, any> {
+  const acct = normalizeAccount(account);
+  const jurors = asRecord(caseRecord?.jurors);
+  const direct = jurors[acct];
+  if (direct && typeof direct === "object" && !Array.isArray(direct)) return direct as Record<string, any>;
+  for (const [key, value] of Object.entries(jurors)) {
+    if (normalizeAccount(key) === acct && value && typeof value === "object" && !Array.isArray(value)) {
+      return value as Record<string, any>;
+    }
+  }
+  return {};
+}
+
+function asyncCaseAcceptedBy(caseRecord: any, account: string): boolean {
+  const juror = caseJurorRecord(caseRecord, account);
+  return includesAccount(caseRecord?.accepted_jurors, account) || juror.accepted === true || String(juror.status || "").toLowerCase() === "accepted";
+}
+
+function asyncCaseDeclinedBy(caseRecord: any, account: string): boolean {
+  const juror = caseJurorRecord(caseRecord, account);
+  return includesAccount(caseRecord?.declined_jurors, account) || juror.accepted === false || String(juror.status || "").toLowerCase() === "declined";
+}
+
+function asyncCaseReviewedBy(caseRecord: any, account: string): boolean {
+  const acct = normalizeAccount(account);
+  const reviews = asRecord(caseRecord?.reviews);
+  if (!acct) return false;
+  if (reviews[acct]) return true;
+  return Object.keys(reviews).some((key) => normalizeAccount(key) === acct);
+}
+
+function liveCaseAcceptedBy(caseRecord: any, account: string): boolean {
+  return caseJurorRecord(caseRecord, account).accepted === true;
+}
+
+function liveCaseDeclinedBy(caseRecord: any, account: string): boolean {
+  return caseJurorRecord(caseRecord, account).accepted === false;
+}
+
+function liveCaseAttendedBy(caseRecord: any, account: string): boolean {
+  return caseJurorRecord(caseRecord, account).attended === true;
+}
+
+function liveCaseVerdictBy(caseRecord: any, account: string): string {
+  return String(caseJurorRecord(caseRecord, account).verdict || "").trim().toLowerCase();
+}
+
+function liveCaseInteractingReviewer(caseRecord: any, account: string): boolean {
+  return String(caseJurorRecord(caseRecord, account).role || "").trim().toLowerCase() === "interacting";
+}
+
 function reportStageNeedsReviewerAction(stageRaw: any): boolean {
   const stage = String(stageRaw || "open").trim().toLowerCase() || "open";
-  return ["open", "assigned", "review", "voting", "in_review"].includes(stage);
+  return ["open", "assigned", "review", "juror_review", "voting", "in_review"].includes(stage);
 }
 
 function reportNeedsCurrentReviewer(item: any, account: string): boolean {
@@ -144,6 +215,7 @@ export default function JurorDashboard(): JSX.Element {
   const signerSubmission = useSignerSubmissionBusy(account);
 
   const [acctState, setAcctState] = useState<any | null>(null);
+  const [reviewerStatus, setReviewerStatus] = useState<any | null>(null);
   const [asyncCases, setAsyncCases] = useState<any[]>([]);
   const [liveCases, setLiveCases] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
@@ -151,7 +223,7 @@ export default function JurorDashboard(): JSX.Element {
   const [reportContent, setReportContent] = useState<Record<string, any>>({});
   const [expanded, setExpanded] = useState<Record<string, any>>({});
   const [participants, setParticipants] = useState<Record<string, any[]>>({});
-  const [tab, setTab] = useState<"async" | "live">("async");
+  const [tab, setTab] = useState<"async" | "live">(() => initialReviewTab());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any | null>(null);
@@ -184,19 +256,24 @@ export default function JurorDashboard(): JSX.Element {
 
     try {
       const headers = getAuthHeaders(account);
-      const [t2, live, sess, disputesRes] = await Promise.all([
+      const [t2, live, sess, currentDisputesRes, fallbackDisputesRes, reviewerStatusRes] = await Promise.all([
         weall.pohAsyncJurorCases(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveAssigned(account, apiBase, headers).catch(() => ({ cases: [] })),
         weall.pohLiveSessions(apiBase, headers).catch(() => ({ sessions: [] })),
+        weall.disputesCurrent(apiBase, headers).catch(() => ({ items: [] })),
         weall.disputes({ limit: 200, includeSummary: true } as any, apiBase, headers).catch(() => ({ items: [] })),
+        weall.accountReviewerStatus(account, apiBase, headers).catch(() => ({ reviewer: null })),
         refreshAccount(),
       ]);
 
       setAsyncCases(Array.isArray(t2?.cases) ? t2.cases : []);
       setLiveCases(Array.isArray(live?.cases) ? live.cases : []);
       setLiveSessions(Array.isArray(sess?.sessions) ? sess.sessions : []);
+      setReviewerStatus(reviewerStatusRes?.reviewer ?? null);
 
-      const assignedReports = (Array.isArray(disputesRes?.items) ? disputesRes.items : [])
+      const backendCurrentReports = Array.isArray(currentDisputesRes?.items) ? currentDisputesRes.items : [];
+      const fallbackReports = Array.isArray(fallbackDisputesRes?.items) ? fallbackDisputesRes.items : [];
+      const assignedReports = (backendCurrentReports.length > 0 ? backendCurrentReports : fallbackReports)
         .filter((item: any) => reportNeedsCurrentReviewer(item, account));
       setContentReports(assignedReports);
 
@@ -260,6 +337,11 @@ export default function JurorDashboard(): JSX.Element {
       if (String(s?.case_id || "") === String(caseId)) return s;
     }
     return null;
+  }
+
+  function viewLiveVerificationStatus(caseId: string): void {
+    if (!caseId) return;
+    nav(`/verification/live/${encodeURIComponent(caseId)}?mode=status`);
   }
 
   function joinLiveRoom(caseId: string): void {
@@ -343,7 +425,7 @@ export default function JurorDashboard(): JSX.Element {
   async function liveAccept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept live verification call", "Live verification call accepted. Opening the WebRTC room…");
+    await submitSkeletonTx(skel, "Join live verification review", "Live verification review joined. Opening the WebRTC room…");
     joinLiveRoom(caseId);
   }
 
@@ -386,13 +468,41 @@ export default function JurorDashboard(): JSX.Element {
 
   const tier = Number(acctState?.poh_tier ?? 0);
   const accountSummary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
+  const reviewerTruth = asRecord(reviewerStatus);
+  const reviewerLaneTruth = asRecord(reviewerTruth.lanes);
+  const reviewerLaneStatus = (laneId: string) => reviewLaneStatusFromTruth(reviewerLaneTruth[laneId]);
+  const reviewerLaneActive = (laneId: string): boolean => reviewerLaneStatus(laneId).active;
+  const assignedContentReports = contentReports.filter((item) => reportNeedsCurrentReviewer(item, account));
+  const laneCount = (laneId: ReviewLaneId): number => {
+    if (laneId === "content_review") return assignedContentReports.length;
+    if (laneId === "dispute_review") return contentReports.length;
+    if (laneId === "poh_async_review") return asyncCases.length;
+    if (laneId === "poh_live_review") return liveCases.length;
+    return 0;
+  };
+  const openLane = (laneId: ReviewLaneId): void => {
+    if (laneId === "dispute_review") {
+      nav("/reports");
+      return;
+    }
+    if (laneId === "poh_async_review") {
+      setTab("async");
+      nav("/reviews?lane=poh_async_review");
+      return;
+    }
+    if (laneId === "poh_live_review") {
+      setTab("live");
+      nav("/reviews?lane=poh_live_review");
+      return;
+    }
+    nav("/reviews");
+  };
   const showing = tab === "async" ? asyncCases : liveCases;
   const livePendingSessions = liveSessions.filter((session: any) => {
     const caseId = String(session?.case_id || "").trim();
     if (!caseId) return false;
     return !liveCases.some((liveCase: any) => String(liveCase?.case_id || liveCase?.id || "").trim() === caseId);
   });
-  const assignedContentReports = contentReports.filter((item) => reportNeedsCurrentReviewer(item, account));
 
   return (
     <div className="pageStack">
@@ -400,10 +510,10 @@ export default function JurorDashboard(): JSX.Element {
         <div className="cardBody heroBody compactHero">
           <div className="heroSplit">
             <div>
-              <div className="eyebrow">Review Queue</div>
-              <h1 className="heroTitle heroTitleSm">Review assigned community work</h1>
+              <div className="eyebrow">{REVIEW_CENTER_LABEL}</div>
+              <h1 className="heroTitle heroTitleSm">Choose the correct review lane</h1>
               <p className="heroText">
-                This page starts with flagged content assigned to you, then keeps account-verification and live verification tasks available below.
+                Content reports, dispute juror work, PoH async review, and PoH live review stay separated here. Tier-2 human status is eligibility, not consent to every reviewer duty.
               </p>
             </div>
 
@@ -428,14 +538,17 @@ export default function JurorDashboard(): JSX.Element {
           </div>
 
           <div className="heroActions">
-            <button className="btn btnPrimary" onClick={() => nav("/reports")}>
-              All reports
+            <button className="btn btnPrimary" onClick={() => openLane("content_review")}>
+              Content review lane
             </button>
-            <button className={`btn ${tab === "async" ? "btnPrimary" : ""}`} onClick={() => setTab("async")}>
-              Async verification cases
+            <button className="btn" onClick={() => openLane("dispute_review")}>
+              Reports and disputes
             </button>
-            <button className={`btn ${tab === "live" ? "btnPrimary" : ""}`} onClick={() => setTab("live")}>
-              Live verification cases
+            <button className={`btn ${tab === "async" ? "btnPrimary" : ""}`} onClick={() => openLane("poh_async_review")}>
+              PoH async lane
+            </button>
+            <button className={`btn ${tab === "live" ? "btnPrimary" : ""}`} onClick={() => openLane("poh_live_review")}>
+              PoH live lane
             </button>
             <button className="btn" onClick={() => void refreshJurorSurface()} disabled={busy || signerSubmission.busy || !account}>
               {busy ? "Refreshing…" : signerSubmission.busy ? "Waiting…" : "Refresh"}
@@ -452,6 +565,49 @@ export default function JurorDashboard(): JSX.Element {
           Another signed action for this reviewer account is still settling. Review decisions stay read-only until the current action finishes.
         </div>
       ) : null}
+
+      <SectionCard
+        eyebrow="Review Center"
+        title="Lane-separated responsibilities"
+        right={<span className={`statusPill ${REVIEW_LANES.some((lane) => reviewerLaneActive(lane.id)) ? "ok" : ""}`}>{REVIEW_LANES.filter((lane) => reviewerLaneActive(lane.id)).length} active lane(s)</span>}
+      >
+        <p className="cardDesc">
+          The generic combined case surface has been normalized into explicit lanes. Content disputes are not silently mixed with PoH reviews, and every action below names its backend source and consent boundary. This is a public outcome work queue, not a private inbox: report status, votes, appeals, and outcomes are public civic records while raw PoH/video/government identity evidence stays behind reviewer acceptance gates.
+        </p>
+        <div className="summaryCardGrid">
+          {REVIEW_LANES.map((lane) => {
+            const status = reviewerLaneStatus(lane.id);
+            const count = laneCount(lane.id);
+            return (
+              <article key={lane.id} className="summaryCard">
+                <div className="summaryCardLabel">{lane.label}</div>
+                <div className="summaryCardValue">{count}</div>
+                <div className="summaryCardText">{lane.purpose}</div>
+                <div className="progressList compact" style={{ marginTop: 10 }}>
+                  <div className="progressRow">
+                    <span>Opt-in boundary</span>
+                    <span className={reviewLaneStatusPillClass(status)}>{status.label}</span>
+                  </div>
+                  <div className="progressRow">
+                    <span>Backend truth source</span>
+                    <span className="miniMuted">{lane.source}</span>
+                  </div>
+                  <div className="progressRow">
+                    <span>Time limit / penalty</span>
+                    <span className="miniMuted">{lane.timeLimit}</span>
+                  </div>
+                </div>
+                <p className="summaryCardHint">{lane.consentBoundary}</p>
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button className={lane.id === "content_review" ? "btn btnPrimary" : "btn"} onClick={() => openLane(lane.id)}>
+                    Open {lane.shortLabel}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </SectionCard>
 
       <ErrorBanner
         message={err?.msg}
@@ -498,7 +654,7 @@ export default function JurorDashboard(): JSX.Element {
                     <div className="summaryCardGrid">
                       <article className="summaryCard"><div className="summaryCardLabel">Flagged content</div><div className="summaryCardValue mono">{targetId || "—"}</div><div className="summaryCardText">Open the content or the focused review workspace before choosing.</div></article>
                       <article className="summaryCard"><div className="summaryCardLabel">Author</div><div className="summaryCardValue mono">{author || "(unknown)"}</div><div className="summaryCardText">Reported content author</div></article>
-                      <article className="summaryCard"><div className="summaryCardLabel">Review readiness</div><div className="summaryCardValue">{vote ? "Complete" : present ? "Ready" : status === "assigned" ? "Accept first" : "Needs check-in"}</div><div className="summaryCardText">{vote ? `Your choice is ${reviewChoiceLabel(vote)}.` : present ? "Final choice is available from the review workspace." : "Open the report detail to accept and check in."}</div></article>
+                      <article className="summaryCard"><div className="summaryCardLabel">Review readiness</div><div className="summaryCardValue">{vote ? "Complete" : present ? "Ready" : status === "assigned" ? "Accept first" : "Needs check-in"}</div><div className="summaryCardText">{vote ? `Your choice is ${reviewChoiceLabel(vote)}.` : present ? "Final choice is available from the review workspace." : "Open the review workspace to accept and check in."}</div></article>
                       <article className="summaryCard"><div className="summaryCardLabel">Current review tally</div><div className="summaryCardValue">{counts.total}</div><div className="summaryCardText">{reviewTallyText(counts)}</div></article>
                     </div>
                     <div className="infoCard">
@@ -555,7 +711,7 @@ export default function JurorDashboard(): JSX.Element {
           tab === "live" && livePendingSessions.length > 0 ? (
             <div className="pageStack">
               <div className="calloutInfo">
-                Live verification request/session records are visible, but no reviewer assignment has reached this queue yet. Keep the genesis block loop and downstream sync running.
+                Live verification request/session records are visible, but no reviewer assignment has reached this queue yet. Live room transport is only available after a live PoH reviewer assignment is active. Keep the genesis block loop and downstream sync running.
               </div>
               {livePendingSessions.map((session: any) => {
                 const caseId = String(session?.case_id || "").trim();
@@ -573,8 +729,8 @@ export default function JurorDashboard(): JSX.Element {
                         The live room/session exists, but this account has not been assigned as a reviewer yet.
                       </p>
                       <div className="buttonRow">
-                        <button className="btn" onClick={() => caseId && joinLiveRoom(caseId)} disabled={!caseId}>
-                          Open live room
+                        <button className="btn" onClick={() => caseId && viewLiveVerificationStatus(caseId)} disabled={!caseId}>
+                          View verification status
                         </button>
                         <button className="btn" onClick={() => void refreshJurorSurface()}>
                           Refresh queue
@@ -598,6 +754,19 @@ export default function JurorDashboard(): JSX.Element {
               const sessionRec = tab === "live" ? sessionForCase(caseId) : null;
               const sessionId = String(sessionRec?.session_id || "");
               const sessionParticipants = sessionId ? participants[sessionId] || [] : [];
+              const asyncAccepted = asyncCaseAcceptedBy(evidence, account);
+              const asyncDeclined = asyncCaseDeclinedBy(evidence, account);
+              const asyncReviewed = asyncCaseReviewedBy(evidence, account);
+              const showAsyncAcceptControls = !asyncAccepted && !asyncDeclined && !asyncReviewed;
+              const showAsyncDecisionControls = asyncAccepted && !asyncDeclined && !asyncReviewed;
+              const liveAccepted = liveCaseAcceptedBy(evidence, account);
+              const liveDeclined = liveCaseDeclinedBy(evidence, account);
+              const liveAttended = liveCaseAttendedBy(evidence, account);
+              const recordedLiveVerdict = liveCaseVerdictBy(evidence, account);
+              const reviewerEvidenceUnlocked = tab === "async" ? asyncAccepted : liveAccepted;
+              const showLiveAcceptControls = !liveAccepted && !liveDeclined && !recordedLiveVerdict;
+              const showLiveCheckInControl = liveAccepted && !liveAttended && !recordedLiveVerdict;
+              const showLiveDecisionControls = liveAccepted && liveAttended && liveCaseInteractingReviewer(evidence, account) && !recordedLiveVerdict;
 
               return (
                 <article key={caseId || Math.random()} className="card">
@@ -631,51 +800,82 @@ export default function JurorDashboard(): JSX.Element {
                     </div>
 
                     {tab === "async" ? (
-                      <div className="buttonRow buttonRowWide">
-                        <button className="btn" onClick={() => void loadCase("async", caseId)} disabled={busy || !caseId}>
-                          Load details
-                        </button>
-                        <button className="btn" onClick={() => void asyncAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Accept"}
-                        </button>
-                        <button className="btn" onClick={() => void asyncDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Decline"}
-                        </button>
-                        <button className="btn btnPrimary" onClick={() => void asyncReview(caseId, "approve")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Approve"}
-                        </button>
-                        <button className="btn" onClick={() => void asyncReview(caseId, "reject")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Reject"}
-                        </button>
+                      <div className="formStack">
+                        <div className="buttonRow buttonRowWide">
+                          <button className="btn" onClick={() => void loadCase("async", caseId)} disabled={busy || !caseId}>
+                            Load details
+                          </button>
+                          {showAsyncAcceptControls ? (
+                            <>
+                              <button className="btn btnPrimary" onClick={() => void asyncAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Accept review"}
+                              </button>
+                              <button className="btn" onClick={() => void asyncDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Decline"}
+                              </button>
+                            </>
+                          ) : null}
+                          {showAsyncDecisionControls ? (
+                            <>
+                              <button className="btn btnPrimary" onClick={() => void asyncReview(caseId, "approve")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Approve"}
+                              </button>
+                              <button className="btn" onClick={() => void asyncReview(caseId, "reject")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Reject"}
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                        {!showAsyncAcceptControls && !showAsyncDecisionControls ? (
+                          <div className="miniMuted">{asyncDeclined ? "You declined this review." : asyncReviewed ? "Your review decision is already recorded." : "Decision controls appear after you accept the review assignment."}</div>
+                        ) : null}
                       </div>
                     ) : (
-                      <div className="buttonRow buttonRowWide">
-                        <button className="btn" onClick={() => void loadCase("live", caseId)} disabled={busy || !caseId}>
-                          Load details
-                        </button>
-                        <button className="btn btnPrimary" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Accept review and join call"}
-                        </button>
-                        <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Decline"}
-                        </button>
-                        <button className="btn" onClick={() => void liveAttendance(caseId, true)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Mark attended"}
-                        </button>
-                        <button className="btn" onClick={() => void liveAttendance(caseId, false)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Mark absent"}
-                        </button>
-                        <button className="btn btnPrimary" onClick={() => void liveVerdict(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Approve"}
-                        </button>
-                        <button className="btn" onClick={() => void liveVerdict(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
-                          {signerSubmission.busy ? "Waiting…" : "Reject"}
-                        </button>
+                      <div className="formStack">
+                        <div className="buttonRow buttonRowWide">
+                          <button className="btn" onClick={() => void loadCase("live", caseId)} disabled={busy || !caseId}>
+                            Load details
+                          </button>
+                          {showLiveAcceptControls ? (
+                            <>
+                              <button className="btn btnPrimary" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Join live review"}
+                              </button>
+                              <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Decline"}
+                              </button>
+                            </>
+                          ) : null}
+                          {showLiveCheckInControl ? (
+                            <button className="btn btnPrimary" onClick={() => joinLiveRoom(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
+                              Open WebRTC room to check in
+                            </button>
+                          ) : null}
+                          {showLiveDecisionControls ? (
+                            <>
+                              <button className="btn btnPrimary" onClick={() => void liveVerdict(caseId, "pass")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Approve"}
+                              </button>
+                              <button className="btn" onClick={() => void liveVerdict(caseId, "fail")} disabled={busy || signerSubmission.busy || !gate.ok}>
+                                {signerSubmission.busy ? "Waiting…" : "Reject"}
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                        {!showLiveAcceptControls && !showLiveCheckInControl && !showLiveDecisionControls ? (
+                          <div className="miniMuted">{liveDeclined ? "You declined this live review." : recordedLiveVerdict ? "Your live-review verdict is already recorded." : "Verdict controls appear after you join the live review and attendance is recorded on-chain."}</div>
+                        ) : null}
                       </div>
                     )}
 
-                    {evidenceMedia.length ? (
-                      <MediaGallery base={apiBase} media={evidenceMedia} />
+                    {evidenceMedia.length && reviewerEvidenceUnlocked ? (
+                      <MediaGallery base={apiBase} media={evidenceMedia} title="Restricted reviewer evidence" restrictedPlayback />
+                    ) : null}
+                    {evidenceMedia.length && !reviewerEvidenceUnlocked ? (
+                      <div className="infoCard">
+                        <div className="feedMediaTitle">Evidence locked until acceptance</div>
+                        <p className="cardDesc">Accept this review assignment before the verifier evidence video is loaded. This prevents reviewers from inspecting protected PoH evidence and then declining without a chain-visible acceptance record.</p>
+                      </div>
                     ) : null}
 
                     {tab === "live" && sessionRec ? (
@@ -699,7 +899,7 @@ export default function JurorDashboard(): JSX.Element {
                                 </button>
                                 {joinUrl ? (
                                   <a className="btn" href={joinUrl} target="_blank" rel="noreferrer">
-                                    Open compatibility transport
+                                    Open self-hosted transport
                                   </a>
                                 ) : (
                                   <span className="miniMuted">Decentralized P2P room descriptor ready; no centralized room URL is required.</span>

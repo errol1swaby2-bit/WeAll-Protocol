@@ -9,7 +9,7 @@ WeAll is designed so normal users can connect through healthy compatible nodes w
 Switching nodes changes the backend API this browser uses for:
 
 - reading public protocol state
-- loading feeds, groups, messages, proposals, and verification state
+- loading feeds, public groups, public activity notices, proposals, and verification state
 - submitting signed actions
 - checking status and readiness
 
@@ -74,4 +74,4 @@ External/testnet web builds should pin the expected network identity from the pu
 
 Seed JSON may also expose a top-level `compatibility` or `chain_manifest` object with `chain_id`, `tx_index_hash`, and `protocol_profile_hash`. If no build or seed-manifest baseline is present, the node manager may fall back to the current/reachable node for local development diagnostics only. A hosted external tester build should not rely on that fallback.
 
-Switching nodes changes only the browser API target. It must never change the user's account id, local signer, PoH status, roles, reputation, groups, messages, receipts, or governance rights; those remain backend/chain state.
+Switching nodes changes only the browser API target. It must never change the user's account id, local signer, PoH status, roles, reputation, groups, public activity notices, receipts, or governance rights; those remain backend/chain state.

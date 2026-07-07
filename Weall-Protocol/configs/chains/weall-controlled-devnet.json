@@ -2,7 +2,7 @@
   "authority": {
     "authority_snapshot_required": false,
     "expected_profile": "controlled_devnet_rehearsal",
-    "private_lan_http_allowed_for_rehearsal": true,
+    "lan_http_allowed_for_rehearsal": true,
     "signed_snapshot_required": false
   },
   "authority_snapshot_version": 1,
@@ -23,13 +23,13 @@
   "genesis_time_ms": 0,
   "mode": "controlled_devnet",
   "name": "WeAll Controlled Devnet External Observer Rehearsal Chain",
-  "notes": "Controlled devnet manifest for external observer two-machine rehearsal only. This profile may use private HTTP LAN authority URLs only with WEALL_ALLOW_PRIVATE_GENESIS_API=1. Production observer bundles must continue to use configs/chains/weall-genesis.json and HTTPS authority URLs.",
+  "notes": "Controlled devnet manifest for external observer two-machine rehearsal only. This profile may use LAN HTTP authority URLs only with WEALL_ALLOW_LAN_GENESIS_API=1. Production observer bundles must continue to use configs/chains/weall-genesis.json and HTTPS authority URLs.",
   "profile": "controlled_devnet_service",
   "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
   "schema_version": "1",
   "trusted_authority_pubkeys": [
     "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"
   ],
-  "tx_index_hash": "5f5735d60bfeed6b45a2f36485cb5cd68e0a4f0efafdc1d3d4df37b674d74b3d",
+  "tx_index_hash": "123439e0b1aad73701697ab0fc20add446928c8ec5e510909af5666ab7f18a0c",
   "version": 1
 }

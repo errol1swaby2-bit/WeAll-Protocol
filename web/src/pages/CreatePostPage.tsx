@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { api, getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
@@ -217,9 +217,7 @@ export default function CreatePostPage(): JSX.Element {
 
   const [text, setText] = useState<string>("");
   const [tags, setTags] = useState<string>("");
-  const [visibility, setVisibility] = useState<"public" | "followers" | "group" | "private">(
-    "public",
-  );
+  const [visibility, setVisibility] = useState<"public" | "group">("public");
   const [file, setFile] = useState<File | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string>("");
   const [composerGroupId, setComposerGroupId] = useState<string>(() => readComposerGroupIdFromHash());
@@ -228,8 +226,10 @@ export default function CreatePostPage(): JSX.Element {
 
   const [busy, setBusy] = useState<boolean>(false);
   const [status, setStatus] = useState<string>("");
+  const submitInFlightRef = useRef(false);
   const [last, setLast] = useState<any>(null);
   const [createdPostId, setCreatedPostId] = useState<string>("");
+  const [createdPostTxId, setCreatedPostTxId] = useState<string>("");
   const [uploadInfo, setUploadInfo] = useState<any | null>(null);
   const [mediaDurability, setMediaDurability] = useState<any | null>(null);
 
@@ -340,9 +340,18 @@ export default function CreatePostPage(): JSX.Element {
   }
 
   async function submit(): Promise<void> {
+    if (submitInFlightRef.current || busy || signerBusyElsewhere) {
+      setErr({
+        msg: "That publish action is already being saved. Let it finish before clicking again.",
+        details: { account: acct, pending_count: signerSubmission.pendingCount },
+      });
+      return;
+    }
+    submitInFlightRef.current = true;
     setErr(null);
     setLast(null);
     setCreatedPostId("");
+    setCreatedPostTxId("");
     setUploadInfo(null);
     setMediaDurability(null);
 
@@ -363,7 +372,7 @@ export default function CreatePostPage(): JSX.Element {
       return;
     }
 
-    const tierNow = Number(acctState?.state?.poh_tier ?? 0);
+    const tierNow = Number(snapshot.tier ?? 0);
     if (tierNow < POSTING_MIN_TIER) {
       setErr({
         msg: "Complete live verification before creating public posts.",
@@ -418,7 +427,7 @@ export default function CreatePostPage(): JSX.Element {
         pendingKey: txPendingKey(["content-post-create", acct, composerGroupId || "root"]),
         pendingMessage: "Uploading media and preparing your post…",
         successMessage: (res: any) =>
-          res?.postId ? `Post submitted: ${res.postId}` : "Post submitted successfully.",
+          res?.postId ? `Post submitted: ${res.postId}. Track confirmation in Transactions.` : "Post submitted. Track confirmation in Transactions.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.postTxId,
         finality: {
@@ -675,8 +684,9 @@ export default function CreatePostPage(): JSX.Element {
       setUploadInfo(result.uploadInfo);
       setMediaDurability(result.mediaDurability);
       setCreatedPostId(result.postId || "");
+      setCreatedPostTxId(result.postTxId || "");
       setLast(result.result);
-      setStatus("Done");
+      setStatus("Submitted");
       setText("");
       setTags("");
       setFile(null);
@@ -745,6 +755,7 @@ export default function CreatePostPage(): JSX.Element {
       }
       setLast(e?.payload || e?.body || e?.data || e);
     } finally {
+      submitInFlightRef.current = false;
       setBusy(false);
     }
   }
@@ -799,7 +810,7 @@ export default function CreatePostPage(): JSX.Element {
       label: "Publish",
       state: createdPostId ? "done" : busy ? "active" : canPublish ? "ready" : "pending",
       detail: createdPostId
-        ? createdPostId
+        ? `${createdPostId}${createdPostTxId ? ` · tx ${createdPostTxId}` : ""}`
         : canPublish
           ? signerBusyElsewhere
             ? "Another signed action must finish before this publish can start."
@@ -835,8 +846,8 @@ export default function CreatePostPage(): JSX.Element {
               <div className="eyebrow">Creator flow</div>
               <h1 className="heroTitle heroTitleSm">Create a post</h1>
               <p className="heroText">
-                Compose a public post, optionally attach media, then walk through upload, media
-                declaration, and publish. Durability is observed after upload so the UI stays honest
+                Compose public-readable protocol content, optionally attach media, then walk through upload, media
+                declaration, and signed post submission. Durability is observed after upload so the UI stays honest
                 about what is confirmed now versus what may still be replicating.
               </p>
             </div>
@@ -897,7 +908,7 @@ export default function CreatePostPage(): JSX.Element {
         <article className="detailFocusCard">
           <div className="detailFocusLabel">Truth model</div>
           <div className="detailFocusValue">Submission ≠ visibility</div>
-          <div className="detailFocusText">The composer reports upload, declaration, and publish separately so the page stays honest about what is confirmed right now.</div>
+          <div className="detailFocusText">The composer reports upload, declaration, submission, and transaction status separately so the page stays honest about what is confirmed right now.</div>
         </article>
       </section>
 
@@ -912,7 +923,7 @@ export default function CreatePostPage(): JSX.Element {
               <div className="statusSummary">
                 <span className="statusPill mono">{base || "(no api base)"}</span>
                 {status ? (
-                  <span className={`statusPill ${status === "Done" ? "ok" : ""}`}>{status}</span>
+                  <span className={`statusPill ${status === "Submitted" ? "ok" : ""}`}>{status}</span>
                 ) : null}
               </div>
             </div>
@@ -983,8 +994,8 @@ export default function CreatePostPage(): JSX.Element {
               <strong>Current publishing truth</strong>
               <div style={{ marginTop: 6 }}>
                 {composerGroupId
-                  ? `This post will be submitted to ${groupDisplayName(selectedGroup, composerGroupId)} with visibility=group and group_id=${composerGroupId}.`
-                  : "This post will be submitted to the public feed. Choose a group above to route it into a group feed."}
+                  ? `This post will be submitted to ${groupDisplayName(selectedGroup, composerGroupId)} as public-readable group content with group_id=${composerGroupId}.`
+                  : "This post will be submitted as public-readable protocol content. Choose a group above to route it into a group feed."}
               </div>
               {groupOptionsError ? <div style={{ marginTop: 6 }}>{groupOptionsError}</div> : null}
             </div>
@@ -992,7 +1003,7 @@ export default function CreatePostPage(): JSX.Element {
             <div className="actionStateRow">
               <span className="actionStateLabel">Submission model</span>
               <span className="actionStateText">
-                Upload, media preparation, and publishing are separate steps. A submission can succeed before every read surface reflects the final result.
+                Upload, media preparation, and signed submission are separate steps. A submission can be recorded before every read surface reflects the final result.
               </span>
             </div>
 
@@ -1067,7 +1078,7 @@ export default function CreatePostPage(): JSX.Element {
                 <h2 className="cardTitle">Before you submit</h2>
               </div>
               <span className={`statusPill ${createdPostId ? "ok" : canPublish ? "ok" : ""}`}>
-                {createdPostId ? "Published" : signerBusyElsewhere ? "Waiting for another action" : canPublish ? "Ready to publish" : "Draft in progress"}
+                {createdPostId ? "Submitted" : signerBusyElsewhere ? "Waiting for another action" : canPublish ? "Ready to submit" : "Draft in progress"}
               </span>
             </div>
 
@@ -1177,7 +1188,7 @@ export default function CreatePostPage(): JSX.Element {
               </div>
               <div className="infoCardText">
                 Media durability is a storage signal, not a second publish button. Your post can be
-                created once the media reference is declared, while replication may still continue in
+                submitted once the media reference is declared, while replication may still continue in
                 the background.
               </div>
             </div>
@@ -1218,7 +1229,7 @@ export default function CreatePostPage(): JSX.Element {
             ) : null}
 
             {createdPostId ? (
-              <div className="buttonRow buttonRowWide">
+              <div className="buttonRow buttonRowWide" data-testid="post-submission-status-links">
                 <button
                   className="btn btnPrimary"
                   onClick={() => nav(`/thread/${encodeURIComponent(createdPostId)}`)}
@@ -1231,6 +1242,7 @@ export default function CreatePostPage(): JSX.Element {
                 >
                   Open content page
                 </button>
+                <button className="btn" onClick={() => nav("/transactions")}>Track in Transactions</button>
               </div>
             ) : null}
 

@@ -266,6 +266,37 @@ def _ensure_single_active_validator(state: Json, account: str) -> dict[str, Any]
     }
 
 
+
+
+def _seeded_demo_reviewer_account(account: str) -> str:
+    return f"@{_slug(account)}-reviewer"
+
+
+def _ensure_seeded_demo_reviewer_account(state: Json, reviewer: str) -> Json:
+    accounts = state.get("accounts")
+    if not isinstance(accounts, dict):
+        raise ApiError.bad_request("invalid_state", "accounts root missing")
+    acct = accounts.get(reviewer)
+    if not isinstance(acct, dict):
+        acct = {
+            "nonce": 0,
+            "poh_tier": 2,
+            "banned": False,
+            "locked": False,
+            "reputation": 10,
+            "keys": [],
+        }
+        accounts[reviewer] = acct
+    else:
+        acct.setdefault("nonce", 0)
+        acct["poh_tier"] = max(int(acct.get("poh_tier") or acct.get("tier") or 0), 2)
+        acct["banned"] = bool(acct.get("banned", False))
+        acct["locked"] = bool(acct.get("locked", False))
+        acct["reputation"] = acct.get("reputation", 10)
+        if "keys" not in acct:
+            acct["keys"] = []
+    return acct
+
 def _ensure_active_juror(state: Json, account: str) -> dict[str, Any]:
     """Seed real Juror authority for the local seeded-demo account.
 
@@ -333,7 +364,9 @@ def seed_demo_state(
         raise ApiError.bad_request("post_required", f"Demo post {post_id} not found")
 
     validator_summary = _ensure_single_active_validator(state, account)
-    juror_summary = _ensure_active_juror(state, account)
+    reviewer_account = _seeded_demo_reviewer_account(account)
+    _ensure_seeded_demo_reviewer_account(state, reviewer_account)
+    juror_summary = _ensure_active_juror(state, reviewer_account)
 
     params = state.setdefault("params", {})
     if not isinstance(params, dict):
@@ -404,12 +437,12 @@ def seed_demo_state(
 
     dispute_obj = _as_dict(_as_dict(state.get("disputes_by_id")).get(dispute_id))
     juror_assignments = _as_dict(dispute_obj.get("jurors"))
-    assigned = _as_dict(juror_assignments.get(account))
+    assigned = _as_dict(juror_assignments.get(reviewer_account))
     if not assigned:
         _apply_system_tx(
             state,
             tx_type="DISPUTE_JUROR_ASSIGN",
-            payload={"dispute_id": dispute_id, "juror": account},
+            payload={"dispute_id": dispute_id, "juror": reviewer_account},
             parent="demo_seed:juror_assign",
         )
     if str(dispute_obj.get("stage") or "").strip().lower() not in {"juror_review", "voting"}:
@@ -423,7 +456,7 @@ def seed_demo_state(
     final_group = _as_dict(_as_dict(_as_dict(state.get("roles")).get("groups_by_id")).get(group_id))
     final_proposal = _as_dict(_as_dict(state.get("gov_proposals_by_id")).get(proposal_id))
     final_dispute = _as_dict(_as_dict(state.get("disputes_by_id")).get(dispute_id))
-    final_juror = _as_dict(_as_dict(final_dispute.get("jurors")).get(account))
+    final_juror = _as_dict(_as_dict(final_dispute.get("jurors")).get(reviewer_account))
 
     return {
         "validator": validator_summary,
@@ -440,7 +473,7 @@ def seed_demo_state(
         "dispute": {
             "dispute_id": dispute_id,
             "stage": str(final_dispute.get("stage") or ""),
-            "juror": account,
+            "juror": reviewer_account,
             "juror_status": str(final_juror.get("status") or ""),
             "target_id": str(final_dispute.get("target_id") or ""),
         },

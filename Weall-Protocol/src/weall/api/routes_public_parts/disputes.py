@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
-from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _snapshot
+from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _read_json_limited, _snapshot
 from weall.api.security import require_account_session
 
 router = APIRouter()
@@ -223,7 +223,7 @@ def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
         elif choice:
             vote_counts["abstain"] += 1
 
-    juror_counts = {"assigned": 0, "accepted": 0, "declined": 0, "present": 0}
+    juror_counts = {"assigned": 0, "accepted": 0, "declined": 0, "present": 0, "withdrawn": 0, "timed_out": 0, "completed": 0}
     for _, record in sorted(jurors.items(), key=lambda item: str(item[0])):
         if not isinstance(record, dict):
             continue
@@ -283,6 +283,20 @@ def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "", st: di
         normalized["viewer_juror"] = viewer_juror
         normalized["current_juror"] = viewer_juror
         normalized["juror_self"] = viewer_juror
+        review_deadline = int(viewer_juror.get("vote_deadline_height") or 0)
+        normalized["canonical_deadlines"] = {
+            "accepted_at_height": int(viewer_juror.get("accepted_at_height") or viewer_juror.get("accepted_at_block_height") or 0),
+            "review_deadline_height": review_deadline,
+            "vote_deadline_height": review_deadline,
+            "safe_withdraw_until_height": int(viewer_juror.get("safe_withdraw_until_height") or 0),
+            "clock": "block_height",
+        }
+        normalized["reputation_warning"] = {
+            "text": "Accepting this dispute creates a 1-hour review obligation. Withdraw within 15 minutes with no reputation impact. Late withdrawal causes a small juror reliability penalty. Timeout causes a larger juror reliability penalty.",
+            "frontend_classifies_penalty": False,
+            "backend_source_of_truth": True,
+            "dimension": "juror_reputation",
+        }
     normalized["counts_total"] = {
         "jurors": len(jurors),
         "votes": len(votes),
@@ -353,6 +367,53 @@ def _dispute_obj_from_snapshot(st: dict[str, Any], dispute_id: str) -> dict[str,
     raise ApiError.not_found("not_found", "Dispute not found")
 
 
+
+def _status_for_viewer(obj: dict[str, Any], viewer: str) -> str:
+    return str(_viewer_juror_record(obj, viewer).get("status") or "unassigned").strip().lower() or "unassigned"
+
+
+def _dispute_ineligibility_reasons(st: dict[str, Any], obj: dict[str, Any], viewer: str) -> list[str]:
+    reasons: list[str] = []
+    if not viewer:
+        reasons.append("account_session_required")
+        return reasons
+    normalized = _normalize_dispute(obj)
+    if not _is_active_stage(str(normalized.get("stage") or "open")):
+        reasons.append("dispute_not_active")
+    opened_by = str(normalized.get("opened_by") or normalized.get("reporter") or "").strip()
+    if opened_by and _same_identity(viewer, opened_by):
+        reasons.append("reporter_or_opener_conflict")
+    target_owner = _resolved_target_owner(st, normalized)
+    if target_owner and _same_identity(viewer, target_owner):
+        reasons.append("target_owner_conflict")
+    accused = str(normalized.get("accused") or normalized.get("accused_account") or normalized.get("target_account") or "").strip()
+    if accused and _same_identity(viewer, accused):
+        reasons.append("accused_actor_conflict")
+    eligible = normalized.get("eligible_juror_ids")
+    if isinstance(eligible, list) and eligible:
+        if not any(_same_identity(viewer, item) for item in eligible):
+            reasons.append("not_in_canonical_eligible_juror_snapshot")
+    status = _status_for_viewer(normalized, viewer)
+    if status in {"accepted", "present", "attended", "completed"}:
+        reasons.append("already_current_assignment")
+    elif status in {"withdrawn", "timed_out", "declined"}:
+        reasons.append(f"assignment_{status}")
+    return sorted(set(reasons))
+
+
+def _dispute_tx_template(*, tx_type: str, signer: str, dispute_id: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    body = dict(payload or {})
+    body.setdefault("dispute_id", dispute_id)
+    return {
+        "tx_type": tx_type,
+        "signer": signer,
+        "payload": body,
+        "submit_path": "/v1/tx/submit",
+        "requires_client_signature": True,
+        "mutation_boundary": "template_only_no_state_mutation_until_signed_tx_finalizes",
+    }
+
+
 @router.get("/disputes")
 def v1_disputes_list(request: Request):
     st = _snapshot(request)
@@ -401,6 +462,125 @@ def v1_disputes_list(request: Request):
     if include_summary:
         payload["summary"] = {"total": len(by_id), "active": active_count, "resolved": resolved_count}
     return payload
+
+
+
+@router.get("/disputes/eligible")
+def v1_disputes_eligible(request: Request):
+    st = _snapshot(request)
+    viewer = str(require_account_session(request, st) or "").strip()
+    items: list[dict[str, Any]] = []
+    for _, obj in sorted(_disputes_by_id(st).items(), key=lambda item: str(item[0])):
+        if not isinstance(obj, dict):
+            continue
+        reasons = _dispute_ineligibility_reasons(st, obj, viewer)
+        if reasons:
+            continue
+        redacted = _redact_dispute_detail_for_viewer(obj, viewer=viewer, st=st)
+        redacted["eligibility"] = {"eligible": True, "reasons": ["eligible"], "backend_source_of_truth": True}
+        items.append(redacted)
+    items.sort(key=lambda x: (int(x.get("canonical_deadlines", {}).get("review_deadline_height") or 0), str(x.get("id") or "")))
+    return {"ok": True, "account_id": viewer, "items": items, "count": len(items)}
+
+
+@router.get("/disputes/current")
+def v1_disputes_current(request: Request):
+    st = _snapshot(request)
+    viewer = str(require_account_session(request, st) or "").strip()
+    items: list[dict[str, Any]] = []
+    for _, obj in sorted(_disputes_by_id(st).items(), key=lambda item: str(item[0])):
+        if not isinstance(obj, dict):
+            continue
+        status = _status_for_viewer(obj, viewer)
+        if status not in {"assigned", "accepted", "present", "attended", "completed"}:
+            continue
+        redacted = _redact_dispute_detail_for_viewer(obj, viewer=viewer, st=st)
+        deadlines = _as_dict(redacted.get("canonical_deadlines"))
+        redacted["assignment_status"] = status
+        redacted["next_action"] = "vote" if status in {"accepted", "present", "attended"} else ("accept_or_decline" if status == "assigned" else "completed")
+        redacted["backend_source_of_truth"] = True
+        redacted["deadline_sort_height"] = int(deadlines.get("review_deadline_height") or 0)
+        items.append(redacted)
+    items.sort(key=lambda x: (int(x.get("deadline_sort_height") or 0), str(x.get("id") or "")))
+    return {"ok": True, "account_id": viewer, "items": items, "count": len(items)}
+
+
+@router.post("/disputes/{dispute_id}/accept")
+def v1_dispute_accept(dispute_id: str, request: Request):
+    st = _snapshot(request)
+    viewer = str(require_account_session(request, st) or "").strip()
+    obj = _dispute_obj_from_snapshot(st, dispute_id)
+    reasons = _dispute_ineligibility_reasons(st, obj, viewer)
+    allowed = not reasons or reasons == ["already_current_assignment"]
+    return {
+        "ok": bool(allowed),
+        "account_id": viewer,
+        "dispute_id": dispute_id,
+        "eligible": bool(allowed),
+        "reasons": reasons or ["eligible"],
+        "warning": "Accepting this dispute creates a 1-hour review obligation. Withdraw within 15 minutes with no reputation impact. Late withdrawal causes a small juror reliability penalty. Timeout causes a larger juror reliability penalty.",
+        "deterministic_source": "signed_tx_submit",
+        "tx": _dispute_tx_template(tx_type="DISPUTE_JUROR_ACCEPT", signer=viewer, dispute_id=dispute_id),
+        "tx_template": _dispute_tx_template(tx_type="DISPUTE_JUROR_ACCEPT", signer=viewer, dispute_id=dispute_id),
+    }
+
+
+@router.post("/disputes/{dispute_id}/withdraw")
+def v1_dispute_withdraw(dispute_id: str, request: Request):
+    st = _snapshot(request)
+    viewer = str(require_account_session(request, st) or "").strip()
+    obj = _dispute_obj_from_snapshot(st, dispute_id)
+    status = _status_for_viewer(obj, viewer)
+    allowed = status in {"accepted", "present", "attended"}
+    return {
+        "ok": bool(allowed),
+        "account_id": viewer,
+        "dispute_id": dispute_id,
+        "eligible": bool(allowed),
+        "reasons": ["eligible"] if allowed else [f"status_{status}_cannot_withdraw"],
+        "backend_classifies_penalty": True,
+        "frontend_classifies_penalty": False,
+        "deterministic_source": "signed_tx_submit",
+        "tx": _dispute_tx_template(tx_type="DISPUTE_JUROR_WITHDRAW", signer=viewer, dispute_id=dispute_id),
+        "tx_template": _dispute_tx_template(tx_type="DISPUTE_JUROR_WITHDRAW", signer=viewer, dispute_id=dispute_id),
+    }
+
+
+@router.post("/disputes/{dispute_id}/vote")
+async def v1_dispute_vote(dispute_id: str, request: Request):
+    st = _snapshot(request)
+    viewer = str(require_account_session(request, st) or "").strip()
+    obj = _dispute_obj_from_snapshot(st, dispute_id)
+    status = _status_for_viewer(obj, viewer)
+    body = await _read_json_limited(request, max_bytes_env="WEALL_MAX_HTTP_DISPUTE_ACTION_BYTES", default_max_bytes=64 * 1024)
+    payload = body if isinstance(body, dict) else {}
+    payload.setdefault("dispute_id", dispute_id)
+    viewer_juror = _viewer_juror_record(obj, viewer)
+    attendance = viewer_juror.get("attendance") if isinstance(viewer_juror, dict) else None
+    attendance_present = (isinstance(attendance, dict) and bool(attendance.get("present", False))) or status in {"present", "attended"}
+    allowed = status in {"accepted", "present", "attended"} and attendance_present
+    if allowed:
+        reasons = ["eligible"]
+    elif status == "assigned":
+        reasons = ["acceptance_required", "attendance_required"]
+    elif status == "accepted" and not attendance_present:
+        reasons = ["attendance_required"]
+    else:
+        reasons = [f"status_{status}_cannot_vote"]
+    return {
+        "ok": bool(allowed),
+        "account_id": viewer,
+        "dispute_id": dispute_id,
+        "eligible": bool(allowed),
+        "reasons": reasons,
+        "requires_acceptance": bool(status == "assigned"),
+        "requires_attendance": bool(not attendance_present),
+        "backend_classifies_deadline": True,
+        "frontend_classifies_penalty": False,
+        "deterministic_source": "signed_tx_submit",
+        "tx": _dispute_tx_template(tx_type="DISPUTE_VOTE_SUBMIT", signer=viewer, dispute_id=dispute_id, payload=payload),
+        "tx_template": _dispute_tx_template(tx_type="DISPUTE_VOTE_SUBMIT", signer=viewer, dispute_id=dispute_id, payload=payload),
+    }
 
 
 @router.get("/disputes/{dispute_id}")

@@ -6,13 +6,13 @@ This document turns the current gaps into explicit engineering targets for revie
 
 ## Current safe claim
 
-WeAll has a working controlled local two-node/two-frontend rehearsal with native verification, posting, group activity, community review, encrypted direct-message bodies, and live-room diagnostics.
+WeAll has a working controlled local two-node/two-frontend rehearsal with native verification, posting, public group activity, community review, public activity notices, and live-room diagnostics.
 
 ## Claims that are not yet safe
 
 - Production/public multi-validator BFT readiness.
 - Public mainnet readiness.
-- Fully production-grade P2P encrypted messaging.
+- Protocol-native non-public social surfaces are unsupported by design.
 - Live tokenomics/economics.
 - A reproducible external tester path where every surface can be used as intended without founder intervention.
 
@@ -63,7 +63,7 @@ The local rehearsal becomes production-oriented only when every normal-user surf
 - Tier 2 live verification with truthful media diagnostics;
 - content create/report/review/remove/appeal;
 - group post, group feed, group report, group review;
-- encrypted direct-message body flow;
+- public activity-notification flow;
 - node switching and stale-node warnings;
 - no stale action toasts or completed work in active queues;
 - center content and side panels do not overlap at normal screen widths.
@@ -77,11 +77,11 @@ Local full pytest results are valuable, but reviewers need a reproducible comman
 - a short milestone document for what is proven versus intentionally deferred;
 - known limitation docs that do not overclaim.
 
-## Blocker 5 — production-ready P2P encrypted messaging
+## Blocker 5 — public-only communication posture
 
-Current messaging encrypts direct-message bodies client-side and rejects plaintext direct-message bodies/CIDs at the protocol layer. This is controlled-testnet hardened, not final production P2P private messaging.
+User-to-user communication tooling is outside protocol scope. Backend admission and replay reject non-public group read visibility and encrypted or opaque protocol payloads.
 
-Production P2P encrypted messaging remains blocked by:
+Public-only communication readiness requires:
 
 - no double-ratchet/forward secrecy;
 - metadata visibility;
@@ -92,7 +92,7 @@ Production P2P encrypted messaging remains blocked by:
 
 External-testnet-safe wording:
 
-> Direct-message bodies are client-side encrypted. Metadata remains visible. The current scheme is testnet-hardened E2EE v1, not final production private messaging.
+> WeAll is public-only. Group membership gates participation, not visibility.
 
 ## Batch 458-461 implementation pass
 
@@ -101,8 +101,8 @@ and API implementation:
 
 - block-production root evidence is available through a proof endpoint and local-only proof gate;
 - economics activation, transfer preview, and treasury lock status are visible to users/reviewers;
-- E2EE v1 now has local device backup/import/revocation controls and peer trust reset;
+- Public-only activity notices replace retired one-to-one surfaces;
 - live-room transport now supports browser-local TURN/ICE configuration and automatic polling.
 
 These changes improve production orientation but do not yet close public testnet,
-public economics, public BFT, or Signal-grade private messaging readiness.
+public economics, public BFT, or external communications readiness.

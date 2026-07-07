@@ -1,0 +1,159 @@
+{
+  "artifact": "b505_b509_mechanics_proof_v1_5",
+  "batches": {
+    "505": {
+      "artifact": "b505_bft_adversarial_proof_v1_5",
+      "equivocation_detected": true,
+      "equivocations": [
+        {
+          "first_block_id": "block-left",
+          "second_block_id": "block-right",
+          "signer": "validator-a",
+          "view": 11
+        }
+      ],
+      "leader": "validator-d",
+      "ok": true,
+      "partition": {
+        "partition_a_can_finalize": false,
+        "partition_a_votes": 2,
+        "partition_b_can_finalize": false,
+        "partition_b_votes": 2
+      },
+      "public_validator_enabled": false,
+      "quorum_threshold": 3,
+      "restart_rows": [
+        {
+          "attempt": 0,
+          "leader": "validator-d",
+          "threshold": 3,
+          "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1"
+        },
+        {
+          "attempt": 1,
+          "leader": "validator-d",
+          "threshold": 3,
+          "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1"
+        },
+        {
+          "attempt": 2,
+          "leader": "validator-d",
+          "threshold": 3,
+          "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1"
+        }
+      ],
+      "validator_count": 4,
+      "validator_set_hash": "6726c5db28e1d1dd041f7f34980c8eeede83f4843d0110324853f25c9f7ca8c1"
+    },
+    "506": {
+      "artifact": "b506_state_sync_adversarial_proof_v1_5",
+      "corrupt_snapshot_reason": "snapshot_hash_mismatch",
+      "corrupt_snapshot_rejected": true,
+      "good_snapshot_verified": true,
+      "invalid_anchor_rejected": true,
+      "ok": true,
+      "stale_anchor_reason": "trusted_anchor_mismatch",
+      "stale_anchor_rejected": true
+    },
+    "507": {
+      "mechanic": "challenge-driven reverification closes only after fresh successful PoH finalize",
+      "ok": true
+    },
+    "508": {
+      "mechanic": "appeal-panel votes derive final appeal resolution through DISPUTE_VOTE_SUBMIT",
+      "ok": true
+    },
+    "509": {
+      "applied": [
+        {
+          "result": {
+            "applied": true,
+            "proposal_id": "b509-vector-quorum"
+          },
+          "tx_type": "GOV_PROPOSAL_CREATE"
+        },
+        {
+          "result": {
+            "applied": true,
+            "proposal_id": "b509-vector-quorum"
+          },
+          "tx_type": "GOV_VOTE_CAST"
+        },
+        {
+          "result": {
+            "applied": true,
+            "proposal_id": "b509-vector-quorum"
+          },
+          "tx_type": "GOV_VOTING_CLOSE"
+        },
+        {
+          "result": {
+            "applied": true,
+            "proposal_id": "b509-vector-quorum"
+          },
+          "tx_type": "GOV_TALLY_PUBLISH"
+        },
+        {
+          "result": {
+            "applied": true,
+            "proposal_id": "b509-vector-quorum"
+          },
+          "tx_type": "GOV_EXECUTE"
+        },
+        {
+          "result": {
+            "applied": true,
+            "proposal_id": "b509-vector-quorum"
+          },
+          "tx_type": "GOV_PROPOSAL_FINALIZE"
+        },
+        {
+          "result": {
+            "account": "validator-b",
+            "applied": "VALIDATOR_SUSPEND",
+            "effective_epoch": 2,
+            "status": "suspended"
+          },
+          "tx_type": "VALIDATOR_SUSPEND"
+        },
+        {
+          "result": {
+            "applied": true
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        },
+        {
+          "result": {
+            "applied": true
+          },
+          "tx_type": "GOV_PROPOSAL_RECEIPT"
+        }
+      ],
+      "artifact": "b509_governance_execution_vectors_v1_5",
+      "emitted_h11": [
+        "GOV_VOTING_CLOSE",
+        "GOV_TALLY_PUBLISH",
+        "GOV_EXECUTE",
+        "GOV_PROPOSAL_FINALIZE"
+      ],
+      "emitted_h12": [
+        "VALIDATOR_SUSPEND",
+        "GOV_EXECUTION_RECEIPT",
+        "GOV_PROPOSAL_RECEIPT"
+      ],
+      "execution_receipt_count": 1,
+      "final_stage": "finalized",
+      "ok": true,
+      "proposal_id": "b509-vector-quorum",
+      "proposal_receipt_count": 1,
+      "validator_b_status": "suspended"
+    }
+  },
+  "ok": true,
+  "truth_boundaries": {
+    "automatic_protocol_upgrade_apply_enabled": false,
+    "live_economics_enabled": false,
+    "production_helper_execution_enabled": false,
+    "public_validators_enabled": false
+  }
+}

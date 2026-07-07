@@ -41,7 +41,7 @@ def _infer_lane_from_keys(keys: Iterable[str]) -> str:
             prefixes.add(IDENTITY_LANE)
         elif key.startswith(("content:", "index:")):
             prefixes.add(CONTENT_LANE)
-        elif key.startswith(("social:", "reputation:", "notifications:", "messaging:", "performance:")):
+        elif key.startswith(("social:", "reputation:", "notifications:", "performance:")):
             prefixes.add(SOCIAL_LANE)
         elif key.startswith(("gov:", "governance:", "roles:", "groups:", "dispute:", "cases:", "moderation:")):
             prefixes.add(GOVERNANCE_LANE)
@@ -150,11 +150,14 @@ def build_tx_access_set(tx: dict[str, Any]) -> TxAccessSet:
         "ROLE_JUROR_ENROLL",
         "ROLE_JUROR_REINSTATE",
         "ROLE_JUROR_SUSPEND",
+        "REVIEWER_LANE_OPT_IN",
+        "REVIEWER_LANE_OPT_OUT",
         "ROLE_NODE_OPERATOR_ACTIVATE",
         "ROLE_NODE_OPERATOR_ENROLL",
         "ROLE_NODE_OPERATOR_SUSPEND",
         "NODE_OPERATOR_STORAGE_OPT_IN",
         "NODE_OPERATOR_VALIDATOR_OPT_IN",
+        "NODE_OPERATOR_HELPER_OPT_IN",
         "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
         "VALIDATOR_READINESS_VERIFY",
         "ROLE_VALIDATOR_ACTIVATE",
