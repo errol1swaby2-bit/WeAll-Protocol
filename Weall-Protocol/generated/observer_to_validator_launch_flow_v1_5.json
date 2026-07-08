@@ -48,7 +48,7 @@
       "frontend_surface": "validator/operator page and node dashboard",
       "protocol_gate": "voluntary responsibility opt-in and readiness evidence",
       "route_or_tx": "responsibility opt-in tx/API paths",
-      "state_transition": "candidate readiness recorded; not manually activated",
+      "state_transition": "validator gates satisfied; authority deterministically activated",
       "tests": [
         "tests/prod/test_observer_cannot_enable_validator_signing.py"
       ]
@@ -56,7 +56,7 @@
     {
       "action": "activate validator set only at deterministic boundary",
       "actor": "protocol_state",
-      "current_role": "eligible validator candidates",
+      "current_role": "active validator authority after deterministic gates",
       "failure_code": "VALIDATOR_PROMOTION_THRESHOLD_NOT_MET or VALIDATOR_PROMOTION_PROTOCOL_STATE_BLOCKED",
       "frontend_surface": "validators page and readiness review",
       "protocol_gate": "consensus threshold, validator readiness, one-node-per-user and revocation rules",

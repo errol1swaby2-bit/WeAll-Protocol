@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "e612cd5b98f307494172d9ea3c3ed394cd13c537a58e2f6edb512a1999b0c1c5",
+  "artifact_digest": "1523de2c8dcc56dd19f2f38f67bcd5a2b0b959e7345c15a095fffe1526c913b0",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -147,7 +147,7 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "171366a6950d2c088ffadbfbba44af6deb8abf67c8f6ac90902598e80ef72c49",
+      "file_sha256": "efc6dbb5cef55fe80712c0d1de7021c6ded196d5100ef05bca9fee8b92115993",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -195,7 +195,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "92b8abf8ce5e74b516a1c66a6bb0b9f169ee09b818d25eb0d18c23bcdbc5e51b",
+      "file_sha256": "3f9874e8df87703a810288d43ca569d5d09e9bd4c6117efde75387939d394f63",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -321,6 +321,14 @@
       "present": true,
       "readiness_no_go_artifact": false,
       "schema": "weall.quantum_resistance_readiness.v1_5"
+    },
+    "generated/reputation_action_map_v1_5.json": {
+      "file_sha256": "a56912b6181ff34be400a8597da33ea59b96f3440b89ce5932fd2a56b9f9d7cc",
+      "ok": true,
+      "path": "generated/reputation_action_map_v1_5.json",
+      "present": true,
+      "readiness_no_go_artifact": false,
+      "schema": "weall.reputation_action_map.v1_5"
     },
     "generated/signature_profile_registry_v1_5.json": {
       "file_sha256": "27be3cb9948b5ff4d6e67f29d4e3b697a9d187e86dec4e65d80cfd39a2d79359",

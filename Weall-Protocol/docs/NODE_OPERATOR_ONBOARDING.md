@@ -81,3 +81,8 @@ This document is intentionally short to avoid maintaining two competing onboardi
 - Public API redaction is required for public snapshots and unauthenticated account reads.
 - Release safety requires tx canon artifact verification, secret guard, and release tree verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
+
+
+### Deterministic validator activation
+
+Validator candidacy is not a discretionary waiting room. Once the protocol proves Tier 2, unrestricted account status, registered node key, active baseline node-operator status, validator opt-in, verified validator readiness, matching node pubkey, and `VALIDATOR_REPUTATION_REQUIRED_MILLI = 3000`, the validator role is activated deterministically for that account/node pair. Missing gates remain explicit blockers; Tier 2 or opt-in alone never grants validator authority.

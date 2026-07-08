@@ -270,7 +270,7 @@ Storage responsibility is production-gated by challenge/response verification. D
 
 ## Validator live readiness check
 
-Validator responsibility requires a live readiness receipt generated from node-local checks. Use `scripts/validator_readiness_check.py generate` to bind account id, node pubkey, BFT pubkey, chain id, schema version, protocol version, manifest hash, tx index hash, runtime profile hash, required readiness checks, and expiry height into a deterministic `readiness_receipt_hash`. `VALIDATOR_READINESS_VERIFY` must carry that receipt; opt-in alone does not grant consensus authority.
+Validator responsibility requires a live readiness receipt generated from node-local checks. Use `scripts/validator_readiness_check.py generate` to bind account id, node pubkey, BFT pubkey, chain id, schema version, protocol version, manifest hash, tx index hash, runtime profile hash, required readiness checks, and expiry height into a deterministic `readiness_receipt_hash`. `VALIDATOR_READINESS_VERIFY` must carry that receipt; opt-in alone does not grant consensus authority. When the account is Tier 2, unrestricted, baseline node-operator active, opted into validator responsibility, bound to the registered node key, readiness verified, and at or above `VALIDATOR_REPUTATION_REQUIRED_MILLI = 3000`, validator authority is deterministically activated. There is no separate candidate limbo once all gates are satisfied.
 
 
 ## Fresh node-to-service E2E harness
@@ -289,4 +289,4 @@ To drive the user-transaction portion against a running local onboarding API, ru
 WEALL_FRESH_SERVICE_E2E_EXECUTE=1 ./scripts/fresh_node_to_service_e2e.sh
 ```
 
-This path still does not bypass system verification. Baseline Node Operator, storage responsibility, and validator responsibility must become active through protocol eligibility, capacity-probe verification, and validator-readiness verification before production service boot is authoritative.
+This path still does not bypass system verification. Baseline Node Operator, storage responsibility, and validator responsibility must become active through protocol eligibility, capacity-probe verification, and validator-readiness verification plus deterministic validator activation before validator service boot is authoritative.

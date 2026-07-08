@@ -6,6 +6,7 @@ import importlib.util
 import pytest
 
 from weall.api.routes_public_parts.accounts import build_operator_promotion_status
+from weall.runtime.node_operator_responsibilities import VALIDATOR_REPUTATION_REQUIRED_MILLI
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
 from weall.runtime.domain_apply import apply_tx
@@ -135,7 +136,7 @@ def test_validator_opt_in_account_signature_accepted_but_reputation_and_readines
     assert status["validator_opted_in"] is True
     assert status["validator_readiness_status"] == "pending"
     assert status["validator_reputation_actual_milli"] == 1000
-    assert status["validator_reputation_required_milli"] == 5000
+    assert status["validator_reputation_required_milli"] == VALIDATOR_REPUTATION_REQUIRED_MILLI
     assert status["validator_active"] is False
     assert status["validator_reboot_allowed"] is False
     assert "validator:validator_reputation_insufficient" in status["blocking_reasons"]

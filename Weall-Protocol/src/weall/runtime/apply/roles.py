@@ -13,6 +13,8 @@ from weall.runtime.validator_readiness_runner import (
 )
 from weall.runtime.reviewer_responsibilities import REVIEWER_LANES
 from weall.runtime.node_operator_responsibilities import (
+    HELPER_REPUTATION_REQUIRED_MILLI,
+    VALIDATOR_REPUTATION_REQUIRED_MILLI,
     active_node_pubkeys_for_account as responsibility_active_node_pubkeys_for_account,
     is_node_operator_active,
 )
@@ -307,7 +309,7 @@ def _ensure_node_operator_responsibilities(rec: Json) -> Json:
     validator.setdefault("opted_in", False)
     validator.setdefault("active", False)
     validator.setdefault("readiness_status", "not_requested")
-    validator.setdefault("reputation_required_milli", 5000)
+    validator.setdefault("reputation_required_milli", VALIDATOR_REPUTATION_REQUIRED_MILLI)
     responsibilities["validator"] = validator
     storage = responsibilities.get("storage")
     if not isinstance(storage, dict):
@@ -324,7 +326,7 @@ def _ensure_node_operator_responsibilities(rec: Json) -> Json:
         helper = {}
     helper.setdefault("opted_in", False)
     helper.setdefault("active", False)
-    helper.setdefault("reputation_required_milli", 2000)
+    helper.setdefault("reputation_required_milli", HELPER_REPUTATION_REQUIRED_MILLI)
     helper.setdefault("helper_capacity_units", 0)
     responsibilities["helper"] = helper
     return responsibilities
@@ -425,9 +427,9 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
     if not is_node_operator_active(ledger, acct):
         raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
 
-    reputation_required = _as_int(_payload_validator_field(payload, "reputation_required_milli", 5000), 5000)
+    reputation_required = _as_int(_payload_validator_field(payload, "reputation_required_milli", VALIDATOR_REPUTATION_REQUIRED_MILLI), VALIDATOR_REPUTATION_REQUIRED_MILLI)
     if reputation_required < 0:
-        reputation_required = 5000
+        reputation_required = VALIDATOR_REPUTATION_REQUIRED_MILLI
     reputation_actual = account_reputation_units(account, default=0)
     reputation_blocked = reputation_actual < reputation_required
 
@@ -463,6 +465,16 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
     if node_pubkey:
         validator["node_pubkey"] = node_pubkey
     responsibilities["validator"] = validator
+    # Recheck deterministic activation for replay/backfill cases where readiness
+    # was already verified and the opt-in is being refreshed. Missing gates remain
+    # explicit blockers in the responsibility record.
+    try_deterministic_validator_activation(
+        ledger,
+        acct,
+        node_pubkey=node_pubkey,
+        nonce=int(nonce),
+        source="validator_opt_in",
+    )
 
 
 def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
@@ -477,9 +489,9 @@ def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: s
     if not is_node_operator_active(ledger, acct):
         raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
 
-    reputation_required = _as_int(_payload_helper_field(payload, "reputation_required_milli", 2000), 2000)
+    reputation_required = _as_int(_payload_helper_field(payload, "reputation_required_milli", HELPER_REPUTATION_REQUIRED_MILLI), HELPER_REPUTATION_REQUIRED_MILLI)
     if reputation_required < 0:
-        reputation_required = 2000
+        reputation_required = HELPER_REPUTATION_REQUIRED_MILLI
     reputation_actual = account_reputation_units(account, default=0)
     if reputation_actual < reputation_required:
         raise RolesApplyError(
@@ -697,7 +709,19 @@ def _apply_validator_readiness_verify(ledger: Json, env: TxEnvelope) -> Json:
         validator.update({"active": False, "readiness_status": "failed", "readiness_failed_at_nonce": int(env.nonce), "readiness_failed_at_height": _as_int(ledger.get("height"), 0)})
     responsibilities["validator"] = validator
     by_id[acct] = rec
-    return {"applied": "VALIDATOR_READINESS_VERIFY", "account_id": acct, "verified": status in ("verified", "ready")}
+    activation = try_deterministic_validator_activation(
+        ledger,
+        acct,
+        node_pubkey=_as_str(validator.get("node_pubkey")),
+        nonce=int(env.nonce),
+        source="validator_readiness_verify",
+    )
+    return {
+        "applied": "VALIDATOR_READINESS_VERIFY",
+        "account_id": acct,
+        "verified": status in ("verified", "ready"),
+        "deterministic_validator_activation": activation,
+    }
 
 
 def _require_system_env(env: TxEnvelope) -> None:
@@ -1102,6 +1126,141 @@ def _apply_role_juror_reinstate(ledger: Json, env: TxEnvelope) -> Json:
 # ---------------------------------------------------------------------------
 
 
+def try_deterministic_validator_activation(
+    ledger: Json,
+    acct: str,
+    *,
+    node_pubkey: str = "",
+    nonce: int = 0,
+    source: str = "validator_eligibility_recheck",
+) -> Json:
+    """Activate validator authority iff all validator gates are already satisfied.
+
+    This is the canonical no-limbo transition: once a Tier 2 baseline node
+    operator has opted in, passed live readiness, met the validator reputation
+    threshold, and bound the readiness proof to the registered node key, the
+    chain records active validator authority deterministically. Missing gates
+    remain explicit blockers; there is no separate candidate holding state.
+    """
+
+    acct = _as_str(acct).strip()
+    reasons: list[str] = []
+    if not acct:
+        return {"activated": False, "blocking_reasons": ["missing_account_id"]}
+
+    accounts = _as_dict(ledger.get("accounts"))
+    account = _as_dict(accounts.get(acct))
+    if not account:
+        return {"activated": False, "account_id": acct, "blocking_reasons": ["account_not_found"]}
+    if bool(account.get("banned", False)) or bool(account.get("locked", False)):
+        reasons.append("account_restricted")
+    if effective_poh_tier(ledger, acct) < 2:
+        reasons.append("live_verification_required")
+    if _role_eligibility_revoked(ledger, acct, "validator"):
+        reasons.append("role_eligibility_revoked")
+    if not is_node_operator_active(ledger, acct):
+        reasons.append("baseline_node_operator_not_active")
+
+    roles = _ensure_roles(ledger)
+    ops = _as_dict(roles.get("node_operators"))
+    by_id = _as_dict(ops.get("by_id"))
+    op_rec = _as_dict(by_id.get(acct))
+    responsibilities = _ensure_node_operator_responsibilities(op_rec)
+    validator_resp = _as_dict(responsibilities.get("validator"))
+    if not bool(validator_resp.get("opted_in", False)):
+        reasons.append("validator_opt_in_not_recorded")
+
+    required = _as_int(validator_resp.get("reputation_required_milli"), VALIDATOR_REPUTATION_REQUIRED_MILLI)
+    if required < 0:
+        required = VALIDATOR_REPUTATION_REQUIRED_MILLI
+    actual = account_reputation_units(account, default=0)
+    validator_resp["reputation_required_milli"] = int(required)
+    validator_resp["reputation_actual_milli"] = int(actual)
+    validator_resp["reputation_blocked"] = bool(actual < required)
+    if actual < required:
+        reasons.append("validator_reputation_insufficient")
+
+    readiness = _as_str(validator_resp.get("readiness_status")).strip().lower()
+    if readiness not in {"verified", "ready", "active"}:
+        reasons.append("validator_readiness_pending")
+    expires_height = _as_int(validator_resp.get("readiness_expires_height"), 0)
+    current_height = _as_int(ledger.get("height"), 0)
+    if expires_height > 0 and current_height > expires_height:
+        reasons.append("validator_readiness_expired")
+
+    bound_node_pubkey = _as_str(node_pubkey or validator_resp.get("node_pubkey") or validator_resp.get("node_public_key")).strip()
+    if not bound_node_pubkey:
+        reasons.append("node_key_missing")
+    elif bound_node_pubkey not in _active_node_pubkeys_for_account(ledger, acct):
+        reasons.append("node_key_not_registered")
+
+    if reasons:
+        validator_resp["active"] = False
+        validator_resp["deterministic_activation_blocked"] = True
+        validator_resp["deterministic_activation_blocking_reasons"] = sorted(set(reasons))
+        responsibilities["validator"] = validator_resp
+        op_rec["responsibilities"] = responsibilities
+        by_id[acct] = op_rec
+        ops["by_id"] = by_id
+        roles["node_operators"] = ops
+        return {
+            "activated": False,
+            "account_id": acct,
+            "node_pubkey": bound_node_pubkey,
+            "reputation_required_milli": int(required),
+            "reputation_actual_milli": int(actual),
+            "blocking_reasons": sorted(set(reasons)),
+        }
+
+    validator_resp["active"] = True
+    validator_resp["readiness_status"] = "active"
+    validator_resp["deterministic_activation_blocked"] = False
+    validator_resp["deterministic_activation_blocking_reasons"] = []
+    validator_resp["deterministically_activated_at_nonce"] = int(nonce)
+    validator_resp["deterministic_activation_source"] = _as_str(source) or "validator_eligibility_recheck"
+    validator_resp["node_pubkey"] = bound_node_pubkey
+    responsibilities["validator"] = validator_resp
+    op_rec["responsibilities"] = responsibilities
+    by_id[acct] = op_rec
+    ops["by_id"] = by_id
+    roles["node_operators"] = ops
+
+    validators = roles.get("validators")
+    if not isinstance(validators, dict):
+        validators = {"active_set": [], "by_id": {}}
+    aset = validators.get("active_set")
+    if not isinstance(aset, list):
+        aset = []
+    had = acct in {str(x).strip() for x in aset if str(x).strip()}
+    validators["active_set"] = sorted({*(str(x).strip() for x in aset if str(x).strip()), acct})
+    v_by_id = validators.get("by_id")
+    if not isinstance(v_by_id, dict):
+        v_by_id = {}
+    v_rec = _touch(v_by_id, acct)
+    v_rec["active"] = True
+    v_rec["status"] = "active"
+    v_rec["node_pubkey"] = bound_node_pubkey
+    v_rec["readiness_receipt_hash"] = validator_resp.get("readiness_receipt_hash")
+    v_rec["activated_at_nonce"] = int(nonce)
+    v_rec["deterministic_activation"] = True
+    v_rec["activation_source"] = _as_str(source) or "validator_eligibility_recheck"
+    v_rec["activation_reason"] = "validator_eligibility_gates_satisfied"
+    v_rec["reputation_required_milli"] = int(required)
+    v_rec["reputation_actual_milli"] = int(actual)
+    v_by_id[acct] = v_rec
+    validators["by_id"] = v_by_id
+    roles["validators"] = validators
+    return {
+        "activated": True,
+        "account_id": acct,
+        "node_pubkey": bound_node_pubkey,
+        "deduped": bool(had),
+        "reputation_required_milli": int(required),
+        "reputation_actual_milli": int(actual),
+        "blocking_reasons": [],
+    }
+
+
 def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     roles = _ensure_roles(ledger)
@@ -1119,7 +1278,7 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
         ledger,
         acct,
         role="validator",
-        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "validator", 5000),
+        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "validator", VALIDATOR_REPUTATION_REQUIRED_MILLI),
     )
 
     if not is_node_operator_active(ledger, acct):
@@ -1130,7 +1289,7 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
     op_rec = _as_dict(by_id.get(acct))
     responsibilities = _as_dict(op_rec.get("responsibilities"))
     validator_resp = _as_dict(responsibilities.get("validator"))
-    if not bool(validator_resp.get("active", False)) or _as_str(validator_resp.get("readiness_status")).strip().lower() not in {"verified", "ready"}:
+    if not bool(validator_resp.get("active", False)) or _as_str(validator_resp.get("readiness_status")).strip().lower() not in {"verified", "ready", "active"}:
         raise RolesApplyError("forbidden", "validator_readiness_required", {"account_id": acct})
 
     expires_height = _as_int(validator_resp.get("readiness_expires_height"), 0)
@@ -1162,7 +1321,19 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
         rec["readiness_receipt_hash"] = validator_resp.get("readiness_receipt_hash")
         validators["by_id"][acct] = rec
     roles["validators"] = validators
-    return {"applied": "ROLE_VALIDATOR_ACTIVATE", "account_id": acct, "deduped": had}
+    activation = try_deterministic_validator_activation(
+        ledger,
+        acct,
+        node_pubkey=node_pubkey,
+        nonce=int(env.nonce),
+        source="role_validator_activate",
+    )
+    return {
+        "applied": "ROLE_VALIDATOR_ACTIVATE",
+        "account_id": acct,
+        "deduped": had,
+        "deterministic_validator_activation": activation,
+    }
 
 
 def _apply_role_validator_suspend(ledger: Json, env: TxEnvelope) -> Json:

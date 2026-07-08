@@ -10,6 +10,7 @@ from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.econ_phase import is_econ_unlocked, is_economic_system_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.param_policy import validate_param_blob
+from weall.runtime.phase_progression import canonical_list_root
 from weall.runtime.system_tx_engine import enqueue_system_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_schema import model_for_tx_type
@@ -453,6 +454,65 @@ def _proposal_eligible_validator_ids(state: Json, proposal: dict[str, Any], fall
 
     return _set_empty_electorate(proposal, reason="no_eligible_electorate")
 
+
+
+def _open_governance_phase_snapshot(state: Json, proposal: dict[str, Any], *, phase: str, height: int) -> list[str]:
+    """Open a deterministic phase eligibility snapshot.
+
+    Quorum denominators must not move during a phase.  This helper is called
+    only when a proposal is created or a system stage transition opens a new
+    phase.  It deliberately records the eligible list, count, quorum threshold,
+    root, and height so status surfaces do not reconstruct quorum from live
+    frontend/session state.
+    """
+
+    if _proposal_has_executable_actions(proposal) and _is_production_governance_state(state):
+        eligible = _configured_active_validator_ids(state)
+        source = "configured_validators"
+        if not eligible:
+            proposal["eligible_validator_ids"] = []
+            proposal["eligible_validator_count"] = 0
+            proposal["required_votes"] = 0
+            proposal["electorate_source"] = "configured_validators_required"
+            proposal["electorate_failure_reason"] = "executable_governance_requires_explicit_electorate"
+        else:
+            proposal.pop("electorate_failure_reason", None)
+    else:
+        eligible = _active_validator_ids(state)
+        source = "configured_or_inferred_validators"
+        if not eligible:
+            creator = _resolve_account_identity(state, proposal.get("creator"))
+            eligible = [creator] if creator else []
+            source = "creator_fallback" if eligible else "no_eligible_electorate"
+    eligible = _normalize_identity_list(state, eligible)
+    proposal["eligible_validator_ids"] = list(eligible)
+    proposal["eligible_validator_count"] = int(len(eligible))
+    proposal["required_votes"] = int(quorum_threshold(len(eligible))) if eligible else 0
+    proposal["electorate_source"] = source
+    if eligible:
+        proposal.pop("electorate_failure_reason", None)
+    phase_root = proposal.get("phase_progression")
+    if not isinstance(phase_root, dict):
+        phase_root = {}
+        proposal["phase_progression"] = phase_root
+    phase_key = _s(phase).strip().lower() or "draft"
+    phase_root[phase_key] = {
+        "flow_type": "governance",
+        "phase": phase_key,
+        "phase_open_height": int(height),
+        "eligible_snapshot_height": int(height),
+        "eligible_snapshot_root": canonical_list_root(eligible),
+        "eligible_count": int(len(eligible)),
+        "eligible_user_ids": list(eligible),
+        "quorum_policy_id": "phase_snapshot_hotstuff_threshold",
+        "quorum_required": int(proposal.get("required_votes") or 0),
+        "denominator_policy": "fixed_until_next_phase_open",
+        "source": source,
+    }
+    proposal["phase_open_height"] = int(height)
+    proposal["eligible_snapshot_height"] = int(height)
+    proposal["eligible_snapshot_root"] = canonical_list_root(eligible)
+    return eligible
 
 def _active_validator_vote_snapshot(votes: Any, active_validators: list[str]) -> tuple[dict[str, dict[str, Any]], int, int]:
     votes_d = votes if isinstance(votes, dict) else {}
@@ -1020,6 +1080,7 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
         "validation_opened_at_height": int(h) if start_stage == "validation" else 0,
         "voting_opened_at_height": int(h) if start_stage in {"voting", "vote"} else 0,
     }
+    _open_governance_phase_snapshot(state, root[proposal_id], phase=start_stage, height=int(h))
     return {"applied": True, "proposal_id": proposal_id}
 
 
@@ -1579,6 +1640,9 @@ def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
         if stage in {"voting", "vote"} and int(_i(pr.get("voting_opened_at_height"), 0)) <= 0:
             pr["voting_opened_at_height"] = h
             _freeze_current_proposal_version(pr, height=h)
+
+        if stage in {"poll", "revision", "validation", "voting", "vote"}:
+            _open_governance_phase_snapshot(state, pr, phase=stage, height=h)
 
         if "poll_tally" in p or "poll_total_votes" in p:
             pt = pr.get("poll_tallies")

@@ -47,6 +47,7 @@ _TRACKED_ARTIFACTS = [
     "generated/crypto_inventory_v1_5.json",
     "generated/signature_profile_registry_v1_5.json",
     "generated/quantum_resistance_readiness_v1_5.json",
+    "generated/reputation_action_map_v1_5.json",
 ]
 
 

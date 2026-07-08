@@ -5,9 +5,9 @@
     "consensus": 3,
     "content": 4,
     "demo_seed": 2,
-    "disputes": 8,
+    "disputes": 9,
     "economics": 5,
-    "gov": 3,
+    "gov": 5,
     "groups": 9,
     "health": 3,
     "helper_readiness": 1,
@@ -19,7 +19,7 @@
     "net_self": 1,
     "nodes": 4,
     "poh": 36,
-    "reputation": 7,
+    "reputation": 10,
     "reviewer_artifacts": 3,
     "session": 3,
     "social": 2,
@@ -38,7 +38,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 146,
+  "route_count": 152,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -56,7 +56,7 @@
       "route_id": "ba60b12a012e2c60",
       "route_path_without_v1_prefix": "/accounts/tx/profile-update",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 280,
+      "source_lineno": 281,
       "summary": "",
       "tags": [
         "accounts"
@@ -78,7 +78,7 @@
       "route_id": "d97016cc48d59435",
       "route_path_without_v1_prefix": "/accounts/tx/register",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 253,
+      "source_lineno": 254,
       "summary": "",
       "tags": [
         "accounts"
@@ -100,7 +100,7 @@
       "route_id": "5fa4f1cc935c6937",
       "route_path_without_v1_prefix": "/accounts/{account}",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 343,
+      "source_lineno": 344,
       "summary": "",
       "tags": [
         "accounts"
@@ -122,7 +122,7 @@
       "route_id": "137ab4909a8e8e1b",
       "route_path_without_v1_prefix": "/accounts/{account}/feed",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 724,
+      "source_lineno": 731,
       "summary": "",
       "tags": [
         "accounts"
@@ -166,7 +166,7 @@
       "route_id": "15bf80fc74c4aa86",
       "route_path_without_v1_prefix": "/accounts/{account}/operator-promotion-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 700,
+      "source_lineno": 707,
       "summary": "",
       "tags": [
         "accounts"
@@ -188,7 +188,7 @@
       "route_id": "ed5ad93f1eccd6af",
       "route_path_without_v1_prefix": "/accounts/{account}/operator-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 684,
+      "source_lineno": 691,
       "summary": "",
       "tags": [
         "accounts"
@@ -210,7 +210,7 @@
       "route_id": "b555c287281dbb93",
       "route_path_without_v1_prefix": "/accounts/{account}/profile",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 305,
+      "source_lineno": 306,
       "summary": "",
       "tags": [
         "accounts"
@@ -232,10 +232,54 @@
       "route_id": "85bb5981c233da2a",
       "route_path_without_v1_prefix": "/accounts/{account}/registered",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 373,
+      "source_lineno": 374,
       "summary": "",
       "tags": [
         "accounts"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_account_reputation_progression_status",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "reputation",
+      "path": "/v1/accounts/{account}/reputation-progression-status",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "5fb6693e951e283b",
+      "route_path_without_v1_prefix": "/accounts/{account}/reputation-progression-status",
+      "source": "src/weall/api/routes_public_parts/reputation.py",
+      "source_lineno": 143,
+      "summary": "",
+      "tags": [
+        "reputation"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_account_reputation_status",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "reputation",
+      "path": "/v1/accounts/{account}/reputation-status",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "e2639ce67dc231ad",
+      "route_path_without_v1_prefix": "/accounts/{account}/reputation-status",
+      "source": "src/weall/api/routes_public_parts/reputation.py",
+      "source_lineno": 137,
+      "summary": "",
+      "tags": [
+        "reputation"
       ],
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
@@ -254,7 +298,7 @@
       "route_id": "12b760a4427dc453",
       "route_path_without_v1_prefix": "/accounts/{account}/reviewer-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 405,
+      "source_lineno": 406,
       "summary": "",
       "tags": [
         "accounts"
@@ -562,7 +606,7 @@
       "route_id": "0ca13142ef0583a9",
       "route_path_without_v1_prefix": "/disputes",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 418,
+      "source_lineno": 419,
       "summary": "",
       "tags": [
         "disputes"
@@ -584,7 +628,7 @@
       "route_id": "b5d4205c4c827d9b",
       "route_path_without_v1_prefix": "/disputes/current",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 487,
+      "source_lineno": 488,
       "summary": "",
       "tags": [
         "disputes"
@@ -606,7 +650,7 @@
       "route_id": "8490e847698c6a7e",
       "route_path_without_v1_prefix": "/disputes/eligible",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 469,
+      "source_lineno": 470,
       "summary": "",
       "tags": [
         "disputes"
@@ -628,7 +672,7 @@
       "route_id": "6b48e858f7dbe6e5",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 587,
+      "source_lineno": 588,
       "summary": "",
       "tags": [
         "disputes"
@@ -650,7 +694,29 @@
       "route_id": "938e25efe2ccbe14",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/accept",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 509,
+      "source_lineno": 510,
+      "summary": "",
+      "tags": [
+        "disputes"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_dispute_phase_status",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "disputes",
+      "path": "/v1/disputes/{dispute_id}/phase-status",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "a3d45b8e8417f3ac",
+      "route_path_without_v1_prefix": "/disputes/{dispute_id}/phase-status",
+      "source": "src/weall/api/routes_public_parts/disputes.py",
+      "source_lineno": 615,
       "summary": "",
       "tags": [
         "disputes"
@@ -672,7 +738,7 @@
       "route_id": "178aa3a76252c0d2",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/vote",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 550,
+      "source_lineno": 551,
       "summary": "",
       "tags": [
         "disputes"
@@ -694,7 +760,7 @@
       "route_id": "4828eba89b7123a6",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/votes",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 595,
+      "source_lineno": 596,
       "summary": "",
       "tags": [
         "disputes"
@@ -716,7 +782,7 @@
       "route_id": "5185458f5b421f35",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/withdraw",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 529,
+      "source_lineno": 530,
       "summary": "",
       "tags": [
         "disputes"
@@ -870,7 +936,7 @@
       "route_id": "1eec389b413aab53",
       "route_path_without_v1_prefix": "/gov/proposals",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 184,
+      "source_lineno": 185,
       "summary": "",
       "tags": [
         "gov"
@@ -892,7 +958,29 @@
       "route_id": "7427dc23f58b8cde",
       "route_path_without_v1_prefix": "/gov/proposals/{proposal_id}",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 233,
+      "source_lineno": 234,
+      "summary": "",
+      "tags": [
+        "gov"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_gov_proposal_phase_status",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "gov",
+      "path": "/v1/gov/proposals/{proposal_id}/phase-status",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "b8a5c050c65afbec",
+      "route_path_without_v1_prefix": "/gov/proposals/{proposal_id}/phase-status",
+      "source": "src/weall/api/routes_public_parts/gov.py",
+      "source_lineno": 279,
       "summary": "",
       "tags": [
         "gov"
@@ -914,7 +1002,29 @@
       "route_id": "a28871e53aca2859",
       "route_path_without_v1_prefix": "/gov/proposals/{proposal_id}/votes",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 246,
+      "source_lineno": 247,
+      "summary": "",
+      "tags": [
+        "gov"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_governance_phase_status_alias",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "gov",
+      "path": "/v1/governance/{proposal_id}/phase-status",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "d958ff8bfc7fc97e",
+      "route_path_without_v1_prefix": "/governance/{proposal_id}/phase-status",
+      "source": "src/weall/api/routes_public_parts/gov.py",
+      "source_lineno": 286,
       "summary": "",
       "tags": [
         "gov"
@@ -2465,6 +2575,28 @@
       "auth": "public_read_redacted_snapshot",
       "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_reputation_action_map",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "reputation",
+      "path": "/v1/reputation/action-map",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "6f8fcffa8b364520",
+      "route_path_without_v1_prefix": "/reputation/action-map",
+      "source": "src/weall/api/routes_public_parts/reputation.py",
+      "source_lineno": 63,
+      "summary": "",
+      "tags": [
+        "reputation"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "function": "v1_reputation_event_codes",
       "idempotency": "safe_read_no_state_mutation",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
@@ -2476,7 +2608,7 @@
       "route_id": "9cb966b03f226b43",
       "route_path_without_v1_prefix": "/reputation/event-codes",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 46,
+      "source_lineno": 47,
       "summary": "",
       "tags": [
         "reputation"
@@ -2498,7 +2630,7 @@
       "route_id": "89c2fc41773a0991",
       "route_path_without_v1_prefix": "/reputation/me",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 35,
+      "source_lineno": 36,
       "summary": "",
       "tags": [
         "reputation"
@@ -2520,7 +2652,7 @@
       "route_id": "7c857dd088932baa",
       "route_path_without_v1_prefix": "/reputation/{account}",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 62,
+      "source_lineno": 75,
       "summary": "",
       "tags": [
         "reputation"
@@ -2542,7 +2674,7 @@
       "route_id": "a0481e9fcccdcda8",
       "route_path_without_v1_prefix": "/reputation/{account}/eligibility",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 86,
+      "source_lineno": 99,
       "summary": "",
       "tags": [
         "reputation"
@@ -2564,7 +2696,7 @@
       "route_id": "07458def0b2ed72f",
       "route_path_without_v1_prefix": "/reputation/{account}/events",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 100,
+      "source_lineno": 113,
       "summary": "",
       "tags": [
         "reputation"
@@ -2586,7 +2718,7 @@
       "route_id": "adef3e6feb1e97da",
       "route_path_without_v1_prefix": "/reputation/{account}/matrix",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 77,
+      "source_lineno": 90,
       "summary": "",
       "tags": [
         "reputation"
@@ -2608,7 +2740,7 @@
       "route_id": "6d8522c10c4fd74f",
       "route_path_without_v1_prefix": "/reputation/{account}/summary",
       "source": "src/weall/api/routes_public_parts/reputation.py",
-      "source_lineno": 68,
+      "source_lineno": 81,
       "summary": "",
       "tags": [
         "reputation"

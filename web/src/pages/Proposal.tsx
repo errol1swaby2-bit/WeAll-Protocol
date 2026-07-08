@@ -267,6 +267,7 @@ export default function Proposal({ id }: Props): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const [proposal, setProposal] = useState<any | null>(null);
   const [proposalVotes, setProposalVotes] = useState<any | null>(null);
+  const [phaseStatus, setPhaseStatus] = useState<any | null>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
 
   const [acctState, setAcctState] = useState<any | null>(null);
@@ -290,16 +291,18 @@ export default function Proposal({ id }: Props): JSX.Element {
   async function load(): Promise<void> {
     setErr(null);
     try {
-      const [r, vr] = await Promise.all([weall.proposal(id, base), weall.proposalVotes(id, base)]);
+      const [r, vr, ps] = await Promise.all([weall.proposal(id, base), weall.proposalVotes(id, base), weall.proposalPhaseStatus(id, base)]);
       const p = normalizeGovernanceProposal((r as any)?.proposal || r || null);
       setProposal(p);
       setProposalVotes(vr);
+      setPhaseStatus(ps || null);
       setEditTitle(String(p?.title || ""));
       setEditBody(String(p?.body || ""));
     } catch (e: any) {
       setErr(prettyErr(e));
       setProposal(null);
       setProposalVotes(null);
+      setPhaseStatus(null);
     }
   }
 
@@ -335,6 +338,18 @@ export default function Proposal({ id }: Props): JSX.Element {
   });
   const title = String(proposal?.title || pid || "(decision)");
   const stage = governanceProposalStageOf(proposal);
+  const phaseTruth = phaseStatus || {};
+  const quorumRequired = Number(phaseTruth.quorum_required || 0);
+  const quorumParticipation = Number(phaseTruth.participation_count || 0);
+  const quorumEligible = Number(phaseTruth.eligible_count || 0);
+  const quorumProgressLabel = `Quorum progress: ${quorumParticipation} / ${quorumRequired || quorumEligible || 0} eligible participants`;
+  const phaseTransitionLabel = phaseTruth.transition_reason === "quorum"
+    ? "Phase advanced by quorum"
+    : phaseTruth.transition_reason === "block_height"
+      ? "Phase advanced by block-height deadline"
+      : phaseTruth.transition_reason === "block_height_and_quorum"
+        ? "Phase advanced by quorum and block-height deadline"
+        : "Ends at block height or when quorum is reached";
 
   const gate = checkGates({
     loggedIn: !!acct,
@@ -550,6 +565,7 @@ export default function Proposal({ id }: Props): JSX.Element {
               <div className="heroInfoList">
                 <span className={stageBadgeClass(stage)}>{stage}</span>
                 <span className="statusPill">Votes {hasProposalOptions ? activeOptionCounts.total : activeCount.total}</span>
+                <span className={`statusPill ${phaseTruth.quorum_reached ? "ok" : ""}`}>{quorumProgressLabel}</span>
                 <span className={`statusPill ${stage === "executed" || stage === "finalized" ? "ok" : upgradeRecordOnlyBoundary ? "warn" : ""}`}>{executionState}</span>
                 <span className={`statusPill ${gate.ok ? "ok" : ""}`}>
                   {gate.ok ? "Trusted Verified Person" : "Live verification required"}
@@ -596,15 +612,17 @@ export default function Proposal({ id }: Props): JSX.Element {
       <section className="surfaceBoundaryBar" aria-label="Governance rendered journey boundary">
         <div className="surfaceBoundaryHeader">
           <div>
-            <h2 className="surfaceBoundaryTitle">Governance stage ladder is block-height based.</h2>
+            <h2 className="surfaceBoundaryTitle">Governance stage ladder uses block height or quorum.</h2>
             <p className="surfaceBoundaryText">
-              Canonical stage ladder: {governanceStageLadderText()}. Wall-clock times are display estimates only; backend block height and transaction status decide eligibility, execution, and finalization.
+              Canonical stage ladder: {governanceStageLadderText()}. {phaseTransitionLabel}. Backend phase-status is the source of truth; online users are not a quorum denominator.
             </p>
           </div>
-          <span className="statusPill">Block-height authority</span>
+          <span className="statusPill">Block-height + phase snapshot quorum authority</span>
         </div>
         <div className="surfaceBoundaryList">
           <span className="surfaceBoundaryTag">multi-option voting uses canonical option IDs</span>
+          <span className="surfaceBoundaryTag">{phaseTransitionLabel}</span>
+          <span className="surfaceBoundaryTag">phase-open eligible snapshot stays fixed</span>
           <span className="surfaceBoundaryTag">execution requires backend state</span>
           <span className="surfaceBoundaryTag">upgrade actions remain record-only</span>
           <span className="surfaceBoundaryTag">transactions page confirms status</span>

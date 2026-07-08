@@ -8,6 +8,7 @@ from fastapi import APIRouter, Request
 from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _read_json_limited, _snapshot
 from weall.api.security import require_account_session
+from weall.runtime.phase_progression import dispute_phase_status
 
 router = APIRouter()
 
@@ -608,3 +609,10 @@ def v1_dispute_votes(dispute_id: str, request: Request):
         "next_cursor": next_cursor,
         "counts_total": {"votes": len(votes_all), "returned_votes": len(votes)},
     }
+
+
+@router.get("/disputes/{dispute_id}/phase-status")
+def v1_dispute_phase_status(dispute_id: str, request: Request):
+    st = _snapshot(request)
+    obj = _dispute_obj_from_snapshot(st, dispute_id)
+    return dispute_phase_status(st, obj, dispute_id)

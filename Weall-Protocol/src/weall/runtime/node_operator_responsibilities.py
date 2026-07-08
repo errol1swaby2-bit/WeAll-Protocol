@@ -14,6 +14,9 @@ from weall.runtime.storage_revalidation_scheduler import (
 
 Json = dict[str, Any]
 
+VALIDATOR_REPUTATION_REQUIRED_MILLI = 3000
+HELPER_REPUTATION_REQUIRED_MILLI = 2000
+
 
 @dataclass(frozen=True, slots=True)
 class ResponsibilityEvaluation:
@@ -314,7 +317,7 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
     rec = responsibility_record(state, account_id, "validator")
     opted_in = bool(rec.get("opted_in", False))
     active_flag = bool(rec.get("active", False))
-    required = _as_int(rec.get("reputation_required_milli"), 5000)
+    required = _as_int(rec.get("reputation_required_milli"), VALIDATOR_REPUTATION_REQUIRED_MILLI)
     actual = account_reputation_units(account, default=0)
     readiness = _as_str(rec.get("readiness_status")) or "not_requested"
     readiness_expires = _as_int(rec.get("readiness_expires_height"), 0)
@@ -371,7 +374,7 @@ def evaluate_helper_responsibility(state: Mapping[str, Any], account_id: str, *,
     rec = responsibility_record(state, account_id, "helper")
     opted_in = bool(rec.get("opted_in", False))
     active_flag = bool(rec.get("active", False))
-    required = _as_int(rec.get("reputation_required_milli"), 2000)
+    required = _as_int(rec.get("reputation_required_milli"), HELPER_REPUTATION_REQUIRED_MILLI)
     actual = account_reputation_units(account, default=0)
     details: Json = {
         "account_id": account_id,

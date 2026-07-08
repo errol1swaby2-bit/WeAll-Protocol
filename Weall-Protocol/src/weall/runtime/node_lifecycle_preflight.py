@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from weall.runtime.reputation_units import account_reputation_units
-from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
+from weall.runtime.node_operator_responsibilities import (
+    VALIDATOR_REPUTATION_REQUIRED_MILLI,
+    evaluate_node_operator_responsibilities,
+)
 
 Json = dict[str, Any]
 
@@ -192,7 +195,7 @@ def _required_reputation_milli(requested_roles: tuple[str, ...]) -> int:
         except Exception:
             return 0
     if "validator" in requested_roles:
-        return 5000
+        return VALIDATOR_REPUTATION_REQUIRED_MILLI
     if "storage_operator" in requested_roles:
         return 1000
     if "helper" in requested_roles:

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _snapshot
+from weall.runtime.phase_progression import governance_phase_status
 
 router = APIRouter()
 
@@ -272,3 +273,15 @@ def v1_gov_proposal_votes(proposal_id: str, request: Request):
         "poll_next_cursor": poll_next_cursor,
         "counts_total": {"poll_votes": len(poll_votes_all), "votes": len(votes_all), "returned_votes": len(votes), "returned_poll_votes": len(poll_votes)},
     }
+
+
+@router.get("/gov/proposals/{proposal_id}/phase-status")
+def v1_gov_proposal_phase_status(proposal_id: str, request: Request):
+    st = _snapshot(request)
+    obj = _proposal_obj_from_snapshot(st, proposal_id)
+    return governance_phase_status(st, obj, proposal_id)
+
+
+@router.get("/governance/{proposal_id}/phase-status")
+def v1_governance_phase_status_alias(proposal_id: str, request: Request):
+    return v1_gov_proposal_phase_status(proposal_id, request)

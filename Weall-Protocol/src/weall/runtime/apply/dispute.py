@@ -21,6 +21,7 @@ from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.reviewer_responsibilities import DISPUTE_REVIEW_LANE, eligible_reviewer_ids, reviewer_lane_active
 from weall.runtime.reputation_events import append_reputation_event
+from weall.runtime.phase_progression import canonical_list_root
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
@@ -335,12 +336,13 @@ def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str
     # Dispute review is a human-review responsibility. Validators, content
     # authors, reporters, or fallback signers never inherit this duty unless
     # they explicitly hold an active Juror/reviewer lane.
-    snap = _filter_active_dispute_reviewers(
-        state,
-        [_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))],
-        dispute,
-    )
+    raw_snapshot = [_resolve_account_identity(state, item) for item in _normalized_str_list(dispute.get("eligible_juror_ids"))]
+    snap = _normalized_str_list(raw_snapshot)
     if snap:
+        # Existing eligible_juror_ids are a phase-open quorum snapshot.  Do not
+        # re-filter the list against current active/online/restricted status on
+        # every read or vote, because that would silently move the denominator
+        # during the phase.  New phase openings recompute this list explicitly.
         dispute["eligible_juror_ids"] = list(snap)
         dispute["eligible_validator_count"] = int(len(snap))
         dispute["required_votes"] = int(quorum_threshold(len(snap))) if snap else 0
@@ -377,6 +379,43 @@ def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str
     dispute["required_votes"] = 0
     return []
 
+
+
+def _record_dispute_phase_snapshot(state: Json, dispute: Json, *, phase: str, height: int, eligible_jurors: list[str] | None = None) -> list[str]:
+    """Record the deterministic dispute quorum denominator for a phase.
+
+    The snapshot is intentionally fixed until a later explicit stage opening.
+    It excludes inactive/unrestricted reviewer candidates at snapshot time, but
+    does not shrink in response to later online status or role changes.
+    """
+
+    eligible = _normalized_str_list(eligible_jurors if eligible_jurors is not None else dispute.get("eligible_juror_ids"))
+    if not eligible:
+        eligible = _filter_active_dispute_reviewers(state, eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE), dispute)
+    eligible = _normalized_str_list([_resolve_account_identity(state, item) for item in eligible])
+    dispute["eligible_juror_ids"] = list(eligible)
+    dispute["eligible_validator_count"] = int(len(eligible))
+    dispute["required_votes"] = int(quorum_threshold(len(eligible))) if eligible else 0
+    phase_root = dispute.get("phase_progression")
+    if not isinstance(phase_root, dict):
+        phase_root = {}
+        dispute["phase_progression"] = phase_root
+    phase_key = _as_str(phase).strip().lower() or "open"
+    phase_root[phase_key] = {
+        "flow_type": "dispute",
+        "phase": phase_key,
+        "phase_open_height": int(height),
+        "eligible_snapshot_height": int(height),
+        "eligible_snapshot_root": canonical_list_root(eligible),
+        "eligible_count": int(len(eligible)),
+        "eligible_user_ids": list(eligible),
+        "quorum_policy_id": "phase_snapshot_dispute_reviewer_threshold",
+        "quorum_required": int(dispute.get("required_votes") or 0),
+        "denominator_policy": "fixed_until_next_phase_open",
+    }
+    dispute["eligible_snapshot_height"] = int(height)
+    dispute["eligible_snapshot_root"] = canonical_list_root(eligible)
+    return eligible
 
 def _active_validator_vote_snapshot(state: Json, votes: Any, eligible_override: list[str] | None = None) -> tuple[dict[str, dict[str, Any]], int, int]:
     votes_d = votes if isinstance(votes, dict) else {}
@@ -1012,6 +1051,7 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
     disputes[dispute_id]["eligible_juror_ids"] = list(eligible_jurors)
     disputes[dispute_id]["eligible_validator_count"] = int(len(eligible_jurors))
     disputes[dispute_id]["required_votes"] = int(quorum_threshold(len(eligible_jurors))) if eligible_jurors else 0
+    _record_dispute_phase_snapshot(state, disputes[dispute_id], phase="open", height=int(opened_h), eligible_jurors=eligible_jurors)
     _index_dispute_target(state, disputes[dispute_id])
     return {"applied": "DISPUTE_OPEN", "dispute_id": dispute_id}
 
@@ -1029,6 +1069,8 @@ def _apply_dispute_stage_set(state: Json, env: TxEnvelope) -> Json:
     d["stage"] = stage
     d["stage_set_at_nonce"] = int(env.nonce)
     d["stage_set_at_height"] = int(_current_height(state))
+    if stage.strip().lower() in {"open", "juror_review", "voting", "appeal_window", "appealed", "appeal_review"}:
+        _record_dispute_phase_snapshot(state, d, phase=stage, height=int(_current_height(state)), eligible_jurors=None)
     return {"applied": "DISPUTE_STAGE_SET", "dispute_id": dispute_id, "stage": stage}
 
 
@@ -1120,6 +1162,7 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
         d["stage"] = "juror_review"
         d["stage_set_at_nonce"] = int(env.nonce)
         d["stage_set_at_height"] = int(now_h)
+        _record_dispute_phase_snapshot(state, d, phase="juror_review", height=int(now_h), eligible_jurors=d.get("eligible_juror_ids"))
     return {"applied": "DISPUTE_JUROR_ASSIGN", "dispute_id": dispute_id, "juror": juror_key}
 
 

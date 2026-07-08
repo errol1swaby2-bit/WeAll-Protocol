@@ -202,8 +202,8 @@ The first and second external observers use the same open-download path. The sec
 1. Clone, install, and boot with `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh`.
 2. Confirm `/v1/nodes/seeds`, `/v1/nodes/validators`, and `/v1/chain/identity` match the pinned public-testnet commitments.
 3. Submit only allowed observer/account onboarding transactions through the local observer edge. The observer edge must forward to an explicit upstream or a verified seed/validator upstream; if none is available, it must return `PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM` instead of claiming propagation success.
-4. Complete PoH, Tier 2, node/operator, and validator-candidate readiness through protocol transactions and review flows. Local env flags, seed registry hints, frontend node selection, NAT relay delivery, or operator scripts cannot grant validator authority.
-5. Reboot as a validator only after protocol state already makes the account/node an effective validator candidate and the promoted-validator preflight passes. Persisted local state may preserve a valid role after reboot, but it must not create the role.
+4. Complete PoH, Tier 2, node/operator, and validator readiness through protocol transactions and review flows. Local env flags, seed registry hints, frontend node selection, NAT relay delivery, or operator scripts cannot grant validator authority.
+5. Reboot as a validator only after protocol state already makes the account/node an active validator authority and the promoted-validator preflight confirms active validator authority. Persisted local state may preserve a valid role after reboot, but it must not create the role.
 
 This makes the first observer a normal protocol participant, not a privileged founder-controlled account. The second observer should discover the existing verified seed or verified validator endpoints through the same signed registry and endpoint-advertisement path, then follow the same protocol-gated promotion path.
 

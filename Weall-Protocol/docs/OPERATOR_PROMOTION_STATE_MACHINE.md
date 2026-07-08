@@ -78,7 +78,7 @@ Authority and payload:
 
 Accepted opt-in is not validator authority. If the signature and canonical payload are valid but readiness or reputation is insufficient, the chain records opt-in and reports explicit blockers such as `validator_readiness_pending` or `validator_reputation_insufficient`. It must not surface this as `bad_sig`.
 
-Validator authority requires readiness verification, reputation threshold satisfaction, and a canonical activation such as `ROLE_VALIDATOR_ACTIVATE` for the matching registered node key.
+Validator authority is deterministically activated when all validator gates are satisfied for the matching registered node key: Tier 2, unrestricted account, baseline node-operator active, validator opt-in recorded, validator readiness verified, and validator reputation at or above the single threshold. There is no separate validator-candidate holding state. `ROLE_VALIDATOR_ACTIVATE` remains a canonical/system recheck path, but it must enforce the same deterministic gates and must not be discretionary.
 
 ## F. Storage responsibility opt-in
 

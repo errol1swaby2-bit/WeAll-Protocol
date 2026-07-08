@@ -202,7 +202,7 @@
       "http_status": 400,
       "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 750
+      "source_lineno": 757
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -382,7 +382,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1621
+      "source_lineno": 1792
     },
     {
       "code": "bad_request",
@@ -391,7 +391,7 @@
       "http_status": 400,
       "sample_reason": "missing account_id",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 265
+      "source_lineno": 266
     },
     {
       "code": "bad_request",
@@ -544,7 +544,7 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 927
+      "source_lineno": 987
     },
     {
       "code": "conflict",
@@ -616,7 +616,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 977
+      "source_lineno": 1016
     },
     {
       "code": "duplicate",
@@ -625,7 +625,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1554
+      "source_lineno": 1725
     },
     {
       "code": "executor_missing",
@@ -679,7 +679,7 @@
       "http_status": null,
       "sample_reason": "invalid_stage_transition",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 729
+      "source_lineno": 789
     },
     {
       "code": "forbidden",
@@ -742,7 +742,7 @@
       "http_status": null,
       "sample_reason": "unsupported_dispute_target_type",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 78
+      "source_lineno": 79
     },
     {
       "code": "forbidden",
@@ -823,7 +823,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 220
+      "source_lineno": 222
     },
     {
       "code": "forbidden",
@@ -949,7 +949,7 @@
       "http_status": null,
       "sample_reason": "proposal_options_require_at_least_two",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 117
+      "source_lineno": 118
     },
     {
       "code": "invalid_payload",
@@ -976,7 +976,7 @@
       "http_status": null,
       "sample_reason": "invalid_public_cid",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 122
+      "source_lineno": 123
     },
     {
       "code": "invalid_payload",
@@ -1039,7 +1039,7 @@
       "http_status": null,
       "sample_reason": "missing_account_id",
       "source": "src/weall/runtime/apply/reputation.py",
-      "source_lineno": 341
+      "source_lineno": 366
     },
     {
       "code": "invalid_payload",
@@ -1057,7 +1057,7 @@
       "http_status": null,
       "sample_reason": "declared_capacity_required",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 539
+      "source_lineno": 551
     },
     {
       "code": "invalid_payload",
@@ -1507,7 +1507,7 @@
       "http_status": 404,
       "sample_reason": "Dispute not found",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 354
+      "source_lineno": 355
     },
     {
       "code": "not_found",
@@ -1516,7 +1516,7 @@
       "http_status": 404,
       "sample_reason": "Proposal not found",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 166
+      "source_lineno": 167
     },
     {
       "code": "not_found",
@@ -1552,7 +1552,7 @@
       "http_status": null,
       "sample_reason": "proposal_not_found",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 684
+      "source_lineno": 744
     },
     {
       "code": "not_found",
@@ -1579,7 +1579,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 959
+      "source_lineno": 998
     },
     {
       "code": "not_found",
@@ -1642,7 +1642,7 @@
       "http_status": null,
       "sample_reason": "account_not_found",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 242
+      "source_lineno": 244
     },
     {
       "code": "not_found",
@@ -1885,7 +1885,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1920
+      "source_lineno": 1963
     },
     {
       "code": "validator_mismatch",

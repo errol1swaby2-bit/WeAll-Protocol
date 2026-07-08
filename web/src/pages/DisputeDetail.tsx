@@ -79,6 +79,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   const [acctState, setAcctState] = useState<any | null>(null);
   const [dispute, setDispute] = useState<any | null>(null);
   const [voteSurface, setVoteSurface] = useState<any | null>(null);
+  const [phaseStatus, setPhaseStatus] = useState<any | null>(null);
   const [targetContent, setTargetContent] = useState<any | null>(null);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
   const [result, setResult] = useState<any>(null);
@@ -108,13 +109,15 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
     setErr(null);
     try {
       const headers = account ? getAuthHeaders(account) : undefined;
-      const [detailRes, votesRes] = await Promise.all([
+      const [detailRes, votesRes, phaseRes] = await Promise.all([
         weall.dispute(id, apiBase, headers),
         weall.disputeVotes(id, apiBase, headers),
+        weall.disputePhaseStatus(id, apiBase, headers),
       ]);
       const nextDispute = (detailRes as any)?.dispute || null;
       setDispute(nextDispute);
       setVoteSurface(votesRes || null);
+      setPhaseStatus(phaseRes || null);
       const targetType = String(nextDispute?.target_type || "").trim().toLowerCase();
       const targetId = String(nextDispute?.target_id || "").trim();
       if (targetType === "content" && targetId) {
@@ -133,6 +136,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
       setErr(prettyErr(e));
       setDispute(null);
       setVoteSurface(null);
+      setPhaseStatus(null);
       setTargetContent(null);
     }
   }
@@ -156,6 +160,18 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   const selectedJurorStatus = account && dispute ? disputeJurorStatus(dispute, account) : "unassigned";
   const attendancePresent = account && dispute ? disputeAttendancePresent(dispute, account) : false;
   const counts = voteSurface?.vote_counts || (dispute ? disputeVoteCountSummary(dispute) : { yes: 0, no: 0, abstain: 0, total: 0 });
+  const phaseTruth = phaseStatus || {};
+  const quorumRequired = Number(phaseTruth.quorum_required || 0);
+  const quorumParticipation = Number(phaseTruth.participation_count || 0);
+  const quorumEligible = Number(phaseTruth.eligible_count || 0);
+  const quorumProgressLabel = `Quorum progress: ${quorumParticipation} / ${quorumRequired || quorumEligible || 0} eligible participants`;
+  const phaseTransitionLabel = phaseTruth.transition_reason === "quorum"
+    ? "Phase advanced by quorum"
+    : phaseTruth.transition_reason === "block_height"
+      ? "Phase advanced by block-height deadline"
+      : phaseTruth.transition_reason === "block_height_and_quorum"
+        ? "Phase advanced by quorum and block-height deadline"
+        : "Ends at block height or when quorum is reached";
   const summary = acctState ? summarizeAccountState(acctState) : "(state unknown)";
   const currentVote = dispute ? disputeCurrentVote(dispute, account) : "";
   const canAccept = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
@@ -277,6 +293,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             </div>
             <div className="surfaceSummaryStats">
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue mono">{String(dispute?.id || id)}</strong><span className="surfaceSummaryHint">report id</span></div>
+              <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{quorumProgressLabel}</strong><span className="surfaceSummaryHint">phase-open eligible snapshot</span></div>
               <div className="surfaceSummaryStat"><strong className="surfaceSummaryValue">{summary}</strong><span className="surfaceSummaryHint">current account standing</span></div>
             </div>
           </div>
@@ -302,7 +319,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
         deadlineHeight={disputeDeadline}
         targetBlockIntervalMs={disputeIntervalMs}
         authorityLabel="Dispute review uses backend block height as authority. Wall-clock time is only a display estimate and cannot trigger timeout, appeal, or finalization."
-        nextAction={String(dispute?.stage || "").toLowerCase() === "appeal_window" ? "Appeals are open until the deadline block. Sanctions should not finalize before that window closes." : hint}
+        nextAction={String(dispute?.stage || "").toLowerCase() === "appeal_window" ? "Appeals are open until the deadline block. Sanctions should not finalize before that window closes." : `${phaseTransitionLabel}. ${hint}`}
       >
         <div className="summaryCardGrid">
           <article className="summaryCard">
@@ -316,9 +333,9 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             <div className="summaryCardText">Appeal records are backend state, not frontend-only notes.</div>
           </article>
           <article className="summaryCard">
-            <div className="summaryCardLabel">Block-height truth</div>
-            <div className="summaryCardValue mono">{disputeProcedureHeight || "—"} → {disputeDeadline || "—"}</div>
-            <div className="summaryCardText">Review windows, withdrawal windows, appeal windows, missed-vote outcomes, and finalization must follow backend block heights, not browser wall-clock time.</div>
+            <div className="summaryCardLabel">Block-height or quorum truth</div>
+            <div className="summaryCardValue mono">{disputeProcedureHeight || "—"} → {Number(phaseTruth.deadline_height || disputeDeadline) || "—"}</div>
+            <div className="summaryCardText">Review windows can end by backend block height or phase-status quorum. The eligible denominator is a phase-open snapshot, not online users.</div>
           </article>
           <article className="summaryCard">
             <div className="summaryCardLabel">Canonical dispute path</div>

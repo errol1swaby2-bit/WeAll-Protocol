@@ -6,6 +6,7 @@ import pytest
 
 from weall.runtime.domain_apply import apply_tx
 from weall.runtime.node_lifecycle_preflight import evaluate_production_preflight
+from weall.runtime.node_operator_responsibilities import VALIDATOR_REPUTATION_REQUIRED_MILLI
 
 ROOT = Path(__file__).resolve().parents[1]
 ACCOUNT_PAGE = ROOT.parent / "web" / "src" / "pages" / "Account.tsx"
@@ -86,7 +87,7 @@ def test_active_node_operator_can_opt_into_validator_but_not_gain_consensus(monk
     assert validator["opted_in"] is True
     assert validator["active"] is False
     assert validator["readiness_status"] == "pending"
-    assert validator["reputation_required_milli"] == 5000
+    assert validator["reputation_required_milli"] == VALIDATOR_REPUTATION_REQUIRED_MILLI
     assert validator["reputation_actual_milli"] == 6000
     assert validator["validator_readiness_commitment"] == "sha256:readiness"
 
@@ -107,13 +108,13 @@ def test_validator_opt_in_requires_active_node_operator_tier2_reputation_and_nod
         apply_tx(tier1, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}))
     assert "live_verification_required" in str(exc2.value)
 
-    low_rep = _state(tier=2, rep=4999, active=True)
+    low_rep = _state(tier=2, rep=VALIDATOR_REPUTATION_REQUIRED_MILLI - 1, active=True)
     apply_tx(low_rep, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}))
     validator = low_rep["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["validator"]
     assert validator["opted_in"] is True
     assert validator["active"] is False
     assert validator["reputation_blocked"] is True
-    assert validator["reputation_actual_milli"] == 4999
+    assert validator["reputation_actual_milli"] == VALIDATOR_REPUTATION_REQUIRED_MILLI - 1
 
     wrong_key = _state(tier=2, rep=6000, active=True)
     with pytest.raises(Exception) as exc4:
@@ -135,7 +136,7 @@ def test_validator_readiness_active_is_the_consensus_boundary(monkeypatch) -> No
             "opted_in": True,
             "active": False,
             "readiness_status": "pending",
-            "reputation_required_milli": 5000,
+            "reputation_required_milli": VALIDATOR_REPUTATION_REQUIRED_MILLI,
         }
     }
     assert not _preflight(st).passed

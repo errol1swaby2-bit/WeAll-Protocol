@@ -158,3 +158,8 @@ This script does not create system/governance authority by itself. It fails clos
 | `promoted_validator_preflight.sh` | Protocol state says the account/node is validator-ready before reboot and validator count/hash are present. | Local validator process has joined consensus or full BFT finality below `BFT_MIN_VALIDATORS`. |
 | `reboot_promoted_observer_as_validator.sh` | Boots only after fail-closed preflight. | Post-boot consensus acceptance by peers. |
 | `promoted_validator_live_gate.sh` | Local validator process reports active/effective authority, matches genesis identity, and satisfies validator-count/peer-diagnostic checks when exposed. | Long-duration liveness under partitions or full BFT safety below `BFT_MIN_VALIDATORS`. |
+
+
+### Deterministic validator activation
+
+Validator candidacy is not a discretionary waiting room. Once the protocol proves Tier 2, unrestricted account status, registered node key, active baseline node-operator status, validator opt-in, verified validator readiness, matching node pubkey, and `VALIDATOR_REPUTATION_REQUIRED_MILLI = 3000`, the validator role is activated deterministically for that account/node pair. Missing gates remain explicit blockers; Tier 2 or opt-in alone never grants validator authority.

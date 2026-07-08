@@ -1279,6 +1279,7 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     assigned_jurors = clean_jurors(eligible_reviewer_ids(state, CONTENT_REVIEW_LANE))
     if target_author:
         dispute_obj["target_owner"] = target_author
+        dispute_obj["conflict_policy"] = "target_owner_excluded_from_content_review"
     dispute_obj["reviewer_responsibility_policy"] = "explicit_active_juror_opt_in_required"
     if not assigned_jurors:
         dispute_obj["stage"] = "unassigned"

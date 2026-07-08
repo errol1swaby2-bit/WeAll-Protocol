@@ -137,6 +137,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [operatorPromotionStatus, setOperatorPromotionStatus] = useState<any>(null);
   const [reviewerStatus, setReviewerStatus] = useState<any>(null);
   const [reputationMatrix, setReputationMatrix] = useState<any>(null);
+  const [reputationProgression, setReputationProgression] = useState<any>(null);
   const [registered, setRegistered] = useState<any>(null);
   const [following, setFollowing] = useState<any>(null);
   const [socialMe, setSocialMe] = useState<any>(null);
@@ -173,6 +174,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
       }),
       reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
       reputationMatrix: weall.reputationSummary(acct, base, headers),
+      reputationProgression: weall.accountReputationProgressionStatus(acct, base, headers),
       registered: weall.accountRegistered(acct, base),
       following: weall.socialFollowing(acct, base),
     };
@@ -201,6 +203,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setOperatorPromotionStatus(out.operatorPromotionStatus ?? null);
     setReviewerStatus(out.reviewerStatus ?? null);
     setReputationMatrix(out.reputationMatrix ?? null);
+    setReputationProgression(out.reputationProgression ?? null);
     setRegistered(out.registered ?? null);
     setFollowing(out.following ?? null);
     setSocialMe(out.socialMe ?? null);
@@ -241,6 +244,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
     (row: any) => row && typeof row === "object" && row.visibility === "public",
   );
   const matrixAggregateScore = num(reputationMatrix?.aggregate_public_score_milli, 0);
+  const reputationThresholdRows = Array.isArray(reputationProgression?.next_relevant_thresholds) ? reputationProgression.next_relevant_thresholds : [];
+  const meaningfulReputationActions = Array.isArray(reputationProgression?.actions_available_without_spam) ? reputationProgression.actions_available_without_spam : [];
+  const cappedReputationActions = Array.isArray(reputationProgression?.actions_capped_or_on_cooldown) ? reputationProgression.actions_capped_or_on_cooldown : [];
   const accountExists = !!acctView?.ok && !!state;
   const registeredState = registered?.registered ?? accountExists;
   const canLikeComment = tier >= 1 && accountExists && !banned && !locked;
@@ -354,7 +360,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   );
   const validatorReputationRequired = num(
     promotionTruth.validator_reputation_required_milli ?? validatorDetails.reputation_required_milli ?? validatorResponsibility.reputation_required_milli,
-    5000,
+    3000,
   );
   const validatorReputationActual = num(
     promotionTruth.validator_reputation_actual_milli ?? validatorDetails.reputation_actual_milli ?? state?.reputation_milli ?? reputation,
@@ -1218,6 +1224,26 @@ export default function Account({ account }: { account: string }): JSX.Element {
               </div>
             </article>
           </div>
+
+          <div className="calloutInfo">
+            <strong>Reputation progress.</strong> Meaningful actions available without spam: {meaningfulReputationActions.length ? meaningfulReputationActions.join("; ") : "complete verification, vote when eligible, and complete assigned review duties"}. This action does not increase reputation again when source-key dedupe or the daily/epoch reputation cap is reached.
+          </div>
+
+          {reputationThresholdRows.length ? (
+            <div className="infoGrid">
+              {reputationThresholdRows.map((row: any) => (
+                <div key={String(row.name)} className="infoCard compact">
+                  <div className="infoCardHeader">
+                    <span className={`statusPill ${row.met ? "ok" : "warn"}`}>{row.met ? "enabled" : "building"}</span>
+                    <strong>{String(row.name || "threshold").replace(/_/g, " ")}</strong>
+                  </div>
+                  <div className="infoCardText">{num(row.actual_milli, 0)} / {num(row.required_milli, 0)} reputation milli</div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {cappedReputationActions.length ? <div className="calloutInfo">Daily/epoch reputation cap reached for some actions. Repeating capped activity will not farm reputation.</div> : null}
 
           <div className="infoGrid">
             {matrixPublicDimensionRows.length ? (

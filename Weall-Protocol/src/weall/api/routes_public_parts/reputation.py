@@ -8,6 +8,7 @@ from weall.api.routes_public_parts.common import _snapshot
 from weall.api.security import require_account_session
 from weall.runtime.reputation_events import EVENT_REGISTRY, derive_role_eligibility, registry_payload
 from weall.runtime.reputation_matrix import derive_reputation_matrix
+from weall.runtime.reputation_progression import reputation_action_map, reputation_progression_status
 
 router = APIRouter()
 
@@ -55,6 +56,18 @@ def v1_reputation_event_codes() -> Json:
         "dimensions": payload["dimensions"],
         "severity_scale": payload["severity_scale"],
         "events": payload["events"],
+    }
+
+
+@router.get("/reputation/action-map")
+def v1_reputation_action_map() -> Json:
+    actions = reputation_action_map()
+    return {
+        "ok": True,
+        "schema": "weall.reputation_action_map.v1_5",
+        "action_count": len(actions),
+        "actions": actions,
+        "truth_boundary": "WeAll is a pre-public-testnet protocol implementation under active hardening.",
     }
 
 
@@ -118,3 +131,15 @@ def v1_reputation_events(account: str, request: Request) -> Json:
         "event_history_root": matrix.get("event_history_root"),
         "registry_event_count": len(EVENT_REGISTRY),
     }
+
+
+@router.get("/accounts/{account}/reputation-status")
+def v1_account_reputation_status(account: str, request: Request) -> Json:
+    st = _snapshot(request)
+    return reputation_progression_status(st, account)
+
+
+@router.get("/accounts/{account}/reputation-progression-status")
+def v1_account_reputation_progression_status(account: str, request: Request) -> Json:
+    st = _snapshot(request)
+    return reputation_progression_status(st, account)

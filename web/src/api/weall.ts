@@ -677,6 +677,14 @@ export const weall = {
     return apiGet(`/v1/reputation/${encodeURIComponent(account)}/summary`, base, headers);
   },
 
+  accountReputationProgressionStatus(account: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/accounts/${encodeURIComponent(account)}/reputation-progression-status`, base, headers);
+  },
+
+  reputationActionMap(base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet("/v1/reputation/action-map", base, headers);
+  },
+
   reputationMatrix(account: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/reputation/${encodeURIComponent(account)}/matrix`, base, headers);
   },
@@ -792,6 +800,10 @@ export const weall = {
     return apiGet(`/v1/gov/proposals/${encodeURIComponent(id)}/votes`, base, headers);
   },
 
+  proposalPhaseStatus(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/gov/proposals/${encodeURIComponent(id)}/phase-status`, base, headers);
+  },
+
   stateSnapshot(base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet("/v1/state/snapshot", base, headers);
   },
@@ -825,6 +837,10 @@ export const weall = {
 
   disputeVotes(id: string, base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet(`/v1/disputes/${encodeURIComponent(id)}/votes`, base, headers);
+  },
+
+  disputePhaseStatus(id: string, base?: string, headers?: HeadersInit): Promise<any> {
+    return apiGet(`/v1/disputes/${encodeURIComponent(id)}/phase-status`, base, headers);
   },
 
   disputesEligible(base?: string, headers?: HeadersInit): Promise<any> {

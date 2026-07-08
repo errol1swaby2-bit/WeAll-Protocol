@@ -16,6 +16,8 @@ Json = dict[str, Any]
 DEFAULT_CONTENT_REPUTATION_MATURITY_BLOCKS = 8
 DEFAULT_POST_REPUTATION_DELTA_MILLI = 10
 DEFAULT_MEDIA_REPUTATION_DELTA_MILLI = 25
+DEFAULT_CONTENT_REPUTATION_WINDOW_BLOCKS = 30
+DEFAULT_CONTENT_REPUTATION_MAX_DELTA_PER_WINDOW_MILLI = 100
 
 
 def _as_dict(value: Any) -> Json:
@@ -43,6 +45,22 @@ def content_reputation_maturity_blocks(state: Json) -> int:
     if raw is None:
         raw = _as_dict(params.get("reputation")).get("content_maturity_blocks")
     return max(1, _as_int(raw, DEFAULT_CONTENT_REPUTATION_MATURITY_BLOCKS))
+
+
+def content_reputation_window_blocks(state: Json) -> int:
+    params = _params(state)
+    raw = params.get("content_reputation_window_blocks")
+    if raw is None:
+        raw = _as_dict(params.get("reputation")).get("content_window_blocks")
+    return max(1, _as_int(raw, DEFAULT_CONTENT_REPUTATION_WINDOW_BLOCKS))
+
+
+def content_reputation_max_delta_per_window_milli(state: Json) -> int:
+    params = _params(state)
+    raw = params.get("content_reputation_max_delta_per_window_milli")
+    if raw is None:
+        raw = _as_dict(params.get("reputation")).get("content_max_delta_per_window_milli")
+    return max(0, _as_int(raw, DEFAULT_CONTENT_REPUTATION_MAX_DELTA_PER_WINDOW_MILLI))
 
 
 def post_reputation_delta_milli(state: Json) -> int:
@@ -132,6 +150,37 @@ def _enqueue_accrual(
         accrual["status"] = "ineligible"
         return False
 
+    window_blocks = content_reputation_window_blocks(state)
+    max_window_delta = content_reputation_max_delta_per_window_milli(state)
+    window_index = int(max(0, int(next_height)) // int(window_blocks))
+    rep = state.get("reputation")
+    if not isinstance(rep, dict):
+        rep = {}
+        state["reputation"] = rep
+    windows = rep.get("accrual_windows")
+    if not isinstance(windows, dict):
+        windows = {}
+        rep["accrual_windows"] = windows
+    window_key = f"{account_id}:{window_index}"
+    window = windows.get(window_key)
+    if not isinstance(window, dict):
+        window = {
+            "account_id": account_id,
+            "window_index": int(window_index),
+            "window_blocks": int(window_blocks),
+            "queued_delta_milli": 0,
+            "max_delta_milli": int(max_window_delta),
+            "source_ids": [],
+        }
+        windows[window_key] = window
+    queued_delta = _as_int(window.get("queued_delta_milli"), 0)
+    if max_window_delta > 0 and queued_delta + delta_milli > max_window_delta:
+        accrual["status"] = "capped"
+        accrual["cap_reason"] = "content_reputation_window_cap_reached"
+        accrual["window_index"] = int(window_index)
+        accrual["max_delta_milli"] = int(max_window_delta)
+        return False
+
     delta_id = f"repaccrual:{kind}:{source_id}"
     enqueue_system_tx(
         state,
@@ -151,6 +200,13 @@ def _enqueue_accrual(
     accrual["status"] = "queued"
     accrual["queued_height"] = int(next_height)
     accrual["delta_id"] = delta_id
+    window["queued_delta_milli"] = int(queued_delta + delta_milli)
+    source_ids = window.get("source_ids")
+    if not isinstance(source_ids, list):
+        source_ids = []
+    if source_id not in source_ids:
+        source_ids.append(source_id)
+    window["source_ids"] = sorted(source_ids)
     return True
 
 
@@ -216,7 +272,11 @@ __all__ = [
     "DEFAULT_CONTENT_REPUTATION_MATURITY_BLOCKS",
     "DEFAULT_MEDIA_REPUTATION_DELTA_MILLI",
     "DEFAULT_POST_REPUTATION_DELTA_MILLI",
+    "DEFAULT_CONTENT_REPUTATION_WINDOW_BLOCKS",
+    "DEFAULT_CONTENT_REPUTATION_MAX_DELTA_PER_WINDOW_MILLI",
     "content_reputation_maturity_blocks",
+    "content_reputation_window_blocks",
+    "content_reputation_max_delta_per_window_milli",
     "media_reputation_delta_milli",
     "pending_content_accrual",
     "post_reputation_delta_milli",

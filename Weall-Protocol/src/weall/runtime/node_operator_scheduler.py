@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.node_operator_responsibilities import VALIDATOR_REPUTATION_REQUIRED_MILLI
+
 from weall.runtime.node_operator_responsibilities import (
     evaluate_baseline_node_operator,
     first_blocking_reason,
@@ -38,7 +40,7 @@ def _ensure_responsibility_defaults(rec: Json) -> None:
         rec["responsibilities"] = responsibilities
     responsibilities.setdefault(
         "validator",
-        {"opted_in": False, "active": False, "readiness_status": "not_requested", "reputation_required_milli": 5000},
+        {"opted_in": False, "active": False, "readiness_status": "not_requested", "reputation_required_milli": VALIDATOR_REPUTATION_REQUIRED_MILLI},
     )
     responsibilities.setdefault(
         "storage",

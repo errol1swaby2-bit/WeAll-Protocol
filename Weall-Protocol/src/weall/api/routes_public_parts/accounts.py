@@ -18,6 +18,7 @@ from weall.api.security import require_account_session
 from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
 from weall.ledger.state import LedgerView
 from weall.runtime.node_operator_responsibilities import (
+    VALIDATOR_REPUTATION_REQUIRED_MILLI,
     active_node_pubkeys_for_account,
     evaluate_node_operator_responsibilities,
     has_registered_node_key,
@@ -565,9 +566,9 @@ def build_operator_promotion_status(
 
     validator_opted_in = bool(validator_details.get("opted_in", False))
     validator_readiness_status = _clean_str(validator_details.get("readiness_status"), max_len=80) or "not_requested"
-    validator_required = _safe_int(validator_details.get("reputation_required_milli"), 5000)
+    validator_required = _safe_int(validator_details.get("reputation_required_milli"), VALIDATOR_REPUTATION_REQUIRED_MILLI)
     validator_actual = _safe_int(validator_details.get("reputation_actual_milli"), 0)
-    validator_authority_active = _validator_authority_active(st, account_id, node_pubkey=node_pubkey)
+    validator_authority_record_active = _validator_authority_active(st, account_id, node_pubkey=node_pubkey)
     validator_responsibility_active = bool(validator.get("active", False))
 
     storage_opted_in = bool(storage_details.get("opted_in", False))
@@ -602,7 +603,13 @@ def build_operator_promotion_status(
         service_reboot_allowed
         and validator_opted_in
         and validator_responsibility_active
-        and validator_authority_active
+        and validator_authority_record_active
+        and validator_readiness_status in {"ready", "active", "verified"}
+        and validator_actual >= validator_required
+    )
+    validator_authority_active = bool(
+        validator_authority_record_active
+        and validator_responsibility_active
         and validator_readiness_status in {"ready", "active", "verified"}
         and validator_actual >= validator_required
     )

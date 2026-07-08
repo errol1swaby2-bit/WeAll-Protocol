@@ -232,6 +232,26 @@ def _apply_rep_delta_and_autoban(
     return int(nxt_units), newly_banned
 
 
+def _try_validator_activation_after_reputation_change(state: Json, account_id: str, *, nonce: int, source: str) -> Json:
+    """Best-effort deterministic validator activation after reputation changes.
+
+    Imported lazily to keep the reputation domain from creating an import cycle.
+    Missing validator gates are returned as blocker details and do not fail the
+    reputation transaction.
+    """
+    try:
+        from weall.runtime.apply.roles import try_deterministic_validator_activation
+
+        return try_deterministic_validator_activation(
+            state,
+            account_id,
+            nonce=int(nonce),
+            source=source,
+        )
+    except Exception as exc:  # pragma: no cover - defensive read-model safety
+        return {"activated": False, "account_id": account_id, "activation_check_error": str(exc)}
+
+
 # ---------------------------------------------------------------------------
 # Exported helper for other domains
 # ---------------------------------------------------------------------------
@@ -321,6 +341,10 @@ def apply_reputation_delta_system(
         details={"reason": _as_str(reason).strip(), "legacy_delta_id": delta_id},
     )
 
+    activation = _try_validator_activation_after_reputation_change(
+        state, account_id, nonce=int(at_nonce), source="reputation_delta_system"
+    )
+
     return {
         "ok": True,
         "account_id": account_id,
@@ -329,6 +353,7 @@ def apply_reputation_delta_system(
         "newly_banned": bool(newly_banned),
         "deduped": False,
         "reputation_event_id": rep_event.get("event_id"),
+        "deterministic_validator_activation": activation,
     }
 
 def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
@@ -402,6 +427,10 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
         details={"reason": reason, "legacy_delta_id": delta_id},
     )
 
+    activation = _try_validator_activation_after_reputation_change(
+        state, account_id, nonce=int(env.nonce), source="reputation_delta_apply"
+    )
+
     return {
         "applied": "REPUTATION_DELTA_APPLY",
         "delta_id": delta_id,
@@ -411,6 +440,7 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
         "reputation_milli": int(new_rep),
         "newly_banned": bool(newly_banned),
         "reputation_event_id": rep_event.get("event_id"),
+        "deterministic_validator_activation": activation,
     }
 
 def _apply_reputation_threshold_cross(state: Json, env: TxEnvelope) -> Json:
