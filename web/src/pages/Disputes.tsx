@@ -121,7 +121,13 @@ export default function Disputes(): JSX.Element {
     }
   }
 
-  useEffect(() => { void load(); }, [account]);
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void load();
+    }, 2500);
+    return () => window.clearInterval(timer);
+  }, [account]);
 
   useMutationRefresh({
     entityTypes: ["dispute", "content"],

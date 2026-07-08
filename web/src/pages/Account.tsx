@@ -223,6 +223,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
     setProfileResult(null);
     setProfileForm(emptyProfileForm());
     void load();
+    const id = window.setInterval(() => {
+      if (!document.hidden) void load();
+    }, 3000);
+    return () => window.clearInterval(id);
   }, [acct, isSelf]);
 
   useEffect(() => {

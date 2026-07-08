@@ -144,6 +144,13 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
   useEffect(() => {
     void refreshAccount();
     void load();
+    const timer = window.setInterval(() => {
+      if (!document.hidden) {
+        void load();
+        void refreshAccount();
+      }
+    }, 2500);
+    return () => window.clearInterval(timer);
   }, [id, account]);
 
   useMutationRefresh({

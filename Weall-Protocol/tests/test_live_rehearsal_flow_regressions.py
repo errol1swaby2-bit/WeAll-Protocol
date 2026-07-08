@@ -76,3 +76,97 @@ def test_reputation_progression_uses_event_sourced_public_aggregate_not_stale_sc
     thresholds = {row["name"]: row for row in body["next_relevant_thresholds"]}
     assert thresholds["baseline_civic_participation"]["actual_milli"] == body["reputation_total_milli"]
     assert thresholds["validator_reputation_readiness"]["actual_milli"] == body["reputation_total_milli"]
+
+
+def _content_review_assignment_state() -> dict:
+    return {
+        "height": 43,
+        "accounts": {
+            "@devnet-genesis": {"poh_tier": 2, "banned": False, "locked": False},
+            "@observer": {"poh_tier": 2, "banned": False, "locked": False},
+        },
+        "roles": {
+            "jurors": {
+                "active_set": ["@observer"],
+                "by_id": {
+                    "@observer": {
+                        "active": True,
+                        "status": "active",
+                        "responsibilities": {
+                            "reviewer": {
+                                "content_review": {"opted_in": True, "active": True, "status": "active"},
+                                "dispute_review": {"opted_in": True, "active": True, "status": "active"},
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        "content": {
+            "posts": {
+                "post:@devnet-genesis:15": {
+                    "id": "post:@devnet-genesis:15",
+                    "post_id": "post:@devnet-genesis:15",
+                    "author": "@devnet-genesis",
+                    "body": "reported post",
+                    "visibility": "public",
+                }
+            },
+            "comments": {},
+        },
+        "disputes_by_id": {
+            "dispute:SYSTEM:0": {
+                "id": "dispute:SYSTEM:0",
+                "stage": "unassigned",
+                "target_type": "content",
+                "target_id": "post:@devnet-genesis:15",
+                "target_owner": "@devnet-genesis",
+                "assignment_blocked_reason": "no_unconflicted_content_reviewer",
+                "jurors": {},
+                "assigned_jurors": [],
+                "eligible_juror_ids": [],
+            }
+        },
+        "system_queue": [],
+    }
+
+
+def test_unassigned_content_report_scheduler_selects_only_unconflicted_reviewer() -> None:
+    from weall.runtime.domain_dispatch import apply_tx
+    from weall.runtime.system_tx_engine import system_tx_emitter
+    from weall.tx.canon import TxIndex
+
+    state = _content_review_assignment_state()
+    canon = TxIndex.load_from_file("generated/tx_index.json")
+
+    emitted = system_tx_emitter(state, canon, next_height=44, phase="post")
+    assign = [env for env in emitted if env.tx_type == "DISPUTE_JUROR_ASSIGN"]
+    assert len(assign) == 1
+    assert assign[0].payload["dispute_id"] == "dispute:SYSTEM:0"
+    assert assign[0].payload["juror"] == "@observer"
+    assert assign[0].payload["assignment_source"] == "content_review_assignment_scheduler"
+
+    apply_tx(state, assign[0])
+    dispute = state["disputes_by_id"]["dispute:SYSTEM:0"]
+    assert dispute["stage"] == "juror_review"
+    assert dispute["assigned_jurors"] == ["@observer"]
+    assert dispute["eligible_juror_ids"] == ["@observer"]
+    assert "@devnet-genesis" not in dispute["assigned_jurors"]
+
+
+def test_unassigned_content_report_scheduler_does_not_assign_target_owner() -> None:
+    from weall.runtime.system_tx_engine import system_tx_emitter
+    from weall.tx.canon import TxIndex
+
+    state = _content_review_assignment_state()
+    state["roles"]["jurors"]["active_set"] = ["@devnet-genesis"]
+    state["roles"]["jurors"]["by_id"] = {
+        "@devnet-genesis": {
+            "active": True,
+            "status": "active",
+            "responsibilities": {"reviewer": {"content_review": {"opted_in": True, "active": True, "status": "active"}}},
+        }
+    }
+    canon = TxIndex.load_from_file("generated/tx_index.json")
+    emitted = system_tx_emitter(state, canon, next_height=44, phase="post")
+    assert [env.tx_type for env in emitted if env.tx_type == "DISPUTE_JUROR_ASSIGN"] == []

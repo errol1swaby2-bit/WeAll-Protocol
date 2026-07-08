@@ -1158,10 +1158,11 @@ def _apply_dispute_juror_assign(state: Json, env: TxEnvelope) -> Json:
     d["eligible_validator_count"] = int(len(d["eligible_juror_ids"]))
     d["required_votes"] = int(quorum_threshold(len(d["eligible_juror_ids"]))) if d["eligible_juror_ids"] else 0
     stage = _as_str(d.get("stage")).strip().lower()
-    if stage in {"", "open"}:
+    if stage in {"", "open", "unassigned"}:
         d["stage"] = "juror_review"
         d["stage_set_at_nonce"] = int(env.nonce)
         d["stage_set_at_height"] = int(now_h)
+        d["assignment_blocked_reason"] = ""
         _record_dispute_phase_snapshot(state, d, phase="juror_review", height=int(now_h), eligible_jurors=d.get("eligible_juror_ids"))
     return {"applied": "DISPUTE_JUROR_ASSIGN", "dispute_id": dispute_id, "juror": juror_key}
 

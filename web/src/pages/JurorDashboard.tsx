@@ -462,6 +462,10 @@ export default function JurorDashboard(): JSX.Element {
 
   useEffect(() => {
     void loadQueues();
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void loadQueues();
+    }, 2500);
+    return () => window.clearInterval(timer);
   }, [account]);
 
   const tier = Number(acctState?.poh_tier ?? 0);

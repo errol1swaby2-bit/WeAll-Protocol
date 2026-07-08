@@ -20,6 +20,7 @@ from weall.ledger.roles_schema import ensure_roles_schema
 from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
 from weall.runtime.econ_phase import econ_allowed_from_state
 from weall.runtime.tx_admission import TxEnvelope
+from weall.runtime.reviewer_responsibilities import CONTENT_REVIEW_LANE, eligible_reviewer_ids
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
@@ -506,6 +507,167 @@ def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[Syst
     return [item for _idx, item in _select_due_items_with_indexes(state, next_height=next_height, phase=phase)]
 
 
+
+# ---------------------------------------------------------------------------
+# Content-review assignment scheduling
+# ---------------------------------------------------------------------------
+
+
+def _identity_variants(value: Any) -> list[str]:
+    s = _as_str(value).strip()
+    if not s:
+        return []
+    base = s[1:] if s.startswith("@") else s
+    out: list[str] = []
+    seen: set[str] = set()
+    for candidate in (s, base, f"@{base}" if base else ""):
+        c = _as_str(candidate).strip()
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        out.append(c)
+    return out
+
+
+def _same_account(left: Any, right: Any) -> bool:
+    left_variants = {v.lower().lstrip("@") for v in _identity_variants(left)}
+    right_variants = {v.lower().lstrip("@") for v in _identity_variants(right)}
+    return bool(left_variants and right_variants and left_variants.intersection(right_variants))
+
+
+def _resolve_account_identity(state: Json, value: Any) -> str:
+    variants = _identity_variants(value)
+    if not variants:
+        return ""
+    accounts = state.get("accounts")
+    if isinstance(accounts, dict):
+        for variant in variants:
+            if variant in accounts:
+                return variant
+    return variants[0]
+
+
+def _content_target_owner_for_assignment(state: Json, dispute: Json) -> str:
+    owner = _as_str(
+        dispute.get("target_owner")
+        or dispute.get("target_author")
+        or dispute.get("content_author")
+        or ""
+    ).strip()
+    if owner:
+        return _resolve_account_identity(state, owner)
+
+    target_id = _as_str(dispute.get("target_id") or dispute.get("target") or "").strip()
+    if not target_id:
+        return ""
+    content = state.get("content")
+    if not isinstance(content, dict):
+        return ""
+    for bucket_name in ("posts", "comments"):
+        bucket = content.get(bucket_name)
+        if not isinstance(bucket, dict):
+            continue
+        rec = bucket.get(target_id)
+        if isinstance(rec, dict):
+            return _resolve_account_identity(
+                state,
+                rec.get("author") or rec.get("owner") or rec.get("account_id") or rec.get("created_by"),
+            )
+    return ""
+
+
+def _is_content_review_dispute(dispute: Json) -> bool:
+    target_type = _as_str(dispute.get("target_type") or dispute.get("kind") or "").strip().lower()
+    target_id = _as_str(dispute.get("target_id") or dispute.get("target") or "").strip().lower()
+    if target_type in {"", "content", "post", "comment"}:
+        return True
+    return target_id.startswith("post:") or target_id.startswith("comment:")
+
+
+def _active_assigned_reviewers(dispute: Json) -> list[str]:
+    out: list[str] = []
+    jurors = dispute.get("jurors")
+    if isinstance(jurors, dict):
+        for account_id, rec in jurors.items():
+            if not _as_str(account_id).strip() or not isinstance(rec, dict):
+                continue
+            status = _as_str(rec.get("status") or "assigned").strip().lower() or "assigned"
+            if status not in {"declined", "withdrawn", "timed_out", "removed", "replaced"}:
+                out.append(_as_str(account_id).strip())
+    assigned = dispute.get("assigned_jurors")
+    if isinstance(assigned, list):
+        for account_id in assigned:
+            acct = _as_str(account_id).strip()
+            if acct:
+                out.append(acct)
+    return sorted({acct for acct in out if acct})
+
+
+def _content_review_assignment_candidates(state: Json, dispute: Json) -> list[str]:
+    owner = _content_target_owner_for_assignment(state, dispute)
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in eligible_reviewer_ids(state, CONTENT_REVIEW_LANE):
+        acct = _resolve_account_identity(state, raw)
+        if not acct or acct in seen:
+            continue
+        if owner and _same_account(owner, acct):
+            continue
+        seen.add(acct)
+        out.append(acct)
+    return sorted(out)
+
+
+def schedule_content_review_assignment_system_txs(state: Json, *, next_height: int, phase: str) -> None:
+    """Emit deterministic reviewer assignments for content reports that were left unassigned.
+
+    Live two-node rehearsals can open a content report before every frontend has
+    refreshed the latest reviewer-lane activation state.  The canonical fix is
+    not a frontend-only fallback: each post block deterministically scans public
+    content-review disputes and emits DISPUTE_JUROR_ASSIGN for eligible,
+    unconflicted content reviewers when no active assignment exists yet.  The
+    target owner remains excluded, and the sorted eligible set keeps replay
+    deterministic across nodes.
+    """
+
+    phase_n = _as_str(phase).strip().lower() or "post"
+    if phase_n != "post":
+        return
+    disputes = state.get("disputes_by_id")
+    if not isinstance(disputes, dict):
+        return
+    h = int(next_height)
+    for dispute_id in sorted(str(k) for k in disputes.keys()):
+        dispute = disputes.get(dispute_id)
+        if not isinstance(dispute, dict) or not _is_content_review_dispute(dispute):
+            continue
+        stage = _as_str(dispute.get("stage") or "").strip().lower()
+        if stage not in {"", "open", "unassigned", "juror_review"}:
+            continue
+        if _active_assigned_reviewers(dispute):
+            continue
+        blocked = _as_str(dispute.get("assignment_blocked_reason") or "").strip().lower()
+        if blocked and blocked not in {"no_unconflicted_content_reviewer", "reviewer_state_pending"}:
+            continue
+        candidates = _content_review_assignment_candidates(state, dispute)
+        if not candidates:
+            continue
+        for reviewer in candidates:
+            enqueue_system_tx(
+                state,
+                tx_type="DISPUTE_JUROR_ASSIGN",
+                payload={
+                    "dispute_id": dispute_id,
+                    "juror": reviewer,
+                    "assignment_source": "content_review_assignment_scheduler",
+                },
+                due_height=h,
+                signer="SYSTEM",
+                once=True,
+                parent="CONTENT_ESCALATE_TO_DISPUTE",
+                phase="post",
+            )
+
 def system_tx_emitter(
     state: Json,
     canon: Any,
@@ -524,6 +686,11 @@ def system_tx_emitter(
         )
     except Exception as exc:
         raise SystemSchedulerError(f"block_rewards_schedule_failed:{type(exc).__name__}") from exc
+
+    try:
+        schedule_content_review_assignment_system_txs(state, next_height=int(next_height), phase=phase)
+    except Exception as exc:
+        raise SystemSchedulerError(f"content_review_assignment_schedule_failed:{type(exc).__name__}") from exc
 
     items = _select_due_items_with_indexes(state, next_height=int(next_height), phase=phase)
     ledger = state
@@ -709,6 +876,7 @@ __all__ = [
     "prune_emitted_system_queue",
     "system_queue_phase_for_id",
     "schedule_block_rewards_system_txs",
+    "schedule_content_review_assignment_system_txs",
     "system_tx_emitter",
     "validate_system_tx_queue_binding",
 ]
