@@ -5,7 +5,7 @@ from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.tx_admission import TxEnvelope
-from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.reputation_effective import effective_account_reputation_units
 from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.validator_readiness_runner import (
     ValidatorReadinessError,
@@ -269,7 +269,7 @@ def _require_role_activation_eligible(
     if _role_eligibility_revoked(ledger, acct, role):
         raise RolesApplyError("forbidden", "role_eligibility_revoked", {"account_id": acct, "role": role})
     required = max(0, int(minimum_reputation_milli))
-    actual = account_reputation_units(account, default=0)
+    actual = effective_account_reputation_units(ledger, acct, default=0)
     if actual < required:
         raise RolesApplyError(
             "forbidden",
@@ -430,7 +430,7 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
     reputation_required = _as_int(_payload_validator_field(payload, "reputation_required_milli", VALIDATOR_REPUTATION_REQUIRED_MILLI), VALIDATOR_REPUTATION_REQUIRED_MILLI)
     if reputation_required < 0:
         reputation_required = VALIDATOR_REPUTATION_REQUIRED_MILLI
-    reputation_actual = account_reputation_units(account, default=0)
+    reputation_actual = effective_account_reputation_units(ledger, acct, default=0)
     reputation_blocked = reputation_actual < reputation_required
 
     node_pubkey = _as_str(payload.get("node_pubkey") or payload.get("node_public_key"))
@@ -492,7 +492,7 @@ def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: s
     reputation_required = _as_int(_payload_helper_field(payload, "reputation_required_milli", HELPER_REPUTATION_REQUIRED_MILLI), HELPER_REPUTATION_REQUIRED_MILLI)
     if reputation_required < 0:
         reputation_required = HELPER_REPUTATION_REQUIRED_MILLI
-    reputation_actual = account_reputation_units(account, default=0)
+    reputation_actual = effective_account_reputation_units(ledger, acct, default=0)
     if reputation_actual < reputation_required:
         raise RolesApplyError(
             "forbidden",
@@ -1173,7 +1173,7 @@ def try_deterministic_validator_activation(
     required = _as_int(validator_resp.get("reputation_required_milli"), VALIDATOR_REPUTATION_REQUIRED_MILLI)
     if required < 0:
         required = VALIDATOR_REPUTATION_REQUIRED_MILLI
-    actual = account_reputation_units(account, default=0)
+    actual = effective_account_reputation_units(ledger, acct, default=0)
     validator_resp["reputation_required_milli"] = int(required)
     validator_resp["reputation_actual_milli"] = int(actual)
     validator_resp["reputation_blocked"] = bool(actual < required)

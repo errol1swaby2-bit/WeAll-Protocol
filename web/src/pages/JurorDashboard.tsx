@@ -424,8 +424,7 @@ export default function JurorDashboard(): JSX.Element {
   async function liveAccept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Accept live verification review", "Live review assignment accepted. Opening the WebRTC room for the separate attendance check-in step…");
-    joinLiveRoom(caseId);
+    await submitSkeletonTx(skel, "Accept live verification review", "Live review assignment accepted. Use Join call and check in as the separate attendance step.");
   }
 
   async function liveDecline(caseId: string): Promise<void> {
@@ -838,7 +837,7 @@ export default function JurorDashboard(): JSX.Element {
                           {showLiveAcceptControls ? (
                             <>
                               <button className="btn btnPrimary" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                                {signerSubmission.busy ? "Waiting…" : "Accept live review assignment"}
+                                {signerSubmission.busy ? "Waiting…" : "Accept review"}
                               </button>
                               <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
                                 {signerSubmission.busy ? "Waiting…" : "Decline"}
@@ -847,7 +846,7 @@ export default function JurorDashboard(): JSX.Element {
                           ) : null}
                           {showLiveCheckInControl ? (
                             <button className="btn btnPrimary" onClick={() => joinLiveRoom(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                              Enter media room for attendance check-in
+                              Join call and check in
                             </button>
                           ) : null}
                           {showLiveDecisionControls ? (

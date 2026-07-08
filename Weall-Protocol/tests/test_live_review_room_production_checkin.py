@@ -34,19 +34,18 @@ def test_live_review_join_records_chain_attendance_before_room_presence_or_media
     src = _page()
     body = _function_body(src, "checkIntoRoom")
 
-    assert "pohLiveTxJurorAccept" in body
+    assert "pohLiveTxJurorAccept" not in body
+    assert "Accept review first from the Review Center" in body
     assert "pohLiveTxAttendance" in body
     assert "waitForLiveJurorState(\"Live room attendance\"" in body
     assert "await updatePresence(\"joined\")" not in body
     assert "tryUpdatePresence(\"joined\")" in body
 
-    accept_idx = body.index("pohLiveTxJurorAccept")
     attendance_idx = body.index("pohLiveTxAttendance")
     media_idx = body.index("ensureP2PRoomStarted")
     external_presence_idx = body.index("tryUpdatePresence(\"joined\")")
 
-    assert accept_idx < attendance_idx < media_idx < external_presence_idx
-
+    assert attendance_idx < media_idx < external_presence_idx
 
 def test_p2p_room_presence_is_recorded_before_local_media_but_running_requires_media() -> None:
     body = _function_body(_page(), "ensureP2PRoomStarted")

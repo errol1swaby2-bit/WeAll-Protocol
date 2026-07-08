@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.reputation_effective import effective_account_reputation_units
 from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.storage_revalidation_scheduler import (
     storage_max_failed_challenges,
@@ -318,7 +318,7 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
     opted_in = bool(rec.get("opted_in", False))
     active_flag = bool(rec.get("active", False))
     required = _as_int(rec.get("reputation_required_milli"), VALIDATOR_REPUTATION_REQUIRED_MILLI)
-    actual = account_reputation_units(account, default=0)
+    actual = effective_account_reputation_units(state, account_id, default=0)
     readiness = _as_str(rec.get("readiness_status")) or "not_requested"
     readiness_expires = _as_int(rec.get("readiness_expires_height"), 0)
     current_height = _state_height(state)
@@ -375,7 +375,7 @@ def evaluate_helper_responsibility(state: Mapping[str, Any], account_id: str, *,
     opted_in = bool(rec.get("opted_in", False))
     active_flag = bool(rec.get("active", False))
     required = _as_int(rec.get("reputation_required_milli"), HELPER_REPUTATION_REQUIRED_MILLI)
-    actual = account_reputation_units(account, default=0)
+    actual = effective_account_reputation_units(state, account_id, default=0)
     details: Json = {
         "account_id": account_id,
         "opted_in": opted_in,

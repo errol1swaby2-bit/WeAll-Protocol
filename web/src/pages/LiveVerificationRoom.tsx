@@ -694,19 +694,6 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     }
   }
 
-  async function acceptCase(): Promise<void> {
-    await runAction("Accepting live review…", async () => {
-      const skeleton = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-      await submitSkeletonTx(
-        skeleton,
-        "Live verification review accepted. Join the room to record attendance before voting.",
-        async () => {
-          await waitForLiveJurorState("Review acceptance", (juror) => juror?.accepted === true);
-        },
-      );
-    });
-  }
-
   async function declineCase(): Promise<void> {
     await runAction("Declining live review…", async () => {
       const skeleton = await weall.pohLiveTxJurorDecline({ case_id: caseId }, apiBase, headers);
@@ -723,14 +710,8 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
     await runAction("Joining live review room…", async () => {
       let reviewerState = myJuror;
       if (reviewerState && reviewerState.accepted !== true) {
-        const acceptSkeleton = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-        await submitSkeletonTx(
-          acceptSkeleton,
-          "Live review accepted.",
-          async () => {
-            reviewerState = await waitForLiveJurorState("Review acceptance", (juror) => juror?.accepted === true);
-          },
-        );
+        setNotice("Accept review first from the Review Center. Join call and check in is a separate attendance step.");
+        return;
       }
       if (reviewerState && reviewerState.attended !== true) {
         const attendanceSkeleton = await weall.pohLiveTxAttendance({ case_id: caseId, juror_id: account, attended: true }, apiBase, headers);
@@ -800,7 +781,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
               <p className="cardDesc">
                 {statusOnlyMode && !isSubject && !myJuror
                   ? "This read-only status view is for pending live verification records before the current account receives a reviewer assignment. Live room transport controls unlock only for the subject or assigned reviewers."
-                  : "Use this room to complete the live-verification steps in order: accept assignment, check in with chain-recorded attendance, then submit the reviewer vote. Media transport is non-authoritative."}
+                  : "Use this room after accepting the review assignment. Join call and check in records attendance, then reviewer vote controls appear. Media transport is non-authoritative."}
               </p>
             </div>
             <div className="buttonRow">
@@ -907,7 +888,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
                 </div>
                 <div className="buttonRow">
-                  <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || (!!myJuror && myJuror.attended === true && p2pRunning)} onClick={checkIntoRoom}>{myJuror ? (myJuror.attended ? (p2pRunning ? "Live room ready" : "Re-enter live room") : (myJuror.accepted ? "Step 2: check in and enter live room" : "Step 1: accept assignment, then check in")) : "Enter live room"}</button>
+                  <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || (!!myJuror && myJuror.accepted !== true) || (!!myJuror && myJuror.attended === true && p2pRunning)} onClick={checkIntoRoom}>{myJuror ? (myJuror.attended ? (p2pRunning ? "Live room ready" : "Re-enter live room") : (myJuror.accepted ? "Join call and check in" : "Accept review first")) : "Enter live room"}</button>
                   {canAcceptDecline ? <button className="btn" disabled={!!busy} onClick={declineCase}>Decline review</button> : null}
                   {!roomUrl && !p2pRunning && p2pError ? <button className="btn" disabled={!canPresenceCheckIn || !!busy} onClick={startP2PRoom}>Retry live media</button> : null}
                   <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling live-media signals…", pollWebRTCSignals)}>Poll live media</button>
@@ -937,7 +918,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                     <div className="statusCard"><span>Your attendance</span><strong>{myJuror.attended ? "Recorded" : "Needed"}</strong></div>
                     <div className="statusCard"><span>Your vote</span><strong>{myJuror.verdict ? statusLabel(myJuror.verdict) : "Not cast"}</strong></div>
                   </div>
-                  <p className="helpText">Follow the button label for the next milestone: accept assignment first, then check in to record attendance and enter the room. Verdict controls appear here only after chain-recorded attendance is visible.</p>
+                  <p className="helpText">Follow the button label for the next milestone: accept review in the Review Center first, then use Join call and check in here to record attendance and enter the room. Verdict controls appear only after chain-recorded attendance is visible.</p>
                   {canVote ? (
                     <div className="buttonRow">
                       <button className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>

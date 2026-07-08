@@ -29,7 +29,7 @@ def test_reviewer_dashboard_hides_live_verdicts_until_check_in() -> None:
     assert "showLiveAcceptControls" in page
     assert "showLiveCheckInControl" in page
     assert "showLiveDecisionControls" in page
-    assert "Enter media room for attendance check-in" in page
+    assert "Join call and check in" in page
     assert "Evidence locked until acceptance" in page
     assert "restrictedPlayback" in page
     assert "Verdict controls appear after you join the live review and attendance is recorded on-chain." in page

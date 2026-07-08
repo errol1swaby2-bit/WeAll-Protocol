@@ -161,9 +161,12 @@ def reviewer_lane_active(state: Json, account_id: str, lane: str) -> bool:
         return False
     if lane_rec.get("opted_in") is False:
         return False
-    if lane_rec.get("active") is False:
-        return False
-    return bool(lane_rec.get("opted_in", True)) and bool(lane_rec.get("active", True))
+    # Exact reviewer lane opt-in is the grant once the Juror role record is
+    # active and the lane record is not blocked. Some live/devnet records from
+    # earlier builds carried opted_in=true with active=false/activation-pending;
+    # treat that as deterministic active availability rather than a second,
+    # misleading activation limbo.
+    return bool(lane_rec.get("opted_in", True))
 
 
 def eligible_reviewer_ids(state: Json, lane: str) -> list[str]:

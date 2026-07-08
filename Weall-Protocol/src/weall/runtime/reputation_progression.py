@@ -6,7 +6,7 @@ from typing import Any
 
 from weall.runtime.reputation_events import EVENT_REGISTRY, derive_role_eligibility
 from weall.runtime.reputation_matrix import derive_reputation_matrix
-from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.reputation_effective import effective_account_reputation_units
 from weall.runtime.node_operator_responsibilities import VALIDATOR_REPUTATION_REQUIRED_MILLI
 
 Json = dict[str, Any]
@@ -83,7 +83,7 @@ def _account_record(state: Json, account_id: str) -> Json:
 def reputation_progression_status(state: Json, account_id: str) -> Json:
     acct = _account_record(state, account_id)
     matrix = derive_reputation_matrix(state, account_id, reveal_restricted=False, include_events=True)
-    total_milli = int(account_reputation_units(acct, default=0)) if acct else int(matrix.get("aggregate_public_score_milli") or 0)
+    total_milli = int(effective_account_reputation_units(state, account_id, default=0))
     dims = _d(matrix.get("dimensions")) or _d(matrix.get("canonical_dimensions"))
     events = _l(matrix.get("events"))
     eligibility = matrix.get("eligibility") or derive_role_eligibility(state, account_id)

@@ -1101,7 +1101,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 </div>
                 <div className="progressRow">
                   <span>Exact lane availability</span>
-                  <span className={`statusPill ${anyReviewerLaneActive ? "ok" : (anyReviewerLanePaused || anyReviewerLanePending) ? "warning" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : anyReviewerLanePaused ? "Paused" : anyReviewerLanePending ? "Opted in, activation pending" : "No lane active"}</span>
+                  <span className={`statusPill ${anyReviewerLaneActive ? "ok" : (anyReviewerLanePaused || anyReviewerLanePending) ? "warning" : ""}`}>{anyReviewerLaneActive ? "At least one lane active" : anyReviewerLanePaused ? "Paused" : anyReviewerLanePending ? "Opted in" : "No lane active"}</span>
                 </div>
                 <div className="progressRow">
                   <span>Reviewer truth source</span>

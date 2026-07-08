@@ -66,6 +66,8 @@ def test_local_rehearsal_script_raises_rate_limit_headroom_and_honors_queue_env(
 
 def test_reviewer_lane_copy_distinguishes_pending_from_paused() -> None:
     src = open("../web/src/lib/reviewLanes.ts", encoding="utf-8").read()
-    assert "Opted in, activation pending" in src
+    assert "Opted in, activation pending" not in src
+    assert "Opted in" in src
+    assert "Active" in src
     assert "Opted in, paused/inactive" not in src
     assert "paused_at_nonce" in src

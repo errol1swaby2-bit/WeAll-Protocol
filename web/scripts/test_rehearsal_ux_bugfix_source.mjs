@@ -28,10 +28,10 @@ assertIncludes(accountVerification, 'preload="metadata"', "metadata-only async e
 assertIncludes(accountVerification, "stopAsyncPreviewBuffering();\n          const file = new File", "preview is paused before async upload");
 assertIncludes(accountVerification, "upload does not depend on clicking the video controls", "user-facing async upload no-click note");
 
-assertIncludes(jurorDashboard, "Accept live review assignment", "review queue accepts assignment label");
-assertIncludes(jurorDashboard, "separate attendance check-in step", "review queue separates attendance check-in copy");
-assertIncludes(liveRoom, "Step 1: accept assignment, then check in", "live room first-step label");
-assertIncludes(liveRoom, "Step 2: check in and enter live room", "live room second-step label");
+assertIncludes(jurorDashboard, "Accept review", "review queue accepts assignment label");
+assertIncludes(jurorDashboard, "Join call and check in", "review queue separates join/check-in copy");
+assertIncludes(liveRoom, "Accept review first", "live room first-step label");
+assertIncludes(liveRoom, "Join call and check in", "live room second-step label");
 assertIncludes(liveRoom, "Acceptance, attendance, and verdict are separate chain-backed milestones", "live room milestone copy");
 assertNotIncludes(liveRoom, "accepts the review assignment, records on-chain attendance, and starts media in one reviewer action", "misleading single-action live copy");
 
@@ -40,3 +40,5 @@ assertIncludes(account, "scripts/boot_node_operator.sh", "node operator reboot c
 assertIncludes(account, "scripts/external_observer_to_validator_live_gate.sh", "promoted validator reboot command");
 
 console.log("rehearsal UX bugfix source checks passed");
+
+assertNotIncludes(jurorDashboard, "joinLiveRoom(caseId);", "review accept must not auto-open live room");

@@ -80,7 +80,7 @@ export type ReviewLaneStatus = {
   active: boolean;
   optedIn: boolean;
   paused: boolean;
-  label: "Active" | "Paused" | "Opted in, activation pending" | "Not opted in";
+  label: "Active" | "Paused" | "Opted in" | "Not opted in";
   tone: "ok" | "warning" | "";
   canOptIn: boolean;
   canOptOut: boolean;
@@ -99,7 +99,7 @@ export function reviewLaneStatusFromTruth(raw: unknown): ReviewLaneStatus {
     return { active: false, optedIn: true, paused: true, label: "Paused", tone: "warning", canOptIn: false, canOptOut: true };
   }
   if (optedIn) {
-    return { active: false, optedIn: true, paused: false, label: "Opted in, activation pending", tone: "warning", canOptIn: false, canOptOut: true };
+    return { active: true, optedIn: true, paused: false, label: "Active", tone: "ok", canOptIn: false, canOptOut: true };
   }
   return { active: false, optedIn: false, paused: false, label: "Not opted in", tone: "", canOptIn: true, canOptOut: false };
 }

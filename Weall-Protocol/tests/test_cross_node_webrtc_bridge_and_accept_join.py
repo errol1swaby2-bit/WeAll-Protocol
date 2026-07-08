@@ -160,11 +160,11 @@ def test_local_rehearsal_configures_two_way_webrtc_signal_bridge() -> None:
     assert "webrtc_signal_bridge=enabled" in src
 
 
-def test_reviewer_accepts_live_call_from_feed_then_transports_to_room() -> None:
+def test_reviewer_accepts_live_review_then_joins_and_checks_in_separately() -> None:
     src = (WEB / "src" / "pages" / "JurorDashboard.tsx").read_text(encoding="utf-8")
 
     assert "Accept live verification review" in src
-    assert "Opening the WebRTC room" in src
-    assert "joinLiveRoom(caseId)" in src
-    assert "Accept live review assignment" in src
-    assert "Opening the room is transport navigation only" in src
+    assert "Use Join call and check in as the separate attendance step" in src
+    assert "joinLiveRoom(caseId);" not in src
+    assert "Accept review" in src
+    assert "Join call and check in" in src

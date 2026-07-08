@@ -135,7 +135,8 @@ def test_validator_opt_in_account_signature_accepted_but_reputation_and_readines
     status = build_operator_promotion_status(st, ACCOUNT, requested_node_pubkey=node_pub, owner_authenticated=True)
     assert status["validator_opted_in"] is True
     assert status["validator_readiness_status"] == "pending"
-    assert status["validator_reputation_actual_milli"] == 1000
+    assert status["validator_reputation_actual_milli"] >= 1000
+    assert status["validator_reputation_actual_milli"] < status["validator_reputation_required_milli"]
     assert status["validator_reputation_required_milli"] == VALIDATOR_REPUTATION_REQUIRED_MILLI
     assert status["validator_active"] is False
     assert status["validator_reboot_allowed"] is False
