@@ -1136,6 +1136,49 @@ def _locally_confirmed_tx(request: Request, tx_id: str) -> Json | None:
     return None
 
 
+def _tx_queue_local_confirmation_matches_upstream(local: Json | None, outbound: Json | None) -> bool:
+    """Return true only when local confirmation matches an upstream-confirmed queue record.
+
+    This is the controlled-devnet observer-safe bridge for transactions that the
+    observer already has locally and the upstream has independently confirmed.
+    It does not grant authority from local state alone.
+    """
+    if not isinstance(local, dict) or not isinstance(outbound, dict):
+        return False
+    if str(outbound.get("upstream_status") or "") != "confirmed":
+        return False
+
+    upstream_height = int(outbound.get("confirmed_height") or 0)
+    local_height = int(local.get("height") or 0)
+    if upstream_height and local_height and upstream_height != local_height:
+        return False
+
+    upstream_block_id = str(outbound.get("confirmed_block_id") or "").strip()
+    local_block_id = str(local.get("block_id") or "").strip()
+    if upstream_block_id and local_block_id and upstream_block_id != local_block_id:
+        return False
+
+    return bool(local_height or local_block_id)
+
+
+def _mark_tx_queue_locally_synced_if_matching_upstream(tx_id: str, local: Json | None, outbound: Json | None) -> Json | None:
+    if not _tx_queue_local_confirmation_matches_upstream(local, outbound):
+        return None
+    _update_tx_queue_record(
+        tx_id,
+        {
+            "upstream_status": "confirmed",
+            "local_state_synced": True,
+            "confirmed_height": int((outbound or {}).get("confirmed_height") or (local or {}).get("height") or 0),
+            "confirmed_block_id": str((outbound or {}).get("confirmed_block_id") or (local or {}).get("block_id") or ""),
+            "last_error": "",
+            "last_local_sync_ms": _now_ms(),
+            "last_local_sync_source": "local_confirmation_matches_upstream",
+        },
+    )
+    return _tx_queue_summary_for_tx(tx_id)
+
+
 def _request_and_apply_state_sync_from_upstream(
     request: Request,
     url: str,
@@ -1263,6 +1306,17 @@ def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
             "local_state_synced": False,
             "local_confirmation": local or {},
             "outbound_propagation": outbound,
+        }
+
+    matched_local = _mark_tx_queue_locally_synced_if_matching_upstream(t, local, outbound)
+    if isinstance(matched_local, dict):
+        return {
+            "ok": True,
+            "tx_id": t,
+            "local_state_synced": True,
+            "source": "local_confirmation_matches_upstream",
+            "local_confirmation": local or {},
+            "outbound_propagation": matched_local,
         }
 
     if bool(outbound.get("local_state_synced")):
@@ -1843,6 +1897,9 @@ def tx_status(request: Request, tx_id: str) -> Json:
             reconciled = _reconcile_tx_queue_confirmation(t)
             if isinstance(reconciled, dict):
                 outbound = reconciled
+            matched_local = _mark_tx_queue_locally_synced_if_matching_upstream(t, idx, outbound)
+            if isinstance(matched_local, dict):
+                outbound = matched_local
             local_synced = bool(isinstance(outbound, dict) and outbound.get("local_state_synced") is True)
             upstream_confirmed = bool(
                 isinstance(outbound, dict)

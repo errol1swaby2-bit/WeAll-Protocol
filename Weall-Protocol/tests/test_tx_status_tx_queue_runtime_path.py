@@ -51,3 +51,14 @@ def test_local_two_frontend_rehearsal_uses_per_node_runtime_and_tx_queue_paths()
     assert 'WEALL_TX_QUEUE_PATH="${DEVNET_DIR}/node1/runtime/observer_tx_queue.json"' in script
     assert 'WEALL_RUNTIME_DIR="${DEVNET_DIR}/node2/runtime"' in script
     assert 'WEALL_TX_QUEUE_PATH="${DEVNET_DIR}/node2/runtime/observer_tx_queue.json"' in script
+
+
+def test_observer_reconcile_marks_matching_local_confirmation_synced() -> None:
+    tx = _read("src/weall/api/routes_public_parts/tx.py")
+
+    assert "def _tx_queue_local_confirmation_matches_upstream" in tx
+    assert "def _mark_tx_queue_locally_synced_if_matching_upstream" in tx
+    assert "local_confirmation_matches_upstream" in tx
+    assert "matched_local = _mark_tx_queue_locally_synced_if_matching_upstream(t, local, outbound)" in tx
+    assert "matched_local = _mark_tx_queue_locally_synced_if_matching_upstream(t, idx, outbound)" in tx
+    assert "It does not grant authority from local state alone." in tx

@@ -162,9 +162,11 @@ export default function Account({ account }: { account: string }): JSX.Element {
     const calls: Record<string, Promise<any>> = {
       poh: weall.pohState(acct, base),
       nonce: weall.accountNonce(acct, base),
-      account: weall.account(acct, base),
+      account: weall.account(acct, base, headers),
       profile: weall.accountProfile(acct, base, headers),
-      operatorStatus: weall.accountOperatorStatus(acct, base, headers),
+      operatorStatus: weall.accountOperatorStatus(acct, base, headers, {
+        node_pubkey: String(nodeKeyFile?.publicKeyB64 || "").trim() || undefined,
+      }),
       reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
       reputationMatrix: weall.reputationSummary(acct, base, headers),
       registered: weall.accountRegistered(acct, base),
@@ -1395,7 +1397,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 <div className="progressRow">
                   <span>6. Node operator enrollment submitted</span>
                   <span className={`statusPill ${nodeOperatorEnrolled ? "ok" : ""}`}>
-                    {nodeOperatorEnrolled ? "Submitted" : "Pending"}
+                    {nodeOperatorEnrolled ? "Submitted" : matchingNodeDevice ? "Ready to submit" : "Blocked until node device"}
                   </span>
                 </div>
                 <div className="progressRow">

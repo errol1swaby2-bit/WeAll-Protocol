@@ -21,6 +21,8 @@ def test_node_operator_checklist_separates_enrollment_from_activation() -> None:
     text = ACCOUNT_PAGE.read_text(encoding="utf-8")
     assert "Node operator enrollment submitted" in text
     assert "Node Operator status active" in text
+    assert "Ready to submit" in text
+    assert "Blocked until node device" in text
     assert "Waiting for eligibility" in text
     assert "Checking eligibility" in text
     assert "Validator and storage responsibilities are optional opt-in responsibilities" in text
@@ -32,3 +34,14 @@ def test_node_operator_ready_requires_active_role() -> None:
     assert "const nodeOperatorActive" in text
     assert "const nodeDeviceReady" in text
     assert "const operatorReady = nodeDeviceReady && nodeOperatorActive" in text
+
+
+def test_node_operator_page_uses_owner_authenticated_account_state_for_devices() -> None:
+    text = ACCOUNT_PAGE.read_text(encoding="utf-8")
+
+    assert "const headers = isSelf ? getAuthHeaders(acct) : undefined" in text
+    assert "account: weall.account(acct, base, headers)" in text
+    assert "weall.accountOperatorStatus(acct, base, headers" in text
+    assert "node_pubkey: String(nodeKeyFile?.publicKeyB64 || \"\").trim() || undefined" in text
+    assert "Blocked until node device" in text
+    assert "Ready to submit" in text
