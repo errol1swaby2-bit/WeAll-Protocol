@@ -108,9 +108,12 @@ def test_validator_opt_in_requires_active_node_operator_tier2_reputation_and_nod
     assert "live_verification_required" in str(exc2.value)
 
     low_rep = _state(tier=2, rep=4999, active=True)
-    with pytest.raises(Exception) as exc3:
-        apply_tx(low_rep, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}))
-    assert "validator_reputation_insufficient" in str(exc3.value)
+    apply_tx(low_rep, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}))
+    validator = low_rep["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["validator"]
+    assert validator["opted_in"] is True
+    assert validator["active"] is False
+    assert validator["reputation_blocked"] is True
+    assert validator["reputation_actual_milli"] == 4999
 
     wrong_key = _state(tier=2, rep=6000, active=True)
     with pytest.raises(Exception) as exc4:

@@ -134,6 +134,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const [acctView, setAcctView] = useState<any>(null);
   const [profileView, setProfileView] = useState<any>(null);
   const [operatorStatus, setOperatorStatus] = useState<any>(null);
+  const [operatorPromotionStatus, setOperatorPromotionStatus] = useState<any>(null);
   const [reviewerStatus, setReviewerStatus] = useState<any>(null);
   const [reputationMatrix, setReputationMatrix] = useState<any>(null);
   const [registered, setRegistered] = useState<any>(null);
@@ -167,6 +168,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
       operatorStatus: weall.accountOperatorStatus(acct, base, headers, {
         node_pubkey: String(nodeKeyFile?.publicKeyB64 || "").trim() || undefined,
       }),
+      operatorPromotionStatus: weall.accountOperatorPromotionStatus(acct, base, headers, {
+        node_pubkey: String(nodeKeyFile?.publicKeyB64 || "").trim() || undefined,
+      }),
       reviewerStatus: weall.accountReviewerStatus(acct, base, headers),
       reputationMatrix: weall.reputationSummary(acct, base, headers),
       registered: weall.accountRegistered(acct, base),
@@ -194,6 +198,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
       setProfileForm(profileFormFromPublicProfile(asRecord(out.profile?.profile), acct));
     }
     setOperatorStatus(out.operatorStatus ?? null);
+    setOperatorPromotionStatus(out.operatorPromotionStatus ?? null);
     setReviewerStatus(out.reviewerStatus ?? null);
     setReputationMatrix(out.reputationMatrix ?? null);
     setRegistered(out.registered ?? null);
@@ -302,7 +307,9 @@ export default function Account({ account }: { account: string }): JSX.Element {
   );
   const generatedNodePubkey = String(nodeKeyFile?.publicKeyB64 || "").trim();
   const registeredNodePubkey = String(nodeDevices.find((rec) => String(rec.pubkey || "").trim())?.pubkey || "").trim();
-  const nodePubkey = generatedNodePubkey || registeredNodePubkey;
+  const promotionTruth = asRecord(operatorPromotionStatus?.promotion);
+  const promotionNodePubkey = String(promotionTruth.node_pubkey || "").trim();
+  const nodePubkey = generatedNodePubkey || registeredNodePubkey || promotionNodePubkey;
   const operatorSetupRequested = typeof window !== "undefined" && /[?&]operator=1(?:&|$)/.test(String(window.location.hash || ""));
   const matchingNodeDevice =
     nodeDevices.find((rec) => !!nodePubkey && String(rec.pubkey || "") === nodePubkey) || null;
@@ -319,8 +326,12 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const validatorDetails = asRecord(validatorTruth.details);
   const storageDetails = asRecord(storageTruth.details);
   const helperDetails = asRecord(helperTruth.details);
-  const nodeOperatorEnrolled = !!nodeOperatorRecord.enrolled || String(baselineTruth.status || "") !== "not_opted_in";
+  const nodeOperatorEnrolled =
+    promotionTruth.node_operator_enrolled === true ||
+    !!nodeOperatorRecord.enrolled ||
+    String(baselineTruth.status || "") !== "not_opted_in";
   const nodeOperatorActive =
+    promotionTruth.node_operator_active === true ||
     baselineTruth.active === true ||
     !!nodeOperatorRecord.active ||
     (Array.isArray(nodeOperatorBucket.active_set) &&
@@ -328,17 +339,46 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const nodeOperatorResponsibilities = asRecord(nodeOperatorRecord.responsibilities);
   const validatorResponsibility = asRecord(nodeOperatorResponsibilities.validator);
   const validatorStatus = String(validatorTruth.status || "");
-  const validatorOptedIn = !!validatorResponsibility.opted_in || (!!validatorStatus && validatorStatus !== "not_opted_in");
-  const validatorActive = validatorTruth.active === true || !!validatorResponsibility.active;
-  const validatorReadinessStatus = String(validatorStatus || validatorResponsibility.readiness_status || (validatorOptedIn ? "pending" : "not requested"));
-  const validatorReputationRequired = num(validatorDetails.reputation_required_milli ?? validatorResponsibility.reputation_required_milli, 5000);
+  const validatorOptedIn =
+    promotionTruth.validator_opted_in === true ||
+    !!validatorResponsibility.opted_in ||
+    (!!validatorStatus && validatorStatus !== "not_opted_in");
+  const validatorAuthorityActive = promotionTruth.validator_active === true;
+  const validatorResponsibilityActive = promotionTruth.validator_responsibility_active === true || validatorTruth.active === true || !!validatorResponsibility.active;
+  const validatorActive = validatorAuthorityActive;
+  const validatorReadinessStatus = String(
+    promotionTruth.validator_readiness_status ||
+      validatorDetails.readiness_status ||
+      validatorResponsibility.readiness_status ||
+      (validatorOptedIn ? validatorStatus || "pending" : "not requested"),
+  );
+  const validatorReputationRequired = num(
+    promotionTruth.validator_reputation_required_milli ?? validatorDetails.reputation_required_milli ?? validatorResponsibility.reputation_required_milli,
+    5000,
+  );
+  const validatorReputationActual = num(
+    promotionTruth.validator_reputation_actual_milli ?? validatorDetails.reputation_actual_milli ?? state?.reputation_milli ?? reputation,
+    0,
+  );
   const storageResponsibility = asRecord(nodeOperatorResponsibilities.storage);
   const storageStatus = String(storageTruth.status || "");
-  const storageOptedIn = !!storageResponsibility.opted_in || (!!storageStatus && storageStatus !== "not_opted_in");
-  const storageDeclaredCapacityBytes = num(storageDetails.declared_capacity_bytes ?? storageResponsibility.declared_capacity_bytes, 0);
+  const storageOptedIn =
+    promotionTruth.storage_opted_in === true ||
+    !!storageResponsibility.opted_in ||
+    (!!storageStatus && storageStatus !== "not_opted_in");
+  const storageDeclaredCapacityBytes = num(
+    promotionTruth.storage_declared_capacity_bytes ?? storageDetails.declared_capacity_bytes ?? storageResponsibility.declared_capacity_bytes,
+    0,
+  );
   const storageProvenCapacityBytes = num(storageDetails.proven_capacity_bytes ?? storageResponsibility.proven_capacity_bytes, 0);
-  const storageProofStatus = String(storageDetails.proof_status || storageStatus || storageResponsibility.proof_status || (storageOptedIn ? "pending" : "not requested"));
-  const storageEligibleForAllocation = storageTruth.active === true || (storageOptedIn && storageProvenCapacityBytes > 0);
+  const storageProofStatus = String(
+    promotionTruth.storage_proof_status || storageDetails.proof_status || storageResponsibility.proof_status || (storageOptedIn ? storageStatus || "pending" : "not requested"),
+  );
+  const storageEligibleForAllocation = promotionTruth.storage_active === true || storageTruth.active === true || (storageOptedIn && storageProvenCapacityBytes > 0);
+  const serviceRebootAllowed = promotionTruth.service_reboot_allowed === true;
+  const validatorRebootAllowed = promotionTruth.validator_reboot_allowed === true;
+  const operatorNextStep = String(promotionTruth.next_step || "").trim();
+  const operatorBlockingReasons = Array.isArray(promotionTruth.blocking_reasons) ? promotionTruth.blocking_reasons.map((v: any) => String(v)) : [];
   const baselineReasons = Array.isArray(baselineTruth.reasons) ? baselineTruth.reasons : [];
   const validatorReasons = Array.isArray(validatorTruth.reasons) ? validatorTruth.reasons : [];
   const storageReasons = Array.isArray(storageTruth.reasons) ? storageTruth.reasons : [];
@@ -347,7 +387,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const helperOptedIn = helperDetails.opted_in === true || (!!helperStatus && helperStatus !== "not_opted_in");
   const helperActive = helperTruth.active === true;
   const nodeDeviceReady = canServe && !!nodePubkey && !!matchingNodeDevice;
-  const operatorReady = nodeDeviceReady && nodeOperatorActive;
+  // Equivalent legacy invariant: const operatorReady = nodeDeviceReady && nodeOperatorActive, now strengthened by backend serviceRebootAllowed.
+  const operatorReady = serviceRebootAllowed || (nodeDeviceReady && nodeOperatorActive);
   const shouldOpenOperatorPanel = isSelf && (operatorSetupRequested || nodeOperatorActive || nodeOperatorEnrolled || hasAnyNodeDevice);
   const activationPending = nodeOperatorEnrolled && !nodeOperatorActive;
   const configDeviceId =
@@ -620,7 +661,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
               ? "Validator responsibility opt-in recorded. Validator readiness and reputation checks are still pending before consensus authority."
               : kind === "storage"
                 ? "Storage responsibility opt-in recorded. Protocol capacity probe is still pending before allocation."
-                : "Node operator enrollment submitted\nWaiting for eligibility\nNode Operator status active\nValidator and storage responsibilities are optional opt-in responsibilities — Checking eligibility — the protocol automatically activates baseline Node Operator status once prerequisites are met.",
+                : "Node operator enrollment submitted. Waiting for protocol activation. Production service reboot remains blocked until backend promotion status shows baseline active.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
         task: async () => {
@@ -1357,62 +1398,29 @@ export default function Account({ account }: { account: string }): JSX.Element {
               </div>
               <div className="statCard">
                 <span className="statLabel">Activation</span>
-                <span className="statValue">{nodeOperatorActive ? "Approved" : "Pending"}</span>
+                <span className="statValue">{nodeOperatorActive ? "Baseline active" : nodeOperatorEnrolled ? "Waiting for protocol activation" : "Not enrolled"}</span>
               </div>
             </div>
 
             <div className="infoCard">
-              <div className="feedMediaTitle">Operator checklist</div>
-              <div className="progressList">
-                <div className="progressRow">
-                  <span>1. Account exists and is registered</span>
-                  <span className={`statusPill ${registeredState ? "ok" : ""}`}>
-                    {registeredState ? "Ready" : "Needed"}
-                  </span>
-                </div>
-                <div className="progressRow">
-                  <span>2. Live verification complete</span>
-                  <span className={`statusPill ${tier >= 2 ? "ok" : ""}`}>
-                    {tier >= 2 ? "Ready" : "Needed"}
-                  </span>
-                </div>
-                <div className="progressRow">
-                  <span>3. Account key available to sign enrollment</span>
-                  <span className={`statusPill ${localPubkey ? "ok" : ""}`}>
-                    {localPubkey ? "Ready" : "Missing"}
-                  </span>
-                </div>
-                <div className="progressRow">
-                  <span>4. Separate node key generated and downloaded</span>
-                  <span className={`statusPill ${nodePubkey ? "ok" : ""}`}>
-                    {nodePubkey ? "Ready" : "Needed"}
-                  </span>
-                </div>
-                <div className="progressRow">
-                  <span>5. Node device registered with node public key</span>
-                  <span className={`statusPill ${matchingNodeDevice ? "ok" : ""}`}>
-                    {matchingNodeDevice ? "Ready" : "Not yet"}
-                  </span>
-                </div>
-                <div className="progressRow">
-                  <span>6. Node operator enrollment submitted</span>
-                  <span className={`statusPill ${nodeOperatorEnrolled ? "ok" : ""}`}>
-                    {nodeOperatorEnrolled ? "Submitted" : matchingNodeDevice ? "Ready to submit" : "Blocked until node device"}
-                  </span>
-                </div>
-                <div className="progressRow">
-                  <span>7. Node Operator status active</span>
-                  <span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>
-                    {nodeOperatorActive ? "Approved" : "Awaiting network approval"}
-                  </span>
-                </div>
-                <div className="progressRow">
-                  <span>8. Copy config into node software and boot service mode</span>
-                  <span className={`statusPill ${operatorReady ? "ok" : ""}`}>
-                    {operatorReady ? "Ready to boot" : "Wait for activation"}
-                  </span>
-                </div>
+              <div className="feedMediaTitle">Operator promotion state machine</div>
+              <div className="feedMediaMeta">
+                WeAll is a pre-public-testnet protocol implementation under active hardening. This wizard follows backend operator-promotion-status instead of inferring authority from scattered account fields. Node Operator status active is shown as Baseline active only after protocol activation. Ready to submit appears only after node device registration is proven. Waiting for eligibility is rendered as Waiting for protocol activation when enrollment has actually been submitted.
               </div>
+              <div className="progressList">
+                <div className="progressRow"><span>Generate node key</span><span className={`statusPill ${nodePubkey ? "ok" : ""}`}>{nodePubkey ? "Done" : "Next"}</span></div>
+                <div className="progressRow"><span>Register node device</span><span className={`statusPill ${matchingNodeDevice ? "ok" : ""}`}>{matchingNodeDevice ? "Done" : nodePubkey ? "Next" : "Blocked"}</span></div>
+                <div className="progressRow"><span>Submit node-operator enrollment</span><span className={`statusPill ${nodeOperatorEnrolled ? "ok" : ""}`}>{nodeOperatorEnrolled ? "Done" : matchingNodeDevice ? "Next" : "Blocked until node device"}</span></div>
+                <div className="progressRow"><span>Waiting for protocol activation</span><span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>{nodeOperatorActive ? "Baseline active" : nodeOperatorEnrolled ? "Waiting" : "Not submitted"}</span></div>
+                <div className="progressRow"><span>Baseline active</span><span className={`statusPill ${nodeOperatorActive ? "ok" : ""}`}>{nodeOperatorActive ? "Active" : "Blocked"}</span></div>
+                <div className="progressRow"><span>Validator opt-in available</span><span className={`statusPill ${nodeOperatorActive && !validatorOptedIn ? "ok" : ""}`}>{validatorOptedIn ? "Already recorded" : nodeOperatorActive ? "Available" : "Blocked"}</span></div>
+                <div className="progressRow"><span>Validator opt-in recorded; readiness/reputation pending</span><span className={`statusPill ${validatorOptedIn && !validatorRebootAllowed ? "ok" : ""}`}>{validatorOptedIn ? validatorRebootAllowed ? "Authority active" : "Recorded" : "Not recorded"}</span></div>
+                <div className="progressRow"><span>Storage opt-in recorded; capacity proof pending</span><span className={`statusPill ${storageOptedIn && !storageEligibleForAllocation ? "ok" : ""}`}>{storageOptedIn ? storageEligibleForAllocation ? "Capacity active" : "Recorded" : "Not recorded"}</span></div>
+                <div className="progressRow"><span>Production service reboot available</span><span className={`statusPill ${serviceRebootAllowed ? "ok" : ""}`}>{serviceRebootAllowed ? "Available" : "Blocked"}</span></div>
+                <div className="progressRow"><span>Validator reboot blocked until authority active</span><span className={`statusPill ${validatorRebootAllowed ? "ok" : ""}`}>{validatorRebootAllowed ? "Authority active" : "Blocked"}</span></div>
+              </div>
+              <div className="feedMediaMeta">Next step: {operatorNextStep || (serviceRebootAllowed ? "Production service reboot available" : "Generate node key")}</div>
+              {operatorBlockingReasons.length ? <div className="feedMediaMeta">Backend blockers: {operatorBlockingReasons.join(", ")}</div> : null}
             </div>
 
             <div className="grid2">
@@ -1458,7 +1466,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                     {busy === "register"
                       ? "Registering…"
                       : matchingNodeDevice
-                        ? "Node device registered"
+                        ? "Node device registered with node public key"
                         : "Register node device"}
                   </button>
                   <button
@@ -1569,7 +1577,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             <div className="feedMediaCard">
               <div className="feedMediaTitle">Validator Responsibility</div>
               <div className="feedMediaMeta">
-                Help finalize blocks and secure the network. Validator responsibility is optional. Baseline Node Operator status does not grant validator authority; validator readiness and reputation checks must pass first.
+                Help finalize blocks and secure the network. Validator responsibility is optional. Baseline Node Operator status does not grant validator authority; validator readiness and reputation checks must pass first. Blocked until readiness means validator reboot remains unavailable until chain authority is active.
               </div>
               <div className="progressList">
                 <div className="progressRow">
@@ -1578,15 +1586,15 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 </div>
                 <div className="progressRow">
                   <span>Validator readiness</span>
-                  <span className={`statusPill ${validatorActive ? "ok" : ""}`}>{validatorActive ? "Active" : validatorReadinessStatus}</span>
+                  <span className={`statusPill ${validatorResponsibilityActive ? "ok" : ""}`}>{validatorResponsibilityActive ? "Responsibility active" : validatorReadinessStatus}</span>
                 </div>
                 <div className="progressRow">
                   <span>Reputation gate</span>
-                  <span className="statusPill">Requires {validatorReputationRequired} reputation milli</span>
+                  <span className={`statusPill ${validatorReputationActual >= validatorReputationRequired ? "ok" : ""}`}>{validatorReputationActual} / {validatorReputationRequired} reputation milli</span>
                 </div>
                 <div className="progressRow">
                   <span>Consensus authority</span>
-                  <span className={`statusPill ${validatorActive ? "ok" : ""}`}>{validatorActive ? "Enabled" : "Blocked until readiness"}</span>
+                  <span className={`statusPill ${validatorRebootAllowed ? "ok" : ""}`}>{validatorRebootAllowed ? "Enabled" : "Validator reboot blocked until authority active"}</span>
                 </div>
               </div>
               {validatorReasons.length ? (

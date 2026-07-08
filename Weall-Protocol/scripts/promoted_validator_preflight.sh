@@ -115,16 +115,31 @@ expected_tx_index_hash = str(manifest.get('tx_index_hash') or manifest.get('chai
 if expected_tx_index_hash and remote_tx_index_hash and expected_tx_index_hash != remote_tx_index_hash:
     issues.append(f'tx_index_hash_mismatch:{remote_tx_index_hash}!={expected_tx_index_hash}')
 
-op_path = '/v1/accounts/' + urllib.parse.quote(account, safe='') + '/operator-status?node_pubkey=' + urllib.parse.quote(node_pubkey, safe='')
+op_path = '/v1/accounts/' + urllib.parse.quote(account, safe='') + '/operator-promotion-status?node_pubkey=' + urllib.parse.quote(node_pubkey, safe='')
 op = fetch(op_path)
-op_state = op.get('node_operator') if isinstance(op.get('node_operator'), dict) else {}
-baseline = op_state.get('baseline') if isinstance(op_state.get('baseline'), dict) else {}
-validator = op_state.get('validator') if isinstance(op_state.get('validator'), dict) else {}
-if baseline.get('active') is not True:
-    issues.append('baseline_node_operator_not_active:' + ','.join(str(x) for x in baseline.get('reasons', []) if x))
-if validator.get('active') is not True:
-    issues.append('validator_responsibility_not_active:' + ','.join(str(x) for x in validator.get('reasons', []) if x))
-validator_details = validator.get('details') if isinstance(validator.get('details'), dict) else {}
+op_state = op.get('promotion') if isinstance(op.get('promotion'), dict) else {}
+if op_state.get('node_operator_active') is not True:
+    issues.append('baseline_node_operator_not_active:' + ','.join(str(x) for x in op_state.get('blocking_reasons', []) if x))
+if op_state.get('validator_opted_in') is not True:
+    issues.append('validator_opt_in_not_recorded')
+if op_state.get('validator_responsibility_active') is not True:
+    issues.append('validator_responsibility_not_active')
+if op_state.get('validator_active') is not True:
+    issues.append('validator_authority_not_active')
+if op_state.get('validator_reboot_allowed') is not True:
+    issues.append('validator_reboot_not_allowed:' + ','.join(str(x) for x in op_state.get('blocking_reasons', []) if x))
+if op_state.get('node_pubkey') != node_pubkey:
+    issues.append(f'node_pubkey_mismatch:{op_state.get("node_pubkey")}!={node_pubkey}')
+validator_details = {
+    'chain_id': op_state.get('validator_chain_id'),
+    'tx_index_hash': op_state.get('validator_tx_index_hash'),
+    'runtime_profile_hash': op_state.get('validator_runtime_profile_hash'),
+    'schema_version': op_state.get('validator_schema_version'),
+    'protocol_version': op_state.get('validator_protocol_version'),
+    'bft_pubkey': op_state.get('validator_bft_pubkey'),
+    'node_pubkey': op_state.get('node_pubkey'),
+    'readiness_receipt_hash': op_state.get('validator_readiness_receipt_hash'),
+}
 expected_profile_hash = _norm(manifest.get('protocol_profile_hash'))
 expected_schema_version = _norm(manifest.get('schema_version'))
 expected_protocol_version = _local_protocol_version()
@@ -168,7 +183,7 @@ payload = {
     'genesis_api_base': api,
     'chain_id': remote_chain_id,
     'tx_index_hash': remote_tx_index_hash,
-    'operator_status': op_state,
+    'operator_promotion_status': op_state,
     'consensus': {
         'active_validator_count': active_count,
         'validator_epoch': consensus.get('validator_epoch'),
@@ -198,7 +213,7 @@ OK: promoted validator preflight passed
 - observer onboarding env is cleared
 - manifest/chain identity/tx_index_hash match genesis API when advertised
 - node pubkey is bound to active node-operator state
-- validator responsibility is active from protocol state
+- validator reboot is allowed by operator-promotion-status and validator authority is active
 - validator readiness receipt is bound to the local chain_id/tx_index_hash/profile/schema/protocol fields
 - consensus validator set is present and has at least ${MIN_ACTIVE_VALIDATORS:-BFT_MIN_VALIDATORS} active validators
 MSG

@@ -17,11 +17,12 @@ fi
 
 cat <<'MSG'
 [observer-to-validator] Observer onboarding gate complete or intentionally skipped.
+[observer-to-validator] WeAll is a pre-public-testnet protocol implementation under active hardening.
 [observer-to-validator] The next authority transitions must already be committed by real protocol authority before reboot:
   - native PoH reaches required Tier 2 / Live Verified Human state, or an auditable bootstrap Tier2 grant exists
   - ROLE_NODE_OPERATOR_ENROLL is committed
   - ROLE_NODE_OPERATOR_ACTIVATE is committed by system/governance authority
-  - NODE_OPERATOR_VALIDATOR_OPT_IN is committed by the account
+  - NODE_OPERATOR_VALIDATOR_OPT_IN is committed by the account; readiness/reputation blockers must be readable, not signature failures
   - VALIDATOR_READINESS_VERIFY is committed by system authority with a live readiness receipt
   - ROLE_VALIDATOR_ACTIVATE and validator-set update are committed by system/governance authority
   - full BFT-active signing is expected only when the active validator count satisfies BFT_MIN_VALIDATORS; lower counts are bootstrap/readiness only

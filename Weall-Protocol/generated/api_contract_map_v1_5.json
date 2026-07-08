@@ -1,6 +1,6 @@
 {
   "by_domain": {
-    "accounts": 8,
+    "accounts": 9,
     "activity": 1,
     "consensus": 3,
     "content": 4,
@@ -38,7 +38,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 145,
+  "route_count": 146,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -56,7 +56,7 @@
       "route_id": "ba60b12a012e2c60",
       "route_path_without_v1_prefix": "/accounts/tx/profile-update",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 276,
+      "source_lineno": 280,
       "summary": "",
       "tags": [
         "accounts"
@@ -78,7 +78,7 @@
       "route_id": "d97016cc48d59435",
       "route_path_without_v1_prefix": "/accounts/tx/register",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 249,
+      "source_lineno": 253,
       "summary": "",
       "tags": [
         "accounts"
@@ -100,7 +100,7 @@
       "route_id": "5fa4f1cc935c6937",
       "route_path_without_v1_prefix": "/accounts/{account}",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 339,
+      "source_lineno": 343,
       "summary": "",
       "tags": [
         "accounts"
@@ -122,7 +122,7 @@
       "route_id": "137ab4909a8e8e1b",
       "route_path_without_v1_prefix": "/accounts/{account}/feed",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 481,
+      "source_lineno": 724,
       "summary": "",
       "tags": [
         "accounts"
@@ -144,10 +144,32 @@
       "route_id": "db3e7abe13b2eeaa",
       "route_path_without_v1_prefix": "/accounts/{account}/nonce",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1761,
+      "source_lineno": 1815,
       "summary": "",
       "tags": [
         "tx"
+      ],
+      "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
+    },
+    {
+      "auth": "public_read_redacted_snapshot",
+      "cache_policy": "no_store_dynamic_public_read_model_unless_route_overrides",
+      "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
+      "function": "v1_account_operator_promotion_status",
+      "idempotency": "safe_read_no_state_mutation",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "static_generator_heuristic",
+      "method": "GET",
+      "module": "accounts",
+      "path": "/v1/accounts/{account}/operator-promotion-status",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "15bf80fc74c4aa86",
+      "route_path_without_v1_prefix": "/accounts/{account}/operator-promotion-status",
+      "source": "src/weall/api/routes_public_parts/accounts.py",
+      "source_lineno": 700,
+      "summary": "",
+      "tags": [
+        "accounts"
       ],
       "truth_boundary": "Contract inventory only; runtime code remains the authority for validation and mutation."
     },
@@ -166,7 +188,7 @@
       "route_id": "ed5ad93f1eccd6af",
       "route_path_without_v1_prefix": "/accounts/{account}/operator-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 465,
+      "source_lineno": 684,
       "summary": "",
       "tags": [
         "accounts"
@@ -188,7 +210,7 @@
       "route_id": "b555c287281dbb93",
       "route_path_without_v1_prefix": "/accounts/{account}/profile",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 301,
+      "source_lineno": 305,
       "summary": "",
       "tags": [
         "accounts"
@@ -210,7 +232,7 @@
       "route_id": "85bb5981c233da2a",
       "route_path_without_v1_prefix": "/accounts/{account}/registered",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 369,
+      "source_lineno": 373,
       "summary": "",
       "tags": [
         "accounts"
@@ -232,7 +254,7 @@
       "route_id": "12b760a4427dc453",
       "route_path_without_v1_prefix": "/accounts/{account}/reviewer-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 401,
+      "source_lineno": 405,
       "summary": "",
       "tags": [
         "accounts"
@@ -1574,7 +1596,7 @@
       "route_id": "b0187fa58e1688ae",
       "route_path_without_v1_prefix": "/observer/edge/reconcile/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1806,
+      "source_lineno": 1860,
       "summary": "",
       "tags": [
         "tx"
@@ -1596,7 +1618,7 @@
       "route_id": "04995dd6136e4668",
       "route_path_without_v1_prefix": "/observer/edge/status",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1774,
+      "source_lineno": 1828,
       "summary": "",
       "tags": [
         "tx"
@@ -1618,7 +1640,7 @@
       "route_id": "b2fe3cc719b867ce",
       "route_path_without_v1_prefix": "/observer/edge/tx-queue/drain",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1798,
+      "source_lineno": 1852,
       "summary": "",
       "tags": [
         "tx"
@@ -3158,7 +3180,7 @@
       "route_id": "d2201e5bc7a4e9b1",
       "route_path_without_v1_prefix": "/tx/catalog",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1981,
+      "source_lineno": 2038,
       "summary": "",
       "tags": [
         "tx"
@@ -3180,7 +3202,7 @@
       "route_id": "229010cafa55f7fb",
       "route_path_without_v1_prefix": "/tx/status/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1819,
+      "source_lineno": 1873,
       "summary": "",
       "tags": [
         "tx"
@@ -3202,7 +3224,7 @@
       "route_id": "961aec58581a92df",
       "route_path_without_v1_prefix": "/tx/submit",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1576,
+      "source_lineno": 1630,
       "summary": "",
       "tags": [
         "tx"

@@ -353,7 +353,16 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
     if readiness_expires > 0 and current_height > readiness_expires:
         _append_unique(reasons, "validator_readiness_expired")
     active = bool(active_flag and not reasons)
-    status = "active" if active else ("readiness_pending" if "validator_readiness_pending" in reasons else ("blocked" if reasons else "eligible"))
+    if active:
+        status = "active"
+    elif "validator_reputation_insufficient" in reasons:
+        status = "reputation_insufficient"
+    elif "validator_readiness_expired" in reasons:
+        status = "readiness_expired"
+    elif "validator_readiness_pending" in reasons:
+        status = "readiness_pending"
+    else:
+        status = "blocked" if reasons else "eligible"
     return ResponsibilityEvaluation("validator", status, not reasons, active, tuple(reasons), ("baseline_node_operator_active", "validator_opt_in", "reputation", "validator_readiness"), details)
 
 

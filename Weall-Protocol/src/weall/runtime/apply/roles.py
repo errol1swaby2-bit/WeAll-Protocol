@@ -429,16 +429,7 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
     if reputation_required < 0:
         reputation_required = 5000
     reputation_actual = account_reputation_units(account, default=0)
-    if reputation_actual < reputation_required:
-        raise RolesApplyError(
-            "forbidden",
-            "validator_reputation_insufficient",
-            {
-                "account_id": acct,
-                "required_milli": int(reputation_required),
-                "actual_milli": int(reputation_actual),
-            },
-        )
+    reputation_blocked = reputation_actual < reputation_required
 
     node_pubkey = _as_str(payload.get("node_pubkey") or payload.get("node_public_key"))
     if node_pubkey and node_pubkey not in _active_node_pubkeys_for_account(ledger, acct):
@@ -453,6 +444,7 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
             "readiness_status": "pending",
             "reputation_required_milli": int(reputation_required),
             "reputation_actual_milli": int(reputation_actual),
+            "reputation_blocked": bool(reputation_blocked),
             "updated_at_nonce": int(nonce),
         }
     )

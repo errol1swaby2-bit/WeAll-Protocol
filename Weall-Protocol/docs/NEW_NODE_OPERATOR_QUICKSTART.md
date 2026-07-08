@@ -1,5 +1,25 @@
 # New Node Operator Quickstart
 
+
+## Canonical operator promotion state machine
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The canonical ladder is defined in `docs/OPERATOR_PROMOTION_STATE_MACHINE.md` and exposed by `GET /v1/accounts/{account}/operator-promotion-status`.
+
+The expected ladder is:
+
+```text
+Tier 2
+→ node key registered
+→ node operator enrolled
+→ node operator active
+→ validator/storage opt-in accepted
+→ readiness/reputation/capacity blockers visible
+→ service reboot allowed
+→ validator reboot allowed only after validator authority is active
+```
+
+Do not treat Tier 2, node-operator enrollment, or validator/storage opt-in as validator authority. Reboot scripts must use the backend promotion status and fail closed when `service_reboot_allowed` or `validator_reboot_allowed` is false.
+
 This guide explains the safe first-run path for a new person who wants to run WeAll software, create an account, complete human verification, enroll as a node operator, and later boot an approved production service node.
 
 The important rule is simple:

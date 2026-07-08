@@ -1,5 +1,25 @@
 # Promoted Observer to Validator Runbook
 
+
+## Canonical operator promotion state machine
+
+WeAll is a pre-public-testnet protocol implementation under active hardening. The canonical ladder is defined in `docs/OPERATOR_PROMOTION_STATE_MACHINE.md` and exposed by `GET /v1/accounts/{account}/operator-promotion-status`.
+
+The expected ladder is:
+
+```text
+Tier 2
+→ node key registered
+→ node operator enrolled
+→ node operator active
+→ validator/storage opt-in accepted
+→ readiness/reputation/capacity blockers visible
+→ service reboot allowed
+→ validator reboot allowed only after validator authority is active
+```
+
+Do not treat Tier 2, node-operator enrollment, or validator/storage opt-in as validator authority. Reboot scripts must use the backend promotion status and fail closed when `service_reboot_allowed` or `validator_reboot_allowed` is false.
+
 Purpose: safely move a second machine from external observer posture into full validator posture only after protocol authority exists on-chain.
 
 This runbook is intentionally fail-closed. Observer onboarding proves account/device/peer/PoH-case creation. It does not prove node-operator authority, validator authority, BFT signing authority, or consensus peer acceptance.
@@ -68,7 +88,7 @@ Run preflight:
 bash scripts/promoted_validator_preflight.sh
 ```
 
-This checks the remote genesis API, manifest identity, tx-index hash, protocol-profile hash, active node-operator status, active validator responsibility, validator-readiness receipt binding, validator-set hash, and active validator count. This is authorization to attempt the reboot; it is not proof that the local process has already caught up or will be allowed to sign immediately.
+This checks the remote genesis API, manifest identity, tx-index hash, protocol-profile hash, active baseline node-operator status, active validator authority, validator reboot allowance, validator-readiness receipt binding, validator-set hash, and active validator count. This is authorization to attempt the reboot; it is not proof that the local process has already caught up or will be allowed to sign immediately.
 
 ## Reboot as validator
 

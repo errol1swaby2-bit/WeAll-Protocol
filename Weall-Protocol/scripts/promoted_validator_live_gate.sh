@@ -92,12 +92,14 @@ if peer_counts:
     if total > 0 and verified <= 0:
         issues.append('consensus_peer_identity_verification_missing')
 
-account_status = fetch(local_api, '/v1/accounts/' + urllib.parse.quote(account, safe='') + '/operator-status?node_pubkey=' + urllib.parse.quote(node_pubkey, safe=''))
-node_operator = account_status.get('node_operator') if isinstance(account_status.get('node_operator'), dict) else {}
-for name in ('baseline', 'validator'):
-    bucket = node_operator.get(name) if isinstance(node_operator.get(name), dict) else {}
-    if bucket.get('active') is not True:
-        issues.append(f'{name}_not_active:' + ','.join(str(x) for x in bucket.get('reasons', []) if x))
+account_status = fetch(local_api, '/v1/accounts/' + urllib.parse.quote(account, safe='') + '/operator-promotion-status?node_pubkey=' + urllib.parse.quote(node_pubkey, safe=''))
+node_operator = account_status.get('promotion') if isinstance(account_status.get('promotion'), dict) else {}
+if node_operator.get('node_operator_active') is not True:
+    issues.append('baseline_node_operator_not_active:' + ','.join(str(x) for x in node_operator.get('blocking_reasons', []) if x))
+if node_operator.get('validator_active') is not True:
+    issues.append('validator_authority_not_active')
+if node_operator.get('validator_reboot_allowed') is not True:
+    issues.append('validator_reboot_not_allowed:' + ','.join(str(x) for x in node_operator.get('blocking_reasons', []) if x))
 
 payload = {
     'ok': not issues,
@@ -122,5 +124,5 @@ OK: promoted validator live gate passed
 - local runtime reports signing enabled and allowed by consensus state
 - local validator is active in consensus status
 - active validator count satisfies the production BFT minimum unless an explicit lower bootstrap threshold was set
-- operator-status reports active baseline node operator and validator responsibility
+- operator-promotion-status reports active baseline node operator, active validator authority, and validator reboot allowed
 MSG

@@ -659,6 +659,16 @@ export const weall = {
     return apiGet(`/v1/accounts/${encodeURIComponent(account)}/operator-status${query}`, base, headers);
   },
 
+  accountOperatorPromotionStatus(
+    account: string,
+    base?: string,
+    headers?: HeadersInit,
+    params?: { node_pubkey?: string },
+  ): Promise<any> {
+    const query = params?.node_pubkey ? `?node_pubkey=${encodeURIComponent(params.node_pubkey)}` : "";
+    return apiGet(`/v1/accounts/${encodeURIComponent(account)}/operator-promotion-status${query}`, base, headers);
+  },
+
   reputationMe(base?: string, headers?: HeadersInit): Promise<any> {
     return apiGet("/v1/reputation/me", base, headers);
   },

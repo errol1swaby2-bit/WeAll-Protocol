@@ -202,7 +202,7 @@
       "http_status": 400,
       "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 507
+      "source_lineno": 750
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -238,7 +238,7 @@
       "http_status": 502,
       "sample_reason": "public observer has no verified tx upstream for required propagation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1677
+      "source_lineno": 1731
     },
     {
       "code": "SIGNATURE_PROFILE_MISSING",
@@ -382,7 +382,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1629
+      "source_lineno": 1621
     },
     {
       "code": "bad_request",
@@ -391,7 +391,7 @@
       "http_status": 400,
       "sample_reason": "missing account_id",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 261
+      "source_lineno": 265
     },
     {
       "code": "bad_request",
@@ -463,7 +463,7 @@
       "http_status": 400,
       "sample_reason": "missing tx_id",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1241
+      "source_lineno": 1284
     },
     {
       "code": "bad_sig",
@@ -499,7 +499,7 @@
       "http_status": 403,
       "sample_reason": "signature verification failed",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1651
+      "source_lineno": 1705
     },
     {
       "code": "banned",
@@ -535,7 +535,7 @@
       "http_status": 403,
       "sample_reason": "tx chain_id does not match this node",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1396
+      "source_lineno": 1450
     },
     {
       "code": "conflict",
@@ -625,7 +625,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1562
+      "source_lineno": 1554
     },
     {
       "code": "executor_missing",
@@ -1057,7 +1057,7 @@
       "http_status": null,
       "sample_reason": "declared_capacity_required",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 547
+      "source_lineno": 539
     },
     {
       "code": "invalid_payload",
@@ -1201,7 +1201,7 @@
       "http_status": 400,
       "sample_reason": "tx envelope failed schema validation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1601
+      "source_lineno": 1655
     },
     {
       "code": "invalid_tx",
@@ -1453,7 +1453,7 @@
       "http_status": 403,
       "sample_reason": "chain_id is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1389
+      "source_lineno": 1443
     },
     {
       "code": "missing_env",
@@ -1498,7 +1498,7 @@
       "http_status": 403,
       "sample_reason": "signature is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1643
+      "source_lineno": 1697
     },
     {
       "code": "not_found",
@@ -1768,7 +1768,7 @@
       "http_status": 403,
       "sample_reason": "block receipts cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1629
+      "source_lineno": 1683
     },
     {
       "code": "relay_not_ready",
@@ -1876,7 +1876,7 @@
       "http_status": 403,
       "sample_reason": "system-only txs cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1618
+      "source_lineno": 1672
     },
     {
       "code": "tx_unimplemented",

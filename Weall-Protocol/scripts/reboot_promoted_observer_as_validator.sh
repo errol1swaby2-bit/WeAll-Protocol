@@ -6,6 +6,8 @@ ACCOUNT="${WEALL_VALIDATOR_ACCOUNT:-${WEALL_BOUND_ACCOUNT:-}}"
 
 fail() { echo "ERROR: $*" >&2; exit 2; }
 [ -n "${ACCOUNT}" ] || fail "WEALL_VALIDATOR_ACCOUNT or WEALL_BOUND_ACCOUNT is required"
+[ -n "${WEALL_NODE_PRIVKEY_FILE:-}" ] || fail "WEALL_NODE_PRIVKEY_FILE is required; inline node private keys are refused for promoted validator reboot"
+[ -f "${WEALL_NODE_PRIVKEY_FILE}" ] || fail "WEALL_NODE_PRIVKEY_FILE does not exist: ${WEALL_NODE_PRIVKEY_FILE}"
 
 # Observer artifacts are valid for onboarding only.  Refuse to carry them into
 # validator mode by clearing them before setting the production validator env.
@@ -34,7 +36,7 @@ bash "${ROOT_DIR}/scripts/promoted_validator_preflight.sh"
 bash "${ROOT_DIR}/scripts/prod_node_preflight.sh"
 
 cat >&2 <<'MSG'
-[weall] Promoted validator preflight passed. Booting with BFT and validator signing enabled.
+[weall] Promoted validator preflight passed. Validator authority is active in chain state for the matching node key. Booting with BFT and validator signing enabled.
 [weall] Post-boot, run scripts/promoted_validator_live_gate.sh against this node's API.
 MSG
 exec "${ROOT_DIR}/scripts/run_node_prod.sh"

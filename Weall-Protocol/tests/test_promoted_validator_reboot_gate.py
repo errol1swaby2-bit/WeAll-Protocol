@@ -36,7 +36,7 @@ def test_reboot_script_clears_observer_posture_before_enabling_validator() -> No
 def test_promoted_validator_preflight_checks_protocol_authority_and_chain_identity() -> None:
     text = _read("scripts/promoted_validator_preflight.sh")
     assert "/v1/chain/identity" in text
-    assert "/v1/accounts/" in text and "/operator-status" in text
+    assert "/v1/accounts/" in text and "/operator-promotion-status" in text
     assert "/v1/status/consensus" in text
     assert "baseline_node_operator_not_active" in text
     assert "validator_responsibility_not_active" in text
