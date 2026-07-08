@@ -1831,7 +1831,11 @@ def tx_status(request: Request, tx_id: str) -> Json:
     if not t:
         raise ApiError.bad_request("bad_request", "missing tx_id", {})
 
-    outbound = _tx_queue_summary_for_tx(t)
+    # Observer outbound queue metadata is local operator state. It must not
+    # downgrade an authoritative upstream/genesis tx-index hit into
+    # observer_local_confirmed_not_upstream_synced. Only observer-edge nodes
+    # should apply the outbound propagation overlay.
+    outbound = _tx_queue_summary_for_tx(t) if _observer_edge_mode() else None
 
     idx = _tx_index_lookup(request, t)
     if isinstance(idx, dict):

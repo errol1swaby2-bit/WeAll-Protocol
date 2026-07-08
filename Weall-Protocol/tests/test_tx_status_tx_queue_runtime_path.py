@@ -35,3 +35,19 @@ def test_docker_genesis_boot_gate_probes_tx_status_read_only_safety() -> None:
     assert "verify tx-status read-only safety" in gate
     assert "unexpected tx status payload" in gate
     assert "docker_genesis_tx_status_gate_failed" in gate
+
+
+def test_tx_status_only_uses_observer_queue_overlay_on_observer_edge_nodes() -> None:
+    tx = _read("src/weall/api/routes_public_parts/tx.py")
+
+    assert "outbound = _tx_queue_summary_for_tx(t) if _observer_edge_mode() else None" in tx
+    assert "must not\n    # downgrade an authoritative upstream/genesis tx-index hit" in tx
+
+
+def test_local_two_frontend_rehearsal_uses_per_node_runtime_and_tx_queue_paths() -> None:
+    script = _read("scripts/devnet_local_two_frontend_rehearsal.sh")
+
+    assert 'WEALL_RUNTIME_DIR="${DEVNET_DIR}/node1/runtime"' in script
+    assert 'WEALL_TX_QUEUE_PATH="${DEVNET_DIR}/node1/runtime/observer_tx_queue.json"' in script
+    assert 'WEALL_RUNTIME_DIR="${DEVNET_DIR}/node2/runtime"' in script
+    assert 'WEALL_TX_QUEUE_PATH="${DEVNET_DIR}/node2/runtime/observer_tx_queue.json"' in script

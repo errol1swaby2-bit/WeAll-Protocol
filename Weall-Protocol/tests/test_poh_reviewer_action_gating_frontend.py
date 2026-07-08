@@ -29,7 +29,7 @@ def test_reviewer_dashboard_hides_live_verdicts_until_check_in() -> None:
     assert "showLiveAcceptControls" in page
     assert "showLiveCheckInControl" in page
     assert "showLiveDecisionControls" in page
-    assert "Open WebRTC room to check in" in page
+    assert "Enter media room for attendance check-in" in page
     assert "Evidence locked until acceptance" in page
     assert "restrictedPlayback" in page
     assert "Verdict controls appear after you join the live review and attendance is recorded on-chain." in page
@@ -44,8 +44,8 @@ def test_reviewer_dashboard_hides_live_verdicts_until_check_in() -> None:
 def test_live_room_hides_verdict_buttons_until_can_vote() -> None:
     page = _read("pages/LiveVerificationRoom.tsx")
 
-    assert "Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain" in page
-    assert "Use the single live-room control above" in page
+    assert "Approve/reject controls appear only after the acceptance and attendance steps are both reflected on-chain" in page
+    assert "Follow the button label for the next milestone" in page
     assert page.count("{canVote ? (") == 1
     assert "Reviewer action" not in page
     assert "disabled={!canVote || !!busy}" not in page

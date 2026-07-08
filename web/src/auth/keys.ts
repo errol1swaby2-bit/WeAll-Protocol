@@ -1,4 +1,11 @@
-// never persist raw account private keys; store only explicitly user-approved local encrypted/export material.
+import { ml_dsa65 } from "@noble/post-quantum/ml-dsa.js";
+
+// never persist raw account private keys anywhere except explicit user-approved
+// browser storage / recovery material.  The browser secret format below is a
+// WeAll-local recovery bundle: 32-byte ML-DSA seed || 1952-byte ML-DSA public
+// key.  Keeping the seed instead of noble's expanded secret lets recovery files
+// stay deterministic and lets the browser rederive the exact signing secret at
+// signing time.
 export type KeypairB64 = {
   pubkeyB64: string;
   secretKeyB64: string;
@@ -11,6 +18,7 @@ export type StoredKeypair = {
   pubkeyB64?: string;
   secretKeyB64?: string;
   hasSecret?: boolean;
+  sigProfile?: string;
 };
 
 export type AccountIdValidation = {
@@ -30,7 +38,11 @@ const KEYPAIR_PREFIX = "weall_keypair::";
 const SECRET_PREFIX = "weall_secret::";
 export const BROWSER_PQ_SIG_PROFILE = "pq-mldsa-v1";
 export const CONTROLLED_TESTNET_SIG_PROFILE = "pq-mldsa-v1";
-const MLDSA_BROWSER_SIGNING_AVAILABLE = false;
+export const MLDSA65_SEED_BYTES = 32;
+export const MLDSA65_PUBLIC_KEY_BYTES = 1952;
+export const MLDSA65_SECRET_KEY_BYTES = 4032;
+export const MLDSA65_SIGNATURE_BYTES = 3309;
+export const WEALL_BROWSER_SECRET_BUNDLE_BYTES = MLDSA65_SEED_BYTES + MLDSA65_PUBLIC_KEY_BYTES;
 
 function bytesToB64(bytes: Uint8Array): string {
   let binary = "";
@@ -52,6 +64,29 @@ function b64ToBytes(value: string): Uint8Array {
   const binary = atob(normalized);
   const out = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+function randomBytes(length: number): Uint8Array {
+  const out = new Uint8Array(length);
+  crypto.getRandomValues(out);
   return out;
 }
 
@@ -78,8 +113,29 @@ function secretStorageKey(account: string): string {
   return `${SECRET_PREFIX}${normalizeAccount(account)}`;
 }
 
+function splitBrowserSecretBundle(secretKeyB64: string): { seed: Uint8Array; publicKey: Uint8Array } {
+  const secret = b64ToBytes(secretKeyB64);
+  if (secret.length !== WEALL_BROWSER_SECRET_BUNDLE_BYTES) {
+    throw new Error("invalid_mldsa_secret_bundle");
+  }
+  return {
+    seed: secret.slice(0, MLDSA65_SEED_BYTES),
+    publicKey: secret.slice(MLDSA65_SEED_BYTES),
+  };
+}
+
+function expandedSecretKeyFromBundle(secretKeyB64: string): { publicKey: Uint8Array; secretKey: Uint8Array } {
+  const { seed, publicKey } = splitBrowserSecretBundle(secretKeyB64);
+  const generated = ml_dsa65.keygen(seed);
+  if (!equalBytes(generated.publicKey, publicKey)) {
+    throw new Error("mldsa_seed_public_key_mismatch");
+  }
+  return { publicKey, secretKey: generated.secretKey };
+}
+
 function readPublicKeyFromSecret(secretKeyB64: string): string {
-  throw new Error("browser_pq_signing_not_implemented");
+  const { publicKey } = splitBrowserSecretBundle(secretKeyB64);
+  return bytesToB64(publicKey);
 }
 
 export function validateAccountId(raw: string): AccountIdValidation {
@@ -121,7 +177,10 @@ export function keyStorageKey(account: string): string {
 }
 
 export function generateKeypair(): KeypairB64 {
-  throw new Error("browser_pq_signing_not_implemented");
+  const seed = randomBytes(MLDSA65_SEED_BYTES);
+  const keys = ml_dsa65.keygen(seed);
+  const secretKeyB64 = bytesToB64(concatBytes(seed, keys.publicKey));
+  return { pubkeyB64: bytesToB64(keys.publicKey), secretKeyB64 };
 }
 
 export function derivePublicKeyFromSecretKey(secretKeyB64: string): string {
@@ -132,7 +191,21 @@ export function validateKeypair(
   pubkeyB64: string,
   secretKeyB64: string,
 ): { ok: boolean; reason?: string } {
-  return { ok: false, reason: "browser_pq_signing_not_implemented" };
+  try {
+    const expectedPublicKey = b64ToBytes(pubkeyB64);
+    if (expectedPublicKey.length !== MLDSA65_PUBLIC_KEY_BYTES) return { ok: false, reason: "invalid_mldsa_public_key_length" };
+    const { publicKey, secretKey } = expandedSecretKeyFromBundle(secretKeyB64);
+    if (!equalBytes(publicKey, expectedPublicKey)) return { ok: false, reason: "public_key_mismatch" };
+    const msg = utf8ToBytes("weall.browser.mldsa65.keypair.selftest.v1");
+    const sig = ml_dsa65.sign(msg, secretKey);
+    if (sig.length !== MLDSA65_SIGNATURE_BYTES) return { ok: false, reason: "invalid_mldsa_signature_length" };
+    if (!ml_dsa65.verify(sig, msg, expectedPublicKey)) {
+      return { ok: false, reason: "selftest_verify_failed" };
+    }
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, reason: String(err?.message || "invalid_mldsa_keypair") };
+  }
 }
 
 export function saveKeypair(
@@ -148,7 +221,10 @@ export function saveKeypair(
   const pubkeyB64 = String(kp?.pubkeyB64 || readPublicKeyFromSecret(secretKeyB64)).trim();
   if (!pubkeyB64) throw new Error("public_key_required");
 
-  const secureMeta = { version: 2, publicKey: pubkeyB64, hasSecret: true };
+  const valid = validateKeypair(pubkeyB64, secretKeyB64);
+  if (!valid.ok) throw new Error(`invalid_mldsa_keypair:${valid.reason || "unknown"}`);
+
+  const secureMeta = { version: 3, sigProfile: BROWSER_PQ_SIG_PROFILE, publicKey: pubkeyB64, hasSecret: true };
   localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta));
   sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64);
 
@@ -203,12 +279,13 @@ export function hasSecretInSession(account: string): boolean {
 }
 
 export function browserPqSigningNotice(): string {
-  return "Browser-local protocol signing is disabled until a reviewed ML-DSA implementation is available; controlled/public testnet signing must use backend/operator custody.";
+  return "Browser-local ML-DSA signing is enabled for controlled-testnet account and session flows. This remains pending external cryptographic review before production security claims.";
 }
 
-
 export function signDetachedB64(secretKeyB64: string, msgBytes: Uint8Array): string {
-  throw new Error("browser_pq_signing_not_implemented");
+  const { secretKey } = expandedSecretKeyFromBundle(secretKeyB64);
+  const sig = ml_dsa65.sign(msgBytes, secretKey);
+  return bytesToB64(sig);
 }
 
 export function canonicalTxMessage(env: {

@@ -30,9 +30,10 @@ GENESIS_FRONTEND_PORT="${GENESIS_FRONTEND_PORT:-5174}"
 # Bind Vite to all WSL interfaces by default so Windows browsers can reach it.
 FRONTEND_BIND_HOST="${WEALL_LOCAL_REHEARSAL_FRONTEND_BIND_HOST:-0.0.0.0}"
 FRONTEND_PUBLIC_HOST="${WEALL_LOCAL_REHEARSAL_FRONTEND_PUBLIC_HOST:-127.0.0.1}"
-OBSERVER_ACCOUNT="${WEALL_OBSERVER_TEST_ACCOUNT:-@errol}"
+OBSERVER_ACCOUNT="${WEALL_OBSERVER_TEST_ACCOUNT:-@observer}"
 GENESIS_ACCOUNT="${WEALL_GENESIS_BOOTSTRAP_ACCOUNT:-@devnet-genesis}"
-OBSERVER_KEYFILE="${WEALL_OBSERVER_TEST_KEYFILE:-${DEVNET_DIR}/accounts/errol.json}"
+OBSERVER_HANDLE="${OBSERVER_ACCOUNT#@}"
+OBSERVER_KEYFILE="${WEALL_OBSERVER_TEST_KEYFILE:-${DEVNET_DIR}/accounts/${OBSERVER_HANDLE}.json}"
 GENESIS_KEYFILE="${WEALL_GENESIS_OPERATOR_KEYFILE:-${DEVNET_DIR}/genesis-operator.json}"
 OBSERVER_TOKEN="${WEALL_OBSERVER_EDGE_OPERATOR_TOKEN:-local-observer-operator-token}"
 SYNC_TOKEN="${WEALL_STATE_SYNC_OPERATOR_TOKEN:-local-rehearsal-sync-token}"
@@ -526,13 +527,21 @@ account, keyfile, secret_file, manifest_file, profile, create_account = sys.argv
 key = json.loads(Path(keyfile).read_text(encoding='utf-8'))
 seed = bytes.fromhex(str(key.get('private_key_hex') or ''))
 pub = bytes.fromhex(str(key.get('public_key_hex') or ''))
-if len(seed) != 32 or len(pub) != 32:
-    raise SystemExit(f'invalid keyfile for {account}: {keyfile}')
+
+key_type = str(key.get('key_type') or '').strip().lower()
+sig_profile = str(key.get('sig_profile') or '').strip() or 'pq-mldsa-v1'
+
+if sig_profile != 'pq-mldsa-v1':
+    raise SystemExit(f'unsupported dev bootstrap signature profile for {account}: {sig_profile}')
+if len(seed) != 32 or len(pub) != 1952:
+    raise SystemExit(f'invalid ML-DSA keyfile for {account}: {keyfile} seed_bytes={len(seed)} pub_bytes={len(pub)}')
+
 secret_b64 = base64.b64encode(seed + pub).decode('ascii')
 pub_b64 = base64.b64encode(pub).decode('ascii')
 Path(secret_file).parent.mkdir(parents=True, exist_ok=True)
 Path(secret_file).write_text(json.dumps({
     'account': account,
+    'sig_profile': sig_profile,
     'pubkey_b64': pub_b64,
     'secret_key_b64': secret_b64,
     'session_ttl_seconds': 24 * 60 * 60,
@@ -541,6 +550,7 @@ Path(secret_file).write_text(json.dumps({
 Path(manifest_file).parent.mkdir(parents=True, exist_ok=True)
 Path(manifest_file).write_text(json.dumps({
     'profile': profile,
+    'sigProfile': sig_profile,
     'generated_at_ms': int(time.time() * 1000),
     'account': account,
     'pubkeyB64': pub_b64,
@@ -698,6 +708,8 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
   echo "==> Booting genesis backend ${NODE1_API}"
   (
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
+    export WEALL_RUNTIME_DIR="${DEVNET_DIR}/node1/runtime"
+    export WEALL_TX_QUEUE_PATH="${DEVNET_DIR}/node1/runtime/observer_tx_queue.json"
     export WEALL_MODE=devnet
     export WEALL_RUNTIME_PROFILE=controlled_devnet
     export WEALL_CHAIN_ID=weall-controlled-devnet
@@ -763,6 +775,8 @@ if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
     export WEALL_CHAIN_ID=weall-controlled-devnet
     export WEALL_NODE_ID="@local-observer"
     export WEALL_DB_PATH="${DEVNET_DIR}/node2/weall.db"
+    export WEALL_RUNTIME_DIR="${DEVNET_DIR}/node2/runtime"
+    export WEALL_TX_QUEUE_PATH="${DEVNET_DIR}/node2/runtime/observer_tx_queue.json"
     export GUNICORN_BIND="${OBSERVER_BIND}"
     export WEALL_OBSERVER_MODE=1
     export WEALL_NODE_LIFECYCLE_STATE=observer_onboarding

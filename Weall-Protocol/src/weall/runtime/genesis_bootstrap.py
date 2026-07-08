@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from weall.crypto.signature_profiles import PQ_MLDSA_V1
+
 """Genesis profile, initial state, and explicit bootstrap grant delegates.
 
 This module is intentionally a structural extraction from ``weall.runtime.executor``.
@@ -308,9 +310,22 @@ def _apply_genesis_bootstrap_live(self, state: Json) -> None:
     kid = self._mk_key_id(pk)
     rec = by_id.get(kid)
     if not isinstance(rec, dict):
-        by_id[kid] = {"pubkey": pk, "key_type": "main", "revoked": False, "revoked_at": None}
+        by_id[kid] = {
+            "pubkey": pk,
+            "pubkeys": {"mldsa": pk},
+            "sig_profile": PQ_MLDSA_V1,
+            "key_type": "main",
+            "revoked": False,
+            "revoked_at": None,
+        }
     else:
         rec.setdefault("pubkey", pk)
+        pubkeys = rec.get("pubkeys")
+        if not isinstance(pubkeys, dict):
+            pubkeys = {}
+            rec["pubkeys"] = pubkeys
+        pubkeys.setdefault("mldsa", pk)
+        rec.setdefault("sig_profile", PQ_MLDSA_V1)
         rec.setdefault("key_type", "main")
         rec.setdefault("revoked", False)
         rec.setdefault("revoked_at", None)

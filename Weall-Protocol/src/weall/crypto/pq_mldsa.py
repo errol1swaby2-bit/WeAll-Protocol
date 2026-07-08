@@ -18,7 +18,12 @@ MLDSA_PARAMETER_SET = "ML-DSA-65"
 MLDSA_SEED_BYTES = 32
 MLDSA65_PUBLIC_KEY_BYTES = 1952
 MLDSA65_SIGNATURE_BYTES = 3309
-MLDSA_CONTEXT = b"weall:pq-mldsa-v1:protocol-signature"
+# Production-safe rule for pq-mldsa-v1:
+# ML-DSA signs/verifies the canonical WeAll payload bytes directly. We do not
+# use the optional ML-DSA primitive context parameter for this profile because
+# browser/client implementations must interoperate byte-for-byte with backend
+# verification. Domain separation is part of the canonical signed payload.
+MLDSA_PRIMITIVE_CONTEXT: bytes | None = None
 
 
 def _decode_bytes(s: str) -> bytes:
@@ -71,7 +76,7 @@ def mldsa_backend_status() -> dict[str, Any]:
             "reason": "ok",
             "public_key_bytes": MLDSA65_PUBLIC_KEY_BYTES,
             "signature_bytes": MLDSA65_SIGNATURE_BYTES,
-            "context": MLDSA_CONTEXT.decode("ascii"),
+            "primitive_context": None,
         }
     except Exception as exc:
         return {
@@ -118,7 +123,7 @@ def sign_mldsa65(
     message: bytes,
     privkey: str,
     encoding: str = "hex",
-    context: bytes | None = MLDSA_CONTEXT,
+    context: bytes | None = MLDSA_PRIMITIVE_CONTEXT,
 ) -> str:
     private_cls, _public_cls = _mldsa_classes()
     seed = _decode_bytes(privkey)
@@ -134,7 +139,7 @@ def verify_mldsa65_signature(
     message: bytes,
     sig: str,
     pubkey: str,
-    context: bytes | None = MLDSA_CONTEXT,
+    context: bytes | None = MLDSA_PRIMITIVE_CONTEXT,
 ) -> bool:
     try:
         _private_cls, public_cls = _mldsa_classes()

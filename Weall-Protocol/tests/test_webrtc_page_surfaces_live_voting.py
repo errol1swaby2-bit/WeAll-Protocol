@@ -26,7 +26,7 @@ def test_webrtc_voting_copy_keeps_video_transport_non_authoritative() -> None:
     src = (WEB / "src" / "pages" / "LiveVerificationRoom.tsx").read_text(encoding="utf-8")
 
     assert "The video room remains transport only" in src
-    assert "join action is reflected as accepted attendance" in src
+    assert "acceptance and attendance steps are both reflected on-chain" in src
     assert "on-chain attendance" in src
 
 
@@ -34,13 +34,13 @@ def test_webrtc_join_action_accepts_attendance_and_waits_for_state() -> None:
     src = (WEB / "src" / "pages" / "LiveVerificationRoom.tsx").read_text(encoding="utf-8")
 
     assert "waitForLiveJurorState" in src
-    assert "Accept review, check in, and enter live room" in src
+    assert "Step 1: accept assignment, then check in" in src
     assert "Review acceptance" in src
     assert "Live room attendance" in src
-    assert "accepted attendance on-chain" in src
+    assert "acceptance and attendance steps are both reflected on-chain" in src
     assert ">Accept review<" not in src
     assert ">Record attendance<" not in src
-    assert "Use the single live-room control above" in src
+    assert "Follow the button label for the next milestone" in src
 
     accept_idx = src.index("pohLiveTxJurorAccept")
     attendance_idx = src.index("pohLiveTxAttendance")

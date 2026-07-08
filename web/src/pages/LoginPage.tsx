@@ -483,7 +483,7 @@ export default function LoginPage() {
         ttlSeconds,
         base: apiBase,
       })
-      setNotice("Demo account loaded.")
+      setNotice("Demo account loaded and signed in with browser ML-DSA.")
       nav(consumeReturnTo("/home"))
     } catch (err) {
       setError(humanizeApiError(err, "Could not load the demo account."))

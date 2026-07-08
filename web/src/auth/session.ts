@@ -95,8 +95,8 @@ export function composeSecretKeyB64(nodeSeedB64: string, nodePubkeyB64: string):
   const seed = b64Decode(nodeSeedB64);
   const pub = b64Decode(nodePubkeyB64);
   if (seed.length !== 32) throw new Error("invalid_node_seed");
-  if (pub.length !== 32) throw new Error("invalid_node_pubkey");
-  const secret = new Uint8Array(64);
+  if (pub.length !== 1952) throw new Error("invalid_node_pubkey");
+  const secret = new Uint8Array(32 + 1952);
   secret.set(seed, 0);
   secret.set(pub, 32);
   return b64Encode(secret);
@@ -121,15 +121,25 @@ function canonicalSessionLoginMessage(args: {
   ttlSeconds: number;
   issuedAtMs: number;
   deviceId: string;
+  sigProfile?: string;
+  chainId?: string;
+  networkId?: string;
 }): Uint8Array {
-  const obj = {
-    t: "SESSION_LOGIN",
+  const obj: Record<string, unknown> = {
     account: normalizeAccount(args.account),
-    session_key: String(args.sessionKey || ""),
-    ttl_s: Math.max(60, Math.floor(Number(args.ttlSeconds || 0))),
-    issued_at_ms: Math.floor(Number(args.issuedAtMs || 0)),
     device_id: String(args.deviceId || ""),
+    domain_separator: "weall.session.login.v1",
+    issued_at_ms: Math.floor(Number(args.issuedAtMs || 0)),
+    object_kind: "session_login",
+    session_key: String(args.sessionKey || ""),
+    sig_profile: String(args.sigProfile || BROWSER_PQ_SIG_PROFILE),
+    t: "SESSION_LOGIN",
+    ttl_s: Math.max(60, Math.floor(Number(args.ttlSeconds || 0))),
   };
+  const chainId = String(args.chainId || "").trim();
+  const networkId = String(args.networkId || "").trim();
+  if (chainId) obj.chain_id = chainId;
+  if (networkId) obj.network_id = networkId;
   return new TextEncoder().encode(JSON.stringify(obj, Object.keys(obj).sort()));
 }
 
@@ -347,7 +357,8 @@ export function issueSessionFromSecretKey(args: {
   if (!secretKeyB64) throw new Error("secret_key_required");
 
   const secretBytes = b64Decode(secretKeyB64);
-  if (secretBytes.length !== 64) throw new Error("invalid_secret_key");
+  const isMldsa65Bundle = secretBytes.length === 32 + 1952;
+  if (!isMldsa65Bundle) throw new Error("invalid_secret_key");
 
   const publicBytes = secretBytes.slice(32);
   let pubBin = "";
@@ -782,13 +793,16 @@ export async function submitSignedTxInSequence(args: {
     const kp = loadKeypair(signer);
     if (!kp) throw new Error("missing_local_keypair");
 
-    const chain_id = await resolveChainId();
+    const chainContext = await resolveChainContext(args.base);
+    const chain_id = chainContext.chainId;
+    const network_id = chainContext.networkId;
 
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const nonce = Math.max(1, Math.floor(args.sequence.nextNonce));
       const payload = args.payloadFactory(nonce);
       const unsigned = buildUnsignedEnvelope({
         chain_id,
+        network_id,
         tx_type: args.tx_type,
         signer,
         nonce,
@@ -864,6 +878,7 @@ function rollbackNonceClaim(claim: NonceClaim | null | undefined): void {
 
 export type TxEnvelope = {
   chain_id?: string;
+  network_id?: string;
   tx_type: string;
   signer: string;
   nonce: number;
@@ -876,6 +891,7 @@ export type TxEnvelope = {
 
 function buildUnsignedEnvelope(args: {
   chain_id?: string;
+  network_id?: string;
   tx_type: string;
   signer: string;
   nonce: number;
@@ -885,6 +901,7 @@ function buildUnsignedEnvelope(args: {
 }): TxEnvelope {
   return {
     chain_id: args.chain_id,
+    network_id: args.network_id,
     tx_type: String(args.tx_type),
     signer: normalizeAccount(args.signer) || String(args.signer),
     nonce: Math.max(0, Math.floor(Number(args.nonce || 0))),
@@ -897,6 +914,7 @@ function buildUnsignedEnvelope(args: {
 function signEnvelope(env: TxEnvelope, kp: KeypairB64): TxEnvelope {
   const msg = canonicalTxMessage({
     chain_id: env.chain_id || "",
+    network_id: env.network_id || "",
     sig_profile: env.sig_profile || BROWSER_PQ_SIG_PROFILE,
     tx_type: env.tx_type,
     signer: env.signer,
@@ -921,6 +939,20 @@ async function resolveChainId(): Promise<string> {
   }
 }
 
+async function resolveChainContext(base?: string): Promise<{ chainId: string; networkId: string }> {
+  let chainId = "";
+  let networkId = "";
+  try {
+    const identity: any = await weall.chainIdentity(base);
+    chainId = String(identity?.chain_id || identity?.chain?.chain_id || "").trim();
+    networkId = String(identity?.network_id || identity?.chain?.network_id || identity?.chain_manifest?.network_id || "").trim();
+  } catch {
+    // Fall back to /v1/status below.
+  }
+  if (!chainId) chainId = await resolveChainId();
+  return { chainId, networkId };
+}
+
 export async function submitSignedTx(args: {
   account: string;
   tx_type: string;
@@ -935,12 +967,15 @@ export async function submitSignedTx(args: {
     const kp = loadKeypair(signer);
     if (!kp) throw new Error("missing_local_keypair");
 
-    const chain_id = await resolveChainId();
+    const chainContext = await resolveChainContext(args.base);
+    const chain_id = chainContext.chainId;
+    const network_id = chainContext.networkId;
 
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const claim = await claimNextNonce(signer, args.base);
       const unsigned = buildUnsignedEnvelope({
         chain_id,
+        network_id,
         tx_type: args.tx_type,
         signer,
         nonce: claim.nonce,
@@ -980,7 +1015,9 @@ export async function submitSignedTxWithNonce(args: {
     const kp = loadKeypair(signer);
     if (!kp) throw new Error("missing_local_keypair");
 
-    const chain_id = await resolveChainId();
+    const chainContext = await resolveChainContext(args.base);
+    const chain_id = chainContext.chainId;
+    const network_id = chainContext.networkId;
 
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const claim = await claimNextNonce(signer, args.base);
@@ -988,6 +1025,7 @@ export async function submitSignedTxWithNonce(args: {
 
       const unsigned = buildUnsignedEnvelope({
         chain_id,
+        network_id,
         tx_type: args.tx_type,
         signer,
         nonce: claim.nonce,
@@ -1056,6 +1094,7 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
   const kp = loadKeypair(acct);
   if (!kp) throw new Error("missing_local_keypair");
 
+  const chainContext = await resolveChainContext(args.base);
   const sig = signDetachedB64(
     kp.secretKeyB64,
     canonicalSessionLoginMessage({
@@ -1064,6 +1103,9 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
       ttlSeconds,
       issuedAtMs,
       deviceId,
+      sigProfile: BROWSER_PQ_SIG_PROFILE,
+      chainId: chainContext.chainId,
+      networkId: chainContext.networkId,
     }),
   );
 
@@ -1075,6 +1117,7 @@ export async function loginOnThisDevice(args: { account: string; ttlSeconds?: nu
         ttl_s: ttlSeconds,
         issued_at_ms: issuedAtMs,
         device_id: deviceId,
+        sig_profile: BROWSER_PQ_SIG_PROFILE,
         sig,
         pubkey: kp.pubkeyB64,
       },

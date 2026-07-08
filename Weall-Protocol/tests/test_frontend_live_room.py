@@ -40,7 +40,7 @@ def test_existing_verification_surfaces_link_to_live_room() -> None:
     juror_page = (OUTER / "web/src/pages/JurorDashboard.tsx").read_text(encoding="utf-8")
 
     assert "Open live verification room" in account_page
-    assert "Join live review" in juror_page
+    assert "Accept live review assignment" in juror_page
     assert "/verification/live/" in juror_page
     assert "/verification/live/" in account_page
     assert "/verification/live/" in juror_page

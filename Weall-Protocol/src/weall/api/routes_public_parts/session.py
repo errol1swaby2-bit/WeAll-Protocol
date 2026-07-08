@@ -92,8 +92,26 @@ def _state_chain_context(st: Json) -> tuple[str, str]:
     meta = st.get("meta") if isinstance(st.get("meta"), dict) else {}
     chain = st.get("chain") if isinstance(st.get("chain"), dict) else {}
     cfg = st.get("config") if isinstance(st.get("config"), dict) else {}
-    chain_id = str(meta.get("chain_id") or chain.get("chain_id") or cfg.get("chain_id") or "").strip()
-    network_id = str(meta.get("network_id") or chain.get("network_id") or cfg.get("network_id") or "").strip()
+
+    # Keep session-login proof verification bound to the same chain identity
+    # exposed by /v1/chain/identity. Controlled-devnet/genesis state stores the
+    # canonical chain id at top-level state["chain_id"], not only under meta.
+    # This is not a fallback verifier: the signed bytes remain one canonical
+    # payload; the verifier simply reads the correct chain context.
+    chain_id = str(
+        meta.get("chain_id")
+        or st.get("chain_id")
+        or chain.get("chain_id")
+        or cfg.get("chain_id")
+        or ""
+    ).strip()
+    network_id = str(
+        meta.get("network_id")
+        or st.get("network_id")
+        or chain.get("network_id")
+        or cfg.get("network_id")
+        or ""
+    ).strip()
     return chain_id, network_id
 
 

@@ -346,9 +346,8 @@ export default function JurorDashboard(): JSX.Element {
 
   function joinLiveRoom(caseId: string): void {
     if (!caseId) return;
-    // Reviewers stay in the PoH verification feed until they intentionally
-    // accept the call. Accepting records the chain action, then transports the
-    // reviewer directly into the WebRTC verification room.
+    // Opening the room is transport navigation only. Acceptance, attendance,
+    // and verdicts remain explicit chain actions on the live-room page.
     nav(`/verification/live/${encodeURIComponent(caseId)}`);
   }
 
@@ -425,7 +424,7 @@ export default function JurorDashboard(): JSX.Element {
   async function liveAccept(caseId: string): Promise<void> {
     const headers = getAuthHeaders(account);
     const skel = await weall.pohLiveTxJurorAccept({ case_id: caseId }, apiBase, headers);
-    await submitSkeletonTx(skel, "Join live verification review", "Live verification review joined. Opening the WebRTC room…");
+    await submitSkeletonTx(skel, "Accept live verification review", "Live review assignment accepted. Opening the WebRTC room for the separate attendance check-in step…");
     joinLiveRoom(caseId);
   }
 
@@ -839,7 +838,7 @@ export default function JurorDashboard(): JSX.Element {
                           {showLiveAcceptControls ? (
                             <>
                               <button className="btn btnPrimary" onClick={() => void liveAccept(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                                {signerSubmission.busy ? "Waiting…" : "Join live review"}
+                                {signerSubmission.busy ? "Waiting…" : "Accept live review assignment"}
                               </button>
                               <button className="btn" onClick={() => void liveDecline(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
                                 {signerSubmission.busy ? "Waiting…" : "Decline"}
@@ -848,7 +847,7 @@ export default function JurorDashboard(): JSX.Element {
                           ) : null}
                           {showLiveCheckInControl ? (
                             <button className="btn btnPrimary" onClick={() => joinLiveRoom(caseId)} disabled={busy || signerSubmission.busy || !gate.ok}>
-                              Open WebRTC room to check in
+                              Enter media room for attendance check-in
                             </button>
                           ) : null}
                           {showLiveDecisionControls ? (
@@ -895,7 +894,7 @@ export default function JurorDashboard(): JSX.Element {
                             <>
                               <div className="buttonRow" style={{ marginTop: 10 }}>
                                 <button className="btn btnPrimary" onClick={() => joinLiveRoom(caseId)} disabled={!caseId}>
-                                  Open WebRTC room
+                                  Open live media room
                                 </button>
                                 {joinUrl ? (
                                   <a className="btn" href={joinUrl} target="_blank" rel="noreferrer">

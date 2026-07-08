@@ -360,6 +360,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
     `WEALL_NET_REQUIRE_PEER_IDENTITY=1`,
     `# Optional but recommended`,
     `# WEALL_NET_ADVERTISE_URI=tcp://your-hostname-or-ip:30303`,
+    `# After protocol activation, reboot this observer as a service node:`,
+    `# WEALL_BOUND_ACCOUNT=${acct} WEALL_NODE_PRIVKEY_FILE=/secure/path/weall-node.key bash scripts/boot_node_operator.sh`,
+    `# After validator readiness + activation only:`,
+    `# WEALL_BOUND_ACCOUNT=${acct} WEALL_VALIDATOR_ACCOUNT=${acct} WEALL_NODE_PRIVKEY_FILE=/secure/path/weall-node.key WEALL_RUN_PROMOTED_VALIDATOR_REBOOT=1 bash scripts/external_observer_to_validator_live_gate.sh <observer-bundle.json>`,
   ].join("\n");
 
   const snapshot = resolveOnboardingSnapshot({
@@ -1028,9 +1032,10 @@ export default function Account({ account }: { account: string }): JSX.Element {
             </span>
           </div>
           <p className="heroText">
-            Tier 2 unlocks eligibility, but responsibility is explicit. Opt in before the protocol can assign
-            you unconflicted review work or storage validation duties. Accepted assignments may affect reputation
-            if they are missed or abandoned late.
+            Tier 2 unlocks eligibility, but responsibility is explicit. To run a validator or storage node, first
+            generate and register a separate node key, submit baseline node-operator enrollment, wait for backend
+            activation, then opt into validator or storage duties. Opt-in records consent only; readiness/capacity
+            proof and protocol activation still gate authority.
           </p>
 
           <div className="grid2">

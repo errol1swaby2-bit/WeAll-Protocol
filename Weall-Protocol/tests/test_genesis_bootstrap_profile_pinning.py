@@ -33,6 +33,16 @@ def test_restart_rejects_genesis_bootstrap_profile_drift(tmp_path: Path, monkeyp
     assert meta.get("genesis_bootstrap_profile", {}).get("enabled") is True
     assert isinstance(meta.get("genesis_bootstrap_profile_hash"), str) and meta.get("genesis_bootstrap_profile_hash")
 
+    acct_record = st["accounts"][acct]
+    key_records = acct_record["keys"]["by_id"]
+    assert any(
+        isinstance(rec, dict)
+        and rec.get("sig_profile") == "pq-mldsa-v1"
+        and isinstance(rec.get("pubkeys"), dict)
+        and rec["pubkeys"].get("mldsa") == pub
+        for rec in key_records.values()
+    )
+
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_REPUTATION", "3.0")
     with pytest.raises(ExecutorError, match="genesis_bootstrap_profile mismatch"):
         WeAllExecutor(db_path=db_path, node_id=acct, chain_id="batch126-genesis", tx_index_path=_tx_index_path())

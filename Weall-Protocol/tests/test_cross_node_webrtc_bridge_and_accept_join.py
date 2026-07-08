@@ -163,8 +163,8 @@ def test_local_rehearsal_configures_two_way_webrtc_signal_bridge() -> None:
 def test_reviewer_accepts_live_call_from_feed_then_transports_to_room() -> None:
     src = (WEB / "src" / "pages" / "JurorDashboard.tsx").read_text(encoding="utf-8")
 
-    assert "Join live verification review" in src
+    assert "Accept live verification review" in src
     assert "Opening the WebRTC room" in src
     assert "joinLiveRoom(caseId)" in src
-    assert "Join live review" in src
-    assert "Reviewers stay in the PoH verification feed until they intentionally" in src
+    assert "Accept live review assignment" in src
+    assert "Opening the room is transport navigation only" in src

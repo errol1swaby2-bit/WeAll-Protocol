@@ -388,6 +388,7 @@ export default function AccountVerificationPage(): JSX.Element {
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingStartedAtRef = useRef<number>(0);
   const recordingTimerRef = useRef<number | null>(null);
+  const asyncPreviewVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const [acctView, setAcctView] = useState<any | null>(null);
   const [registration, setRegistration] = useState<any | null>(null);
@@ -627,7 +628,21 @@ export default function AccountVerificationPage(): JSX.Element {
     });
   }
 
+  function stopAsyncPreviewBuffering(): void {
+    const node = asyncPreviewVideoRef.current;
+    if (!node) return;
+    try {
+      node.pause();
+      if (Number.isFinite(node.duration) && node.duration > 0) {
+        node.currentTime = Math.min(node.currentTime || 0, node.duration);
+      }
+    } catch {
+      // Browser media element cleanup is best-effort; upload uses the Blob, not the preview buffer.
+    }
+  }
+
   function cleanupAsyncRecording(): void {
+    stopAsyncPreviewBuffering();
     if (recordingTimerRef.current !== null) {
       window.clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
@@ -778,6 +793,11 @@ export default function AccountVerificationPage(): JSX.Element {
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.bind?.result?.tx_id || res?.declare?.result?.tx_id || res?.open?.result?.tx_id,
         task: async () => {
+          // Stop the local preview before posting the Blob. Some browsers keep an
+          // object-URL video element buffering until it receives focus, which can
+          // make the evidence upload appear stuck even though the upload request is
+          // independent of preview playback.
+          stopAsyncPreviewBuffering();
           const file = new File([asyncRecordedBlob], `${challenge.challengeId}.webm`, { type: asyncRecordedBlob.type || "video/webm" });
           const upload: UploadState = await weall.pohAsyncVideoUpload(file, base, headers);
           setAsyncUpload(upload);
@@ -1249,7 +1269,18 @@ export default function AccountVerificationPage(): JSX.Element {
               </div>
               <div className="infoCardText">Required length: {ASYNC_VIDEO_MIN_SECONDS}–{ASYNC_VIDEO_MAX_SECONDS} seconds.</div>
               {asyncRecordedBlob && asyncDurationError ? <div className="calloutDanger">{asyncDurationError}</div> : null}
-              {asyncRecordedUrl ? <video controls src={asyncRecordedUrl} style={{ width: "100%", marginTop: 10, borderRadius: 12 }} /> : null}
+              {asyncRecordedUrl ? (
+                <video
+                  ref={asyncPreviewVideoRef}
+                  controls
+                  preload="metadata"
+                  src={asyncRecordedUrl}
+                  onEnded={stopAsyncPreviewBuffering}
+                  onPause={stopAsyncPreviewBuffering}
+                  style={{ width: "100%", marginTop: 10, borderRadius: 12 }}
+                />
+              ) : null}
+              {asyncRecordedUrl ? <div className="miniMuted">Preview uses metadata-only loading and is paused before upload, so the evidence upload does not depend on clicking the video controls.</div> : null}
             </div>
             <label className="checkRow">
               <input
