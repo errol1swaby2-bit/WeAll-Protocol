@@ -169,6 +169,7 @@ def test_observer_tx_queue_autodrain_worker_retries_without_manual_route(tmp_pat
     monkeypatch.setenv("WEALL_TX_UPSTREAM_VERIFY_IDENTITY", "0")
     monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(tx_queue))
     monkeypatch.setenv("WEALL_TX_QUEUE_AUTODRAIN", "1")
+    monkeypatch.setenv("WEALL_OBSERVER_STATE_SYNC_AUTODRAIN", "0")
     monkeypatch.setenv("WEALL_TX_QUEUE_DRAIN_INTERVAL_S", "0.25")
     monkeypatch.setenv("WEALL_TX_QUEUE_DRAIN_BATCH", "10")
 

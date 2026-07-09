@@ -291,6 +291,13 @@
       "idempotency": "observer_edge_reconcile_no_validator_authority",
       "truth_boundary": "Observer reconcile is transport/status bookkeeping and grants no validator authority."
     },
+    "POST /v1/observer/edge/state-sync/latest": {
+      "auth": "observer_edge_operator_required",
+      "cache_policy": "no_store_observer_edge_state_sync",
+      "error_model": "standard_api_error_envelope; operator token/upstream identity/state sync route-specific failures",
+      "idempotency": "operator_state_sync_latest_no_validator_authority",
+      "truth_boundary": "Observer edge latest-state sync follows verified upstream chain anchors and applies canonical delta blocks; it grants no validator, block production, or frontend state authority."
+    },
     "POST /v1/observer/edge/tx-queue/drain": {
       "auth": "observer_edge_operator_required",
       "cache_policy": "no_store_observer_edge_transport_queue",

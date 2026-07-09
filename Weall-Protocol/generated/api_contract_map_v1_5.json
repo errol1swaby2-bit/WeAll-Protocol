@@ -26,7 +26,7 @@
     "state": 5,
     "status": 15,
     "storage_ops": 1,
-    "tx": 7
+    "tx": 8
   },
   "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
   "required_metadata_fields": [
@@ -38,7 +38,7 @@
     "idempotency",
     "cache_policy"
   ],
-  "route_count": 152,
+  "route_count": 153,
   "route_prefix": "/v1",
   "routes": [
     {
@@ -144,7 +144,7 @@
       "route_id": "db3e7abe13b2eeaa",
       "route_path_without_v1_prefix": "/accounts/{account}/nonce",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1815,
+      "source_lineno": 1959,
       "summary": "",
       "tags": [
         "tx"
@@ -672,7 +672,7 @@
       "route_id": "6b48e858f7dbe6e5",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 588,
+      "source_lineno": 592,
       "summary": "",
       "tags": [
         "disputes"
@@ -716,7 +716,7 @@
       "route_id": "a3d45b8e8417f3ac",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/phase-status",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 615,
+      "source_lineno": 619,
       "summary": "",
       "tags": [
         "disputes"
@@ -738,7 +738,7 @@
       "route_id": "178aa3a76252c0d2",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/vote",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 551,
+      "source_lineno": 555,
       "summary": "",
       "tags": [
         "disputes"
@@ -760,7 +760,7 @@
       "route_id": "4828eba89b7123a6",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/votes",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 596,
+      "source_lineno": 600,
       "summary": "",
       "tags": [
         "disputes"
@@ -782,7 +782,7 @@
       "route_id": "5185458f5b421f35",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/withdraw",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 530,
+      "source_lineno": 534,
       "summary": "",
       "tags": [
         "disputes"
@@ -1706,12 +1706,34 @@
       "route_id": "b0187fa58e1688ae",
       "route_path_without_v1_prefix": "/observer/edge/reconcile/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1860,
+      "source_lineno": 2026,
       "summary": "",
       "tags": [
         "tx"
       ],
       "truth_boundary": "Observer reconcile is transport/status bookkeeping and grants no validator authority."
+    },
+    {
+      "auth": "observer_edge_operator_required",
+      "cache_policy": "no_store_observer_edge_state_sync",
+      "error_model": "standard_api_error_envelope; operator token/upstream identity/state sync route-specific failures",
+      "function": "observer_edge_state_sync_latest",
+      "idempotency": "operator_state_sync_latest_no_validator_authority",
+      "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
+      "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
+      "method": "POST",
+      "module": "tx",
+      "path": "/v1/observer/edge/state-sync/latest",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware; stricter route gates may apply",
+      "route_id": "0c9bdca0e71005d0",
+      "route_path_without_v1_prefix": "/observer/edge/state-sync/latest",
+      "source": "src/weall/api/routes_public_parts/tx.py",
+      "source_lineno": 2009,
+      "summary": "",
+      "tags": [
+        "tx"
+      ],
+      "truth_boundary": "Observer edge latest-state sync follows verified upstream chain anchors and applies canonical delta blocks; it grants no validator, block production, or frontend state authority."
     },
     {
       "auth": "observer_edge_diagnostic_runtime_scoped",
@@ -1728,7 +1750,7 @@
       "route_id": "04995dd6136e4668",
       "route_path_without_v1_prefix": "/observer/edge/status",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1828,
+      "source_lineno": 1972,
       "summary": "",
       "tags": [
         "tx"
@@ -1750,7 +1772,7 @@
       "route_id": "b2fe3cc719b867ce",
       "route_path_without_v1_prefix": "/observer/edge/tx-queue/drain",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1852,
+      "source_lineno": 2001,
       "summary": "",
       "tags": [
         "tx"
@@ -3312,7 +3334,7 @@
       "route_id": "d2201e5bc7a4e9b1",
       "route_path_without_v1_prefix": "/tx/catalog",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2038,
+      "source_lineno": 2204,
       "summary": "",
       "tags": [
         "tx"
@@ -3334,7 +3356,7 @@
       "route_id": "229010cafa55f7fb",
       "route_path_without_v1_prefix": "/tx/status/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1873,
+      "source_lineno": 2039,
       "summary": "",
       "tags": [
         "tx"
@@ -3356,7 +3378,7 @@
       "route_id": "961aec58581a92df",
       "route_path_without_v1_prefix": "/tx/submit",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1630,
+      "source_lineno": 1774,
       "summary": "",
       "tags": [
         "tx"

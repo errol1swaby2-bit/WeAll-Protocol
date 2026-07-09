@@ -170,3 +170,24 @@ def test_unassigned_content_report_scheduler_does_not_assign_target_owner() -> N
     canon = TxIndex.load_from_file("generated/tx_index.json")
     emitted = system_tx_emitter(state, canon, next_height=44, phase="post")
     assert [env.tx_type for env in emitted if env.tx_type == "DISPUTE_JUROR_ASSIGN"] == []
+
+
+def test_dispute_accept_template_allows_reaccepting_withdrawn_assignment() -> None:
+    state = _content_review_assignment_state()
+    dispute = state["disputes_by_id"]["dispute:SYSTEM:0"]
+    dispute["stage"] = "juror_review"
+    dispute["assigned_jurors"] = ["@observer"]
+    dispute["eligible_juror_ids"] = ["@observer"]
+    dispute["jurors"] = {"@observer": {"status": "withdrawn", "withdrawn_at_nonce": 12}}
+    state["time"] = 1_800_000_000
+    state["accounts"]["@observer"]["session_keys"] = {"observer-session": {"active": True, "issued_at_ts": 1_800_000_000, "ttl_s": 3600}}
+    client = _client(state)
+    body = client.post(
+        "/v1/disputes/dispute%3ASYSTEM%3A0/accept",
+        headers={"x-weall-account": "@observer", "x-weall-session-key": "observer-session"},
+    ).json()
+    assert body["ok"] is True
+    assert body["eligible"] is True
+    assert body["reasons"] == ["reaccept_withdrawn_assignment"]
+    assert body["tx"]["tx_type"] == "DISPUTE_JUROR_ACCEPT"
+    assert "Prior withdrawal remains recorded" in body["warning"]

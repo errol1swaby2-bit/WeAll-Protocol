@@ -165,3 +165,100 @@ def test_onboarding_boot_wrapper_sets_secure_observer_defaults() -> None:
     assert 'WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN="${WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN:-1}"' in script
     assert 'WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT="${WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT:-0}"' in script
     assert 'WEALL_MEDIA_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL="${WEALL_MEDIA_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL:-1}"' in script
+
+
+def test_observer_edge_latest_state_sync_uses_trusted_anchor_without_tx_id(monkeypatch) -> None:
+    from weall.api.routes_public_parts import tx as tx_routes
+
+    captured: dict[str, Any] = {}
+    anchor = {
+        "height": 4,
+        "tip_hash": "tip:4",
+        "state_root": "root:4",
+        "finalized_height": 0,
+        "finalized_block_id": "",
+    }
+
+    def fake_get(url: str, path: str, *, timeout_s: int) -> dict[str, Any]:
+        if path == "/v1/chain/identity":
+            return {"ok": True, "chain_id": "batch367", "snapshot_anchor": anchor}
+        if path == "/v1/chain/manifest":
+            return {"ok": True, "chain_id": "batch367"}
+        raise AssertionError(path)
+
+    def fake_post(url: str, path: str, payload: dict[str, Any], *, timeout_s: int) -> dict[str, Any]:
+        captured["url"] = url
+        captured["path"] = path
+        captured["payload"] = payload
+        return {
+            "ok": True,
+            "response": {
+                "header": {
+                    "type": "STATE_SYNC_RESPONSE",
+                    "chain_id": "batch367",
+                    "schema_version": "1",
+                    "tx_index_hash": "0",
+                    "corr_id": "sync-test",
+                },
+                "ok": True,
+                "height": 4,
+                "blocks": [{"height": 3, "block_id": "b3"}, {"height": 4, "block_id": "b4"}],
+                "snapshot_anchor": anchor,
+            },
+        }
+
+    class _SyncExecutor:
+        chain_id = "batch367"
+
+        def __init__(self) -> None:
+            self.state = {"chain_id": "batch367", "height": 2}
+            self.applied = False
+
+        def read_state(self) -> dict[str, Any]:
+            return dict(self.state)
+
+        def apply_state_sync_response(self, resp, *, trusted_anchor=None, allow_snapshot_bootstrap=False):  # noqa: ANN001
+            self.applied = True
+            assert trusted_anchor == anchor
+            assert allow_snapshot_bootstrap is False
+            assert getattr(resp, "height", 0) == 4
+            self.state["height"] = 4
+            return [object(), object()]
+
+    monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRE_MANIFEST", "0")
+    monkeypatch.setattr(tx_routes, "_upstream_get_json", fake_get)
+    monkeypatch.setattr(tx_routes, "_upstream_post_json", fake_post)
+
+    ex = _SyncExecutor()
+    result = tx_routes._request_and_apply_latest_state_sync_from_upstream(
+        ex, "https://genesis.example.test", timeout_s=3
+    )
+
+    assert result["ok"] is True
+    assert result["source"] == "upstream_state_sync_latest"
+    assert result["local_state_synced"] is True
+    assert result["local_height_before"] == 2
+    assert result["local_height"] == 4
+    assert result["applied_count"] == 2
+    assert ex.applied is True
+    assert captured["path"] == "/v1/sync/request"
+    assert captured["payload"]["from_height"] == 2
+    assert captured["payload"]["to_height"] == 4
+    assert captured["payload"]["selector"] == {"trusted_anchor": anchor}
+    assert "tx_id" not in captured["payload"]["selector"]
+
+
+def test_observer_edge_status_exposes_state_sync_autodrain(monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
+    monkeypatch.setenv("WEALL_TX_QUEUE_AUTODRAIN", "1")
+    monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "http://127.0.0.1:8001")
+    monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "op-secret")
+
+    with _client() as client:
+        res = client.get("/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "op-secret"})
+
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["ok"] is True
+    assert body["state_sync_autodrain"]["enabled"] is True
+    assert body["state_sync_autodrain"]["interval_s"] >= 0.25

@@ -46,6 +46,7 @@ Json = dict[str, Any]
 _TX_QUEUE_AUTODRAIN_LOCK = threading.Lock()
 _TX_QUEUE_AUTODRAIN_STOP: threading.Event | None = None
 _TX_QUEUE_AUTODRAIN_THREAD: threading.Thread | None = None
+_OBSERVER_STATE_SYNC_LAST_RESULT: Json = {}
 
 
 _TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
@@ -1278,6 +1279,139 @@ def _request_and_apply_state_sync_from_upstream(
     }
 
 
+
+def _executor_local_height(ex: Any) -> int:
+    try:
+        if ex is not None and callable(getattr(ex, "read_state", None)):
+            st = ex.read_state()
+        else:
+            st = getattr(ex, "state", {}) if ex is not None else {}
+        return int((st or {}).get("height") or 0) if isinstance(st, dict) else 0
+    except Exception:
+        return 0
+
+
+def _request_and_apply_latest_state_sync_from_upstream(
+    ex: Any,
+    url: str,
+    *,
+    timeout_s: int,
+) -> Json:
+    """Apply the latest trusted upstream delta to an observer executor.
+
+    This is the inbound counterpart to observer tx forwarding. It is deliberately
+    chain-authoritative: the upstream identity route supplies a trusted anchor,
+    /v1/sync/request supplies the signed/anchored delta response, and the local
+    executor verifies/applies through the same StateSyncService path used by
+    explicit tx reconciliation. It never fabricates frontend state and it never
+    grants local authority from an unverified HTTP feed response.
+    """
+
+    if ex is None or not callable(getattr(ex, "apply_state_sync_response", None)):
+        return {"ok": False, "error": "state_sync_apply_unavailable", "upstream": _redact_upstream_url(url)}
+
+    expected_chain_id = str(getattr(ex, "chain_id", "") or "").strip()
+    identity = _verify_upstream_identity(url, expected_chain_id=expected_chain_id, timeout_s=timeout_s)
+    if not bool(identity.get("ok")):
+        return {"ok": False, "error": "upstream_identity_failed", "identity": identity, "upstream": _redact_upstream_url(url)}
+
+    anchor_result = _trusted_anchor_from_upstream(
+        url, expected_chain_id=expected_chain_id, timeout_s=timeout_s
+    )
+    if not bool(anchor_result.get("ok")):
+        return {
+            "ok": False,
+            "error": "upstream_trusted_anchor_failed",
+            "anchor": anchor_result,
+            "upstream": _redact_upstream_url(url),
+        }
+    trusted_anchor = anchor_result.get("trusted_anchor")
+    if not isinstance(trusted_anchor, dict) or not trusted_anchor:
+        return {"ok": False, "error": "upstream_trusted_anchor_missing", "upstream": _redact_upstream_url(url)}
+
+    target_height = int(trusted_anchor.get("height") or 0)
+    local_height = _executor_local_height(ex)
+    if target_height <= local_height:
+        return {
+            "ok": True,
+            "skipped": "already_at_or_above_upstream_anchor",
+            "local_height": int(local_height),
+            "target_height": int(target_height),
+            "applied_count": 0,
+            "upstream": _redact_upstream_url(url),
+        }
+
+    body: Json = {
+        "mode": "delta",
+        "from_height": int(local_height),
+        "to_height": int(target_height),
+        "selector": {"trusted_anchor": trusted_anchor},
+    }
+    try:
+        raw = _upstream_post_json(url, "/v1/sync/request", body, timeout_s=timeout_s)
+    except Exception as exc:
+        return {"ok": False, "error": "state_sync_request_failed", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
+
+    if not bool(raw.get("ok")) or not isinstance(raw.get("response"), dict):
+        return {"ok": False, "error": "bad_state_sync_response", "response": raw, "upstream": _redact_upstream_url(url)}
+
+    try:
+        from weall.api.routes_public_parts.state import _sync_response_from_json
+
+        resp = _sync_response_from_json(raw.get("response"))
+        metas = ex.apply_state_sync_response(
+            resp,
+            trusted_anchor=trusted_anchor,
+            allow_snapshot_bootstrap=False,
+        )
+    except Exception as exc:  # noqa: BLE001 - operator/background diagnostic
+        return {"ok": False, "error": "state_sync_apply_failed", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
+
+    new_height = _executor_local_height(ex)
+    return {
+        "ok": True,
+        "source": "upstream_state_sync_latest",
+        "upstream": _redact_upstream_url(url),
+        "local_height_before": int(local_height),
+        "local_height": int(new_height),
+        "target_height": int(target_height),
+        "applied_count": len(metas or []),
+        "local_state_synced": int(new_height) >= int(target_height),
+    }
+
+
+def _sync_latest_state_from_upstreams_for_executor(ex: Any) -> Json:
+    urls = _normalized_tx_upstream_urls()
+    if not urls:
+        return {"ok": False, "attempted": False, "error": "no_upstreams_configured", "results": []}
+    timeout_s = _env_int_safe("WEALL_OBSERVER_STATE_SYNC_TIMEOUT_S", 6, minimum=1, maximum=120)
+    results: list[Json] = []
+    for url in urls:
+        result = _request_and_apply_latest_state_sync_from_upstream(
+            ex,
+            url,
+            timeout_s=timeout_s,
+        )
+        results.append(result)
+        if bool(result.get("ok")) and not result.get("skipped"):
+            return {"ok": True, "attempted": True, "source": "upstream_state_sync_latest", "results": results, "selected": result}
+    ok = any(bool(r.get("ok")) for r in results if isinstance(r, dict))
+    return {"ok": bool(ok), "attempted": True, "source": "upstream_state_sync_latest", "results": results}
+
+
+def _observer_state_sync_autodrain_enabled() -> bool:
+    return bool(_observer_edge_mode() and _env_bool("WEALL_OBSERVER_STATE_SYNC_AUTODRAIN", True))
+
+
+def _observer_state_sync_interval_s() -> float:
+    raw = os.environ.get("WEALL_OBSERVER_STATE_SYNC_INTERVAL_S")
+    try:
+        value = float(str(raw).strip()) if raw is not None and str(raw).strip() else 1.0
+    except Exception:
+        value = 1.0
+    return max(0.25, min(60.0, value))
+
+
 def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
     t = str(tx_id or "").strip()
     if not t:
@@ -1381,7 +1515,7 @@ def _tx_queue_autodrain_batch() -> int:
     return _env_int_safe("WEALL_TX_QUEUE_DRAIN_BATCH", 25, minimum=1, maximum=500)
 
 
-def start_observer_tx_queue_autodrain() -> threading.Thread | None:
+def start_observer_tx_queue_autodrain(*, executor: Any | None = None) -> threading.Thread | None:
     """Start the observer-edge durable tx_queue worker when explicitly enabled.
 
     This worker is deliberately opt-in and only runs for observer-edge posture.
@@ -1402,12 +1536,22 @@ def start_observer_tx_queue_autodrain() -> threading.Thread | None:
         def _worker() -> None:
             # Make one best-effort pass immediately so short-lived operator
             # sessions/tests do not wait for the first interval.
+            global _OBSERVER_STATE_SYNC_LAST_RESULT
             while not stop.is_set():
                 try:
                     _drain_tx_queue(limit=_tx_queue_autodrain_batch())
                 except Exception:
                     pass
-                stop.wait(_tx_queue_autodrain_interval_s())
+                if executor is not None and _observer_state_sync_autodrain_enabled():
+                    try:
+                        _OBSERVER_STATE_SYNC_LAST_RESULT = _sync_latest_state_from_upstreams_for_executor(executor)
+                    except Exception as exc:
+                        _OBSERVER_STATE_SYNC_LAST_RESULT = {
+                            "ok": False,
+                            "error": "observer_state_sync_autodrain_failed",
+                            "detail": str(exc)[:256],
+                        }
+                stop.wait(min(_tx_queue_autodrain_interval_s(), _observer_state_sync_interval_s()))
 
         thread = threading.Thread(
             target=_worker,
@@ -1840,6 +1984,11 @@ def observer_edge_status(request: Request) -> Json:
             "interval_s": _tx_queue_autodrain_interval_s(),
             "batch": _tx_queue_autodrain_batch(),
         },
+        "state_sync_autodrain": {
+            "enabled": _observer_state_sync_autodrain_enabled(),
+            "interval_s": _observer_state_sync_interval_s(),
+            "last_result": dict(_OBSERVER_STATE_SYNC_LAST_RESULT),
+        },
         "tx_queue": {
             "count": len(tx_queue_rows),
             "counts": _tx_queue_counts(tx_queue_rows),
@@ -1854,6 +2003,23 @@ def observer_edge_tx_queue_drain(request: Request) -> Json:
     result = _drain_tx_queue(request=request)
     rows = _read_tx_queue()
     return {"ok": True, "result": result, "tx_queue": {"count": len(rows), "counts": _tx_queue_counts(rows)}}
+
+
+@router.post("/observer/edge/state-sync/latest")
+def observer_edge_state_sync_latest(request: Request) -> Json:
+    """Synchronize observer local state to the latest verified upstream anchor.
+
+    This operator route exists for local/public observer nodes that follow a
+    genesis/seed API over HTTPS. It is a deterministic state-sync operation, not
+    a frontend refresh shortcut: the executor still verifies the trusted anchor
+    and applies canonical delta blocks.
+    """
+
+    _require_observer_edge_operator(request)
+    ex = _safe_executor(request)
+    if ex is None:
+        return {"ok": False, "error": "executor_unavailable"}
+    return _sync_latest_state_from_upstreams_for_executor(ex)
 
 
 @router.post("/observer/edge/reconcile/{tx_id}")

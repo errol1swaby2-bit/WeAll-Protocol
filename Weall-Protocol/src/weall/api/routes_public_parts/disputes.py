@@ -512,14 +512,18 @@ def v1_dispute_accept(dispute_id: str, request: Request):
     viewer = str(require_account_session(request, st) or "").strip()
     obj = _dispute_obj_from_snapshot(st, dispute_id)
     reasons = _dispute_ineligibility_reasons(st, obj, viewer)
-    allowed = not reasons or reasons == ["already_current_assignment"]
+    status = _status_for_viewer(obj, viewer)
+    reaccepting_withdrawn = status == "withdrawn" and reasons == ["assignment_withdrawn"]
+    allowed = not reasons or reasons == ["already_current_assignment"] or reaccepting_withdrawn
+    visible_reasons = ["reaccept_withdrawn_assignment"] if reaccepting_withdrawn else (reasons or ["eligible"])
+    warning = "Re-accepting restores your own withdrawn review assignment. Prior withdrawal remains recorded; no alternate reviewer is implied." if reaccepting_withdrawn else "Accepting this dispute creates a 1-hour review obligation. Withdraw within 15 minutes with no reputation impact. Late withdrawal causes a small juror reliability penalty. Timeout causes a larger juror reliability penalty."
     return {
         "ok": bool(allowed),
         "account_id": viewer,
         "dispute_id": dispute_id,
         "eligible": bool(allowed),
-        "reasons": reasons or ["eligible"],
-        "warning": "Accepting this dispute creates a 1-hour review obligation. Withdraw within 15 minutes with no reputation impact. Late withdrawal causes a small juror reliability penalty. Timeout causes a larger juror reliability penalty.",
+        "reasons": visible_reasons,
+        "warning": warning,
         "deterministic_source": "signed_tx_submit",
         "tx": _dispute_tx_template(tx_type="DISPUTE_JUROR_ACCEPT", signer=viewer, dispute_id=dispute_id),
         "tx_template": _dispute_tx_template(tx_type="DISPUTE_JUROR_ACCEPT", signer=viewer, dispute_id=dispute_id),

@@ -146,6 +146,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
   const currentVote = dispute ? disputeCurrentVote(dispute, account) : "";
   const canAccept = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
   const canDecline = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && selectedJurorStatus === "assigned";
+  const canMarkAttendance = !!dispute && !!account && !signerSubmission.busy && tierGate.ok && ["accepted", "review", "present", "attended"].includes(selectedJurorStatus) && !attendancePresent && !currentVote;
   const canVote = disputeReviewUnlocked({ dispute, account, tierGateOk: tierGate.ok, signerBusy: signerSubmission.busy });
   const canWithdraw = !!dispute && !!account && !signerSubmission.busy && ["accepted", "present", "attended"].includes(selectedJurorStatus);
   const reputationWarning = String(dispute?.reputation_warning?.text || "Accepting this dispute creates a 1-hour review obligation. Withdraw within 15 minutes with no reputation impact. Late withdrawal causes a small juror reliability penalty. Timeout causes a larger juror reliability penalty.");
@@ -180,7 +181,7 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
           : selectedJurorStatus === "unassigned"
             ? "Step 1 has not begun because this account is not assigned to the selected report."
             : !attendancePresent
-              ? "Step 2 is still pending. Final choice stays locked until accepted attendance is visible."
+              ? "Step 2 is still pending. Use Mark attendance / check in after accepting the assignment; final choices unlock only after backend attendance is visible."
               : "Step 3 is unlocked. Inspect the target carefully, then choose what should happen.";
 
   async function submitDisputeTx(txType: string, payload: any, title: string, successMessage: string): Promise<void> {
@@ -389,13 +390,14 @@ export default function DisputeReview({ id }: { id: string }): JSX.Element {
           <div className="buttonRow buttonRowWide">
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ACCEPT", { dispute_id: disputeId }, "Accept assignment", "Review assignment accepted.")} disabled={!canAccept}>{signerSubmission.busy ? "Waiting…" : "Accept assignment"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_DECLINE", { dispute_id: disputeId }, "Decline assignment", "Review assignment declined.")} disabled={!canDecline}>{signerSubmission.busy ? "Waiting…" : "Decline assignment"}</button>
+            <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_ATTENDANCE", { dispute_id: disputeId, present: true }, "Mark attendance", "Review attendance recorded.")} disabled={!canMarkAttendance}>{signerSubmission.busy ? "Waiting…" : "Mark attendance / check in"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_JUROR_WITHDRAW", { dispute_id: disputeId }, "Withdraw assignment", "Review assignment withdrawn.")} disabled={!canWithdraw}>{signerSubmission.busy ? "Waiting…" : "Withdraw"}</button>
             <button className="btn btnPrimary" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "no", resolution: { outcome: "report_not_upheld", summary: "Reviewer chose to keep the post visible.", actions: [] } }, "Keep Post", "Keep Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Keep Post"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "yes", resolution: { outcome: "report_upheld", summary: "Reviewer upheld the report and chose to remove the post.", actions: removeContentActions } }, "Remove Post", "Remove Post choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Remove Post"}</button>
             <button className="btn" onClick={() => void submitDisputeTx("DISPUTE_VOTE_SUBMIT", { dispute_id: disputeId, vote: "abstain" }, "Need More Review", "Need More Review choice recorded.")} disabled={!canVote}>{signerSubmission.busy ? "Waiting…" : "Need More Review"}</button>
           </div>
           <div className="infoCard compact"><div className="infoCardHeader"><span className="statusPill">Juror reputation</span><strong>Canonical review obligation</strong></div><div className="infoCardText">{reputationWarning}</div></div>
-          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept, decline, withdraw, or vote using signed protocol transactions. The backend returns canonical deadlines and classifies all reputation outcomes; the frontend only displays countdowns and warnings. A submitted review is not final until transaction status and the dispute read model reconcile.</div>
+          <div className="cardDesc">This page is intentionally the only place where final report-review choices are surfaced. Accept, mark attendance/check in, decline, withdraw, or vote using signed protocol transactions. The backend returns canonical deadlines and classifies all reputation outcomes; the frontend only displays countdowns and warnings. A submitted review is not final until transaction status and the dispute read model reconcile.</div>
         </div>
       </section>
 

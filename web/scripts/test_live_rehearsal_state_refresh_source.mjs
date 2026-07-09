@@ -41,4 +41,23 @@ for (const page of [
   assertIncludes(src, 'window.clearInterval', page);
 }
 
+
+const reviewLanes = read('src/lib/reviewLanes.ts');
+assertIncludes(reviewLanes, 'explicitOptedInStatus', 'review lane status must not substring-match not_opted_in');
+assertIncludes(reviewLanes, 'statusText === "opted_in_inactive"', 'review lane status exact pending status');
+assertIncludes(reviewLanes, 'label: "Opted in"', 'review lane opted-in inactive label');
+if (reviewLanes.includes('statusText.includes("opted_in")')) {
+  throw new Error('review lane status must not treat not_opted_in as opted in');
+}
+if (!reviewLanes.includes('label: "Not opted in"')) {
+  throw new Error('review lane status must preserve Not opted in backend state');
+}
+
+
+const feedView = read('src/components/FeedView.tsx');
+assertIncludes(feedView, 'VITE_WEALL_FEED_POLL_MS', 'FeedView cross-node sync polling');
+assertIncludes(feedView, 'scope?.kind !== "public"', 'FeedView public feed polling boundary');
+assertIncludes(feedView, 'document.visibilityState', 'FeedView visible-tab polling boundary');
+assertIncludes(feedView, 'loadPage({ cursor: null, append: false })', 'FeedView feed refresh from backend state');
+
 console.log('OK: live rehearsal assignment and state refresh source checks passed');

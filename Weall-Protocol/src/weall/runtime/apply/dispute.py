@@ -1221,7 +1221,8 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
             "vote_deadline_height": _as_int(j.get("vote_deadline_height"), 0),
             "safe_withdraw_until_height": _as_int(j.get("safe_withdraw_until_height"), 0),
         }
-    if status not in {"", "assigned"}:
+    reaccepting_withdrawn = status == "withdrawn"
+    if status not in {"", "assigned", "withdrawn"}:
         raise DisputeApplyError(
             "forbidden",
             "juror_wrong_status",
@@ -1229,13 +1230,24 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
                 "dispute_id": d.get("id", ""),
                 "juror": env.signer,
                 "status": status,
-                "allowed": ["assigned", "accepted"],
+                "allowed": ["assigned", "accepted", "withdrawn"],
             },
         )
     j["status"] = "accepted"
     j["accepted_at_nonce"] = int(env.nonce)
+    if reaccepting_withdrawn:
+        history = j.get("withdrawal_history")
+        if not isinstance(history, list):
+            history = []
+        prior = j.get("withdrawal")
+        if isinstance(prior, dict) and prior:
+            history.append(dict(prior))
+        j["withdrawal_history"] = history[-8:]
+        j["reaccepted_after_withdrawal"] = True
+        j["reaccepted_at_nonce"] = int(env.nonce)
+        j["reaccepted_at_height"] = int(_current_height(state))
     _ensure_juror_deadlines(state, d, j, accepted_height=_current_height(state))
-    j["attendance"] = {"present": True, "at_nonce": int(env.nonce), "auto": True, "source": "accept"}
+    j["attendance"] = {"present": True, "at_nonce": int(env.nonce), "auto": True, "source": "reaccept" if reaccepting_withdrawn else "accept"}
     jurors[juror_key] = j
     d["jurors"] = jurors
     event = _record_dispute_juror_reputation_event(
@@ -1252,6 +1264,7 @@ def _apply_dispute_juror_accept(state: Json, env: TxEnvelope) -> Json:
         "applied": "DISPUTE_JUROR_ACCEPT",
         "dispute_id": dispute_id,
         "present": True,
+        "reaccepted_after_withdrawal": bool(reaccepting_withdrawn),
         "vote_deadline_height": _as_int(j.get("vote_deadline_height"), 0),
         "safe_withdraw_until_height": _as_int(j.get("safe_withdraw_until_height"), 0),
         "event_id": event.get("event_id"),

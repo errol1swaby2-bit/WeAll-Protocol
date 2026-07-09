@@ -420,7 +420,7 @@ async def _lifespan(app: FastAPI):
         try:
             from weall.api.routes_public_parts.tx import start_observer_tx_queue_autodrain
 
-            observer_tx_queue_loop = start_observer_tx_queue_autodrain()
+            observer_tx_queue_loop = start_observer_tx_queue_autodrain(executor=executor)
             app.state.observer_tx_queue_loop = observer_tx_queue_loop
         except Exception:
             observer_tx_queue_loop = None

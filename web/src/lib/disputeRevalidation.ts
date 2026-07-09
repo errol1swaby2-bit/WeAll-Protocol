@@ -1,4 +1,5 @@
 import { weall } from "../api/weall";
+import { getAuthHeaders } from "../auth/session";
 import { confirmed, firstReconcile, submitted, type ReconcileResult } from "./revalidation";
 
 type DisputeMutationType = "DISPUTE_JUROR_ACCEPT" | "DISPUTE_JUROR_DECLINE" | "DISPUTE_JUROR_ATTENDANCE" | "DISPUTE_VOTE_SUBMIT";
@@ -33,14 +34,22 @@ function normalizeStatus(value: unknown): string {
 
 function acceptedInDispute(dispute: any, account: string): boolean {
   const rec =
+    accountRecord(dispute?.current_juror, account) ||
+    accountRecord(dispute?.viewer_juror, account) ||
+    accountRecord(dispute?.juror_self, account) ||
     accountRecord(dispute?.jurors, account) ||
     accountRecord(dispute?.assigned_jurors, account) ||
     accountRecord(dispute?.juror_assignments, account);
-  return [rec?.status, rec?.state, rec?.phase, rec?.decision].map(normalizeStatus).includes("accepted");
+  return [rec?.status, rec?.state, rec?.phase, rec?.decision].map(normalizeStatus).some((status) =>
+    ["accepted", "present", "attended", "review", "completed"].includes(status),
+  );
 }
 
 function declinedInDispute(dispute: any, account: string): boolean {
   const rec =
+    accountRecord(dispute?.current_juror, account) ||
+    accountRecord(dispute?.viewer_juror, account) ||
+    accountRecord(dispute?.juror_self, account) ||
     accountRecord(dispute?.jurors, account) ||
     accountRecord(dispute?.assigned_jurors, account) ||
     accountRecord(dispute?.juror_assignments, account);
@@ -49,10 +58,14 @@ function declinedInDispute(dispute: any, account: string): boolean {
 
 function attendanceMarked(dispute: any, account: string): boolean {
   const rec =
+    accountRecord(dispute?.current_juror, account) ||
+    accountRecord(dispute?.viewer_juror, account) ||
+    accountRecord(dispute?.juror_self, account) ||
     accountRecord(dispute?.juror_attendance, account) ||
     accountRecord(dispute?.attendance, account) ||
     accountRecord(dispute?.jurors, account);
-  return rec?.present === true || rec?.attended === true || normalizeStatus(rec?.status) === "present";
+  const attendance = rec && typeof rec.attendance === "object" && rec.attendance ? rec.attendance : null;
+  return rec?.present === true || rec?.attended === true || attendance?.present === true || ["present", "attended", "completed"].includes(normalizeStatus(rec?.status));
 }
 
 function voteRecorded(votesRaw: any, account: string, expectedVote: string): boolean {
@@ -60,14 +73,23 @@ function voteRecorded(votesRaw: any, account: string, expectedVote: string): boo
   return normalizeStatus(rec?.vote) === normalizeStatus(expectedVote);
 }
 
+function scopedHeaders(account: string): HeadersInit | undefined {
+  try {
+    return getAuthHeaders(account);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function reconcileDisputeMutation(args: ReconcileDisputeMutationArgs): Promise<ReconcileResult | null> {
   const disputeId = String(args.disputeId || "").trim();
   const account = String(args.account || "").trim();
   if (!disputeId || !account) return null;
+  const headers = scopedHeaders(account);
 
   return firstReconcile(
     async () => {
-      const raw: any = await weall.dispute(disputeId, args.base);
+      const raw: any = await weall.dispute(disputeId, args.base, headers);
       const dispute = raw?.dispute || raw || null;
       if (!dispute) return null;
 
@@ -96,7 +118,7 @@ export async function reconcileDisputeMutation(args: ReconcileDisputeMutationArg
     },
     args.txType === "DISPUTE_VOTE_SUBMIT"
       ? async () => {
-          const votesRaw: any = await weall.disputeVotes(disputeId, args.base);
+          const votesRaw: any = await weall.disputeVotes(disputeId, args.base, headers);
           if (voteRecorded(votesRaw, account, String(args.vote || ""))) {
             return confirmed(`Dispute ${disputeId} now records your ${String(args.vote || "").toUpperCase()} vote.`);
           }

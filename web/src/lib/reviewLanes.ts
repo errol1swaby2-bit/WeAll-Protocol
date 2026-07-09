@@ -89,8 +89,9 @@ export type ReviewLaneStatus = {
 export function reviewLaneStatusFromTruth(raw: unknown): ReviewLaneStatus {
   const rec = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, any>) : {};
   const statusText = String(rec.status || "").toLowerCase();
-  const active = rec.active === true;
-  const optedIn = rec.opted_in === true || active || statusText.includes("opted_in");
+  const active = rec.active === true || statusText === "active" || statusText === "activated" || statusText === "enabled";
+  const explicitOptedInStatus = statusText === "opted_in" || statusText === "opted_in_inactive" || statusText === "opted_in_pending" || statusText === "pending_activation";
+  const optedIn = rec.opted_in === true || active || explicitOptedInStatus;
   const paused = rec.paused === true || rec.suspended === true || rec.disabled === true || !!rec.paused_at_nonce || statusText === "paused" || statusText === "suspended";
   if (active) {
     return { active: true, optedIn: true, paused: false, label: "Active", tone: "ok", canOptIn: false, canOptOut: true };
@@ -99,7 +100,7 @@ export function reviewLaneStatusFromTruth(raw: unknown): ReviewLaneStatus {
     return { active: false, optedIn: true, paused: true, label: "Paused", tone: "warning", canOptIn: false, canOptOut: true };
   }
   if (optedIn) {
-    return { active: true, optedIn: true, paused: false, label: "Active", tone: "ok", canOptIn: false, canOptOut: true };
+    return { active: false, optedIn: true, paused: false, label: "Opted in", tone: "warning", canOptIn: false, canOptOut: true };
   }
   return { active: false, optedIn: false, paused: false, label: "Not opted in", tone: "", canOptIn: true, canOptOut: false };
 }

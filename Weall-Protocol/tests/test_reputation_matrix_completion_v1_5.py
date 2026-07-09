@@ -222,6 +222,28 @@ def test_dispute_withdrawal_and_timeout_classifications_are_backend_canonical() 
     assert "DISPUTE_JUROR_TIMED_OUT" in _canonical_codes(timed)
 
 
+
+
+def test_withdrawn_dispute_assignment_can_be_reaccepted_without_alternate_reviewer() -> None:
+    state = _base_state(height=10)
+    _accept(state)
+    state["height"] = 20
+    withdraw_out = apply_dispute(state, _env("DISPUTE_JUROR_WITHDRAW", "@juror", 3, {"dispute_id": "disp-1"})) or {}
+    assert withdraw_out["applied"] == "DISPUTE_JUROR_WITHDRAW"
+    assert state["disputes_by_id"]["disp-1"]["jurors"]["@juror"]["status"] == "withdrawn"
+
+    state["height"] = 21
+    reaccept_out = apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", "@juror", 4, {"dispute_id": "disp-1"})) or {}
+    juror = state["disputes_by_id"]["disp-1"]["jurors"]["@juror"]
+    assert reaccept_out["applied"] == "DISPUTE_JUROR_ACCEPT"
+    assert reaccept_out["reaccepted_after_withdrawal"] is True
+    assert juror["status"] == "accepted"
+    assert juror["attendance"]["present"] is True
+    assert juror["attendance"]["source"] == "reaccept"
+    assert juror["reaccepted_after_withdrawal"] is True
+    assert juror["withdrawal_history"]
+    assert not state["disputes_by_id"]["disp-1"].get("votes")
+
 def test_dispute_vote_before_deadline_completes_assignment_without_majority_penalty() -> None:
     state = _base_state(height=10)
     _accept(state)

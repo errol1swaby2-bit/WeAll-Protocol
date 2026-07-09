@@ -41,7 +41,8 @@
     "test:browser-mldsa-source": "node scripts/test_browser_mldsa_signing_source.mjs",
     "test:operator-promotion-source": "node scripts/test_operator_promotion_state_source.mjs",
     "test:phase-quorum-reputation-source": "node scripts/test_phase_quorum_reputation_source.mjs",
-    "test:live-rehearsal-state-refresh-source": "node scripts/test_live_rehearsal_state_refresh_source.mjs"
+    "test:live-rehearsal-state-refresh-source": "node scripts/test_live_rehearsal_state_refresh_source.mjs",
+    "test:dispute-review-vote-unlock-source": "node scripts/test_dispute_review_vote_unlock_source.mjs"
   },
   "dependencies": {
     "@noble/post-quantum": "^0.6.1",
