@@ -56,7 +56,7 @@
       "route_id": "ba60b12a012e2c60",
       "route_path_without_v1_prefix": "/accounts/tx/profile-update",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 281,
+      "source_lineno": 290,
       "summary": "",
       "tags": [
         "accounts"
@@ -78,7 +78,7 @@
       "route_id": "d97016cc48d59435",
       "route_path_without_v1_prefix": "/accounts/tx/register",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 254,
+      "source_lineno": 263,
       "summary": "",
       "tags": [
         "accounts"
@@ -100,7 +100,7 @@
       "route_id": "5fa4f1cc935c6937",
       "route_path_without_v1_prefix": "/accounts/{account}",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 344,
+      "source_lineno": 353,
       "summary": "",
       "tags": [
         "accounts"
@@ -122,7 +122,7 @@
       "route_id": "137ab4909a8e8e1b",
       "route_path_without_v1_prefix": "/accounts/{account}/feed",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 731,
+      "source_lineno": 745,
       "summary": "",
       "tags": [
         "accounts"
@@ -144,7 +144,7 @@
       "route_id": "db3e7abe13b2eeaa",
       "route_path_without_v1_prefix": "/accounts/{account}/nonce",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1959,
+      "source_lineno": 2095,
       "summary": "",
       "tags": [
         "tx"
@@ -166,7 +166,7 @@
       "route_id": "15bf80fc74c4aa86",
       "route_path_without_v1_prefix": "/accounts/{account}/operator-promotion-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 707,
+      "source_lineno": 720,
       "summary": "",
       "tags": [
         "accounts"
@@ -188,7 +188,7 @@
       "route_id": "ed5ad93f1eccd6af",
       "route_path_without_v1_prefix": "/accounts/{account}/operator-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 691,
+      "source_lineno": 703,
       "summary": "",
       "tags": [
         "accounts"
@@ -210,7 +210,7 @@
       "route_id": "b555c287281dbb93",
       "route_path_without_v1_prefix": "/accounts/{account}/profile",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 306,
+      "source_lineno": 315,
       "summary": "",
       "tags": [
         "accounts"
@@ -232,7 +232,7 @@
       "route_id": "85bb5981c233da2a",
       "route_path_without_v1_prefix": "/accounts/{account}/registered",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 374,
+      "source_lineno": 384,
       "summary": "",
       "tags": [
         "accounts"
@@ -298,7 +298,7 @@
       "route_id": "12b760a4427dc453",
       "route_path_without_v1_prefix": "/accounts/{account}/reviewer-status",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 406,
+      "source_lineno": 417,
       "summary": "",
       "tags": [
         "accounts"
@@ -518,7 +518,7 @@
       "route_id": "1fb9dfa2e3a3bc38",
       "route_path_without_v1_prefix": "/content/{content_id}",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 871,
+      "source_lineno": 883,
       "summary": "",
       "tags": [
         "content"
@@ -540,7 +540,7 @@
       "route_id": "b0081d6b1b60e647",
       "route_path_without_v1_prefix": "/content/{content_id}/scoped",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 925,
+      "source_lineno": 938,
       "summary": "",
       "tags": [
         "content"
@@ -870,7 +870,7 @@
       "route_id": "f11984242f1bc865",
       "route_path_without_v1_prefix": "/feed",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 757,
+      "source_lineno": 768,
       "summary": "",
       "tags": [
         "content"
@@ -1046,7 +1046,7 @@
       "route_id": "29efd6a28c8692ed",
       "route_path_without_v1_prefix": "/groups",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 390,
+      "source_lineno": 399,
       "summary": "",
       "tags": [
         "groups"
@@ -1068,7 +1068,7 @@
       "route_id": "cdb02f51a1bac5b7",
       "route_path_without_v1_prefix": "/groups/join",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 517,
+      "source_lineno": 527,
       "summary": "",
       "tags": [
         "groups"
@@ -1090,7 +1090,7 @@
       "route_id": "88c87869abd7ebbd",
       "route_path_without_v1_prefix": "/groups/leave",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 547,
+      "source_lineno": 557,
       "summary": "",
       "tags": [
         "groups"
@@ -1112,7 +1112,7 @@
       "route_id": "d2252da524964f65",
       "route_path_without_v1_prefix": "/groups/{group_id}",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 428,
+      "source_lineno": 438,
       "summary": "",
       "tags": [
         "groups"
@@ -1134,7 +1134,7 @@
       "route_id": "e91c601cbde31684",
       "route_path_without_v1_prefix": "/groups/{group_id}/content",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 574,
+      "source_lineno": 584,
       "summary": "",
       "tags": [
         "groups"
@@ -1156,7 +1156,7 @@
       "route_id": "082e36186a8bca97",
       "route_path_without_v1_prefix": "/groups/{group_id}/feed",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 634,
+      "source_lineno": 644,
       "summary": "",
       "tags": [
         "groups"
@@ -1178,7 +1178,7 @@
       "route_id": "3b9f1f7e577020e3",
       "route_path_without_v1_prefix": "/groups/{group_id}/governance-contract",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 444,
+      "source_lineno": 454,
       "summary": "",
       "tags": [
         "groups"
@@ -1200,7 +1200,7 @@
       "route_id": "3b69ac9b201cc37e",
       "route_path_without_v1_prefix": "/groups/{group_id}/members",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 464,
+      "source_lineno": 474,
       "summary": "",
       "tags": [
         "groups"
@@ -1222,7 +1222,7 @@
       "route_id": "476f099dcce4f6d4",
       "route_path_without_v1_prefix": "/groups/{group_id}/membership",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 453,
+      "source_lineno": 463,
       "summary": "",
       "tags": [
         "groups"
@@ -1706,7 +1706,7 @@
       "route_id": "b0187fa58e1688ae",
       "route_path_without_v1_prefix": "/observer/edge/reconcile/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2026,
+      "source_lineno": 2163,
       "summary": "",
       "tags": [
         "tx"
@@ -1728,7 +1728,7 @@
       "route_id": "0c9bdca0e71005d0",
       "route_path_without_v1_prefix": "/observer/edge/state-sync/latest",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2009,
+      "source_lineno": 2146,
       "summary": "",
       "tags": [
         "tx"
@@ -1750,7 +1750,7 @@
       "route_id": "04995dd6136e4668",
       "route_path_without_v1_prefix": "/observer/edge/status",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1972,
+      "source_lineno": 2109,
       "summary": "",
       "tags": [
         "tx"
@@ -1772,7 +1772,7 @@
       "route_id": "b2fe3cc719b867ce",
       "route_path_without_v1_prefix": "/observer/edge/tx-queue/drain",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2001,
+      "source_lineno": 2138,
       "summary": "",
       "tags": [
         "tx"
@@ -3290,7 +3290,7 @@
       "route_id": "72282a3231bedf33",
       "route_path_without_v1_prefix": "/thread/{thread_id}",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 978,
+      "source_lineno": 992,
       "summary": "",
       "tags": [
         "content"
@@ -3334,7 +3334,7 @@
       "route_id": "d2201e5bc7a4e9b1",
       "route_path_without_v1_prefix": "/tx/catalog",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2204,
+      "source_lineno": 2353,
       "summary": "",
       "tags": [
         "tx"
@@ -3356,7 +3356,7 @@
       "route_id": "229010cafa55f7fb",
       "route_path_without_v1_prefix": "/tx/status/{tx_id}",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 2039,
+      "source_lineno": 2176,
       "summary": "",
       "tags": [
         "tx"
@@ -3378,7 +3378,7 @@
       "route_id": "961aec58581a92df",
       "route_path_without_v1_prefix": "/tx/submit",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1774,
+      "source_lineno": 1853,
       "summary": "",
       "tags": [
         "tx"

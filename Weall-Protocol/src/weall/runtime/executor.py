@@ -2216,7 +2216,29 @@ class WeAllExecutor:
             meta = self.apply_block(dict(blk))
             if meta is None or not bool(getattr(meta, "ok", False)):
                 err = getattr(meta, "error", "apply_failed") if meta is not None else "apply_failed"
-                raise ExecutorError(f"state_sync_delta_apply_failed:{err}")
+                tx_diag: list[Json] = []
+                for tx in list(blk.get("txs") or [])[:8] if isinstance(blk.get("txs"), list) else []:
+                    if not isinstance(tx, dict):
+                        tx_diag.append({"shape": type(tx).__name__})
+                        continue
+                    payload = tx.get("payload") if isinstance(tx.get("payload"), dict) else {}
+                    tx_diag.append(
+                        {
+                            "tx_id": str(tx.get("tx_id") or ""),
+                            "tx_type": str(tx.get("tx_type") or ""),
+                            "signer": str(tx.get("signer") or ""),
+                            "nonce": _safe_int(tx.get("nonce"), 0),
+                            "payload_keys": sorted(str(k) for k in payload.keys())[:16],
+                        }
+                    )
+                detail = {
+                    "error": str(err),
+                    "height": int(_h),
+                    "block_id": str(_bid),
+                    "tx_count": len(blk.get("txs") or []) if isinstance(blk.get("txs"), list) else 0,
+                    "txs": tx_diag,
+                }
+                raise ExecutorError("state_sync_delta_apply_failed:" + json.dumps(detail, sort_keys=True, separators=(",", ":")))
             metas.append(meta)
 
         target_height = _safe_int((trusted_anchor or {}).get("height"), 0)

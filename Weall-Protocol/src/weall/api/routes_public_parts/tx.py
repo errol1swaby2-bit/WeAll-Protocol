@@ -47,6 +47,8 @@ _TX_QUEUE_AUTODRAIN_LOCK = threading.Lock()
 _TX_QUEUE_AUTODRAIN_STOP: threading.Event | None = None
 _TX_QUEUE_AUTODRAIN_THREAD: threading.Thread | None = None
 _OBSERVER_STATE_SYNC_LAST_RESULT: Json = {}
+_OBSERVER_READ_SYNC_LOCK = threading.Lock()
+_OBSERVER_READ_SYNC_LAST_MS = 0
 
 
 _TX_PUBLIC_ENTRYPOINTS: dict[str, list[str]] = {
@@ -1412,6 +1414,83 @@ def _observer_state_sync_interval_s() -> float:
     return max(0.25, min(60.0, value))
 
 
+def _observer_read_sync_enabled() -> bool:
+    """Return whether observer read paths may perform canonical upstream catch-up.
+
+    This is only for observer-edge nodes. It applies the same verified state-sync
+    path as the operator endpoint before public read models such as /feed and
+    /accounts/{account}/feed. It never reads or trusts upstream feed JSON.
+    """
+
+    return bool(_observer_edge_mode() and _env_bool("WEALL_OBSERVER_READ_SYNC_ENABLED", True))
+
+
+def _observer_read_sync_min_interval_s() -> float:
+    raw = os.environ.get("WEALL_OBSERVER_READ_SYNC_MIN_INTERVAL_S")
+    try:
+        value = float(str(raw).strip()) if raw is not None and str(raw).strip() else 0.75
+    except Exception:
+        value = 0.75
+    return max(0.0, min(30.0, value))
+
+
+def maybe_observer_edge_sync_latest_for_read(request: Request) -> Json:
+    """Best-effort observer catch-up before serving public read models.
+
+    Local rehearsal exposed stale observer reads after upstream genesis accepted a
+    content-removal vote or a second post.  This helper preserves the protocol
+    truth boundary: it only asks configured upstreams for verified state-sync
+    deltas and applies them through the executor. If anything fails, the read
+    continues from local state and the operator status exposes the last result.
+    """
+
+    if not _observer_read_sync_enabled():
+        return {"ok": True, "attempted": False, "skipped": "observer_read_sync_disabled"}
+    urls = _normalized_tx_upstream_urls(request)
+    if not urls:
+        return {"ok": True, "attempted": False, "skipped": "no_upstreams_configured"}
+    ex = _safe_executor(request)
+    if ex is None:
+        return {"ok": False, "attempted": False, "error": "executor_unavailable"}
+
+    global _OBSERVER_READ_SYNC_LAST_MS, _OBSERVER_STATE_SYNC_LAST_RESULT
+    now = _now_ms()
+    min_interval_ms = int(_observer_read_sync_min_interval_s() * 1000)
+    if min_interval_ms > 0 and _OBSERVER_READ_SYNC_LAST_MS and now - int(_OBSERVER_READ_SYNC_LAST_MS) < min_interval_ms:
+        return {
+            "ok": True,
+            "attempted": False,
+            "skipped": "observer_read_sync_throttled",
+            "last_sync_ms": int(_OBSERVER_READ_SYNC_LAST_MS),
+        }
+
+    acquired = _OBSERVER_READ_SYNC_LOCK.acquire(blocking=False)
+    if not acquired:
+        return {"ok": True, "attempted": False, "skipped": "observer_read_sync_in_progress"}
+    try:
+        now = _now_ms()
+        if min_interval_ms > 0 and _OBSERVER_READ_SYNC_LAST_MS and now - int(_OBSERVER_READ_SYNC_LAST_MS) < min_interval_ms:
+            return {
+                "ok": True,
+                "attempted": False,
+                "skipped": "observer_read_sync_throttled",
+                "last_sync_ms": int(_OBSERVER_READ_SYNC_LAST_MS),
+            }
+        result = _sync_latest_state_from_upstreams_for_executor(ex)
+        result = dict(result) if isinstance(result, dict) else {"ok": False, "error": "bad_sync_result_shape"}
+        result["read_path_sync"] = True
+        _OBSERVER_READ_SYNC_LAST_MS = _now_ms()
+        _OBSERVER_STATE_SYNC_LAST_RESULT = dict(result)
+        return result
+    except Exception as exc:  # noqa: BLE001 - read path must remain available
+        result = {"ok": False, "attempted": True, "error": "observer_read_sync_failed", "detail": str(exc)[:256]}
+        _OBSERVER_READ_SYNC_LAST_MS = _now_ms()
+        _OBSERVER_STATE_SYNC_LAST_RESULT = dict(result)
+        return result
+    finally:
+        _OBSERVER_READ_SYNC_LOCK.release()
+
+
 def _reconcile_and_sync_local_state(request: Request, tx_id: str) -> Json:
     t = str(tx_id or "").strip()
     if not t:
@@ -1855,6 +1934,63 @@ async def tx_submit(request: Request) -> Json:
     # Compute deterministic id for idempotency (chain_id-aware).
     tx_id = compute_tx_id(body, chain_id=str(getattr(ex, "chain_id", "") or "").strip() or None)
 
+    observer_forward_only = bool(
+        _observer_edge_mode()
+        and str(request.headers.get("x-weall-observer-forwarded") or "").strip() != "1"
+        and (_tx_upstream_required() or public_testnet_enabled())
+    )
+
+    if observer_forward_only:
+        # Observer-edge nodes are follower/relay surfaces, not independent local
+        # block producers. Local live rehearsal showed that admitting observer
+        # txs into the local mempool before upstream confirmation can make the
+        # observer read model diverge from the genesis/upstream canonical chain.
+        # Queue and forward the exact client-signed envelope instead, then let
+        # verified state-sync bring the canonical block back onto the observer.
+        urls = _normalized_tx_upstream_urls(request)
+        if not urls:
+            upstream = {
+                "attempted": False,
+                "accepted": False,
+                "queued": 0,
+                "skipped": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "no_upstreams_configured",
+                "error": "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "no_upstreams_configured",
+                "results": [],
+            }
+            raise ApiError.bad_gateway(
+                "PUBLIC_TESTNET_NO_VERIFIED_TX_UPSTREAM" if public_testnet_enabled() else "tx_upstream_propagation_failed",
+                "public observer has no verified tx upstream for required propagation" if public_testnet_enabled() else "local observer has no configured upstream for required propagation",
+                {"tx_id": tx_id, "upstream_propagation": upstream},
+            )
+
+        _enqueue_tx_queue(forward_body, tx_id=tx_id, chain_id=str(getattr(ex, "chain_id", "") or ""), request=request)
+        if _env_bool("WEALL_OBSERVER_EDGE_SYNC_ON_SUBMIT", _env_bool("WEALL_TX_UPSTREAM_SYNC_ON_SUBMIT", False)):
+            upstream = _drain_tx_queue(request=request, only_tx_id=tx_id, limit=1)
+        else:
+            upstream = {
+                "attempted": False,
+                "accepted": False,
+                "queued": len(_read_tx_queue()),
+                "status": "queued",
+                "mode": "durable_tx_queue",
+                "results": [],
+            }
+
+        state_sync: Json = {"attempted": False, "skipped": "upstream_not_yet_accepted"}
+        if bool(upstream.get("accepted")) and _env_bool("WEALL_OBSERVER_EDGE_STATE_SYNC_ON_SUBMIT", True):
+            state_sync = _sync_latest_state_from_upstreams_for_executor(ex)
+
+        return {
+            "ok": True,
+            "tx_id": tx_id,
+            "status": "accepted" if bool(upstream.get("accepted")) else "queued",
+            "mempool_size": int(getattr(mp, "size", lambda: 0)() if mp is not None else 0),
+            "observer_edge_forward_only": True,
+            "gossip_propagation": {"attempted": False, "accepted": False, "skipped": "observer_edge_forward_only"},
+            "upstream_propagation": upstream,
+            "state_sync": state_sync,
+        }
+
     # Public observer mode must not create a local-only mempool trap. If no
     # verified public upstream can be derived from explicit config or the seed
     # registry, fail before local admission mutates the observer mempool.
@@ -1965,6 +2101,7 @@ def account_nonce_status(account: str, request: Request) -> Json:
     consensus/block admission still enforces canonical sequential nonces.
     """
 
+    maybe_observer_edge_sync_latest_for_read(request)
     return _account_nonce_summary(request, account)
 
 
@@ -2147,6 +2284,18 @@ def tx_status(request: Request, tx_id: str) -> Json:
             "local_state_synced": False,
             "outbound_propagation": reconciled,
         }
+
+    if isinstance(outbound, dict) and outbound:
+        outbound_status = str(outbound.get("upstream_status") or outbound.get("status") or "").strip()
+        if outbound_status in {"pending", "accepted", "queued"}:
+            return {
+                "ok": True,
+                "tx_id": t,
+                "status": "pending",
+                "source": "observer_tx_queue",
+                "local_state_synced": False,
+                "outbound_propagation": reconciled or outbound or {},
+            }
 
     return {"ok": True, "tx_id": t, "status": "unknown", "outbound_propagation": reconciled or outbound or {}}
 

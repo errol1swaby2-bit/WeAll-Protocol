@@ -20,6 +20,15 @@ from weall.api.routes_public_parts.common import (
 from weall.api.security import require_account_session
 from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
 
+
+def _maybe_observer_read_sync(request: Request) -> None:
+    try:
+        from weall.api.routes_public_parts.tx import maybe_observer_edge_sync_latest_for_read
+
+        maybe_observer_edge_sync_latest_for_read(request)
+    except Exception:
+        return
+
 router = APIRouter()
 
 
@@ -388,6 +397,7 @@ def _group_content_can_show(
 
 @router.get("/groups")
 def v1_groups_list(request: Request):
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
     qp = request.query_params
     limit = _int_param(qp.get("limit"), 50)

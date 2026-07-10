@@ -61,3 +61,18 @@ def test_content_escalation_uses_explicit_content_review_lane_opt_in() -> None:
     assert "_active_validator_accounts(state)" not in assignment_block
     assert "_bootstrap_reviewer_accounts(state)" not in assignment_block
     assert "fallback_signer" not in assignment_block
+
+
+def test_observer_account_reads_sync_before_post_nonce_confirmation() -> None:
+    accounts = _read(NESTED / "src" / "weall" / "api" / "routes_public_parts" / "accounts.py")
+    tx_routes = _read(NESTED / "src" / "weall" / "api" / "routes_public_parts" / "tx.py")
+    create_page = _read(WEB / "pages" / "CreatePostPage.tsx")
+
+    assert "def v1_account_get(account: str, request: Request):" in accounts
+    account_get_block = accounts.split("def v1_account_get(account: str, request: Request):", 1)[1].split("@router.get", 1)[0]
+    assert "_maybe_observer_read_sync(request)" in account_get_block
+
+    nonce_block = tx_routes.split("def account_nonce_status(account: str, request: Request)", 1)[1].split("@router.get", 1)[0]
+    assert "maybe_observer_edge_sync_latest_for_read(request)" in nonce_block
+
+    assert 'String(e?.message || "").trim() === "account_nonce_not_advanced"' in create_page

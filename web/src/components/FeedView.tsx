@@ -409,7 +409,6 @@ export default function FeedView({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (scope?.kind !== "public") return;
     const intervalMs = Number(((import.meta as any).env?.VITE_WEALL_FEED_POLL_MS as string) || 4000);
     if (!Number.isFinite(intervalMs) || intervalMs <= 0) return;
     const id = window.setInterval(() => {
@@ -418,7 +417,7 @@ export default function FeedView({
     }, Math.max(1500, intervalMs));
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope?.kind, filters.visibility, filters.tags, filters.author, sort]);
+  }, [scope?.kind, (scope as any)?.groupId, (scope as any)?.account, filters.visibility, filters.tags, filters.author, sort]);
 
   useMutationRefresh({
     entityTypes: ["content", "dispute"],

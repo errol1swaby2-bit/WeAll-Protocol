@@ -741,7 +741,8 @@ export default function CreatePostPage(): JSX.Element {
         formatted?.msg === "pin_request_submit_failed" ||
         formatted?.msg === "media_declare_submit_failed" ||
         formatted?.msg === "post_create_submit_failed" ||
-        formatted?.msg === "account_nonce_not_advanced"
+        formatted?.msg === "account_nonce_not_advanced" ||
+        String(e?.message || "").trim() === "account_nonce_not_advanced"
       ) {
         await syncNonceReservation(acct, base);
         await refresh();

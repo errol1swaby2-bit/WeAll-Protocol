@@ -48,6 +48,17 @@ def _snapshot(request: Request) -> Json:
     except Exception:
         return {}
 
+
+def _maybe_observer_read_sync(request: Request) -> None:
+    try:
+        from weall.api.routes_public_parts.tx import maybe_observer_edge_sync_latest_for_read
+
+        maybe_observer_edge_sync_latest_for_read(request)
+    except Exception:
+        # Public reads must remain available even when an observer cannot reach
+        # its configured upstream. The returned state remains local truth.
+        return
+
 def _content_root(st: Json) -> Json:
     return _as_dict(st.get("content"))
 
@@ -768,6 +779,7 @@ def feed(request: Request) -> dict[str, object]:
     the user's viewport.
     """
 
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
     qp = request.query_params
     limit = _int_param(qp.get("limit"), 25)
@@ -878,6 +890,7 @@ def content_get(request: Request, content_id: str) -> dict[str, object]:
     Returns 404 if not found.
     """
 
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
 
     pid = str(content_id or "").strip()
@@ -931,6 +944,7 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     but it must not unlock non-public protocol content or restricted-read archives.
     """
 
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
     try:
         viewer = require_account_session(request, st)

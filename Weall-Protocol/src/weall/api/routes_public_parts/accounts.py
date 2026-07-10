@@ -16,6 +16,15 @@ from weall.api.routes_public_parts.common import (
 )
 from weall.api.security import require_account_session
 from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
+
+
+def _maybe_observer_read_sync(request: Request) -> None:
+    try:
+        from weall.api.routes_public_parts.tx import maybe_observer_edge_sync_latest_for_read
+
+        maybe_observer_edge_sync_latest_for_read(request)
+    except Exception:
+        return
 from weall.ledger.state import LedgerView
 from weall.runtime.node_operator_responsibilities import (
     VALIDATOR_REPUTATION_REQUIRED_MILLI,
@@ -347,6 +356,7 @@ def v1_account_get(account: str, request: Request):
     Mounted under /v1 by routes_public.py:
       GET /v1/accounts/{account}
     """
+    _maybe_observer_read_sync(request)
 
     st = _snapshot(request)
     ledger = LedgerView.from_ledger(st)
@@ -382,6 +392,7 @@ def v1_account_registered(account: str, request: Request):
     Mounted under /v1:
       GET /v1/accounts/{account}/registered
     """
+    _maybe_observer_read_sync(request)
 
     st = _snapshot(request)
     ledger = LedgerView.from_ledger(st)
@@ -411,6 +422,7 @@ def v1_account_reviewer_status(account: str, request: Request):
     runtime reviewer-responsibility helpers instead of asking clients to infer
     responsibility state from the public account record.
     """
+    _maybe_observer_read_sync(request)
 
     st = _snapshot(request)
     ledger = LedgerView.from_ledger(st)
@@ -696,6 +708,7 @@ def v1_account_operator_status(account: str, request: Request):
     Frontends should display this result instead of inferring authority from raw
     account/role state.
     """
+    _maybe_observer_read_sync(request)
 
     st = _snapshot(request)
     node_pubkey = _str_param(request.query_params.get("node_pubkey"), "").strip()
@@ -710,6 +723,7 @@ def v1_account_operator_promotion_status(account: str, request: Request):
     This route is the primary frontend/script source of truth. It intentionally
     reports baseline service reboot separately from validator reboot authority.
     """
+    _maybe_observer_read_sync(request)
 
     st = _snapshot(request)
     node_pubkey = _str_param(request.query_params.get("node_pubkey"), "").strip()
@@ -745,6 +759,7 @@ def v1_account_feed(account: str, request: Request):
         owner-only archives.
     """
 
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
     qp = request.query_params
 

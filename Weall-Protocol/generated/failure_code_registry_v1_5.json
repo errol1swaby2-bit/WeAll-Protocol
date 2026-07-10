@@ -202,7 +202,7 @@
       "http_status": 400,
       "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 757
+      "source_lineno": 772
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -211,7 +211,7 @@
       "http_status": 400,
       "sample_reason": "Group read visibility must be public.",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 588
+      "source_lineno": 598
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -238,7 +238,7 @@
       "http_status": 502,
       "sample_reason": "public observer has no verified tx upstream for required propagation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1875
+      "source_lineno": 2011
     },
     {
       "code": "SIGNATURE_PROFILE_MISSING",
@@ -391,7 +391,7 @@
       "http_status": 400,
       "sample_reason": "missing account_id",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 266
+      "source_lineno": 275
     },
     {
       "code": "bad_request",
@@ -418,7 +418,7 @@
       "http_status": 400,
       "sample_reason": "missing group_id",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 528
+      "source_lineno": 538
     },
     {
       "code": "bad_request",
@@ -463,7 +463,7 @@
       "http_status": 400,
       "sample_reason": "missing tx_id",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1418
+      "source_lineno": 1497
     },
     {
       "code": "bad_sig",
@@ -499,7 +499,7 @@
       "http_status": 403,
       "sample_reason": "signature verification failed",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1849
+      "source_lineno": 1928
     },
     {
       "code": "banned",
@@ -535,7 +535,7 @@
       "http_status": 403,
       "sample_reason": "tx chain_id does not match this node",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1594
+      "source_lineno": 1673
     },
     {
       "code": "conflict",
@@ -670,7 +670,7 @@
       "http_status": 403,
       "sample_reason": "bad_observer_edge_operator_token",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 377
+      "source_lineno": 379
     },
     {
       "code": "forbidden",
@@ -1201,7 +1201,7 @@
       "http_status": 400,
       "sample_reason": "tx envelope failed schema validation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1799
+      "source_lineno": 1878
     },
     {
       "code": "invalid_tx",
@@ -1453,7 +1453,7 @@
       "http_status": 403,
       "sample_reason": "chain_id is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1587
+      "source_lineno": 1666
     },
     {
       "code": "missing_env",
@@ -1498,7 +1498,7 @@
       "http_status": 403,
       "sample_reason": "signature is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1841
+      "source_lineno": 1920
     },
     {
       "code": "not_found",
@@ -1525,7 +1525,7 @@
       "http_status": 404,
       "sample_reason": "Group not found",
       "source": "src/weall/api/routes_public_parts/groups.py",
-      "source_lineno": 448
+      "source_lineno": 458
     },
     {
       "code": "not_found",
@@ -1714,7 +1714,7 @@
       "http_status": 403,
       "sample_reason": "observer edge operator endpoints require WEALL_OPERATOR_TOKEN or WEALL_OBSERVER_EDGE_OPERATOR_TOKEN",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 370
+      "source_lineno": 372
     },
     {
       "code": "payload_too_large",
@@ -1768,7 +1768,7 @@
       "http_status": 403,
       "sample_reason": "block receipts cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1827
+      "source_lineno": 1906
     },
     {
       "code": "relay_not_ready",
@@ -1876,7 +1876,7 @@
       "http_status": 403,
       "sample_reason": "system-only txs cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1816
+      "source_lineno": 1895
     },
     {
       "code": "tx_unimplemented",

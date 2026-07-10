@@ -56,7 +56,9 @@ if (!reviewLanes.includes('label: "Not opted in"')) {
 
 const feedView = read('src/components/FeedView.tsx');
 assertIncludes(feedView, 'VITE_WEALL_FEED_POLL_MS', 'FeedView cross-node sync polling');
-assertIncludes(feedView, 'scope?.kind !== "public"', 'FeedView public feed polling boundary');
+if (feedView.includes('scope?.kind !== "public"')) {
+  throw new Error('FeedView polling must cover account/group/public feeds so removed content does not linger on scoped surfaces');
+}
 assertIncludes(feedView, 'document.visibilityState', 'FeedView visible-tab polling boundary');
 assertIncludes(feedView, 'loadPage({ cursor: null, append: false })', 'FeedView feed refresh from backend state');
 

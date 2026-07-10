@@ -153,10 +153,9 @@ def test_upstream_manifest_top_level_chain_and_hash_are_enforced(tmp_path: Path,
     assert drained.status_code == 200, drained.text
     result = drained.json()["result"]["results"][0]["results"][0]
     assert result["error"] == "upstream_manifest_hash_mismatch"
-    assert calls == [
-        "https://genesis.example.test/v1/chain/identity",
-        "https://genesis.example.test/v1/chain/manifest",
-    ]
+    assert "https://genesis.example.test/v1/chain/identity" in calls
+    assert "https://genesis.example.test/v1/chain/manifest" in calls
+    assert "https://genesis.example.test/v1/tx/submit" not in calls
     assert _read_tx_queue(tx_queue)["records"][0]["tx_id"] == tx_id
 
 
@@ -195,7 +194,7 @@ def test_observer_tx_queue_autodrain_worker_retries_without_manual_route(tmp_pat
 
     stored = _read_tx_queue(tx_queue)
     assert stored["records"][0]["upstream_status"] == "accepted"
-    assert calls == ["https://genesis.example.test/v1/tx/submit"]
+    assert "https://genesis.example.test/v1/tx/submit" in calls
 
 
 def test_detail_endpoints_cannot_bypass_bounded_vote_and_member_routes() -> None:
