@@ -1,0 +1,130 @@
+{
+  "$id": "https://weall.example/spec/v2/target_failure.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "api_representation": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "applicable_contracts": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "category": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "code": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "contract_fingerprint": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "failure_id": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "nonce_behavior": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "pdf_row_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reason_or_contract": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "receipt_state_effect": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "retry_lifecycle": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "routes": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "severity": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^FAIL-FS-[0-9]{4}$",
+      "type": "string"
+    },
+    "stage": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "state_mutation_guarantee": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "transactions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "vector_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "stable_id",
+    "failure_id",
+    "code",
+    "reason_or_contract",
+    "primary_mechanism_id",
+    "vector_ids",
+    "status",
+    "contract_fingerprint"
+  ],
+  "title": "target_failure",
+  "type": "object"
+}

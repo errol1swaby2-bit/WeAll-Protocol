@@ -90,8 +90,11 @@ def test_content_creator_can_appeal_but_reviewer_cannot() -> None:
     assert dispute and dispute["dispute_id"] == "d1"
     assert st["disputes_by_id"]["d1"]["target_owner"] == "@author"
 
-    apply_dispute(st, _env("DISPUTE_RESOLVE", {"dispute_id": "d1", "resolution": {"actions": [{"tx_type": "MOD_ACTION_RECEIPT", "payload": {"target_id": "post:2", "action": "delete"}}]}, "_due_height": 11}, signer="SYSTEM", nonce=2, system=True))
+    apply_dispute(st, _env("DISPUTE_RESOLVE", {"dispute_id": "d1", "resolution": {"actions": [{"tx_type": "CONTENT_VISIBILITY_SET", "payload": {"target_id": "post:2", "visibility": "deleted"}}]}, "_due_height": 11}, signer="SYSTEM", nonce=2, system=True))
     assert st["disputes_by_id"]["d1"]["stage"] == "appeal_window"
+    assert st["content"]["posts"]["post:2"].get("deleted") is False
+    assert st["disputes_by_id"]["d1"]["resolution"]["actions"][0]["payload"]["visibility"] == "hidden"
+    assert st["disputes_by_id"]["d1"]["resolution"]["appeal_quarantine"]["content_record_retained"] is True
 
     with pytest.raises(ApplyError) as exc:
         apply_tx(st, _env("DISPUTE_APPEAL", {"dispute_id": "d1", "reason": "I reviewed this"}, signer="@reviewer", nonce=3))

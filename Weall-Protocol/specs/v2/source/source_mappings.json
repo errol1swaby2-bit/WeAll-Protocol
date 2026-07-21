@@ -1,0 +1,5585 @@
+{
+  "authoritative_roots": [
+    "src/weall",
+    "src/weall/runtime",
+    "src/weall/net",
+    "src/weall/ledger",
+    "src/weall/crypto",
+    "src/weall/api",
+    "src/weall/storage",
+    "src/weall/services",
+    "scripts",
+    "tooling",
+    "../web/src"
+  ],
+  "excluded_local_artifacts": [
+    {
+      "path": "generated/README.md",
+      "classification": "ignored_local_generated_documentation",
+      "reason": "May exist in a developer workspace but is ignored by Git and is not a normative specification source or declared release evidence. The compiler excludes only this exact path."
+    },
+    {
+      "classification": "ignored_local_generated_rehearsal_output",
+      "path": "generated/consensus_bootstrap_thresholds_v1_5.json",
+      "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
+    },
+    {
+      "path": "generated/controlled_testnet_go_gate_runtime_v1_5.json",
+      "classification": "ignored_local_generated_rehearsal_output",
+      "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
+    },
+    {
+      "classification": "ignored_local_generated_rehearsal_output",
+      "path": "generated/genesis_testnet_launch_readiness_v1_5.json",
+      "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
+    },
+    {
+      "path": "generated/governance_execution_vectors_v1_5.json",
+      "classification": "ignored_local_generated_rehearsal_output",
+      "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
+    },
+    {
+      "classification": "ignored_local_generated_rehearsal_output",
+      "path": "generated/observer_to_validator_launch_flow_v1_5.json",
+      "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
+    },
+    {
+      "classification": "ignored_local_generated_rehearsal_output",
+      "path": "generated/public_genesis_seed_endpoint_requirements_v1_5.json",
+      "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
+    }
+  ],
+  "explicit_non_protocol_rules": [
+    {
+      "classification": "test",
+      "glob": "tests/**",
+      "primary_mechanism_id": "M-076"
+    },
+    {
+      "classification": "documentation",
+      "glob": "docs/**",
+      "primary_mechanism_id": "M-076"
+    },
+    {
+      "classification": "frontend_test_or_tooling",
+      "glob": "../web/scripts/**",
+      "primary_mechanism_id": "M-076"
+    },
+    {
+      "classification": "frontend_test",
+      "glob": "../web/tests/**",
+      "primary_mechanism_id": "M-076"
+    },
+    {
+      "classification": "chain_configuration",
+      "glob": "configs/**",
+      "primary_mechanism_id": "M-001"
+    },
+    {
+      "classification": "ci_release_control",
+      "glob": "../.github/**",
+      "primary_mechanism_id": "M-075"
+    },
+    {
+      "classification": "dependency_and_build_control",
+      "glob": "pyproject.toml",
+      "primary_mechanism_id": "M-075"
+    },
+    {
+      "classification": "dependency_and_build_control",
+      "glob": "requirements*",
+      "primary_mechanism_id": "M-075"
+    }
+  ],
+  "mappings": [
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/App.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/api/weall.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/auth/keys.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/auth/nodeKeys.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/auth/passkeys.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/auth/recoveryFile.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/auth/session.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ActionLifecycleCard.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ActionStatusBanner.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/AppRightRail.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/AppShell.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ConnectionPill.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ContentTipButton.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ErrorBanner.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ErrorBoundary.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/FabActionButton.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/FeedView.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/MediaGallery.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/NodeConnectionPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/OperatorCommandWizard.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/OperatorIncidentTimeline.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ProcedureTimeline.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ProtocolStatusSummary.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/RequirementList.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/SessionPill.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/SessionRecoveryBanner.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/SidebarNav.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/TxPropagationTimeline.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/TxQueueProvider.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/TxStatusToast.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/ValidatorReadinessWizard.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/WalletPanel.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/context/AccountContext.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/hooks/useMutationRefresh.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/hooks/useSessionHealth.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/hooks/useSignerSubmissionBusy.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/hooks/useTxQueue.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/accountSurface.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/capabilities.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/capabilityMessages.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/chain.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/config.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/contentRevalidation.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/devBootstrap.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/disputeRevalidation.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/disputeSurface.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/errorMessages.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/feed.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/gates.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/governance.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/groupsRevalidation.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/liveRoom.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/liveVerification.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/mutationSignals.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/nodeConnectionManager.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/onboarding.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/pendingWork.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/procedureClock.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/revalidation.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/reviewLanes.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/routePrefetch.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/router.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/settings.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/status.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/testnetCapabilitySurface.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/txAction.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/txFeedback.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/userLanguage.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/verificationEvidence.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/version.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/lib/webrtcLiveRoom.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/main.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Account.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/AccountVerificationPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Activity.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Content.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/CreatePostPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/DisputeDetail.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/DisputeReview.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Disputes.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Economics.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Feed.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Group.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/GroupCreate.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Groups.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Home.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/HomeDashboard.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/JurorDashboard.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/LiveVerificationRoom.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/LoginPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/NodeDashboard.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Poh.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/PohPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Post.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Proposal.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/ProposalCreate.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Proposals.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/SessionDevicesPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Settings.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/SettingsPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Thread.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/Tools.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/pages/TransactionsPage.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/vite-env.d.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/__init__.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/assert_production_genesis_artifacts.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/audit_frontend_backend_congruity.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/audit_test_names.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/bft_adversarial_matrix.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/bft_consensus_resilience_matrix.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/bft_fault_injection_soak.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/build_external_observer_bundle.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/build_node_operator_onboarding_bundle.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/build_operator_incident_report.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/build_production_genesis_manifest.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/build_reviewer_lan_genesis.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/build_validator_bootstrap_bundle.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_backend_test_dependencies.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_generated.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_release_hygiene_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_reviewer_truth_boundaries.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_tx_canon_artifacts.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_v15_public_readiness_artifacts.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_v2_spec_clean_checkout.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/compare_operator_incident_reports.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/compile_v2_spec.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/consensus_forensics_dump.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/crash_drill.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/dev_seed_full_surface.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_cross_node_convergence.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_join_anchor.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_permission_probe.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/devnet_tx.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/evaluate_operator_safe_mode.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/fix_domain_round3.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/fix_fault_injection.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_api_contract_map.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_api_response_vectors_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b499_b503_mechanics_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b505_b509_mechanics_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b510_b515_completion_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b517_b521_completion_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b523_b527_completion_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b528_b532_completion_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b534_b538_completion_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b539_b543_production_path_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b544_b548_live_network_final_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b556_b561_final_missing_mechanics_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b562_b566_mechanics_hardening_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b572_b576_multimachine_soak_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b577_b581_containerized_adversarial_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_consensus_bootstrap_thresholds_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_crypto_posture_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_external_operator_transcript_requirements_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_failure_code_registry_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_genesis_testnet_launch_readiness_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_governance_execution_vectors_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_mechanics_gap_register_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_observer_to_validator_launch_flow_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_production_helper_topology_hardening_plan_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_beta_blocker_report_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_discovery_provider_independence_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_frontend_operator_journey_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_genesis_seed_endpoint_requirements_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_observer_launch_evidence_requirements_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_observer_launch_transcript_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_only_protocol_audit_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_registry_signer_operations_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_testnet_v1_chain_identity.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_validator_bft_preflight_matrix_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_public_validator_endpoint_churn_proof_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_release_evidence_manifest_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_reputation_api_contract_map_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_reputation_event_registry_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_reputation_flow_coverage_map_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_reputation_invariant_report_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_reputation_matrix_contract_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_state_root_vectors_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_tokenomics_simulation_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_tx_index.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/generate_tx_coverage_report.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/genesis_generate_node_key.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/golden_path_full_stack.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/golden_path_hard_mode.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/guard_two_tier_poh.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/install_node_operator_onboarding_bundle.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/migrate_roles_schema.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/patch_account_ban_slash.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/patch_domain_apply_remaining.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/patch_domain_apply_remaining_legacy_cleanup.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/patch_roles_thresholds.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/priority1_heavy_soak.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/priority2_adversarial_soak.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/priority3_crash_drill.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/priority4_invariant_fuzz.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/prod_smoke.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/production_block_production_rehearsal_gate.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/public_validator_preflight.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_anti_sybil_adjudication_deletion_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_anti_sybil_collusion_accountability_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_anti_sybil_conflict_appeal_recovery_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_anti_sybil_escalation_recovery_windows_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_anti_sybil_panel_signal_aggregation_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_anti_sybil_suspicion_review_lifecycle_b585_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_antis_sybil_evidence_retention_recovery_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_api_driven_full_lifecycle_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_api_system_lifecycle_closure_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_autonomous_validator_gossip_loop_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_bft_adversarial_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_block_schedule_survivability_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_containerized_validator_network_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_controlled_validator_network_completion_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_db_backed_fresh_node_replay_sync_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_economics_activation_locked_completion_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_economics_farming_simulation_locked_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_economics_locked_read_models_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_economics_sybil_farming_adversarial_stress_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_extended_seeded_network_soak_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_external_multimachine_validator_harness_b590_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_external_public_validator_operator_network_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_fresh_node_catchup_autonomous_network_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_fresh_node_replay_sync_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_fresh_node_state_sync_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_fresh_node_sync_completion_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_full_node_process_controlled_validator_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_fully_api_driven_v15_lifecycle.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_genesis_observer_promoted_validator_mempool_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_helper_block_path_adversarial_b593_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_helper_equivalence_corpus_b586_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_helper_serial_equivalence_expansion_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_independent_process_validator_network_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_live_ipfs_worker_durability_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_live_netloop_block_producer_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_live_node_process_validator_network_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_live_peer_catchup_from_follower_state_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_live_peer_state_sync_mechanics_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_live_storage_worker_durability_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_locked_economics_adversarial_expansion_b594_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_long_lived_validator_network_skeleton_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_long_run_locked_economics_stress_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_multi_operator_storage_durability_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_multi_operator_storage_workers_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_multidaemon_ipfs_durability_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_multimachine_storage_ipfs_durability_b591_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_multiprocess_ipfs_operator_durability_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_poh_challenge_public_write_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_poh_dispute_adversarial_accountability_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_production_bft_path_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_production_block_commit_replay_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_protocol_upgrade_signed_staging_b589_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_public_api_write_lifecycle_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_public_bft_multi_process_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_public_style_validator_network_mechanics_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_real_db_block_commit_replay_sync_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_real_ipfs_daemon_durability_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_real_validator_network_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_release_blocker_closure_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_reviewer_accountability_appeal_b592_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_seeded_long_run_gossip_soak_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_state_sync_adversarial_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_storage_ipfs_durability_b584_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_storage_ipfs_external_operator_topology_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_storage_operator_durability_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_storage_worker_failure_retry_loop_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_v15_completion_batch_510_515.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_v15_full_lifecycle.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/rehearse_validator_follower_apply_hardening_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/replay_consistency_audit.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/run_controlled_testnet_go_gate_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/run_operator_incident_lane.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/security_test_gates_http.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/sign_public_seed_registry_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/storage_probe_runner_check.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/tx_traceability.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/validate_external_operator_transcript_v1_5.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/validator_readiness_check.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/verify_node_operator_onboarding_bundle.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/verify_validator_bootstrap.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/__init__.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/__main__.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/app.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/config.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/errors.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/ipfs.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/mode_isolation.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/public_redaction.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/public_seed_registry.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/rate_limit.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_nodes.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/__init__.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/accounts.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/activity.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/common.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/consensus.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/content.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/demo_seed.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/disputes.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/economics.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/gov.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/groups.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/health.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/helper_readiness.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/media.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/mempool.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/metrics.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/net_debug.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/net_relay.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/net_self.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/nodes.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/poh.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/reputation.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/reviewer_artifacts.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/session.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/social.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/state.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/status.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/storage_ops.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/routes_public_parts/tx.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/schemas.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/security.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/api/structured_logging.py",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/crypto/__init__.py",
+      "primary_mechanism_id": "M-006",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/crypto/account_keys.py",
+      "primary_mechanism_id": "M-006",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/crypto/pq_mldsa.py",
+      "primary_mechanism_id": "M-006",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/crypto/sig.py",
+      "primary_mechanism_id": "M-006",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/crypto/signature_profiles.py",
+      "primary_mechanism_id": "M-006",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/env.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/indexing/__init__.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/constants.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/gate_resolver.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/issuance.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/migrations.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/rewards.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/roles_schema.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/state.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/tokenomics.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/ledger/types.py",
+      "primary_mechanism_id": "M-060",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/__init__.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/codec.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/gossip.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/handshake.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/messages.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/messages_parallel.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/net_logging.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/net_loop.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/node.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/peer_identity.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/peer_list_store.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/peer_store.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/relay.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/router.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/state_sync.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/transport.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/transport_memory.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/transport_tcp.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/net/transport_tls.py",
+      "primary_mechanism_id": "M-024",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/poh/apply.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/poh/finalize.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/account_id.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/ancestry.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/__init__.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/economics.py",
+      "primary_mechanism_id": "M-063",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/networking.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/notifications.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/protocol.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/reputation.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/social.py",
+      "primary_mechanism_id": "M-039",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "receipts",
+        "failures"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/attestation_pool.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_artifact_cache.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_diagnostics.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_fetch_requests.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_hotstuff.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_journal.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_outbound.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_pending_frontier.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_pending_frontier_impl.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_runtime_adapter.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "messages",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_votecheck.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_admission.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_builder.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_commit.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_hash.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_id.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_loop.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_replay.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_signature_profiles.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/block_time_admission.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bootstrap_audit.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bootstrap_manifest.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bounded_rollback.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/chain_config.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/chain_manifest.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/conflict_lanes.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/constitution.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/constitutional_clock.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/diagnostics.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/dispute_engine.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/domain_apply.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/domain_dispatch.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/econ_phase.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/errors.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/execution_lanes.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/executor.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/executor_boot.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/executor_safe_mode.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/executor_safe_mode_integration.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/failpoints.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/fault_injection.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/fork_choice.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/gate_expr.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/gates.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/genesis_bootstrap.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/genesis_config.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/gov_engine.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/group_treasury_scheduler.py",
+      "primary_mechanism_id": "M-063",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_apply.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_assembly_gate.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_assignment.py",
+      "primary_mechanism_id": "M-049",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_audit.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_capabilities.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_capacity.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_certificates.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_contracts.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_dispatch.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_event_driver.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_execution_runtime.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_executor.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_instance_corpus.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_lane_journal.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_merge.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_merge_admission.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_operator_diagnostics.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_planner.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_preflight_gate.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_proposal_loop.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_proposal_orchestrator.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_readiness_report.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_receipts.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_release_gate.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_replay_guard.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_reputation.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_restart_replay.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_soak_harness.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_startup_integration.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_status_endpoint_integration.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_status_route_adapter.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_status_surface.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/helper_stress_matrix.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/json_tools.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/lane_assignment.py",
+      "primary_mechanism_id": "M-049",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/launch_matrix.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/mempool.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/metrics.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/node_lifecycle.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/node_lifecycle_preflight.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/node_operator_responsibilities.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/node_operator_scheduler.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/node_runtime_config.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/operator_incident_actions.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/operator_incident_diff.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/operator_incident_gossip.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/operator_incident_lane.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/operator_incident_report.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/operator_recovery.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/operator_safe_mode.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/parallel_execution.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/param_policy.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/async_scheduler.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/bootstrap_quorum.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/eligibility.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/juror_select.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/live_quorum.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/live_scheduler.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/state.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/tier2_scheduler.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/proposals.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/proposer_selection.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/protocol_profile.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/protocol_time.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/public_protocol_policy.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/read_write_sets.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/replay_consistency.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/reputation_accrual.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/reputation_events.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/reputation_matrix.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/reputation_units.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/reviewer_responsibilities.py",
+      "primary_mechanism_id": "M-054",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/runtime_authority.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/runtime_context.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/runtime_env.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/runtime_posture.py",
+      "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/runtime_time.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/scheduler_pipeline.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/session_keys.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/sigverify.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/single_writer.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/sqlite_db.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/startup_checks.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/state_hash.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/state_invariants.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/storage_probe_runner.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/storage_revalidation_scheduler.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/supported_txs.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/system_tx_engine.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/testnet_capabilities.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tx_admission.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tx_admission_types.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tx_conflict_audit_samples.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tx_conflicts.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tx_contracts.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tx_id.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tx_index.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tx_schema.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/validator_execution_model.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/validator_readiness_runner.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/vrf_sig.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/services/__init__.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/services/block_producer.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/services/validator_attester.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/storage/__init__.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/storage/ipfs_partition.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/storage/ipfs_pin_worker.py",
+      "primary_mechanism_id": "M-065",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/testing/__init__.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/testing/sigtools.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/tx/canon.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/tx/index.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/util/__init__.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/util/ipfs_cid.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "tooling/canon_lint.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "tooling/gen_helper_contract_map.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "tooling/gen_tx_contract_map.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    }
+  ],
+  "schema": "weall.v2.source_mapping_registry",
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

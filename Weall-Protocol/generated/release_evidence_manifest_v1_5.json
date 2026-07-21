@@ -275,7 +275,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "8aaea6661ec2ab870749615e0d1da229d6806e7a06c7084b89af27e1251b9fd6",
+      "file_sha256": "42c08f5e3d2846c28042c1221b8e4dc8f83d6b4a892d62a5c6cd611ff0befd68",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

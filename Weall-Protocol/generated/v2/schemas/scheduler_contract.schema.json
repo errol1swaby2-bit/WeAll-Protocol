@@ -1,0 +1,106 @@
+{
+  "$id": "https://weall.example/spec/v2/scheduler_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "due_predicate": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "emitted_system_transactions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "failure_semantics": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "idempotency_contract": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "idempotency_key": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "line": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "ordering_contract": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "replay_behavior": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "retry_behavior": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "semantic_precision": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "source": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^[A-Z][A-Z0-9-]+$",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "vector_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "stable_id",
+    "name",
+    "source",
+    "due_predicate",
+    "ordering_contract",
+    "idempotency_key",
+    "replay_behavior",
+    "failure_semantics",
+    "primary_mechanism_id",
+    "vector_ids",
+    "status"
+  ],
+  "title": "scheduler_contract",
+  "type": "object"
+}

@@ -1,0 +1,131 @@
+{
+  "$id": "https://weall.example/spec/v2/state_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "canonical_name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "contract_fingerprint": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "creation_contracts": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "domain": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "failure_semantics": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "invariants": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "key_encoding": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "migration_behavior": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "pdf_page": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "pdf_row_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "replay_behavior": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^STATE-FS-[0-9]{4}$",
+      "type": "string"
+    },
+    "state_key_or_namespace": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "state_root_inclusion": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "transition_contracts": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "value_schema": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "vector_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "stable_id",
+    "canonical_name",
+    "domain",
+    "state_key_or_namespace",
+    "key_encoding",
+    "value_schema",
+    "transition_contracts",
+    "failure_semantics",
+    "replay_behavior",
+    "primary_mechanism_id",
+    "vector_ids",
+    "status"
+  ],
+  "title": "state_contract",
+  "type": "object"
+}

@@ -432,19 +432,26 @@ def _default_content_resolution_actions(dispute: Json, tally: Json) -> list[Json
     if yes <= no:
         return []
 
+    # Removal-by-review must not erase the target during the appealable phase.
+    # The normal feed/read-model hides ``hidden`` targets just like removed
+    # targets, while the underlying post/comment record remains available for
+    # the dispute/appeal record and final review.  Final hard deletion can be a
+    # later explicit enforcement policy, but the default due-process path is an
+    # appeal quarantine.
     actions: list[Json] = [
         {
             "tx_type": "CONTENT_LABEL_SET",
             "payload": {
                 "target_id": target_id,
-                "labels": ["dispute_upheld", "policy_violation"],
+                "labels": ["dispute_upheld", "policy_violation", "appeal_quarantined"],
             },
         },
         {
             "tx_type": "CONTENT_VISIBILITY_SET",
             "payload": {
                 "target_id": target_id,
-                "visibility": "deleted",
+                "visibility": "hidden",
+                "reason": "dispute_appeal_quarantine",
             },
         },
     ]
@@ -456,6 +463,55 @@ def _default_content_resolution_actions(dispute: Json, tally: Json) -> list[Json
             }
         )
     return actions
+
+
+
+def _quarantine_content_enforcement_for_appeal_window(resolution: Any) -> Json:
+    """Return a resolution whose content-removal actions preserve appealability.
+
+    A report verdict may include legacy/client-supplied actions that say
+    ``visibility=deleted``.  In constitutional appeal mode those actions must not
+    mark the content record deleted before the affected creator can appeal.  The
+    target is still removed from public/account/group feeds because ``hidden`` is
+    treated as a moderation hide by the read model.
+    """
+
+    if not isinstance(resolution, dict):
+        return {}
+    out: Json = dict(resolution)
+    actions = out.get("actions")
+    if not isinstance(actions, list):
+        return out
+
+    normalized: list[Json] = []
+    changed = False
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        tx_type = _as_str(action.get("tx_type") or "").strip()
+        payload = action.get("payload") if isinstance(action.get("payload"), dict) else {}
+        next_action: Json = {"tx_type": tx_type, "payload": dict(payload)}
+
+        if tx_type == "CONTENT_VISIBILITY_SET":
+            visibility = _as_str(payload.get("visibility") or "").strip().lower()
+            if visibility in {"deleted", "removed", "remove"}:
+                next_payload = dict(payload)
+                next_payload["visibility"] = "hidden"
+                next_payload.pop("deleted", None)
+                next_payload.setdefault("reason", "dispute_appeal_quarantine")
+                next_action["payload"] = next_payload
+                changed = True
+        normalized.append(next_action)
+
+    if changed:
+        out["actions"] = normalized
+        out["appeal_quarantine"] = {
+            "active": True,
+            "model": "hidden_not_deleted_until_appeal_finalization",
+            "feed_visibility": "hidden",
+            "content_record_retained": True,
+        }
+    return out
 
 
 
@@ -1565,7 +1621,6 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
     d["resolved"] = True
-    d["resolution"] = payload.get("resolution")
     d["resolved_at_nonce"] = int(env.nonce)
 
     # Constitutional-clock testnet mode makes dispute finality appealable.
@@ -1573,6 +1628,9 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     # delayed until the deterministic appeal window closes or the appeal path
     # is resolved. Legacy/dev flows keep the historical immediate final receipt.
     constitutional_appeal_mode = _constitutional_clock_enabled(state)
+    raw_resolution = payload.get("resolution")
+    resolution_for_state = _quarantine_content_enforcement_for_appeal_window(raw_resolution) if constitutional_appeal_mode else raw_resolution
+    d["resolution"] = resolution_for_state
     if constitutional_appeal_mode:
         try:
             verdict_h = int(payload.get("_due_height") or state.get("height") or 0)
@@ -1627,7 +1685,7 @@ def _apply_dispute_resolve(state: Json, env: TxEnvelope) -> Json:
     # 2) Optional enforcement actions. Apply content moderation actions inline so
     # the visible target state changes deterministically with dispute resolution,
     # then queue any remaining non-content/system follow-ups for the next height.
-    res = payload.get("resolution")
+    res = d.get("resolution")
     applied_actions: list[Json] = []
     queued_actions: list[Json] = []
     if isinstance(res, dict):

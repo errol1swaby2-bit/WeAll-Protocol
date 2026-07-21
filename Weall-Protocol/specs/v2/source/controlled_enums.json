@@ -1,0 +1,34 @@
+{
+  "schema": "weall.v2.controlled_enums",
+  "status_category": [
+    "current_implemented",
+    "current_partial",
+    "deprecated_legacy",
+    "implementation_divergence",
+    "launch_gated",
+    "normative_target",
+    "open_parameter",
+    "planned_extension"
+  ],
+  "verification_result": [
+    "PASS",
+    "FAIL",
+    "NOT_RUN",
+    "SPECIFICATION_DEFINED;IMPLEMENTATION_NOT_VERIFIED",
+    "IMPLEMENTATION_NOT_VERIFIED"
+  ],
+  "contract_namespace": [
+    "TX",
+    "MSG",
+    "SYS",
+    "RCP"
+  ],
+  "activation_gate": [
+    "not_authority_activating",
+    "profile_bound",
+    "controlled_rehearsal_only",
+    "disabled_pending_activation_receipt",
+    "record_only_pending_activation_receipt",
+    "section-specific activation gate"
+  ]
+}

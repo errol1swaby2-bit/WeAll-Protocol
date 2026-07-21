@@ -1,0 +1,82 @@
+{
+  "$id": "https://weall.example/spec/v2/evidence.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation_authority": {
+      "type": "boolean"
+    },
+    "activation_receipt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "claim": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "kind": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "path": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "required_external_review": {
+      "type": "boolean"
+    },
+    "reviewer": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^[A-Z][A-Z0-9-]+$",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "truth_boundary": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "stable_id",
+    "path",
+    "sha256",
+    "kind",
+    "claim",
+    "reviewer",
+    "required_external_review",
+    "activation_authority",
+    "primary_mechanism_id",
+    "truth_boundary",
+    "status"
+  ],
+  "title": "evidence",
+  "type": "object"
+}

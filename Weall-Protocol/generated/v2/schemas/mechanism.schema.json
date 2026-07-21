@@ -1,0 +1,105 @@
+{
+  "$id": "https://weall.example/spec/v2/mechanism.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation_gate": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "authority_boundary": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "current_snapshot_behavior": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "divergence_status": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": "string"
+    },
+    "mechanism_kind": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "pdf_page": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "pdf_row_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_owner": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "production_target": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "repository_evidence_paths": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "required_evidence": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "specification_sections": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "status",
+    "title",
+    "mechanism_kind",
+    "current_snapshot_behavior",
+    "production_target",
+    "authority_boundary",
+    "repository_evidence_paths",
+    "specification_sections",
+    "divergence_status",
+    "activation_gate",
+    "required_evidence",
+    "primary_owner"
+  ],
+  "title": "mechanism",
+  "type": "object"
+}

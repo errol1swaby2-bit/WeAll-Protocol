@@ -124,7 +124,18 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
             : await weall.content(targetId, apiBase);
           setTargetContent(contentRes || null);
         } catch {
-          setTargetContent(null);
+          const appealSnapshot = asRecord((nextDispute as any)?.target_content_snapshot || (nextDispute as any)?.target_content);
+          setTargetContent(
+            Object.keys(appealSnapshot).length
+              ? {
+                  ok: true,
+                  type: String(appealSnapshot.type || "post"),
+                  content: appealSnapshot,
+                  source: "appeal_record_snapshot",
+                  appeal_quarantine: true,
+                }
+              : null,
+          );
         }
       } else {
         setTargetContent(null);
@@ -517,7 +528,7 @@ export default function DisputeDetail({ id }: { id: string }): JSX.Element {
                 {contentBody ? <div className="feedBodyText">{contentBody}</div> : <div className="cardDesc">The flagged content is available but has no body text.</div>}
               </>
             ) : (
-              <div className="cardDesc">This report target is not currently visible through the content endpoint. The report record is still authoritative for assignment and review status.</div>
+              <div className="cardDesc">This report target is hidden from normal feed/content routes. The report record remains authoritative for assignment, appeal eligibility, and review status.</div>
             )}
           </div>
         </article>

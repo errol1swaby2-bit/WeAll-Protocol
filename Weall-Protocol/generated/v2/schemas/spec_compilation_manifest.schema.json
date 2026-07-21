@@ -1,0 +1,87 @@
+{
+  "$id": "https://weall.example/spec/v2/spec_compilation_manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation_boundary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "coverage": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "input_hashes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "output_hashes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "provenance": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "registers": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requirements": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema",
+    "version",
+    "provenance",
+    "input_hashes",
+    "output_hashes",
+    "coverage",
+    "registers",
+    "requirements",
+    "activation_boundary"
+  ],
+  "title": "spec_compilation_manifest",
+  "type": "object"
+}

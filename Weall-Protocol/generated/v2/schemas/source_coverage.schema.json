@@ -1,0 +1,70 @@
+{
+  "$id": "https://weall.example/spec/v2/source_coverage.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "affected_registers": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "classification": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "mappings": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "path": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "source_id": {
+      "pattern": "^[A-Z][A-Z0-9-]+$",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_id",
+    "path",
+    "classification",
+    "primary_mechanism_id",
+    "affected_registers",
+    "sha256",
+    "mappings"
+  ],
+  "title": "source_coverage",
+  "type": "object"
+}

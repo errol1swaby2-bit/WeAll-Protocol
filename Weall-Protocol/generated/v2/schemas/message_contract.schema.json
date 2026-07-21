@@ -1,0 +1,99 @@
+{
+  "$id": "https://weall.example/spec/v2/message_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "authority_boundary": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "failure_semantics": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "fields": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "idempotency_rules": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "kind": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "line": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "replay_rules": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "source": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^[A-Z][A-Z0-9-]+$",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "vector_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "wire_encoding": {
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "stable_id",
+    "name",
+    "kind",
+    "source",
+    "wire_encoding",
+    "authority_boundary",
+    "replay_rules",
+    "idempotency_rules",
+    "failure_semantics",
+    "primary_mechanism_id",
+    "vector_ids",
+    "status"
+  ],
+  "title": "message_contract",
+  "type": "object"
+}

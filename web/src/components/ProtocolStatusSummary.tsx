@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getApiBaseUrl, weall } from "../api/weall";
 import { getSession } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
+import { WEALL_PROTOCOL_STATUS } from "../generated/protocolStatus";
 import {
   summarizeAccountStanding,
   summarizeNodeConnection,
@@ -122,6 +123,15 @@ export default function ProtocolStatusSummary(): JSX.Element {
         <div className="protocolSummaryLabel">Chain truth</div>
         <strong>{summary.node.chainId || "Unknown chain"}</strong>
         <div className="protocolSummaryDetail">{chainTruthDetail}</div>
+      </button>
+
+
+      <button className="protocolSummaryCard warn" onClick={() => nav("/node")}>
+        <div className="protocolSummaryLabel">Release posture</div>
+        <strong>{WEALL_PROTOCOL_STATUS.protocolStatus}</strong>
+        <div className="protocolSummaryDetail">
+          {WEALL_PROTOCOL_STATUS.specCandidate} · public beta {WEALL_PROTOCOL_STATUS.publicBetaReady ? "enabled" : "disabled"} · authority time {WEALL_PROTOCOL_STATUS.authorityTimeSource}
+        </div>
       </button>
 
       <button className="protocolSummaryCard warn" onClick={() => nav("/node")}>

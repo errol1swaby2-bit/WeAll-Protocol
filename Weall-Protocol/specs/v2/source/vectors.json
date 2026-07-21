@@ -1,0 +1,49 @@
+{
+  "schema": "weall.v2.vector_registry",
+  "vectors": [
+    {
+      "expected": "all declared outputs are byte-identical and schema-valid",
+      "id": "VEC-W1-COMPILER",
+      "profiles": [
+        "dev_local",
+        "controlled_testnet",
+        "public_testnet",
+        "mainnet"
+      ],
+      "status": "current_implemented",
+      "test": "tests/test_v2_spec_compiler.py",
+      "title": "Deterministic compiler and typed-register vector"
+    },
+    {
+      "expected": "compiler exits nonzero and names the unmapped path",
+      "id": "VEC-W1-FAIL-CLOSED",
+      "profiles": [
+        "all"
+      ],
+      "status": "current_implemented",
+      "test": "tests/test_v2_spec_compiler.py::test_unmapped_authoritative_source_fails",
+      "title": "Unmapped authoritative source fails compilation"
+    },
+    {
+      "expected": "git archive checkout passes compile --check",
+      "id": "VEC-W1-CLEAN-CHECKOUT",
+      "profiles": [
+        "all"
+      ],
+      "status": "current_implemented",
+      "test": "scripts/check_v2_spec_clean_checkout.py",
+      "title": "Clean checkout reproduces all derivatives"
+    },
+    {
+      "expected": "ProtocolStatusSummary imports and renders generated fail-closed values",
+      "id": "VEC-W1-FRONTEND",
+      "profiles": [
+        "all"
+      ],
+      "status": "current_implemented",
+      "test": "tests/test_v2_spec_compiler.py::test_generated_frontend_status_is_consumed",
+      "title": "Generated protocol truth is consumed by product surface"
+    }
+  ],
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

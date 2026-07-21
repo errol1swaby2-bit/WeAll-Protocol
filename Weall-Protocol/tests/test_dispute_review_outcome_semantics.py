@@ -54,8 +54,8 @@ def test_remove_post_vote_upholds_report_and_deletes_content() -> None:
     assert dispute["stage"] == "resolved"
     assert dispute["resolution"]["outcome"] == "report_upheld"
     assert dispute["resolution"]["tally"] == {"yes": 1, "no": 0, "abstain": 0}
-    assert post["visibility"] == "deleted"
-    assert post["deleted"] is True
+    assert post["visibility"] == "hidden"
+    assert post.get("deleted") is not True
     assert post["locked"] is True
 
 

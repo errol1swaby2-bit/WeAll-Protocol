@@ -945,7 +945,7 @@ def _trusted_anchor_from_upstream(url: str, *, expected_chain_id: str, timeout_s
     try:
         identity = _upstream_get_json(url, "/v1/chain/identity", timeout_s=timeout_s)
     except Exception as exc:
-        return {"ok": False, "error": "upstream_anchor_unreachable", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
+        return {"ok": False, "error": "upstream_anchor_unreachable", "detail": str(exc)[:4096], "upstream": _redact_upstream_url(url)}
 
     observed_chain = str(identity.get("chain_id") or "").strip()
     expected = str(expected_chain_id or "").strip()
@@ -989,7 +989,7 @@ def _status_from_upstream(url: str, tx_id: str, *, timeout_s: int) -> Json:
             out["upstream"] = _redact_upstream_url(url)
             return out
     except Exception as exc:
-        return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
+        return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:4096], "upstream": _redact_upstream_url(url)}
 
 
 def _drain_tx_queue(*, request: Request | None = None, only_tx_id: str | None = None, limit: int | None = None) -> Json:
@@ -1193,7 +1193,7 @@ def _request_and_apply_state_sync_from_upstream(
     try:
         raw = _upstream_post_json(url, "/v1/sync/request", body, timeout_s=timeout_s)
     except Exception as exc:
-        return {"ok": False, "error": "state_sync_request_failed", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
+        return {"ok": False, "error": "state_sync_request_failed", "detail": str(exc)[:4096], "upstream": _redact_upstream_url(url)}
 
     if not bool(raw.get("ok")) or not isinstance(raw.get("response"), dict):
         return {"ok": False, "error": "bad_state_sync_response", "response": raw, "upstream": _redact_upstream_url(url)}
@@ -1204,7 +1204,7 @@ def _request_and_apply_state_sync_from_upstream(
         resp = _sync_response_from_json(raw.get("response"))
         metas = ex.apply_state_sync_response(resp, trusted_anchor=trusted_anchor, allow_snapshot_bootstrap=False)
     except Exception as exc:  # noqa: BLE001 - operator reconciliation diagnostic
-        return {"ok": False, "error": "state_sync_apply_failed", "detail": str(exc)[:256], "upstream": _redact_upstream_url(url)}
+        return {"ok": False, "error": "state_sync_apply_failed", "detail": str(exc)[:4096], "upstream": _redact_upstream_url(url)}
 
     local = _locally_confirmed_tx(request, tx_id)
     if isinstance(local, dict):

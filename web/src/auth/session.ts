@@ -774,6 +774,7 @@ export async function submitSignedTxInSequence(args: {
   payloadFactory: (nonce: number) => any;
   parent?: string | null;
   base?: string;
+  headers?: HeadersInit;
 }): Promise<{ env: TxEnvelope; result: any }> {
   return runSignerSerialized(args.sequence.account, async () => {
     const signer = normalizeAccount(args.sequence.account);
@@ -799,7 +800,7 @@ export async function submitSignedTxInSequence(args: {
       const signed = signEnvelope(unsigned, kp);
 
       try {
-        const result = await weall.txSubmit(signed, args.base);
+        const result = await weall.txSubmit(signed, args.base, args.headers);
         args.sequence.nextNonce = nonce + 1;
         setReservedNonce(signer, nonce);
         return { env: signed, result };
@@ -927,6 +928,7 @@ export async function submitSignedTx(args: {
   payload: any;
   parent?: string | null;
   base?: string;
+  headers?: HeadersInit;
 }): Promise<any> {
   return runSignerSerialized(args.account, async () => {
     const signer = normalizeAccount(args.account);
@@ -950,7 +952,7 @@ export async function submitSignedTx(args: {
       });
       const signed = signEnvelope(unsigned, kp);
       try {
-        return await weall.txSubmit(signed, args.base);
+        return await weall.txSubmit(signed, args.base, args.headers);
       } catch (error) {
         rollbackNonceClaim(claim);
         if (attempt < 3 && isNonceReservationConflictError(error)) {
@@ -972,6 +974,7 @@ export async function submitSignedTxWithNonce(args: {
   payloadFactory: (nonce: number) => any;
   parent?: string | null;
   base?: string;
+  headers?: HeadersInit;
 }): Promise<{ env: TxEnvelope; result: any }> {
   return runSignerSerialized(args.account, async () => {
     const signer = normalizeAccount(args.account);
@@ -997,7 +1000,7 @@ export async function submitSignedTxWithNonce(args: {
       });
       const signed = signEnvelope(unsigned, kp);
       try {
-        const result = await weall.txSubmit(signed, args.base);
+        const result = await weall.txSubmit(signed, args.base, args.headers);
         return { env: signed, result };
       } catch (error) {
         rollbackNonceClaim(claim);

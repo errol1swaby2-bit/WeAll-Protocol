@@ -134,6 +134,9 @@ def test_creator_appeal_eligibility_survives_hidden_content_and_reviewer_cannot_
     assert creator_dispute["appeal_allowed_accounts"] == ["@alice"]
     assert creator_dispute["appeal_eligibility"]["can_file"] is True
     assert creator_dispute["appeal_eligibility"]["reason"] == "eligible_target_owner"
+    assert creator_dispute["target_content_snapshot"]["id"] == "post:1"
+    assert creator_dispute["target_content_snapshot"]["appeal_record_snapshot"] is True
+    assert creator_dispute["target_content_snapshot"]["body"] == "reported post"
 
     assert reviewer_dispute["appeal_eligibility"]["can_file"] is False
     assert reviewer_dispute["appeal_eligibility"]["reason"] == "not_target_owner"

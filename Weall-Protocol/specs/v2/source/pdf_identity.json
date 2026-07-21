@@ -1,0 +1,16 @@
+{
+  "schema": "weall.v2.pdf_identity",
+  "sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
+  "page_count": 390,
+  "title": "WeAll Full-Scope Product and Protocol Specification - Version 2.0 First Draft",
+  "author": "WeAll Protocol",
+  "subject": "Initial complete v2.0 pre-testnet product and protocol specification draft",
+  "keywords": "WeAll, version 2.0, first draft, protocol, governance, deterministic execution, mechanism coverage",
+  "creator": "WeAll specification generation workflow",
+  "producer": "PyMuPDF",
+  "version": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
+  "authority_status": "V2_0_FIRST_DRAFT_NOT_AUTHORIZED",
+  "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
+  "test_policy": "Validate and retain this exact uploaded PDF by hash, PDF structure, metadata title, page count, and register fingerprints. Do not substitute Candidate 3.11R3 bytes.",
+  "candidate_label": "2.0 First Draft - Complete Pre-Testnet Design Blueprint"
+}

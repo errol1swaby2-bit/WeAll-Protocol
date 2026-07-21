@@ -1,0 +1,106 @@
+{
+  "feature_bindings": [
+    {
+      "feature": "live_economics",
+      "status": "disabled_all_profiles_pending_governance_legal_accounting_review",
+      "tx_exact": [
+        "BALANCE_TRANSFER",
+        "FEE_PAY",
+        "ECONOMICS_ACTIVATION"
+      ],
+      "tx_prefixes": [
+        "FEE_POLICY_"
+      ]
+    },
+    {
+      "feature": "reward_issuance",
+      "status": "disabled_all_profiles_pending_conservation_proof",
+      "tx_prefixes": [
+        "BLOCK_REWARD_",
+        "CREATOR_REWARD_",
+        "TREASURY_REWARD_",
+        "REWARD_POOL_"
+      ]
+    },
+    {
+      "feature": "treasury_spend",
+      "status": "disabled_all_profiles_pending_governance_and_milestone_contracts",
+      "tx_contains": [
+        "TREASURY_SPEND"
+      ]
+    },
+    {
+      "feature": "public_validator_authority",
+      "status": "controlled_rehearsal_only_pending_independent_multinode_review",
+      "tx_prefixes": [
+        "VALIDATOR_",
+        "BLOCK_",
+        "EPOCH_",
+        "SLASH_"
+      ]
+    },
+    {
+      "feature": "automatic_protocol_upgrade_apply",
+      "status": "record_only_pending_migration_release_and_rollback_contracts",
+      "tx_prefixes": [
+        "PROTOCOL_UPGRADE_",
+        "CONSTITUTION_UPGRADE_"
+      ]
+    },
+    {
+      "feature": "public_storage_provider_market",
+      "status": "disabled_pending_storage_proof_deletion_and_economics_review",
+      "tx_prefixes": [
+        "STORAGE_",
+        "IPFS_PIN_"
+      ]
+    },
+    {
+      "feature": "production_helper_execution",
+      "status": "controlled_rehearsal_only_serial_execution_remains_authority",
+      "tx_exact": [
+        "NODE_OPERATOR_HELPER_OPT_IN"
+      ]
+    },
+    {
+      "feature": "constitutional_governance",
+      "status": "compatibility_runtime_only_pending_v2_electorate_and_execution_obligation",
+      "tx_prefixes": [
+        "GOV_"
+      ]
+    }
+  ],
+  "frontend_status": {
+    "authorityTimeSource": "finalized_block_height",
+    "automaticProtocolUpgrades": false,
+    "constitutionalGovernanceReady": false,
+    "liveEconomics": false,
+    "mainnetReady": false,
+    "productionHelperExecution": false,
+    "protocolStatus": "pre-public-testnet implementation under active hardening",
+    "publicBetaReady": false,
+    "publicMultiValidatorBft": false,
+    "publicStorageProviderMarket": false,
+    "specCandidate": "2.0 Candidate 3.11R3"
+  },
+  "profiles": {
+    "controlled_testnet": {
+      "default": "implemented_controlled_rehearsal",
+      "public_authority": false
+    },
+    "dev_local": {
+      "default": "implemented_rehearsal_only",
+      "public_authority": false
+    },
+    "mainnet": {
+      "default": "disabled_pending_activation_receipt",
+      "public_authority": false
+    },
+    "public_testnet": {
+      "default": "disabled_pending_activation_receipt",
+      "public_authority": false
+    }
+  },
+  "schema": "weall.v2.activation_profiles",
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

@@ -1,0 +1,145 @@
+{
+  "$id": "https://weall.example/spec/v2/route_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation": {
+      "type": "object"
+    },
+    "authority_source": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "canonical_mappings": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "duplicate_route_key": {
+      "type": "boolean"
+    },
+    "failure_contract": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "frontend_consumers": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "implementation_source": {
+      "additionalProperties": false,
+      "properties": {
+        "function": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "handler": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "line": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "function",
+        "line"
+      ],
+      "type": "object"
+    },
+    "local_or_service_status": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "metadata_source": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "method": {
+      "enum": [
+        "DELETE",
+        "GET",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "type": "string"
+    },
+    "path": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": "string"
+    },
+    "request_limits": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "route_key": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "security_policy": {
+      "type": "object"
+    },
+    "semantic_precision": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^[A-Z][A-Z0-9-]+$",
+      "type": "string"
+    },
+    "tests": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "vector_ids": {
+      "items": {
+        "pattern": "^VEC-",
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "stable_id",
+    "method",
+    "path",
+    "authority_source",
+    "canonical_mappings",
+    "local_or_service_status",
+    "security_policy",
+    "request_limits",
+    "failure_contract",
+    "frontend_consumers",
+    "tests",
+    "implementation_source",
+    "primary_mechanism_id",
+    "vector_ids",
+    "activation"
+  ],
+  "title": "route_contract",
+  "type": "object"
+}

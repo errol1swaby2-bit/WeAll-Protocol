@@ -1,0 +1,204 @@
+{
+  "enums": {
+    "activation_status": [
+      "implemented_rehearsal_only",
+      "implemented_controlled_rehearsal",
+      "disabled_pending_activation_receipt",
+      "record_only",
+      "compatibility_runtime"
+    ],
+    "requirement_status": [
+      "current_implemented",
+      "current_partial",
+      "normative_target",
+      "planned_extension",
+      "open_parameter",
+      "implementation_divergence",
+      "launch_gated",
+      "deprecated_legacy"
+    ],
+    "semantic_precision": [
+      "tx_specific_static",
+      "function_static",
+      "domain_scope_fallback"
+    ],
+    "transaction_context": [
+      "mempool",
+      "block"
+    ],
+    "transaction_origin": [
+      "USER",
+      "VALIDATOR",
+      "SYSTEM"
+    ]
+  },
+  "message_scan": {
+    "class_suffixes": [
+      "Message",
+      "Proposal",
+      "Vote",
+      "Certificate",
+      "Envelope",
+      "Frame",
+      "Request",
+      "Response"
+    ],
+    "function_tokens": [
+      "message",
+      "proposal",
+      "vote",
+      "certificate",
+      "envelope",
+      "broadcast",
+      "relay"
+    ],
+    "roots": [
+      "src/weall/runtime",
+      "src/weall/net",
+      "src/weall/p2p"
+    ]
+  },
+  "migration_default": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
+  "parameters": {
+    "authority_time_source": "finalized_block_height",
+    "compiler_mode": "hermetic_static_analysis",
+    "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
+    "route_count": 159,
+    "stable_id_reuse": "forbidden",
+    "transaction_count": 236,
+    "unmapped_change_policy": "fail_closed"
+  },
+  "receipt_defaults": {
+    "receipt_only_transaction": "canonical parent-bound receipt transaction",
+    "system_transaction": "parent-bound deterministic SYSTEM result receipt",
+    "user_transaction": "canonical apply result plus transaction inclusion/status receipt"
+  },
+  "scheduler_scan": {
+    "function_tokens": [
+      "schedule",
+      "scheduler",
+      "due",
+      "tick",
+      "finalize",
+      "transition",
+      "expire",
+      "close_epoch",
+      "open_epoch"
+    ],
+    "roots": [
+      "src/weall/runtime"
+    ]
+  },
+  "schema": "weall.v2.protocol_registry",
+  "state_namespaces": {
+    "Cases": [
+      "case_types",
+      "cases"
+    ],
+    "Consensus": [
+      "validators",
+      "validator_set",
+      "blocks",
+      "epochs",
+      "quorum_certificates"
+    ],
+    "Content": [
+      "posts",
+      "comments",
+      "reactions",
+      "content_flags",
+      "media"
+    ],
+    "Dispute": [
+      "disputes",
+      "dispute_assignments",
+      "dispute_votes",
+      "appeals"
+    ],
+    "Economics": [
+      "balances",
+      "fees",
+      "economics"
+    ],
+    "Governance": [
+      "proposals",
+      "governance_votes",
+      "governance_snapshots",
+      "execution_queue"
+    ],
+    "Groups": [
+      "groups",
+      "group_memberships",
+      "group_roles",
+      "group_elections"
+    ],
+    "Identity": [
+      "accounts",
+      "recovery_requests",
+      "sessions",
+      "devices"
+    ],
+    "Indexing": [
+      "index_anchors",
+      "topics",
+      "snapshots"
+    ],
+    "Moderation": [
+      "moderation_actions",
+      "flag_escalations"
+    ],
+    "Networking": [
+      "peers",
+      "rendezvous_tickets",
+      "peer_signals"
+    ],
+    "Notifications": [
+      "notification_subscriptions",
+      "notifications"
+    ],
+    "Performance": [
+      "performance_reports",
+      "performance_scores"
+    ],
+    "PoH": [
+      "poh",
+      "poh_applications",
+      "poh_cases",
+      "poh_evidence"
+    ],
+    "Reputation": [
+      "reputation",
+      "reputation_events",
+      "sanctions"
+    ],
+    "Rewards": [
+      "reward_pools",
+      "issuance",
+      "reward_allocations"
+    ],
+    "Roles": [
+      "roles",
+      "role_eligibility",
+      "reviewer_lanes",
+      "operator_responsibilities"
+    ],
+    "Social": [
+      "profiles",
+      "follows",
+      "mutes",
+      "shares"
+    ],
+    "Storage": [
+      "storage_offers",
+      "storage_leases",
+      "storage_proofs",
+      "storage_challenges"
+    ],
+    "Treasury": [
+      "treasuries",
+      "treasury_spends",
+      "treasury_programs"
+    ]
+  },
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

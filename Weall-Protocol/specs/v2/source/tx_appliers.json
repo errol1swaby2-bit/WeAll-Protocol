@@ -1,0 +1,2366 @@
+{
+  "rows": [
+    {
+      "dispatch_function": "_apply_account_register",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 1,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_REGISTER"
+    },
+    {
+      "dispatch_function": "_apply_account_key_add",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_KEY_ADD"
+    },
+    {
+      "dispatch_function": "_apply_account_key_revoke",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 3,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_KEY_REVOKE"
+    },
+    {
+      "dispatch_function": "_apply_account_device_register",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 4,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_DEVICE_REGISTER"
+    },
+    {
+      "dispatch_function": "_apply_account_device_revoke",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 5,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_DEVICE_REVOKE"
+    },
+    {
+      "dispatch_function": "_apply_account_session_key_issue",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 6,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_SESSION_KEY_ISSUE"
+    },
+    {
+      "dispatch_function": "_apply_account_session_key_revoke",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 7,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_SESSION_KEY_REVOKE"
+    },
+    {
+      "dispatch_function": "_apply_account_security_policy_set",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 8,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_SECURITY_POLICY_SET"
+    },
+    {
+      "dispatch_function": "_apply_account_lock",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 9,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_LOCK"
+    },
+    {
+      "dispatch_function": "_apply_account_unlock",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 10,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_UNLOCK"
+    },
+    {
+      "dispatch_function": "apply_poh",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 100,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_APPLICATION_SUBMIT"
+    },
+    {
+      "dispatch_function": "apply_poh",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 101,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_EVIDENCE_DECLARE"
+    },
+    {
+      "dispatch_function": "apply_poh",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 102,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_EVIDENCE_BIND"
+    },
+    {
+      "dispatch_function": "apply_poh_challenge_open",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 103,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_CHALLENGE_OPEN"
+    },
+    {
+      "dispatch_function": "apply_poh_challenge_resolve",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 104,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_CHALLENGE_RESOLVE"
+    },
+    {
+      "dispatch_function": "apply_poh_tier_set",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 105,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER_SET"
+    },
+    {
+      "dispatch_function": "apply_poh_tier2_request_open",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 110,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER2_REQUEST_OPEN"
+    },
+    {
+      "dispatch_function": "apply_poh_tier2_juror_assign",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 111,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER2_JUROR_ASSIGN"
+    },
+    {
+      "dispatch_function": "apply_poh_tier2_juror_accept",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 112,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER2_JUROR_ACCEPT"
+    },
+    {
+      "dispatch_function": "apply_poh_tier2_juror_decline",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 113,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER2_JUROR_DECLINE"
+    },
+    {
+      "dispatch_function": "apply_poh_tier2_review_submit",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 114,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER2_REVIEW_SUBMIT"
+    },
+    {
+      "dispatch_function": "apply_poh_tier2_finalize",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 115,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER2_FINALIZE"
+    },
+    {
+      "dispatch_function": "apply_poh_tier2_receipt",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 116,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER2_RECEIPT"
+    },
+    {
+      "dispatch_function": "apply_poh_live_request_open",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 117,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_REQUEST_OPEN"
+    },
+    {
+      "dispatch_function": "apply_poh_live_session_init",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 120,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_SESSION_INIT"
+    },
+    {
+      "dispatch_function": "apply_poh_live_juror_assign",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 121,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_JUROR_ASSIGN"
+    },
+    {
+      "dispatch_function": "apply_poh_live_juror_accept",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 122,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_JUROR_ACCEPT"
+    },
+    {
+      "dispatch_function": "apply_poh_live_juror_decline",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 123,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_JUROR_DECLINE"
+    },
+    {
+      "dispatch_function": "apply_poh_live_attendance_mark",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 124,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_ATTENDANCE_MARK"
+    },
+    {
+      "dispatch_function": "apply_poh_live_verdict_submit",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 125,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_VERDICT_SUBMIT"
+    },
+    {
+      "dispatch_function": "apply_poh_live_finalize",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 126,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_FINALIZE"
+    },
+    {
+      "dispatch_function": "apply_poh_live_receipt",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 127,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_RECEIPT"
+    },
+    {
+      "dispatch_function": "apply_poh_bootstrap_tier2_grant",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 128,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_BOOTSTRAP_TIER2_GRANT"
+    },
+    {
+      "dispatch_function": "apply_poh_live_juror_replace",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 129,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_LIVE_JUROR_REPLACE"
+    },
+    {
+      "dispatch_function": "apply_dispute",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 200,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_OPEN"
+    },
+    {
+      "dispatch_function": "_apply_dispute_stage_set",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 201,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_STAGE_SET"
+    },
+    {
+      "dispatch_function": "_apply_dispute_evidence_declare",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 202,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_EVIDENCE_DECLARE"
+    },
+    {
+      "dispatch_function": "_apply_dispute_evidence_bind",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 203,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_EVIDENCE_BIND"
+    },
+    {
+      "dispatch_function": "_apply_dispute_juror_assign",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 204,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_JUROR_ASSIGN"
+    },
+    {
+      "dispatch_function": "_apply_dispute_juror_accept",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 205,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_JUROR_ACCEPT"
+    },
+    {
+      "dispatch_function": "_apply_dispute_juror_decline",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 206,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_JUROR_DECLINE"
+    },
+    {
+      "dispatch_function": "_apply_dispute_juror_attendance",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 207,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_JUROR_ATTENDANCE"
+    },
+    {
+      "dispatch_function": "_apply_dispute_vote_submit",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 208,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_VOTE_SUBMIT"
+    },
+    {
+      "dispatch_function": "_apply_dispute_resolve",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 209,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_RESOLVE"
+    },
+    {
+      "dispatch_function": "_apply_dispute_appeal",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 210,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_APPEAL"
+    },
+    {
+      "dispatch_function": "_apply_dispute_final_receipt",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 211,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_FINAL_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_post_create",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 300,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_POST_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_post_edit",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 301,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_POST_EDIT"
+    },
+    {
+      "dispatch_function": "_apply_post_delete",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 302,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_POST_DELETE"
+    },
+    {
+      "dispatch_function": "_apply_comment_create",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 303,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_COMMENT_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_comment_delete",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 304,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_COMMENT_DELETE"
+    },
+    {
+      "dispatch_function": "_apply_reaction_set",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 305,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_REACTION_SET"
+    },
+    {
+      "dispatch_function": "_apply_content_flag",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 306,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_FLAG"
+    },
+    {
+      "dispatch_function": "_apply_content_label_set",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 307,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_LABEL_SET"
+    },
+    {
+      "dispatch_function": "_apply_content_visibility_set",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 308,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_VISIBILITY_SET"
+    },
+    {
+      "dispatch_function": "_apply_content_thread_lock_set",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 309,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_THREAD_LOCK_SET"
+    },
+    {
+      "dispatch_function": "_apply_content_escalate_to_dispute",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 310,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_ESCALATE_TO_DISPUTE"
+    },
+    {
+      "dispatch_function": "_apply_content_media_declare",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 320,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_MEDIA_DECLARE"
+    },
+    {
+      "dispatch_function": "_apply_content_media_bind",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 321,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_MEDIA_BIND"
+    },
+    {
+      "dispatch_function": "_apply_content_media_replace",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 322,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_MEDIA_REPLACE"
+    },
+    {
+      "dispatch_function": "_apply_content_media_unbind",
+      "domain": "Content",
+      "handler": "content",
+      "numeric_id": 323,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_MEDIA_UNBIND"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 400,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_PROPOSAL_CREATE"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 401,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_PROPOSAL_EDIT"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 402,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_PROPOSAL_WITHDRAW"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 403,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_STAGE_SET"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 404,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_VOTE_CAST"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 405,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_PROPOSAL_COMMENT"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 406,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_QUORUM_SET"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 407,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_RULES_SET"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 408,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_EXECUTE"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 409,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_EXECUTION_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_protocol_upgrade_declare",
+      "domain": "Governance",
+      "handler": "protocol",
+      "numeric_id": 410,
+      "path": "src/weall/runtime/apply/protocol.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PROTOCOL_UPGRADE_DECLARE"
+    },
+    {
+      "dispatch_function": "_apply_protocol_upgrade_activate",
+      "domain": "Governance",
+      "handler": "protocol",
+      "numeric_id": 411,
+      "path": "src/weall/runtime/apply/protocol.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PROTOCOL_UPGRADE_ACTIVATE"
+    },
+    {
+      "dispatch_function": "_apply_constitution_upgrade_declare",
+      "domain": "Governance",
+      "handler": "protocol",
+      "numeric_id": 412,
+      "path": "src/weall/runtime/apply/protocol.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONSTITUTION_UPGRADE_DECLARE"
+    },
+    {
+      "dispatch_function": "_apply_constitution_upgrade_activate",
+      "domain": "Governance",
+      "handler": "protocol",
+      "numeric_id": 413,
+      "path": "src/weall/runtime/apply/protocol.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_wallet_create",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 500,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_WALLET_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_signer_add",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 501,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_SIGNER_ADD"
+    },
+    {
+      "dispatch_function": "_apply_treasury_signer_remove",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 502,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_SIGNER_REMOVE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_policy_set",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 503,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_POLICY_SET"
+    },
+    {
+      "dispatch_function": "_apply_treasury_spend_propose",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 504,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_SPEND_PROPOSE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_spend_sign",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 505,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_SPEND_SIGN"
+    },
+    {
+      "dispatch_function": "_apply_treasury_spend_cancel",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 506,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_SPEND_CANCEL"
+    },
+    {
+      "dispatch_function": "_apply_treasury_spend_expire",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 507,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_SPEND_EXPIRE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_spend_execute",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 508,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_SPEND_EXECUTE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_program_create",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 509,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_PROGRAM_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_program_update",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 510,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_PROGRAM_UPDATE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_program_close",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 511,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_PROGRAM_CLOSE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_audit_anchor_set",
+      "domain": "Treasury",
+      "handler": "treasury",
+      "numeric_id": 512,
+      "path": "src/weall/runtime/apply/treasury.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_AUDIT_ANCHOR_SET"
+    },
+    {
+      "dispatch_function": "_apply_validator_register",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 600,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_REGISTER"
+    },
+    {
+      "dispatch_function": "_apply_validator_candidate_register",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 601,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_CANDIDATE_REGISTER"
+    },
+    {
+      "dispatch_function": "_apply_validator_candidate_approve",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 602,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_CANDIDATE_APPROVE"
+    },
+    {
+      "dispatch_function": "_apply_validator_deregister",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 603,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_DEREGISTER"
+    },
+    {
+      "dispatch_function": "_apply_validator_heartbeat",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 604,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_HEARTBEAT"
+    },
+    {
+      "dispatch_function": "_apply_validator_set_update",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 605,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_SET_UPDATE"
+    },
+    {
+      "dispatch_function": "_apply_block_propose",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 606,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "BLOCK_PROPOSE"
+    },
+    {
+      "dispatch_function": "_apply_block_attest",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 607,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "BLOCK_ATTEST"
+    },
+    {
+      "dispatch_function": "_apply_block_finalize",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 608,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "BLOCK_FINALIZE"
+    },
+    {
+      "dispatch_function": "_apply_epoch_open",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 609,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "EPOCH_OPEN"
+    },
+    {
+      "dispatch_function": "_apply_epoch_close",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 610,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "EPOCH_CLOSE"
+    },
+    {
+      "dispatch_function": "_apply_slash_propose",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 611,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "SLASH_PROPOSE"
+    },
+    {
+      "dispatch_function": "_apply_slash_vote",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 612,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "SLASH_VOTE"
+    },
+    {
+      "dispatch_function": "_apply_slash_execute",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 613,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "SLASH_EXECUTE"
+    },
+    {
+      "dispatch_function": "_apply_reward_pool_opt_in_set",
+      "domain": "Rewards",
+      "handler": "rewards",
+      "numeric_id": 700,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "REWARD_POOL_OPT_IN_SET"
+    },
+    {
+      "dispatch_function": "_apply_block_reward_mint",
+      "domain": "Rewards",
+      "handler": "rewards",
+      "numeric_id": 701,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "BLOCK_REWARD_MINT"
+    },
+    {
+      "dispatch_function": "_apply_block_reward_distribute",
+      "domain": "Rewards",
+      "handler": "rewards",
+      "numeric_id": 702,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "BLOCK_REWARD_DISTRIBUTE"
+    },
+    {
+      "dispatch_function": "_apply_creator_reward_allocate",
+      "domain": "Rewards",
+      "handler": "rewards",
+      "numeric_id": 703,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CREATOR_REWARD_ALLOCATE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_reward_allocate",
+      "domain": "Rewards",
+      "handler": "rewards",
+      "numeric_id": 704,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_REWARD_ALLOCATE"
+    },
+    {
+      "dispatch_function": "_apply_forfeiture_apply",
+      "domain": "Rewards",
+      "handler": "rewards",
+      "numeric_id": 705,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "FORFEITURE_APPLY"
+    },
+    {
+      "dispatch_function": "_apply_ipfs_pin_request",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 800,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "IPFS_PIN_REQUEST"
+    },
+    {
+      "dispatch_function": "_apply_ipfs_pin_confirm",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 801,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "IPFS_PIN_CONFIRM"
+    },
+    {
+      "dispatch_function": "_apply_storage_offer_create",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 802,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_OFFER_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_storage_offer_withdraw",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 803,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_OFFER_WITHDRAW"
+    },
+    {
+      "dispatch_function": "_apply_storage_lease_create",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 804,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_LEASE_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_storage_lease_renew",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 805,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_LEASE_RENEW"
+    },
+    {
+      "dispatch_function": "_apply_storage_lease_revoke",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 806,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_LEASE_REVOKE"
+    },
+    {
+      "dispatch_function": "_apply_storage_proof_submit",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 807,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_PROOF_SUBMIT"
+    },
+    {
+      "dispatch_function": "_apply_storage_challenge_issue",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 808,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_CHALLENGE_ISSUE"
+    },
+    {
+      "dispatch_function": "_apply_storage_challenge_respond",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 809,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_CHALLENGE_RESPOND"
+    },
+    {
+      "dispatch_function": "_apply_storage_payout_execute",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 810,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_PAYOUT_EXECUTE"
+    },
+    {
+      "dispatch_function": "_apply_storage_report_anchor",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 811,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_REPORT_ANCHOR"
+    },
+    {
+      "dispatch_function": "_apply_reputation_delta_apply",
+      "domain": "Reputation",
+      "handler": "reputation",
+      "numeric_id": 900,
+      "path": "src/weall/runtime/apply/reputation.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "REPUTATION_DELTA_APPLY"
+    },
+    {
+      "dispatch_function": "_apply_reputation_threshold_cross",
+      "domain": "Reputation",
+      "handler": "reputation",
+      "numeric_id": 901,
+      "path": "src/weall/runtime/apply/reputation.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "REPUTATION_THRESHOLD_CROSS"
+    },
+    {
+      "dispatch_function": "_apply_role_eligibility_set",
+      "domain": "Reputation",
+      "handler": "reputation",
+      "numeric_id": 902,
+      "path": "src/weall/runtime/apply/reputation.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_ELIGIBILITY_SET"
+    },
+    {
+      "dispatch_function": "_apply_role_eligibility_revoke",
+      "domain": "Reputation",
+      "handler": "reputation",
+      "numeric_id": 903,
+      "path": "src/weall/runtime/apply/reputation.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_ELIGIBILITY_REVOKE"
+    },
+    {
+      "dispatch_function": "_apply_account_ban",
+      "domain": "Reputation",
+      "handler": "reputation",
+      "numeric_id": 904,
+      "path": "src/weall/runtime/apply/reputation.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_BAN"
+    },
+    {
+      "dispatch_function": "_apply_account_reinstate",
+      "domain": "Reputation",
+      "handler": "reputation",
+      "numeric_id": 905,
+      "path": "src/weall/runtime/apply/reputation.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_REINSTATE"
+    },
+    {
+      "dispatch_function": "_apply_index_anchor_set",
+      "domain": "Indexing",
+      "handler": "indexing",
+      "numeric_id": 1000,
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "INDEX_ANCHOR_SET"
+    },
+    {
+      "dispatch_function": "_apply_state_snapshot_declare",
+      "domain": "Indexing",
+      "handler": "indexing",
+      "numeric_id": 1001,
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STATE_SNAPSHOT_DECLARE"
+    },
+    {
+      "dispatch_function": "_apply_state_snapshot_accept",
+      "domain": "Indexing",
+      "handler": "indexing",
+      "numeric_id": 1002,
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STATE_SNAPSHOT_ACCEPT"
+    },
+    {
+      "dispatch_function": "_apply_cold_sync_request",
+      "domain": "Indexing",
+      "handler": "indexing",
+      "numeric_id": 1003,
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "COLD_SYNC_REQUEST"
+    },
+    {
+      "dispatch_function": "_apply_cold_sync_complete",
+      "domain": "Indexing",
+      "handler": "indexing",
+      "numeric_id": 1004,
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "COLD_SYNC_COMPLETE"
+    },
+    {
+      "dispatch_function": "_apply_role_juror_enroll",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1100,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_JUROR_ENROLL"
+    },
+    {
+      "dispatch_function": "_apply_role_juror_activate",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1101,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_JUROR_ACTIVATE"
+    },
+    {
+      "dispatch_function": "_apply_role_juror_suspend",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1102,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_JUROR_SUSPEND"
+    },
+    {
+      "dispatch_function": "_apply_role_juror_reinstate",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1103,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_JUROR_REINSTATE"
+    },
+    {
+      "dispatch_function": "_apply_role_validator_activate",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1104,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_VALIDATOR_ACTIVATE"
+    },
+    {
+      "dispatch_function": "_apply_role_validator_suspend",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1105,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_VALIDATOR_SUSPEND"
+    },
+    {
+      "dispatch_function": "_apply_role_node_operator_enroll",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1106,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_NODE_OPERATOR_ENROLL"
+    },
+    {
+      "dispatch_function": "_apply_role_node_operator_activate",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1107,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE"
+    },
+    {
+      "dispatch_function": "_apply_role_node_operator_suspend",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1108,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_NODE_OPERATOR_SUSPEND"
+    },
+    {
+      "dispatch_function": "_apply_role_emissary_nominate",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1109,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_EMISSARY_NOMINATE"
+    },
+    {
+      "dispatch_function": "_apply_role_emissary_vote",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1110,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_EMISSARY_VOTE"
+    },
+    {
+      "dispatch_function": "_apply_role_emissary_seat",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1111,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_EMISSARY_SEAT"
+    },
+    {
+      "dispatch_function": "_apply_role_emissary_remove",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1112,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_EMISSARY_REMOVE"
+    },
+    {
+      "dispatch_function": "_apply_role_gov_executor_set",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 1113,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ROLE_GOV_EXECUTOR_SET"
+    },
+    {
+      "dispatch_function": "_apply_profile_update",
+      "domain": "Social",
+      "handler": "social",
+      "numeric_id": 1200,
+      "path": "src/weall/runtime/apply/social.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PROFILE_UPDATE"
+    },
+    {
+      "dispatch_function": "_apply_follow_set",
+      "domain": "Social",
+      "handler": "social",
+      "numeric_id": 1201,
+      "path": "src/weall/runtime/apply/social.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "FOLLOW_SET"
+    },
+    {
+      "dispatch_function": "_apply_block_set",
+      "domain": "Social",
+      "handler": "social",
+      "numeric_id": 1202,
+      "path": "src/weall/runtime/apply/social.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "BLOCK_SET"
+    },
+    {
+      "dispatch_function": "_apply_mute_set",
+      "domain": "Social",
+      "handler": "social",
+      "numeric_id": 1203,
+      "path": "src/weall/runtime/apply/social.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "MUTE_SET"
+    },
+    {
+      "dispatch_function": "_apply_content_share_create",
+      "domain": "Social",
+      "handler": "social",
+      "numeric_id": 1204,
+      "path": "src/weall/runtime/apply/social.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CONTENT_SHARE_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_balance_transfer",
+      "domain": "Economics",
+      "handler": "economics",
+      "numeric_id": 1300,
+      "path": "src/weall/runtime/apply/economics.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "BALANCE_TRANSFER"
+    },
+    {
+      "dispatch_function": "_apply_economics_activation",
+      "domain": "Economics",
+      "handler": "economics",
+      "numeric_id": 1301,
+      "path": "src/weall/runtime/apply/economics.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ECONOMICS_ACTIVATION"
+    },
+    {
+      "dispatch_function": "_apply_fee_policy_set",
+      "domain": "Economics",
+      "handler": "economics",
+      "numeric_id": 1304,
+      "path": "src/weall/runtime/apply/economics.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "FEE_POLICY_SET"
+    },
+    {
+      "dispatch_function": "_apply_fee_pay",
+      "domain": "Economics",
+      "handler": "economics",
+      "numeric_id": 1305,
+      "path": "src/weall/runtime/apply/economics.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "FEE_PAY"
+    },
+    {
+      "dispatch_function": "_apply_mod_action_receipt",
+      "domain": "Moderation",
+      "handler": "content",
+      "numeric_id": 1400,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "MOD_ACTION_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_flag_escalation_receipt",
+      "domain": "Moderation",
+      "handler": "content",
+      "numeric_id": 1401,
+      "path": "src/weall/runtime/apply/content.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "FLAG_ESCALATION_RECEIPT"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 1600,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_VOTE_REVOKE"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 1601,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_VOTING_CLOSE"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 1602,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_TALLY_PUBLISH"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 1603,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_PROPOSAL_FINALIZE"
+    },
+    {
+      "dispatch_function": "apply_governance",
+      "domain": "Governance",
+      "handler": "governance",
+      "numeric_id": 1604,
+      "path": "src/weall/runtime/apply/governance.py",
+      "primary_mechanism_id": "M-049",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GOV_PROPOSAL_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_group_create",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1700,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_group_update",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1701,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_UPDATE"
+    },
+    {
+      "dispatch_function": "_apply_group_role_grant",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1702,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_ROLE_GRANT"
+    },
+    {
+      "dispatch_function": "_apply_group_role_revoke",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1703,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_ROLE_REVOKE"
+    },
+    {
+      "dispatch_function": "_apply_group_membership_request",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1704,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_MEMBERSHIP_REQUEST"
+    },
+    {
+      "dispatch_function": "_apply_group_membership_decide",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1705,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_MEMBERSHIP_DECIDE"
+    },
+    {
+      "dispatch_function": "_apply_group_membership_remove",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1706,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_MEMBERSHIP_REMOVE"
+    },
+    {
+      "dispatch_function": "_apply_group_treasury_create",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1707,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_TREASURY_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_group_treasury_policy_set",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1708,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_TREASURY_POLICY_SET"
+    },
+    {
+      "dispatch_function": "_apply_group_treasury_spend_propose",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1709,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_TREASURY_SPEND_PROPOSE"
+    },
+    {
+      "dispatch_function": "_apply_group_treasury_spend_sign",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1710,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_TREASURY_SPEND_SIGN"
+    },
+    {
+      "dispatch_function": "_apply_group_treasury_spend_cancel",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1711,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_TREASURY_SPEND_CANCEL"
+    },
+    {
+      "dispatch_function": "_apply_group_treasury_spend_expire",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1712,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_TREASURY_SPEND_EXPIRE"
+    },
+    {
+      "dispatch_function": "_apply_group_treasury_spend_execute",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1713,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_TREASURY_SPEND_EXECUTE"
+    },
+    {
+      "dispatch_function": "apply_groups",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1714,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_TREASURY_AUDIT_ANCHOR_SET"
+    },
+    {
+      "dispatch_function": "_apply_group_emissary_election_create",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1715,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_EMISSARY_ELECTION_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_group_emissary_ballot_cast",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1716,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_EMISSARY_BALLOT_CAST"
+    },
+    {
+      "dispatch_function": "_apply_group_emissary_election_finalize",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 1717,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_EMISSARY_ELECTION_FINALIZE"
+    },
+    {
+      "dispatch_function": "_apply_validator_performance_report",
+      "domain": "Performance",
+      "handler": "consensus",
+      "numeric_id": 1800,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_PERFORMANCE_REPORT"
+    },
+    {
+      "dispatch_function": "_apply_performance_report",
+      "domain": "Performance",
+      "handler": "rewards",
+      "numeric_id": 1801,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "NODE_OPERATOR_PERFORMANCE_REPORT"
+    },
+    {
+      "dispatch_function": "_apply_performance_report",
+      "domain": "Performance",
+      "handler": "rewards",
+      "numeric_id": 1802,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CREATOR_PERFORMANCE_REPORT"
+    },
+    {
+      "dispatch_function": "_apply_performance_receipt",
+      "domain": "Performance",
+      "handler": "rewards",
+      "numeric_id": 1803,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PERFORMANCE_EVALUATE"
+    },
+    {
+      "dispatch_function": "_apply_performance_receipt",
+      "domain": "Performance",
+      "handler": "rewards",
+      "numeric_id": 1804,
+      "path": "src/weall/runtime/apply/rewards.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PERFORMANCE_SCORE_APPLY"
+    },
+    {
+      "dispatch_function": "_apply_index_topic_register",
+      "domain": "Indexing",
+      "handler": "indexing",
+      "numeric_id": 1900,
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "INDEX_TOPIC_REGISTER"
+    },
+    {
+      "dispatch_function": "_apply_index_topic_anchor_set",
+      "domain": "Indexing",
+      "handler": "indexing",
+      "numeric_id": 1901,
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "INDEX_TOPIC_ANCHOR_SET"
+    },
+    {
+      "dispatch_function": "_apply_tx_receipt_emit",
+      "domain": "Indexing",
+      "handler": "indexing",
+      "numeric_id": 1902,
+      "path": "src/weall/runtime/apply/indexing.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TX_RECEIPT_EMIT"
+    },
+    {
+      "dispatch_function": "_apply_rate_limit_policy_set",
+      "domain": "Economics",
+      "handler": "economics",
+      "numeric_id": 2000,
+      "path": "src/weall/runtime/apply/economics.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "RATE_LIMIT_POLICY_SET"
+    },
+    {
+      "dispatch_function": "_apply_rate_limit_strike_apply",
+      "domain": "Economics",
+      "handler": "economics",
+      "numeric_id": 2001,
+      "path": "src/weall/runtime/apply/economics.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "RATE_LIMIT_STRIKE_APPLY"
+    },
+    {
+      "dispatch_function": "_apply_mempool_reject_receipt",
+      "domain": "Economics",
+      "handler": "economics",
+      "numeric_id": 2002,
+      "path": "src/weall/runtime/apply/economics.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "MEMPOOL_REJECT_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_account_recovery_config_set",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2100,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_RECOVERY_CONFIG_SET"
+    },
+    {
+      "dispatch_function": "_apply_account_guardian_add",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2101,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_GUARDIAN_ADD"
+    },
+    {
+      "dispatch_function": "_apply_account_guardian_remove",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2102,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_GUARDIAN_REMOVE"
+    },
+    {
+      "dispatch_function": "_apply_account_recovery_request",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2103,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_RECOVERY_REQUEST"
+    },
+    {
+      "dispatch_function": "_apply_account_recovery_approve",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2104,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_RECOVERY_APPROVE"
+    },
+    {
+      "dispatch_function": "_apply_account_recovery_cancel",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2105,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_RECOVERY_CANCEL"
+    },
+    {
+      "dispatch_function": "_apply_account_recovery_finalize",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2106,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_RECOVERY_FINALIZE"
+    },
+    {
+      "dispatch_function": "_apply_account_recovery_receipt",
+      "domain": "Identity",
+      "handler": "identity",
+      "numeric_id": 2107,
+      "path": "src/weall/runtime/apply/identity.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "ACCOUNT_RECOVERY_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_peer_advertise",
+      "domain": "Networking",
+      "handler": "networking",
+      "numeric_id": 2200,
+      "path": "src/weall/runtime/apply/networking.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PEER_ADVERTISE"
+    },
+    {
+      "dispatch_function": "_apply_peer_request_connect",
+      "domain": "Networking",
+      "handler": "networking",
+      "numeric_id": 2201,
+      "path": "src/weall/runtime/apply/networking.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PEER_REQUEST_CONNECT"
+    },
+    {
+      "dispatch_function": "_apply_peer_rendezvous_ticket_create",
+      "domain": "Networking",
+      "handler": "networking",
+      "numeric_id": 2202,
+      "path": "src/weall/runtime/apply/networking.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PEER_RENDEZVOUS_TICKET_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_peer_rendezvous_ticket_revoke",
+      "domain": "Networking",
+      "handler": "networking",
+      "numeric_id": 2203,
+      "path": "src/weall/runtime/apply/networking.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PEER_RENDEZVOUS_TICKET_REVOKE"
+    },
+    {
+      "dispatch_function": "_apply_peer_ban_set",
+      "domain": "Networking",
+      "handler": "networking",
+      "numeric_id": 2204,
+      "path": "src/weall/runtime/apply/networking.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PEER_BAN_SET"
+    },
+    {
+      "dispatch_function": "_apply_peer_reputation_signal",
+      "domain": "Networking",
+      "handler": "networking",
+      "numeric_id": 2205,
+      "path": "src/weall/runtime/apply/networking.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "PEER_REPUTATION_SIGNAL"
+    },
+    {
+      "dispatch_function": "_apply_case_receipt",
+      "domain": "Cases",
+      "handler": "dispute",
+      "numeric_id": 2400,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CASE_TYPE_REGISTER"
+    },
+    {
+      "dispatch_function": "_apply_case_receipt",
+      "domain": "Cases",
+      "handler": "dispute",
+      "numeric_id": 2401,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CASE_BIND_TO_DISPUTE"
+    },
+    {
+      "dispatch_function": "_apply_case_receipt",
+      "domain": "Cases",
+      "handler": "dispute",
+      "numeric_id": 2402,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "CASE_OUTCOME_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_notification_subscribe",
+      "domain": "Notifications",
+      "handler": "notifications",
+      "numeric_id": 2500,
+      "path": "src/weall/runtime/apply/notifications.py",
+      "primary_mechanism_id": "M-069",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "NOTIFICATION_SUBSCRIBE"
+    },
+    {
+      "dispatch_function": "_apply_notification_unsubscribe",
+      "domain": "Notifications",
+      "handler": "notifications",
+      "numeric_id": 2501,
+      "path": "src/weall/runtime/apply/notifications.py",
+      "primary_mechanism_id": "M-069",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "NOTIFICATION_UNSUBSCRIBE"
+    },
+    {
+      "dispatch_function": "_apply_notification_emit_receipt",
+      "domain": "Notifications",
+      "handler": "notifications",
+      "numeric_id": 2502,
+      "path": "src/weall/runtime/apply/notifications.py",
+      "primary_mechanism_id": "M-069",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "NOTIFICATION_EMIT_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_treasury_create",
+      "domain": "Treasury",
+      "handler": "roles",
+      "numeric_id": 2503,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_CREATE"
+    },
+    {
+      "dispatch_function": "_apply_treasury_signers_set",
+      "domain": "Treasury",
+      "handler": "roles",
+      "numeric_id": 2504,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-063",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "TREASURY_SIGNERS_SET"
+    },
+    {
+      "dispatch_function": "_apply_group_signers_set",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 2505,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_SIGNERS_SET"
+    },
+    {
+      "dispatch_function": "_apply_group_moderators_set",
+      "domain": "Groups",
+      "handler": "groups",
+      "numeric_id": 2506,
+      "path": "src/weall/runtime/apply/groups.py",
+      "primary_mechanism_id": "M-039",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "GROUP_MODERATORS_SET"
+    },
+    {
+      "dispatch_function": "_apply_validator_suspend",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 2600,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_SUSPEND"
+    },
+    {
+      "dispatch_function": "_apply_validator_remove",
+      "domain": "Consensus",
+      "handler": "consensus",
+      "numeric_id": 2601,
+      "path": "src/weall/runtime/apply/consensus.py",
+      "primary_mechanism_id": "M-018",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_REMOVE"
+    },
+    {
+      "dispatch_function": "apply_poh_tier_revoke",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2603,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_TIER_REVOKE"
+    },
+    {
+      "dispatch_function": "apply_poh_async_request_open",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2608,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_REQUEST_OPEN"
+    },
+    {
+      "dispatch_function": "apply_poh_async_evidence_declare",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2609,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_EVIDENCE_DECLARE"
+    },
+    {
+      "dispatch_function": "apply_poh_async_evidence_bind",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2610,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_EVIDENCE_BIND"
+    },
+    {
+      "dispatch_function": "apply_poh_async_juror_assign",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2611,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_JUROR_ASSIGN"
+    },
+    {
+      "dispatch_function": "apply_poh_async_juror_accept",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2612,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_JUROR_ACCEPT"
+    },
+    {
+      "dispatch_function": "apply_poh_async_juror_decline",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2613,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_JUROR_DECLINE"
+    },
+    {
+      "dispatch_function": "apply_poh_async_review_submit",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2614,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_REVIEW_SUBMIT"
+    },
+    {
+      "dispatch_function": "apply_poh_async_finalize",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2615,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_FINALIZE"
+    },
+    {
+      "dispatch_function": "apply_poh_async_receipt",
+      "domain": "PoH",
+      "handler": "poh",
+      "numeric_id": 2616,
+      "path": "src/weall/runtime/apply/poh.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "POH_ASYNC_RECEIPT"
+    },
+    {
+      "dispatch_function": "_apply_node_operator_storage_opt_in_tx",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 2617,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "NODE_OPERATOR_STORAGE_OPT_IN"
+    },
+    {
+      "dispatch_function": "_apply_node_operator_validator_opt_in_tx",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 2618,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN"
+    },
+    {
+      "dispatch_function": "_apply_node_operator_responsibility_update",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 2619,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "NODE_OPERATOR_RESPONSIBILITY_UPDATE"
+    },
+    {
+      "dispatch_function": "_apply_storage_capacity_proof_verify",
+      "domain": "Storage",
+      "handler": "storage",
+      "numeric_id": 2620,
+      "path": "src/weall/runtime/apply/storage.py",
+      "primary_mechanism_id": "M-065",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "STORAGE_CAPACITY_PROOF_VERIFY"
+    },
+    {
+      "dispatch_function": "_apply_validator_readiness_verify",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 2621,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "VALIDATOR_READINESS_VERIFY"
+    },
+    {
+      "dispatch_function": "_apply_dispute_juror_withdraw",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 2622,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_JUROR_WITHDRAW"
+    },
+    {
+      "dispatch_function": "_apply_dispute_juror_timeout",
+      "domain": "Dispute",
+      "handler": "dispute",
+      "numeric_id": 2623,
+      "path": "src/weall/runtime/apply/dispute.py",
+      "primary_mechanism_id": "M-054",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "DISPUTE_JUROR_TIMEOUT"
+    },
+    {
+      "dispatch_function": "_apply_reviewer_lane_update",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 2624,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "REVIEWER_LANE_OPT_IN"
+    },
+    {
+      "dispatch_function": "_apply_reviewer_lane_update",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 2625,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "REVIEWER_LANE_OPT_OUT"
+    },
+    {
+      "dispatch_function": "_apply_node_operator_helper_opt_in_tx",
+      "domain": "Roles",
+      "handler": "roles",
+      "numeric_id": 2626,
+      "path": "src/weall/runtime/apply/roles.py",
+      "primary_mechanism_id": "M-028",
+      "schema_source": "src/weall/runtime/tx_schema.py#model_for_tx_type",
+      "tx_type": "NODE_OPERATOR_HELPER_OPT_IN"
+    }
+  ],
+  "schema": "weall.v2.tx_applier_registry",
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

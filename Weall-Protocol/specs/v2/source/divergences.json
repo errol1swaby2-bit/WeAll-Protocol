@@ -1,0 +1,45 @@
+{
+  "divergences": [
+    {
+      "activation_gate": "disabled_pending_semantic_review",
+      "affected_mechanisms": [
+        "M-076"
+      ],
+      "closure_evidence": [],
+      "current_behavior": "213 transaction-specific static rows, remaining rows retain reviewed partial/fallback precision.",
+      "id": "DIV-W1-TX-SEMANTIC",
+      "owner": "WeAll Protocol Maintainer",
+      "status": "open",
+      "target_behavior": "All transaction contracts receive reviewed exact semantics.",
+      "title": "Transaction contract semantics"
+    },
+    {
+      "activation_gate": "disabled_pending_semantic_review",
+      "affected_mechanisms": [
+        "M-076"
+      ],
+      "closure_evidence": [],
+      "current_behavior": "Some route authority and failure metadata remain static inference.",
+      "id": "DIV-W1-ROUTE-SEMANTIC",
+      "owner": "WeAll Protocol Maintainer",
+      "status": "open",
+      "target_behavior": "Every public route has explicit reviewed metadata.",
+      "title": "Route contract semantics"
+    },
+    {
+      "activation_gate": "disabled_pending_independent_review",
+      "affected_mechanisms": [
+        "M-076"
+      ],
+      "closure_evidence": [],
+      "current_behavior": "Automated and maintainer review only.",
+      "id": "DIV-W1-EXTERNAL-REVIEW",
+      "owner": "WeAll Protocol Maintainer",
+      "status": "open",
+      "target_behavior": "Independent reviewer signs same-commit W1 evidence before launch authorization.",
+      "title": "Independent review evidence"
+    }
+  ],
+  "schema": "weall.v2.divergence_registry",
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

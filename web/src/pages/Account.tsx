@@ -223,6 +223,8 @@ export default function Account({ account }: { account: string }): JSX.Element {
   const refreshAccountSurface = async () => {
     await refreshMutationSlices(load, refreshAccountContext);
   };
+  const observerSyncSubmitHeaders: HeadersInit = { "X-WeAll-Observer-Sync-On-Submit": "1" };
+  const responsibilityFinalityBase = { base, timeoutMs: 20_000, pollEveryMs: 1000 };
   const tier = num(state?.poh_tier ?? poh?.poh_tier, 0);
   const reputation = num(state?.reputation ?? poh?.reputation, 0);
   const banned = !!state?.banned;
@@ -486,6 +488,35 @@ export default function Account({ account }: { account: string }): JSX.Element {
           : "Reviewer lane opt-out recorded. Active assignments may still need to be resolved by protocol policy.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          ...responsibilityFinalityBase,
+          mutation: {
+            entityType: "account",
+            entityId: acct,
+            account: acct,
+            routeHint: `/account/${acct}`,
+            txType: active ? "REVIEWER_LANE_OPT_IN" : "REVIEWER_LANE_OPT_OUT",
+          },
+          reconcile: async () => {
+            const fresh = await weall.accountReviewerStatus(acct, base, getAuthHeaders(acct));
+            const laneTruth = asRecord(asRecord(asRecord(fresh?.reviewer).lanes)[lane]);
+            const opted = laneTruth.opted_in === true;
+            const isActive = laneTruth.active === true;
+            if (active ? opted || isActive : !opted && !isActive) {
+              await refreshAccountSurface();
+              return {
+                phase: "confirmed" as const,
+                detail: active
+                  ? "Reviewer lane opt-in is now visible in backend reviewer-status."
+                  : "Reviewer lane opt-out is now visible in backend reviewer-status.",
+              };
+            }
+            return {
+              phase: "submitted" as const,
+              detail: "Reviewer lane transaction is submitted; waiting for observer read-sync to expose reviewer-status.",
+            };
+          },
+        },
         task: async () => submitSignedTx({
           account: acct,
           tx_type: active ? "REVIEWER_LANE_OPT_IN" : "REVIEWER_LANE_OPT_OUT",
@@ -494,6 +525,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             lane,
           },
           base,
+          headers: observerSyncSubmitHeaders,
         }),
       });
 
@@ -532,6 +564,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           tx_type: txType,
           payload: { account_id: acct },
           base,
+          headers: observerSyncSubmitHeaders,
         }),
       });
       setOpResult(r);
@@ -567,6 +600,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
           tx_type: "ROLE_JUROR_REINSTATE",
           payload: { account_id: acct },
           base,
+          headers: observerSyncSubmitHeaders,
         }),
       });
       setOpResult(r);
@@ -617,6 +651,60 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 : "Node operator enrollment submitted\nWaiting for eligibility\nNode Operator status active\nValidator and storage responsibilities are optional opt-in responsibilities — Checking eligibility — the protocol automatically activates baseline Node Operator status once prerequisites are met.",
         errorMessage: (e) => prettyErr(e).msg,
         getTxId: (res: any) => res?.result?.tx_id,
+        finality: {
+          ...responsibilityFinalityBase,
+          mutation: {
+            entityType: "account",
+            entityId: acct,
+            account: acct,
+            routeHint: `/account/${acct}`,
+            txType:
+              kind === "register"
+                ? "ACCOUNT_DEVICE_REGISTER"
+                : kind === "validator"
+                  ? "NODE_OPERATOR_VALIDATOR_OPT_IN"
+                  : kind === "storage"
+                    ? "NODE_OPERATOR_STORAGE_OPT_IN"
+                    : kind === "helper"
+                      ? "NODE_OPERATOR_HELPER_OPT_IN"
+                      : "ROLE_NODE_OPERATOR_ENROLL",
+          },
+          reconcile: async () => {
+            const freshOperator = await weall.accountOperatorStatus(
+              acct,
+              base,
+              getAuthHeaders(acct),
+              { node_pubkey: nodePubkey || undefined },
+            );
+            const operator = asRecord(freshOperator?.node_operator);
+            const baseline = asRecord(operator.baseline);
+            const validator = asRecord(operator.validator);
+            const storage = asRecord(operator.storage);
+            const helper = asRecord(operator.helper);
+            const baselineDetails = asRecord(baseline.details);
+            const baselineReasons = Array.isArray(baseline.reasons)
+              ? baseline.reasons.map((reason: unknown) => String(reason))
+              : [];
+            const confirmed =
+              kind === "register"
+                ? !baselineReasons.includes("node_key_missing")
+                : kind === "validator"
+                  ? asRecord(validator.details).opted_in === true || String(validator.status || "") !== "not_opted_in"
+                  : kind === "storage"
+                    ? asRecord(storage.details).opted_in === true || String(storage.status || "") !== "not_opted_in"
+                    : kind === "helper"
+                      ? asRecord(helper.details).opted_in === true || String(helper.status || "") !== "not_opted_in"
+                      : baselineDetails.enrolled === true || String(baseline.status || "") !== "not_opted_in";
+            if (confirmed) {
+              await refreshAccountSurface();
+              return { phase: "confirmed" as const, detail: "Responsibility state is now visible in backend operator status." };
+            }
+            return {
+              phase: "submitted" as const,
+              detail: "Responsibility transaction is submitted; waiting for observer read-sync to expose operator status.",
+            };
+          },
+        },
         task: async () => {
           if (kind === "register") {
             return submitSignedTx({
@@ -629,6 +717,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 pubkey: generatedNodePubkey,
               },
               base,
+              headers: observerSyncSubmitHeaders,
             });
           }
           if (kind === "validator") {
@@ -642,6 +731,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 validator_readiness_commitment: String(validatorReadinessCommitment || "").trim() || undefined,
               },
               base,
+              headers: observerSyncSubmitHeaders,
             });
           }
           if (kind === "helper") {
@@ -655,6 +745,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 helper_capacity_units: 4,
               },
               base,
+              headers: observerSyncSubmitHeaders,
             });
           }
           if (kind === "storage") {
@@ -672,6 +763,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
                 storage_endpoint_commitment: String(storageEndpointCommitment || "").trim() || undefined,
               },
               base,
+              headers: observerSyncSubmitHeaders,
             });
           }
           return submitSignedTx({
@@ -679,6 +771,7 @@ export default function Account({ account }: { account: string }): JSX.Element {
             tx_type: "ROLE_NODE_OPERATOR_ENROLL",
             payload: { account_id: acct },
             base,
+            headers: observerSyncSubmitHeaders,
           });
         },
       });

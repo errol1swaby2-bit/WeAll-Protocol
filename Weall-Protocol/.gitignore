@@ -160,3 +160,7 @@ secrets/
 !generated/signature_profile_registry_v1_5.json
 
 !generated/quantum_resistance_readiness_v1_5.json
+
+# WeAll v2 singular specification compiler derivatives are release-critical.
+!generated/v2/
+!generated/v2/**

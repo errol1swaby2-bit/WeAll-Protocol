@@ -216,7 +216,7 @@ def test_affirmative_content_dispute_resolution_enforces_content_visibility() ->
     assert isinstance(actions, list) and any(a.get("tx_type") == "CONTENT_VISIBILITY_SET" for a in actions)
 
     post = st["content"]["posts"]["post:alice:1"]
-    assert post["visibility"] == "deleted"
-    assert post["deleted"] is True
+    assert post["visibility"] == "hidden"
+    assert post.get("deleted") is not True
     assert post["locked"] is True
     assert "policy_violation" in post["labels"]

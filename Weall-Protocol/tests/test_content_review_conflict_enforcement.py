@@ -105,6 +105,6 @@ def test_unconflicted_remove_vote_applies_content_removal() -> None:
     dispute = st["disputes_by_id"]["d-remove"]
     post = st["content"]["posts"]["post:@genesis:1"]
     assert dispute["resolution"]["outcome"] == "report_upheld"
-    assert post["visibility"] == "deleted"
-    assert post["deleted"] is True
+    assert post["visibility"] == "hidden"
+    assert post.get("deleted") is not True
     assert post["locked"] is True

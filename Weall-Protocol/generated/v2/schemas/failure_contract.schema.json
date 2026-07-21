@@ -1,0 +1,100 @@
+{
+  "$id": "https://weall.example/spec/v2/failure_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "category": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "code": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "http_mapping": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reason_or_contract": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "routes": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "severity": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^[A-Z][A-Z0-9-]+$",
+      "type": "string"
+    },
+    "state_mutation_guarantee": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "transactions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "vector_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "stable_id",
+    "code",
+    "reason_or_contract",
+    "category",
+    "retryable",
+    "severity",
+    "state_mutation_guarantee",
+    "transactions",
+    "routes",
+    "primary_mechanism_id",
+    "vector_ids",
+    "status"
+  ],
+  "title": "failure_contract",
+  "type": "object"
+}

@@ -1,0 +1,753 @@
+{
+  "entries": [
+    {
+      "id": "EVD-PDF-FIRST-DRAFT-SOURCE",
+      "kind": "normative_pdf_source",
+      "path": "specs/v2/source/WeAll.v2.0.Full-Scope.Product.and.Protocol.Specification.pdf",
+      "claim": "Exact uploaded WeAll v2.0 First Draft human-readable specification source; not an implementation-completion claim.",
+      "required_external_review": false,
+      "reviewer": "document identity validated by compiler; implementation review remains pending",
+      "activation_receipt": null
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Milestone 1 compiler coverage and validation behavior",
+      "id": "EVD-W1-COMPILER-TESTS",
+      "kind": "automated_test_source",
+      "path": "tests/test_v2_spec_compiler.py",
+      "required_external_review": false,
+      "reviewer": "automated CI and maintainer review"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Clean checkout reproduces Milestone 1 derivatives",
+      "id": "EVD-W1-CLEAN-CHECKOUT",
+      "kind": "reproducibility_test_source",
+      "path": "scripts/check_v2_spec_clean_checkout.py",
+      "required_external_review": false,
+      "reviewer": "automated CI and maintainer review"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-8A89C04D6D2FE32D",
+      "kind": "generated_artifact",
+      "path": "generated/api_contract_map_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-591B66996A764EBD",
+      "kind": "generated_artifact",
+      "path": "generated/api_response_vectors_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-151B08C351458A35",
+      "kind": "generated_artifact",
+      "path": "generated/b499_b503_mechanics_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-9F60F7756DCB037E",
+      "kind": "generated_artifact",
+      "path": "generated/b505_b509_mechanics_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-B24C7CB544656A77",
+      "kind": "generated_artifact",
+      "path": "generated/b510_b515_completion_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-843D17467D1AAAD3",
+      "kind": "generated_artifact",
+      "path": "generated/b517_b521_completion_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-D0AECF645E544A11",
+      "kind": "generated_artifact",
+      "path": "generated/b523_b527_completion_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-D01357C7600DACB4",
+      "kind": "generated_artifact",
+      "path": "generated/b528_b532_completion_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-3D6DB963CB2B1ECB",
+      "kind": "generated_artifact",
+      "path": "generated/b534_b538_completion_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-53061E3DE6083DDC",
+      "kind": "generated_artifact",
+      "path": "generated/b539_b543_production_path_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-69845895721C0428",
+      "kind": "generated_artifact",
+      "path": "generated/b544_b548_live_network_final_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-0524901BF4D5FCD1",
+      "kind": "generated_artifact",
+      "path": "generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-3DF622D20626E052",
+      "kind": "generated_artifact",
+      "path": "generated/b556_b561_final_missing_mechanics_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-69FA26A11DB5F23A",
+      "kind": "generated_artifact",
+      "path": "generated/b562_b566_mechanics_hardening_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-014AE7A3258C314F",
+      "kind": "generated_artifact",
+      "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-02B37808EA40C567",
+      "kind": "generated_artifact",
+      "path": "generated/b572_b576_multimachine_soak_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-8C2CE37BA50AA37F",
+      "kind": "generated_artifact",
+      "path": "generated/b577_b581_containerized_adversarial_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-6A445811DBAE2762",
+      "kind": "generated_artifact",
+      "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-393D07EE5EBE3C20",
+      "kind": "generated_artifact",
+      "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-4D2BF8EFA3EEE5FD",
+      "kind": "generated_artifact",
+      "path": "generated/controlled_testnet_go_gate_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-9213120C47452513",
+      "kind": "generated_artifact",
+      "path": "generated/crypto_inventory_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-595995DEFD5B7D6A",
+      "kind": "generated_artifact",
+      "path": "generated/external_operator_transcript_requirements_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-F47E2373CB956305",
+      "kind": "generated_artifact",
+      "path": "generated/failure_code_registry_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-F1D11A379BC27C8B",
+      "kind": "generated_artifact",
+      "path": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-599C32CE53888A51",
+      "kind": "generated_artifact",
+      "path": "generated/helper_contract_map.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-D413341435709EEB",
+      "kind": "generated_artifact",
+      "path": "generated/launch_disabled_matrix_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-0285A4588DC3DFAD",
+      "kind": "generated_artifact",
+      "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-EFB0731D92DCF982",
+      "kind": "generated_artifact",
+      "path": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-224E96B1E6D9984E",
+      "kind": "generated_artifact",
+      "path": "generated/public_beta_blocker_report_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-DE96E16B804D01C5",
+      "kind": "generated_artifact",
+      "path": "generated/public_discovery_provider_independence_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-539CD48E063883BE",
+      "kind": "generated_artifact",
+      "path": "generated/public_frontend_operator_journey_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-CE8917B01C216E91",
+      "kind": "generated_artifact",
+      "path": "generated/public_observer_auto_discovery_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-ECA8DD37159525EB",
+      "kind": "generated_artifact",
+      "path": "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-8F518D4E966B39E7",
+      "kind": "generated_artifact",
+      "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-A64340F0ADDE24E6",
+      "kind": "generated_artifact",
+      "path": "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-693A4A1C6F167853",
+      "kind": "generated_artifact",
+      "path": "generated/public_only_protocol_audit_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-D84992D02F460813",
+      "kind": "generated_artifact",
+      "path": "generated/public_registry_signer_operations_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-072C213C2B685807",
+      "kind": "generated_artifact",
+      "path": "generated/public_seed_registry_signature_verification_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-A2B8E53C2FB41692",
+      "kind": "generated_artifact",
+      "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-2A152EF07687C9E8",
+      "kind": "generated_artifact",
+      "path": "generated/public_validator_endpoint_churn_proof_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-E74C614290DDCC0A",
+      "kind": "generated_artifact",
+      "path": "generated/quantum_resistance_readiness_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-4F9C5188B5C90E01",
+      "kind": "generated_artifact",
+      "path": "generated/release_evidence_manifest_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-53CEDDDE34610DB2",
+      "kind": "generated_artifact",
+      "path": "generated/reputation_api_contract_map_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-EA73DCF9D8AE4BFE",
+      "kind": "generated_artifact",
+      "path": "generated/reputation_event_registry_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-D987822A4EC1067D",
+      "kind": "generated_artifact",
+      "path": "generated/reputation_flow_coverage_map_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-B8104392F9EDE1A8",
+      "kind": "generated_artifact",
+      "path": "generated/reputation_invariant_report_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-F7DED1B6DF0830F5",
+      "kind": "generated_artifact",
+      "path": "generated/reputation_matrix_contract_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-E6FE096C227163A6",
+      "kind": "generated_artifact",
+      "path": "generated/signature_profile_registry_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-A4644D460C711F41",
+      "kind": "generated_artifact",
+      "path": "generated/state_root_vectors_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-0AA5A059B3601691",
+      "kind": "generated_artifact",
+      "path": "generated/tokenomics_simulation_v1_5.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-9222E87F5C85A611",
+      "kind": "generated_artifact",
+      "path": "generated/tx_contract_map.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-EE52C5D4163F213E",
+      "kind": "generated_artifact",
+      "path": "generated/tx_index.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-9FD69DADEBDC01E2",
+      "kind": "generated_artifact",
+      "path": "generated/v15_implementation_gap_register.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-591C52EC590AD559",
+      "kind": "generated_artifact",
+      "path": "generated/v15_mechanics_gap_register.json",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-5927023701AD6959",
+      "kind": "review_document",
+      "path": "docs/ARCHITECTURE_DECISIONS/0003-public-group-visibility-member-gated-participation.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-74BFE71637357299",
+      "kind": "review_document",
+      "path": "docs/BLOCK_PRODUCTION_PROOF_GATE.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-31D07D7ADF8CB7DA",
+      "kind": "review_document",
+      "path": "docs/PRODUCTION_ORIENTED_REHEARSAL_GAP_AUDIT.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-34C2A8924B25632F",
+      "kind": "review_document",
+      "path": "docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-60D5519873E602C2",
+      "kind": "review_document",
+      "path": "docs/PUBLIC_OBSERVER_EVIDENCE_RUNBOOK.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-50503B3F12F33524",
+      "kind": "review_document",
+      "path": "docs/REVIEWER_EVIDENCE_INDEX.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-FB6C497F3AE22069",
+      "kind": "review_document",
+      "path": "docs/REVIEWER_PRODUCTION_READINESS_MILESTONE.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-E4E5BA0A33750C0C",
+      "kind": "review_document",
+      "path": "docs/TOKENOMICS_TESTNET_FLOW_AUDIT.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-8F5DF6AF6B90B874",
+      "kind": "review_document",
+      "path": "docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-7D424880E14DD1DD",
+      "kind": "review_document",
+      "path": "docs/audits/closed_testnet_rehearsal_readiness_v1_5.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-2EC2D4C481279796",
+      "kind": "review_document",
+      "path": "docs/audits/comprehensive_protocol_flow_audit_before_two_node_v1_5.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-2F06A64C7238F251",
+      "kind": "review_document",
+      "path": "docs/audits/controlled_testnet_go_gate_closure_v1_5.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-0B431E8E4446D362",
+      "kind": "review_document",
+      "path": "docs/audits/documentation_evidence_package_audit_before_two_node_v1_5.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-8B2FB1087D3BF2FB",
+      "kind": "review_document",
+      "path": "docs/audits/public_observer_testnet_readiness_plan_v1_5.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-1D8754CACD626074",
+      "kind": "review_document",
+      "path": "docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-FA1559E88447686B",
+      "kind": "review_document",
+      "path": "docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-536AC9A255DDECB6",
+      "kind": "review_document",
+      "path": "docs/reviewer/CURRENT_READINESS_STATEMENT.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-A5558B4E2701F5ED",
+      "kind": "review_document",
+      "path": "docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-1C6DB6F8261C2540",
+      "kind": "review_document",
+      "path": "docs/reviewer/EVIDENCE_INDEX.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-774C12DDC55AC585",
+      "kind": "review_document",
+      "path": "docs/testnet/ACCOUNT_PROFILE_READINESS.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-F0A663338569A063",
+      "kind": "review_document",
+      "path": "docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-EA2925DFD82ACBD5",
+      "kind": "review_document",
+      "path": "docs/testnet/GROUP_FLOW_READINESS.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-A746C845A2733715",
+      "kind": "review_document",
+      "path": "docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-23D3BFE659426A4E",
+      "kind": "review_document",
+      "path": "docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-5DF405844CD4261E",
+      "kind": "review_document",
+      "path": "docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    },
+    {
+      "activation_receipt": null,
+      "claim": "Scoped implementation or readiness evidence; does not activate protocol authority",
+      "id": "EVD-668040FAA5CABC9C",
+      "kind": "review_document",
+      "path": "docs/testnet/TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md",
+      "required_external_review": true,
+      "reviewer": "IMPLEMENTATION_REVIEW_PENDING"
+    }
+  ],
+  "schema": "weall.v2.evidence_manifest",
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

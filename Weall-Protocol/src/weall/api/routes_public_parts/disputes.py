@@ -12,6 +12,17 @@ from weall.api.security import require_account_session
 router = APIRouter()
 
 
+def _maybe_observer_read_sync(request: Request) -> None:
+    """Best-effort observer-edge catch-up before dispute read models."""
+
+    try:
+        from weall.api.routes_public_parts.tx import maybe_observer_edge_sync_latest_for_read
+
+        maybe_observer_edge_sync_latest_for_read(request)
+    except Exception:
+        return
+
+
 def _is_active_stage(stage: str) -> bool:
     s = str(stage or "").strip().lower()
     if not s:
@@ -82,6 +93,57 @@ def _resolved_target_owner(st: dict[str, Any], obj: dict[str, Any]) -> str:
         target_type=str(obj.get("target_type") or "content"),
         target_id=str(obj.get("target_id") or ""),
     )
+
+
+def _content_target_snapshot(st: dict[str, Any], *, target_type: str, target_id: str) -> dict[str, Any]:
+    """Return a bounded snapshot of disputed content for due-process views.
+
+    Feed/content routes may hide a target during the appeal window, but the
+    affected creator still needs an appealable record.  This helper reads the
+    canonical post/comment record without using normal feed visibility.  It does
+    not resurrect the target into public feeds and intentionally omits any raw
+    private evidence.
+    """
+
+    t = str(target_type or "content").strip().lower()
+    tid = str(target_id or "").strip()
+    if t not in {"content", "post", "comment"} or not tid:
+        return {}
+    content = _as_dict(st.get("content"))
+    for kind, bucket_name in (("post", "posts"), ("comment", "comments")):
+        bucket = _as_dict(content.get(bucket_name))
+        rec = _as_dict(bucket.get(tid))
+        if not rec:
+            continue
+        return {
+            "type": kind,
+            "id": str(rec.get("id") or rec.get("post_id") or rec.get("comment_id") or tid),
+            "post_id": str(rec.get("post_id") or tid) if kind == "post" else str(rec.get("post_id") or rec.get("thread_id") or ""),
+            "comment_id": str(rec.get("comment_id") or tid) if kind == "comment" else "",
+            "author": str(rec.get("author") or rec.get("owner") or rec.get("account_id") or rec.get("created_by") or ""),
+            "body": str(rec.get("body") or rec.get("text") or ""),
+            "visibility": str(rec.get("visibility") or "public"),
+            "deleted": bool(rec.get("deleted", False)),
+            "locked": bool(rec.get("locked", False)),
+            "group_id": str(rec.get("group_id") or rec.get("group") or ""),
+            "created_nonce": rec.get("created_nonce") or rec.get("created_at_nonce"),
+            "created_at_nonce": rec.get("created_at_nonce") or rec.get("created_nonce"),
+            "media_count": len(rec.get("media") if isinstance(rec.get("media"), list) else []),
+            "appeal_record_snapshot": True,
+            "normal_feed_visibility": "hidden_by_dispute_or_moderation",
+        }
+    return {}
+
+
+def _viewer_can_see_appeal_snapshot(st: dict[str, Any], obj: dict[str, Any], *, viewer: str) -> bool:
+    if not viewer:
+        return False
+    allowed = _appeal_allowed_accounts(st, obj)
+    if any(_same_identity(viewer, acct) for acct in allowed):
+        return True
+    juror = _viewer_juror_record(obj, viewer)
+    status = str(juror.get("status") or "").strip().lower() if isinstance(juror, dict) else ""
+    return status in {"assigned", "accepted", "present", "attended", "completed"}
 
 
 def _appeal_allowed_accounts(st: dict[str, Any], obj: dict[str, Any]) -> list[str]:
@@ -318,6 +380,16 @@ def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "", st: di
         normalized["target_author"] = target_owner
     normalized["appeal_allowed_accounts"] = _appeal_allowed_accounts(st, obj)
     normalized["appeal_eligibility"] = _appeal_eligibility(st, obj, viewer=viewer)
+    if _viewer_can_see_appeal_snapshot(st, obj, viewer=viewer):
+        snap = _content_target_snapshot(
+            st,
+            target_type=str(obj.get("target_type") or "content"),
+            target_id=str(obj.get("target_id") or ""),
+        )
+        if snap:
+            normalized["target_content_snapshot"] = snap
+            normalized["target_content"] = snap
+            normalized["target_content_source"] = "appeal_record_snapshot_hidden_from_feeds"
     return normalized
 
 
@@ -345,6 +417,16 @@ def _redact_dispute_detail_for_viewer(
         normalized["target_author"] = target_owner
     normalized["appeal_allowed_accounts"] = _appeal_allowed_accounts(st, obj)
     normalized["appeal_eligibility"] = _appeal_eligibility(st, obj, viewer=viewer)
+    if _viewer_can_see_appeal_snapshot(st, obj, viewer=viewer):
+        snap = _content_target_snapshot(
+            st,
+            target_type=str(obj.get("target_type") or "content"),
+            target_id=str(obj.get("target_id") or ""),
+        )
+        if snap:
+            normalized["target_content_snapshot"] = snap
+            normalized["target_content"] = snap
+            normalized["target_content_source"] = "appeal_record_snapshot_hidden_from_feeds"
     return normalized
 
 
@@ -416,6 +498,7 @@ def _dispute_tx_template(*, tx_type: str, signer: str, dispute_id: str, payload:
 
 @router.get("/disputes")
 def v1_disputes_list(request: Request):
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
     viewer = _viewer_from_request(request, st)
     qp = request.query_params
@@ -467,8 +550,11 @@ def v1_disputes_list(request: Request):
 
 @router.get("/disputes/eligible")
 def v1_disputes_eligible(request: Request):
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
-    viewer = str(require_account_session(request, st) or "").strip()
+    viewer = str(_viewer_from_request(request, st) or "").strip()
+    if not viewer:
+        return {"ok": False, "error": {"code": "session_required", "message": "dispute eligibility requires account session headers"}, "items": [], "count": 0}
     items: list[dict[str, Any]] = []
     for _, obj in sorted(_disputes_by_id(st).items(), key=lambda item: str(item[0])):
         if not isinstance(obj, dict):
@@ -485,8 +571,11 @@ def v1_disputes_eligible(request: Request):
 
 @router.get("/disputes/current")
 def v1_disputes_current(request: Request):
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
-    viewer = str(require_account_session(request, st) or "").strip()
+    viewer = str(_viewer_from_request(request, st) or "").strip()
+    if not viewer:
+        return {"ok": False, "error": {"code": "session_required", "message": "current disputes require account session headers"}, "items": [], "count": 0}
     items: list[dict[str, Any]] = []
     for _, obj in sorted(_disputes_by_id(st).items(), key=lambda item: str(item[0])):
         if not isinstance(obj, dict):
@@ -585,6 +674,7 @@ async def v1_dispute_vote(dispute_id: str, request: Request):
 
 @router.get("/disputes/{dispute_id}")
 def v1_dispute_get(dispute_id: str, request: Request):
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
     obj = _dispute_obj_from_snapshot(st, dispute_id)
     viewer = _viewer_from_request(request, st)
@@ -593,6 +683,7 @@ def v1_dispute_get(dispute_id: str, request: Request):
 
 @router.get("/disputes/{dispute_id}/votes")
 def v1_dispute_votes(dispute_id: str, request: Request):
+    _maybe_observer_read_sync(request)
     st = _snapshot(request)
     obj = _normalize_dispute(_dispute_obj_from_snapshot(st, dispute_id))
     votes_all = _as_dict(obj.get("votes"))

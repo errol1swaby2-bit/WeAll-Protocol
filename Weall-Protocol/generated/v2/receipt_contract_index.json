@@ -1,0 +1,4819 @@
+{
+  "count": 236,
+  "provenance": {
+    "active_profile_set": [
+      "dev_local",
+      "controlled_testnet",
+      "public_testnet",
+      "mainnet"
+    ],
+    "compiler_identity": "weall-v2-spec-compiler",
+    "compiler_version": "2.0.0-first-draft-full-scope-w1",
+    "implementation_commit": null,
+    "normative_authority_status": "V2_0_FIRST_DRAFT_NOT_AUTHORIZED",
+    "normative_candidate": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
+    "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
+    "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
+    "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
+    "source_tree_digest": "d58c510faf77915e7b720a6dd8f50041d46e1af5bd851bcd663d8f911e85ee2a"
+  },
+  "rows": [
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-5ADEFA60437074F9",
+      "status": "current_partial",
+      "transaction_id": "TX-0001",
+      "tx_type": "ACCOUNT_REGISTER",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-9E60DD8AA68A454F",
+      "status": "current_partial",
+      "transaction_id": "TX-0002",
+      "tx_type": "ACCOUNT_KEY_ADD",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-12C1A910669BE62A",
+      "status": "current_partial",
+      "transaction_id": "TX-0003",
+      "tx_type": "ACCOUNT_KEY_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-8884A9E038CA124F",
+      "status": "current_partial",
+      "transaction_id": "TX-0004",
+      "tx_type": "ACCOUNT_DEVICE_REGISTER",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-7789D38907A77C45",
+      "status": "current_partial",
+      "transaction_id": "TX-0005",
+      "tx_type": "ACCOUNT_DEVICE_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BE29A4B6EFA745EA",
+      "status": "current_partial",
+      "transaction_id": "TX-0006",
+      "tx_type": "ACCOUNT_SESSION_KEY_ISSUE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-7B34668B38F37ED8",
+      "status": "current_partial",
+      "transaction_id": "TX-0007",
+      "tx_type": "ACCOUNT_SESSION_KEY_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-7317A63D71FC83B4",
+      "status": "current_partial",
+      "transaction_id": "TX-0008",
+      "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-26A243272AD5C769",
+      "status": "current_partial",
+      "transaction_id": "TX-0009",
+      "tx_type": "ACCOUNT_LOCK",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-F9FCCB1EA669F6E6",
+      "status": "current_partial",
+      "transaction_id": "TX-0010",
+      "tx_type": "ACCOUNT_UNLOCK",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "application_id",
+        "applied",
+        "bind_id",
+        "case_id",
+        "challenge_id",
+        "consequence",
+        "evidence_id",
+        "expires_height",
+        "juror",
+        "jurors",
+        "outcome",
+        "receipt_id",
+        "resolution",
+        "session_commitment",
+        "session_id",
+        "status",
+        "target_tier",
+        "tier_awarded",
+        "token_id",
+        "verdict"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-41CD7F78053ABC5A",
+      "status": "current_partial",
+      "transaction_id": "TX-0100",
+      "tx_type": "POH_APPLICATION_SUBMIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "application_id",
+        "applied",
+        "bind_id",
+        "case_id",
+        "challenge_id",
+        "consequence",
+        "evidence_id",
+        "expires_height",
+        "juror",
+        "jurors",
+        "outcome",
+        "receipt_id",
+        "resolution",
+        "session_commitment",
+        "session_id",
+        "status",
+        "target_tier",
+        "tier_awarded",
+        "token_id",
+        "verdict"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-495D2FCBD8108FB4",
+      "status": "current_partial",
+      "transaction_id": "TX-0101",
+      "tx_type": "POH_EVIDENCE_DECLARE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "application_id",
+        "applied",
+        "bind_id",
+        "case_id",
+        "challenge_id",
+        "consequence",
+        "evidence_id",
+        "expires_height",
+        "juror",
+        "jurors",
+        "outcome",
+        "receipt_id",
+        "resolution",
+        "session_commitment",
+        "session_id",
+        "status",
+        "target_tier",
+        "tier_awarded",
+        "token_id",
+        "verdict"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-073984FA5D4D59A1",
+      "status": "current_partial",
+      "transaction_id": "TX-0102",
+      "tx_type": "POH_EVIDENCE_BIND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "challenge_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-47558FF52729C061",
+      "status": "current_partial",
+      "transaction_id": "TX-0103",
+      "tx_type": "POH_CHALLENGE_OPEN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "challenge_id",
+        "consequence",
+        "resolution"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-CA99DF6FA7E65924",
+      "status": "current_partial",
+      "transaction_id": "TX-0104",
+      "tx_type": "POH_CHALLENGE_RESOLVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-704B56E1CE86A705",
+      "status": "current_partial",
+      "transaction_id": "TX-0105",
+      "tx_type": "POH_TIER_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-B4AC08E8955C1A4A",
+      "status": "current_partial",
+      "transaction_id": "TX-0110",
+      "tx_type": "POH_TIER2_REQUEST_OPEN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_TIER2_REQUEST_OPEN",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-5B7E2DA430FB8570",
+      "status": "current_partial",
+      "transaction_id": "TX-0111",
+      "tx_type": "POH_TIER2_JUROR_ASSIGN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "juror"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-D441795D1F8F383C",
+      "status": "current_partial",
+      "transaction_id": "TX-0112",
+      "tx_type": "POH_TIER2_JUROR_ACCEPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "juror"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-43B436B1FF6BBCD5",
+      "status": "current_partial",
+      "transaction_id": "TX-0113",
+      "tx_type": "POH_TIER2_JUROR_DECLINE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "verdict"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-8DCF9BFCA504E77B",
+      "status": "current_partial",
+      "transaction_id": "TX-0114",
+      "tx_type": "POH_TIER2_REVIEW_SUBMIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "outcome",
+        "tier_awarded",
+        "token_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_TIER2_REVIEW_SUBMIT",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-804D41DBFF7ADE12",
+      "status": "current_partial",
+      "transaction_id": "TX-0115",
+      "tx_type": "POH_TIER2_FINALIZE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "receipt_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_TIER2_FINALIZE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-29AD0D8DA5424D6C",
+      "status": "current_partial",
+      "transaction_id": "TX-0116",
+      "tx_type": "POH_TIER2_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "session_id",
+        "target_tier"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BE6BF5CAC697BDF6",
+      "status": "current_partial",
+      "transaction_id": "TX-0117",
+      "tx_type": "POH_LIVE_REQUEST_OPEN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "session_commitment",
+        "session_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_TIER_SET",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-96E456E0F0BB9A36",
+      "status": "current_partial",
+      "transaction_id": "TX-0120",
+      "tx_type": "POH_LIVE_SESSION_INIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "live_quorum"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_LIVE_SESSION_INIT",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-CD54CD9BD07FD09B",
+      "status": "current_partial",
+      "transaction_id": "TX-0121",
+      "tx_type": "POH_LIVE_JUROR_ASSIGN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-D536A2557219DE9B",
+      "status": "current_partial",
+      "transaction_id": "TX-0122",
+      "tx_type": "POH_LIVE_JUROR_ACCEPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BD96C3C26A5D08F7",
+      "status": "current_partial",
+      "transaction_id": "TX-0123",
+      "tx_type": "POH_LIVE_JUROR_DECLINE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "attended",
+        "case_id",
+        "juror_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-8E9F6F97199F3AE6",
+      "status": "current_partial",
+      "transaction_id": "TX-0124",
+      "tx_type": "POH_LIVE_ATTENDANCE_MARK",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "verdict"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-7B234FC591F99AB0",
+      "status": "current_partial",
+      "transaction_id": "TX-0125",
+      "tx_type": "POH_LIVE_VERDICT_SUBMIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "live_quorum",
+        "outcome",
+        "tier_awarded",
+        "token_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_LIVE_VERDICT_SUBMIT",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-F3D70AEC899E5109",
+      "status": "current_partial",
+      "transaction_id": "TX-0126",
+      "tx_type": "POH_LIVE_FINALIZE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "receipt_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_LIVE_FINALIZE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-2E0D4A121E0A331A",
+      "status": "current_partial",
+      "transaction_id": "TX-0127",
+      "tx_type": "POH_LIVE_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "system_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-B9B098C417691A84",
+      "status": "current_partial",
+      "transaction_id": "TX-0128",
+      "tx_type": "POH_BOOTSTRAP_TIER2_GRANT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "new_juror_id",
+        "old_juror_id",
+        "role"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_LIVE_JUROR_DECLINE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-155A0A747CDF1657",
+      "status": "current_partial",
+      "transaction_id": "TX-0129",
+      "tx_type": "POH_LIVE_JUROR_REPLACE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "appeal_finalization",
+        "applied",
+        "canonical_reputation_event_id",
+        "case_id",
+        "case_type",
+        "deduped",
+        "delta_milli",
+        "dispute_id",
+        "enforcement_applied",
+        "enforcement_queued",
+        "event_id",
+        "evidence_id",
+        "idempotent",
+        "juror",
+        "present",
+        "receipt",
+        "receipt_id",
+        "safe",
+        "safe_withdraw_until_height",
+        "stage",
+        "status",
+        "vote_deadline_height"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-B785EC5A1905DD27",
+      "status": "current_partial",
+      "transaction_id": "TX-0200",
+      "tx_type": "DISPUTE_OPEN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id",
+        "stage"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_OPEN",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-400CC0C48AC78211",
+      "status": "current_partial",
+      "transaction_id": "TX-0201",
+      "tx_type": "DISPUTE_STAGE_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id",
+        "evidence_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-DDF97D0A1EAE8A17",
+      "status": "current_partial",
+      "transaction_id": "TX-0202",
+      "tx_type": "DISPUTE_EVIDENCE_DECLARE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id",
+        "evidence_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-3F79BE14F7054D3D",
+      "status": "current_partial",
+      "transaction_id": "TX-0203",
+      "tx_type": "DISPUTE_EVIDENCE_BIND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id",
+        "juror"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_OPEN",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-2E900F7570707387",
+      "status": "current_partial",
+      "transaction_id": "TX-0204",
+      "tx_type": "DISPUTE_JUROR_ASSIGN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "canonical_reputation_event_id",
+        "dispute_id",
+        "event_id",
+        "idempotent",
+        "present",
+        "safe_withdraw_until_height",
+        "status",
+        "vote_deadline_height"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-750D0FD1F499B764",
+      "status": "current_partial",
+      "transaction_id": "TX-0205",
+      "tx_type": "DISPUTE_JUROR_ACCEPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-248D32699A657892",
+      "status": "current_partial",
+      "transaction_id": "TX-0206",
+      "tx_type": "DISPUTE_JUROR_DECLINE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id",
+        "present"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_JUROR_ACCEPT",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-2DB995F9CA2D5555",
+      "status": "current_partial",
+      "transaction_id": "TX-0207",
+      "tx_type": "DISPUTE_JUROR_ATTENDANCE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-888CAAC660F3DBA1",
+      "status": "current_partial",
+      "transaction_id": "TX-0208",
+      "tx_type": "DISPUTE_VOTE_SUBMIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id",
+        "enforcement_applied",
+        "enforcement_queued"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_VOTE_SUBMIT",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-896ACE52E723737F",
+      "status": "current_partial",
+      "transaction_id": "TX-0209",
+      "tx_type": "DISPUTE_RESOLVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-88F368D9733D8D09",
+      "status": "current_partial",
+      "transaction_id": "TX-0210",
+      "tx_type": "DISPUTE_APPEAL",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "appeal_finalization",
+        "applied",
+        "deduped",
+        "enforcement_applied",
+        "receipt",
+        "receipt_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-474EB160AFDB663D",
+      "status": "current_partial",
+      "transaction_id": "TX-0211",
+      "tx_type": "DISPUTE_FINAL_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "post_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BBBE64CBB63540E5",
+      "status": "current_partial",
+      "transaction_id": "TX-0300",
+      "tx_type": "CONTENT_POST_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "post_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-D3E6000F27C6C856",
+      "status": "current_partial",
+      "transaction_id": "TX-0301",
+      "tx_type": "CONTENT_POST_EDIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "post_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-6D9CB13882132C86",
+      "status": "current_partial",
+      "transaction_id": "TX-0302",
+      "tx_type": "CONTENT_POST_DELETE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "comment_id",
+        "deduped"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-3AF1AC0FB0E7047C",
+      "status": "current_partial",
+      "transaction_id": "TX-0303",
+      "tx_type": "CONTENT_COMMENT_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "comment_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-F85577530AEE8DC7",
+      "status": "current_partial",
+      "transaction_id": "TX-0304",
+      "tx_type": "CONTENT_COMMENT_DELETE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "reaction",
+        "target_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-34C99F5CAA3BA5DD",
+      "status": "current_partial",
+      "transaction_id": "TX-0305",
+      "tx_type": "CONTENT_REACTION_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "flag_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-82809539C06B9357",
+      "status": "current_partial",
+      "transaction_id": "TX-0306",
+      "tx_type": "CONTENT_FLAG",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "labels",
+        "target_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-B89DAE79FDDD6444",
+      "status": "current_partial",
+      "transaction_id": "TX-0307",
+      "tx_type": "CONTENT_LABEL_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "target_id",
+        "visibility"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-16DE90C09DDCAA37",
+      "status": "current_partial",
+      "transaction_id": "TX-0308",
+      "tx_type": "CONTENT_VISIBILITY_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "locked",
+        "target_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-6357AA9753F493D4",
+      "status": "current_partial",
+      "transaction_id": "TX-0309",
+      "tx_type": "CONTENT_THREAD_LOCK_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "dispute_id",
+        "target_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "CONTENT_FLAG",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-667A0FEDD7B0535D",
+      "status": "current_partial",
+      "transaction_id": "TX-0310",
+      "tx_type": "CONTENT_ESCALATE_TO_DISPUTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "media_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-E103554EC695D1CE",
+      "status": "current_partial",
+      "transaction_id": "TX-0320",
+      "tx_type": "CONTENT_MEDIA_DECLARE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "binding_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-60D3705E4F69E6A6",
+      "status": "current_partial",
+      "transaction_id": "TX-0321",
+      "tx_type": "CONTENT_MEDIA_BIND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "cid",
+        "media_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-C848D27864B0103A",
+      "status": "current_partial",
+      "transaction_id": "TX-0322",
+      "tx_type": "CONTENT_MEDIA_REPLACE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "binding_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-11B7CFF2BE18470D",
+      "status": "current_partial",
+      "transaction_id": "TX-0323",
+      "tx_type": "CONTENT_MEDIA_UNBIND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-C5D592F789BA02CE",
+      "status": "current_partial",
+      "transaction_id": "TX-0400",
+      "tx_type": "GOV_PROPOSAL_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-73B322D401604154",
+      "status": "current_partial",
+      "transaction_id": "TX-0401",
+      "tx_type": "GOV_PROPOSAL_EDIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-B4FD0A794ED50576",
+      "status": "current_partial",
+      "transaction_id": "TX-0402",
+      "tx_type": "GOV_PROPOSAL_WITHDRAW",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_PROPOSAL_CREATE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-B2C82368A2177B5B",
+      "status": "current_partial",
+      "transaction_id": "TX-0403",
+      "tx_type": "GOV_STAGE_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-6AACE1C8C54EE591",
+      "status": "current_partial",
+      "transaction_id": "TX-0404",
+      "tx_type": "GOV_VOTE_CAST",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-25DBDE8E90004510",
+      "status": "current_partial",
+      "transaction_id": "TX-0405",
+      "tx_type": "GOV_PROPOSAL_COMMENT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-FC478F35A80F553B",
+      "status": "current_partial",
+      "transaction_id": "TX-0406",
+      "tx_type": "GOV_QUORUM_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-DBD7D3A9EF440702",
+      "status": "current_partial",
+      "transaction_id": "TX-0407",
+      "tx_type": "GOV_RULES_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_VOTE_CAST",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-8D85465F0B27536B",
+      "status": "current_partial",
+      "transaction_id": "TX-0408",
+      "tx_type": "GOV_EXECUTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-E1488B0E543856E9",
+      "status": "current_partial",
+      "transaction_id": "TX-0409",
+      "tx_type": "GOV_EXECUTION_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "governance_parent_ref",
+        "hash",
+        "record_only_boundary",
+        "target_support",
+        "target_version",
+        "upgrade_id",
+        "version"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-60BA9B677655AE12",
+      "status": "current_partial",
+      "transaction_id": "TX-0410",
+      "tx_type": "PROTOCOL_UPGRADE_DECLARE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "activation_height",
+        "applied",
+        "deduped",
+        "governance_activation_record",
+        "governance_parent_ref",
+        "hash",
+        "record_only_boundary",
+        "target_version",
+        "upgrade_id",
+        "version"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "PROTOCOL_UPGRADE_DECLARE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-2F8C6DA441964DB6",
+      "status": "current_partial",
+      "transaction_id": "TX-0411",
+      "tx_type": "PROTOCOL_UPGRADE_ACTIVATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "constitution_id",
+        "deduped",
+        "record_only_boundary",
+        "version"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-B5554CCF66255C3E",
+      "status": "current_partial",
+      "transaction_id": "TX-0412",
+      "tx_type": "CONSTITUTION_UPGRADE_DECLARE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "activation_height",
+        "applied",
+        "constitution_id",
+        "deduped",
+        "governance_activation_record",
+        "record_only_boundary"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "CONSTITUTION_UPGRADE_DECLARE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-8739E3B430AF326F",
+      "status": "current_partial",
+      "transaction_id": "TX-0413",
+      "tx_type": "CONSTITUTION_UPGRADE_ACTIVATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "wallet_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-B65BF9809971FFA7",
+      "status": "current_partial",
+      "transaction_id": "TX-0500",
+      "tx_type": "TREASURY_WALLET_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "signer",
+        "wallet_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-3585932156FFB3D1",
+      "status": "current_partial",
+      "transaction_id": "TX-0501",
+      "tx_type": "TREASURY_SIGNER_ADD",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "signer",
+        "wallet_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-3AB5B52F616C55A0",
+      "status": "current_partial",
+      "transaction_id": "TX-0502",
+      "tx_type": "TREASURY_SIGNER_REMOVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-5BF9FCE7BC8543FA",
+      "status": "current_partial",
+      "transaction_id": "TX-0503",
+      "tx_type": "TREASURY_POLICY_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "spend_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-1A03D0122B9C79FF",
+      "status": "current_partial",
+      "transaction_id": "TX-0504",
+      "tx_type": "TREASURY_SPEND_PROPOSE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "spend_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-E1C70F56EB333624",
+      "status": "current_partial",
+      "transaction_id": "TX-0505",
+      "tx_type": "TREASURY_SPEND_SIGN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "spend_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-FA99A7CFDA979E98",
+      "status": "current_partial",
+      "transaction_id": "TX-0506",
+      "tx_type": "TREASURY_SPEND_CANCEL",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "spend_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "TREASURY_SPEND_PROPOSE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-72C4F603AE4B2BBB",
+      "status": "current_partial",
+      "transaction_id": "TX-0507",
+      "tx_type": "TREASURY_SPEND_EXPIRE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "amount",
+        "applied",
+        "deduped",
+        "spend_id",
+        "to"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "TREASURY_SPEND_SIGN",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-D494CD88CEA04AF6",
+      "status": "current_partial",
+      "transaction_id": "TX-0508",
+      "tx_type": "TREASURY_SPEND_EXECUTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "program_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-DF31812FF2703218",
+      "status": "current_partial",
+      "transaction_id": "TX-0509",
+      "tx_type": "TREASURY_PROGRAM_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "program_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-DAF91531B0CD9315",
+      "status": "current_partial",
+      "transaction_id": "TX-0510",
+      "tx_type": "TREASURY_PROGRAM_UPDATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "program_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-02E5E2B7B60BA0A0",
+      "status": "current_partial",
+      "transaction_id": "TX-0511",
+      "tx_type": "TREASURY_PROGRAM_CLOSE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-85527AE613976BEB",
+      "status": "current_partial",
+      "transaction_id": "TX-0512",
+      "tx_type": "TREASURY_AUDIT_ANCHOR_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "active",
+        "applied",
+        "existed",
+        "status"
+      ],
+      "kind": "system_apply_result",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-F882271DFDC96AED",
+      "status": "current_partial",
+      "transaction_id": "TX-0600",
+      "tx_type": "VALIDATOR_REGISTER",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "endpoints",
+        "node_id",
+        "status"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-F826FED6C34C48B2",
+      "status": "current_partial",
+      "transaction_id": "TX-0601",
+      "tx_type": "VALIDATOR_CANDIDATE_REGISTER",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "activate_at_epoch",
+        "applied",
+        "status",
+        "validator_set_hash"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-91DA7AF095CE2E5C",
+      "status": "current_partial",
+      "transaction_id": "TX-0602",
+      "tx_type": "VALIDATOR_CANDIDATE_APPROVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "existed"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-04A139FD1FB8B6D3",
+      "status": "current_partial",
+      "transaction_id": "TX-0603",
+      "tx_type": "VALIDATOR_DEREGISTER",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "node_id",
+        "ts_ms"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-347B7F26FCDD0D8B",
+      "status": "current_partial",
+      "transaction_id": "TX-0604",
+      "tx_type": "VALIDATOR_HEARTBEAT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "active_set",
+        "applied",
+        "consensus_phase",
+        "validator_epoch",
+        "validator_set_hash"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-0901DA783B2DBB50",
+      "status": "current_partial",
+      "transaction_id": "TX-0605",
+      "tx_type": "VALIDATOR_SET_UPDATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "block_id",
+        "existed",
+        "height"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-DEE038C41327C50E",
+      "status": "current_partial",
+      "transaction_id": "TX-0606",
+      "tx_type": "BLOCK_PROPOSE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "block_id",
+        "existed",
+        "validator"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-72AB4D42C77D1208",
+      "status": "current_partial",
+      "transaction_id": "TX-0607",
+      "tx_type": "BLOCK_ATTEST",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "block_id",
+        "existed",
+        "height"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_ATTEST",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-A3C2A3F7D1598E9F",
+      "status": "current_partial",
+      "transaction_id": "TX-0608",
+      "tx_type": "BLOCK_FINALIZE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-E74A4D38192FAD49",
+      "status": "current_partial",
+      "transaction_id": "TX-0609",
+      "tx_type": "EPOCH_OPEN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "epoch"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-8CA4E4F3FD62A959",
+      "status": "current_partial",
+      "transaction_id": "TX-0610",
+      "tx_type": "EPOCH_CLOSE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "existed",
+        "slash_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-48842E1FE4B5A61C",
+      "status": "current_partial",
+      "transaction_id": "TX-0611",
+      "tx_type": "SLASH_PROPOSE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "existed",
+        "slash_id",
+        "vote",
+        "voter"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-F521C0309B786009",
+      "status": "current_partial",
+      "transaction_id": "TX-0612",
+      "tx_type": "SLASH_VOTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "consequence",
+        "existed",
+        "slash_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "SLASH_VOTE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-C69D0F327331E99F",
+      "status": "current_partial",
+      "transaction_id": "TX-0613",
+      "tx_type": "SLASH_EXECUTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "enabled"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-1870BE906330EFA4",
+      "status": "current_partial",
+      "transaction_id": "TX-0700",
+      "tx_type": "REWARD_POOL_OPT_IN_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "amount",
+        "applied",
+        "block_id",
+        "deduped",
+        "epoch_id",
+        "issuance_epoch"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-D712167D919B9061",
+      "status": "current_partial",
+      "transaction_id": "TX-0701",
+      "tx_type": "BLOCK_REWARD_MINT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "block_id",
+        "debited_total",
+        "deduped",
+        "distributed_total"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_REWARD_MINT",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-D3EBE542F5D80AE3",
+      "status": "current_partial",
+      "transaction_id": "TX-0702",
+      "tx_type": "BLOCK_REWARD_DISTRIBUTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "alloc_id",
+        "applied",
+        "block_id",
+        "credited_total",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-D267A8BE014D7F7F",
+      "status": "current_partial",
+      "transaction_id": "TX-0703",
+      "tx_type": "CREATOR_REWARD_ALLOCATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "alloc_id",
+        "applied",
+        "block_id",
+        "credited_total",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-082841B820A8D70B",
+      "status": "current_partial",
+      "transaction_id": "TX-0704",
+      "tx_type": "TREASURY_REWARD_ALLOCATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "amount",
+        "applied",
+        "deduped",
+        "forfeit_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "SLASH_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-F981B0805B9114E0",
+      "status": "current_partial",
+      "transaction_id": "TX-0705",
+      "tx_type": "FORFEITURE_APPLY",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "cid",
+        "deduped",
+        "pin_id",
+        "replication_factor",
+        "size_bytes",
+        "targets"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-50A3158C433EA158",
+      "status": "current_partial",
+      "transaction_id": "TX-0800",
+      "tx_type": "IPFS_PIN_REQUEST",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "ok",
+        "pin_id",
+        "reassignment",
+        "receipt"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "IPFS_PIN_REQUEST",
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-5AF06E430E99D819",
+      "status": "current_partial",
+      "transaction_id": "TX-0801",
+      "tx_type": "IPFS_PIN_CONFIRM",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "offer_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-45A365D806DC81F2",
+      "status": "current_partial",
+      "transaction_id": "TX-0802",
+      "tx_type": "STORAGE_OFFER_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "offer_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-8F23EC3167582EFE",
+      "status": "current_partial",
+      "transaction_id": "TX-0803",
+      "tx_type": "STORAGE_OFFER_WITHDRAW",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "lease_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-3351B9121B5E5DAE",
+      "status": "current_partial",
+      "transaction_id": "TX-0804",
+      "tx_type": "STORAGE_LEASE_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "lease_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-7CF6D27AA3E80F89",
+      "status": "current_partial",
+      "transaction_id": "TX-0805",
+      "tx_type": "STORAGE_LEASE_RENEW",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "lease_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-6B126E95998D7E74",
+      "status": "current_partial",
+      "transaction_id": "TX-0806",
+      "tx_type": "STORAGE_LEASE_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "lease_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-57DFFD2E86632C5F",
+      "status": "current_partial",
+      "transaction_id": "TX-0807",
+      "tx_type": "STORAGE_PROOF_SUBMIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "challenge_id",
+        "deduped",
+        "probe_offsets",
+        "proof_scope"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-5D1D86F16CF327D2",
+      "status": "current_partial",
+      "transaction_id": "TX-0808",
+      "tx_type": "STORAGE_CHALLENGE_ISSUE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "challenge_id",
+        "deduped",
+        "proof_scope",
+        "verification_pending",
+        "verified"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-B6973532F6077A48",
+      "status": "current_partial",
+      "transaction_id": "TX-0809",
+      "tx_type": "STORAGE_CHALLENGE_RESPOND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "payout_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "STORAGE_PROOF_SUBMIT",
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-A13EA7330D03C6B1",
+      "status": "current_partial",
+      "transaction_id": "TX-0810",
+      "tx_type": "STORAGE_PAYOUT_EXECUTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "report_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-B7B9B488EA4BD9CC",
+      "status": "current_partial",
+      "transaction_id": "TX-0811",
+      "tx_type": "STORAGE_REPORT_ANCHOR",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped",
+        "delta_id",
+        "newly_banned",
+        "reputation",
+        "reputation_event_id",
+        "reputation_milli"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-B72C7D4EE095E6F7",
+      "status": "current_partial",
+      "transaction_id": "TX-0900",
+      "tx_type": "REPUTATION_DELTA_APPLY",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "cross_id",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "REPUTATION_DELTA_APPLY",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-0A98A76293D9C47C",
+      "status": "current_partial",
+      "transaction_id": "TX-0901",
+      "tx_type": "REPUTATION_THRESHOLD_CROSS",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped",
+        "role"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "REPUTATION_THRESHOLD_CROSS",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-7CAB52D2A5173A61",
+      "status": "current_partial",
+      "transaction_id": "TX-0902",
+      "tx_type": "ROLE_ELIGIBILITY_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped",
+        "role"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "REPUTATION_THRESHOLD_CROSS",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-431F580E7395191D",
+      "status": "current_partial",
+      "transaction_id": "TX-0903",
+      "tx_type": "ROLE_ELIGIBILITY_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-9C569180BF9D968B",
+      "status": "current_partial",
+      "transaction_id": "TX-0904",
+      "tx_type": "ACCOUNT_BAN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-5EF3224C635F6AD8",
+      "status": "current_partial",
+      "transaction_id": "TX-0905",
+      "tx_type": "ACCOUNT_REINSTATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "anchor_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-A4FCD6E618C4E885",
+      "status": "current_partial",
+      "transaction_id": "TX-1000",
+      "tx_type": "INDEX_ANCHOR_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "snapshot_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-38DDEC5261C35060",
+      "status": "current_partial",
+      "transaction_id": "TX-1001",
+      "tx_type": "STATE_SNAPSHOT_DECLARE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "snapshot_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "STATE_SNAPSHOT_DECLARE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-2C311E2D41536B54",
+      "status": "current_partial",
+      "transaction_id": "TX-1002",
+      "tx_type": "STATE_SNAPSHOT_ACCEPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "request_id",
+        "snapshot_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "STATE_SNAPSHOT_ACCEPT",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-55F688F747BF99AA",
+      "status": "current_partial",
+      "transaction_id": "TX-1003",
+      "tx_type": "COLD_SYNC_REQUEST",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "request_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "COLD_SYNC_REQUEST",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-11B72DD171802021",
+      "status": "current_partial",
+      "transaction_id": "TX-1004",
+      "tx_type": "COLD_SYNC_COMPLETE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped",
+        "reassigned_content_reviews",
+        "reviewer_lane_policy",
+        "reviewer_lanes"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-FE8842E6E8125EE9",
+      "status": "current_partial",
+      "transaction_id": "TX-1100",
+      "tx_type": "ROLE_JUROR_ENROLL",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped",
+        "reassigned_content_reviews",
+        "reviewer_lane_policy"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-FA6C172E28D6D0D0",
+      "status": "current_partial",
+      "transaction_id": "TX-1101",
+      "tx_type": "ROLE_JUROR_ACTIVATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-CDACC0F9C5F99105",
+      "status": "current_partial",
+      "transaction_id": "TX-1102",
+      "tx_type": "ROLE_JUROR_SUSPEND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped",
+        "reassigned_content_reviews",
+        "reviewer_lane_policy"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-F0E2A7311A8177F8",
+      "status": "current_partial",
+      "transaction_id": "TX-1103",
+      "tx_type": "ROLE_JUROR_REINSTATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-3D8CC856FBD7B948",
+      "status": "current_partial",
+      "transaction_id": "TX-1104",
+      "tx_type": "ROLE_VALIDATOR_ACTIVATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-15A6BC5FB0C4D16B",
+      "status": "current_partial",
+      "transaction_id": "TX-1105",
+      "tx_type": "ROLE_VALIDATOR_SUSPEND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped",
+        "helper_opted_in",
+        "storage_opted_in",
+        "validator_opted_in"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-3069F4C08604E682",
+      "status": "current_partial",
+      "transaction_id": "TX-1106",
+      "tx_type": "ROLE_NODE_OPERATOR_ENROLL",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-BC029A2043AF7EE0",
+      "status": "current_partial",
+      "transaction_id": "TX-1107",
+      "tx_type": "ROLE_NODE_OPERATOR_ACTIVATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-9FDDCD8D5F795750",
+      "status": "current_partial",
+      "transaction_id": "TX-1108",
+      "tx_type": "ROLE_NODE_OPERATOR_SUSPEND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-37D36447761F7EC4",
+      "status": "current_partial",
+      "transaction_id": "TX-1109",
+      "tx_type": "ROLE_EMISSARY_NOMINATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-B5C0058142EDB980",
+      "status": "current_partial",
+      "transaction_id": "TX-1110",
+      "tx_type": "ROLE_EMISSARY_VOTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-A1A8333DED66FF68",
+      "status": "current_partial",
+      "transaction_id": "TX-1111",
+      "tx_type": "ROLE_EMISSARY_SEAT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-9EEAD1568B1CEB7A",
+      "status": "current_partial",
+      "transaction_id": "TX-1112",
+      "tx_type": "ROLE_EMISSARY_REMOVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-FADDFB4888E6FF23",
+      "status": "current_partial",
+      "transaction_id": "TX-1113",
+      "tx_type": "ROLE_GOV_EXECUTOR_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-7AF65537F63C64B3",
+      "status": "current_partial",
+      "transaction_id": "TX-1200",
+      "tx_type": "PROFILE_UPDATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "active",
+        "applied",
+        "from",
+        "to"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-90B16416E151C84B",
+      "status": "current_partial",
+      "transaction_id": "TX-1201",
+      "tx_type": "FOLLOW_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "active",
+        "applied",
+        "from",
+        "to"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-DD1D104A9DCAC117",
+      "status": "current_partial",
+      "transaction_id": "TX-1202",
+      "tx_type": "BLOCK_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "active",
+        "applied",
+        "from",
+        "to"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-2F9E9557395F803D",
+      "status": "current_partial",
+      "transaction_id": "TX-1203",
+      "tx_type": "MUTE_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "share_id",
+        "target_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-C315166AA05CAE27",
+      "status": "current_partial",
+      "transaction_id": "TX-1204",
+      "tx_type": "CONTENT_SHARE_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "amount",
+        "applied",
+        "content_id",
+        "deduped",
+        "from",
+        "purpose",
+        "tip_indexed",
+        "to",
+        "transfer_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-EBB8281C1C5B9477",
+      "status": "current_partial",
+      "transaction_id": "TX-1300",
+      "tx_type": "BALANCE_TRANSFER",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "enabled"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-7574E05E72AFD4A6",
+      "status": "current_partial",
+      "transaction_id": "TX-1301",
+      "tx_type": "ECONOMICS_ACTIVATION",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "fee_policy"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-4F3453C518B91FDC",
+      "status": "current_partial",
+      "transaction_id": "TX-1304",
+      "tx_type": "FEE_POLICY_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "amount",
+        "applied",
+        "from",
+        "to"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-D05CC95C321A9606",
+      "status": "current_partial",
+      "transaction_id": "TX-1305",
+      "tx_type": "FEE_PAY",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "action",
+        "applied",
+        "receipt",
+        "target_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-8E74CA067A63B0BD",
+      "status": "current_partial",
+      "transaction_id": "TX-1400",
+      "tx_type": "MOD_ACTION_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "dispute_id",
+        "receipt",
+        "target_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "CONTENT_ESCALATE_TO_DISPUTE",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-58CF0A27822D1ABB",
+      "status": "current_partial",
+      "transaction_id": "TX-1401",
+      "tx_type": "FLAG_ESCALATION_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-70EF2CB709A7997C",
+      "status": "current_partial",
+      "transaction_id": "TX-1600",
+      "tx_type": "GOV_VOTE_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_STAGE_SET",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-916CD337F303DAEC",
+      "status": "current_partial",
+      "transaction_id": "TX-1601",
+      "tx_type": "GOV_VOTING_CLOSE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_VOTING_CLOSE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-DB4048ACD7B148E6",
+      "status": "current_partial",
+      "transaction_id": "TX-1602",
+      "tx_type": "GOV_TALLY_PUBLISH",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_TALLY_PUBLISH",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-023C329D6B30DB2E",
+      "status": "current_partial",
+      "transaction_id": "TX-1603",
+      "tx_type": "GOV_PROPOSAL_FINALIZE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_PROPOSAL_FINALIZE",
+      "primary_mechanism_id": "M-049",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-F9173062BC958F3C",
+      "status": "current_partial",
+      "transaction_id": "TX-1604",
+      "tx_type": "GOV_PROPOSAL_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "group_id",
+        "treasury_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-AFE93B91F8C909E9",
+      "status": "current_partial",
+      "transaction_id": "TX-1700",
+      "tx_type": "GROUP_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "group_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-ED92CA6EDD9A38DC",
+      "status": "current_partial",
+      "transaction_id": "TX-1701",
+      "tx_type": "GROUP_UPDATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "group_id",
+        "role"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-A52E3725AEB7AB74",
+      "status": "current_partial",
+      "transaction_id": "TX-1702",
+      "tx_type": "GROUP_ROLE_GRANT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "group_id",
+        "role"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-020F1F0C15F779E4",
+      "status": "current_partial",
+      "transaction_id": "TX-1703",
+      "tx_type": "GROUP_ROLE_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "auto_accepted",
+        "deduped",
+        "group_id",
+        "membership",
+        "read_visibility"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-A64860334DA5AA39",
+      "status": "current_partial",
+      "transaction_id": "TX-1704",
+      "tx_type": "GROUP_MEMBERSHIP_REQUEST",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "decision",
+        "group_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-83BBBCFF300227ED",
+      "status": "current_partial",
+      "transaction_id": "TX-1705",
+      "tx_type": "GROUP_MEMBERSHIP_DECIDE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "group_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-907EAA0DFE3BDCC7",
+      "status": "current_partial",
+      "transaction_id": "TX-1706",
+      "tx_type": "GROUP_MEMBERSHIP_REMOVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "treasury_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-4D831D198C174FD8",
+      "status": "current_partial",
+      "transaction_id": "TX-1707",
+      "tx_type": "GROUP_TREASURY_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "group_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-561E992BDAC01CA2",
+      "status": "current_partial",
+      "transaction_id": "TX-1708",
+      "tx_type": "GROUP_TREASURY_POLICY_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "earliest_execute_height",
+        "group_id",
+        "spend_id",
+        "threshold",
+        "treasury_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-499B86A2ED776540",
+      "status": "current_partial",
+      "transaction_id": "TX-1709",
+      "tx_type": "GROUP_TREASURY_SPEND_PROPOSE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "signer",
+        "spend_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-754088966F42C8CE",
+      "status": "current_partial",
+      "transaction_id": "TX-1710",
+      "tx_type": "GROUP_TREASURY_SPEND_SIGN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "spend_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-A59BBA552FCBA5B2",
+      "status": "current_partial",
+      "transaction_id": "TX-1711",
+      "tx_type": "GROUP_TREASURY_SPEND_CANCEL",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "group_id",
+        "spend_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GROUP_TREASURY_SPEND_PROPOSE",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-1EC2B67BF46B40FE",
+      "status": "current_partial",
+      "transaction_id": "TX-1712",
+      "tx_type": "GROUP_TREASURY_SPEND_EXPIRE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "amount",
+        "applied",
+        "deduped",
+        "spend_id",
+        "to"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GROUP_TREASURY_SPEND_SIGN",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-919FF6D69F280E74",
+      "status": "current_partial",
+      "transaction_id": "TX-1713",
+      "tx_type": "GROUP_TREASURY_SPEND_EXECUTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "amount",
+        "applied",
+        "auto_accepted",
+        "decision",
+        "deduped",
+        "earliest_execute_height",
+        "election_id",
+        "end_height",
+        "group_id",
+        "membership",
+        "n_ballots",
+        "n_candidates",
+        "n_ranked",
+        "n_signers",
+        "n_voters",
+        "read_visibility",
+        "role",
+        "seats",
+        "signer",
+        "spend_id",
+        "start_height",
+        "threshold",
+        "to",
+        "treasury_id",
+        "voter",
+        "winners"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-BF0E3F0CD2225623",
+      "status": "current_partial",
+      "transaction_id": "TX-1714",
+      "tx_type": "GROUP_TREASURY_AUDIT_ANCHOR_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "election_id",
+        "end_height",
+        "group_id",
+        "n_candidates",
+        "n_voters",
+        "seats",
+        "start_height"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-653A7B8ED97567AA",
+      "status": "current_partial",
+      "transaction_id": "TX-1715",
+      "tx_type": "GROUP_EMISSARY_ELECTION_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "election_id",
+        "n_ranked",
+        "voter"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-768E8C561BC3B8D5",
+      "status": "current_partial",
+      "transaction_id": "TX-1716",
+      "tx_type": "GROUP_EMISSARY_BALLOT_CAST",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "election_id",
+        "group_id",
+        "n_ballots",
+        "n_candidates",
+        "seats",
+        "treasury_id",
+        "winners"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-9F44A2AA61702458",
+      "status": "current_partial",
+      "transaction_id": "TX-1717",
+      "tx_type": "GROUP_EMISSARY_ELECTION_FINALIZE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-2AE9CC9AA8F18932",
+      "status": "current_partial",
+      "transaction_id": "TX-1800",
+      "tx_type": "VALIDATOR_PERFORMANCE_REPORT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "report_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-C204C32CF3CB41F1",
+      "status": "current_partial",
+      "transaction_id": "TX-1801",
+      "tx_type": "NODE_OPERATOR_PERFORMANCE_REPORT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "report_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-790FCDBA3CC76B96",
+      "status": "current_partial",
+      "transaction_id": "TX-1802",
+      "tx_type": "CREATOR_PERFORMANCE_REPORT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "receipt"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-D421B305E5AB47A3",
+      "status": "current_partial",
+      "transaction_id": "TX-1803",
+      "tx_type": "PERFORMANCE_EVALUATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "receipt"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "PERFORMANCE_EVALUATE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-1AE6DE74626CD3B8",
+      "status": "current_partial",
+      "transaction_id": "TX-1804",
+      "tx_type": "PERFORMANCE_SCORE_APPLY",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "topic"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-6EEA4931EDE2FA56",
+      "status": "current_partial",
+      "transaction_id": "TX-1900",
+      "tx_type": "INDEX_TOPIC_REGISTER",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "anchor_id",
+        "applied",
+        "deduped",
+        "topic"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-38A06AB3D14F693A",
+      "status": "current_partial",
+      "transaction_id": "TX-1901",
+      "tx_type": "INDEX_TOPIC_ANCHOR_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "receipt_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-6BEABD707304AEE8",
+      "status": "current_partial",
+      "transaction_id": "TX-1902",
+      "tx_type": "TX_RECEIPT_EMIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "rate_limit_policy"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-1DC1A1626EECB4F0",
+      "status": "current_partial",
+      "transaction_id": "TX-2000",
+      "tx_type": "RATE_LIMIT_POLICY_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "target"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-1C0D9F21B147EC9D",
+      "status": "current_partial",
+      "transaction_id": "TX-2001",
+      "tx_type": "RATE_LIMIT_STRIKE_APPLY",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-A5180DA84A51CF05",
+      "status": "current_partial",
+      "transaction_id": "TX-2002",
+      "tx_type": "MEMPOOL_REJECT_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-631B1744F3FB214B",
+      "status": "current_partial",
+      "transaction_id": "TX-2100",
+      "tx_type": "ACCOUNT_RECOVERY_CONFIG_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-FD405FE55F808494",
+      "status": "current_partial",
+      "transaction_id": "TX-2101",
+      "tx_type": "ACCOUNT_GUARDIAN_ADD",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-4517D57609D281AC",
+      "status": "current_partial",
+      "transaction_id": "TX-2102",
+      "tx_type": "ACCOUNT_GUARDIAN_REMOVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-F76F1C96D522ED44",
+      "status": "current_partial",
+      "transaction_id": "TX-2103",
+      "tx_type": "ACCOUNT_RECOVERY_REQUEST",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-5685403D2EB77F29",
+      "status": "current_partial",
+      "transaction_id": "TX-2104",
+      "tx_type": "ACCOUNT_RECOVERY_APPROVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-FAA84CE7EDCDC02B",
+      "status": "current_partial",
+      "transaction_id": "TX-2105",
+      "tx_type": "ACCOUNT_RECOVERY_CANCEL",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "ACCOUNT_RECOVERY_APPROVE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-789149B4F5BB14D2",
+      "status": "current_partial",
+      "transaction_id": "TX-2106",
+      "tx_type": "ACCOUNT_RECOVERY_FINALIZE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [],
+      "kind": "receipt_only_parent_bound",
+      "parent": "ACCOUNT_RECOVERY_FINALIZE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-09BBA370F7319EDB",
+      "status": "current_partial",
+      "transaction_id": "TX-2107",
+      "tx_type": "ACCOUNT_RECOVERY_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped",
+        "device_id",
+        "node_pubkey",
+        "peer_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-A9F9785173A19DB0",
+      "status": "current_partial",
+      "transaction_id": "TX-2200",
+      "tx_type": "PEER_ADVERTISE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "from"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BCB193CAE4180B53",
+      "status": "current_partial",
+      "transaction_id": "TX-2201",
+      "tx_type": "PEER_REQUEST_CONNECT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "ticket_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BBB6A68AB503B942",
+      "status": "current_partial",
+      "transaction_id": "TX-2202",
+      "tx_type": "PEER_RENDEZVOUS_TICKET_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "ticket_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-366286FD11488A5A",
+      "status": "current_partial",
+      "transaction_id": "TX-2203",
+      "tx_type": "PEER_RENDEZVOUS_TICKET_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "peer_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-B8CDBA5B3B4A09C3",
+      "status": "current_partial",
+      "transaction_id": "TX-2204",
+      "tx_type": "PEER_BAN_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "peer_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-3E8122D9142D1BEF",
+      "status": "current_partial",
+      "transaction_id": "TX-2205",
+      "tx_type": "PEER_REPUTATION_SIGNAL",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "case_type",
+        "dispute_id",
+        "receipt"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-4D0DD5BC71E0D808",
+      "status": "current_partial",
+      "transaction_id": "TX-2400",
+      "tx_type": "CASE_TYPE_REGISTER",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "case_type",
+        "dispute_id",
+        "receipt"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_OPEN",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-7C512ACA4A3FBE7E",
+      "status": "current_partial",
+      "transaction_id": "TX-2401",
+      "tx_type": "CASE_BIND_TO_DISPUTE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "case_type",
+        "dispute_id",
+        "receipt"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_RESOLVE",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-7E96736C27113389",
+      "status": "current_partial",
+      "transaction_id": "TX-2402",
+      "tx_type": "CASE_OUTCOME_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "topics"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-069",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-C89E8F2130E736EA",
+      "status": "current_partial",
+      "transaction_id": "TX-2500",
+      "tx_type": "NOTIFICATION_SUBSCRIBE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "topics"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-069",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BA81D596690456A0",
+      "status": "current_partial",
+      "transaction_id": "TX-2501",
+      "tx_type": "NOTIFICATION_UNSUBSCRIBE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "BLOCK_FINALIZE",
+      "primary_mechanism_id": "M-069",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-86D46F4BF1241491",
+      "status": "current_partial",
+      "transaction_id": "TX-2502",
+      "tx_type": "NOTIFICATION_EMIT_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "treasury_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-E845E895520E2781",
+      "status": "current_partial",
+      "transaction_id": "TX-2503",
+      "tx_type": "TREASURY_CREATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "n_signers",
+        "threshold",
+        "treasury_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-063",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BD74E37B8CE2E343",
+      "status": "current_partial",
+      "transaction_id": "TX-2504",
+      "tx_type": "TREASURY_SIGNERS_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "group_id",
+        "n_signers",
+        "threshold"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-D8B6EA4A0075C33E",
+      "status": "current_partial",
+      "transaction_id": "TX-2505",
+      "tx_type": "GROUP_SIGNERS_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "group_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-039",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-5043D657E65F841D",
+      "status": "current_partial",
+      "transaction_id": "TX-2506",
+      "tx_type": "GROUP_MODERATORS_SET",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "effective_epoch",
+        "status",
+        "validator_set_hash"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-79A49826061B9AED",
+      "status": "current_partial",
+      "transaction_id": "TX-2600",
+      "tx_type": "VALIDATOR_SUSPEND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account",
+        "applied",
+        "effective_epoch",
+        "status",
+        "validator_set_hash"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-018",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-0FAC2810840999A6",
+      "status": "current_partial",
+      "transaction_id": "TX-2601",
+      "tx_type": "VALIDATOR_REMOVE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "status"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "GOV_EXECUTE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-877292E763B91061",
+      "status": "current_partial",
+      "transaction_id": "TX-2603",
+      "tx_type": "POH_TIER_REVOKE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "case_id",
+        "expires_height",
+        "status"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-DC80DEDADCBF9C95",
+      "status": "current_partial",
+      "transaction_id": "TX-2608",
+      "tx_type": "POH_ASYNC_REQUEST_OPEN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "evidence_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-85251CAE166FFF3A",
+      "status": "current_partial",
+      "transaction_id": "TX-2609",
+      "tx_type": "POH_ASYNC_EVIDENCE_DECLARE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "bind_id",
+        "case_id"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-B9B15DC25EFF6E66",
+      "status": "current_partial",
+      "transaction_id": "TX-2610",
+      "tx_type": "POH_ASYNC_EVIDENCE_BIND",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "jurors"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_ASYNC_REQUEST_OPEN",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-FE403AB71F965307",
+      "status": "current_partial",
+      "transaction_id": "TX-2611",
+      "tx_type": "POH_ASYNC_JUROR_ASSIGN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "juror"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-19E157DD00949A7D",
+      "status": "current_partial",
+      "transaction_id": "TX-2612",
+      "tx_type": "POH_ASYNC_JUROR_ACCEPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "juror"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-0C0D89B811B10103",
+      "status": "current_partial",
+      "transaction_id": "TX-2613",
+      "tx_type": "POH_ASYNC_JUROR_DECLINE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "juror",
+        "verdict"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-975E8E2D10C21700",
+      "status": "current_partial",
+      "transaction_id": "TX-2614",
+      "tx_type": "POH_ASYNC_REVIEW_SUBMIT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "outcome",
+        "tier_awarded",
+        "token_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_ASYNC_REVIEW_SUBMIT",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-8CA77A3B8030B7A7",
+      "status": "current_partial",
+      "transaction_id": "TX-2615",
+      "tx_type": "POH_ASYNC_FINALIZE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "case_id",
+        "receipt_id"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "POH_ASYNC_FINALIZE",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-3CA30567CB59DFC6",
+      "status": "current_partial",
+      "transaction_id": "TX-2616",
+      "tx_type": "POH_ASYNC_RECEIPT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-E7D8E0F1E3D21A69",
+      "status": "current_partial",
+      "transaction_id": "TX-2617",
+      "tx_type": "NODE_OPERATOR_STORAGE_OPT_IN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-56448E95AB14E7F6",
+      "status": "current_partial",
+      "transaction_id": "TX-2618",
+      "tx_type": "NODE_OPERATOR_VALIDATOR_OPT_IN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "updated"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-258BA721FD7DC0F3",
+      "status": "current_partial",
+      "transaction_id": "TX-2619",
+      "tx_type": "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "challenge_id",
+        "proof_scope",
+        "verified"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "STORAGE_CHALLENGE_RESPOND",
+      "primary_mechanism_id": "M-065",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-29CB158DF5D6F035",
+      "status": "current_partial",
+      "transaction_id": "TX-2620",
+      "tx_type": "STORAGE_CAPACITY_PROOF_VERIFY",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "verified"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "NODE_OPERATOR_VALIDATOR_OPT_IN",
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-7F8265930D050155",
+      "status": "current_partial",
+      "transaction_id": "TX-2621",
+      "tx_type": "VALIDATOR_READINESS_VERIFY",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "delta_milli",
+        "dispute_id",
+        "event_id",
+        "juror",
+        "safe"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-03934286EA69168F",
+      "status": "current_partial",
+      "transaction_id": "TX-2622",
+      "tx_type": "DISPUTE_JUROR_WITHDRAW",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "applied",
+        "deduped",
+        "delta_milli",
+        "dispute_id",
+        "event_id",
+        "juror"
+      ],
+      "kind": "receipt_only_parent_bound",
+      "parent": "DISPUTE_JUROR_ACCEPT",
+      "primary_mechanism_id": "M-054",
+      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "stable_id": "RCP-4E0D11268BA9B680",
+      "status": "current_partial",
+      "transaction_id": "TX-2623",
+      "tx_type": "DISPUTE_JUROR_TIMEOUT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "lanes",
+        "reassigned_content_reviews"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-63B64B9F3CEADC18",
+      "status": "current_partial",
+      "transaction_id": "TX-2624",
+      "tx_type": "REVIEWER_LANE_OPT_IN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied",
+        "lanes",
+        "reassigned_content_reviews"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-58755A7B4EA06F7F",
+      "status": "current_partial",
+      "transaction_id": "TX-2625",
+      "tx_type": "REVIEWER_LANE_OPT_OUT",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
+      "failure_representation": "typed_failure_contract_reference_or_success_payload",
+      "fields": [
+        "account_id",
+        "applied"
+      ],
+      "kind": "user_transaction_apply_result",
+      "parent": null,
+      "primary_mechanism_id": "M-028",
+      "replay_binding": "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication",
+      "stable_id": "RCP-BB15B35CCE8347DF",
+      "status": "current_partial",
+      "transaction_id": "TX-2626",
+      "tx_type": "NODE_OPERATOR_HELPER_OPT_IN",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    }
+  ],
+  "schema": "weall.v2.receipt_contract_index",
+  "truth_boundary": "The exact uploaded v2.0 First Draft PDF is retained and hash-bound. Its extracted full-scope registers control W1 human-machine equality. Structural compiler coverage does not prove runtime correctness, independent review, interoperability, capacity, or production activation.",
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

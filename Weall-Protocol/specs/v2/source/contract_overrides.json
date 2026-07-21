@@ -1,0 +1,7 @@
+{
+  "routes": {},
+  "schema": "weall.v2.contract_overrides",
+  "transactions": {},
+  "truth_boundary": "Overrides are reserved for reviewed tx-specific or route-specific declarations that cannot be derived safely from code. Empty overrides do not imply semantic review completion.",
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

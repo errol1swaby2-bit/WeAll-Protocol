@@ -13,6 +13,23 @@ from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _
 router = APIRouter()
 
 
+def _maybe_observer_read_sync(request: Request) -> None:
+    """Best-effort observer-edge catch-up before governance read models.
+
+    Governance/proposal pages are public read models.  On observer-edge nodes
+    they should follow the upstream canonical chain, not stale local state.
+    Sync failures stay visible through /v1/observer/edge/status and do not make
+    proposal routes authoritative.
+    """
+
+    try:
+        from weall.api.routes_public_parts.tx import maybe_observer_edge_sync_latest_for_read
+
+        maybe_observer_edge_sync_latest_for_read(request)
+    except Exception:
+        return
+
+
 def _proposals_by_id_from_snapshot(st: dict[str, Any]) -> dict[str, Any]:
     """Return proposals-by-id mapping from the canonical runtime snapshot.
 
@@ -180,8 +197,11 @@ def _proposal_obj_from_snapshot(st: dict[str, Any], proposal_id: str) -> dict[st
     raise ApiError.not_found("not_found", "Proposal not found")
 
 
+@router.get("/proposals")
+@router.get("/governance/proposals")
 @router.get("/gov/proposals")
 def v1_gov_proposals(request: Request):
+    _maybe_observer_read_sync(request)
     """List governance proposals.
 
     Mounted under /v1:
@@ -229,8 +249,37 @@ def v1_gov_proposals(request: Request):
     return payload
 
 
+@router.get("/proposals/current")
+@router.get("/proposals/active")
+@router.get("/governance/current")
+@router.get("/governance/active")
+def v1_gov_proposals_active_alias(request: Request):
+    _maybe_observer_read_sync(request)
+    st = _snapshot(request)
+    by_id = _proposals_by_id_from_snapshot(st)
+    items = []
+    for _, obj in by_id.items():
+        if not isinstance(obj, dict):
+            continue
+        redacted = _redact_proposal_vote_maps(obj)
+        if _is_active_stage(_proposal_stage(redacted)):
+            items.append(redacted)
+    items.sort(
+        key=lambda x: (
+            int(x.get("created_at_height", 0) or 0),
+            int(x.get("updated_at_height", 0) or x.get("created_at_height", 0) or 0),
+            str(x.get("proposal_id") or x.get("id") or ""),
+        ),
+        reverse=True,
+    )
+    return {"ok": True, "items": items, "summary": _summary_from_items(items)}
+
+
+@router.get("/proposals/{proposal_id}")
+@router.get("/governance/proposals/{proposal_id}")
 @router.get("/gov/proposals/{proposal_id}")
 def v1_gov_proposal_get(proposal_id: str, request: Request):
+    _maybe_observer_read_sync(request)
     """Get a governance proposal by id.
 
     Mounted under /v1:
@@ -242,8 +291,11 @@ def v1_gov_proposal_get(proposal_id: str, request: Request):
     return {"ok": True, "proposal": _redact_proposal_vote_maps(obj)}
 
 
+@router.get("/proposals/{proposal_id}/votes")
+@router.get("/governance/proposals/{proposal_id}/votes")
 @router.get("/gov/proposals/{proposal_id}/votes")
 def v1_gov_proposal_votes(proposal_id: str, request: Request):
+    _maybe_observer_read_sync(request)
     """Get votes for a governance proposal.
 
     Mounted under /v1:

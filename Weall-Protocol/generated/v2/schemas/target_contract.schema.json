@@ -1,0 +1,154 @@
+{
+  "$id": "https://weall.example/spec/v2/target_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "api": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "authority": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "bound_receipt_schema": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "canonical_fields": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "conflict_keys": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "contract_fingerprint": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "failure_codes": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "follow_ups": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "frontend": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^(?:TX|MSG|SYS|RCP):C310:[0-9]{4}$",
+      "type": "string"
+    },
+    "idempotency": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "module": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "namespace": {
+      "enum": [
+        "TX",
+        "MSG",
+        "SYS",
+        "RCP"
+      ],
+      "type": "string"
+    },
+    "nonce_rule": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "payload_fields": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "payload_schema": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "pdf_contract_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "receipt_fields": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "replay": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "signer_or_sender": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "source_contract": {
+      "type": "string"
+    },
+    "state_reads": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "state_writes": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "vector_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "id",
+    "namespace",
+    "name",
+    "primary_mechanism_id",
+    "vector_ids",
+    "status",
+    "contract_fingerprint"
+  ],
+  "title": "target_contract",
+  "type": "object"
+}

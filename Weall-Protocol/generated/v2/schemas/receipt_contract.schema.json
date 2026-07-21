@@ -1,0 +1,92 @@
+{
+  "$id": "https://weall.example/spec/v2/receipt_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "domain_separation": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "failure_representation": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "fields": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "kind": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "parent": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "replay_binding": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^[A-Z][A-Z0-9-]+$",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "transaction_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "tx_type": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "vector_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "stable_id",
+    "transaction_id",
+    "tx_type",
+    "kind",
+    "fields",
+    "domain_separation",
+    "replay_binding",
+    "failure_representation",
+    "primary_mechanism_id",
+    "vector_ids",
+    "status"
+  ],
+  "title": "receipt_contract",
+  "type": "object"
+}

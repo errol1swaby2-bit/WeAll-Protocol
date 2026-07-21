@@ -121,6 +121,18 @@
       "path": "docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md"
     },
     {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/route_contract_map.json"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/source_coverage_map.json"
+    },
+    {
       "category": "backend/api",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
@@ -162,7 +174,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 17,
+  "inventory_hit_count": 19,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

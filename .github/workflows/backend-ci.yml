@@ -68,6 +68,8 @@ jobs:
       - name: Check generated artifacts
         run: |
           python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
 
       - name: Generate Tx coverage report
         run: |

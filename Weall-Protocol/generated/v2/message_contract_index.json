@@ -1,0 +1,2986 @@
+{
+  "count": 156,
+  "provenance": {
+    "active_profile_set": [
+      "dev_local",
+      "controlled_testnet",
+      "public_testnet",
+      "mainnet"
+    ],
+    "compiler_identity": "weall-v2-spec-compiler",
+    "compiler_version": "2.0.0-first-draft-full-scope-w1",
+    "implementation_commit": null,
+    "normative_authority_status": "V2_0_FIRST_DRAFT_NOT_AUTHORIZED",
+    "normative_candidate": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
+    "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
+    "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
+    "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
+    "source_tree_digest": "d58c510faf77915e7b720a6dd8f50041d46e1af5bd851bcd663d8f911e85ee2a"
+  },
+  "rows": [
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 192,
+      "name": "_normalize_tuple_fields_for_message",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/codec.py",
+      "stable_id": "MSG-AD5FC109E1D67776",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 228,
+      "name": "decode_message",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/codec.py",
+      "stable_id": "MSG-21867BE804F4490A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 221,
+      "name": "encode_message",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/codec.py",
+      "stable_id": "MSG-0795916D31752A67",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "header"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "class_contract",
+      "line": 51,
+      "name": "WireMessage",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/messages.py",
+      "stable_id": "MSG-C3821345229B6551",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1530,
+      "name": "_broadcast_bft_proposal",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-2E744A28D5F6AA7D",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1599,
+      "name": "_broadcast_bft_timeout",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-2FD5D6946535359E",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1581,
+      "name": "_broadcast_bft_vote",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-097AA53FCC7A5C49",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "block",
+        "justify_qc",
+        "proposer",
+        "view"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1157,
+      "name": "_mk_bft_proposal_json",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-3AF3E9202DCF7179",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1165,
+      "name": "_mk_bft_vote_json",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-842273F76BBD0411",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1619,
+      "name": "_on_bft_proposal",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-8563B8EFD7CE5170",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1690,
+      "name": "_on_bft_vote",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-125C6404F29CAE9C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 981,
+      "name": "_relay_access_request",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-2C0051484BFEBB4C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1014,
+      "name": "_relay_ack",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-176C77FDFF95C2BC",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 895,
+      "name": "_relay_cfg",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-83B5C7003972A368",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1004,
+      "name": "_relay_fetch",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-DE07140C35350D50",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 908,
+      "name": "_relay_identity",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-B46AFE01F1B16711",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 913,
+      "name": "_relay_next_nonce",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-F59FDC4D308F3511",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1062,
+      "name": "_relay_poll_tick",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-13CB5D36EDA9CFBC",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1026,
+      "name": "_relay_process_envelope",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-C59645F7016E0BCB",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 918,
+      "name": "_relay_recipient_pubkey",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-9E0A6198C63844E8",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 941,
+      "name": "_relay_submit_message",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/net_loop.py",
+      "stable_id": "MSG-F5241B10EE47ECD5",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 996,
+      "name": "_on_bft_proposal",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/node.py",
+      "stable_id": "MSG-ACB189F6F461D5AA",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 992,
+      "name": "_on_bft_vote",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/node.py",
+      "stable_id": "MSG-36C428DD96B8775F",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1256,
+      "name": "broadcast_message",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/node.py",
+      "stable_id": "MSG-79599993901CE396",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 938,
+      "name": "broadcast_peer_addr",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/node.py",
+      "stable_id": "MSG-0A77484DB09D3C8C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1253,
+      "name": "send_message",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/node.py",
+      "stable_id": "MSG-6B8A9559C366ADDC",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 143,
+      "name": "_clean_relay_ids",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-FD70C0ABDE467EE2",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 157,
+      "name": "_relay_access_signing_material",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-BFDA930686D7C971",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 113,
+      "name": "_relay_signing_material",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-EF4F86FD1667E254",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 178,
+      "name": "compute_relay_access_request_id",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-3EE202CB32808B24",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 136,
+      "name": "compute_relay_id",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-678B78925DA46C13",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 760,
+      "name": "decode_relay_payload",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-9FCE94A2140CD48A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 183,
+      "name": "make_relay_access_request",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-0650E7A88197ADE6",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 316,
+      "name": "make_relay_envelope",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-9F5A4C03758E54DD",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 231,
+      "name": "validate_relay_access_request",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-168374898F828175",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 364,
+      "name": "validate_relay_envelope",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/relay.py",
+      "stable_id": "MSG-C79A843BA655AF8B",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 86,
+      "name": "handle_message",
+      "primary_mechanism_id": "M-024",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/net/router.py",
+      "stable_id": "MSG-6695B08A6DC93059",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "existed",
+        "slash_id",
+        "vote",
+        "voter"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1468,
+      "name": "_apply_slash_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/consensus.py",
+      "stable_id": "MSG-0402825FAE227B5A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 381,
+      "name": "_active_validator_vote_snapshot",
+      "primary_mechanism_id": "M-054",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "MSG-5F2FA315337D7ECD",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1424,
+      "name": "_apply_dispute_vote_submit",
+      "primary_mechanism_id": "M-054",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "MSG-88176C4EF450A8B1",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 796,
+      "name": "_juror_has_vote",
+      "primary_mechanism_id": "M-054",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "MSG-1FAD188541DF9EB1",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1533,
+      "name": "_maybe_record_appeal_panel_vote",
+      "primary_mechanism_id": "M-054",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "MSG-2D2E67A9B342A5DC",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 403,
+      "name": "_select_resolution_from_votes",
+      "primary_mechanism_id": "M-054",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "MSG-B35C2E08C20C2E0B",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 394,
+      "name": "_vote_choice_tally",
+      "primary_mechanism_id": "M-054",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "stable_id": "MSG-EF53FA40F51051B2",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 457,
+      "name": "_active_validator_vote_snapshot",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-90DA99114CAB9D5D",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 650,
+      "name": "_append_proposal_version",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-BBC66AF9B0E1D7FB",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "comment_id",
+        "proposal_id"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1109,
+      "name": "_apply_gov_proposal_comment",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-50C9D0BA1A309C83",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "proposal_id"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 920,
+      "name": "_apply_gov_proposal_create",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-C725C16176A6E547",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "proposal_id"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1026,
+      "name": "_apply_gov_proposal_edit",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-7B7BBE1DCA07B14F",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "deduped",
+        "proposal_id"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1473,
+      "name": "_apply_gov_proposal_finalize",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-728F07CDE0F60BDD",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "deduped"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1534,
+      "name": "_apply_gov_proposal_receipt",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-97B52A349A043A9B",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "deduped",
+        "proposal_id"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1140,
+      "name": "_apply_gov_proposal_withdraw",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-CB767AE407D4E42B",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "proposal_id"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1174,
+      "name": "_apply_gov_vote_cast",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-5D5830243AEBE820",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "applied",
+        "proposal_id"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1248,
+      "name": "_apply_gov_vote_revoke",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-05F20A153B2860D0",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 113,
+      "name": "_assert_valid_proposal_options",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-96EEACC9FFE9BDC3",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 667,
+      "name": "_freeze_current_proposal_version",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-6E622B7B73A3FC97",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 64,
+      "name": "_normalize_proposal_options",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-E0DF86E833AC448F",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 681,
+      "name": "_proposal",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-EF530B946C58ABAE",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 397,
+      "name": "_proposal_eligible_validator_ids",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-717C9BABFC1D5ED4",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 365,
+      "name": "_proposal_has_executable_actions",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-968037DF3F8414D1",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 130,
+      "name": "_proposal_option_ids",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-CFF62FD75413CA98",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 105,
+      "name": "_proposal_options_from_payload",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-78D76212678A2603",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 631,
+      "name": "_proposal_versions",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-75401C2253410F2F",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "abstain",
+        "deterministic_tie_break",
+        "invalid_option_votes",
+        "option_tallies",
+        "outcome",
+        "selected_option_id",
+        "tie",
+        "tie_option_ids"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 137,
+      "name": "_tally_option_votes",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-C8034D1343AA2C1A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 470,
+      "name": "_vote_choice_tally",
+      "primary_mechanism_id": "M-049",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/governance.py",
+      "stable_id": "MSG-E0D955DFCCF70B90",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 981,
+      "name": "_apply_account_recovery_vote",
+      "primary_mechanism_id": "M-028",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "MSG-6124599A035979EB",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "account_id",
+        "applied",
+        "deduped"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1415,
+      "name": "_apply_role_emissary_vote",
+      "primary_mechanism_id": "M-028",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "MSG-FD2714ABFD138940",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 17,
+      "name": "_envelope_for_id",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/attestation_pool.py",
+      "stable_id": "MSG-281CDC9DA78BEC1A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 127,
+      "name": "_remember_recent_bft_proposal",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_artifact_cache.py",
+      "stable_id": "MSG-3111DB7D9E309014",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 170,
+      "name": "_remember_recent_bft_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_artifact_cache.py",
+      "stable_id": "MSG-B9ADFF80A82B8F91",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "block_hash",
+        "block_id",
+        "chain_id",
+        "parent_id",
+        "pubkey",
+        "sig",
+        "sig_profile",
+        "signer",
+        "validator_epoch",
+        "validator_set_hash",
+        "view"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "class_contract",
+      "line": 285,
+      "name": "BftVote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-DE5D91706F773F85",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "chain_id",
+        "high_qc_id",
+        "signer_count",
+        "signers",
+        "validator_epoch",
+        "validator_set_hash",
+        "view"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "class_contract",
+      "line": 359,
+      "name": "TimeoutCertificate",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-F095E9BC405FE84E",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1147,
+      "name": "accept_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-90EA5B99841A9A89",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 934,
+      "name": "best_timeout_certificate",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-447B95A3E51F4156",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 177,
+      "name": "bft_message_id",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-1AB66DE73BC6A872",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 952,
+      "name": "can_vote_for",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-524F127BD267CF60",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 243,
+      "name": "canonical_proposal_message",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-4DE6EA3B2FCE9BF1",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 217,
+      "name": "canonical_timeout_message",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-B21914E1EE0F5A22",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 187,
+      "name": "canonical_vote_message",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-7D4E37D33E8D36C5",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1051,
+      "name": "record_local_proposal",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-374102F6F6E51DB0",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1021,
+      "name": "record_local_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-628C92C56743BBDF",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 605,
+      "name": "verify_proposal_json",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_hotstuff.py",
+      "stable_id": "MSG-7A8D98735AB8AA44",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 35,
+      "name": "bft_pending_outbound_messages",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_outbound.py",
+      "stable_id": "MSG-11A498A0FF026764",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 100,
+      "name": "_proposal_votecheck_budget_ok",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-9C5A102F72CD566F",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 124,
+      "name": "_proposal_votecheck_static_ok",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-6BB1654E3F327D1C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 144,
+      "name": "_remember_recent_bft_proposal",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-43B244F317757CCF",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 164,
+      "name": "_remember_recent_bft_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-A2393BCC805D8ADC",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 128,
+      "name": "_validate_remote_proposal_for_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-6DE311D0B8982C2C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 92,
+      "name": "_votecheck_cache_get",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-526DC9ECC87777EE",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 96,
+      "name": "_votecheck_cache_put",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-E699016BC1B6247F",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1368,
+      "name": "bft_handle_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-A405E30C13AFA68F",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1434,
+      "name": "bft_make_vote_for_block",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-27AEF33E44CDC88C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 176,
+      "name": "bft_on_proposal",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-4F017F306C772A08",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 517,
+      "name": "bft_on_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-EF875EC6931AB79A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 88,
+      "name": "bft_pending_outbound_messages",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_runtime_adapter.py",
+      "stable_id": "MSG-41CDE07E0731E746",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 37,
+      "name": "_proposal_votecheck_budget_ok",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_votecheck.py",
+      "stable_id": "MSG-41FDA445495DB0F4",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 106,
+      "name": "_proposal_votecheck_static_ok",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_votecheck.py",
+      "stable_id": "MSG-C1B7A797B3245E74",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 145,
+      "name": "_validate_remote_proposal_for_vote",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_votecheck.py",
+      "stable_id": "MSG-7FC0D3A54B0D96D3",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 18,
+      "name": "_votecheck_cache_get",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_votecheck.py",
+      "stable_id": "MSG-DA169C6A194E3971",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 31,
+      "name": "_votecheck_cache_put",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/bft_votecheck.py",
+      "stable_id": "MSG-AF39683B14FCD3B1",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 210,
+      "name": "_validate_bft_proposal_leader_view",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/block_admission.py",
+      "stable_id": "MSG-B7F733473C0BC235",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 35,
+      "name": "_juror_has_vote",
+      "primary_mechanism_id": "M-054",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/dispute_engine.py",
+      "stable_id": "MSG-363FA3E90A2F871B",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1591,
+      "name": "_proposal_votecheck_budget_ok",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-FB735CD080ACD627",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1615,
+      "name": "_proposal_votecheck_static_ok",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-839419A5CDE3B523",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1635,
+      "name": "_remember_recent_bft_proposal",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-84224E7D2C38AE2E",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1655,
+      "name": "_remember_recent_bft_vote",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-9DEF79026F386CC3",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1619,
+      "name": "_validate_remote_proposal_for_vote",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-FBED3D063377B942",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1583,
+      "name": "_votecheck_cache_get",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-9BA448095E8B4ED5",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1587,
+      "name": "_votecheck_cache_put",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-3153597BA20A668D",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 2035,
+      "name": "bft_handle_vote",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-9D41D628B50E1474",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 2043,
+      "name": "bft_make_vote_for_block",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-FFEFCD807BE587B9",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1667,
+      "name": "bft_on_proposal",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-9383900E8AB4217B",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1671,
+      "name": "bft_on_vote",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-3BCE732806754569",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1094,
+      "name": "bft_pending_outbound_messages",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/executor.py",
+      "stable_id": "MSG-AE32EC5DFE51FC3A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "block",
+        "proposer",
+        "view"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 194,
+      "name": "_proposal_payload",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/fault_injection.py",
+      "stable_id": "MSG-9E912131A7E9C4C5",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "abstain",
+        "no",
+        "yes"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 26,
+      "name": "_count_votes",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/gov_engine.py",
+      "stable_id": "MSG-7233A7D6B512A413",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "abstain",
+        "no",
+        "yes"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 45,
+      "name": "_count_votes_direct_only",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/gov_engine.py",
+      "stable_id": "MSG-5A67DF4C3E227AEE",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 90,
+      "name": "_proposal_actions",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/gov_engine.py",
+      "stable_id": "MSG-E18433F1EF3F3C65",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 76,
+      "name": "_proposal_rules",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/gov_engine.py",
+      "stable_id": "MSG-BF2B31D240F41C57",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "block_height",
+        "chain_id",
+        "helper_id",
+        "lane_id",
+        "leader_id",
+        "manifest_hash",
+        "namespace_hash",
+        "plan_id",
+        "read_set_hash",
+        "receipts_root",
+        "sig_profile",
+        "signature",
+        "state_delta_hash",
+        "tx_ids",
+        "tx_order_hash",
+        "validator_epoch",
+        "validator_set_hash",
+        "view",
+        "write_set_hash"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "class_contract",
+      "line": 64,
+      "name": "HelperCertificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-DD89877546AA78D9",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "block_height",
+        "chain_id",
+        "helper_id",
+        "helper_signature",
+        "lane_delta_hash",
+        "lane_id",
+        "leader_id",
+        "manifest_hash",
+        "namespace_hash",
+        "plan_id",
+        "read_set_hash",
+        "receipts_root",
+        "sig_profile",
+        "tx_ids",
+        "tx_order_hash",
+        "validator_epoch",
+        "validator_set_hash",
+        "view",
+        "write_set_hash"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "class_contract",
+      "line": 143,
+      "name": "HelperExecutionCertificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-C301EDBD39E3D4E4",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 312,
+      "name": "ensure_helper_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-B52DACBEA37D968F",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 300,
+      "name": "ensure_helper_execution_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-EEDB7B4AE91F2F69",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 274,
+      "name": "from_helper_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-F86167AFC4480E21",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 339,
+      "name": "sign_helper_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-190B943609831485",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 251,
+      "name": "to_helper_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-0A6E5ABCAF5C6C31",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 433,
+      "name": "validate_certificate_scope",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-4CF4B57BD4180662",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 404,
+      "name": "verify_helper_certificate_signature",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_certificates.py",
+      "stable_id": "MSG-A152CF0EE79F3A1A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 35,
+      "name": "_certificate_matches_context",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_dispatch.py",
+      "stable_id": "MSG-06BF4AA50F7F1F2D",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 169,
+      "name": "_same_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_dispatch.py",
+      "stable_id": "MSG-3D97F8F3CDEB256C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 222,
+      "name": "accept_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_dispatch.py",
+      "stable_id": "MSG-08A53182BA05193B",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 237,
+      "name": "accepted_certificates",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_dispatch.py",
+      "stable_id": "MSG-605DBECE3569A1AA",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 31,
+      "name": "certificate_fingerprint",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_dispatch.py",
+      "stable_id": "MSG-10C6398F9A78FDFA",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 282,
+      "name": "ingest_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_dispatch.py",
+      "stable_id": "MSG-EC99F8D376C1B74B",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 71,
+      "name": "run_helper_proposal_cycle",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_proposal_loop.py",
+      "stable_id": "MSG-AFFBFAD6780E02EC",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 161,
+      "name": "run_helper_proposal_loop",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_proposal_loop.py",
+      "stable_id": "MSG-102B83A7D53FA63C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 23,
+      "name": "_certificate_matches_context",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_proposal_orchestrator.py",
+      "stable_id": "MSG-A09934C9C379B607",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 140,
+      "name": "ingest_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_proposal_orchestrator.py",
+      "stable_id": "MSG-498239D99788B028",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 31,
+      "name": "_certificate_fingerprint",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_replay_guard.py",
+      "stable_id": "MSG-F527F2B8F915D8E1",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 178,
+      "name": "ingest_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_replay_guard.py",
+      "stable_id": "MSG-0312BB74F04A436A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 205,
+      "name": "ingest_certificates_batch",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_replay_guard.py",
+      "stable_id": "MSG-94883C8C79DA5905",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "chain_id",
+        "helper",
+        "mode",
+        "ok"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "class_contract",
+      "line": 13,
+      "name": "NodeStatusEnvelope",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_status_endpoint_integration.py",
+      "stable_id": "MSG-D8C47462C2FE19A6",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "chain_id",
+        "helper_severity",
+        "helper_status",
+        "helper_summary",
+        "ready"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "class_contract",
+      "line": 29,
+      "name": "ReadyzEnvelope",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_status_endpoint_integration.py",
+      "stable_id": "MSG-50882247990B85CC",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 46,
+      "name": "build_node_status_envelope",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_status_endpoint_integration.py",
+      "stable_id": "MSG-0D0F950F6FF878A4",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 68,
+      "name": "build_readyz_envelope",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/helper_status_endpoint_integration.py",
+      "stable_id": "MSG-81FBAC5FEFC77ED4",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 96,
+      "name": "_envelope_for_id",
+      "primary_mechanism_id": "M-018",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/mempool.py",
+      "stable_id": "MSG-CD9D3E340538AA01",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "node_id",
+        "report",
+        "report_hash",
+        "type"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 21,
+      "name": "build_gossip_envelope",
+      "primary_mechanism_id": "M-075",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/operator_incident_gossip.py",
+      "stable_id": "MSG-40AC3D2C5DAD66E3",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 705,
+      "name": "verify_helper_certificate",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/parallel_execution.py",
+      "stable_id": "MSG-BB724F6C99E41FBD",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 686,
+      "name": "verify_vote_ready_helper_plan",
+      "primary_mechanism_id": "M-065",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/parallel_execution.py",
+      "stable_id": "MSG-DB1EB42EF2113256",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 24,
+      "name": "compute_proposal_id",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/proposals.py",
+      "stable_id": "MSG-FED182FDAD8DB39A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [
+        "chain_id",
+        "network_id",
+        "nonce",
+        "parent",
+        "payload",
+        "sig",
+        "sig_profile",
+        "signature",
+        "signer",
+        "system",
+        "tx_type"
+      ],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "class_contract",
+      "line": 16,
+      "name": "TxEnvelope",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/tx_admission_types.py",
+      "stable_id": "MSG-848D45C1DA76D16A",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 155,
+      "name": "_proposal_id",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/tx_conflicts.py",
+      "stable_id": "MSG-7CB4BBE925B9316C",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 58,
+      "name": "compute_tx_id_from_envelope",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/tx_id.py",
+      "stable_id": "MSG-FD2EE6EC9F7B18F4",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 1281,
+      "name": "_validate_vote_or_verdict",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/tx_schema.py",
+      "stable_id": "MSG-ED23D1D448689863",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 2218,
+      "name": "validate_tx_envelope",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/tx_schema.py",
+      "stable_id": "MSG-90F52755E47533B6",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    },
+    {
+      "authority_boundary": "transport_or_consensus_message; validity derives from exact verification rules, not delivery source",
+      "failure_semantics": "malformed_or_unverifiable_message_rejected_without_state_divergence",
+      "fields": [],
+      "idempotency_rules": "duplicate delivery must not create duplicate canonical effects",
+      "kind": "message_builder_or_handler",
+      "line": 32,
+      "name": "vrf_message",
+      "primary_mechanism_id": "M-012",
+      "replay_rules": "domain_context_sender_and_logical_position_binding_required",
+      "source": "src/weall/runtime/vrf_sig.py",
+      "stable_id": "MSG-DCC8BA0C300A4EBC",
+      "status": "current_partial",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "wire_encoding": "canonical_json_or_declared_binary_profile_at_source"
+    }
+  ],
+  "schema": "weall.v2.message_contract_index",
+  "truth_boundary": "The exact uploaded v2.0 First Draft PDF is retained and hash-bound. Its extracted full-scope registers control W1 human-machine equality. Structural compiler coverage does not prove runtime correctness, independent review, interoperability, capacity, or production activation.",
+  "version": "2.0.0-first-draft-full-scope-w1"
+}

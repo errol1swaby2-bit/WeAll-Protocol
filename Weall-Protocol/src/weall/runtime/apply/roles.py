@@ -828,9 +828,28 @@ def _reviewer_lane_values(payload: Json) -> list[str]:
         values = [str(v) for v in raw]
     else:
         values = []
+    lane_aliases = {
+        # Historical/frontend aliases should replay deterministically from
+        # committed blocks.  The canonical stored lanes remain REVIEWER_LANES.
+        "content": "content_review",
+        "content_reviewer": "content_review",
+        "content_moderation": "content_review",
+        "dispute": "dispute_review",
+        "juror": "dispute_review",
+        "dispute_juror": "dispute_review",
+        "async_review": "poh_async_review",
+        "poh_async": "poh_async_review",
+        "poh_tier2": "poh_async_review",
+        "poh_tier2_review": "poh_async_review",
+        "tier2_review": "poh_async_review",
+        "live_review": "poh_live_review",
+        "poh_live": "poh_live_review",
+        "poh_live_juror": "poh_live_review",
+    }
     lanes: list[str] = []
     for lane in values:
         clean = _as_str(lane).strip().lower().replace("-", "_")
+        clean = lane_aliases.get(clean, clean)
         if clean in REVIEWER_LANES and clean not in lanes:
             lanes.append(clean)
     return lanes

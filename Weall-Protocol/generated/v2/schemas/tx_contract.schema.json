@@ -1,0 +1,194 @@
+{
+  "$id": "https://weall.example/spec/v2/tx_contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation": {
+      "type": "object"
+    },
+    "api_routes": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "authority": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "conflict_rules": {
+      "type": "object"
+    },
+    "context": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "domain": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "failure_codes": {
+      "items": {
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "frontend_surfaces": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "implementation_source": {
+      "additionalProperties": false,
+      "properties": {
+        "function": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "handler": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "line": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "function",
+        "line"
+      ],
+      "type": "object"
+    },
+    "migration_treatment": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "numeric_id": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "origin": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "poh_gate": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": "string"
+    },
+    "receipt_contract": {
+      "type": "object"
+    },
+    "replay_behavior": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "role_gate": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema_source": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "semantic_precision": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "signer": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stable_id": {
+      "pattern": "^[A-Z][A-Z0-9-]+$",
+      "type": "string"
+    },
+    "state_reads": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "state_writes": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "system_followups": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "tests": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "tx_type": {
+      "pattern": "^[A-Z0-9_]+$",
+      "type": "string"
+    },
+    "vector_ids": {
+      "items": {
+        "pattern": "^VEC-",
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "stable_id",
+    "numeric_id",
+    "tx_type",
+    "domain",
+    "signer",
+    "authority",
+    "poh_gate",
+    "role_gate",
+    "conflict_rules",
+    "state_reads",
+    "state_writes",
+    "system_followups",
+    "receipt_contract",
+    "failure_codes",
+    "replay_behavior",
+    "api_routes",
+    "frontend_surfaces",
+    "tests",
+    "activation",
+    "migration_treatment",
+    "implementation_source",
+    "semantic_precision",
+    "primary_mechanism_id",
+    "vector_ids"
+  ],
+  "title": "tx_contract",
+  "type": "object"
+}

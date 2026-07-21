@@ -1,0 +1,140 @@
+{
+  "$id": "https://weall.example/spec/v2/parameter.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation_delay": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "activation_gate": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "authority": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "authority_class": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "boundary_vector_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "change_authority": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "default": {
+      "type": "string"
+    },
+    "exact_value": {
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^(?:C310-P|P|V20-P)-[0-9]{3}$",
+      "type": "string"
+    },
+    "migration_behavior": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "mutability": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "pdf_page": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "pdf_row_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "primary_mechanism_id": {
+      "pattern": "^M-[0-9]{3}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "range": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "requirement_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "scope": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "source": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "state_or_tx_field": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "type": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "unit": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "value": {
+      "type": [
+        "string",
+        "integer",
+        "boolean",
+        "array",
+        "object",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "type",
+    "value",
+    "source",
+    "scope",
+    "mutability",
+    "activation_gate",
+    "status"
+  ],
+  "title": "parameter",
+  "type": "object"
+}

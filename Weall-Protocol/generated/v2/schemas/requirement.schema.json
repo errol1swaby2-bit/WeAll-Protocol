@@ -1,0 +1,158 @@
+{
+  "$id": "https://weall.example/spec/v2/requirement.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "activation_gate": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "activation_receipt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "contract_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "dependencies": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "evidence_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "evidence_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "id": {
+      "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-[0-9]{3}$",
+      "type": "string"
+    },
+    "implementation_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "implementation_paths": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "normative_sentence": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "owner": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "pdf_page": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "pdf_row_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "pdf_source_cells": {
+      "type": "object"
+    },
+    "reviewer": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "section": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "current_implemented",
+        "current_partial",
+        "deprecated_legacy",
+        "implementation_divergence",
+        "launch_gated",
+        "normative_target",
+        "open_parameter",
+        "planned_extension"
+      ],
+      "type": "string"
+    },
+    "test_run_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "tests": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "verification_result": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_RUN",
+        "SPECIFICATION_DEFINED;IMPLEMENTATION_NOT_VERIFIED",
+        "IMPLEMENTATION_NOT_VERIFIED"
+      ],
+      "type": "string"
+    },
+    "verification_timestamp": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "status",
+    "title",
+    "normative_sentence",
+    "section",
+    "owner",
+    "implementation_paths",
+    "contract_ids",
+    "tests",
+    "evidence_ids",
+    "reviewer",
+    "activation_gate",
+    "verification_result",
+    "test_run_id",
+    "evidence_digest",
+    "implementation_commit",
+    "verification_timestamp"
+  ],
+  "title": "requirement",
+  "type": "object"
+}

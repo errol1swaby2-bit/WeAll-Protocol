@@ -207,3 +207,21 @@ See `Weall-Protocol/docs/security/CRYPTO_AGILITY_AND_QUANTUM_POSTURE.md` for the
 ### Pass 33 signature-profile truth boundary
 
 WeAll is a pre-public-testnet protocol implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware `pq-mldsa-v1` ML-DSA signing for protocol authority surfaces covered by this pass; `legacy-ed25519-v1` is disabled for protocol authority and retained only as a fail-closed inventory/migration identifier. This does not claim completed production cryptographic audit, mainnet readiness, live economics, public multi-validator BFT readiness, production helper execution readiness, production constitutional governance readiness, or public beta readiness. Public-only protocol surfaces remain public.
+
+## WeAll v2 specification compiler
+
+The v2 development program is controlled by the singular machine-readable
+source tree in `specs/v2/source/`. It retains and validates the exact uploaded v2.0 First Draft PDF, exact transaction appliers, append-only stable IDs, typed parameters,
+mechanisms, requirements, divergences, vectors, evidence declarations, and
+explicit authoritative-source mappings.
+
+Run:
+
+```bash
+PYTHONPATH=src python scripts/compile_v2_spec.py --check
+python scripts/check_v2_spec_clean_checkout.py
+```
+
+The compiler verifies the 236-entry current compatibility canon, 27-entry target TX canon, complete 150-entry target TX/MSG/SYS/RCP canon, all 159 current route implementations, 755 requirements, 215 parameters, M-001 through M-078, 94 exact state-object contracts, 98 target failure contracts, typed schemas, human-machine PDF-register fingerprints, source coverage, provenance, and frontend fail-closed truth consumption. See
+`docs/V2_SPEC_COMPILER.md` for the complete change procedure and assurance
+boundary.

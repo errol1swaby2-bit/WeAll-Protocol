@@ -1,0 +1,34 @@
+{
+  "schema": "weall.v2.pdf_register_fingerprints",
+  "pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
+  "requirements": {
+    "count": 755,
+    "ids_sha256": "4b91ee45a7b8717a50b09a9a42f64c9d0ce4f5f87531c735d5130b49192e1fc4",
+    "rows_sha256": "223ed330d79d6318da6748355698c4036105cec7e938301491ae9154d06e85a2"
+  },
+  "parameters": {
+    "count": 215,
+    "ids_sha256": "06c5d4e290c66165f18e783a6d6531e21209ff965c93aeac41ca7f1de918e007",
+    "rows_sha256": "4757a5390888ece261016dceb50dd9291b4b7d6df7ea3109636c9069b1e04d60"
+  },
+  "mechanisms": {
+    "count": 78,
+    "ids_sha256": "aeaba8e5d82678f537d2cbd24c9f9c7a130afc61961c16b819d1ccc603f21574",
+    "rows_sha256": "18f6e3cb27ad5e33e3f24e3c7238d77e6c0aea3c1956d5d78954d25cb4eeb348"
+  },
+  "state_objects": {
+    "count": 94,
+    "ids_sha256": "b46a3d02453e14366e14b81bdaa2d152e044f45ce8b6cbabd2e0ddb6733d5de8",
+    "rows_sha256": "34cc8be4f50f0b57e8e51ba219677ad3e7ded94e9c7a2cec926bb5a3856562ac"
+  },
+  "target_contracts": {
+    "count": 150,
+    "ids_sha256": "910797b1ab403db5a539de0b348baf5e0fed03cb4c207a6be160f993418fb92f",
+    "rows_sha256": "c20c6096a7c9a695a3bfb9ffdfd44d1e66ff852748f5880b7a4a00eae141897d"
+  },
+  "target_failures": {
+    "count": 98,
+    "ids_sha256": "af3295d47a061c3f9e5baf4506b14c51a3aa98bcb3371f478220a304d83e8b23",
+    "rows_sha256": "c7c7cd1b27c3b5cc002d6e053aeb08df20ee83abe31c1b34e4b65698c3dd6165"
+  }
+}
