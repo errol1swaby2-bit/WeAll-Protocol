@@ -16,7 +16,9 @@ Json = dict[str, Any]
 # Immutable trust root for the offline W1.1 PDF extraction attestation. A new
 # normative PDF requires an independently reviewed attestation and an explicit
 # trust-root rotation in code review; editing nearby JSON cannot rebind it.
-PDF_EXTRACTION_PUBLIC_KEY_SHA256 = "ac5d32db0cecc7bece1b78b4a87ccec4cf602c219257bbac116736353e56d480"
+PDF_EXTRACTION_PUBLIC_KEY_SHA256 = (
+    "ac5d32db0cecc7bece1b78b4a87ccec4cf602c219257bbac116736353e56d480"
+)
 
 FORBIDDEN_EXTRACTION_MARKERS = (
     "WEALL PROTOCOL | FULL-SCOPE SPECIFICATION |",
@@ -62,7 +64,9 @@ def verify_pdf_extraction_attestation(
     if str(attestation.get("signed_payload_sha256") or "") != payload_sha:
         raise ValueError("PDF extraction attestation payload digest mismatch")
     try:
-        public_raw = base64.b64decode(str(attestation.get("public_key_base64") or ""), validate=True)
+        public_raw = base64.b64decode(
+            str(attestation.get("public_key_base64") or ""), validate=True
+        )
         signature = base64.b64decode(str(attestation.get("signature_base64") or ""), validate=True)
     except Exception as exc:  # noqa: BLE001
         raise ValueError(f"invalid PDF extraction attestation encoding: {exc}") from exc
@@ -89,7 +93,9 @@ def verify_pdf_extraction_attestation(
         actual[name] = fingerprint
     baseline_digest = compact_digest(stable_baseline)
     if baseline_digest != str(extraction_manifest.get("stable_id_baseline_sha256") or ""):
-        raise ValueError("stable-ID release baseline is not covered by the signed extraction attestation")
+        raise ValueError(
+            "stable-ID release baseline is not covered by the signed extraction attestation"
+        )
     return {
         "schema": "weall.v2.register_fingerprint_manifest",
         "pdf_sha256": pdf_sha256,
@@ -99,7 +105,6 @@ def verify_pdf_extraction_attestation(
         "validation_result": "PASS_PINNED_SIGNED_PDF_EXTRACTION_ATTESTATION",
         **actual,
     }
-
 
 
 def validate_provenance_binding(provenance: Json) -> Json:
@@ -135,7 +140,9 @@ def validate_provenance_binding(provenance: Json) -> Json:
         if str(finalization.get("authority_effect") or "") != (
             "none; public testnet and Mainnet remain disabled"
         ):
-            raise ValueError("W1 closure finalization must preserve the fail-closed authority boundary")
+            raise ValueError(
+                "W1 closure finalization must preserve the fail-closed authority boundary"
+            )
         finalization_complete = True
 
     return {
@@ -145,6 +152,7 @@ def validate_provenance_binding(provenance: Json) -> Json:
         "release_export_attestation_required": True,
         "closure_finalization_present": finalization_complete,
     }
+
 
 def validate_stable_id_history(current: Json, baseline: Json) -> Json:
     def active_map(payload: Json) -> dict[str, tuple[str, str]]:
@@ -196,9 +204,7 @@ def validate_stable_id_history(current: Json, baseline: Json) -> Json:
     if removed_tombstones:
         raise ValueError(f"released stable-ID tombstones were removed: {removed_tombstones[:25]}")
     changed_tombstones = sorted(
-        sid
-        for sid, row in baseline_tombstones.items()
-        if current_tombstones.get(sid) != row
+        sid for sid, row in baseline_tombstones.items() if current_tombstones.get(sid) != row
     )
     if changed_tombstones:
         raise ValueError(f"released stable-ID tombstones are immutable: {changed_tombstones[:25]}")
@@ -315,7 +321,9 @@ def validate_normative_cleanliness(collections: dict[str, list[Json]]) -> Json:
                 identity = str(row.get("id") or row.get("stable_id") or "unknown")
                 contaminated.append(f"{name}:{identity}")
     if contaminated:
-        raise ValueError(f"normative rows contain PDF header/footer contamination: {contaminated[:25]}")
+        raise ValueError(
+            f"normative rows contain PDF header/footer contamination: {contaminated[:25]}"
+        )
     return {
         "checked_rows": sum(len(rows) for rows in collections.values()),
         "forbidden_marker_count": 0,
@@ -340,9 +348,13 @@ def validate_mechanism_evidence(root: Path, rows: list[Json]) -> Json:
                 if not rel or " " in rel:
                     raise ValueError(f"mechanism {mid} has malformed current evidence path: {rel}")
                 resolved = (root / rel).resolve()
-                exists = bool(glob.glob(str(resolved))) if kind == "current_glob" else resolved.exists()
+                exists = (
+                    bool(glob.glob(str(resolved))) if kind == "current_glob" else resolved.exists()
+                )
                 if not exists:
-                    raise ValueError(f"mechanism {mid} current evidence path does not resolve: {rel}")
+                    raise ValueError(
+                        f"mechanism {mid} current evidence path does not resolve: {rel}"
+                    )
                 current += 1
             elif kind in {"planned_target_path", "planned_target_glob", "planned_target_reference"}:
                 planned += 1
@@ -357,21 +369,48 @@ def validate_mechanism_evidence(root: Path, rows: list[Json]) -> Json:
 
 def tx_review_material(row: Json) -> Json:
     keys = (
-        "stable_id", "numeric_id", "tx_type", "domain", "origin", "context",
-        "signer", "authority", "poh_gate", "role_gate", "conflict_rules",
-        "state_reads", "state_writes", "system_followups", "receipt_contract",
-        "failure_codes", "replay_behavior", "activation", "migration_treatment",
-        "implementation_source", "primary_mechanism_id",
+        "stable_id",
+        "numeric_id",
+        "tx_type",
+        "domain",
+        "origin",
+        "context",
+        "signer",
+        "authority",
+        "poh_gate",
+        "role_gate",
+        "conflict_rules",
+        "state_reads",
+        "state_writes",
+        "system_followups",
+        "receipt_contract",
+        "failure_codes",
+        "replay_behavior",
+        "activation",
+        "migration_treatment",
+        "implementation_source",
+        "primary_mechanism_id",
     )
     return {key: row.get(key) for key in keys}
 
 
 def route_review_material(row: Json) -> Json:
     keys = (
-        "stable_id", "route_key", "method", "path", "authority_source",
-        "canonical_mappings", "local_or_service_status", "security_policy",
-        "request_limits", "failure_contract", "implementation_source",
-        "metadata_source", "primary_mechanism_id", "activation", "duplicate_route_key",
+        "stable_id",
+        "route_key",
+        "method",
+        "path",
+        "authority_source",
+        "canonical_mappings",
+        "local_or_service_status",
+        "security_policy",
+        "request_limits",
+        "failure_contract",
+        "implementation_source",
+        "metadata_source",
+        "primary_mechanism_id",
+        "activation",
+        "duplicate_route_key",
     )
     return {key: row.get(key) for key in keys}
 
@@ -392,7 +431,9 @@ def apply_semantic_reviews(
         if isinstance(row, dict)
     }
     if set(tx_reviews) != {str(row["stable_id"]) for row in tx_rows}:
-        raise ValueError("transaction semantic-review inventory does not exactly cover current rows")
+        raise ValueError(
+            "transaction semantic-review inventory does not exactly cover current rows"
+        )
     if set(route_reviews) != {str(row["stable_id"]) for row in route_rows}:
         raise ValueError("route semantic-review inventory does not exactly cover current rows")
     for row in tx_rows:

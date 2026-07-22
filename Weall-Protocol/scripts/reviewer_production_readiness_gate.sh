@@ -15,7 +15,11 @@ python3 scripts/check_v2_spec_clean_checkout.py
 python3 scripts/gen_api_contract_map.py --check
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_v15_public_readiness_artifacts.py
 bash scripts/secret_guard.sh
-bash scripts/verify_release_tree.sh
+if [[ "${WEALL_RELEASE_TREE_ALREADY_VERIFIED:-0}" == "1" ]]; then
+  echo "[reviewer-gate] clean release tree was verified before dependency installation"
+else
+  bash scripts/verify_release_tree.sh
+fi
 bash scripts/verify_release_dependencies.sh
 
 

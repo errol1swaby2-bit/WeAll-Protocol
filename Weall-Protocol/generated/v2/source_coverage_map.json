@@ -48,7 +48,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "fc9fe43165ba98167f5eb58f06ab320176ef375af1499788ed93b369fb4e2dce",
+      "sha256": "2a837436c4930e977d92b8028d2ff2fb1fa5b62bd67fb72e0bd41b324f2e8d55",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -61,7 +61,7 @@
       ],
       "path": "../.github/workflows/reviewer-readiness.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "195d26ddb5ec863d6619d4122caa9182681ed9137a96390a77ce3e537b32a3e8",
+      "sha256": "c081e7eac3abe1a6edc072bc46141b8c2428cade36885203230800f863f91345",
       "source_id": "SRC-FBC747FE8EED79D7"
     },
     {
@@ -3248,7 +3248,7 @@
       ],
       "path": "requirements-dev.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "32b78fa52e12fe0bc1e243da909a628275aa8bf2c2fbcd70df22ef39fff33b4d",
+      "sha256": "36678418723f0f9cae858fb50bdceda4176d2e46d75ad06e3856cf0a3b9d0c07",
       "source_id": "SRC-76E5F5875EE0F8B7"
     },
     {
@@ -3583,7 +3583,7 @@
       ],
       "path": "scripts/compile_v2_spec.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b7459af066f41102073be640c14dc9a8e830dbf9b420eeff0ba0d07b9c99e0a0",
+      "sha256": "ebc842244c2eef41a1f1665aacb0ffa5b495778907a3de0196b6f22830c0142f",
       "source_id": "SRC-D27D2764E0E5A007"
     },
     {
@@ -3709,7 +3709,7 @@
       ],
       "path": "scripts/export_v2_spec_release.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "4fdecfe4cee7befe271d14e0a04cd853560be5bce002c5f2ae81b4733e6d022a",
+      "sha256": "02cdf4f0eb6e23b951c71bc3e4169d7ee979a0db166faec37cca83167e4cf15d",
       "source_id": "SRC-EB36AAA2F2DE320C"
     },
     {
@@ -3723,7 +3723,7 @@
       ],
       "path": "scripts/finalize_v2_spec_provenance.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "372b637232a5bbaf990be0a729654d80e99ea86d3ebec3118998f6c4b2560dce",
+      "sha256": "5a0ac176610169a5bf4fe4d0da5a6570c1d6a152e1cf66b64f4db92fb196f409",
       "source_id": "SRC-D966CA751C565BA6"
     },
     {
@@ -5786,7 +5786,7 @@
       ],
       "path": "scripts/v2_spec_validation.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "47f98e7ca81b6527d5c3c4f4195156a33f5761d7b6eac09e62abd64ad8af683c",
+      "sha256": "e7123d40b15fceb176c8d6dc27f97c5cf0efb773b3ecae2632848e9b649cb4a1",
       "source_id": "SRC-857F17FA64382256"
     },
     {
@@ -25774,7 +25774,7 @@
       ],
       "path": "tests/test_v2_spec_compiler.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b39cd94f9e4c3482e8f51081d583d0c870340a08d40c596518b760a90bbbb921",
+      "sha256": "b1d20748f0c9a36d938a1d2ec67e87bc731392a347b48ac986ce09289a3dd284",
       "source_id": "SRC-9B8B949DCD736399"
     },
     {

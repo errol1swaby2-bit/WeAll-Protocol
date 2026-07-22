@@ -22,6 +22,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Verify clean release tree before dependency installation
+        working-directory: Weall-Protocol
+        run: bash scripts/verify_release_tree.sh
+
       - name: Install backend locked dependencies
         working-directory: Weall-Protocol
         run: |
@@ -42,4 +46,6 @@ jobs:
 
       - name: Run reviewer readiness gate
         working-directory: Weall-Protocol
+        env:
+          WEALL_RELEASE_TREE_ALREADY_VERIFIED: "1"
         run: bash scripts/reviewer_production_readiness_gate.sh

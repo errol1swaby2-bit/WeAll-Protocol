@@ -5,7 +5,7 @@ import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
         print("refusing to bind provenance from a dirty working tree", file=sys.stderr)
         return 1
     commit = _git("rev-parse", "HEAD")
-    timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    timestamp = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
     payload = json.loads(PROVENANCE.read_text(encoding="utf-8"))
     repository = payload.setdefault("repository", {})

@@ -7,7 +7,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,7 +55,10 @@ def main(argv: list[str] | None = None) -> int:
     if len(implementation_commit) != 40:
         print("provenance does not contain a finalized implementation commit", file=sys.stderr)
         return 1
-    if not _run(["git", "merge-base", "--is-ancestor", implementation_commit, commit]).returncode == 0:
+    if (
+        not _run(["git", "merge-base", "--is-ancestor", implementation_commit, commit]).returncode
+        == 0
+    ):
         print("finalized implementation commit is not an ancestor of release HEAD", file=sys.stderr)
         return 1
 
@@ -69,13 +72,17 @@ def main(argv: list[str] | None = None) -> int:
 
     spec_manifest = ROOT / "generated/v2/spec_compilation_manifest.json"
     closure_manifest = ROOT / "generated/v2/w1_closure_validation_manifest.json"
-    timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    timestamp = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     attestation = {
         "schema": "weall.v2.w1_release_export_attestation",
         "release_commit": commit,
         "implementation_commit": implementation_commit,
         "created_at": timestamp,
-        "archive": {"filename": archive.name, "sha256": _sha256(archive), "bytes": archive.stat().st_size},
+        "archive": {
+            "filename": archive.name,
+            "sha256": _sha256(archive),
+            "bytes": archive.stat().st_size,
+        },
         "spec_compilation_manifest_sha256": _sha256(spec_manifest),
         "w1_closure_validation_manifest_sha256": _sha256(closure_manifest),
         "test_run_id": args.test_run_id,

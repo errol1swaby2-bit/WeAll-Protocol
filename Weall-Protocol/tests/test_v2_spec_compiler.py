@@ -14,9 +14,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = ROOT.parent
 EXACT_PDF_SHA256 = "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a"
-EXACT_PDF_TITLE = (
-    "WeAll Full-Scope Product and Protocol Specification - Version 2.0 First Draft"
-)
+EXACT_PDF_TITLE = "WeAll Full-Scope Product and Protocol Specification - Version 2.0 First Draft"
 EXACT_PDF_VERSION = "2.0 First Draft - Complete Pre-Testnet Design Blueprint"
 EXACT_PDF_AUTHORITY = "V2_0_FIRST_DRAFT_NOT_AUTHORIZED"
 EXACT_PDF_PAGES = 390
@@ -24,33 +22,33 @@ EXPECTED_REGISTER_FINGERPRINTS = {
     "requirements": {
         "count": 755,
         "ids_sha256": "4b91ee45a7b8717a50b09a9a42f64c9d0ce4f5f87531c735d5130b49192e1fc4",
-        "rows_sha256": "b5f1dee8ddf7b6431a9d935121c45b36c5f61381110facb0b79b8ee0d7d1ac0d"
+        "rows_sha256": "b5f1dee8ddf7b6431a9d935121c45b36c5f61381110facb0b79b8ee0d7d1ac0d",
     },
     "parameters": {
         "count": 215,
         "ids_sha256": "06c5d4e290c66165f18e783a6d6531e21209ff965c93aeac41ca7f1de918e007",
-        "rows_sha256": "4757a5390888ece261016dceb50dd9291b4b7d6df7ea3109636c9069b1e04d60"
+        "rows_sha256": "4757a5390888ece261016dceb50dd9291b4b7d6df7ea3109636c9069b1e04d60",
     },
     "mechanisms": {
         "count": 78,
         "ids_sha256": "aeaba8e5d82678f537d2cbd24c9f9c7a130afc61961c16b819d1ccc603f21574",
-        "rows_sha256": "b30435676ceb8156d20f0eabb82d0c92dd976682927bc7c0a8f4ca68b954adf3"
+        "rows_sha256": "b30435676ceb8156d20f0eabb82d0c92dd976682927bc7c0a8f4ca68b954adf3",
     },
     "state_objects": {
         "count": 94,
         "ids_sha256": "b46a3d02453e14366e14b81bdaa2d152e044f45ce8b6cbabd2e0ddb6733d5de8",
-        "rows_sha256": "faa40db5ed10375cf42dd3f7fdf981e8f0e4c9b272fb5f1f0a65618c023762b2"
+        "rows_sha256": "faa40db5ed10375cf42dd3f7fdf981e8f0e4c9b272fb5f1f0a65618c023762b2",
     },
     "target_contracts": {
         "count": 150,
         "ids_sha256": "910797b1ab403db5a539de0b348baf5e0fed03cb4c207a6be160f993418fb92f",
-        "rows_sha256": "7b5d2a16aaef3f5c85cee83701d5a037f859cd1cfb7d78d02a6a4d816dcbcd38"
+        "rows_sha256": "7b5d2a16aaef3f5c85cee83701d5a037f859cd1cfb7d78d02a6a4d816dcbcd38",
     },
     "target_failures": {
         "count": 98,
         "ids_sha256": "af3295d47a061c3f9e5baf4506b14c51a3aa98bcb3371f478220a304d83e8b23",
-        "rows_sha256": "3ff5525e83c6f3778a3c7822df380bd3c2a68cea9176476af0a06450a89e8b5d"
-    }
+        "rows_sha256": "3ff5525e83c6f3778a3c7822df380bd3c2a68cea9176476af0a06450a89e8b5d",
+    },
 }
 
 
@@ -166,7 +164,9 @@ def test_v2_spec_derivatives_are_current() -> None:
     manifest = _read("specs/v2/source/manifest.json")
     result = _run_compiler(ROOT, "--check")
     assert result.returncode == 0, result.stdout + result.stderr
-    assert f"OK: {len(manifest['outputs'])} v2 specification derivatives are current" in result.stdout
+    assert (
+        f"OK: {len(manifest['outputs'])} v2 specification derivatives are current" in result.stdout
+    )
 
 
 def test_exact_uploaded_first_draft_pdf_is_retained_and_validated() -> None:
@@ -195,7 +195,10 @@ def test_exact_uploaded_first_draft_pdf_is_retained_and_validated() -> None:
 
 def test_non_pdf_bytes_fail_even_when_attacker_updates_hashes(tmp_path: Path) -> None:
     protocol_root = _copy_workspace(tmp_path)
-    spec_path = protocol_root / "specs/v2/source/WeAll.v2.0.Full-Scope.Product.and.Protocol.Specification.pdf"
+    spec_path = (
+        protocol_root
+        / "specs/v2/source/WeAll.v2.0.Full-Scope.Product.and.Protocol.Specification.pdf"
+    )
     raw = b"NOT_A_PDF_BUT_HASH_PINNED"
     spec_path.unlink()
     spec_path.write_bytes(raw)
@@ -261,7 +264,9 @@ def test_controlled_status_enum_is_enforced_independently_of_fingerprint(tmp_pat
     assert "uncontrolled status values" in result.stderr
 
 
-def test_pass_evidence_requires_commit_run_timestamp_and_independent_reviewer(tmp_path: Path) -> None:
+def test_pass_evidence_requires_commit_run_timestamp_and_independent_reviewer(
+    tmp_path: Path,
+) -> None:
     protocol_root = _copy_workspace(tmp_path)
     payload = _read("specs/v2/source/requirements.json", protocol_root)
     row = payload["requirements"][0]
@@ -294,13 +299,9 @@ def test_exact_parameter_and_mechanism_id_sets() -> None:
     parameters = _read("generated/v2/parameter_registry.json")["rows"]
     mechanisms = _read("generated/v2/mechanism_registry.json")["rows"]
     assert len(parameters) == 215
-    assert {row["id"] for row in mechanisms} == {
-        f"M-{number:03d}" for number in range(1, 79)
-    }
+    assert {row["id"] for row in mechanisms} == {f"M-{number:03d}" for number in range(1, 79)}
     assert len({row["id"] for row in parameters}) == 215
-    assert {f"V20-P-{number:03d}" for number in range(1, 6)} <= {
-        row["id"] for row in parameters
-    }
+    assert {f"V20-P-{number:03d}" for number in range(1, 6)} <= {row["id"] for row in parameters}
 
 
 def test_current_and_target_transaction_canons_are_separate_and_fail_closed() -> None:
@@ -335,7 +336,9 @@ def test_exact_state_contracts_are_separate_from_runtime_inventory() -> None:
         assert definition["unknown_fields"] == "reject"
         assert definition["duplicate_keys"] == "reject"
         assert row["field_count"] == len(definition["fields"])
-        assert [field["key"] for field in definition["fields"]] == sorted(field["key"] for field in definition["fields"])
+        assert [field["key"] for field in definition["fields"]] == sorted(
+            field["key"] for field in definition["fields"]
+        )
 
 
 def test_target_msg_sys_rcp_failure_contracts_have_exact_schemas_and_vectors() -> None:
@@ -378,7 +381,9 @@ def test_v2_transaction_contract_matrix_has_complete_structural_coverage() -> No
         assert required.issubset(row), row["tx_type"]
         assert row["state_reads"] and row["state_writes"] and row["failure_codes"]
         assert re.fullmatch(r"M-\d{3}", row["primary_mechanism_id"])
-        assert row["activation"]["profiles"]["public_testnet"] == "disabled_pending_activation_receipt"
+        assert (
+            row["activation"]["profiles"]["public_testnet"] == "disabled_pending_activation_receipt"
+        )
         assert row["activation"]["profiles"]["mainnet"] == "disabled_pending_activation_receipt"
         assert row["semantic_precision"] == "explicit_maintainer_reviewed_contract"
         assert len(row["semantic_review"]["review_digest"]) == 64
@@ -536,7 +541,6 @@ def test_generated_frontend_status_is_fail_closed_and_consumed() -> None:
     assert "../generated/protocolStatus" in consumer
 
 
-
 def test_attacker_cannot_rebind_register_and_signed_extraction_manifest(tmp_path: Path) -> None:
     protocol_root = _copy_workspace(tmp_path)
     requirements = _read("specs/v2/source/requirements.json", protocol_root)
@@ -553,7 +557,10 @@ def test_attacker_cannot_rebind_register_and_signed_extraction_manifest(tmp_path
     _write("specs/v2/source/pdf_extraction_manifest.json", extraction, protocol_root)
     result = _run_compiler(protocol_root)
     assert result.returncode != 0
-    assert "attestation payload digest mismatch" in result.stderr or "signature verification failed" in result.stderr
+    assert (
+        "attestation payload digest mismatch" in result.stderr
+        or "signature verification failed" in result.stderr
+    )
 
 
 def test_normative_rows_are_clean_and_mechanism_paths_are_typed() -> None:
@@ -577,8 +584,11 @@ def test_normative_rows_are_clean_and_mechanism_paths_are_typed() -> None:
         assert row["repository_evidence"]
         for item in row["repository_evidence"]:
             assert item["kind"] in {
-                "current_path", "current_glob", "planned_target_path",
-                "planned_target_glob", "planned_target_reference",
+                "current_path",
+                "current_glob",
+                "planned_target_path",
+                "planned_target_glob",
+                "planned_target_reference",
             }
             if item["kind"].startswith("current_"):
                 assert " " not in item["path"]
@@ -587,7 +597,9 @@ def test_normative_rows_are_clean_and_mechanism_paths_are_typed() -> None:
 def test_stable_id_release_baseline_and_tombstones_are_immutable(tmp_path: Path) -> None:
     protocol_root = _copy_workspace(tmp_path)
     current = _read("specs/v2/source/stable_ids.json", protocol_root)
-    sentinel = next(row for row in current["tombstones"] if row["stable_id"] == "LEGACY-W1-UNSCOPED-0001")
+    sentinel = next(
+        row for row in current["tombstones"] if row["stable_id"] == "LEGACY-W1-UNSCOPED-0001"
+    )
     current["tombstones"].remove(sentinel)
     _write("specs/v2/source/stable_ids.json", current, protocol_root)
     result = _run_compiler(protocol_root)
@@ -598,7 +610,10 @@ def test_stable_id_release_baseline_and_tombstones_are_immutable(tmp_path: Path)
 def test_w1_closure_manifest_records_release_attestation_boundary() -> None:
     closure = _read("generated/v2/w1_closure_validation_manifest.json")
     assert closure["validation_result"] == "PASS_W1_TECHNICAL_CLOSURE_RELEASE_ATTESTATION_REQUIRED"
-    assert closure["pdf_extraction_attestation"]["validation_result"] == "PASS_PINNED_SIGNED_PDF_EXTRACTION_ATTESTATION"
+    assert (
+        closure["pdf_extraction_attestation"]["validation_result"]
+        == "PASS_PINNED_SIGNED_PDF_EXTRACTION_ATTESTATION"
+    )
     assert closure["structured_schemas"]["state_schema_count"] == 94
     assert closure["structured_schemas"]["target_contract_schema_count"] == 150
     assert closure["semantic_reviews"]["transaction_reviews"] == 236
@@ -611,6 +626,7 @@ def test_w1_closure_manifest_records_release_attestation_boundary() -> None:
     assert re.fullmatch(r"[0-9a-f]{40}", provenance["repository"]["implementation_commit"])
     assert (ROOT / "scripts/finalize_v2_spec_provenance.py").is_file()
     assert (ROOT / "scripts/export_v2_spec_release.py").is_file()
+
 
 def test_clean_checkout_reproducibility_gate() -> None:
     probe = subprocess.run(

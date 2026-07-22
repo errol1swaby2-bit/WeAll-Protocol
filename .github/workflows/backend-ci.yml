@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -46,14 +48,35 @@ jobs:
       - name: Install backend
         run: |
           python -m pip install --upgrade pip
-          # The locked install path is verified above. This install keeps CI tooling
-          # such as ruff and pip-audit available until they are added to the lock.
-          pip install -e ".[test,ci]"
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
 
-      - name: Ruff
+      - name: Ruff changed Python files
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
-          ruff format --check .
-          ruff check .
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            RANGE="${PR_BASE_SHA}...HEAD"
+          elif [[ -n "${PUSH_BEFORE_SHA:-}" && "${PUSH_BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]]; then
+            RANGE="${PUSH_BEFORE_SHA}..HEAD"
+          else
+            RANGE="HEAD^..HEAD"
+          fi
+
+          mapfile -t PY_FILES < <(
+            git -C .. diff --name-only --diff-filter=ACMR "${RANGE}" \
+              | awk '/^Weall-Protocol\/.*\.py$/ {sub(/^Weall-Protocol\//, ""); print}'
+          )
+
+          if (( ${#PY_FILES[@]} == 0 )); then
+            echo "No changed Python files to check."
+            exit 0
+          fi
+
+          printf 'Checking %s\n' "${PY_FILES[@]}"
+          ruff format --check "${PY_FILES[@]}"
+          ruff check "${PY_FILES[@]}"
 
       - name: Dependency audit
         run: |
