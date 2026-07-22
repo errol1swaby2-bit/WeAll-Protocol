@@ -27,6 +27,10 @@
       "minLength": 1,
       "type": "string"
     },
+    "field_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
     "invariants": {
       "items": {
         "minLength": 1,
@@ -103,6 +107,9 @@
       "minLength": 1,
       "type": "string"
     },
+    "value_schema_definition": {
+      "type": "object"
+    },
     "vector_ids": {
       "items": {
         "minLength": 1,
@@ -119,6 +126,8 @@
     "state_key_or_namespace",
     "key_encoding",
     "value_schema",
+    "value_schema_definition",
+    "field_count",
     "transition_contracts",
     "failure_semantics",
     "replay_behavior",

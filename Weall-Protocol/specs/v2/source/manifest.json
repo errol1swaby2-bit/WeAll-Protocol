@@ -16,25 +16,28 @@
     "activation_profiles": "specs/v2/source/activation_profiles.json",
     "api_metadata": "specs/api_contracts/v1_5_route_metadata.json",
     "contract_overrides": "specs/v2/source/contract_overrides.json",
+    "controlled_enums": "specs/v2/source/controlled_enums.json",
     "divergences": "specs/v2/source/divergences.json",
     "evidence_manifest": "specs/v2/source/evidence_manifest.json",
     "mechanisms": "specs/v2/source/mechanisms.json",
     "normative_pdf": "specs/v2/source/WeAll.v2.0.Full-Scope.Product.and.Protocol.Specification.pdf",
     "parameters": "specs/v2/source/parameters.json",
+    "pdf_extraction_attestation": "specs/v2/source/pdf_extraction_attestation.json",
+    "pdf_extraction_manifest": "specs/v2/source/pdf_extraction_manifest.json",
+    "pdf_identity": "specs/v2/source/pdf_identity.json",
     "protocol_registry": "specs/v2/source/protocol_registry.json",
     "provenance": "specs/v2/source/provenance.json",
     "requirements": "specs/v2/source/requirements.json",
+    "semantic_reviews": "specs/v2/source/semantic_reviews.json",
     "source_mappings": "specs/v2/source/source_mappings.json",
+    "stable_id_baseline": "specs/v2/source/stable_ids_baseline.json",
     "stable_ids": "specs/v2/source/stable_ids.json",
-    "transaction_appliers": "specs/v2/source/tx_appliers.json",
-    "transaction_canon": "specs/tx_canon/tx_canon.yaml",
-    "vectors": "specs/v2/source/vectors.json",
-    "controlled_enums": "specs/v2/source/controlled_enums.json",
-    "pdf_identity": "specs/v2/source/pdf_identity.json",
-    "pdf_register_fingerprints": "specs/v2/source/pdf_register_fingerprints.json",
     "state_objects": "specs/v2/source/state_objects.json",
     "target_contracts": "specs/v2/source/target_contracts.json",
-    "target_failures": "specs/v2/source/target_failures.json"
+    "target_failures": "specs/v2/source/target_failures.json",
+    "transaction_appliers": "specs/v2/source/tx_appliers.json",
+    "transaction_canon": "specs/tx_canon/tx_canon.yaml",
+    "vectors": "specs/v2/source/vectors.json"
   },
   "normative_specification": {
     "candidate": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
@@ -68,6 +71,7 @@
     "generated/v2/evidence_index.json",
     "generated/v2/pdf_identity_manifest.json",
     "generated/v2/register_fingerprint_manifest.json",
+    "generated/v2/w1_closure_validation_manifest.json",
     "generated/v2/spec_compilation_manifest.json",
     "generated/v2/spec_derivative.md",
     "generated/v2/WeAll.v2.0.Full-Scope.Product.and.Protocol.Specification.pdf",
@@ -103,7 +107,9 @@
     "implementation_source",
     "primary_mechanism_id",
     "vector_ids",
-    "activation"
+    "activation",
+    "semantic_derivation",
+    "semantic_review"
   ],
   "required_transaction_fields": [
     "stable_id",
@@ -128,6 +134,8 @@
     "migration_treatment",
     "implementation_source",
     "semantic_precision",
+    "semantic_review",
+    "semantic_derivation",
     "primary_mechanism_id",
     "vector_ids"
   ],
@@ -175,5 +183,5 @@
   },
   "title": "WeAll v2 First Draft full-scope singular specification compiler source",
   "truth_boundary": "The exact uploaded v2.0 First Draft PDF is retained and hash-bound. Its extracted full-scope registers control W1 human-machine equality. Structural compiler coverage does not prove runtime correctness, independent review, interoperability, capacity, or production activation.",
-  "version": "2.0.0-first-draft-full-scope-w1"
+  "version": "2.0.0-first-draft-full-scope-w1.1"
 }

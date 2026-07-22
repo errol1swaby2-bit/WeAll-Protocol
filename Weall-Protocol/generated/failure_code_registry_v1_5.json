@@ -382,7 +382,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1629
+      "source_lineno": 1648
     },
     {
       "code": "bad_request",
@@ -616,7 +616,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 977
+      "source_lineno": 1033
     },
     {
       "code": "duplicate",
@@ -625,7 +625,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1562
+      "source_lineno": 1581
     },
     {
       "code": "executor_missing",
@@ -1507,7 +1507,7 @@
       "http_status": 404,
       "sample_reason": "Dispute not found",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 354
+      "source_lineno": 436
     },
     {
       "code": "not_found",
@@ -1516,7 +1516,7 @@
       "http_status": 404,
       "sample_reason": "Proposal not found",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 166
+      "source_lineno": 183
     },
     {
       "code": "not_found",
@@ -1579,7 +1579,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 959
+      "source_lineno": 1015
     },
     {
       "code": "not_found",
@@ -1885,7 +1885,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1920
+      "source_lineno": 1978
     },
     {
       "code": "validator_mismatch",

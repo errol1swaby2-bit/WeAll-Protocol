@@ -8,14 +8,14 @@
       "mainnet"
     ],
     "compiler_identity": "weall-v2-spec-compiler",
-    "compiler_version": "2.0.0-first-draft-full-scope-w1",
-    "implementation_commit": null,
+    "compiler_version": "2.0.0-first-draft-full-scope-w1.1",
+    "implementation_commit": "7900477bdd3852482a11b7f8d512e19c68ee0b18",
     "normative_authority_status": "V2_0_FIRST_DRAFT_NOT_AUTHORIZED",
     "normative_candidate": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "d58c510faf77915e7b720a6dd8f50041d46e1af5bd851bcd663d8f911e85ee2a"
+    "source_tree_digest": "958fab72a4c43e619871aa8eb952bbd284b402c566096677037aa33ec7acdec2"
   },
   "rows": [
     {
@@ -4815,5 +4815,5 @@
   ],
   "schema": "weall.v2.receipt_contract_index",
   "truth_boundary": "The exact uploaded v2.0 First Draft PDF is retained and hash-bound. Its extracted full-scope registers control W1 human-machine equality. Structural compiler coverage does not prove runtime correctness, independent review, interoperability, capacity, or production activation.",
-  "version": "2.0.0-first-draft-full-scope-w1"
+  "version": "2.0.0-first-draft-full-scope-w1.1"
 }

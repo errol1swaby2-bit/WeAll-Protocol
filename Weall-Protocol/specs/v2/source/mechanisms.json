@@ -22,11 +22,11 @@
       "authority_boundary": "Chain identity remains immutable; incompatible manifests, genesis hashes, profiles, or transaction indexes fail closed.",
       "repository_evidence_paths": [
         "configs/chains/*",
-        "runtime/chain_config.py",
-        "runtime/chain_manifest.py"
+        "src/weall/runtime/chain_config.py",
+        "src/weall/runtime/chain_manifest.py"
       ],
       "specification_sections": [
-        "Sections 3-6, 44, 63-65, 80-81 "
+        "Sections 3-6, 44, 63-65, 80-81"
       ],
       "divergence_status": "Sections 3-6, 44, 63-65, 80-81 ALIGNED_CURRENT",
       "activation_gate": "profile_bound",
@@ -35,9 +35,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "32f0981647ee27a2091f17104934dd544fec4839771984542e97a2db47535ac5"
+      "pdf_row_digest": "32f0981647ee27a2091f17104934dd544fec4839771984542e97a2db47535ac5",
+      "repository_evidence": [
+        {
+          "kind": "current_glob",
+          "path": "configs/chains/*",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/chain_config.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/chain_manifest.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-002",
@@ -48,10 +65,10 @@
       "production_target": "Mainnet uses one verified genesis account plus separately qualified role seeds, dynamic concurrence, expiry, challenge, and readiness gates; sole-validator mode is not BFT.",
       "authority_boundary": "Mainnet uses one verified genesis account plus separately qualified role seeds, dynamic concurrence, expiry, challenge, and readiness gates; sole-validator mode is not BFT.",
       "repository_evidence_paths": [
-        "runtime/genesis_bootstrap.py",
-        "runtime/genesis_config.py",
-        "runtime/bootstrap_manifest.py",
-        "runtime/bootstrap_audit.py"
+        "src/weall/runtime/genesis_bootstrap.py",
+        "src/weall/runtime/genesis_config.py",
+        "src/weall/runtime/bootstrap_manifest.py",
+        "src/weall/runtime/bootstrap_audit.py"
       ],
       "specification_sections": [
         "Sections 67, 77, 94"
@@ -63,9 +80,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "a8665d207c39d6c5cc9a10ae5ef19f843aa2aa0428ee8e4c600e855631c9c0b0"
+      "pdf_row_digest": "a8665d207c39d6c5cc9a10ae5ef19f843aa2aa0428ee8e4c600e855631c9c0b0",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/genesis_bootstrap.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/genesis_config.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bootstrap_manifest.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bootstrap_audit.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-003",
@@ -76,12 +115,12 @@
       "production_target": "Active Constitution state, amendment history, lifetime challenge, remedies, and constitution-first activation must govern lower contracts.",
       "authority_boundary": "Active Constitution state, amendment history, lifetime challenge, remedies, and constitution-first activation must govern lower contracts.",
       "repository_evidence_paths": [
-        "runtime/constitution.py",
-        "runtime/constitutional_clock.py",
+        "src/weall/runtime/constitution.py",
+        "src/weall/runtime/constitutional_clock.py",
         "docs/CONSTITUTIONAL_CLOCK.md"
       ],
       "specification_sections": [
-        "Sections 3-5, 63, 68 "
+        "Sections 3-5, 63, 68"
       ],
       "divergence_status": "Sections 3-5, 63, 68 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -90,9 +129,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "6ff285c939896473dec65175db1977105ac222320162fd936131c1528ee60391"
+      "pdf_row_digest": "6ff285c939896473dec65175db1977105ac222320162fd936131c1528ee60391",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/constitution.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/constitutional_clock.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/CONSTITUTIONAL_CLOCK.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-004",
@@ -100,15 +156,15 @@
       "title": "Authority & chain Publication trust roots, package authority, and release evidence",
       "mechanism_kind": "authority",
       "current_snapshot_behavior": "Signed seed registries, trust roots, release manifests, secret guards, and blocker reports exist; no final user publisher root is assigned.",
-      "production_target": "One authorized singular PDF, user- controlled publisher/recovery roots, threshold release signatures, succession, revocation, reproducible builds, provenance, and historical verification.",
-      "authority_boundary": "One authorized singular PDF, user- controlled publisher/recovery roots, threshold release signatures, succession, revocation, reproducible builds, provenance, and historical verification.",
+      "production_target": "One authorized singular PDF, user-controlled publisher/recovery roots, threshold release signatures, succession, revocation, reproducible builds, provenance, and historical verification.",
+      "authority_boundary": "One authorized singular PDF, user-controlled publisher/recovery roots, threshold release signatures, succession, revocation, reproducible builds, provenance, and historical verification.",
       "repository_evidence_paths": [
-        "configs/ public_testnet_trust_roots.json",
-        "generated/release_evidence_manifest _v1_5.json",
+        "configs/public_testnet_trust_roots.json",
+        "generated/release_evidence_manifest_v1_5.json",
         "docs/SECRET_SAFE_RELEASE.md"
       ],
       "specification_sections": [
-        "Sections 60-61, 70, 80, 97-98 "
+        "Sections 60-61, 70, 80, 97-98"
       ],
       "divergence_status": "Sections 60-61, 70, 80, 97-98 LAUNCH_GATED",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -117,9 +173,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "e730e01e3b0e93dd5f56561c75a95cc4454bce317b7c08e4a33121b93801279d"
+      "pdf_row_digest": "e730e01e3b0e93dd5f56561c75a95cc4454bce317b7c08e4a33121b93801279d",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "configs/public_testnet_trust_roots.json",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "generated/release_evidence_manifest_v1_5.json",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/SECRET_SAFE_RELEASE.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-005",
@@ -132,11 +205,11 @@
       "repository_evidence_paths": [
         "generated/tx_index.json",
         "generated/tx_contract_map.json",
-        "runtime/tx_schema.py",
-        "runtime/domain_dispatch.py"
+        "src/weall/runtime/tx_schema.py",
+        "src/weall/runtime/domain_dispatch.py"
       ],
       "specification_sections": [
-        "Sections 47, 61, 66, 81, 83-89 "
+        "Sections 47, 61, 66, 81, 83-89"
       ],
       "divergence_status": "Sections 47, 61, 66, 81, 83-89 ALIGNED_CURRENT_PARTIAL_TA RGET",
       "activation_gate": "profile_bound",
@@ -145,9 +218,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "0348035fc87623b6b5d6873262c090766b111f09e0b7de2ccdf3b2fdd7fe5a83"
+      "pdf_row_digest": "0348035fc87623b6b5d6873262c090766b111f09e0b7de2ccdf3b2fdd7fe5a83",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "generated/tx_index.json",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "generated/tx_contract_map.json",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/tx_schema.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/domain_dispatch.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-006",
@@ -155,16 +250,16 @@
       "title": "Execution Admission, signatures, gates, and payload bounds",
       "mechanism_kind": "execution",
       "current_snapshot_behavior": "Admission validates canonical type, schema, signature profile, signer/tier/role gates, public-only policy, and structural/byte limits.",
-      "production_target": "All admission behavior is profile- pinned, deterministic, replay- equivalent, and mapped to exact failure IDs and API responses.",
-      "authority_boundary": "All admission behavior is profile- pinned, deterministic, replay- equivalent, and mapped to exact failure IDs and API responses.",
+      "production_target": "All admission behavior is profile-pinned, deterministic, replay-equivalent, and mapped to exact failure IDs and API responses.",
+      "authority_boundary": "All admission behavior is profile-pinned, deterministic, replay-equivalent, and mapped to exact failure IDs and API responses.",
       "repository_evidence_paths": [
-        "runtime/tx_admission.py",
-        "runtime/gates.py",
-        "runtime/gate_expr.py",
-        "runtime/sigverify.py"
+        "src/weall/runtime/tx_admission.py",
+        "src/weall/runtime/gates.py",
+        "src/weall/runtime/gate_expr.py",
+        "src/weall/runtime/sigverify.py"
       ],
       "specification_sections": [
-        "Sections 47, 49, 58, 66, 76, 81 "
+        "Sections 47, 49, 58, 66, 76, 81"
       ],
       "divergence_status": "Sections 47, 49, 58, 66, 76, 81 ALIGNED_CURRENT",
       "activation_gate": "profile_bound",
@@ -173,9 +268,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "85b856a4232947da13b0431d808b78df020cfe702ce90ebcac35a8cbc98ef5d7"
+      "pdf_row_digest": "85b856a4232947da13b0431d808b78df020cfe702ce90ebcac35a8cbc98ef5d7",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/tx_admission.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/gates.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/gate_expr.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/sigverify.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-007",
@@ -186,12 +303,12 @@
       "production_target": "TX identity, nonce consumption, duplicate behavior, and rejection/receipt semantics are exact per contract and stable across replay.",
       "authority_boundary": "TX identity, nonce consumption, duplicate behavior, and rejection/receipt semantics are exact per contract and stable across replay.",
       "repository_evidence_paths": [
-        "runtime/mempool.py",
-        "runtime/tx_id.py",
-        "runtime/apply/identity.py"
+        "src/weall/runtime/mempool.py",
+        "src/weall/runtime/tx_id.py",
+        "src/weall/runtime/apply/identity.py"
       ],
       "specification_sections": [
-        "Sections 65-66, 81, 86-87 "
+        "Sections 65-66, 81, 86-87"
       ],
       "divergence_status": "Sections 65-66, 81, 86-87 ALIGNED_CURRENT",
       "activation_gate": "profile_bound",
@@ -200,9 +317,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "aa6784f41a9b10ec84d1d56791834e1b29578141b09d003b2341e0686ae97b63"
+      "pdf_row_digest": "aa6784f41a9b10ec84d1d56791834e1b29578141b09d003b2341e0686ae97b63",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/mempool.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/tx_id.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/identity.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-008",
@@ -210,15 +344,15 @@
       "title": "Execution Persistent mempool and candidate ordering",
       "mechanism_kind": "execution",
       "current_snapshot_behavior": "SQLite-backed mempool supports canonical production ordering, TTL, height eligibility, duplicate detection, signer/type caps, pruning, and bounded eviction settings.",
-      "production_target": "Local timing metadata never affects consensus; candidate selection is height-bound, canonical, resource- accounted, and identical across validators.",
-      "authority_boundary": "Local timing metadata never affects consensus; candidate selection is height-bound, canonical, resource- accounted, and identical across validators.",
+      "production_target": "Local timing metadata never affects consensus; candidate selection is height-bound, canonical, resource-accounted, and identical across validators.",
+      "authority_boundary": "Local timing metadata never affects consensus; candidate selection is height-bound, canonical, resource-accounted, and identical across validators.",
       "repository_evidence_paths": [
-        "runtime/mempool.py",
-        "runtime/block_builder.py",
-        "tests/test_block_candidate_selection_i s_deterministic.py"
+        "src/weall/runtime/mempool.py",
+        "src/weall/runtime/block_builder.py",
+        "tests/test_block_candidate_selection_is_deterministic.py"
       ],
       "specification_sections": [
-        "Sections 46-48, 65-66, 76 "
+        "Sections 46-48, 65-66, 76"
       ],
       "divergence_status": "Sections 46-48, 65-66, 76 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -227,9 +361,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "426ea5c7432e3c140eb2beb41b980f256c222fd7dacd2dd25e01bd987b612516"
+      "pdf_row_digest": "426ea5c7432e3c140eb2beb41b980f256c222fd7dacd2dd25e01bd987b612516",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/mempool.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/block_builder.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "tests/test_block_candidate_selection_is_deterministic.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-009",
@@ -237,16 +388,16 @@
       "title": "Execution Conflict lanes and read/write sets",
       "mechanism_kind": "execution",
       "current_snapshot_behavior": "Repository defines conflict keys, lanes, read/write sets, and deterministic ordering inputs for serial and helper paths.",
-      "production_target": "Every contract declares exact reads, boundary writes, conflicts, ordering, parallel- safety, and serial-equivalence vectors.",
-      "authority_boundary": "Every contract declares exact reads, boundary writes, conflicts, ordering, parallel- safety, and serial-equivalence vectors.",
+      "production_target": "Every contract declares exact reads, boundary writes, conflicts, ordering, parallel-safety, and serial-equivalence vectors.",
+      "authority_boundary": "Every contract declares exact reads, boundary writes, conflicts, ordering, parallel-safety, and serial-equivalence vectors.",
       "repository_evidence_paths": [
-        "runtime/conflict_lanes.py",
-        "runtime/execution_lanes.py",
-        "runtime/read_write_sets.py",
-        "runtime/tx_conflicts.py"
+        "src/weall/runtime/conflict_lanes.py",
+        "src/weall/runtime/execution_lanes.py",
+        "src/weall/runtime/read_write_sets.py",
+        "src/weall/runtime/tx_conflicts.py"
       ],
       "specification_sections": [
-        "Sections 46, 66, 76, 86, 95 "
+        "Sections 46, 66, 76, 86, 95"
       ],
       "divergence_status": "Sections 46, 66, 76, 86, 95 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -255,9 +406,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 377,
-      "pdf_row_digest": "75432309e6d7010f1ec7456185a8b1306fe6cb8770e19c5faca2cefe4131c320"
+      "pdf_row_digest": "75432309e6d7010f1ec7456185a8b1306fe6cb8770e19c5faca2cefe4131c320",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/conflict_lanes.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/execution_lanes.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/read_write_sets.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/tx_conflicts.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-010",
@@ -268,12 +441,12 @@
       "production_target": "Every validator derives the same candidate under active resource and SYS-priority rules; invalid blocks fail closed before state mutation.",
       "authority_boundary": "Every validator derives the same candidate under active resource and SYS-priority rules; invalid blocks fail closed before state mutation.",
       "repository_evidence_paths": [
-        "runtime/block_builder.py",
-        "runtime/block_admission.py",
-        "runtime/block_time_admission.py"
+        "src/weall/runtime/block_builder.py",
+        "src/weall/runtime/block_admission.py",
+        "src/weall/runtime/block_time_admission.py"
       ],
       "specification_sections": [
-        "Sections 45-48, 65-66, 75-76 "
+        "Sections 45-48, 65-66, 75-76"
       ],
       "divergence_status": "Sections 45-48, 65-66, 75-76 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -282,9 +455,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "b265e02b6e25d3e6600387c408564ecede6b4f52e076786a1021bbaed507e5fa"
+      "pdf_row_digest": "b265e02b6e25d3e6600387c408564ecede6b4f52e076786a1021bbaed507e5fa",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/block_builder.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/block_admission.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/block_time_admission.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-011",
@@ -295,13 +485,13 @@
       "production_target": "All consensus-relevant roots and profile/schema/parameter commitments are exact, mandatory, versioned, and independently replayable.",
       "authority_boundary": "All consensus-relevant roots and profile/schema/parameter commitments are exact, mandatory, versioned, and independently replayable.",
       "repository_evidence_paths": [
-        "runtime/block_id.py",
-        "runtime/block_hash.py",
-        "runtime/state_hash.py",
-        "runtime/block_commit.py"
+        "src/weall/runtime/block_id.py",
+        "src/weall/runtime/block_hash.py",
+        "src/weall/runtime/state_hash.py",
+        "src/weall/runtime/block_commit.py"
       ],
       "specification_sections": [
-        "Sections 45-48, 61, 65-66, 75-76, 81 "
+        "Sections 45-48, 61, 65-66, 75-76, 81"
       ],
       "divergence_status": "Sections 45-48, 61, 65-66, 75-76, 81 ALIGNED_CURRENT_PARTIAL_TA RGET",
       "activation_gate": "profile_bound",
@@ -310,9 +500,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "11af8172b081450c79264f86bd8df2f576cffb9c27408c5586dae3ec63db2c7c"
+      "pdf_row_digest": "11af8172b081450c79264f86bd8df2f576cffb9c27408c5586dae3ec63db2c7c",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/block_id.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/block_hash.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/state_hash.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/block_commit.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-012",
@@ -323,13 +535,13 @@
       "production_target": "No partial state mutation on failure; restart and replay reproduce identical state, receipts, roots, and scheduler queues.",
       "authority_boundary": "No partial state mutation on failure; restart and replay reproduce identical state, receipts, roots, and scheduler queues.",
       "repository_evidence_paths": [
-        "runtime/domain_apply.py",
-        "runtime/single_writer.py",
-        "runtime/sqlite_db.py",
-        "runtime/executor.py"
+        "src/weall/runtime/domain_apply.py",
+        "src/weall/runtime/single_writer.py",
+        "src/weall/runtime/sqlite_db.py",
+        "src/weall/runtime/executor.py"
       ],
       "specification_sections": [
-        "Sections 46, 48, 58, 65-66 "
+        "Sections 46, 48, 58, 65-66"
       ],
       "divergence_status": "Sections 46, 48, 58, 65-66 ALIGNED_CURRENT",
       "activation_gate": "profile_bound",
@@ -338,25 +550,47 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "2f3fa01c6d7475712d1854b7c1e46eb5e5982fb7fac5bf216f7ffd0ef8ed8f13"
+      "pdf_row_digest": "2f3fa01c6d7475712d1854b7c1e46eb5e5982fb7fac5bf216f7ffd0ef8ed8f13",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/domain_apply.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/single_writer.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/sqlite_db.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/executor.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-013",
       "status": "current_partial",
       "title": "Execution Current SYSTEM transaction queue",
       "mechanism_kind": "execution",
-      "current_snapshot_behavior": "Current repository schedules receipt- only, parent-bound SYSTEM-origin transactions and enforces system flags/signers at admission/apply time.",
+      "current_snapshot_behavior": "Current repository schedules receipt-only, parent-bound SYSTEM-origin transactions and enforces system flags/signers at admission/apply time.",
       "production_target": "Historical SYSTEM transaction behavior remains replay-compatible, but new target scheduler work uses the separate SYS namespace and no user-signature fiction.",
       "authority_boundary": "Historical SYSTEM transaction behavior remains replay-compatible, but new target scheduler work uses the separate SYS namespace and no user-signature fiction.",
       "repository_evidence_paths": [
-        "runtime/system_tx_engine.py",
-        "runtime/scheduler_pipeline.py",
-        "runtime/domain_dispatch.py"
+        "src/weall/runtime/system_tx_engine.py",
+        "src/weall/runtime/scheduler_pipeline.py",
+        "src/weall/runtime/domain_dispatch.py"
       ],
       "specification_sections": [
-        "Sections 24, 46, 65-66, 81, 100 "
+        "Sections 24, 46, 65-66, 81, 100"
       ],
       "divergence_status": "Sections 24, 46, 65-66, 81, 100 CURRENT_IMPLEMENTATION_TAR GET_MIGRATION",
       "activation_gate": "profile_bound",
@@ -365,24 +599,41 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "39bf8fa27f4432af4bf12283a4384574a461537a5263060c2a14552ae049518d"
+      "pdf_row_digest": "39bf8fa27f4432af4bf12283a4384574a461537a5263060c2a14552ae049518d",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/system_tx_engine.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/scheduler_pipeline.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/domain_dispatch.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-014",
       "status": "normative_target",
       "title": "Execution Target deterministic SYS scheduling and priority",
       "mechanism_kind": "execution",
-      "current_snapshot_behavior": "v2.0 First Draft defines due governance execution as mandatory at the first eligible finalized block after hold expiry.",
-      "production_target": "All due SYS work is parent-derived, priority-ordered, idempotent, capacity- reserved, non-discretionary, and canonically receipted.",
-      "authority_boundary": "All due SYS work is parent-derived, priority-ordered, idempotent, capacity- reserved, non-discretionary, and canonically receipted.",
+      "current_snapshot_behavior": "defines due governance execution as mandatory at the first eligible finalized block after hold expiry.",
+      "production_target": "All due SYS work is parent-derived, priority-ordered, idempotent, capacity-reserved, non-discretionary, and canonically receipted.",
+      "authority_boundary": "All due SYS work is parent-derived, priority-ordered, idempotent, capacity-reserved, non-discretionary, and canonically receipted.",
       "repository_evidence_paths": [
-        "target: runtime/scheduler_pipeline.py",
-        "runtime/system_tx_engine.py"
+        "target:src/weall/runtime/scheduler_pipeline.py",
+        "src/weall/runtime/system_tx_engine.py"
       ],
       "specification_sections": [
-        "Sections 24, 76, 81, 95, 100 "
+        "Sections 24, 76, 81, 95, 100"
       ],
       "divergence_status": "Sections 24, 76, 81, 95, 100 NORMATIVE_TARGET",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -391,9 +642,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "1da40e4e31b9a435c6ab8f64be2313292a8420d90b34302045a43c8f1660c130"
+      "pdf_row_digest": "1da40e4e31b9a435c6ab8f64be2313292a8420d90b34302045a43c8f1660c130",
+      "repository_evidence": [
+        {
+          "kind": "planned_target_path",
+          "path": "src/weall/runtime/scheduler_pipeline.py",
+          "status": "not_present_launch_gated"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/system_tx_engine.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-015",
@@ -404,12 +667,12 @@
       "production_target": "Every active schema/parameter/contract transition has deterministic migration and rollback-or-forward-repair vectors across fresh replay and restart.",
       "authority_boundary": "Every active schema/parameter/contract transition has deterministic migration and rollback-or-forward-repair vectors across fresh replay and restart.",
       "repository_evidence_paths": [
-        "runtime/block_replay.py",
-        "runtime/replay_consistency.py",
-        "ledger/migrations.py"
+        "src/weall/runtime/block_replay.py",
+        "src/weall/runtime/replay_consistency.py",
+        "src/weall/ledger/migrations.py"
       ],
       "specification_sections": [
-        "Sections 48, 50, 60-62, 70-72, 81, 89 "
+        "Sections 48, 50, 60-62, 70-72, 81, 89"
       ],
       "divergence_status": "Sections 48, 50, 60-62, 70-72, 81, 89 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -418,9 +681,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "32e5a71ad199fb898eaea9a14875ecf5d247ef217119cb2be13f102ce864c62e"
+      "pdf_row_digest": "32e5a71ad199fb898eaea9a14875ecf5d247ef217119cb2be13f102ce864c62e",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/block_replay.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/replay_consistency.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/ledger/migrations.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-016",
@@ -431,12 +711,12 @@
       "production_target": "Snapshots are acceleration only; finality, validator-set proof chains, schema/parameter roots, archive availability, and replay verification remain authoritative.",
       "authority_boundary": "Snapshots are acceleration only; finality, validator-set proof chains, schema/parameter roots, archive availability, and replay verification remain authoritative.",
       "repository_evidence_paths": [
-        "net/state_sync.py",
-        "runtime/storage_probe_runner.py",
-        "generated/public_observer_state_syn c_trusted_anchor_proof_v1_5.json"
+        "src/weall/net/state_sync.py",
+        "src/weall/runtime/storage_probe_runner.py",
+        "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
       ],
       "specification_sections": [
-        "Sections 48, 55, 69, 78 "
+        "Sections 48, 55, 69, 78"
       ],
       "divergence_status": "Sections 48, 55, 69, 78 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -445,9 +725,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "b1147aa96a8a9026dc00131db0691176bc67f0066b1d4445a97d2f4fc321ce99"
+      "pdf_row_digest": "b1147aa96a8a9026dc00131db0691176bc67f0066b1d4445a97d2f4fc321ce99",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/state_sync.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/storage_probe_runner.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-017",
@@ -458,12 +755,12 @@
       "production_target": "Integer per-contract and per-block units, bounded due-SYS reserve, deterministic backlog, safe pause, and profile commitments govern validity.",
       "authority_boundary": "Integer per-contract and per-block units, bounded due-SYS reserve, deterministic backlog, safe pause, and profile commitments govern validity.",
       "repository_evidence_paths": [
-        "runtime/protocol_profile.py",
-        "runtime/tx_admission.py",
-        "runtime/helper_capacity.py"
+        "src/weall/runtime/protocol_profile.py",
+        "src/weall/runtime/tx_admission.py",
+        "src/weall/runtime/helper_capacity.py"
       ],
       "specification_sections": [
-        "Sections 59, 69, 76, 100 "
+        "Sections 59, 69, 76, 100"
       ],
       "divergence_status": "Sections 59, 69, 76, 100 NORMATIVE_TARGET_CURRENT_ PARTIAL",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -472,9 +769,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "4d88ff17f2ceb411c38a696593baa4957f6a03a80280c5e9cab8011841c15513"
+      "pdf_row_digest": "4d88ff17f2ceb411c38a696593baa4957f6a03a80280c5e9cab8011841c15513",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/protocol_profile.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/tx_admission.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_capacity.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-018",
@@ -482,13 +796,13 @@
       "title": "Consensus & network HotStuff proposal, vote, QC, and TC",
       "mechanism_kind": "consensus",
       "current_snapshot_behavior": "Current BFT module defines deterministic sorted round-robin leaders, ceil(2n/3) quorums, proposal/vote/timeout signing payloads, QCs, TCs, and three-chain finality designation.",
-      "production_target": "Epoch-aware LogicalView, exact safe- runtime/bft_hotstuff.py; boundary node/lock/commit, persist-before- send, validator-set binding, and independent consensus review control public BFT.",
-      "authority_boundary": "Epoch-aware LogicalView, exact safe- runtime/bft_hotstuff.py; boundary node/lock/commit, persist-before- send, validator-set binding, and independent consensus review control public BFT.",
+      "production_target": "Epoch-aware LogicalView, exact safe-runtime/bft_hotstuff.py; boundary node/lock/commit, persist-before-send, validator-set binding, and independent consensus review control public BFT.",
+      "authority_boundary": "Epoch-aware LogicalView, exact safe-runtime/bft_hotstuff.py; boundary node/lock/commit, persist-before-send, validator-set binding, and independent consensus review control public BFT.",
       "repository_evidence_paths": [
-        "runtime/bft_votecheck.py"
+        "src/weall/runtime/bft_votecheck.py"
       ],
       "specification_sections": [
-        "Sections 45, 75, 88-90 "
+        "Sections 45, 75, 88-90"
       ],
       "divergence_status": "Sections 45, 75, 88-90 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -497,9 +811,16 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 378,
-      "pdf_row_digest": "b563080bd51644e38680a65eb53f0a97b9b137f2034d5143c6f0a657f2377292"
+      "pdf_row_digest": "b563080bd51644e38680a65eb53f0a97b9b137f2034d5143c6f0a657f2377292",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_votecheck.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-019",
@@ -510,11 +831,11 @@
       "production_target": "A validator must never double-vote/propose after restart; all safety slots persist before transmission and replay deterministically.",
       "authority_boundary": "A validator must never double-vote/propose after restart; all safety slots persist before transmission and replay deterministically.",
       "repository_evidence_paths": [
-        "runtime/bft_journal.py",
-        "runtime/bft_outbound.py"
+        "src/weall/runtime/bft_journal.py",
+        "src/weall/runtime/bft_outbound.py"
       ],
       "specification_sections": [
-        "Sections 45, 58, 75, 88-89 "
+        "Sections 45, 58, 75, 88-89"
       ],
       "divergence_status": "Sections 45, 58, 75, 88-89 ALIGNED_CURRENT_PARTIAL_EVI DENCE",
       "activation_gate": "profile_bound",
@@ -523,9 +844,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 379,
-      "pdf_row_digest": "661561bfe95bf8bc7bdbc3ec0e0300b004a523755b832d39932100d2c91b0d02"
+      "pdf_row_digest": "661561bfe95bf8bc7bdbc3ec0e0300b004a523755b832d39932100d2c91b0d02",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_journal.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_outbound.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-020",
@@ -533,15 +866,15 @@
       "title": "Consensus & network Pending frontier, fetch requests, and artifact cache",
       "mechanism_kind": "consensus",
       "current_snapshot_behavior": "Repository tracks pending BFT objects, missing ancestors/QCs, fetch requests, and cached artifacts.",
-      "production_target": "Dependency fetch and pending- frontier processing are bounded, deterministic, stale-safe, epoch- bound, and denial-of-service resistant.",
-      "authority_boundary": "Dependency fetch and pending- frontier processing are bounded, deterministic, stale-safe, epoch- bound, and denial-of-service resistant.",
+      "production_target": "Dependency fetch and pending-frontier processing are bounded, deterministic, stale-safe, epoch-bound, and denial-of-service resistant.",
+      "authority_boundary": "Dependency fetch and pending-frontier processing are bounded, deterministic, stale-safe, epoch-bound, and denial-of-service resistant.",
       "repository_evidence_paths": [
-        "runtime/bft_pending_frontier.py",
-        "runtime/bft_fetch_requests.py",
-        "runtime/bft_artifact_cache.py"
+        "src/weall/runtime/bft_pending_frontier.py",
+        "src/weall/runtime/bft_fetch_requests.py",
+        "src/weall/runtime/bft_artifact_cache.py"
       ],
       "specification_sections": [
-        "Sections 45, 58, 75-76 "
+        "Sections 45, 58, 75-76"
       ],
       "divergence_status": "Sections 45, 58, 75-76 CURRENT_MECHANISM_NARRATI VE_EXPANDED",
       "activation_gate": "profile_bound",
@@ -550,9 +883,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 379,
-      "pdf_row_digest": "dfdb58731575c13088203dae20a136c8cc45d86658b4608292dc3da0bc5019ef"
+      "pdf_row_digest": "dfdb58731575c13088203dae20a136c8cc45d86658b4608292dc3da0bc5019ef",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_pending_frontier.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_fetch_requests.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_artifact_cache.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-021",
@@ -563,12 +913,12 @@
       "production_target": "Exact LogicalView arithmetic, timeout backoff, NewView aggregation, epoch handoff, and old-set QC exception are canonical and externally reviewed.",
       "authority_boundary": "Exact LogicalView arithmetic, timeout backoff, NewView aggregation, epoch handoff, and old-set QC exception are canonical and externally reviewed.",
       "repository_evidence_paths": [
-        "runtime/bft_hotstuff.py",
-        "runtime/bft_runtime_adapter.py",
-        "docs/CATCHUP_AND_EPOCH_NOT ES.md"
+        "src/weall/runtime/bft_hotstuff.py",
+        "src/weall/runtime/bft_runtime_adapter.py",
+        "docs/CATCHUP_AND_EPOCH_NOTES.md"
       ],
       "specification_sections": [
-        "Sections 45, 65, 75 "
+        "Sections 45, 65, 75"
       ],
       "divergence_status": "Sections 45, 65, 75 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -577,9 +927,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 379,
-      "pdf_row_digest": "e3edfa17eeed2b879f0ed52b27e17d7aa22cdd829c05a4974a210ba4b7850e81"
+      "pdf_row_digest": "e3edfa17eeed2b879f0ed52b27e17d7aa22cdd829c05a4974a210ba4b7850e81",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_hotstuff.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_runtime_adapter.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/CATCHUP_AND_EPOCH_NOTES.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-022",
@@ -590,12 +957,12 @@
       "production_target": "Public activation requires independently controlled operators, role and key readiness, diversity, endpoint evidence, BFT tests, and activation receipts.",
       "authority_boundary": "Public activation requires independently controlled operators, role and key readiness, diversity, endpoint evidence, BFT tests, and activation receipts.",
       "repository_evidence_paths": [
-        "runtime/ validator_readiness_runner.py",
-        "runtime/node_lifecycle.py",
-        "docs/PROMOTED_OBSERVER_TO_ VALIDATOR_RUNBOOK.md"
+        "src/weall/runtime/validator_readiness_runner.py",
+        "src/weall/runtime/node_lifecycle.py",
+        "docs/PROMOTED_OBSERVER_TO_VALIDATOR_RUNBOOK.md"
       ],
       "specification_sections": [
-        "Sections 43, 45, 55, 67, 77, 96-98 "
+        "Sections 43, 45, 55, 67, 77, 96-98"
       ],
       "divergence_status": "Sections 43, 45, 55, 67, 77, 96-98 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -604,9 +971,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 379,
-      "pdf_row_digest": "01d9ddd35f8c40d810ae333c3d09b077f961cb1c57716be74935b9ab404ca12b"
+      "pdf_row_digest": "01d9ddd35f8c40d810ae333c3d09b077f961cb1c57716be74935b9ab404ca12b",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/validator_readiness_runner.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/node_lifecycle.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/PROMOTED_OBSERVER_TO_VALIDATOR_RUNBOOK.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-023",
@@ -617,12 +1001,12 @@
       "production_target": "Peers cannot gain authority from transport identity; compatibility checks remain fail-closed and independently reproducible.",
       "authority_boundary": "Peers cannot gain authority from transport identity; compatibility checks remain fail-closed and independently reproducible.",
       "repository_evidence_paths": [
-        "net/handshake.py",
-        "net/peer_identity.py",
-        "runtime/chain_manifest.py"
+        "src/weall/net/handshake.py",
+        "src/weall/net/peer_identity.py",
+        "src/weall/runtime/chain_manifest.py"
       ],
       "specification_sections": [
-        "Sections 44, 47-48, 58 "
+        "Sections 44, 47-48, 58"
       ],
       "divergence_status": "Sections 44, 47-48, 58 ALIGNED_CURRENT",
       "activation_gate": "profile_bound",
@@ -631,9 +1015,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 379,
-      "pdf_row_digest": "b6d27740630f37524d35b6abf4d6f3118655ac52602387ba8e4ecc8d3575aed4"
+      "pdf_row_digest": "b6d27740630f37524d35b6abf4d6f3118655ac52602387ba8e4ecc8d3575aed4",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/handshake.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/peer_identity.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/chain_manifest.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-024",
@@ -644,13 +1045,13 @@
       "production_target": "Network hints and peer scores affect connectivity only, never civic authority or finalized truth; abuse controls are public and bounded.",
       "authority_boundary": "Network hints and peer scores affect connectivity only, never civic authority or finalized truth; abuse controls are public and bounded.",
       "repository_evidence_paths": [
-        "net/gossip.py",
-        "net/router.py",
-        "net/relay.py",
-        "runtime/apply/networking.py"
+        "src/weall/net/gossip.py",
+        "src/weall/net/router.py",
+        "src/weall/net/relay.py",
+        "src/weall/runtime/apply/networking.py"
       ],
       "specification_sections": [
-        "Sections 44, 47-48, 54, 58 "
+        "Sections 44, 47-48, 54, 58"
       ],
       "divergence_status": "Sections 44, 47-48, 54, 58 CURRENT_MECHANISM_NARRATI VE_EXPANDED",
       "activation_gate": "profile_bound",
@@ -659,9 +1060,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 379,
-      "pdf_row_digest": "3a36c5a6905f74c1f732d2543a74a59de7d582d4fd57240bad6b7e33104dd7fa"
+      "pdf_row_digest": "3a36c5a6905f74c1f732d2543a74a59de7d582d4fd57240bad6b7e33104dd7fa",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/gossip.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/router.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/relay.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/networking.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-025",
@@ -672,13 +1095,13 @@
       "production_target": "Transport encryption and reachability are service properties, not consensus authority; failures remain visible and recoverable.",
       "authority_boundary": "Transport encryption and reachability are service properties, not consensus authority; failures remain visible and recoverable.",
       "repository_evidence_paths": [
-        "net/transport_memory.py",
-        "net/transport_tcp.py",
-        "net/transport_tls.py",
-        "docs/PUBLIC_TESTNET_NAT_FIRE WALL_TLS_RECOVERY.md"
+        "src/weall/net/transport_memory.py",
+        "src/weall/net/transport_tcp.py",
+        "src/weall/net/transport_tls.py",
+        "docs/PUBLIC_TESTNET_NAT_FIREWALL_TLS_RECOVERY.md"
       ],
       "specification_sections": [
-        "Sections 44, 48, 54, 59 "
+        "Sections 44, 48, 54, 59"
       ],
       "divergence_status": "Sections 44, 48, 54, 59 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -687,9 +1110,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 379,
-      "pdf_row_digest": "80cf8ee3c0c8c4049f48d36f3f95979eea6608bdf3f85f696ca85503c31550f7"
+      "pdf_row_digest": "80cf8ee3c0c8c4049f48d36f3f95979eea6608bdf3f85f696ca85503c31550f7",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/transport_memory.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/transport_tcp.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/net/transport_tls.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/PUBLIC_TESTNET_NAT_FIREWALL_TLS_RECOVERY.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-026",
@@ -697,14 +1142,14 @@
       "title": "Consensus & network Provider-independent public discovery",
       "mechanism_kind": "consensus",
       "current_snapshot_behavior": "Signed seed registries, trust roots, endpoint evidence, and chain commitments gate observer boot.",
-      "production_target": "No named provider is trusted as protocol authority; bytes and endpoints are verified against user- controlled roots and finalized state. boundary",
-      "authority_boundary": "No named provider is trusted as protocol authority; bytes and endpoints are verified against user- controlled roots and finalized state. boundary",
+      "production_target": "No named provider is trusted as protocol authority; bytes and endpoints are verified against user-controlled roots and finalized state. boundary",
+      "authority_boundary": "No named provider is trusted as protocol authority; bytes and endpoints are verified against user-controlled roots and finalized state. boundary",
       "repository_evidence_paths": [
-        "configs/ public_testnet_seed_registry.json",
+        "configs/public_testnet_seed_registry.json",
         "configs/public_testnet_trust_roots.json"
       ],
       "specification_sections": [
-        "Sections 44, 55, 60, 80 "
+        "Sections 44, 55, 60, 80"
       ],
       "divergence_status": "Sections 44, 55, 60, 80 ALIGNED_CURRENT_LAUNCH_GA TED",
       "activation_gate": "profile_bound",
@@ -713,9 +1158,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 379,
-      "pdf_row_digest": "95c058fb9fc54fa6023aabb9680bdf65b5e7ca87e3642e84d38dc203f0eb63a7"
+      "pdf_row_digest": "95c058fb9fc54fa6023aabb9680bdf65b5e7ca87e3642e84d38dc203f0eb63a7",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "configs/public_testnet_seed_registry.json",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "configs/public_testnet_trust_roots.json",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-027",
@@ -726,13 +1183,13 @@
       "production_target": "Observer-local acceptance never equals finality; status must distinguish queued, forwarded, upstream accepted, included, finalized, rejected, and locally synced.",
       "authority_boundary": "Observer-local acceptance never equals finality; status must distinguish queued, forwarded, upstream accepted, included, finalized, rejected, and locally synced.",
       "repository_evidence_paths": [
-        "api/routes_public_parts/mempool.py",
-        "api/routes_public_parts/status.py",
-        "scripts/observer_*",
-        "docs/EXTERNAL_OBSERVER_BUN DLE_RUNBOOK.md"
+        "src/weall/api/routes_public_parts/mempool.py",
+        "src/weall/api/routes_public_parts/status.py",
+        "target:scripts/observer_*",
+        "docs/EXTERNAL_OBSERVER_BUNDLE_RUNBOOK.md"
       ],
       "specification_sections": [
-        "Sections 43-48, 51, 54-55, 94 "
+        "Sections 43-48, 51, 54-55, 94"
       ],
       "divergence_status": "Sections 43-48, 51, 54-55, 94 CURRENT_MECHANISM_NARRATI VE_EXPANDED",
       "activation_gate": "profile_bound",
@@ -741,9 +1198,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "60aa4b6ebb222cef97f38ac78449c756d976de8113c8b9d30ee8d2ed657f138b"
+      "pdf_row_digest": "60aa4b6ebb222cef97f38ac78449c756d976de8113c8b9d30ee8d2ed657f138b",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/mempool.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/status.py",
+          "status": "present"
+        },
+        {
+          "kind": "planned_target_glob",
+          "path": "scripts/observer_*",
+          "status": "not_present_launch_gated"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/EXTERNAL_OBSERVER_BUNDLE_RUNBOOK.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-028",
@@ -751,15 +1230,15 @@
       "title": "Identity & PoH Accounts, keys, devices, sessions, and security policy",
       "mechanism_kind": "identity",
       "current_snapshot_behavior": "Account registration, ML-DSA keys, secondary keys, one-node-device policy, browser/device records, session keys, and security policies are canonical transaction surfaces.",
-      "production_target": "Custody operations are purpose- bound, nonce-protected, replay-safe, recoverable, and exposed truthfully through API/frontend.",
-      "authority_boundary": "Custody operations are purpose- bound, nonce-protected, replay-safe, recoverable, and exposed truthfully through API/frontend.",
+      "production_target": "Custody operations are purpose-bound, nonce-protected, replay-safe, recoverable, and exposed truthfully through API/frontend.",
+      "authority_boundary": "Custody operations are purpose-bound, nonce-protected, replay-safe, recoverable, and exposed truthfully through API/frontend.",
       "repository_evidence_paths": [
-        "runtime/apply/identity.py",
-        "runtime/session_keys.py",
-        "crypto/account_keys.py"
+        "src/weall/runtime/apply/identity.py",
+        "src/weall/runtime/session_keys.py",
+        "src/weall/crypto/account_keys.py"
       ],
       "specification_sections": [
-        "Sections 7-13, 47, 49, 94 "
+        "Sections 7-13, 47, 49, 94"
       ],
       "divergence_status": "Sections 7-13, 47, 49, 94 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -768,9 +1247,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "76260b39d3b47f4259b3af30ab6cd65e969ff7e4a883cb7e4a1d034f96cddef0"
+      "pdf_row_digest": "76260b39d3b47f4259b3af30ab6cd65e969ff7e4a883cb7e4a1d034f96cddef0",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/identity.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/session_keys.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/crypto/account_keys.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-029",
@@ -781,11 +1277,11 @@
       "production_target": "All restrictions require public reason, authority, due process, expiry/review where applicable, and restoration semantics.",
       "authority_boundary": "All restrictions require public reason, authority, due process, expiry/review where applicable, and restoration semantics.",
       "repository_evidence_paths": [
-        "runtime/apply/identity.py",
-        "runtime/apply/reputation.py"
+        "src/weall/runtime/apply/identity.py",
+        "src/weall/runtime/apply/reputation.py"
       ],
       "specification_sections": [
-        "Sections 13, 30-35, 58, 94 "
+        "Sections 13, 30-35, 58, 94"
       ],
       "divergence_status": "Sections 13, 30-35, 58, 94 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -794,9 +1290,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "88e95f9e009631d7996e3be35d5c6162fe0aff8ee90dd4d164323b1704fa5c61"
+      "pdf_row_digest": "88e95f9e009631d7996e3be35d5c6162fe0aff8ee90dd4d164323b1704fa5c61",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/identity.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/reputation.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-030",
@@ -807,11 +1315,11 @@
       "production_target": "Guardian recovery remains historical replay/migration only after the target routes activate; it is rejected for new Mainnet state.",
       "authority_boundary": "Guardian recovery remains historical replay/migration only after the target routes activate; it is rejected for new Mainnet state.",
       "repository_evidence_paths": [
-        "runtime/apply/identity.py",
+        "src/weall/runtime/apply/identity.py",
         "generated/tx_index.json"
       ],
       "specification_sections": [
-        "Sections 13, 82 "
+        "Sections 13, 82"
       ],
       "divergence_status": "Sections 13, 82 D-12/D-33 IMPLEMENTATION_DIVERGENCE",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -820,9 +1328,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "6ebb1ad8e439c6bb5ce434d8a0f6024844c543127585c946284e4af5219ea5a8"
+      "pdf_row_digest": "6ebb1ad8e439c6bb5ce434d8a0f6024844c543127585c946284e4af5219ea5a8",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/identity.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "generated/tx_index.json",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-031",
@@ -833,8 +1353,8 @@
       "production_target": "Offline recovery key or 15-reviewer/10-approval Tier 2 continuity panel; revoke old keys/devices/sessions; cooldown; reversal challenge; rate limits; receipts.",
       "authority_boundary": "Offline recovery key or 15-reviewer/10-approval Tier 2 continuity panel; revoke old keys/devices/sessions; cooldown; reversal challenge; rate limits; receipts.",
       "repository_evidence_paths": [
-        "target: runtime/apply/identity.py",
-        "runtime/assignment/"
+        "target:src/weall/runtime/apply/identity.py",
+        "target:src/weall/runtime/assignment/"
       ],
       "specification_sections": [
         "Sections 13, 77, 94"
@@ -846,9 +1366,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "09db44bf85db0a442c782efd452f4a3e4e56bb5d8cdb55760ac1019270234f33"
+      "pdf_row_digest": "09db44bf85db0a442c782efd452f4a3e4e56bb5d8cdb55760ac1019270234f33",
+      "repository_evidence": [
+        {
+          "kind": "planned_target_path",
+          "path": "src/weall/runtime/apply/identity.py",
+          "status": "not_present_launch_gated"
+        },
+        {
+          "kind": "planned_target_path",
+          "path": "src/weall/runtime/assignment/",
+          "status": "not_present_launch_gated"
+        }
+      ]
     },
     {
       "id": "M-032",
@@ -859,9 +1391,9 @@
       "production_target": "Assignment, evidence access, quorum, deadlines, appeal, renewal, and deletion are profile-bound and independently reviewable.",
       "authority_boundary": "Assignment, evidence access, quorum, deadlines, appeal, renewal, and deletion are profile-bound and independently reviewable.",
       "repository_evidence_paths": [
-        "runtime/apply/poh.py",
-        "runtime/poh/async_scheduler.py",
-        "runtime/poh/eligibility.py"
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/runtime/poh/async_scheduler.py",
+        "src/weall/runtime/poh/eligibility.py"
       ],
       "specification_sections": [
         "Sections 9, 11, 31, 73, 79, 94"
@@ -873,9 +1405,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "5693e98b4c0b6270ca7d6e21fea65111bce7c2fcc3efd7ecb8645f8cc0c5b4d9"
+      "pdf_row_digest": "5693e98b4c0b6270ca7d6e21fea65111bce7c2fcc3efd7ecb8645f8cc0c5b4d9",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/poh.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/poh/async_scheduler.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/poh/eligibility.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-033",
@@ -886,12 +1435,12 @@
       "production_target": "Live standing expires and renews by finalized height; frozen snapshots remain stable; insufficient panels fail closed.",
       "authority_boundary": "Live standing expires and renews by finalized height; frozen snapshots remain stable; insufficient panels fail closed.",
       "repository_evidence_paths": [
-        "runtime/poh/live_scheduler.py",
-        "runtime/poh/live_quorum.py",
-        "runtime/poh/tier2_scheduler.py"
+        "src/weall/runtime/poh/live_scheduler.py",
+        "src/weall/runtime/poh/live_quorum.py",
+        "src/weall/runtime/poh/tier2_scheduler.py"
       ],
       "specification_sections": [
-        "Sections 10-11, 31, 73, 77, 79 "
+        "Sections 10-11, 31, 73, 77, 79"
       ],
       "divergence_status": "Sections 10-11, 31, 73, 77, 79 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -900,9 +1449,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "15f6ab2d62ff60f0af4802cdf526c99e16f8be370bd0f77cabf9966175149aa6"
+      "pdf_row_digest": "15f6ab2d62ff60f0af4802cdf526c99e16f8be370bd0f77cabf9966175149aa6",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/poh/live_scheduler.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/poh/live_quorum.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/poh/tier2_scheduler.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-034",
@@ -913,12 +1479,12 @@
       "production_target": "All assignment uses frozen eligible pools, future entropy, conflicts, substitutes, concentration limits, and public receipts.",
       "authority_boundary": "All assignment uses frozen eligible pools, future entropy, conflicts, substitutes, concentration limits, and public receipts.",
       "repository_evidence_paths": [
-        "runtime/reviewer_responsibilities.py",
-        "runtime/attestation_pool.py",
-        "runtime/poh/juror_select.py"
+        "src/weall/runtime/reviewer_responsibilities.py",
+        "src/weall/runtime/attestation_pool.py",
+        "src/weall/runtime/poh/juror_select.py"
       ],
       "specification_sections": [
-        "Sections 31, 43, 73, 77, 94 "
+        "Sections 31, 43, 73, 77, 94"
       ],
       "divergence_status": "Sections 31, 43, 73, 77, 94 CURRENT_PARTIAL_TARGET_DIV ERGENCE",
       "activation_gate": "profile_bound",
@@ -927,9 +1493,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "df0f54d62a17dc40faf2f61766fed609acfae4596da4805c0b3c9c93a2b3763b"
+      "pdf_row_digest": "df0f54d62a17dc40faf2f61766fed609acfae4596da4805c0b3c9c93a2b3763b",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/reviewer_responsibilities.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/attestation_pool.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/poh/juror_select.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-035",
@@ -940,12 +1523,12 @@
       "production_target": "Client-side encryption, per-case keys, salted commitments, purpose-bound boundary grants, access receipts, provider inventory, retention, deletion, and compromise response.",
       "authority_boundary": "Client-side encryption, per-case keys, salted commitments, purpose-bound boundary grants, access receipts, provider inventory, retention, deletion, and compromise response.",
       "repository_evidence_paths": [
-        "runtime/apply/poh.py",
-        "storage/ipfs_pin_worker.py",
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/storage/ipfs_pin_worker.py",
         "docs/security/poh-privacy.md"
       ],
       "specification_sections": [
-        "Sections 11, 48-49, 79, 94 "
+        "Sections 11, 48-49, 79, 94"
       ],
       "divergence_status": "Sections 11, 48-49, 79, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -954,25 +1537,42 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 380,
-      "pdf_row_digest": "f59156e855881b47ae7b7e1d76f1bc026470bb5145ed1e43dac31d263222e38a"
+      "pdf_row_digest": "f59156e855881b47ae7b7e1d76f1bc026470bb5145ed1e43dac31d263222e38a",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/poh.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/storage/ipfs_pin_worker.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/security/poh-privacy.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-036",
       "status": "current_partial",
       "title": "Identity & PoH Live-room WebRTC/TURN/ICE transport",
       "mechanism_kind": "identity",
-      "current_snapshot_behavior": "Browser WebRTC live rooms and relay diagnostics provide non- authoritative media transport for live verification; chain attendance/verdict/finalization remains authoritative.",
+      "current_snapshot_behavior": "Browser WebRTC live rooms and relay diagnostics provide non-authoritative media transport for live verification; chain attendance/verdict/finalization remains authoritative.",
       "production_target": "Transport failure is reported as transport failure, never as a civic result; no protocol-native private messaging authority is introduced.",
       "authority_boundary": "Transport failure is reported as transport failure, never as a civic result; no protocol-native private messaging authority is introduced.",
       "repository_evidence_paths": [
-        "api/routes_public_parts/poh.py",
-        "tests/test_decentralized_p2p_live_roo ms.py",
+        "src/weall/api/routes_public_parts/poh.py",
+        "tests/test_decentralized_p2p_live_rooms.py",
         "docs/KNOWN_LIMITATIONS.md"
       ],
       "specification_sections": [
-        "Sections 11, 15, 47-49, 94 "
+        "Sections 11, 15, 47-49, 94"
       ],
       "divergence_status": "Sections 11, 15, 47-49, 94 CURRENT_MECHANISM_CLARIFIE D",
       "activation_gate": "profile_bound",
@@ -981,9 +1581,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "0e787a61516f810630a38b6576edbe4020cb1234d9b2910c9bdb64738477322a"
+      "pdf_row_digest": "0e787a61516f810630a38b6576edbe4020cb1234d9b2910c9bdb64738477322a",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/poh.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "tests/test_decentralized_p2p_live_rooms.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/KNOWN_LIMITATIONS.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-037",
@@ -994,11 +1611,11 @@
       "production_target": "Closure starts sealed retention; due deletion/erasure retries deterministically and emits success/failure receipts without claiming human memory deletion.",
       "authority_boundary": "Closure starts sealed retention; due deletion/erasure retries deterministically and emits success/failure receipts without claiming human memory deletion.",
       "repository_evidence_paths": [
-        "runtime/ storage_revalidation_scheduler.py",
-        "target evidence-security modules"
+        "src/weall/runtime/storage_revalidation_scheduler.py",
+        "target-reference:target evidence-security modules"
       ],
       "specification_sections": [
-        "Sections 11, 48, 79, 82 "
+        "Sections 11, 48, 79, 82"
       ],
       "divergence_status": "Sections 11, 48, 79, 82 D-25/D-41 NORMATIVE_TARGET_CURRENT_ PARTIAL",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -1007,9 +1624,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "f3294cbc1e20c09d6a013621f5925cc9d22b9af0141a25593b3c117864c5b2fe"
+      "pdf_row_digest": "f3294cbc1e20c09d6a013621f5925cc9d22b9af0141a25593b3c117864c5b2fe",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/storage_revalidation_scheduler.py",
+          "status": "present"
+        },
+        {
+          "kind": "planned_target_reference",
+          "reference": "target evidence-security modules",
+          "status": "not_present_launch_gated"
+        }
+      ]
     },
     {
       "id": "M-038",
@@ -1020,11 +1649,11 @@
       "production_target": "Public profile state is canonical; local mute/filter preferences never change public read visibility or protocol authority.",
       "authority_boundary": "Public profile state is canonical; local mute/filter preferences never change public read visibility or protocol authority.",
       "repository_evidence_paths": [
-        "runtime/apply/social.py",
-        "runtime/apply/identity.py"
+        "src/weall/runtime/apply/social.py",
+        "src/weall/runtime/apply/identity.py"
       ],
       "specification_sections": [
-        "Sections 14-16, 47, 53, 94 "
+        "Sections 14-16, 47, 53, 94"
       ],
       "divergence_status": "Sections 14-16, 47, 53, 94 ALIGNED_CURRENT",
       "activation_gate": "profile_bound",
@@ -1033,9 +1662,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "99563cf341e7baccac8ee107c4ec770d1fce31d01f5799f52b6878aecadf843c"
+      "pdf_row_digest": "99563cf341e7baccac8ee107c4ec770d1fce31d01f5799f52b6878aecadf843c",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/social.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/identity.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-039",
@@ -1046,12 +1687,12 @@
       "production_target": "History, deletion markers, attribution, public visibility, media commitments, and API/frontend status remain consistent across replay and feeds.",
       "authority_boundary": "History, deletion markers, attribution, public visibility, media commitments, and API/frontend status remain consistent across replay and feeds.",
       "repository_evidence_paths": [
-        "runtime/apply/content.py",
-        "api/routes_public_parts/content.py",
-        "api/routes_public_parts/media.py"
+        "src/weall/runtime/apply/content.py",
+        "src/weall/api/routes_public_parts/content.py",
+        "src/weall/api/routes_public_parts/media.py"
       ],
       "specification_sections": [
-        "Sections 14-16, 47, 51, 53, 94 "
+        "Sections 14-16, 47, 51, 53, 94"
       ],
       "divergence_status": "Sections 14-16, 47, 51, 53, 94 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -1060,9 +1701,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "db4bad065d7f796eedabfd294860876562c8795c4f47d1e839c2367efb2eeede"
+      "pdf_row_digest": "db4bad065d7f796eedabfd294860876562c8795c4f47d1e839c2367efb2eeede",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/content.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/content.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/media.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-040",
@@ -1073,11 +1731,11 @@
       "production_target": "Moderation is constitutionally bounded, publicly receipted, appealable, and cannot create hidden local protocol truth.",
       "authority_boundary": "Moderation is constitutionally bounded, publicly receipted, appealable, and cannot create hidden local protocol truth.",
       "repository_evidence_paths": [
-        "runtime/apply/content.py",
-        "runtime/apply/dispute.py"
+        "src/weall/runtime/apply/content.py",
+        "src/weall/runtime/apply/dispute.py"
       ],
       "specification_sections": [
-        "Sections 15-16, 30-35, 94 "
+        "Sections 15-16, 30-35, 94"
       ],
       "divergence_status": "Sections 15-16, 30-35, 94 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -1086,24 +1744,36 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "872834748ff56fbfa021b63f65149310687e7e82064c224f7643ff8a8e298f6a"
+      "pdf_row_digest": "872834748ff56fbfa021b63f65149310687e7e82064c224f7643ff8a8e298f6a",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/content.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/dispute.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-041",
       "status": "current_implemented",
       "title": "Social & groups Public-only read visibility and local controls",
       "mechanism_kind": "social",
-      "current_snapshot_behavior": "Backend rejects non-public protocol- native group visibility and opaque social payloads; local blocks, filters, drafts, and preferences remain noncanonical.",
+      "current_snapshot_behavior": "Backend rejects non-public protocol-native group visibility and opaque social payloads; local blocks, filters, drafts, and preferences remain noncanonical.",
       "production_target": "All publicly consequential social/civic state is readable; only protected evidence and local-only state are nonpublic.",
       "authority_boundary": "All publicly consequential social/civic state is readable; only protected evidence and local-only state are nonpublic.",
       "repository_evidence_paths": [
-        "runtime/public_protocol_policy.py",
-        "docs/PUBLIC_ONLY_PROTOCOL.m d"
+        "src/weall/runtime/public_protocol_policy.py",
+        "docs/PUBLIC_ONLY_PROTOCOL.md"
       ],
       "specification_sections": [
-        "Sections 14-16, 47, 51, 58 "
+        "Sections 14-16, 47, 51, 58"
       ],
       "divergence_status": "Sections 14-16, 47, 51, 58 ALIGNED_CURRENT",
       "activation_gate": "profile_bound",
@@ -1112,9 +1782,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "98fa2caf3cec1ce18289b393c2535c3c66b71b2c5500f9194b3767a2c394b9a8"
+      "pdf_row_digest": "98fa2caf3cec1ce18289b393c2535c3c66b71b2c5500f9194b3767a2c394b9a8",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/public_protocol_policy.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/PUBLIC_ONLY_PROTOCOL.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-042",
@@ -1125,11 +1807,11 @@
       "production_target": "Charter-bound collective authority, reasoned membership decisions, appeals, scoped permissions, and no permanent creator sovereignty.",
       "authority_boundary": "Charter-bound collective authority, reasoned membership decisions, appeals, scoped permissions, and no permanent creator sovereignty.",
       "repository_evidence_paths": [
-        "runtime/apply/groups.py",
-        "api/routes_public_parts/groups.py"
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/api/routes_public_parts/groups.py"
       ],
       "specification_sections": [
-        "Sections 17-21, 27, 94 "
+        "Sections 17-21, 27, 94"
       ],
       "divergence_status": "Sections 17-21, 27, 94 CURRENT_PARTIAL_TARGET_DIV ERGENCE",
       "activation_gate": "profile_bound",
@@ -1138,9 +1820,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "7114694b40ebaa687d1bba1c2208ba3bc1197f12329c0d14773136de73e1f5a4"
+      "pdf_row_digest": "7114694b40ebaa687d1bba1c2208ba3bc1197f12329c0d14773136de73e1f5a4",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/groups.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/groups.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-043",
@@ -1148,14 +1842,14 @@
       "title": "Social & groups Group-scoped posting and participation",
       "mechanism_kind": "social",
       "current_snapshot_behavior": "Membership can gate posting/commenting/voting/administrat ion while protocol-native group reads remain public.",
-      "production_target": "Participation permissions are charter- defined and backend-enforced; frontend controls are advisory.",
-      "authority_boundary": "Participation permissions are charter- defined and backend-enforced; frontend controls are advisory.",
+      "production_target": "Participation permissions are charter-defined and backend-enforced; frontend controls are advisory.",
+      "authority_boundary": "Participation permissions are charter-defined and backend-enforced; frontend controls are advisory.",
       "repository_evidence_paths": [
-        "runtime/apply/groups.py",
-        "tests/test_group_scoped_posting_aut hority.py"
+        "src/weall/runtime/apply/groups.py",
+        "tests/test_group_scoped_posting_authority.py"
       ],
       "specification_sections": [
-        "Sections 15, 17-20, 47, 94 "
+        "Sections 15, 17-20, 47, 94"
       ],
       "divergence_status": "Sections 15, 17-20, 47, 94 ALIGNED_CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -1164,9 +1858,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "a9524c62e51ef35a85a6e41e2f4317fc2dc4c0cb4bcdf1e9a993bac30fa125f6"
+      "pdf_row_digest": "a9524c62e51ef35a85a6e41e2f4317fc2dc4c0cb4bcdf1e9a993bac30fa125f6",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/groups.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "tests/test_group_scoped_posting_authority.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-044",
@@ -1177,11 +1883,11 @@
       "production_target": "Ranked sealed ballots may select bounded executors; emissaries never boundary gain independent policy authority.",
       "authority_boundary": "Ranked sealed ballots may select bounded executors; emissaries never boundary gain independent policy authority.",
       "repository_evidence_paths": [
-        "runtime/apply/groups.py",
-        "runtime/apply/roles.py"
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/runtime/apply/roles.py"
       ],
       "specification_sections": [
-        "Sections 20, 27, 38, 74, 94 "
+        "Sections 20, 27, 38, 74, 94"
       ],
       "divergence_status": "Sections 20, 27, 38, 74, 94 CURRENT_PARTIAL_TARGET_DIV ERGENCE",
       "activation_gate": "profile_bound",
@@ -1190,9 +1896,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 381,
-      "pdf_row_digest": "abbd79fc3b1d4c5f9ea224cc69a9ce0e7005ca4ce67d0ba5b95bf87515727d8d"
+      "pdf_row_digest": "abbd79fc3b1d4c5f9ea224cc69a9ce0e7005ca4ce67d0ba5b95bf87515727d8d",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/groups.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/roles.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-045",
@@ -1203,11 +1921,11 @@
       "production_target": "Spends are proposal-bound, milestone/evidence-bound where required, deterministically due, and live only after economics activation.",
       "authority_boundary": "Spends are proposal-bound, milestone/evidence-bound where required, deterministically due, and live only after economics activation.",
       "repository_evidence_paths": [
-        "runtime/apply/groups.py",
-        "runtime/group_treasury_scheduler.py"
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/runtime/group_treasury_scheduler.py"
       ],
       "specification_sections": [
-        "Sections 21, 37-39, 41-42, 94 "
+        "Sections 21, 37-39, 41-42, 94"
       ],
       "divergence_status": "Sections 21, 37-39, 41-42, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1216,9 +1934,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "aaa2c7d27893a15e645885aeeb6deb91dd2749aeaa4e98bf5f22eec93993331b"
+      "pdf_row_digest": "aaa2c7d27893a15e645885aeeb6deb91dd2749aeaa4e98bf5f22eec93993331b",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/groups.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/group_treasury_scheduler.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-046",
@@ -1229,10 +1959,10 @@
       "production_target": "Separate parent-group consent, shared authority rules, withdrawal/expiry, obligation transfer, dissolution safety, and asset disposition receipts.",
       "authority_boundary": "Separate parent-group consent, shared authority rules, withdrawal/expiry, obligation transfer, dissolution safety, and asset disposition receipts.",
       "repository_evidence_paths": [
-        "target: runtime/apply/groups.py"
+        "target:src/weall/runtime/apply/groups.py"
       ],
       "specification_sections": [
-        "Sections 20-21, 26-27, 33, 94 "
+        "Sections 20-21, 26-27, 33, 94"
       ],
       "divergence_status": "Sections 20-21, 26-27, 33, 94 NORMATIVE_TARGET",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -1241,9 +1971,16 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "8dd47771620ed982e77417bc79662a82b126c1dc48cd03df1a8fd8b2927b3613"
+      "pdf_row_digest": "8dd47771620ed982e77417bc79662a82b126c1dc48cd03df1a8fd8b2927b3613",
+      "repository_evidence": [
+        {
+          "kind": "planned_target_path",
+          "path": "src/weall/runtime/apply/groups.py",
+          "status": "not_present_launch_gated"
+        }
+      ]
     },
     {
       "id": "M-047",
@@ -1254,12 +1991,12 @@
       "production_target": "Canonical notifications are public activity receipts; delivery preferences are local and cannot alter protocol outcomes.",
       "authority_boundary": "Canonical notifications are public activity receipts; delivery preferences are local and cannot alter protocol outcomes.",
       "repository_evidence_paths": [
-        "runtime/apply/notifications.py",
-        "api/routes_public_parts/activity.py",
-        "api/routes_public_parts/social.py"
+        "src/weall/runtime/apply/notifications.py",
+        "src/weall/api/routes_public_parts/activity.py",
+        "src/weall/api/routes_public_parts/social.py"
       ],
       "specification_sections": [
-        "Sections 14-16, 47, 51, 53-54, 94 "
+        "Sections 14-16, 47, 51, 53-54, 94"
       ],
       "divergence_status": "Sections 14-16, 47, 51, 53-54, 94 CURRENT_MECHANISM_NARRATI VE_EXPANDED",
       "activation_gate": "profile_bound",
@@ -1268,9 +2005,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "61454befda19624cfc1ffa6ba3722155adca14cbe4638d609c13dd26bdedad54"
+      "pdf_row_digest": "61454befda19624cfc1ffa6ba3722155adca14cbe4638d609c13dd26bdedad54",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/notifications.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/activity.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/social.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-048",
@@ -1278,15 +2032,15 @@
       "title": "Social & groups Index anchors, topics, search, feed, and ranking",
       "mechanism_kind": "social",
       "current_snapshot_behavior": "Index/topic registration and anchors exist; public feeds/read models suppress removed content and expose protocol status.",
-      "production_target": "Indexes and ranking are non- authoritative derivatives; algorithms, filters, and provenance are inspectable and cannot override canonical state.",
-      "authority_boundary": "Indexes and ranking are non- authoritative derivatives; algorithms, filters, and provenance are inspectable and cannot override canonical state.",
+      "production_target": "Indexes and ranking are non-authoritative derivatives; algorithms, filters, and provenance are inspectable and cannot override canonical state.",
+      "authority_boundary": "Indexes and ranking are non-authoritative derivatives; algorithms, filters, and provenance are inspectable and cannot override canonical state.",
       "repository_evidence_paths": [
-        "runtime/apply/indexing.py",
-        "api/routes_public_parts/state.py",
-        "indexing/"
+        "src/weall/runtime/apply/indexing.py",
+        "src/weall/api/routes_public_parts/state.py",
+        "src/weall/indexing/"
       ],
       "specification_sections": [
-        "Sections 47-48, 51, 53, 61, 94 "
+        "Sections 47-48, 51, 53, 61, 94"
       ],
       "divergence_status": "Sections 47-48, 51, 53, 61, 94 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -1295,9 +2049,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "3331bc33eeec41e3970e50aedf20396544be1da821c75fceadf9ad2740b35d8b"
+      "pdf_row_digest": "3331bc33eeec41e3970e50aedf20396544be1da821c75fceadf9ad2740b35d8b",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/indexing.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/state.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/indexing/",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-049",
@@ -1308,11 +2079,11 @@
       "production_target": "Target lifecycle uses scope, frozen electorate, deliberation restart on material revision, sealed ballot, hold, due execution, completion review, and finalization.",
       "authority_boundary": "Target lifecycle uses scope, frozen electorate, deliberation restart on material revision, sealed ballot, hold, due execution, completion review, and finalization.",
       "repository_evidence_paths": [
-        "runtime/apply/governance.py",
-        "runtime/gov_engine.py"
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/runtime/gov_engine.py"
       ],
       "specification_sections": [
-        "Sections 22-25, 28, 74, 94 "
+        "Sections 22-25, 28, 74, 94"
       ],
       "divergence_status": "Sections 22-25, 28, 74, 94 CURRENT_PARTIAL_TARGET_DIV ERGENCE",
       "activation_gate": "profile_bound",
@@ -1321,9 +2092,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "4a0f17d76df30512ddca1635945c6f00600b9d0a7369ab417564331e906c8d0b"
+      "pdf_row_digest": "4a0f17d76df30512ddca1635945c6f00600b9d0a7369ab417564331e906c8d0b",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/governance.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/gov_engine.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-050",
@@ -1334,11 +2117,11 @@
       "production_target": "First admitted sealed ballot is final; thresholds use frozen denominators and exact integer arithmetic; no identity-choice mapping.",
       "authority_boundary": "First admitted sealed ballot is final; thresholds use frozen denominators and exact integer arithmetic; no identity-choice mapping.",
       "repository_evidence_paths": [
-        "runtime/apply/governance.py",
+        "src/weall/runtime/apply/governance.py",
         "generated/tx_index.json"
       ],
       "specification_sections": [
-        "Sections 22-24, 74, 94 "
+        "Sections 22-24, 74, 94"
       ],
       "divergence_status": "Sections 22-24, 74, 94 IMPLEMENTATION_DIVERGENCE",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -1347,9 +2130,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "8b8b49a772e4161b118eb7072385067d376f73060109b35a916190ebd993f662"
+      "pdf_row_digest": "8b8b49a772e4161b118eb7072385067d376f73060109b35a916190ebd993f662",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/governance.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "generated/tx_index.json",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-051",
@@ -1360,11 +2155,11 @@
       "production_target": "Protocol-wide Tier 2, single-group, multi-group, and emergency electorates freeze at the correct height; validators are not political principals.",
       "authority_boundary": "Protocol-wide Tier 2, single-group, multi-group, and emergency electorates freeze at the correct height; validators are not political principals.",
       "repository_evidence_paths": [
-        "runtime/apply/governance.py",
-        "target electorate modules"
+        "src/weall/runtime/apply/governance.py",
+        "target-reference:target electorate modules"
       ],
       "specification_sections": [
-        "Sections 23-29, 73-74, 94 "
+        "Sections 23-29, 73-74, 94"
       ],
       "divergence_status": "Sections 23-29, 73-74, 94 NORMATIVE_TARGET_HIGH_PRIO RITY_DIVERGENCE",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -1373,25 +2168,37 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "1839f0a08422977aa76f20fae9e0efffcda0c47ac5a8db613bb30ee2918fdc58"
+      "pdf_row_digest": "1839f0a08422977aa76f20fae9e0efffcda0c47ac5a8db613bb30ee2918fdc58",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/governance.py",
+          "status": "present"
+        },
+        {
+          "kind": "planned_target_reference",
+          "reference": "target electorate modules",
+          "status": "not_present_launch_gated"
+        }
+      ]
     },
     {
       "id": "M-052",
       "status": "normative_target",
       "title": "Governance & due process Execution hold, due action, and deterministic remedy",
       "mechanism_kind": "governance",
-      "current_snapshot_behavior": "Current repository schedules some governance follow-ups and records upgrade intent, but manual/record- only boundaries remain.",
+      "current_snapshot_behavior": "Current repository schedules some governance follow-ups and records upgrade intent, but manual/record-only boundaries remain.",
       "production_target": "Approved executable actions commit digest/contract/preconditions/due height/failure policy and execute exactly once after hold expiry without actor veto.",
       "authority_boundary": "Approved executable actions commit digest/contract/preconditions/due height/failure policy and execute exactly once after hold expiry without actor veto.",
       "repository_evidence_paths": [
-        "runtime/gov_engine.py",
-        "runtime/system_tx_engine.py",
-        "runtime/apply/protocol.py"
+        "src/weall/runtime/gov_engine.py",
+        "src/weall/runtime/system_tx_engine.py",
+        "src/weall/runtime/apply/protocol.py"
       ],
       "specification_sections": [
-        "Sections 24, 50, 76, 95, 100 "
+        "Sections 24, 50, 76, 95, 100"
       ],
       "divergence_status": "Sections 24, 50, 76, 95, 100 NORMATIVE_TARGET_HIGH_PRIO RITY_DIVERGENCE",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -1400,9 +2207,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "c75a70226de2823ebb58a7c17ee5ce74aa97bc4e6904baf3665a204116e8b453"
+      "pdf_row_digest": "c75a70226de2823ebb58a7c17ee5ce74aa97bc4e6904baf3665a204116e8b453",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/gov_engine.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/system_tx_engine.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/protocol.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-053",
@@ -1413,10 +2237,10 @@
       "production_target": "E1/E2/E3 classes use shorter clocks, higher thresholds, bounded boundary tranches/duration, automatic expiry, and mandatory review; no emergency constitutional amendment.",
       "authority_boundary": "E1/E2/E3 classes use shorter clocks, higher thresholds, bounded boundary tranches/duration, automatic expiry, and mandatory review; no emergency constitutional amendment.",
       "repository_evidence_paths": [
-        "target governance/emergency modules"
+        "target:targetgovernance/emergencymodules"
       ],
       "specification_sections": [
-        "Sections 29, 74, 94 "
+        "Sections 29, 74, 94"
       ],
       "divergence_status": "Sections 29, 74, 94 NORMATIVE_TARGET",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -1425,9 +2249,16 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 382,
-      "pdf_row_digest": "c4814e418b589a77af6afdcb251f0fa1edea81d7ba497445eda5d849665d368c"
+      "pdf_row_digest": "c4814e418b589a77af6afdcb251f0fa1edea81d7ba497445eda5d849665d368c",
+      "repository_evidence": [
+        {
+          "kind": "planned_target_path",
+          "path": "targetgovernance/emergencymodules",
+          "status": "not_present_launch_gated"
+        }
+      ]
     },
     {
       "id": "M-054",
@@ -1435,14 +2266,14 @@
       "title": "Governance & due process Dispute open, stage, evidence, assignment, vote, and resolve",
       "mechanism_kind": "governance",
       "current_snapshot_behavior": "Dispute transactions and lifecycle engine support opening, evidence, juror assignment, accept/decline, attendance, votes, resolution, and final receipts.",
-      "production_target": "Every case class has exact eligibility, conflicts, panel, deadline, threshold, remedy, public receipt, and protected- evidence boundary.",
-      "authority_boundary": "Every case class has exact eligibility, conflicts, panel, deadline, threshold, remedy, public receipt, and protected- evidence boundary.",
+      "production_target": "Every case class has exact eligibility, conflicts, panel, deadline, threshold, remedy, public receipt, and protected-evidence boundary.",
+      "authority_boundary": "Every case class has exact eligibility, conflicts, panel, deadline, threshold, remedy, public receipt, and protected-evidence boundary.",
       "repository_evidence_paths": [
-        "runtime/apply/dispute.py",
-        "runtime/dispute_engine.py"
+        "src/weall/runtime/apply/dispute.py",
+        "src/weall/runtime/dispute_engine.py"
       ],
       "specification_sections": [
-        "Sections 30-33, 73, 79, 94 "
+        "Sections 30-33, 73, 79, 94"
       ],
       "divergence_status": "Sections 30-33, 73, 79, 94 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -1451,9 +2282,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "2f3c72bab2238a3c6f1b9dd2d920e1a53df5f85dde05b9cbf3d5c1cfb15350ec"
+      "pdf_row_digest": "2f3c72bab2238a3c6f1b9dd2d920e1a53df5f85dde05b9cbf3d5c1cfb15350ec",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/dispute.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/dispute_engine.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-055",
@@ -1464,11 +2307,11 @@
       "production_target": "Fresh appeal panels, bounded appeals, substitute order, enforcement delay, and append-only correction are exact by case class.",
       "authority_boundary": "Fresh appeal panels, bounded appeals, substitute order, enforcement delay, and append-only correction are exact by case class.",
       "repository_evidence_paths": [
-        "runtime/apply/dispute.py",
-        "runtime/dispute_engine.py"
+        "src/weall/runtime/apply/dispute.py",
+        "src/weall/runtime/dispute_engine.py"
       ],
       "specification_sections": [
-        "Sections 31-33, 73, 94 "
+        "Sections 31-33, 73, 94"
       ],
       "divergence_status": "Sections 31-33, 73, 94 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -1477,9 +2320,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "6f4d7359676b019e42032d211b0d640b3f2709f418149c872ddf19aed01648fa"
+      "pdf_row_digest": "6f4d7359676b019e42032d211b0d640b3f2709f418149c872ddf19aed01648fa",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/dispute.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/dispute_engine.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-056",
@@ -1490,12 +2345,12 @@
       "production_target": "Reputation is contextual, bounded, appealable eligibility evidence; it never changes human vote weight or intrinsic worth.",
       "authority_boundary": "Reputation is contextual, bounded, appealable eligibility evidence; it never changes human vote weight or intrinsic worth.",
       "repository_evidence_paths": [
-        "runtime/reputation_events.py",
-        "runtime/reputation_accrual.py",
-        "runtime/reputation_matrix.py"
+        "src/weall/runtime/reputation_events.py",
+        "src/weall/runtime/reputation_accrual.py",
+        "src/weall/runtime/reputation_matrix.py"
       ],
       "specification_sections": [
-        "Sections 34-36, 41, 43, 58, 94 "
+        "Sections 34-36, 41, 43, 58, 94"
       ],
       "divergence_status": "Sections 34-36, 41, 43, 58, 94 ALIGNED_CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -1504,9 +2359,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "a496bd5156342f09046012ad0499381cb19ef67a939c237e082639a6c3e7a57c"
+      "pdf_row_digest": "a496bd5156342f09046012ad0499381cb19ef67a939c237e082639a6c3e7a57c",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/reputation_events.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/reputation_accrual.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/reputation_matrix.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-057",
@@ -1514,15 +2386,15 @@
       "title": "Governance & due process Role eligibility, enrollment, activation, suspension, and opt-in",
       "mechanism_kind": "governance",
       "current_snapshot_behavior": "Juror, validator, node-operator, emissary, reviewer, storage, and helper role transactions plus exact opt-in lanes exist.",
-      "production_target": "Role membership is separate from human standing and operational readiness; progressive admission, conflicts, expiry, renewal, and anti- monopoly recovery apply.",
-      "authority_boundary": "Role membership is separate from human standing and operational readiness; progressive admission, conflicts, expiry, renewal, and anti- monopoly recovery apply.",
+      "production_target": "Role membership is separate from human standing and operational readiness; progressive admission, conflicts, expiry, renewal, and anti-monopoly recovery apply.",
+      "authority_boundary": "Role membership is separate from human standing and operational readiness; progressive admission, conflicts, expiry, renewal, and anti-monopoly recovery apply.",
       "repository_evidence_paths": [
-        "runtime/apply/roles.py",
-        "runtime/node_operator_responsibilitie s.py",
-        "runtime/reviewer_responsibilities.py"
+        "src/weall/runtime/apply/roles.py",
+        "src/weall/runtime/node_operator_responsibilities.py",
+        "src/weall/runtime/reviewer_responsibilities.py"
       ],
       "specification_sections": [
-        "Sections 31, 36, 38, 43, 67, 77, 94 "
+        "Sections 31, 36, 38, 43, 67, 77, 94"
       ],
       "divergence_status": "Sections 31, 36, 38, 43, 67, 77, 94 CURRENT_PARTIAL_TARGET_DIV ERGENCE",
       "activation_gate": "profile_bound",
@@ -1531,9 +2403,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "ace7543f8668ac9724b7165058474a9cb9813853d28093a110c27ca197bd482f"
+      "pdf_row_digest": "ace7543f8668ac9724b7165058474a9cb9813853d28093a110c27ca197bd482f",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/roles.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/node_operator_responsibilities.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/reviewer_responsibilities.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-058",
@@ -1541,14 +2430,14 @@
       "title": "Governance & due process Sanctions, account exclusion, and slashing",
       "mechanism_kind": "governance",
       "current_snapshot_behavior": "Ban/reinstate, role revocation, slash propose/vote/execute, and reputation consequences exist; live economic slashing is disabled.",
-      "production_target": "Sanctions are reasoned, proportionate, appealable, bounded where possible, and restoration- capable; no unreceipted local exclusion.",
-      "authority_boundary": "Sanctions are reasoned, proportionate, appealable, bounded where possible, and restoration- capable; no unreceipted local exclusion.",
+      "production_target": "Sanctions are reasoned, proportionate, appealable, bounded where possible, and restoration-capable; no unreceipted local exclusion.",
+      "authority_boundary": "Sanctions are reasoned, proportionate, appealable, bounded where possible, and restoration-capable; no unreceipted local exclusion.",
       "repository_evidence_paths": [
-        "runtime/apply/reputation.py",
-        "runtime/apply/consensus.py"
+        "src/weall/runtime/apply/reputation.py",
+        "src/weall/runtime/apply/consensus.py"
       ],
       "specification_sections": [
-        "Sections 32-35, 42, 45, 58, 94 "
+        "Sections 32-35, 42, 45, 58, 94"
       ],
       "divergence_status": "Sections 32-35, 42, 45, 58, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1557,9 +2446,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "e84f879f9567a8c8df18ca6a6d14d0b0745014a40db8ffde00e84a43bdb69c1c"
+      "pdf_row_digest": "e84f879f9567a8c8df18ca6a6d14d0b0745014a40db8ffde00e84a43bdb69c1c",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/reputation.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/consensus.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-059",
@@ -1567,13 +2468,13 @@
       "title": "Governance & due process Service badge capability attestations",
       "mechanism_kind": "governance",
       "current_snapshot_behavior": "Target only; current repository lacks the full badge domain.",
-      "production_target": "Risk-class evidence, independent attestations, expiry, renewal, challenge, revocation, qualified- service routing, and no political weight.",
-      "authority_boundary": "Risk-class evidence, independent attestations, expiry, renewal, challenge, revocation, qualified- service routing, and no political weight.",
+      "production_target": "Risk-class evidence, independent attestations, expiry, renewal, challenge, revocation, qualified-service routing, and no political weight.",
+      "authority_boundary": "Risk-class evidence, independent attestations, expiry, renewal, challenge, revocation, qualified-service routing, and no political weight.",
       "repository_evidence_paths": [
-        "target: runtime/badges/"
+        "target:src/weall/runtime/badges/"
       ],
       "specification_sections": [
-        "Sections 36, 73, 94 "
+        "Sections 36, 73, 94"
       ],
       "divergence_status": "Sections 36, 73, 94 NORMATIVE_TARGET",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -1582,9 +2483,16 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "a448e304438703555c2bb504a3d990572027df24f90c925b9f03440c6f4d1065"
+      "pdf_row_digest": "a448e304438703555c2bb504a3d990572027df24f90c925b9f03440c6f4d1065",
+      "repository_evidence": [
+        {
+          "kind": "planned_target_path",
+          "path": "src/weall/runtime/badges/",
+          "status": "not_present_launch_gated"
+        }
+      ]
     },
     {
       "id": "M-060",
@@ -1595,12 +2503,12 @@
       "production_target": "Governance activation, time lock, conservation, abuse controls, legal review, and launch receipt precede live fees/transfers.",
       "authority_boundary": "Governance activation, time lock, conservation, abuse controls, legal review, and launch receipt precede live fees/transfers.",
       "repository_evidence_paths": [
-        "runtime/apply/economics.py",
-        "runtime/econ_phase.py",
-        "ledger/tokenomics.py"
+        "src/weall/runtime/apply/economics.py",
+        "src/weall/runtime/econ_phase.py",
+        "src/weall/ledger/tokenomics.py"
       ],
       "specification_sections": [
-        "Sections 40-42, 55, 57, 90, 94 "
+        "Sections 40-42, 55, 57, 90, 94"
       ],
       "divergence_status": "Sections 40-42, 55, 57, 90, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1609,9 +2517,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "91af8faa06c564b1ca9e3afb40469a972549a2217f1fc7480172dd23a5e11b24"
+      "pdf_row_digest": "91af8faa06c564b1ca9e3afb40469a972549a2217f1fc7480172dd23a5e11b24",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/economics.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/econ_phase.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/ledger/tokenomics.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-061",
@@ -1622,12 +2547,12 @@
       "production_target": "Exact activation, conservation, recipient qualification, unused-bucket treatment, replay, and independent economic review control issuance.",
       "authority_boundary": "Exact activation, conservation, recipient qualification, unused-bucket treatment, replay, and independent economic review control issuance.",
       "repository_evidence_paths": [
-        "ledger/issuance.py",
-        "ledger/rewards.py",
-        "runtime/apply/rewards.py"
+        "src/weall/ledger/issuance.py",
+        "src/weall/ledger/rewards.py",
+        "src/weall/runtime/apply/rewards.py"
       ],
       "specification_sections": [
-        "Sections 40-42, 58-59, 94 "
+        "Sections 40-42, 58-59, 94"
       ],
       "divergence_status": "Sections 40-42, 58-59, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1636,9 +2561,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "2c2dda8427a45e857ad12566a7e893e1b5c86fa647b4166220541c7e45f17bbb"
+      "pdf_row_digest": "2c2dda8427a45e857ad12566a7e893e1b5c86fa647b4166220541c7e45f17bbb",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/ledger/issuance.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/ledger/rewards.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/rewards.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-062",
@@ -1649,11 +2591,11 @@
       "production_target": "boundary bounded rewards or eligibility only under public formulas, anti-gaming controls, appeals, and activated economics.",
       "authority_boundary": "boundary bounded rewards or eligibility only under public formulas, anti-gaming controls, appeals, and activated economics.",
       "repository_evidence_paths": [
-        "runtime/apply/rewards.py",
-        "runtime/reputation_matrix.py"
+        "src/weall/runtime/apply/rewards.py",
+        "src/weall/runtime/reputation_matrix.py"
       ],
       "specification_sections": [
-        "Sections 34, 41-43, 58-59, 94 "
+        "Sections 34, 41-43, 58-59, 94"
       ],
       "divergence_status": "Sections 34, 41-43, 58-59, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1662,9 +2604,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 383,
-      "pdf_row_digest": "ca4ff7c3d1ff9be81f3614f9e669747467399fd848dc3279f1d1393194f59c87"
+      "pdf_row_digest": "ca4ff7c3d1ff9be81f3614f9e669747467399fd848dc3279f1d1393194f59c87",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/rewards.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/reputation_matrix.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-063",
@@ -1672,14 +2626,14 @@
       "title": "Economics & services Treasury wallets, policy, signers, spends, programs, and audits",
       "mechanism_kind": "economics",
       "current_snapshot_behavior": "Treasury create/wallet/policy/signer/spend/progr am/audit-anchor transaction families exist.",
-      "production_target": "All spending is proposal-purpose- bound, signer-threshold-bound, due- height controlled, evidence-receipted, conserved, and dispute-capable.",
-      "authority_boundary": "All spending is proposal-purpose- bound, signer-threshold-bound, due- height controlled, evidence-receipted, conserved, and dispute-capable.",
+      "production_target": "All spending is proposal-purpose-bound, signer-threshold-bound, due-height controlled, evidence-receipted, conserved, and dispute-capable.",
+      "authority_boundary": "All spending is proposal-purpose-bound, signer-threshold-bound, due-height controlled, evidence-receipted, conserved, and dispute-capable.",
       "repository_evidence_paths": [
-        "runtime/apply/treasury.py",
+        "src/weall/runtime/apply/treasury.py",
         "generated/tx_index.json"
       ],
       "specification_sections": [
-        "Sections 37-42, 94 "
+        "Sections 37-42, 94"
       ],
       "divergence_status": "Sections 37-42, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1688,9 +2642,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 384,
-      "pdf_row_digest": "3e88b83fcb82578b86057da08773f7e7d7ab333b442f9b852164790df42f6fe9"
+      "pdf_row_digest": "3e88b83fcb82578b86057da08773f7e7d7ab333b442f9b852164790df42f6fe9",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/treasury.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "generated/tx_index.json",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-064",
@@ -1701,11 +2667,11 @@
       "production_target": "Approval creates bounded escrow/obligation; releases occur only under approved milestone, signer, reviewer, deadline, and remedy contracts.",
       "authority_boundary": "Approval creates bounded escrow/obligation; releases occur only under approved milestone, signer, reviewer, deadline, and remedy contracts.",
       "repository_evidence_paths": [
-        "target: runtime/apply/treasury.py",
-        "runtime/assignment/"
+        "target:src/weall/runtime/apply/treasury.py",
+        "target:src/weall/runtime/assignment/"
       ],
       "specification_sections": [
-        "Sections 39, 42, 52, 94, 100 "
+        "Sections 39, 42, 52, 94, 100"
       ],
       "divergence_status": "Sections 39, 42, 52, 94, 100 NORMATIVE_TARGET",
       "activation_gate": "disabled_pending_activation_receipt",
@@ -1714,9 +2680,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 384,
-      "pdf_row_digest": "4d7f43a237d8920ef035ba3fd8dd9d55ca5ad0f3ae12c8b5733f37e69941ecca"
+      "pdf_row_digest": "4d7f43a237d8920ef035ba3fd8dd9d55ca5ad0f3ae12c8b5733f37e69941ecca",
+      "repository_evidence": [
+        {
+          "kind": "planned_target_path",
+          "path": "src/weall/runtime/apply/treasury.py",
+          "status": "not_present_launch_gated"
+        },
+        {
+          "kind": "planned_target_path",
+          "path": "src/weall/runtime/assignment/",
+          "status": "not_present_launch_gated"
+        }
+      ]
     },
     {
       "id": "M-065",
@@ -1727,11 +2705,11 @@
       "production_target": "Real operator topology, pricing, proof cadence, challenge evidence, corrupt/wrong-CID rejection, exit, revalidation, and activated payouts are required.",
       "authority_boundary": "Real operator topology, pricing, proof cadence, challenge evidence, corrupt/wrong-CID rejection, exit, revalidation, and activated payouts are required.",
       "repository_evidence_paths": [
-        "runtime/apply/storage.py",
-        "runtime/storage_probe_runner.py"
+        "src/weall/runtime/apply/storage.py",
+        "src/weall/runtime/storage_probe_runner.py"
       ],
       "specification_sections": [
-        "Sections 42, 43, 48, 55, 78, 94 "
+        "Sections 42, 43, 48, 55, 78, 94"
       ],
       "divergence_status": "Sections 42, 43, 48, 55, 78, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1740,9 +2718,21 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 384,
-      "pdf_row_digest": "bc94909e4070c86c6a524629a0f60024b3a6b882c5aea968c37c181db539cecd"
+      "pdf_row_digest": "bc94909e4070c86c6a524629a0f60024b3a6b882c5aea968c37c181db539cecd",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/storage.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/storage_probe_runner.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-066",
@@ -1753,12 +2743,12 @@
       "production_target": "IPFS is a byte-distribution/storage service, not authority; commitments, retrieval, provider proofs, deletion, and independent topology evidence govern claims.",
       "authority_boundary": "IPFS is a byte-distribution/storage service, not authority; commitments, retrieval, provider proofs, deletion, and independent topology evidence govern claims.",
       "repository_evidence_paths": [
-        "storage/ipfs_pin_worker.py",
-        "storage/ipfs_partition.py",
-        "runtime/storage_revalidation_schedul er.py"
+        "src/weall/storage/ipfs_pin_worker.py",
+        "src/weall/storage/ipfs_partition.py",
+        "src/weall/runtime/storage_revalidation_scheduler.py"
       ],
       "specification_sections": [
-        "Sections 11, 14-16, 48, 78-79, 94 "
+        "Sections 11, 14-16, 48, 78-79, 94"
       ],
       "divergence_status": "Sections 11, 14-16, 48, 78-79, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1767,9 +2757,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 384,
-      "pdf_row_digest": "966c36922cd9c87f6da620ab4da33725021a3fc3f42eac0605d9cc2992e6c070"
+      "pdf_row_digest": "966c36922cd9c87f6da620ab4da33725021a3fc3f42eac0605d9cc2992e6c070",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/storage/ipfs_pin_worker.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/storage/ipfs_partition.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/storage_revalidation_scheduler.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-067",
@@ -1780,13 +2787,13 @@
       "production_target": "Helpers may only accelerate; assignment, lane partitioning, ordering, receipts, merge, crash recovery, Byzantine rejection, and serial equivalence must be proven.",
       "authority_boundary": "Helpers may only accelerate; assignment, lane partitioning, ordering, receipts, merge, crash recovery, Byzantine rejection, and serial equivalence must be proven.",
       "repository_evidence_paths": [
-        "runtime/helper_assignment.py",
-        "runtime/helper_planner.py",
-        "runtime/helper_certificates.py",
-        "runtime/helper_merge.py"
+        "src/weall/runtime/helper_assignment.py",
+        "src/weall/runtime/helper_planner.py",
+        "src/weall/runtime/helper_certificates.py",
+        "src/weall/runtime/helper_merge.py"
       ],
       "specification_sections": [
-        "Sections 43, 46, 58-59, 76, 88-90, 94 "
+        "Sections 43, 46, 58-59, 76, 88-90, 94"
       ],
       "divergence_status": "Sections 43, 46, 58-59, 76, 88-90, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1795,9 +2802,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 384,
-      "pdf_row_digest": "7e3fccd6fab7d0ff523151ee16385119213d2588caaa608433b139fe3c10f60a"
+      "pdf_row_digest": "7e3fccd6fab7d0ff523151ee16385119213d2588caaa608433b139fe3c10f60a",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_assignment.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_planner.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_certificates.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_merge.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-068",
@@ -1805,15 +2834,15 @@
       "title": "Economics & services Helper reputation, capacity, readiness, and release gates",
       "mechanism_kind": "economics",
       "current_snapshot_behavior": "Helper reputation, quarantine, stress/soak harnesses, readiness reports, operator diagnostics, release gates, and fallback controls exist.",
-      "production_target": "Production helper topology, compensation, backpressure, common-control limits, governance activation, and independent multi- node evidence remain required.",
-      "authority_boundary": "Production helper topology, compensation, backpressure, common-control limits, governance activation, and independent multi- node evidence remain required.",
+      "production_target": "Production helper topology, compensation, backpressure, common-control limits, governance activation, and independent multi-node evidence remain required.",
+      "authority_boundary": "Production helper topology, compensation, backpressure, common-control limits, governance activation, and independent multi-node evidence remain required.",
       "repository_evidence_paths": [
-        "runtime/helper_reputation.py",
-        "runtime/helper_capacity.py",
-        "runtime/helper_release_gate.py"
+        "src/weall/runtime/helper_reputation.py",
+        "src/weall/runtime/helper_capacity.py",
+        "src/weall/runtime/helper_release_gate.py"
       ],
       "specification_sections": [
-        "Sections 34, 41-43, 46, 54-60, 94 "
+        "Sections 34, 41-43, 46, 54-60, 94"
       ],
       "divergence_status": "Sections 34, 41-43, 46, 54-60, 94 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -1822,9 +2851,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 384,
-      "pdf_row_digest": "7d64f9e48cae43a0b26bf857d517a797091e7a1206aa3756747b500bfc0b073c"
+      "pdf_row_digest": "7d64f9e48cae43a0b26bf857d517a797091e7a1206aa3756747b500bfc0b073c",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_reputation.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_capacity.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_release_gate.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-069",
@@ -1835,13 +2881,13 @@
       "production_target": "API is never authority; every route maps to canonical state/contract/failure or a clearly local service boundary and fails closed when misconfigured.",
       "authority_boundary": "API is never authority; every route maps to canonical state/contract/failure or a clearly local service boundary and fails closed when misconfigured.",
       "repository_evidence_paths": [
-        "api/routes_public_parts/*",
-        "api/schemas.py",
-        "api/security.py",
-        "runtime/apply/economics.py"
+        "src/weall/api/routes_public_parts/*",
+        "src/weall/api/schemas.py",
+        "src/weall/api/security.py",
+        "src/weall/runtime/apply/economics.py"
       ],
       "specification_sections": [
-        "Sections 47, 51-54, 57-60, 94 "
+        "Sections 47, 51-54, 57-60, 94"
       ],
       "divergence_status": "Sections 47, 51-54, 57-60, 94 CURRENT_MECHANISM_NARRATI VE_EXPANDED",
       "activation_gate": "profile_bound",
@@ -1850,9 +2896,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 384,
-      "pdf_row_digest": "142a42a048750e11b5219db8fcafe5f3702cc8af106bd4a2016e9677e5298023"
+      "pdf_row_digest": "142a42a048750e11b5219db8fcafe5f3702cc8af106bd4a2016e9677e5298023",
+      "repository_evidence": [
+        {
+          "kind": "current_glob",
+          "path": "src/weall/api/routes_public_parts/*",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/schemas.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/security.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/economics.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-070",
@@ -1863,12 +2931,12 @@
       "production_target": "Media bytes are non-authoritative; canonical commitments and visibility boundary state control presentation, while caches remain replaceable and privacy-bounded.",
       "authority_boundary": "Media bytes are non-authoritative; canonical commitments and visibility boundary state control presentation, while caches remain replaceable and privacy-bounded.",
       "repository_evidence_paths": [
-        "api/routes_public_parts/media.py",
+        "src/weall/api/routes_public_parts/media.py",
         "tests/test_media_range_streaming.py",
-        "tests/test_media_cache_peer_sync_s afety.py"
+        "tests/test_media_cache_peer_sync_safety.py"
       ],
       "specification_sections": [
-        "Sections 11, 14-16, 47-48, 51, 94 "
+        "Sections 11, 14-16, 47-48, 51, 94"
       ],
       "divergence_status": "Sections 11, 14-16, 47-48, 51, 94 CURRENT_MECHANISM_NARRATI VE_EXPANDED",
       "activation_gate": "profile_bound",
@@ -1877,9 +2945,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 384,
-      "pdf_row_digest": "4b1bf36b1b3b0ace164c1bf19a3f8500a1914d13cfc05685f77fd9ff7a975ab5"
+      "pdf_row_digest": "4b1bf36b1b3b0ace164c1bf19a3f8500a1914d13cfc05685f77fd9ff7a975ab5",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/media.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "tests/test_media_range_streaming.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "tests/test_media_cache_peer_sync_safety.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-071",
@@ -1890,12 +2975,12 @@
       "production_target": "UI never upgrades local acceptance to finality or hides disabled features; backend and canonical receipts remain authoritative.",
       "authority_boundary": "UI never upgrades local acceptance to finality or hides disabled features; backend and canonical receipts remain authoritative.",
       "repository_evidence_paths": [
-        "web/src/",
-        "api/routes_public_parts/status.py",
-        "api/routes_public_parts/nodes.py"
+        "../web/src/",
+        "src/weall/api/routes_public_parts/status.py",
+        "src/weall/api/routes_public_parts/nodes.py"
       ],
       "specification_sections": [
-        "Sections 47, 51-57, 94 "
+        "Sections 47, 51-57, 94"
       ],
       "divergence_status": "Sections 47, 51-57, 94 CURRENT_PARTIAL",
       "activation_gate": "profile_bound",
@@ -1904,9 +2989,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 385,
-      "pdf_row_digest": "a5d417704356812c19dc9790634a23212d7942258d031e5a6bffd0a35c7ac72d"
+      "pdf_row_digest": "a5d417704356812c19dc9790634a23212d7942258d031e5a6bffd0a35c7ac72d",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "../web/src/",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/status.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/routes_public_parts/nodes.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-072",
@@ -1917,13 +3019,13 @@
       "production_target": "Observability is non-authoritative evidence; it must be bounded, privacy-safe, reproducible, and tied to public incident/launch receipts.",
       "authority_boundary": "Observability is non-authoritative evidence; it must be bounded, privacy-safe, reproducible, and tied to public incident/launch receipts.",
       "repository_evidence_paths": [
-        "runtime/metrics.py",
-        "runtime/diagnostics.py",
-        "runtime/bft_diagnostics.py",
-        "api/structured_logging.py"
+        "src/weall/runtime/metrics.py",
+        "src/weall/runtime/diagnostics.py",
+        "src/weall/runtime/bft_diagnostics.py",
+        "src/weall/api/structured_logging.py"
       ],
       "specification_sections": [
-        "Sections 54, 58-60, 69, 97 "
+        "Sections 54, 58-60, 69, 97"
       ],
       "divergence_status": "Sections 54, 58-60, 69, 97 ALIGNED_CURRENT_PARTIAL_EVI DENCE",
       "activation_gate": "profile_bound",
@@ -1932,9 +3034,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 385,
-      "pdf_row_digest": "0aa94c8ae9d47e822f0bc0f4e198c3ed7c5553f23800b5d361ff298effccc2fd"
+      "pdf_row_digest": "0aa94c8ae9d47e822f0bc0f4e198c3ed7c5553f23800b5d361ff298effccc2fd",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/metrics.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/diagnostics.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_diagnostics.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/api/structured_logging.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-073",
@@ -1945,12 +3069,12 @@
       "production_target": "Operator intervention may preserve service or halt safely but cannot rewrite finalized state, waive governance, or create protocol authority.",
       "authority_boundary": "Operator intervention may preserve service or halt safely but cannot rewrite finalized state, waive governance, or create protocol authority.",
       "repository_evidence_paths": [
-        "runtime/operator_safe_mode.py",
-        "runtime/operator_incident_report.py",
-        "runtime/operator_recovery.py"
+        "src/weall/runtime/operator_safe_mode.py",
+        "src/weall/runtime/operator_incident_report.py",
+        "src/weall/runtime/operator_recovery.py"
       ],
       "specification_sections": [
-        "Sections 54-55, 58, 60, 95-97 "
+        "Sections 54-55, 58, 60, 95-97"
       ],
       "divergence_status": "Sections 54-55, 58, 60, 95-97 CURRENT_MECHANISM_NARRATI VE_EXPANDED",
       "activation_gate": "profile_bound",
@@ -1959,9 +3083,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 385,
-      "pdf_row_digest": "a2a9878d4c606c38548fbf2166d7a3e1b3c43d21e6642a4f7662f4ad8ecd923f"
+      "pdf_row_digest": "a2a9878d4c606c38548fbf2166d7a3e1b3c43d21e6642a4f7662f4ad8ecd923f",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/operator_safe_mode.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/operator_incident_report.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/operator_recovery.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-074",
@@ -1972,12 +3113,12 @@
       "production_target": "Recovery must preserve chain identity, state roots, journals, queues, nonces, and replay equivalence; evidence is required per launch phase.",
       "authority_boundary": "Recovery must preserve chain identity, state roots, journals, queues, nonces, and replay equivalence; evidence is required per launch phase.",
       "repository_evidence_paths": [
-        "runtime/failpoints.py",
-        "runtime/fault_injection.py",
+        "src/weall/runtime/failpoints.py",
+        "src/weall/runtime/fault_injection.py",
         "scripts/crash_drill.py"
       ],
       "specification_sections": [
-        "Sections 48, 54, 58-60, 69, 97 "
+        "Sections 48, 54, 58-60, 69, 97"
       ],
       "divergence_status": "Sections 48, 54, 58-60, 69, 97 CURRENT_PARTIAL_EVIDENCE",
       "activation_gate": "profile_bound",
@@ -1986,9 +3127,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 385,
-      "pdf_row_digest": "36620d80a40833b82e73192a79f8ce9bdcc5fa736503cc8dd70f45e399df6f31"
+      "pdf_row_digest": "36620d80a40833b82e73192a79f8ce9bdcc5fa736503cc8dd70f45e399df6f31",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/failpoints.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "src/weall/runtime/fault_injection.py",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "scripts/crash_drill.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-075",
@@ -2001,10 +3159,10 @@
       "repository_evidence_paths": [
         "requirements.lock",
         "docs/dependency_locking.md",
-        "scripts/check_release_hygiene_v1_5. py"
+        "scripts/check_release_hygiene_v1_5.py"
       ],
       "specification_sections": [
-        "Sections 60-61, 70, 80, 97-98 "
+        "Sections 60-61, 70, 80, 97-98"
       ],
       "divergence_status": "Sections 60-61, 70, 80, 97-98 CURRENT_PARTIAL_LAUNCH_GAT ED",
       "activation_gate": "profile_bound",
@@ -2013,9 +3171,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 385,
-      "pdf_row_digest": "3abef7369cc4af4635f1e6adcacb27105f35e3afdc743aefdc7b56c725509a89"
+      "pdf_row_digest": "3abef7369cc4af4635f1e6adcacb27105f35e3afdc743aefdc7b56c725509a89",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "requirements.lock",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/dependency_locking.md",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "scripts/check_release_hygiene_v1_5.py",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-076",
@@ -2026,11 +3201,11 @@
       "production_target": "Each launch phase has machine-readable gates, external evidence, named reviewers, activation receipts, and no implicit inheritance to later phases.",
       "authority_boundary": "Each launch phase has machine-readable gates, external evidence, named reviewers, activation receipts, and no implicit inheritance to later phases.",
       "repository_evidence_paths": [
-        "generated/ launch_disabled_matrix_v1_5.json",
-        "generated/public_beta_blocker_report _v1_5.json"
+        "generated/launch_disabled_matrix_v1_5.json",
+        "generated/public_beta_blocker_report_v1_5.json"
       ],
       "specification_sections": [
-        "Sections 55-57, 60-62, 90, 97-99 "
+        "Sections 55-57, 60-62, 90, 97-99"
       ],
       "divergence_status": "Sections 55-57, 60-62, 90, 97-99 ALIGNED_CURRENT_LAUNCH_GA TED",
       "activation_gate": "profile_bound",
@@ -2039,25 +3214,37 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 385,
-      "pdf_row_digest": "4613d6eb953242b66d53bd57e8741e4356e227a7f55e78e0baee59330e5a37a3"
+      "pdf_row_digest": "4613d6eb953242b66d53bd57e8741e4356e227a7f55e78e0baee59330e5a37a3",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "generated/launch_disabled_matrix_v1_5.json",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "generated/public_beta_blocker_report_v1_5.json",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-077",
       "status": "current_partial",
       "title": "Product & operations Accessibility, legal, privacy, minors, sanctions, and severe-harm boundaries",
       "mechanism_kind": "product",
-      "current_snapshot_behavior": "Accessibility source checks and non- lawyer legal/privacy/minors/sanctions/NCIM drafts exist; independent review is incomplete.",
+      "current_snapshot_behavior": "Accessibility source checks and non-lawyer legal/privacy/minors/sanctions/NCIM drafts exist; independent review is incomplete.",
       "production_target": "Accessible product/PDF, privacy/data protection, jurisdictional claims, token language, severe-harm handling, and sanctions posture require named independent review.",
       "authority_boundary": "Accessible product/PDF, privacy/data protection, jurisdictional claims, token language, severe-harm handling, and sanctions posture require named independent review.",
       "repository_evidence_paths": [
-        "web/scripts/ test_accessibility_source.mjs",
+        "../web/scripts/test_accessibility_source.mjs",
         "docs/legal/*",
-        "docs/security/poh- privacy.md"
+        "docs/security/poh-privacy.md"
       ],
       "specification_sections": [
-        "Sections 52, 57-60, 88, 90, 96-98 "
+        "Sections 52, 57-60, 88, 90, 96-98"
       ],
       "divergence_status": "Sections 52, 57-60, 88, 90, 96-98 CURRENT_PARTIAL_EXTERNAL_R EVIEW_REQUIRED",
       "activation_gate": "profile_bound",
@@ -2066,9 +3253,26 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 385,
-      "pdf_row_digest": "7cdfb30634d80cbf00eb6f88f09c2d97cef775e1b78959941e1a7703ef0f70e7"
+      "pdf_row_digest": "7cdfb30634d80cbf00eb6f88f09c2d97cef775e1b78959941e1a7703ef0f70e7",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "../web/scripts/test_accessibility_source.mjs",
+          "status": "present"
+        },
+        {
+          "kind": "current_glob",
+          "path": "docs/legal/*",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "docs/security/poh-privacy.md",
+          "status": "present"
+        }
+      ]
     },
     {
       "id": "M-078",
@@ -2082,10 +3286,10 @@
         "tests/",
         "scripts/rehearse_*",
         "generated/*proof*.json",
-        "audit- metadata/"
+        "../audit-metadata/"
       ],
       "specification_sections": [
-        "Sections 58-60, 69-72, 88-90, 97 "
+        "Sections 58-60, 69-72, 88-90, 97"
       ],
       "divergence_status": "Sections 58-60, 69-72, 88-90, 97 CURRENT_SUBSTANTIAL_EVIDEN CE_NOT_PRODUCTION_PASS",
       "activation_gate": "profile_bound",
@@ -2094,9 +3298,31 @@
         "independent_review_where_required",
         "activation_receipt"
       ],
-      "primary_owner": "Errol Jacob Jones Swaby - WeAll Protocol Maintainer",
+      "primary_owner": "Errol Jacob Jones Swaby-WeAll Protocol Maintainer",
       "pdf_page": 385,
-      "pdf_row_digest": "1e1815b1b7c2b04d3d31e1b369a70bbf2274cbfd5c7ca9fb2a01dacf405ef003"
+      "pdf_row_digest": "1e1815b1b7c2b04d3d31e1b369a70bbf2274cbfd5c7ca9fb2a01dacf405ef003",
+      "repository_evidence": [
+        {
+          "kind": "current_path",
+          "path": "tests/",
+          "status": "present"
+        },
+        {
+          "kind": "current_glob",
+          "path": "scripts/rehearse_*",
+          "status": "present"
+        },
+        {
+          "kind": "current_glob",
+          "path": "generated/*proof*.json",
+          "status": "present"
+        },
+        {
+          "kind": "current_path",
+          "path": "../audit-metadata/",
+          "status": "present"
+        }
+      ]
     }
   ],
   "version": "2.0.0-first-draft-full-scope-w1"

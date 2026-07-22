@@ -1538,6 +1538,26 @@
     },
     {
       "affected_registers": [
+        "provenance",
+        "evidence"
+      ],
+      "classification": "release_evidence_control",
+      "path": "scripts/export_v2_spec_release.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
+        "provenance",
+        "evidence"
+      ],
+      "classification": "release_evidence_control",
+      "path": "scripts/finalize_v2_spec_provenance.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
         "mechanisms",
         "evidence"
       ],
@@ -2998,6 +3018,21 @@
     },
     {
       "affected_registers": [
+        "requirements",
+        "parameters",
+        "mechanisms",
+        "state",
+        "contracts",
+        "stable_ids",
+        "provenance"
+      ],
+      "classification": "authoritative_spec_validation",
+      "path": "scripts/v2_spec_validation.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
         "mechanisms",
         "evidence"
       ],
@@ -3035,6 +3070,51 @@
       "path": "scripts/verify_validator_bootstrap.py",
       "primary_mechanism_id": "M-075",
       "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "requirements",
+        "parameters",
+        "mechanisms",
+        "state",
+        "contracts"
+      ],
+      "classification": "normative_extraction_attestation",
+      "path": "specs/v2/source/pdf_extraction_attestation.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
+        "requirements",
+        "parameters",
+        "mechanisms",
+        "state",
+        "contracts"
+      ],
+      "classification": "normative_extraction_attestation",
+      "path": "specs/v2/source/pdf_extraction_manifest.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "routes"
+      ],
+      "classification": "semantic_review",
+      "path": "specs/v2/source/semantic_reviews.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
+        "stable_ids"
+      ],
+      "classification": "stable_id_history",
+      "path": "specs/v2/source/stable_ids_baseline.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
     },
     {
       "affected_registers": [

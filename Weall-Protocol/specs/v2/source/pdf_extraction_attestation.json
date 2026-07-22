@@ -1,0 +1,10 @@
+{
+  "schema": "weall.v2.pdf_extraction_attestation",
+  "algorithm": "Ed25519",
+  "signer": "W1.1 offline extraction attestation key; private key destroyed after signing",
+  "signer_role": "independent_of_compiler_source_path",
+  "created_at": "2026-07-22T00:00:00Z",
+  "public_key_base64": "HObDzbQBEwd4HWigLM2hIoV0LiI5wxvzy5wt/dPJn7o=",
+  "signature_base64": "StshGBPJR+xnDnOC8VF8pwp0FH7iR7kU33LwHF7KufbO7pC3huWYjM0TBo4w5w7cw6HTdvDYuYnfS8MWfaxHCw==",
+  "signed_payload_sha256": "68aa442418a734fbcdaefac74260064cbb6d669deda65128138507515e15ce20"
+}

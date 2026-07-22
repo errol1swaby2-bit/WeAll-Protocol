@@ -30,5 +30,10 @@
     "disabled_pending_activation_receipt",
     "record_only_pending_activation_receipt",
     "section-specific activation gate"
+  ],
+  "divergence_status": [
+    "closed",
+    "open",
+    "deferred_to_launch_authorization"
   ]
 }
