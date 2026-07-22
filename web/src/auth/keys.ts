@@ -148,7 +148,7 @@ export function saveKeypair(
   const pubkeyB64 = String(kp?.pubkeyB64 || readPublicKeyFromSecret(secretKeyB64)).trim();
   if (!pubkeyB64) throw new Error("public_key_required");
 
-  const secureMeta = { version: 2, publicKey: pubkeyB64, hasSecret: true };
+  const secureMeta = { version: 2, publicKey: pubkeyB64, hasSecret: false };
   localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta));
   sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64);
 
