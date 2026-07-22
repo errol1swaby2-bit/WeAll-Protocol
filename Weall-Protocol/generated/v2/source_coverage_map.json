@@ -48,7 +48,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "2a837436c4930e977d92b8028d2ff2fb1fa5b62bd67fb72e0bd41b324f2e8d55",
+      "sha256": "42d487fc8e5e8e1a91fbe4738640076dc742a5347fbf14ad8270f442e4e4b1c9",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -3235,7 +3235,7 @@
       ],
       "path": "pyproject.toml",
       "primary_mechanism_id": "M-075",
-      "sha256": "670fe9af409e0a734cedf7aed1fd9f2deb68447cea5c6623425679a6962a32ed",
+      "sha256": "a2d19bca049c450939ea1f5baa5becac4068b9062f116a5e893062b752dc6eda",
       "source_id": "SRC-50C86B7ED8AC2CF9"
     },
     {
@@ -3248,7 +3248,7 @@
       ],
       "path": "requirements-dev.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "36678418723f0f9cae858fb50bdceda4176d2e46d75ad06e3856cf0a3b9d0c07",
+      "sha256": "4cad1c0c852981571b3212644545e4b4b22182220d0243e88b527b4209c87dcd",
       "source_id": "SRC-76E5F5875EE0F8B7"
     },
     {
@@ -3261,7 +3261,7 @@
       ],
       "path": "requirements.in",
       "primary_mechanism_id": "M-075",
-      "sha256": "44c0a771682d9240bcc4ba99dc805d55e8e58c5fc8d9705d85309b5d43055c45",
+      "sha256": "db12514d630cfd8cc7d40b13ed5d4a9d6ff72eb93e9fe6a1f48b1eb5d8cf7524",
       "source_id": "SRC-DE469CC9CF8992FF"
     },
     {
@@ -3274,7 +3274,7 @@
       ],
       "path": "requirements.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "6c0004cd350b754919ffeb228fa88c6a6f24dbde9ce989b598b46f1c1e20b283",
+      "sha256": "755cdf506afcb597e1315277fe1030a53edae19308b1ab36a6a3b031f2120f1c",
       "source_id": "SRC-DDFDE0DD1838FD1F"
     },
     {
