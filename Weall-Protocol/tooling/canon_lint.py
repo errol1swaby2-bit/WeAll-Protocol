@@ -6,7 +6,7 @@ Strict, production-grade linter for:
 - Repo hygiene (forbidden dirs must not exist at all)
 - Tx canon schema integrity and uniqueness
 - Gate safety rules (no 'any', no 'guardian', no 'group_admin')
-- Origin/context invariants (SYSTEM must be block-only; missing gate only for SYSTEM+block)
+- Origin/context invariants (SYSTEM must be block-only; missing or legacy-empty gate only for SYSTEM+block)
 - Basic field typing sanity
 
 Assumptions:
@@ -225,7 +225,7 @@ def check_tx_fields_and_types(txs: list[dict[str, Any]]) -> None:
 def check_gate_rules(txs: list[dict[str, Any]]) -> None:
     """
     Rules:
-    - gate may be absent ONLY for SYSTEM + block context
+    - gate may be absent, or be a legacy empty string, ONLY for SYSTEM + block context
     - forbidden gates: any/guardian/group_admin
     """
     for tx in txs:
@@ -240,6 +240,15 @@ def check_gate_rules(txs: list[dict[str, Any]]) -> None:
                     f"origin={origin}, context={context}"
                 )
             continue
+
+        # Legacy canon records may encode the absence of a subject gate
+        # as an empty string. The tx-index generator already normalizes that
+        # value to no gate. Preserve this compatibility only for SYSTEM+block
+        # transactions, where a missing gate is already valid.
+        if isinstance(gate, str) and not gate.strip():
+            if origin == "SYSTEM" and context == "block":
+                continue
+            fail(f"Tx '{tx['name']}' has invalid/empty gate value.")
 
         if not is_nonempty_str(gate):
             fail(f"Tx '{tx['name']}' has invalid/empty gate value.")
