@@ -16,11 +16,13 @@ import {
   BROWSER_PQ_SIG_PROFILE,
   canonicalTxMessage,
   deleteKeypair,
+  derivePublicKeyFromSecretKey,
   generateKeypair,
   loadKeypair,
   normalizeAccount,
   saveKeypair,
   signDetachedB64,
+  validateKeypair,
 } from "./keys";
 
 export type SessionV1 = {
@@ -92,14 +94,11 @@ function b64Decode(s: string): Uint8Array {
 }
 
 export function composeSecretKeyB64(nodeSeedB64: string, nodePubkeyB64: string): string {
-  const seed = b64Decode(nodeSeedB64);
-  const pub = b64Decode(nodePubkeyB64);
-  if (seed.length !== 32) throw new Error("invalid_node_seed");
-  if (pub.length !== 32) throw new Error("invalid_node_pubkey");
-  const secret = new Uint8Array(64);
-  secret.set(seed, 0);
-  secret.set(pub, 32);
-  return b64Encode(secret);
+  const secretKeyB64 = String(nodeSeedB64 || "").trim();
+  const publicKeyB64 = String(nodePubkeyB64 || "").trim();
+  const valid = validateKeypair(publicKeyB64, secretKeyB64);
+  if (!valid.ok) throw new Error(`invalid_node_mldsa_keypair:${valid.reason || "unknown"}`);
+  return secretKeyB64;
 }
 
 function randomSessionKeyB64(bytes = 32): string {
@@ -346,13 +345,14 @@ export function issueSessionFromSecretKey(args: {
   if (!acct) throw new Error("invalid_account");
   if (!secretKeyB64) throw new Error("secret_key_required");
 
-  const secretBytes = b64Decode(secretKeyB64);
-  if (secretBytes.length !== 64) throw new Error("invalid_secret_key");
-
-  const publicBytes = secretBytes.slice(32);
-  let pubBin = "";
-  for (let i = 0; i < publicBytes.length; i++) pubBin += String.fromCharCode(publicBytes[i]);
-  const pubkeyB64 = btoa(pubBin);
+  let pubkeyB64: string;
+  try {
+    pubkeyB64 = derivePublicKeyFromSecretKey(secretKeyB64);
+  } catch {
+    throw new Error("invalid_secret_key");
+  }
+  const valid = validateKeypair(pubkeyB64, secretKeyB64);
+  if (!valid.ok) throw new Error(`invalid_secret_key:${valid.reason || "unknown"}`);
 
   const kp: KeypairB64 = { pubkeyB64, secretKeyB64 };
   saveKeypair(acct, kp);

@@ -666,7 +666,7 @@ export default function LoginPage() {
                 </div>
                 <label className="field">
                   <span>Recovery file</span>
-                  <input type="file" accept="application/json,.json" onChange={(e) => void handleRecoveryFileSelected(e.currentTarget.files?.[0] || null)} />
+                  <input data-testid="restore-recovery-file" type="file" accept="application/json,.json" onChange={(e) => void handleRecoveryFileSelected(e.currentTarget.files?.[0] || null)} />
                 </label>
                 <label className="field">
                   <span>Handle</span>
