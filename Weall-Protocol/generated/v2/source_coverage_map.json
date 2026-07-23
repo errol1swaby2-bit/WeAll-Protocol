@@ -22,11 +22,6 @@
     },
     {
       "classification": "ignored_local_generated_rehearsal_output",
-      "path": "generated/governance_execution_vectors_v1_5.json",
-      "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
-    },
-    {
-      "classification": "ignored_local_generated_rehearsal_output",
       "path": "generated/observer_to_validator_launch_flow_v1_5.json",
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     },
@@ -36,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1784,
+  "file_count": 1785,
   "files": [
     {
       "affected_registers": [
@@ -48,7 +43,7 @@
       ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "42d487fc8e5e8e1a91fbe4738640076dc742a5347fbf14ad8270f442e4e4b1c9",
+      "sha256": "9fb1fefa4d500058fa29fa7e1115962b6eaa985e0cc5de9e9f65d6729b8547de",
       "source_id": "SRC-D13941269967924D"
     },
     {
@@ -2804,6 +2799,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "c1df5fd94011966fd23fa2a6ecebc7d063dfeeb04459d36fbf18787b6a04d7ac",
       "source_id": "SRC-F1D11A379BC27C8B"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "governance_execution"
+      ],
+      "classification": "generated_compatibility_evidence",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "generated/governance_execution_vectors_v1_5.json",
+      "primary_mechanism_id": "M-076",
+      "sha256": "cdc99d772e91a5d57863722b5e869a6e31b19c90ddcc0e5cdf8be5e2078a6462",
+      "source_id": "SRC-5984A31C527A43B9"
     },
     {
       "affected_registers": [
@@ -6127,7 +6136,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "47f82d487115ca4e3a39699749226476df5eedab1a43e2ab46898daa30ec56a6",
+      "sha256": "87c942d64a1b91197ec575ece444ba6acb571b8116edb6482772b30f45480b2c",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {

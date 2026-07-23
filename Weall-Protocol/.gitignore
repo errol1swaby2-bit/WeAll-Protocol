@@ -153,6 +153,7 @@ configs/local/
 .weall-media-cache/
 
 !generated/release_evidence_manifest_v1_5.json
+!generated/governance_execution_vectors_v1_5.json
 secrets/
 
 !generated/crypto_inventory_v1_5.json

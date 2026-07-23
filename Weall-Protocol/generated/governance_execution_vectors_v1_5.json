@@ -1,0 +1,756 @@
+{
+  "action_vector_count": 12,
+  "allowed_action_types": [
+    "ECONOMICS_ACTIVATION",
+    "FEE_POLICY_SET",
+    "GOV_QUORUM_SET",
+    "GOV_RULES_SET",
+    "GROUP_TREASURY_SPEND_EXECUTE",
+    "RATE_LIMIT_POLICY_SET",
+    "TREASURY_POLICY_SET",
+    "TREASURY_SPEND_EXECUTE",
+    "VALIDATOR_CANDIDATE_APPROVE",
+    "VALIDATOR_REMOVE",
+    "VALIDATOR_SET_UPDATE",
+    "VALIDATOR_SUSPEND"
+  ],
+  "allowed_action_vectors": [
+    {
+      "action_type": "ECONOMICS_ACTIVATION",
+      "applied_action_results": [],
+      "emitted_actions": [],
+      "execution_result": {
+        "error": {
+          "reason": "not_executed"
+        },
+        "ok": false
+      },
+      "expected_locked_by_genesis_economics": true,
+      "final_stage": "",
+      "id": "allowed_action::ECONOMICS_ACTIVATION",
+      "payload_hash": "3147c875520439e1c9eda06339e533dbee86e1b532146069523b0489597f8675",
+      "proposal_create": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "reason": "genesis_economic_lock",
+            "tx_type": "ECONOMICS_ACTIVATION"
+          },
+          "reason": "economic_actions_locked"
+        },
+        "ok": false
+      }
+    },
+    {
+      "action_type": "FEE_POLICY_SET",
+      "applied_action_results": [],
+      "emitted_actions": [],
+      "execution_result": {
+        "error": {
+          "reason": "not_executed"
+        },
+        "ok": false
+      },
+      "expected_locked_by_genesis_economics": true,
+      "final_stage": "",
+      "id": "allowed_action::FEE_POLICY_SET",
+      "payload_hash": "14090ccb1d4b9c890f56f077c6068e59bdcd35d80b13475fd827f077c67c4524",
+      "proposal_create": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "reason": "genesis_economic_lock",
+            "tx_type": "FEE_POLICY_SET"
+          },
+          "reason": "economic_actions_locked"
+        },
+        "ok": false
+      }
+    },
+    {
+      "action_type": "GOV_QUORUM_SET",
+      "applied_action_results": [
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true
+            }
+          },
+          "tx_type": "GOV_QUORUM_SET"
+        },
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true,
+              "deduped": false
+            }
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "emitted_actions": [
+        {
+          "parent": "tx:gov:v15-gov-quorum-set",
+          "payload_hash": "4e3be150f8187dbfb9b4a3e81e01d71d25cef136b0f88a52ccee4b547dbc2363",
+          "system": true,
+          "tx_type": "GOV_QUORUM_SET"
+        },
+        {
+          "parent": "tx:gov:v15-gov-quorum-set",
+          "payload_hash": "e57301836e58238ff6663a2c97034b4cd3d27a19c87de7af505f92b370626c5f",
+          "system": true,
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "execution_audit_hash": "b6b189cf5c5494f4b5ce29e1d9a20f9920a6da9e92abf1c807d73401378e2494",
+      "execution_result": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-gov-quorum-set"
+        }
+      },
+      "expected_locked_by_genesis_economics": false,
+      "final_stage": "executed",
+      "id": "allowed_action::GOV_QUORUM_SET",
+      "payload_hash": "ec49c20c347639e87a567c49423b7b9585dceae3878aa0ceffb19fa9233a52fd",
+      "post_apply_hash": "ea1e62c7dae7870b2fb4bb0ef4328241d1cb235af9fc8b918f36fda879d64d82",
+      "proposal_create": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-gov-quorum-set"
+        }
+      }
+    },
+    {
+      "action_type": "GOV_RULES_SET",
+      "applied_action_results": [
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true
+            }
+          },
+          "tx_type": "GOV_RULES_SET"
+        },
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true,
+              "deduped": false
+            }
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "emitted_actions": [
+        {
+          "parent": "tx:gov:v15-gov-rules-set",
+          "payload_hash": "d8c33784b4105d35e4e2f7b3de4fc7700ef7257c17ac3c0689f922628b2d3ca6",
+          "system": true,
+          "tx_type": "GOV_RULES_SET"
+        },
+        {
+          "parent": "tx:gov:v15-gov-rules-set",
+          "payload_hash": "4ff7f3001e373f60dbb20ee48020a3ea3c237374d5b8dc555590eeda6d77dedf",
+          "system": true,
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "execution_audit_hash": "eb10bf2b6b6a3f70d2019c52629620a5d9f303020dbb4c0ad950f111ec1e5f70",
+      "execution_result": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-gov-rules-set"
+        }
+      },
+      "expected_locked_by_genesis_economics": false,
+      "final_stage": "executed",
+      "id": "allowed_action::GOV_RULES_SET",
+      "payload_hash": "023a5fb4872c27f4a0ff4543976adb78d64b7d63cd434b085c902e66c01efb9d",
+      "post_apply_hash": "705816a5ead9ae7041534f8bee6c9b94e8f989575031200a60c2472c782db707",
+      "proposal_create": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-gov-rules-set"
+        }
+      }
+    },
+    {
+      "action_type": "GROUP_TREASURY_SPEND_EXECUTE",
+      "applied_action_results": [],
+      "emitted_actions": [],
+      "execution_result": {
+        "error": {
+          "reason": "not_executed"
+        },
+        "ok": false
+      },
+      "expected_locked_by_genesis_economics": true,
+      "final_stage": "",
+      "id": "allowed_action::GROUP_TREASURY_SPEND_EXECUTE",
+      "payload_hash": "606d8638a1bc290186624c1cef35dbc3aeeef9f655694b623b7aba62fb8b6eaf",
+      "proposal_create": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "reason": "genesis_economic_lock",
+            "tx_type": "GROUP_TREASURY_SPEND_EXECUTE"
+          },
+          "reason": "economic_actions_locked"
+        },
+        "ok": false
+      }
+    },
+    {
+      "action_type": "RATE_LIMIT_POLICY_SET",
+      "applied_action_results": [
+        {
+          "result": {
+            "error": {
+              "code": "forbidden",
+              "details": {
+                "fields": [
+                  "_due_height",
+                  "_parent_ref",
+                  "_system_queue_id"
+                ]
+              },
+              "reason": "rate_limit_policy_field_not_allowed"
+            },
+            "ok": false
+          },
+          "tx_type": "RATE_LIMIT_POLICY_SET"
+        },
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true,
+              "deduped": false
+            }
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "emitted_actions": [
+        {
+          "parent": "tx:gov:v15-rate-limit-policy-set",
+          "payload_hash": "736b4ff813c1fe27518b583c7bc7fda6c3cf305ecd9a56c4d3e9ce5d13b13102",
+          "system": true,
+          "tx_type": "RATE_LIMIT_POLICY_SET"
+        },
+        {
+          "parent": "tx:gov:v15-rate-limit-policy-set",
+          "payload_hash": "5af45789ecbe753453d179a364a1c5f4fce765d62d8809f37ce6b96788ac8ab7",
+          "system": true,
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "execution_audit_hash": "a9fc240672feec508cea9c106c5bf50371e0a609f3a9f05937ecbad5a7eb98f4",
+      "execution_result": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-rate-limit-policy-set"
+        }
+      },
+      "expected_locked_by_genesis_economics": false,
+      "final_stage": "executed",
+      "id": "allowed_action::RATE_LIMIT_POLICY_SET",
+      "payload_hash": "b4368780a9ba856a3bf6ecc97b998237afd62a6cc91c507e358938afa1548034",
+      "post_apply_hash": "bb97176fa77ed1054ed05d7f927b38d9d6dcfc7787d63d2a53b7d7e5853e7e59",
+      "proposal_create": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-rate-limit-policy-set"
+        }
+      }
+    },
+    {
+      "action_type": "TREASURY_POLICY_SET",
+      "applied_action_results": [],
+      "emitted_actions": [],
+      "execution_result": {
+        "error": {
+          "reason": "not_executed"
+        },
+        "ok": false
+      },
+      "expected_locked_by_genesis_economics": true,
+      "final_stage": "",
+      "id": "allowed_action::TREASURY_POLICY_SET",
+      "payload_hash": "a3d7574608787dad9f837284fe9818b29b7c1bff16000206769547a561d3f957",
+      "proposal_create": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "reason": "genesis_economic_lock",
+            "tx_type": "TREASURY_POLICY_SET"
+          },
+          "reason": "economic_actions_locked"
+        },
+        "ok": false
+      }
+    },
+    {
+      "action_type": "TREASURY_SPEND_EXECUTE",
+      "applied_action_results": [],
+      "emitted_actions": [],
+      "execution_result": {
+        "error": {
+          "reason": "not_executed"
+        },
+        "ok": false
+      },
+      "expected_locked_by_genesis_economics": true,
+      "final_stage": "",
+      "id": "allowed_action::TREASURY_SPEND_EXECUTE",
+      "payload_hash": "f9d0e486fd3ffbb770788cd684242c5ce717d206661d701a553f85a84428c185",
+      "proposal_create": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "reason": "genesis_economic_lock",
+            "tx_type": "TREASURY_SPEND_EXECUTE"
+          },
+          "reason": "economic_actions_locked"
+        },
+        "ok": false
+      }
+    },
+    {
+      "action_type": "VALIDATOR_CANDIDATE_APPROVE",
+      "applied_action_results": [
+        {
+          "result": {
+            "error": {
+              "code": "invalid_payload",
+              "details": {
+                "account": "@dana"
+              },
+              "reason": "candidate_missing_pubkey"
+            },
+            "ok": false
+          },
+          "tx_type": "VALIDATOR_CANDIDATE_APPROVE"
+        },
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true,
+              "deduped": false
+            }
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "emitted_actions": [
+        {
+          "parent": "tx:gov:v15-validator-candidate-approve",
+          "payload_hash": "6fda65bd9ff1f53d1e708bb7e2a1036b5fab302288db883b5f2eb3a5900a1d84",
+          "system": true,
+          "tx_type": "VALIDATOR_CANDIDATE_APPROVE"
+        },
+        {
+          "parent": "tx:gov:v15-validator-candidate-approve",
+          "payload_hash": "03471cdceb6b99d20df98eaa1b583c09d8eae3d1ce85b8876616c383b0e92e9d",
+          "system": true,
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "execution_audit_hash": "c67546a0aea16966ac2cc1dd9d5fd919a2deb32c8d8b9b1ab6b0bda559cae711",
+      "execution_result": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-validator-candidate-approve"
+        }
+      },
+      "expected_locked_by_genesis_economics": false,
+      "final_stage": "executed",
+      "id": "allowed_action::VALIDATOR_CANDIDATE_APPROVE",
+      "payload_hash": "424accc72ef88f6ab9026b66cd1d4f0f0bd4746ddd28a5b9b4b67e0f4eca75ad",
+      "post_apply_hash": "b9ac10984619b4166794c2f0fb98969e4eeea10a8f4f28e95eb3b7223bee254b",
+      "proposal_create": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-validator-candidate-approve"
+        }
+      }
+    },
+    {
+      "action_type": "VALIDATOR_REMOVE",
+      "applied_action_results": [
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "account": "@carol",
+              "applied": "VALIDATOR_REMOVE",
+              "effective_epoch": 3,
+              "status": "pending_removal",
+              "validator_set_hash": "f8246c04358b872d44110bab49ea80dfe3874b3034835b82f82982c60f4776be"
+            }
+          },
+          "tx_type": "VALIDATOR_REMOVE"
+        },
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true,
+              "deduped": false
+            }
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "emitted_actions": [
+        {
+          "parent": "tx:gov:v15-validator-remove",
+          "payload_hash": "9e8f639dfde062de50fdf984b90646d37624bde2e6d965bedb6daca07c8676a4",
+          "system": true,
+          "tx_type": "VALIDATOR_REMOVE"
+        },
+        {
+          "parent": "tx:gov:v15-validator-remove",
+          "payload_hash": "45e6c3792ab81a1fcd0a3e4235f25ccebeb3cd989ad29f467dedf45cfb967322",
+          "system": true,
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "execution_audit_hash": "6489634ad25d0b85968b57843de6a190ff02a07acc5ac45edfae3418e2a85c76",
+      "execution_result": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-validator-remove"
+        }
+      },
+      "expected_locked_by_genesis_economics": false,
+      "final_stage": "executed",
+      "id": "allowed_action::VALIDATOR_REMOVE",
+      "payload_hash": "ff079f07d49cc4d9832683b850247b4eaaa1ab9195f3eb09b409e4bc0814f24d",
+      "post_apply_hash": "01ab2f6db83e831c5a104abc546be6c0e463c63514a4561a5cfa25c291e7bf14",
+      "proposal_create": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-validator-remove"
+        }
+      }
+    },
+    {
+      "action_type": "VALIDATOR_SET_UPDATE",
+      "applied_action_results": [
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "activate_at_epoch": 3,
+              "active_set": [
+                "@alice",
+                "@bob",
+                "@carol"
+              ],
+              "applied": "VALIDATOR_SET_UPDATE",
+              "pending": true,
+              "validator_set_hash": "6963334f81762305415ee5bd8a6496ebe4a647d2c53681b18cf6d32eb1703d63"
+            }
+          },
+          "tx_type": "VALIDATOR_SET_UPDATE"
+        },
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true,
+              "deduped": false
+            }
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "emitted_actions": [
+        {
+          "parent": "tx:gov:v15-validator-set-update",
+          "payload_hash": "6311150d9004b3b0cdcf0c8dbdfdf50bc39e5d1e738a1f18acf4e8b019cdf240",
+          "system": true,
+          "tx_type": "VALIDATOR_SET_UPDATE"
+        },
+        {
+          "parent": "tx:gov:v15-validator-set-update",
+          "payload_hash": "bd13c2081dcffc7f9a66adac02caeb0f79cccfd15e487ef851493ec9dbf5f771",
+          "system": true,
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "execution_audit_hash": "e6d2c4ac9e38ffc80da55ef0d5b1bb3cf738298785b996260a3e7f19b0c2ee6f",
+      "execution_result": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-validator-set-update"
+        }
+      },
+      "expected_locked_by_genesis_economics": false,
+      "final_stage": "executed",
+      "id": "allowed_action::VALIDATOR_SET_UPDATE",
+      "payload_hash": "5f474e3a7b2f28a770684305864efdc2056f762b8e5db893bdbd126ebfa3a11d",
+      "post_apply_hash": "06d9d1f69862036af9db539ac2082626c01443ae9b1c63e776e664b06741ab78",
+      "proposal_create": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-validator-set-update"
+        }
+      }
+    },
+    {
+      "action_type": "VALIDATOR_SUSPEND",
+      "applied_action_results": [
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "account": "@bob",
+              "applied": "VALIDATOR_SUSPEND",
+              "effective_epoch": 3,
+              "status": "pending_suspension",
+              "validator_set_hash": "93940a9ff9d70dc1fc3c3b2bd0780119b3c901290842738fadf329504613cada"
+            }
+          },
+          "tx_type": "VALIDATOR_SUSPEND"
+        },
+        {
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true,
+              "deduped": false
+            }
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "emitted_actions": [
+        {
+          "parent": "tx:gov:v15-validator-suspend",
+          "payload_hash": "8cbdb8aa14548a9e3b1977e3063c4081e4eea6e13e25cd050748423b1d60e1fc",
+          "system": true,
+          "tx_type": "VALIDATOR_SUSPEND"
+        },
+        {
+          "parent": "tx:gov:v15-validator-suspend",
+          "payload_hash": "e210ea1ce3337532bd84f2ecede24fe59485b8e8863a1043e14fc0baf1c62bf7",
+          "system": true,
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "execution_audit_hash": "8a6b7ef0c70b0a664ff281c8c93ddc25773501d5db7b7746c757c232b3a71fd9",
+      "execution_result": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-validator-suspend"
+        }
+      },
+      "expected_locked_by_genesis_economics": false,
+      "final_stage": "executed",
+      "id": "allowed_action::VALIDATOR_SUSPEND",
+      "payload_hash": "a7d7fbb03f68f28c267cdefc411b3e4109800bcfd2e1b592c81ce91fab4d844e",
+      "post_apply_hash": "298e751045ce00ca90fb2cebb7af6cf82abc1156355a4ad79660c048f1001cba",
+      "proposal_create": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-validator-suspend"
+        }
+      }
+    }
+  ],
+  "artifact_hash": "8f257d7c5226750e600177cd8c49127f4f7e7c59501305073389cf4c0c1b6340",
+  "conflict_vectors": [
+    {
+      "applied_action_results": [
+        {
+          "payload": {
+            "_due_height": 34,
+            "_parent_ref": "tx:gov:conflict",
+            "_system_queue_id": "721f02bd47ef4b7f671f8cf3e45c7f91459e796f49468a2ed1f8efba57dfb74c",
+            "quorum_bps": 5100
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true
+            }
+          },
+          "tx_type": "GOV_QUORUM_SET"
+        },
+        {
+          "payload": {
+            "_due_height": 34,
+            "_parent_ref": "tx:gov:conflict",
+            "_system_queue_id": "50a7ace581509185ff5737797bb9f918a578befc6f518d2fe92bff82c0bbd289",
+            "quorum_bps": 7500
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true
+            }
+          },
+          "tx_type": "GOV_QUORUM_SET"
+        },
+        {
+          "payload": {
+            "_due_height": 34,
+            "_parent_ref": "tx:gov:conflict",
+            "_system_queue_id": "6e62fac2484f62a5dab2bdf27c30b0b3c386632910e951e1b16fa67b9af5a0ae",
+            "ok": true,
+            "proposal_id": "v15-conflicting-quorum-order"
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "applied": true,
+              "deduped": false
+            }
+          },
+          "tx_type": "GOV_EXECUTION_RECEIPT"
+        }
+      ],
+      "emitted_order": [
+        "GOV_QUORUM_SET",
+        "GOV_QUORUM_SET",
+        "GOV_EXECUTION_RECEIPT"
+      ],
+      "emitted_payload_hashes": [
+        "a281481f7ce4fae4de8ce046c671460573a66b3958628ee2e90f2ca75c9f558b",
+        "b88abf75d63fb3ed42ee806460f369c1b77fe4aca0f0239f82a6121b2d2edf1d",
+        "7d4e71f091d7904d5bf7ae60c28cf5db24a27ab90ec7c93c5d937f09d770256c"
+      ],
+      "execution_result": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-conflicting-quorum-order"
+        }
+      },
+      "expected_final_quorum_bps": 7500,
+      "final_quorum": {
+        "_height": 34,
+        "quorum_bps": 7500
+      },
+      "id": "conflict::quorum_last_write_order",
+      "post_apply_hash": "acdc7b2dc569bf4f5cab861a2be813791cfa9333bcdb545f08be4168e2e25e31",
+      "proposal_create": {
+        "ok": true,
+        "result": {
+          "applied": true,
+          "proposal_id": "v15-conflicting-quorum-order"
+        }
+      }
+    }
+  ],
+  "failure_vector_count": 5,
+  "failure_vectors": [
+    {
+      "expected_reason": "governance_action_not_allowed",
+      "id": "failure::unsupported_action",
+      "result": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "tx_type": "CHAIN_ROOT_OVERRIDE"
+          },
+          "reason": "governance_action_not_allowed"
+        },
+        "ok": false
+      },
+      "state_hash_after": "1fa88b13cb1b5dcfc29206232f85464e70e2b9c7906929925957f53d607454c8"
+    },
+    {
+      "expected_reason": "governance_action_payload_invalid",
+      "id": "failure::invalid_action_payload",
+      "result": {
+        "error": {
+          "code": "invalid_payload",
+          "details": {
+            "error": "1 validation error for ValidatorSuspendPayload\neffective_epoch\n  Input should be greater than or equal to 1 [type=greater_than_equal, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.13/v/greater_than_equal",
+            "tx_type": "VALIDATOR_SUSPEND"
+          },
+          "reason": "governance_action_payload_invalid"
+        },
+        "ok": false
+      },
+      "state_hash_after": "1fa88b13cb1b5dcfc29206232f85464e70e2b9c7906929925957f53d607454c8"
+    },
+    {
+      "expected_reason": "executable_governance_requires_explicit_electorate",
+      "id": "failure::executable_governance_requires_explicit_electorate",
+      "result": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "proposal_id": "v15-no-explicit-electorate"
+          },
+          "reason": "executable_governance_requires_explicit_electorate"
+        },
+        "ok": false
+      },
+      "state_hash_after": "52669453cb158b4e84ab4acd819bdd9b3d51ce5127f843c96f716caf413bb92a"
+    },
+    {
+      "expected_reason": "proposal_not_executable",
+      "id": "failure::execute_before_tally",
+      "result": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "proposal_id": "v15-execute-before-tally",
+            "stage": "voting"
+          },
+          "reason": "proposal_not_executable"
+        },
+        "ok": false
+      },
+      "state_hash_after": "773a345c8b15e6f08d2ada9628ed16150117b1cd6595895da8d4489b17aacb5b"
+    },
+    {
+      "expected_reason": "proposal_did_not_pass",
+      "id": "failure::proposal_did_not_pass",
+      "result": {
+        "error": {
+          "code": "forbidden",
+          "details": {
+            "proposal_id": "v15-did-not-pass"
+          },
+          "reason": "proposal_did_not_pass"
+        },
+        "ok": false
+      },
+      "state_hash_after": "852a8db840588eabf837c3bd9fb57b6c0786b77f408d1e7f225878980d30cf79"
+    }
+  ],
+  "ok": true,
+  "schema": "weall.v1_5.governance_execution_vectors",
+  "truth_boundaries": {
+    "live_economics_enabled": false,
+    "public_beta_ready": false,
+    "vectors_are_local_deterministic_replay_not_external_multinode_proof": true
+  },
+  "version": 1
+}
