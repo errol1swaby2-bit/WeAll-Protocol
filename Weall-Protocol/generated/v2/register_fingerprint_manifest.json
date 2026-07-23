@@ -1,8 +1,11 @@
 {
+  "attestation_payload_sha256": "68aa442418a734fbcdaefac74260064cbb6d669deda65128138507515e15ce20",
+  "attestation_public_key_sha256": "ac5d32db0cecc7bece1b78b4a87ccec4cf602c219257bbac116736353e56d480",
+  "attestation_signer": "W1.1 offline extraction attestation key; private key destroyed after signing",
   "mechanisms": {
     "count": 78,
     "ids_sha256": "aeaba8e5d82678f537d2cbd24c9f9c7a130afc61961c16b819d1ccc603f21574",
-    "rows_sha256": "18f6e3cb27ad5e33e3f24e3c7238d77e6c0aea3c1956d5d78954d25cb4eeb348"
+    "rows_sha256": "b30435676ceb8156d20f0eabb82d0c92dd976682927bc7c0a8f4ca68b954adf3"
   },
   "parameters": {
     "count": 215,
@@ -18,37 +21,37 @@
       "mainnet"
     ],
     "compiler_identity": "weall-v2-spec-compiler",
-    "compiler_version": "2.0.0-first-draft-full-scope-w1",
-    "implementation_commit": null,
+    "compiler_version": "2.0.0-first-draft-full-scope-w1.1",
+    "implementation_commit": "1dedcaa5463f1fe230be35d90a610569a82c87dc",
     "normative_authority_status": "V2_0_FIRST_DRAFT_NOT_AUTHORIZED",
     "normative_candidate": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "d58c510faf77915e7b720a6dd8f50041d46e1af5bd851bcd663d8f911e85ee2a"
+    "source_tree_digest": "84f75ab46aa848cf956795fbddd7f750428a60725075e5d2a078023635ee6610"
   },
   "requirements": {
     "count": 755,
     "ids_sha256": "4b91ee45a7b8717a50b09a9a42f64c9d0ce4f5f87531c735d5130b49192e1fc4",
-    "rows_sha256": "223ed330d79d6318da6748355698c4036105cec7e938301491ae9154d06e85a2"
+    "rows_sha256": "b5f1dee8ddf7b6431a9d935121c45b36c5f61381110facb0b79b8ee0d7d1ac0d"
   },
   "schema": "weall.v2.register_fingerprint_manifest",
   "state_objects": {
     "count": 94,
     "ids_sha256": "b46a3d02453e14366e14b81bdaa2d152e044f45ce8b6cbabd2e0ddb6733d5de8",
-    "rows_sha256": "34cc8be4f50f0b57e8e51ba219677ad3e7ded94e9c7a2cec926bb5a3856562ac"
+    "rows_sha256": "faa40db5ed10375cf42dd3f7fdf981e8f0e4c9b272fb5f1f0a65618c023762b2"
   },
   "target_contracts": {
     "count": 150,
     "ids_sha256": "910797b1ab403db5a539de0b348baf5e0fed03cb4c207a6be160f993418fb92f",
-    "rows_sha256": "c20c6096a7c9a695a3bfb9ffdfd44d1e66ff852748f5880b7a4a00eae141897d"
+    "rows_sha256": "7b5d2a16aaef3f5c85cee83701d5a037f859cd1cfb7d78d02a6a4d816dcbcd38"
   },
   "target_failures": {
     "count": 98,
     "ids_sha256": "af3295d47a061c3f9e5baf4506b14c51a3aa98bcb3371f478220a304d83e8b23",
-    "rows_sha256": "c7c7cd1b27c3b5cc002d6e053aeb08df20ee83abe31c1b34e4b65698c3dd6165"
+    "rows_sha256": "3ff5525e83c6f3778a3c7822df380bd3c2a68cea9176476af0a06450a89e8b5d"
   },
   "truth_boundary": "The exact uploaded v2.0 First Draft PDF is retained and hash-bound. Its extracted full-scope registers control W1 human-machine equality. Structural compiler coverage does not prove runtime correctness, independent review, interoperability, capacity, or production activation.",
-  "validation_result": "PASS_HUMAN_MACHINE_REGISTER_EQUALITY",
-  "version": "2.0.0-first-draft-full-scope-w1"
+  "validation_result": "PASS_PINNED_SIGNED_PDF_EXTRACTION_ATTESTATION",
+  "version": "2.0.0-first-draft-full-scope-w1.1"
 }

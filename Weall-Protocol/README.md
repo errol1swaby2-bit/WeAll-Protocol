@@ -222,6 +222,6 @@ PYTHONPATH=src python scripts/compile_v2_spec.py --check
 python scripts/check_v2_spec_clean_checkout.py
 ```
 
-The compiler verifies the 236-entry current compatibility canon, 27-entry target TX canon, complete 150-entry target TX/MSG/SYS/RCP canon, all 159 current route implementations, 755 requirements, 215 parameters, M-001 through M-078, 94 exact state-object contracts, 98 target failure contracts, typed schemas, human-machine PDF-register fingerprints, source coverage, provenance, and frontend fail-closed truth consumption. See
+The compiler verifies the 236-entry current compatibility canon, 27-entry target TX canon, complete 150-entry target TX/MSG/SYS/RCP canon, all 159 current route implementations, 755 requirements, 215 parameters, M-001 through M-078, 94 exact state-object contracts, 98 target failure contracts, structured deterministic-CBOR schemas, a pinned signed PDF-extraction attestation, semantic-review digests, append-only stable-ID history, typed mechanism evidence paths, source coverage, commit-bound provenance, and frontend fail-closed truth consumption. See
 `docs/V2_SPEC_COMPILER.md` for the complete change procedure and assurance
 boundary.

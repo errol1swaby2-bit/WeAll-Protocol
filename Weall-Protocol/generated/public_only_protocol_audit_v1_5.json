@@ -123,6 +123,12 @@
     {
       "category": "generated",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 4,
+      "path": "generated/v2/requirement_traceability.json"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "generated/v2/route_contract_map.json"
     },
@@ -131,6 +137,54 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "generated/v2/source_coverage_map.json"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 4,
+      "path": "generated/v2/spec_compilation_manifest.json"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/state_contract_index.json"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/target_contract_canon.json"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/target_contract_schema_index.json"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/target_tx_canon.json"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 4,
+      "path": "specs/v2/source/requirements.json"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "specs/v2/source/state_objects.json"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "specs/v2/source/target_contracts.json"
     },
     {
       "category": "backend/api",
@@ -174,7 +228,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 19,
+  "inventory_hit_count": 28,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

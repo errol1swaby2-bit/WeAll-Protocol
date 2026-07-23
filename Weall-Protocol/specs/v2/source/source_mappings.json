@@ -34,11 +34,6 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     },
     {
-      "path": "generated/governance_execution_vectors_v1_5.json",
-      "classification": "ignored_local_generated_rehearsal_output",
-      "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
-    },
-    {
       "classification": "ignored_local_generated_rehearsal_output",
       "path": "generated/observer_to_validator_launch_flow_v1_5.json",
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
@@ -1238,6 +1233,16 @@
     },
     {
       "affected_registers": [
+        "evidence",
+        "governance_execution"
+      ],
+      "classification": "generated_compatibility_evidence",
+      "path": "generated/governance_execution_vectors_v1_5.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
         "mechanisms",
         "evidence"
       ],
@@ -1535,6 +1540,26 @@
       "path": "scripts/evaluate_operator_safe_mode.py",
       "primary_mechanism_id": "M-075",
       "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "provenance",
+        "evidence"
+      ],
+      "classification": "release_evidence_control",
+      "path": "scripts/export_v2_spec_release.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
+        "provenance",
+        "evidence"
+      ],
+      "classification": "release_evidence_control",
+      "path": "scripts/finalize_v2_spec_provenance.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
     },
     {
       "affected_registers": [
@@ -2998,6 +3023,21 @@
     },
     {
       "affected_registers": [
+        "requirements",
+        "parameters",
+        "mechanisms",
+        "state",
+        "contracts",
+        "stable_ids",
+        "provenance"
+      ],
+      "classification": "authoritative_spec_validation",
+      "path": "scripts/v2_spec_validation.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
         "mechanisms",
         "evidence"
       ],
@@ -3035,6 +3075,51 @@
       "path": "scripts/verify_validator_bootstrap.py",
       "primary_mechanism_id": "M-075",
       "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "requirements",
+        "parameters",
+        "mechanisms",
+        "state",
+        "contracts"
+      ],
+      "classification": "normative_extraction_attestation",
+      "path": "specs/v2/source/pdf_extraction_attestation.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
+        "requirements",
+        "parameters",
+        "mechanisms",
+        "state",
+        "contracts"
+      ],
+      "classification": "normative_extraction_attestation",
+      "path": "specs/v2/source/pdf_extraction_manifest.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "routes"
+      ],
+      "classification": "semantic_review",
+      "path": "specs/v2/source/semantic_reviews.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
+    },
+    {
+      "affected_registers": [
+        "stable_ids"
+      ],
+      "classification": "stable_id_history",
+      "path": "specs/v2/source/stable_ids_baseline.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_w1_1_closure"
     },
     {
       "affected_registers": [

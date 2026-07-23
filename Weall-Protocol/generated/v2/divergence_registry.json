@@ -8,39 +8,43 @@
       "mainnet"
     ],
     "compiler_identity": "weall-v2-spec-compiler",
-    "compiler_version": "2.0.0-first-draft-full-scope-w1",
-    "implementation_commit": null,
+    "compiler_version": "2.0.0-first-draft-full-scope-w1.1",
+    "implementation_commit": "1dedcaa5463f1fe230be35d90a610569a82c87dc",
     "normative_authority_status": "V2_0_FIRST_DRAFT_NOT_AUTHORIZED",
     "normative_candidate": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "d58c510faf77915e7b720a6dd8f50041d46e1af5bd851bcd663d8f911e85ee2a"
+    "source_tree_digest": "84f75ab46aa848cf956795fbddd7f750428a60725075e5d2a078023635ee6610"
   },
   "rows": [
     {
-      "activation_gate": "disabled_pending_semantic_review",
+      "activation_gate": "not_authority_activating",
       "affected_mechanisms": [
         "M-076"
       ],
-      "closure_evidence": [],
-      "current_behavior": "213 transaction-specific static rows, remaining rows retain reviewed partial/fallback precision.",
+      "closure_evidence": [
+        "SEMANTIC-REVIEW-TX-W1.1"
+      ],
+      "current_behavior": "All 236 current transaction contracts are bound to explicit maintainer-reviewed semantic snapshots.",
       "id": "DIV-W1-TX-SEMANTIC",
       "owner": "WeAll Protocol Maintainer",
-      "status": "open",
+      "status": "closed",
       "target_behavior": "All transaction contracts receive reviewed exact semantics.",
       "title": "Transaction contract semantics"
     },
     {
-      "activation_gate": "disabled_pending_semantic_review",
+      "activation_gate": "not_authority_activating",
       "affected_mechanisms": [
         "M-076"
       ],
-      "closure_evidence": [],
-      "current_behavior": "Some route authority and failure metadata remain static inference.",
+      "closure_evidence": [
+        "SEMANTIC-REVIEW-ROUTE-W1.1"
+      ],
+      "current_behavior": "All 159 current route contracts are bound to explicit maintainer-reviewed semantic snapshots.",
       "id": "DIV-W1-ROUTE-SEMANTIC",
       "owner": "WeAll Protocol Maintainer",
-      "status": "open",
+      "status": "closed",
       "target_behavior": "Every public route has explicit reviewed metadata.",
       "title": "Route contract semantics"
     },
@@ -49,16 +53,18 @@
       "affected_mechanisms": [
         "M-076"
       ],
-      "closure_evidence": [],
-      "current_behavior": "Automated and maintainer review only.",
+      "closure_evidence": [
+        "W1.1-EXTERNAL-REVIEW-DEFERRED-NO-AUTHORITY"
+      ],
+      "current_behavior": "W1 machine-verification closure is complete; independent external review remains a launch-authorization gate and is not represented as completed.",
       "id": "DIV-W1-EXTERNAL-REVIEW",
       "owner": "WeAll Protocol Maintainer",
-      "status": "open",
+      "status": "deferred_to_launch_authorization",
       "target_behavior": "Independent reviewer signs same-commit W1 evidence before launch authorization.",
       "title": "Independent review evidence"
     }
   ],
   "schema": "weall.v2.divergence_registry",
   "truth_boundary": "The exact uploaded v2.0 First Draft PDF is retained and hash-bound. Its extracted full-scope registers control W1 human-machine equality. Structural compiler coverage does not prove runtime correctness, independent review, interoperability, capacity, or production activation.",
-  "version": "2.0.0-first-draft-full-scope-w1"
+  "version": "2.0.0-first-draft-full-scope-w1.1"
 }

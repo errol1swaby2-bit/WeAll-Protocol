@@ -1,11 +1,11 @@
 # WeAll v2 machine-readable specification derivative
 
-Compiler source version: `2.0.0-first-draft-full-scope-w1`
+Compiler source version: `2.0.0-first-draft-full-scope-w1.1`
 Normative candidate: `2.0 First Draft - Complete Pre-Testnet Design Blueprint`
 Normative PDF SHA-256: `c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a`
 Repository: `https://github.com/errol1swaby2-bit/WeAll-Protocol`
 Specification snapshot: `63629d71a2447abf314f8914a808b565c7c75d70`
-Source-tree digest: `d58c510faf77915e7b720a6dd8f50041d46e1af5bd851bcd663d8f911e85ee2a`
+Source-tree digest: `84f75ab46aa848cf956795fbddd7f750428a60725075e5d2a078023635ee6610`
 
 This derivative is generated from the singular source tree. It proves W1 mechanism coverage and derivative consistency only; it is not a production-readiness or runtime-correctness certificate.
 
@@ -33,12 +33,13 @@ This derivative is generated from the singular source tree. It proves W1 mechani
 - Target Tx Canon: **27**
 - Tx Contract Matrix: **236**
 - Vector Registry: **1883**
-- Covered source files: **1778**
+- W1 Closure Validation Manifest: **0**
+- Covered source files: **1785**
 - Unmapped source files: **0**
 
 ## Semantic-review boundary
 
-- Transaction rows using domain-scope fallback: **18**
-- Routes backed by explicit route metadata: **63**
+- Transaction rows using domain-scope fallback: **0**
+- Routes backed by explicit route metadata: **0**
 - Complete register shape does not assert that every runtime mechanism already matches the production target.
 - Public testnet and mainnet authority remain disabled pending explicit activation receipts and applicable independent review.

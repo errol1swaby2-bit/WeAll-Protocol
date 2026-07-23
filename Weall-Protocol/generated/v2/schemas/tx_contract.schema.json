@@ -105,9 +105,16 @@
       "minLength": 1,
       "type": "string"
     },
+    "semantic_derivation": {
+      "minLength": 1,
+      "type": "string"
+    },
     "semantic_precision": {
       "minLength": 1,
       "type": "string"
+    },
+    "semantic_review": {
+      "type": "object"
     },
     "signer": {
       "minLength": 1,
@@ -186,6 +193,8 @@
     "migration_treatment",
     "implementation_source",
     "semantic_precision",
+    "semantic_review",
+    "semantic_derivation",
     "primary_mechanism_id",
     "vector_ids"
   ],

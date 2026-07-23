@@ -1,4 +1,7 @@
 {
+  "schema": "weall.v2.stable_id_release_baseline",
+  "version": "2.0.0-first-draft-full-scope-w1.1",
+  "accepted_parent_commit": "7900477bdd3852482a11b7f8d512e19c68ee0b18",
   "entries": [
     {
       "aliases": [],
@@ -28607,8 +28610,6 @@
       "status": "active"
     }
   ],
-  "reuse_forbidden": true,
-  "schema": "weall.v2.stable_id_registry",
   "tombstones": [
     {
       "stable_id": "LEGACY-W1-UNSCOPED-0001",
@@ -28619,6 +28620,5 @@
       "superseded_by": null,
       "migration_contract": "no_runtime_object; registry-history sentinel only"
     }
-  ],
-  "version": "2.0.0-first-draft-full-scope-w1"
+  ]
 }

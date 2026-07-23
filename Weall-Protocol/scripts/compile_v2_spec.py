@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import argparse
 import ast
-import hashlib
 import fnmatch
+import hashlib
 import json
 import re
 import sys
@@ -15,6 +15,19 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from v2_spec_validation import (
+    apply_semantic_reviews,
+    validate_mechanism_evidence,
+    validate_normative_cleanliness,
+    validate_provenance_binding,
+    validate_stable_id_history,
+    validate_structured_schemas,
+    validate_w1_divergence_closure,
+    verify_pdf_extraction_attestation,
+)
+from v2_spec_validation import (
+    compact_digest as attested_compact_digest,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = ROOT.parent
@@ -23,7 +36,20 @@ OUT_ROOT = ROOT / "generated" / "v2"
 WEB_STATUS_OUT = WORKSPACE_ROOT / "web" / "src" / "generated" / "protocolStatus.ts"
 
 Json = dict[str, Any]
-SUPPORTED_SOURCE_SUFFIXES = {".py", ".json", ".yaml", ".yml", ".md", ".ts", ".tsx", ".mjs", ".toml", ".lock", ".in", ".txt"}
+SUPPORTED_SOURCE_SUFFIXES = {
+    ".py",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".md",
+    ".ts",
+    ".tsx",
+    ".mjs",
+    ".toml",
+    ".lock",
+    ".in",
+    ".txt",
+}
 HTTP_METHODS = {"get", "post", "put", "delete", "patch"}
 WRITE_METHODS = {
     "setdefault",
@@ -61,7 +87,7 @@ class StableIdRegistry:
     known_ids: frozenset[str]
 
     @classmethod
-    def from_payload(cls, payload: Json) -> "StableIdRegistry":
+    def from_payload(cls, payload: Json) -> StableIdRegistry:
         by_kind_key: dict[tuple[str, str], str] = {}
         known_ids: set[str] = set()
         for row in payload.get("entries") or []:
@@ -99,9 +125,7 @@ class StableIdRegistry:
     def resolve(self, kind: str, canonical_key: str) -> str:
         value = self.by_kind_key.get((kind, canonical_key))
         if value is None:
-            raise CompileError(
-                f"unregistered stable ID: kind={kind} canonical_key={canonical_key}"
-            )
+            raise CompileError(f"unregistered stable ID: kind={kind} canonical_key={canonical_key}")
         return value
 
 
@@ -157,8 +181,6 @@ def _load_yaml(path: Path) -> Json:
     return value
 
 
-
-
 def _compact_digest(value: Any) -> str:
     raw = json.dumps(
         value,
@@ -187,16 +209,14 @@ def _validate_exact_uploaded_pdf(path: Path, identity: Json, provenance: Json) -
     author = str(identity.get("author") or "")
     if not title or title.encode("utf-8") not in raw:
         raise CompileError("normative PDF metadata title mismatch")
-    if not author or f"/Author({author})".encode("utf-8") not in raw:
+    if not author or f"/Author({author})".encode() not in raw:
         raise CompileError("normative PDF metadata author mismatch")
     normative = provenance.get("normative_specification") or {}
     if str(normative.get("sha256") or "") != expected_sha:
         raise CompileError("PDF identity and provenance hashes disagree")
     if str(identity.get("version") or "") != str(normative.get("candidate") or ""):
         raise CompileError("PDF identity and provenance candidate labels disagree")
-    if str(identity.get("authority_status") or "") != str(
-        normative.get("authority_status") or ""
-    ):
+    if str(identity.get("authority_status") or "") != str(normative.get("authority_status") or ""):
         raise CompileError("PDF identity and provenance authority status disagree")
     return {
         **identity,
@@ -289,29 +309,17 @@ def _target_schema_rows(target_rows: list[Json]) -> list[Json]:
     for row in target_rows:
         contract_id = str(row["id"])
         namespace = str(row["namespace"])
-        if namespace == "RCP":
-            payload_schema = str(row.get("schema") or "")
-            payload_fields = str(row.get("canonical_fields") or "")
-            receipt_schema = payload_schema
-            receipt_fields = payload_fields
-        else:
-            payload_schema = str(row.get("payload_schema") or "")
-            payload_fields = str(row.get("payload_fields") or "")
-            receipt_schema = str(row.get("bound_receipt_schema") or "")
-            receipt_fields = str(row.get("receipt_fields") or "")
         material = {
             "contract_id": contract_id,
             "namespace": namespace,
-            "payload_schema": payload_schema,
-            "payload_fields": payload_fields,
-            "receipt_schema": receipt_schema,
-            "receipt_fields": receipt_fields,
+            "payload_schema_definition": row.get("payload_schema_definition"),
+            "receipt_schema_definition": row.get("receipt_schema_definition"),
         }
         rows.append(
             {
                 "id": f"SCHEMA-{contract_id.replace(':', '-')}",
                 **material,
-                "schema_fingerprint": _compact_digest(material),
+                "schema_fingerprint": attested_compact_digest(material),
                 "contract_fingerprint": str(row.get("contract_fingerprint") or ""),
                 "primary_mechanism_id": str(row.get("primary_mechanism_id") or ""),
                 "vector_ids": list(row.get("vector_ids") or []),
@@ -331,6 +339,7 @@ def _expanded_vector_rows(
     by_id: dict[str, Json] = {
         str(row["id"]): dict(row) for row in declared_rows if isinstance(row, dict)
     }
+
     def add(vector_id: str, title: str, expected: str, status: str = "normative_target") -> None:
         if vector_id in by_id:
             return
@@ -342,18 +351,35 @@ def _expanded_vector_rows(
             "status": status,
             "test": "NOT_YET_IMPLEMENTED; exact vector contract is registered and launch-gated",
         }
+
     for row in parameters:
         for vid in row.get("boundary_vector_ids") or []:
-            add(str(vid), f"Parameter boundary: {row['id']}", "Boundary behavior matches the exact registered parameter row")
+            add(
+                str(vid),
+                f"Parameter boundary: {row['id']}",
+                "Boundary behavior matches the exact registered parameter row",
+            )
     for row in state_rows:
         for vid in row.get("vector_ids") or []:
-            add(str(vid), f"State contract: {row['canonical_name']}", "Canonical encoding, transition, replay, and migration behavior match the exact state-object contract")
+            add(
+                str(vid),
+                f"State contract: {row['canonical_name']}",
+                "Canonical encoding, transition, replay, and migration behavior match the exact state-object contract",
+            )
     for row in target_contracts:
         for vid in row.get("vector_ids") or []:
-            add(str(vid), f"Target contract: {row['id']}", "Success, failure, boundary, or replay behavior matches the exact target contract")
+            add(
+                str(vid),
+                f"Target contract: {row['id']}",
+                "Success, failure, boundary, or replay behavior matches the exact target contract",
+            )
     for row in target_failures:
         for vid in row.get("vector_ids") or []:
-            add(str(vid), f"Target failure: {row['stable_id']}", "Failure stage, mutation guarantee, retry, receipt, and replay behavior match the exact failure contract")
+            add(
+                str(vid),
+                f"Target failure: {row['stable_id']}",
+                "Failure stage, mutation guarantee, retry, receipt, and replay behavior match the exact failure contract",
+            )
     return [by_id[key] for key in sorted(by_id)]
 
 
@@ -434,8 +460,10 @@ def _branch_for_tx(fn: ast.FunctionDef | ast.AsyncFunctionDef, tx_type: str) -> 
     if not matches:
         return None
     matches.sort(
-        key=lambda node: int(getattr(node, "end_lineno", node.lineno) or node.lineno)
-        - int(getattr(node, "lineno", 0) or 0)
+        key=lambda node: (
+            int(getattr(node, "end_lineno", node.lineno) or node.lineno)
+            - int(getattr(node, "lineno", 0) or 0)
+        )
     )
     return matches[0]
 
@@ -587,12 +615,15 @@ def _load_sources() -> dict[str, Json]:
         "mechanisms",
         "parameters",
         "pdf_identity",
-        "pdf_register_fingerprints",
+        "pdf_extraction_attestation",
+        "pdf_extraction_manifest",
         "protocol_registry",
         "provenance",
         "requirements",
         "source_mappings",
         "stable_ids",
+        "stable_id_baseline",
+        "semantic_reviews",
         "state_objects",
         "target_contracts",
         "target_failures",
@@ -1087,14 +1118,10 @@ def _scan_transaction_contracts(
     return rows
 
 
-def _state_index(
-    tx_rows: list[Json], registry: Json, stable_ids: StableIdRegistry
-) -> list[Json]:
+def _state_index(tx_rows: list[Json], registry: Json, stable_ids: StableIdRegistry) -> list[Json]:
     usage: dict[tuple[str, str], Json] = {}
     declared = registry.get("state_namespaces") or {}
-    mechanism_by_domain = {
-        str(row["domain"]): str(row["primary_mechanism_id"]) for row in tx_rows
-    }
+    mechanism_by_domain = {str(row["domain"]): str(row["primary_mechanism_id"]) for row in tx_rows}
     for domain, namespaces in declared.items():
         for namespace in namespaces or []:
             key = (str(domain), str(namespace))
@@ -1320,9 +1347,7 @@ def _failure_index(
     return rows
 
 
-def _evidence_index(
-    evidence_manifest: Json, stable_ids: StableIdRegistry
-) -> list[Json]:
+def _evidence_index(evidence_manifest: Json, stable_ids: StableIdRegistry) -> list[Json]:
     rows: list[Json] = []
     seen_paths: set[str] = set()
     seen_ids: set[str] = set()
@@ -1355,9 +1380,7 @@ def _evidence_index(
                 "claim": str(declared.get("claim") or "scoped implementation evidence"),
                 "reviewer": str(declared.get("reviewer") or "IMPLEMENTATION_REVIEW_PENDING"),
                 "activation_receipt": declared.get("activation_receipt"),
-                "required_external_review": bool(
-                    declared.get("required_external_review", False)
-                ),
+                "required_external_review": bool(declared.get("required_external_review", False)),
                 "activation_authority": False,
                 "primary_mechanism_id": "M-076",
                 "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself.",
@@ -1463,8 +1486,7 @@ def _source_coverage(
             {
                 "path": rel,
                 "classification": str(
-                    row.get("classification")
-                    or "ignored_local_generated_artifact"
+                    row.get("classification") or "ignored_local_generated_artifact"
                 ),
                 "reason": str(row.get("reason") or ""),
             }
@@ -1523,9 +1545,7 @@ def _source_coverage(
                 "mappings": mappings,
             }
         )
-    missing_exact = sorted(
-        rel for rel in exact if not (ROOT / rel).resolve().is_file()
-    )
+    missing_exact = sorted(rel for rel in exact if not (ROOT / rel).resolve().is_file())
     if missing_exact:
         raise CompileError(f"stale exact source mappings: {missing_exact[:25]}")
     return {
@@ -1586,23 +1606,34 @@ def _schema_for(name: str, required: list[str]) -> Json:
         "activation": object_value,
         "migration_treatment": string,
         "semantic_precision": string,
+        "semantic_derivation": string,
+        "semantic_review": object_value,
         "primary_mechanism_id": {"type": "string", "pattern": "^M-[0-9]{3}$"},
-        "vector_ids": {"type": "array", "items": {"type": "string", "pattern": "^VEC-"}, "minItems": 1, "uniqueItems": True},
+        "vector_ids": {
+            "type": "array",
+            "items": {"type": "string", "pattern": "^VEC-"},
+            "minItems": 1,
+            "uniqueItems": True,
+        },
     }
     properties = {field: common.get(field, {}) for field in required}
     if name == "tx_contract":
-        properties.update({
-            "origin": string,
-            "context": string,
-            "schema_source": string,
-        })
+        properties.update(
+            {
+                "origin": string,
+                "context": string,
+                "schema_source": string,
+            }
+        )
     elif name == "route_contract":
-        properties.update({
-            "route_key": string,
-            "metadata_source": string,
-            "semantic_precision": string,
-            "duplicate_route_key": {"type": "boolean"},
-        })
+        properties.update(
+            {
+                "route_key": string,
+                "metadata_source": string,
+                "semantic_precision": string,
+                "duplicate_route_key": {"type": "boolean"},
+            }
+        )
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": f"https://weall.example/spec/v2/{name}.schema.json",
@@ -1627,7 +1658,7 @@ def _render_frontend_status(
     status["sourceTreeDigest"] = source_tree_digest
     lines = [
         "// Generated by scripts/compile_v2_spec.py. Do not edit by hand.",
-        f'export const WEALL_SPEC_VERSION = {json.dumps(str(manifest.get("version") or ""))} as const;',
+        f"export const WEALL_SPEC_VERSION = {json.dumps(str(manifest.get('version') or ''))} as const;",
         "export const WEALL_PROTOCOL_STATUS = "
         + json.dumps(status, indent=2, sort_keys=True)
         + " as const;",
@@ -1710,8 +1741,7 @@ def _source_input_hashes(manifest: Json) -> dict[str, str]:
 
 def _source_tree_digest(coverage: Json) -> str:
     material = [
-        {"path": row["path"], "sha256": row["sha256"]}
-        for row in coverage.get("files") or []
+        {"path": row["path"], "sha256": row["sha256"]} for row in coverage.get("files") or []
     ]
     return _sha256_bytes(_canonical_json(material))
 
@@ -1855,11 +1885,14 @@ def _schema_from_values(field: str, values: list[Any]) -> Json:
         elif items and all(isinstance(item, int) and not isinstance(item, bool) for item in items):
             item_schema = {"type": "integer"}
         schema = {"type": "array", "items": item_schema}
-        if all(len(value) == len({json.dumps(item, sort_keys=True) for item in value}) for value in non_null):
+        if all(
+            len(value) == len({json.dumps(item, sort_keys=True) for item in value})
+            for value in non_null
+        ):
             schema["uniqueItems"] = True
         return schema
     if all(isinstance(value, dict) for value in non_null):
-        return {"type": "object"}
+        return {"type": ["object", "null"] if allows_null else "object"}
     return _field_schema(field)
 
 
@@ -1870,8 +1903,13 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
     registry = sources["protocol_registry"]
     overrides = sources["contract_overrides"]
     tx_canon = sources["transaction_canon"]
-    stable_ids = StableIdRegistry.from_payload(sources["stable_ids"])
+    stable_ids_payload = sources["stable_ids"]
+    stable_ids = StableIdRegistry.from_payload(stable_ids_payload)
+    stable_id_history = validate_stable_id_history(
+        stable_ids_payload, sources["stable_id_baseline"]
+    )
     provenance = sources["provenance"]
+    provenance_binding = validate_provenance_binding(provenance)
     source_mappings = sources["source_mappings"]
     controlled = sources["controlled_enums"]
     controlled_statuses = [str(value) for value in controlled.get("status_category") or []]
@@ -1889,12 +1927,26 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
     )
     normative_hash = str(pdf_identity["validated_sha256"])
 
-    requirement_rows = [dict(row) for row in sources["requirements"].get("requirements") or [] if isinstance(row, dict)]
-    parameter_rows = [dict(row) for row in sources["parameters"].get("parameters") or [] if isinstance(row, dict)]
-    mechanism_rows = [dict(row) for row in sources["mechanisms"].get("mechanisms") or [] if isinstance(row, dict)]
-    state_rows = [dict(row) for row in sources["state_objects"].get("rows") or [] if isinstance(row, dict)]
-    target_contract_rows = [dict(row) for row in sources["target_contracts"].get("rows") or [] if isinstance(row, dict)]
-    target_failure_rows = [dict(row) for row in sources["target_failures"].get("rows") or [] if isinstance(row, dict)]
+    requirement_rows = [
+        dict(row)
+        for row in sources["requirements"].get("requirements") or []
+        if isinstance(row, dict)
+    ]
+    parameter_rows = [
+        dict(row) for row in sources["parameters"].get("parameters") or [] if isinstance(row, dict)
+    ]
+    mechanism_rows = [
+        dict(row) for row in sources["mechanisms"].get("mechanisms") or [] if isinstance(row, dict)
+    ]
+    state_rows = [
+        dict(row) for row in sources["state_objects"].get("rows") or [] if isinstance(row, dict)
+    ]
+    target_contract_rows = [
+        dict(row) for row in sources["target_contracts"].get("rows") or [] if isinstance(row, dict)
+    ]
+    target_failure_rows = [
+        dict(row) for row in sources["target_failures"].get("rows") or [] if isinstance(row, dict)
+    ]
 
     expected = manifest.get("expected_counts") or {}
     exact_counts = {
@@ -1913,7 +1965,9 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
         if actual != wanted:
             raise CompileError(f"{key} count mismatch: expected {wanted} found {actual}")
 
-    _require_exact_ids(mechanism_rows, "id", [f"M-{number:03d}" for number in range(1, 79)], "mechanism")
+    _require_exact_ids(
+        mechanism_rows, "id", [f"M-{number:03d}" for number in range(1, 79)], "mechanism"
+    )
     _require_exact_ids(
         target_contract_rows,
         "id",
@@ -1923,23 +1977,15 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
         + [f"RCP:C310:{number:04d}" for number in range(1, 76)],
         "target contract",
     )
-    _require_exact_ids(target_failure_rows, "failure_id", [str(number) for number in range(1, 99)], "target failure")
+    _require_exact_ids(
+        target_failure_rows,
+        "failure_id",
+        [str(number) for number in range(1, 99)],
+        "target failure",
+    )
 
-    fingerprints_source = sources["pdf_register_fingerprints"]
-    if str(fingerprints_source.get("pdf_sha256") or "") != normative_hash:
-        raise CompileError("PDF register fingerprints are not bound to the exact uploaded PDF")
-    register_fingerprints = {
-        "schema": "weall.v2.register_fingerprint_manifest",
-        "pdf_sha256": normative_hash,
-        "requirements": _validate_pdf_register("requirements", requirement_rows, "id", fingerprints_source),
-        "parameters": _validate_pdf_register("parameters", parameter_rows, "id", fingerprints_source),
-        "mechanisms": _validate_pdf_register("mechanisms", mechanism_rows, "id", fingerprints_source),
-        "state_objects": _validate_pdf_register("state_objects", state_rows, "stable_id", fingerprints_source),
-        "target_contracts": _validate_pdf_register("target_contracts", target_contract_rows, "id", fingerprints_source),
-        "target_failures": _validate_pdf_register("target_failures", target_failure_rows, "stable_id", fingerprints_source),
-        "validation_result": "PASS_HUMAN_MACHINE_REGISTER_EQUALITY",
-    }
-
+    # Validate controlled row semantics before the immutable extraction oracle so
+    # diagnostics remain specific even when an attacker also edits source rows.
     for rows, kind in (
         (requirement_rows, "requirement"),
         (parameter_rows, "parameter"),
@@ -1950,6 +1996,37 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
     ):
         _validate_controlled_statuses(rows, allowed_statuses, kind)
     _validate_requirement_results(requirement_rows, controlled)
+
+    try:
+        register_fingerprints = verify_pdf_extraction_attestation(
+            extraction_manifest=sources["pdf_extraction_manifest"],
+            attestation=sources["pdf_extraction_attestation"],
+            pdf_sha256=normative_hash,
+            registers={
+                "requirements": (requirement_rows, "id"),
+                "parameters": (parameter_rows, "id"),
+                "mechanisms": (mechanism_rows, "id"),
+                "state_objects": (state_rows, "stable_id"),
+                "target_contracts": (target_contract_rows, "id"),
+                "target_failures": (target_failure_rows, "stable_id"),
+            },
+            stable_baseline=sources["stable_id_baseline"],
+        )
+        extraction_cleanliness = validate_normative_cleanliness(
+            {
+                "requirements": requirement_rows,
+                "mechanisms": mechanism_rows,
+                "state_objects": state_rows,
+                "target_contracts": target_contract_rows,
+                "target_failures": target_failure_rows,
+            }
+        )
+        structured_schema_validation = validate_structured_schemas(
+            state_rows, target_contract_rows, target_failure_rows
+        )
+        mechanism_evidence_validation = validate_mechanism_evidence(ROOT, mechanism_rows)
+    except ValueError as exc:
+        raise CompileError(str(exc)) from exc
 
     tx_defs = [row for row in tx_canon.get("txs") or [] if isinstance(row, dict)]
     tx_names = {str(row.get("name") or "").strip().upper() for row in tx_defs}
@@ -1967,6 +2044,12 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
         stable_ids,
         sources["transaction_appliers"],
     )
+    try:
+        semantic_review_validation = apply_semantic_reviews(
+            tx_rows, route_rows, sources["semantic_reviews"]
+        )
+    except ValueError as exc:
+        raise CompileError(str(exc)) from exc
     runtime_state_rows = _state_index(tx_rows, registry, stable_ids)
     message_rows = _message_index(registry, stable_ids, source_mappings)
     scheduler_rows = _scheduler_index(registry, tx_rows, stable_ids, source_mappings)
@@ -1975,27 +2058,42 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
     evidence_rows = _evidence_index(sources["evidence_manifest"], stable_ids)
 
     if len(tx_rows) != int(expected.get("transactions") or 0):
-        raise CompileError(f"transaction count mismatch: expected {expected.get('transactions')} found {len(tx_rows)}")
+        raise CompileError(
+            f"transaction count mismatch: expected {expected.get('transactions')} found {len(tx_rows)}"
+        )
     if len(route_rows) != int(expected.get("routes") or 0):
-        raise CompileError(f"route count mismatch: expected {expected.get('routes')} found {len(route_rows)}")
+        raise CompileError(
+            f"route count mismatch: expected {expected.get('routes')} found {len(route_rows)}"
+        )
 
-    _validate_required_fields(tx_rows, [str(item) for item in manifest.get("required_transaction_fields") or []], "transaction")
-    _validate_required_fields(route_rows, [str(item) for item in manifest.get("required_route_fields") or []], "route")
+    _validate_required_fields(
+        tx_rows,
+        [str(item) for item in manifest.get("required_transaction_fields") or []],
+        "transaction",
+    )
+    _validate_required_fields(
+        route_rows, [str(item) for item in manifest.get("required_route_fields") or []], "route"
+    )
 
     evidence_by_id = {str(row["stable_id"]): row for row in evidence_rows}
     for requirement in requirement_rows:
         missing_evidence = [
-            evidence_id for evidence_id in requirement.get("evidence_ids") or []
+            evidence_id
+            for evidence_id in requirement.get("evidence_ids") or []
             if evidence_id not in evidence_by_id
         ]
         if missing_evidence:
-            raise CompileError(f"requirement {requirement.get('id')} references missing evidence: {missing_evidence}")
+            raise CompileError(
+                f"requirement {requirement.get('id')} references missing evidence: {missing_evidence}"
+            )
 
     mechanism_ids = {str(row.get("id") or "") for row in mechanism_rows}
     mapped_paths: dict[str, list[str]] = defaultdict(list)
     for row in source_mappings.get("mappings") or []:
         if isinstance(row, dict):
-            mapped_paths[str(row.get("primary_mechanism_id") or "")].append(str(row.get("path") or ""))
+            mapped_paths[str(row.get("primary_mechanism_id") or "")].append(
+                str(row.get("path") or "")
+            )
     for row in mechanism_rows:
         row["repository_evidence_paths"] = sorted(
             set(row.get("repository_evidence_paths") or [])
@@ -2003,15 +2101,24 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
         )
 
     all_contract_rows = (
-        tx_rows + route_rows + runtime_state_rows + state_rows + message_rows
-        + scheduler_rows + receipt_rows + failure_rows + target_contract_rows
+        tx_rows
+        + route_rows
+        + runtime_state_rows
+        + state_rows
+        + message_rows
+        + scheduler_rows
+        + receipt_rows
+        + failure_rows
+        + target_contract_rows
         + target_failure_rows
     )
-    unknown_mechanisms = sorted({
-        str(row.get("primary_mechanism_id") or "")
-        for row in all_contract_rows
-        if str(row.get("primary_mechanism_id") or "") not in mechanism_ids
-    })
+    unknown_mechanisms = sorted(
+        {
+            str(row.get("primary_mechanism_id") or "")
+            for row in all_contract_rows
+            if str(row.get("primary_mechanism_id") or "") not in mechanism_ids
+        }
+    )
     if unknown_mechanisms:
         raise CompileError(f"contracts reference unknown mechanisms: {unknown_mechanisms}")
 
@@ -2028,7 +2135,25 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
     if coverage["unmapped_count"]:
         raise CompileError(f"unmapped source files: {coverage['unmapped'][:50]}")
 
-    divergence_rows = [dict(row) for row in sources["divergences"].get("divergences") or [] if isinstance(row, dict)]
+    divergence_rows = [
+        dict(row)
+        for row in sources["divergences"].get("divergences") or []
+        if isinstance(row, dict)
+    ]
+    allowed_divergence_statuses = {
+        str(value) for value in controlled.get("divergence_status") or []
+    }
+    invalid_divergence_statuses = sorted(
+        {str(row.get("status") or "") for row in divergence_rows} - allowed_divergence_statuses
+    )
+    if invalid_divergence_statuses:
+        raise CompileError(
+            f"divergence rows use uncontrolled statuses: {invalid_divergence_statuses}"
+        )
+    try:
+        divergence_closure_validation = validate_w1_divergence_closure(divergence_rows)
+    except ValueError as exc:
+        raise CompileError(str(exc)) from exc
     target_schema_rows = _target_schema_rows(target_contract_rows)
     vector_rows = _expanded_vector_rows(
         [dict(row) for row in sources["vectors"].get("vectors") or [] if isinstance(row, dict)],
@@ -2078,65 +2203,176 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
     }
 
     tx_payload = {
-        "schema": "weall.v2.tx_contract_matrix", **common,
+        "schema": "weall.v2.tx_contract_matrix",
+        **common,
         "transaction_count": len(tx_rows),
         "required_fields": manifest.get("required_transaction_fields") or [],
-        "semantic_review_complete": all(row["semantic_precision"] == "tx_specific_static" for row in tx_rows),
+        "semantic_review_complete": all(
+            row.get("semantic_precision") == "explicit_maintainer_reviewed_contract"
+            and isinstance(row.get("semantic_review"), dict)
+            for row in tx_rows
+        ),
         "rows": tx_rows,
     }
     route_payload = {
-        "schema": "weall.v2.route_contract_map", **common,
+        "schema": "weall.v2.route_contract_map",
+        **common,
         "route_count": len(route_rows),
         "unique_method_path_count": len({f"{row['method']} {row['path']}" for row in route_rows}),
-        "duplicate_route_implementation_count": sum(1 for row in route_rows if row.get("duplicate_route_key")),
+        "duplicate_route_implementation_count": sum(
+            1 for row in route_rows if row.get("duplicate_route_key")
+        ),
         "required_fields": manifest.get("required_route_fields") or [],
-        "semantic_review_complete": all(row["semantic_precision"] == "explicit_metadata" for row in route_rows),
+        "semantic_review_complete": all(
+            row.get("semantic_precision") == "explicit_maintainer_reviewed_contract"
+            and isinstance(row.get("semantic_review"), dict)
+            for row in route_rows
+        ),
         "routes": route_rows,
     }
     current_tx_canon = {
-        "schema": "weall.v2.current_compatibility_tx_canon", **common,
+        "schema": "weall.v2.current_compatibility_tx_canon",
+        **common,
         "authority_status": "compatibility_runtime_not_mainnet_target_canon",
-        "count": len(tx_rows), "rows": tx_rows,
+        "count": len(tx_rows),
+        "rows": tx_rows,
     }
     target_tx_rows = [row for row in target_contract_rows if row.get("namespace") == "TX"]
     target_tx_canon = {
-        "schema": "weall.v2.target_tx_canon", **common,
+        "schema": "weall.v2.target_tx_canon",
+        **common,
         "authority_status": "normative_target_launch_gated",
-        "count": len(target_tx_rows), "rows": target_tx_rows,
+        "count": len(target_tx_rows),
+        "rows": target_tx_rows,
     }
     target_contract_canon = {
-        "schema": "weall.v2.target_contract_canon", **common,
+        "schema": "weall.v2.target_contract_canon",
+        **common,
         "authority_status": "normative_target_launch_gated",
         "counts": {
             namespace: sum(row.get("namespace") == namespace for row in target_contract_rows)
             for namespace in ("TX", "MSG", "SYS", "RCP")
         },
-        "count": len(target_contract_rows), "rows": target_contract_rows,
+        "count": len(target_contract_rows),
+        "rows": target_contract_rows,
     }
 
     register_payloads: dict[str, Json] = {
         "current_tx_canon": current_tx_canon,
         "target_tx_canon": target_tx_canon,
         "target_contract_canon": target_contract_canon,
-        "target_contract_schema_index": {"schema": "weall.v2.target_contract_schema_index", **common, "count": len(target_schema_rows), "rows": target_schema_rows},
-        "target_failure_contract_index": {"schema": "weall.v2.target_failure_contract_index", **common, "count": len(target_failure_rows), "rows": target_failure_rows},
-        "runtime_state_inventory": {"schema": "weall.v2.runtime_state_inventory", **common, "count": len(runtime_state_rows), "rows": runtime_state_rows},
+        "target_contract_schema_index": {
+            "schema": "weall.v2.target_contract_schema_index",
+            **common,
+            "count": len(target_schema_rows),
+            "rows": target_schema_rows,
+        },
+        "target_failure_contract_index": {
+            "schema": "weall.v2.target_failure_contract_index",
+            **common,
+            "count": len(target_failure_rows),
+            "rows": target_failure_rows,
+        },
+        "runtime_state_inventory": {
+            "schema": "weall.v2.runtime_state_inventory",
+            **common,
+            "count": len(runtime_state_rows),
+            "rows": runtime_state_rows,
+        },
         "tx_contract_matrix": tx_payload,
         "route_contract_map": route_payload,
         "source_coverage_map": coverage,
-        "state_contract_index": {"schema": "weall.v2.state_contract_index", **common, "count": len(state_rows), "rows": state_rows},
-        "message_contract_index": {"schema": "weall.v2.message_contract_index", **common, "count": len(message_rows), "rows": message_rows},
-        "scheduler_contract_index": {"schema": "weall.v2.scheduler_contract_index", **common, "count": len(scheduler_rows), "rows": scheduler_rows},
-        "receipt_contract_index": {"schema": "weall.v2.receipt_contract_index", **common, "count": len(receipt_rows), "rows": receipt_rows},
-        "failure_contract_index": {"schema": "weall.v2.failure_contract_index", **common, "count": len(failure_rows), "rows": failure_rows},
-        "parameter_registry": {"schema": "weall.v2.parameter_registry", **common, "count": len(parameter_rows), "rows": parameter_rows},
-        "requirement_traceability": {"schema": "weall.v2.requirement_traceability", **common, "count": len(requirement_rows), "rows": requirement_rows},
-        "mechanism_registry": {"schema": "weall.v2.mechanism_registry", **common, "count": len(mechanism_rows), "rows": mechanism_rows},
-        "divergence_registry": {"schema": "weall.v2.divergence_registry", **common, "count": len(divergence_rows), "rows": divergence_rows},
-        "vector_registry": {"schema": "weall.v2.vector_registry", **common, "count": len(vector_rows), "rows": vector_rows},
-        "evidence_index": {"schema": "weall.v2.evidence_index", **common, "count": len(evidence_rows), "rows": evidence_rows},
-        "pdf_identity_manifest": {"schema": "weall.v2.pdf_identity_manifest", **common, **pdf_identity},
+        "state_contract_index": {
+            "schema": "weall.v2.state_contract_index",
+            **common,
+            "count": len(state_rows),
+            "rows": state_rows,
+        },
+        "message_contract_index": {
+            "schema": "weall.v2.message_contract_index",
+            **common,
+            "count": len(message_rows),
+            "rows": message_rows,
+        },
+        "scheduler_contract_index": {
+            "schema": "weall.v2.scheduler_contract_index",
+            **common,
+            "count": len(scheduler_rows),
+            "rows": scheduler_rows,
+        },
+        "receipt_contract_index": {
+            "schema": "weall.v2.receipt_contract_index",
+            **common,
+            "count": len(receipt_rows),
+            "rows": receipt_rows,
+        },
+        "failure_contract_index": {
+            "schema": "weall.v2.failure_contract_index",
+            **common,
+            "count": len(failure_rows),
+            "rows": failure_rows,
+        },
+        "parameter_registry": {
+            "schema": "weall.v2.parameter_registry",
+            **common,
+            "count": len(parameter_rows),
+            "rows": parameter_rows,
+        },
+        "requirement_traceability": {
+            "schema": "weall.v2.requirement_traceability",
+            **common,
+            "count": len(requirement_rows),
+            "rows": requirement_rows,
+        },
+        "mechanism_registry": {
+            "schema": "weall.v2.mechanism_registry",
+            **common,
+            "count": len(mechanism_rows),
+            "rows": mechanism_rows,
+        },
+        "divergence_registry": {
+            "schema": "weall.v2.divergence_registry",
+            **common,
+            "count": len(divergence_rows),
+            "rows": divergence_rows,
+        },
+        "vector_registry": {
+            "schema": "weall.v2.vector_registry",
+            **common,
+            "count": len(vector_rows),
+            "rows": vector_rows,
+        },
+        "evidence_index": {
+            "schema": "weall.v2.evidence_index",
+            **common,
+            "count": len(evidence_rows),
+            "rows": evidence_rows,
+        },
+        "pdf_identity_manifest": {
+            "schema": "weall.v2.pdf_identity_manifest",
+            **common,
+            **pdf_identity,
+        },
         "register_fingerprint_manifest": {**common, **register_fingerprints},
+        "w1_closure_validation_manifest": {
+            "schema": "weall.v2.w1_closure_validation_manifest",
+            **common,
+            "pdf_extraction_attestation": register_fingerprints,
+            "structured_schemas": structured_schema_validation,
+            "extraction_cleanliness": extraction_cleanliness,
+            "mechanism_evidence": mechanism_evidence_validation,
+            "semantic_reviews": semantic_review_validation,
+            "stable_id_history": stable_id_history,
+            "divergence_closure": divergence_closure_validation,
+            "provenance_binding": provenance_binding,
+            "implementation_commit_binding": provenance.get("repository", {}).get(
+                "implementation_commit"
+            ),
+            "release_export_attestation_required": bool(
+                provenance.get("repository", {}).get("release_export_attestation_required")
+            ),
+            "validation_result": "PASS_W1_TECHNICAL_CLOSURE_RELEASE_ATTESTATION_REQUIRED",
+        },
     }
     artifacts: dict[Path, bytes] = {
         OUT_ROOT / f"{name}.json": _canonical_json(payload)
@@ -2147,37 +2383,272 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
         ("tx_contract", [str(item) for item in manifest.get("required_transaction_fields") or []]),
         ("route_contract", [str(item) for item in manifest.get("required_route_fields") or []]),
     ):
-        artifacts[OUT_ROOT / "schemas" / f"{name}.schema.json"] = _canonical_json(_schema_for(name, required))
+        artifacts[OUT_ROOT / "schemas" / f"{name}.schema.json"] = _canonical_json(
+            _schema_for(name, required)
+        )
 
     schema_rows: dict[str, tuple[list[str], list[Json], Json]] = {
-        "state_contract": (["stable_id", "canonical_name", "domain", "state_key_or_namespace", "key_encoding", "value_schema", "transition_contracts", "failure_semantics", "replay_behavior", "primary_mechanism_id", "vector_ids", "status"], state_rows, {"stable_id": {"type": "string", "pattern": "^STATE-FS-[0-9]{4}$"}}),
-        "message_contract": (["stable_id", "name", "kind", "source", "wire_encoding", "authority_boundary", "replay_rules", "idempotency_rules", "failure_semantics", "primary_mechanism_id", "vector_ids", "status"], message_rows, {}),
-        "scheduler_contract": (["stable_id", "name", "source", "due_predicate", "ordering_contract", "idempotency_key", "replay_behavior", "failure_semantics", "primary_mechanism_id", "vector_ids", "status"], scheduler_rows, {}),
-        "receipt_contract": (["stable_id", "transaction_id", "tx_type", "kind", "fields", "domain_separation", "replay_binding", "failure_representation", "primary_mechanism_id", "vector_ids", "status"], receipt_rows, {}),
-        "failure_contract": (["stable_id", "code", "reason_or_contract", "category", "retryable", "severity", "state_mutation_guarantee", "transactions", "routes", "primary_mechanism_id", "vector_ids", "status"], failure_rows, {}),
-        "parameter": (["id", "name", "type", "value", "source", "scope", "mutability", "activation_gate", "status"], parameter_rows, {"id": {"type": "string", "pattern": "^(?:C310-P|P|V20-P)-[0-9]{3}$"}}),
-        "requirement": (["id", "status", "title", "normative_sentence", "section", "owner", "implementation_paths", "contract_ids", "tests", "evidence_ids", "reviewer", "activation_gate", "verification_result", "test_run_id", "evidence_digest", "implementation_commit", "verification_timestamp"], requirement_rows, {"id": {"type": "string", "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-[0-9]{3}$"}, "implementation_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"}, "verification_timestamp": {"type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"}}),
-        "mechanism": (["id", "status", "title", "mechanism_kind", "current_snapshot_behavior", "production_target", "authority_boundary", "repository_evidence_paths", "specification_sections", "divergence_status", "activation_gate", "required_evidence", "primary_owner"], mechanism_rows, {"id": {"type": "string", "pattern": "^M-[0-9]{3}$"}}),
-        "evidence": (["stable_id", "path", "sha256", "kind", "claim", "reviewer", "required_external_review", "activation_authority", "primary_mechanism_id", "truth_boundary", "status"], evidence_rows, {}),
-        "source_coverage": (["source_id", "path", "classification", "primary_mechanism_id", "affected_registers", "sha256", "mappings"], coverage["files"], {}),
-        "target_contract": (["id", "namespace", "name", "primary_mechanism_id", "vector_ids", "status", "contract_fingerprint"], target_contract_rows, {"id": {"type": "string", "pattern": "^(?:TX|MSG|SYS|RCP):C310:[0-9]{4}$"}, "namespace": {"type": "string", "enum": ["TX", "MSG", "SYS", "RCP"]}}),
-        "target_failure": (["stable_id", "failure_id", "code", "reason_or_contract", "primary_mechanism_id", "vector_ids", "status", "contract_fingerprint"], target_failure_rows, {"stable_id": {"type": "string", "pattern": "^FAIL-FS-[0-9]{4}$"}, "failure_id": {"type": "integer", "minimum": 1}}),
-        "spec_compilation_manifest": (["schema", "version", "provenance", "input_hashes", "output_hashes", "coverage", "registers", "requirements", "activation_boundary"], [], {}),
+        "state_contract": (
+            [
+                "stable_id",
+                "canonical_name",
+                "domain",
+                "state_key_or_namespace",
+                "key_encoding",
+                "value_schema",
+                "value_schema_definition",
+                "field_count",
+                "transition_contracts",
+                "failure_semantics",
+                "replay_behavior",
+                "primary_mechanism_id",
+                "vector_ids",
+                "status",
+            ],
+            state_rows,
+            {"stable_id": {"type": "string", "pattern": "^STATE-FS-[0-9]{4}$"}},
+        ),
+        "message_contract": (
+            [
+                "stable_id",
+                "name",
+                "kind",
+                "source",
+                "wire_encoding",
+                "authority_boundary",
+                "replay_rules",
+                "idempotency_rules",
+                "failure_semantics",
+                "primary_mechanism_id",
+                "vector_ids",
+                "status",
+            ],
+            message_rows,
+            {},
+        ),
+        "scheduler_contract": (
+            [
+                "stable_id",
+                "name",
+                "source",
+                "due_predicate",
+                "ordering_contract",
+                "idempotency_key",
+                "replay_behavior",
+                "failure_semantics",
+                "primary_mechanism_id",
+                "vector_ids",
+                "status",
+            ],
+            scheduler_rows,
+            {},
+        ),
+        "receipt_contract": (
+            [
+                "stable_id",
+                "transaction_id",
+                "tx_type",
+                "kind",
+                "fields",
+                "domain_separation",
+                "replay_binding",
+                "failure_representation",
+                "primary_mechanism_id",
+                "vector_ids",
+                "status",
+            ],
+            receipt_rows,
+            {},
+        ),
+        "failure_contract": (
+            [
+                "stable_id",
+                "code",
+                "reason_or_contract",
+                "category",
+                "retryable",
+                "severity",
+                "state_mutation_guarantee",
+                "transactions",
+                "routes",
+                "primary_mechanism_id",
+                "vector_ids",
+                "status",
+            ],
+            failure_rows,
+            {},
+        ),
+        "parameter": (
+            [
+                "id",
+                "name",
+                "type",
+                "value",
+                "source",
+                "scope",
+                "mutability",
+                "activation_gate",
+                "status",
+            ],
+            parameter_rows,
+            {"id": {"type": "string", "pattern": "^(?:C310-P|P|V20-P)-[0-9]{3}$"}},
+        ),
+        "requirement": (
+            [
+                "id",
+                "status",
+                "title",
+                "normative_sentence",
+                "section",
+                "owner",
+                "implementation_paths",
+                "contract_ids",
+                "tests",
+                "evidence_ids",
+                "reviewer",
+                "activation_gate",
+                "verification_result",
+                "test_run_id",
+                "evidence_digest",
+                "implementation_commit",
+                "verification_timestamp",
+            ],
+            requirement_rows,
+            {
+                "id": {"type": "string", "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*-[0-9]{3}$"},
+                "implementation_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+                "verification_timestamp": {
+                    "type": ["string", "null"],
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+                },
+            },
+        ),
+        "mechanism": (
+            [
+                "id",
+                "status",
+                "title",
+                "mechanism_kind",
+                "current_snapshot_behavior",
+                "production_target",
+                "authority_boundary",
+                "repository_evidence_paths",
+                "repository_evidence",
+                "specification_sections",
+                "divergence_status",
+                "activation_gate",
+                "required_evidence",
+                "primary_owner",
+            ],
+            mechanism_rows,
+            {"id": {"type": "string", "pattern": "^M-[0-9]{3}$"}},
+        ),
+        "evidence": (
+            [
+                "stable_id",
+                "path",
+                "sha256",
+                "kind",
+                "claim",
+                "reviewer",
+                "required_external_review",
+                "activation_authority",
+                "primary_mechanism_id",
+                "truth_boundary",
+                "status",
+            ],
+            evidence_rows,
+            {},
+        ),
+        "source_coverage": (
+            [
+                "source_id",
+                "path",
+                "classification",
+                "primary_mechanism_id",
+                "affected_registers",
+                "sha256",
+                "mappings",
+            ],
+            coverage["files"],
+            {},
+        ),
+        "target_contract": (
+            [
+                "id",
+                "namespace",
+                "name",
+                "primary_mechanism_id",
+                "vector_ids",
+                "status",
+                "contract_fingerprint",
+                "payload_schema_definition",
+                "receipt_schema_definition",
+                "schema_definition_fingerprint",
+            ],
+            target_contract_rows,
+            {
+                "id": {"type": "string", "pattern": "^(?:TX|MSG|SYS|RCP):C310:[0-9]{4}$"},
+                "namespace": {"type": "string", "enum": ["TX", "MSG", "SYS", "RCP"]},
+            },
+        ),
+        "target_failure": (
+            [
+                "stable_id",
+                "failure_id",
+                "code",
+                "reason_or_contract",
+                "primary_mechanism_id",
+                "vector_ids",
+                "status",
+                "contract_fingerprint",
+                "failure_schema_definition",
+            ],
+            target_failure_rows,
+            {
+                "stable_id": {"type": "string", "pattern": "^FAIL-FS-[0-9]{4}$"},
+                "failure_id": {"type": "integer", "minimum": 1},
+            },
+        ),
+        "spec_compilation_manifest": (
+            [
+                "schema",
+                "version",
+                "provenance",
+                "input_hashes",
+                "output_hashes",
+                "coverage",
+                "registers",
+                "requirements",
+                "activation_boundary",
+            ],
+            [],
+            {},
+        ),
     }
     for name, (required, rows, schema_overrides) in schema_rows.items():
         artifacts[OUT_ROOT / "schemas" / f"{name}.schema.json"] = _canonical_json(
-            _record_schema(name, required, rows, controlled_statuses, controlled_results, schema_overrides)
+            _record_schema(
+                name, required, rows, controlled_statuses, controlled_results, schema_overrides
+            )
         )
 
     register_counts = {
-        name: int(payload.get("count") or payload.get("transaction_count") or payload.get("route_count") or 0)
+        name: int(
+            payload.get("count")
+            or payload.get("transaction_count")
+            or payload.get("route_count")
+            or 0
+        )
         for name, payload in register_payloads.items()
     }
     artifacts[OUT_ROOT / "spec_derivative.md"] = _render_derivative(
         manifest, provenance, register_counts, tx_rows, route_rows, coverage, source_tree_digest
     )
     artifacts[OUT_ROOT / normative_path.name] = normative_path.read_bytes()
-    artifacts[WEB_STATUS_OUT] = _render_frontend_status(profiles, manifest, provenance, source_tree_digest)
+    artifacts[WEB_STATUS_OUT] = _render_frontend_status(
+        profiles, manifest, provenance, source_tree_digest
+    )
 
     output_hashes = {
         _relative(path): _sha256_bytes(raw)
@@ -2191,19 +2662,35 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
         "input_hashes": _source_input_hashes(manifest),
         "output_hashes": output_hashes,
         "coverage": {
-            "transactions": len(tx_rows), "routes": len(route_rows),
-            "runtime_state_inventory": len(runtime_state_rows), "state_contracts": len(state_rows),
-            "message_contracts": len(message_rows), "scheduler_contracts": len(scheduler_rows),
-            "receipt_contracts": len(receipt_rows), "failure_contracts": len(failure_rows),
-            "target_transactions": len(target_tx_rows), "target_contracts": len(target_contract_rows),
-            "target_failures": len(target_failure_rows), "target_contract_schemas": len(target_schema_rows),
-            "parameters": len(parameter_rows), "requirements": len(requirement_rows),
-            "mechanisms": len(mechanism_rows), "divergences": len(divergence_rows),
-            "vectors": len(vector_rows), "evidence_artifacts": len(evidence_rows),
-            "source_files": coverage["file_count"], "unmapped_source_files": coverage["unmapped_count"],
-            "human_machine_register_equality": True, "exact_uploaded_pdf_identity": True,
+            "transactions": len(tx_rows),
+            "routes": len(route_rows),
+            "runtime_state_inventory": len(runtime_state_rows),
+            "state_contracts": len(state_rows),
+            "message_contracts": len(message_rows),
+            "scheduler_contracts": len(scheduler_rows),
+            "receipt_contracts": len(receipt_rows),
+            "failure_contracts": len(failure_rows),
+            "target_transactions": len(target_tx_rows),
+            "target_contracts": len(target_contract_rows),
+            "target_failures": len(target_failure_rows),
+            "target_contract_schemas": len(target_schema_rows),
+            "parameters": len(parameter_rows),
+            "requirements": len(requirement_rows),
+            "mechanisms": len(mechanism_rows),
+            "divergences": len(divergence_rows),
+            "vectors": len(vector_rows),
+            "evidence_artifacts": len(evidence_rows),
+            "source_files": coverage["file_count"],
+            "unmapped_source_files": coverage["unmapped_count"],
+            "human_machine_register_equality": True,
+            "exact_uploaded_pdf_identity": True,
+            "signed_pdf_extraction_attestation": True,
+            "structured_schema_definitions_complete": True,
+            "stable_id_history_complete": True,
+            "mechanism_evidence_paths_valid": True,
             "tx_semantic_review_complete": tx_payload["semantic_review_complete"],
             "route_semantic_review_complete": route_payload["semantic_review_complete"],
+            "independent_review_deferred_to_launch_authorization": True,
         },
         "registers": sorted(register_payloads),
         "requirements": requirement_rows,
@@ -2224,6 +2711,7 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
             f"extra={sorted(set(actual_outputs) - set(declared_outputs))}"
         )
     return artifacts, compilation_manifest
+
 
 def _write_artifacts(artifacts: dict[Path, bytes]) -> None:
     for path, raw in sorted(artifacts.items(), key=lambda item: _relative(item[0])):

@@ -43,6 +43,13 @@
       "minLength": 1,
       "type": "string"
     },
+    "repository_evidence": {
+      "items": {
+        "type": "object"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
     "repository_evidence_paths": {
       "items": {
         "minLength": 1,
@@ -94,6 +101,7 @@
     "production_target",
     "authority_boundary",
     "repository_evidence_paths",
+    "repository_evidence",
     "specification_sections",
     "divergence_status",
     "activation_gate",

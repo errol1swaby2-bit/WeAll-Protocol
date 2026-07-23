@@ -9,7 +9,7 @@
     "identity": "weall-v2-spec-compiler",
     "language": "python3",
     "path": "scripts/compile_v2_spec.py",
-    "version": "2.0.0-first-draft-full-scope-w1"
+    "version": "2.0.0-first-draft-full-scope-w1.1"
   },
   "normative_specification": {
     "candidate": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
@@ -20,16 +20,29 @@
     "sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "source_role": "exact uploaded human-readable specification source retained by user decision",
     "authority_status": "V2_0_FIRST_DRAFT_NOT_AUTHORIZED",
-    "validation_policy": "exact_uploaded_pdf_identity_and_register_fingerprints"
+    "validation_policy": "exact_uploaded_pdf_identity_plus_pinned_signed_extraction_attestation"
   },
   "repository": {
     "commit_binding": "source_tree_digest_and_declared_snapshot",
     "same_commit_evidence_policy": "PASS is forbidden unless the final implementation commit, UTC run timestamp, test-run ID, evidence digest, independent reviewer, activation gate, and activation receipt policy are all bound.",
     "specification_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "implementation_commit": null,
-    "integration_base_commit": "56d66eca43d338328e2e0067ae655312f9404584"
+    "implementation_commit": "1dedcaa5463f1fe230be35d90a610569a82c87dc",
+    "integration_base_commit": "7900477bdd3852482a11b7f8d512e19c68ee0b18",
+    "implementation_commit_scope": "w1_technical_closure_commit",
+    "closure_commit_binding_policy": "two_commit_non_circular_attestation: commit implementation first, then bind that commit in an evidence-only finalization commit",
+    "release_export_attestation_required": true,
+    "closure_finalization": {
+      "binding_model": "non_circular_two_commit_evidence_binding",
+      "implementation_commit": "1dedcaa5463f1fe230be35d90a610569a82c87dc",
+      "verification_timestamp": "2026-07-23T01:53:42Z",
+      "test_run_id": "local-full-suite-2026-07-22-3937-pass",
+      "reviewer": "Errol Jacob Jones Swaby (maintainer self-review; independent review deferred to launch authorization)",
+      "github_run_id": "29972518656",
+      "authority_effect": "none; public testnet and Mainnet remain disabled",
+      "next_step": "commit these provenance and derivative changes as an evidence-only finalization commit"
+    }
   },
   "schema": "weall.v2.provenance_registry",
-  "version": "2.0.0-first-draft-full-scope-w1"
+  "version": "2.0.0-first-draft-full-scope-w1.1"
 }

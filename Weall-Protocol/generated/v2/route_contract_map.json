@@ -8,14 +8,14 @@
       "mainnet"
     ],
     "compiler_identity": "weall-v2-spec-compiler",
-    "compiler_version": "2.0.0-first-draft-full-scope-w1",
-    "implementation_commit": null,
+    "compiler_version": "2.0.0-first-draft-full-scope-w1.1",
+    "implementation_commit": "1dedcaa5463f1fe230be35d90a610569a82c87dc",
     "normative_authority_status": "V2_0_FIRST_DRAFT_NOT_AUTHORIZED",
     "normative_candidate": "2.0 First Draft - Complete Pre-Testnet Design Blueprint",
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "d58c510faf77915e7b720a6dd8f50041d46e1af5bd851bcd663d8f911e85ee2a"
+    "source_tree_digest": "84f75ab46aa848cf956795fbddd7f750428a60725075e5d2a078023635ee6610"
   },
   "required_fields": [
     "stable_id",
@@ -32,7 +32,9 @@
     "implementation_source",
     "primary_mechanism_id",
     "vector_ids",
-    "activation"
+    "activation",
+    "semantic_derivation",
+    "semantic_review"
   ],
   "route_count": 159,
   "routes": [
@@ -68,7 +70,16 @@
         "idempotency": "safe_skeleton_generation_no_state_mutation",
         "rate_limit": "global_api_rate_limit_and_request_size_middleware"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "1222b7b9e6c23c36dfa5359ffeb6ff7dc76a3d8d72955d764cdf21138753d27e",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-7564A2DE40E0E04C",
       "tests": [
         "tests/test_public_profile_contract.py"
@@ -107,7 +118,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "e5034ac60764fc41be7ed274c0f478f5cf2f3f3a63b37f26ff2dd0d92b39378c",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-841A696104EDF32F",
       "tests": [
         "tests/test_devnet_onboarding_harness.py"
@@ -148,7 +168,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "72040c72693c35aed855195cc6a02b263baaca2c7197ddc24cdea5df16470f98",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-802D3563F9866F9E",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -188,7 +217,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b04481321d5ff75dd8d0a4e69d26491322e69eb355f5eceabc8c29cfb6215bea",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-39CAC00026F16A05",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -225,7 +263,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "5dd20207bb4cd7a941b2f1e8d207a2333eb147ec09dc94ce41618be724f30373",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-0BD5EE28997BB4D9",
       "tests": [
         "tests/test_nonce_pipelining_throughput.py"
@@ -262,7 +309,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_api_rate_limit_and_request_size_middleware"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "0826a72826bd730d49519c1e934d418128526f56ca531001ff16e834051bcb46",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-83EAEBD6E0F5CB74",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -301,7 +357,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_api_rate_limit_and_request_size_middleware"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "13f8f7c674ffe601de3d0e39382f757f4516db255f990618ec2a099979c73e35",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-E9F27069B3CD0A2F",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -338,7 +403,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "02c4c56d949bc7b063b81462f0c0f8f6e4d5f44875966e969b3ac99e89da163b",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-5EB9A15D6B3A5602",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -377,7 +451,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "bd0f23f79244d12ee22f65a0478458e35a71c3776423510367a834a5cfa527b5",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-7D3DA344D3CC2201",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -416,7 +499,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "8face33d0abe1e96b819189ed0c822cb84ff8e58cbd6286b46cb20494b7dad38",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A2A85AC93E907C82",
       "tests": [
         "tests/test_api_contract_map_v15.py",
@@ -459,7 +551,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "53a6b49eea4c04148a91021ce9275c183205dc4f0cb9e85e8bb6c5377a0b3967",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A9E559C2126529C3",
       "tests": [
         "tests/test_chain_identity_routes.py",
@@ -500,7 +601,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "e49bf252cec6e70f4477183443e81ec7164710d2b741b60f1c65d2e284fde144",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-7B11DE7ACC94F5D3",
       "tests": [
         "tests/test_chain_identity_routes.py"
@@ -539,7 +649,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b83e5a906901ecb683434e92ab01f19c891c5f5acca0f3d23d006e191a890905",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-6A893502420D6173",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
@@ -590,7 +709,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "7f155f1da812afb6cfe52872ad0ca2ca7f4c514561ef717aaf460781c7c5f7b7",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-30D5A370668BCA31",
       "tests": [
         "tests/prod/test_external_evidence_transcript_gates.py",
@@ -640,7 +768,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "dcaf31e9d5be6bcdd78ebe18815bd59ce562efde92995ff5e94c4cefb38d9ca8",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-0FA66EB98F691C62",
       "tests": [
         "tests/test_chain_identity_routes.py"
@@ -679,7 +816,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "fd34c4eb07b5eb05dacb54b4eb94710a840e7360a9b68529935d2b15c49cc271",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-1E1E329DF7481EEB",
       "tests": [
         "tests/prod/test_external_evidence_transcript_gates.py",
@@ -719,7 +865,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "0d84f53ee2a8cc611be0afa646a51f4d381c20add629b1f30afe5b536e7308a7",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-664FF24420F380C8",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -758,7 +913,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "7da4775325de01d7d384c26974ec014d72eec1d6fe3ccc16aa02a1e21d64b2af",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-6C7CD5B42D9690D0",
       "tests": [
         "tests/test_economics_block_p2p_implementation.py"
@@ -795,7 +959,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "159617d2e19d67d8cc0fad59e2d16c25f9f6db19bed5fbe7dfc11ee6de497791",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-78C1A65F045FB037",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -832,7 +1005,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "dfae73b62b2b48a8921f0509ed3def29d1dff4237c3caf6f0d1cedfa01f18bb4",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-EE1C3B1D0627E5ED",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -872,7 +1054,16 @@
         "idempotency": "safe_env_gated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "d46180de402d185a0706dfedc42685bb1215f43f7d010db8b06c198264a60d47",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-D4AF6AADB6344781",
       "tests": [
         "tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py"
@@ -909,7 +1100,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "23da3428f885acdd7f262bbadf4801338c192f91a1ac891dabac81d2347895af",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-FEFD8788DF933CB3",
       "tests": [
         "tests/test_demo_seed_route.py",
@@ -959,7 +1159,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b6a75375ca20c63dff310bf2f885043ea8cc4d4464177d37e8b92907a660a367",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-34AB12E8DD4D87BB",
       "tests": [
         "tests/prod/test_external_evidence_transcript_gates.py",
@@ -1007,7 +1216,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "d550296c50e1560d63f043101c22b786f39a54b5986c0658b7c5a2358fc85a45",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-C40F420A07428199",
       "tests": [
         "tests/test_reputation_matrix_completion_v1_5.py"
@@ -1047,7 +1265,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "1cc02b07c81c0a3086ff5f0baa7efc0c91ddb1e1c8e48615fe6d3c37f89b0244",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-90C6B3C681D6452A",
       "tests": [
         "tests/prod/test_external_evidence_transcript_gates.py",
@@ -1085,7 +1312,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "1adb0749e9222e719020872879b69644bd5d8c29dc241e39cc4fcf5b91726ad0",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-2BF0EB3891248C3A",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1124,7 +1360,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "3bdfda3266a3168171817921aaa7986d9a9c42b62c3c14b3cf9f9ef1bd2dcdda",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-0B6699DFB48D67C7",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1163,7 +1408,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b6307c648c9a453cb4458b2c79bd5f2d22efa37a87a9e70743189b5c398806fa",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-49E4BF3F3BE9692B",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1200,7 +1454,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "2e69acde8c0962443ecf7e289ec19b8116f783e31d8819656f3a2863005ffb95",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-315E8F0568300DAD",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1239,7 +1502,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "448e13e8c4dd7bf759787e8b88cd87c514cc1792fd5cc1a28e62f35a402067ec",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-B3500E36D33BCD47",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1278,7 +1550,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "e7cced51d245e25edbc8c9037f6f4dd146f2701ad30adaef64107c6d50dc120d",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-CB535EE00ABC989A",
       "tests": [
         "tests/test_production_implementation.py"
@@ -1317,7 +1598,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "821cecb9fd9ee0ce2ef1711032457d758dc64463632a238dd107243036b7d317",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A63D80180DD77A57",
       "tests": [
         "tests/prod/test_external_evidence_transcript_gates.py",
@@ -1359,7 +1649,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "55301a30807c1407fdaf65c38a88b060b70a608a262bc8c0239718b49f8f7ac8",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-3FA6AB4FAAF6844D",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1401,7 +1700,16 @@
         "idempotency": "safe_ranked_public_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "badf7c4c4b3cba8131e686253c5f90a695b87954499378e9492012aff688fea4",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-9CF6C814B6638E9B",
       "tests": [
         "tests/test_api_tx_status_routes.py",
@@ -1473,7 +1781,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "727473ceca044533d1a318eeef49204b7b3f59313f7262fddf9d64aa1345dbed",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-F3671367DE26C5CD",
       "tests": [
         "tests/test_genesis_api_external_observer_readiness.py"
@@ -1510,7 +1827,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "830ac201dea3101486610678ce5c979d0a1e40db6134e0f2c68f6e0d3924a8ee",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-5FF596B56CAC93CE",
       "tests": [
         "tests/test_genesis_api_external_observer_readiness.py",
@@ -1551,7 +1877,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "1ec6a606dd631bae99af2017e9efeeaf6fff6e714365458724cb96cdc5554f86",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-E1F670F58B35F6BF",
       "tests": [
         "tests/test_demo_seeded_surfaces.py",
@@ -1591,7 +1926,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "ddf748b5741bc25c680f07fc048de4add6929a9dad346e71886d2842ddd50e8c",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-78946D5BD1233277",
       "tests": [
         "tests/test_demo_seeded_surfaces.py"
@@ -1628,7 +1972,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "766655f223907777eb8e7bbc893af576e73af2b61d08e6e5e251dd6decf1d962",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-76EC4971F7B025C5",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1665,7 +2018,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "8ce7ce304a5f7a5d0b4849e593ce3ba3123adc6c83e0b15779ed59402e0c3905",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-18924CC38B0CC948",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1702,7 +2064,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "61d039840bc1a92621dcbbcb009d2140fa79676c631b4e4e8f22f2d2eaeb81f9",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-AF7B4CF580A3E084",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1739,7 +2110,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "5b468578000a904f2c1c174c50e427f7c94836dfa11832d326b7d019f736ddac",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-80510BDDAF44D5FC",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1776,7 +2156,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "ff8f86f749ad554a7fd980971526dc716468148bae3f98acd5ea10c9a098ee89",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-754B51825F4ADBCB",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1813,7 +2202,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "652d864d0c972d2be711dfbc01007c6069ad40e3d9108e3aa79d6049afe0f8b0",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-4F509EB3D45B50B3",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1854,7 +2252,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "bc76e09404c8868bc1a9ade701eb1826d1fc1b1b2b6fa1e6b1f6951d73c72a88",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-83BE870730C38439",
       "tests": [
         "tests/test_demo_seeded_surfaces.py",
@@ -1902,7 +2309,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "bc357c256fdbb713d554ec8b45072ef81893f9c0089d20323f82c75daaa9582f",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A50D8153572E2A70",
       "tests": [
         "tests/test_group_join_route_and_membership_status.py"
@@ -1943,7 +2359,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "66472e444fd557e6e0aec0c752e456455951aeafbafe178fedca09ae10979e3f",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-D489E12F8A1A0359",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -1983,7 +2408,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "a0e87b793148b7be677fb4ed33de9e7bdafacbe6bd0b410a3414f823554a7c20",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-87F511EE911CA471",
       "tests": [
         "tests/test_demo_seeded_surfaces.py",
@@ -2021,7 +2455,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "f59f6bf22cd068acffaefe6d24901dafd40bcb89f6b336ea14170bc25255a63d",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-4B18863575405F46",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -2061,7 +2504,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "cb1cb90d4cce5e2ddf99e297bb4a28e13d836131abecb423bab34443f7d4dd71",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-221F803024DC9BC1",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -2098,7 +2550,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_api_rate_limit_and_request_size_middleware"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "40eda5e0e6b86382f50ec3cbb9b5839acaf9320ba413752b17bda2b1e49a9545",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-2B1BC2275842E47B",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -2135,7 +2596,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "19c4d4d7ca8aecfdb861b491fbdb3314152f3d70aa809dda63a33c0ae6188356",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-E371BBC5472E1661",
       "tests": [
         "tests/test_demo_seeded_surfaces.py",
@@ -2173,7 +2643,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "8c1d5d636fe3533806570f0bc9c1e799e80c512b7807451a0109063a1406113b",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-23B1FC5F5018F223",
       "tests": [
         "tests/test_group_join_route_and_membership_status.py"
@@ -2212,7 +2691,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "d4692f99f0ada452d7de46249e203bd780a76e7ebbc532e5115122a6e9a407a0",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-B0DFBDB7B4066104",
       "tests": [
         "tests/test_api_tx_status_routes.py",
@@ -2271,7 +2759,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "9e665b61627cd87353d8006a8ca273288dfa3fd106f279be70e350ccf22523ce",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-C81B30307BC99421",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -2308,7 +2805,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "a2ccc61c83690a99f836e638c9df20d26e78a404714755be516d4e02d18a2b9e",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-E654D01882BA1F72",
       "tests": [
         "tests/test_observer_bypass_and_sync_auth.py"
@@ -2345,7 +2851,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "38edc14f9a37da1da22f61e659a3f5dcacd4a751ad6480282c18ea7af02a9983",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-BD721DE12960C60F",
       "tests": [
         "tests/test_observer_bypass_and_sync_auth.py",
@@ -2383,7 +2898,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "eea8e86e6eb76bb0ccd3c71e7b8b6d2393593199c224232d9a4739fd9d6505a7",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-D4D6741E88A82868",
       "tests": [
         "tests/test_media_cache_peer_sync_safety.py",
@@ -2425,7 +2949,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "cd7b14c88085c3d1182d661ca0a8e1d3e7fddbefcc6c3a1411fb4ce973f56a68",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-B29034A798349070",
       "tests": [
         "tests/test_media_viewport_observer_proxy.py"
@@ -2464,7 +2997,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "284a001c780be72de28994c41860acdbdb0de411499722c73bc9da8af33f088b",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-49D219748E0A24D2",
       "tests": [
         "tests/test_media_status_failed_confirm_not_counted.py",
@@ -2510,7 +3052,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "89b794621f90f4ccbd738c1662c0714dc40483f69a60423aa426c1e1fea9d2a9",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-20EC3139561E9864",
       "tests": [
         "tests/test_media_upload_ipfs_fail_closed.py",
@@ -2551,7 +3102,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "208fc0705674d44618ce49ede9d0a62b18b0b8807cc57b08c265d3ad3755c588",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-1EC81F5482BF8F10",
       "tests": [
         "tests/test_block_schedule_survivability_harness.py",
@@ -2591,7 +3151,16 @@
         "idempotency": "safe_env_gated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "82bfbb47c5731e042602d77750ff85ded30bb4d2c3302008e0caa6e493a71ce3",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-750E32B52C2977BC",
       "tests": [
         "tests/test_auth_metrics_helper_fail_closed.py",
@@ -2632,7 +3201,16 @@
         "idempotency": "safe_diagnostic_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "8083ab5c844085eb8582981726945eae980952fbe3976339436dc66e866109a5",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-5383FD5736804B44",
       "tests": [
         "tests/test_diagnostics_helper_fail_closed.py",
@@ -2670,7 +3248,16 @@
         "idempotency": "route_specific_replay_or_cursor_guard",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "522733cfb35668f49d680ef004e9de020f2df622bbe3f9c20c5c30aeabcee214",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-965AC7F685E4A350",
       "tests": [
         "tests/test_external_observer_runbook.py",
@@ -2708,7 +3295,16 @@
         "idempotency": "route_specific_replay_or_cursor_guard",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "af7b896662f223a08dd8ce10c94d27b217495fbcbeb5da8661f6f3c127cc2072",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-2F8915FA668788FE",
       "tests": [
         "tests/test_external_observer_runbook.py",
@@ -2748,7 +3344,16 @@
         "idempotency": "route_specific_replay_or_cursor_guard",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b7ccde9871ad7f573df463ae50df630c458c11dbcd018ffcd35c0b9c6fe06dd2",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-7C22744D8465411D",
       "tests": [
         "tests/test_external_observer_runbook.py",
@@ -2788,7 +3393,16 @@
         "idempotency": "safe_transport_diagnostic_read_no_consensus_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "f423a9ded87fcb82225bc313713c64a0172abf65a6d1b659d7260971f851c29e",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-5DE7D9FE507CCB2D",
       "tests": [
         "tests/test_external_observer_runbook.py",
@@ -2828,7 +3442,16 @@
         "idempotency": "transport_queue_write_no_consensus_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "f28c9a9f99a835cbc1da805e47baa54caf80fcced6ee0fd0dde3e9797aa1a893",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-9BE87B716820D8A7",
       "tests": [
         "tests/test_external_observer_runbook.py",
@@ -2869,7 +3492,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "3d40e33aabaea2f80b3d286a39639f9936e60cfa0e4f4969832d8817426614b7",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-DA3C62DECBAC1A54",
       "tests": [
         "tests/prod/test_public_nat_traversal_posture.py",
@@ -2913,7 +3545,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "6bafa75f330cb0bbbc6743ab675fb3958cb5205d976e2fc79737155171a7276d",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-33157A0C76623B22",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
@@ -2964,7 +3605,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "5d3444bdcc05341b03f1c5ebc22ea03b621800c04ef3f741f5ff3e1c442ed10a",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-EE2EFB47FA6F30A2",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
@@ -3028,7 +3678,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "ca147a73a64f0e5a15dfb6d1ceeeb948586000603fb4a6b7139b989291a4609c",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-4017D7268FA1760D",
       "tests": [
         "tests/test_api_contract_shapes_minimal.py",
@@ -3067,7 +3726,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "0bd96a5592a824e48ad5f1a5deee64853322db9e221ade070135c92c000da58d",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-638693CFF92199D1",
       "tests": [
         "tests/test_api_contract_shapes_minimal.py",
@@ -3111,7 +3779,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "4992b58604f86675fd58712ff491def9f92e8acc1add1f1e69534c658272098f",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-9D2EF135FA91584C",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
@@ -3161,7 +3838,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "ec0cef949944f8e848fec5494efe67fd7607cd455916990a2f540860f9940f33",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-C18BCB4969F85942",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
@@ -3209,7 +3895,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "a40b6b910fbbfe20f278956a608545a601f0e824374053fed2bcaa8f7eddcfe7",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A2ED585AF34A0150",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
@@ -3251,7 +3946,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "0e725e35848ee379dc79d267362ccde81769bd8ce70a616e93c8ceba140c3f79",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-9E056EFBE44E5CE8",
       "tests": [
         "tests/prod/test_observer_to_validator_genesis_launch_flow.py",
@@ -3290,7 +3994,16 @@
         "idempotency": "observer_edge_reconcile_no_validator_authority",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b77d51b507e5653bc46490438bc7df1b38ee675d145e63e720d39e9db7eed1eb",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-48A063F30FEFE580",
       "tests": [
         "tests/test_p0_p2_observer_media_safety.py"
@@ -3330,7 +4043,16 @@
         "idempotency": "safe_diagnostic_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "eadd31e976cbb2828c9a24fa841c6840b921c3994596194a4066c522c21d5282",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-FE4732AB433B12C8",
       "tests": [
         "tests/prod/test_public_observer_boot_and_evidence_scripts.py",
@@ -3370,7 +4092,16 @@
         "idempotency": "operator_transport_queue_drain_no_validator_authority",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "6e309fe4d0ef70491419d4a1d3bf0526e5455235c217377cadf2f17bf5140adc",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-3DC8E6ED304A1607",
       "tests": [
         "tests/test_local_two_frontend_rehearsal_automation.py",
@@ -3410,7 +4141,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "832902438c59ef10f6c7446546d900e7d1972a3f5b0ab2cacc36e4846a787934",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-AE8CFA648D010FB5",
       "tests": [
         "tests/test_testnet_mechanism_coverage.py",
@@ -3450,7 +4190,16 @@
         "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "51b3c0563309f1b7d71bfe756a1a7194e8aa003a63a8f3806566359a0c33b28f",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-601B4F54DEDCD3D4",
       "tests": [
         "tests/test_poh_async_recorded_video_frontend.py",
@@ -3491,7 +4240,16 @@
         "idempotency": "safe_authenticated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "c3128e3556091e4ce38d6582c72c1d77182b86ced7f69036ba6b0a96d6f674f5",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-72B078F0A5B7B780",
       "tests": [
         "tests/test_async_verification_submission_reviewer_feed.py",
@@ -3531,7 +4289,16 @@
         "idempotency": "safe_authenticated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "c89c546163326abd2f49555ebe5b14b7c7f5285b605d709d84e5cc55dacbe821",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-DA85A2E56923B444",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -3572,7 +4339,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "c96ef08d9d2ee492083cd118751075d99896dc1bb0ccf1eb3fc1f5b2a0ecc765",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-DC1BEE8C1BC03535",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -3613,7 +4389,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "a0ae10d2636294f92574ba85446bc228a163979bc04d22755f75332f25d4a79c",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-D781A9EFACB8CE09",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -3654,7 +4439,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "667e67c36f6d565cc86d21c7b20bf898e136e8e9d571272fd12ae5874ccee091",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-B129EA368619EE75",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -3693,7 +4487,16 @@
         "idempotency": "safe_skeleton_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "1a1f9d95b44b48b423de1d2a6259a29335a8e8fb30f5d7d8e68489bc7249aa89",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-F53419ECE624D6BF",
       "tests": [
         "tests/test_public_write_validator_storage_anti_sybil_testnet_boundaries.py"
@@ -3733,7 +4536,16 @@
         "idempotency": "safe_authenticated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "26ae6c595b16360b764fe9d3c50ae04c1bacf840ddc6f0f5a608cccdb126137c",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-36FC58B3F61A2F45",
       "tests": [
         "tests/test_async_bind_scheduler_and_live_route.py",
@@ -3771,7 +4583,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "8ddab3a31965b99b3627b77ce6777adda3768d989778c72cad5b599086f0a266",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-E5AC1E8799B715C6",
       "tests": [
         "tests/test_live_case_id_alignment.py"
@@ -3808,7 +4629,16 @@
         "idempotency": "safe_authenticated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "ff267ba51990787952b12ba26b339a897b62330cb45f116081ab8396cb0e6023",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-49065C551BFF6D51",
       "tests": [
         "tests/test_review_coverage_read_models.py"
@@ -3847,7 +4677,16 @@
         "idempotency": "safe_authenticated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "c27d044692de6f4421acde5505a3fc184838567a54f79a1f87bacf0171898255",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-E99CD408C0DE7F1A",
       "tests": [
         "tests/test_frontend_poh_media_and_live_room.py"
@@ -3884,7 +4723,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "cffd39de7de14c10e6b63f523292db205d1e1840b1f377c85163c48a2a378d18",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-F5AF2214EE886037",
       "tests": [
         "tests/test_cross_node_webrtc_bridge_and_accept_join.py",
@@ -3924,7 +4772,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "758f744292599b40a83105ae6aafaacebfeb685c8c6d7ad5de701d8f0dc85b64",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-9537B36E8BAA9CCF",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -3961,7 +4818,16 @@
         "idempotency": "safe_authenticated_ephemeral_transport_read_no_consensus_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "713a9a478ff81c55a2ccd6a644f960124e5c51860d03bcefea5e540eb1164007",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-DBE5795833D7FD85",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -3998,7 +4864,16 @@
         "idempotency": "ephemeral_transport_write_no_consensus_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "a8fa7e37452f503133abf4f4138b07ddf06d40faf4d7560d501b029bfb462f6c",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-9221E11400FFE543",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4035,7 +4910,16 @@
         "idempotency": "safe_authenticated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "6e828835abe59d10c512e1435216a5cd03e7496a9e900ad129c15c5507a42647",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-F0B583CF6981955F",
       "tests": [
         "tests/test_cross_node_webrtc_bridge_and_accept_join.py",
@@ -4075,7 +4959,16 @@
         "idempotency": "route_specific_replay_guarded_signal_write",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b14ef7ae536323269484f7a6351618e9985c09dd3d0563cbf0c53557245f29ae",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-D02B5C94DA873D64",
       "tests": [
         "tests/test_cross_node_webrtc_bridge_and_accept_join.py",
@@ -4115,7 +5008,16 @@
         "idempotency": "route_specific_bridge_import_replay_guard",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "adcf8385aef086489b13433c1ca4e07bda9b39fb68ec65f00259635b8457085a",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-8DBBAB9ECF6B39E0",
       "tests": [
         "tests/test_cross_node_webrtc_bridge_and_accept_join.py",
@@ -4156,7 +5058,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "5f4d349ffc6745979e52602bf079cfb2130266ece6036c7e12de1f3635fc6035",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-2431E1E6FA72544C",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4197,7 +5108,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "dc02c235c50dfb400f6fc0b5fbc6f70471e5985cd5ec88a89014889c799218dc",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-D0BCA1EAA72E3851",
       "tests": [
         "tests/test_poh_live_room_presence.py",
@@ -4239,7 +5159,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "643332a531bd2177e17061e6f5a4195291051c5da1b60ac653913e5eeed5810b",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-E28E1D111CDD7553",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4280,7 +5209,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "56d84b1ef244d852ae4cdab0f67b313c5f805dc503f59850390e414b2f803f9a",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-183519FC04EB3EBB",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4321,7 +5259,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "f5747de26838fe604ca42fa1d2a0cb42b21215fae5f238010bca9db74a678382",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-29DC5A827C7A217C",
       "tests": [
         "tests/test_poh_live_protocol_native_request.py"
@@ -4362,7 +5309,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "c843fb4dc2865df4e6ccec6a007e53c0813363d1f9b00dc0467cc615748d8f80",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-2DF8BBDA645F0D99",
       "tests": [
         "tests/test_poh_live_room_presence.py"
@@ -4401,7 +5357,16 @@
         "idempotency": "safe_transport_config_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "059eb1ecc7a4d8273f29cdaab40124403d841fd0189d3b32b6d48a827ea3d2f3",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-16FAC56C56AA30F3",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4440,7 +5405,16 @@
         "idempotency": "safe_operator_diagnostic_read_no_consensus_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "732a761d440f8050a1a4bd516dca99b7ee0b26a1d8446a5100aa00551b224354",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-2E273A9B691E4F24",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4477,7 +5451,16 @@
         "idempotency": "operator_transport_queue_drain_no_consensus_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "13f871907469476a275c5f3d80c3a9ec8d5bb44976c8fb09414aa290c5ea51f9",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-7A1D3742F8A6FF8A",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4518,7 +5501,16 @@
         "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
         "rate_limit": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "3d9fe7da31566832875c5850562a5160252b7df4bbc74ecd6acf406e66f811aa",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-C1E0E47155D23D72",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4557,7 +5549,16 @@
         "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
         "rate_limit": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "4eb62a2a4d412d87d6ad2890f6a35d2ecddb30335c5871e268bf03260ca0e12a",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-0215677B1969D697",
       "tests": [
         "tests/test_poh_operator_live_init.py",
@@ -4597,7 +5598,16 @@
         "idempotency": "system_queue_once_guarded_operator_submission_no_public_authority_claim",
         "rate_limit": "global_api_rate_limit_and_request_size_middleware; operator token and env gate required before enqueue"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "ab916437438ef08c51a07988249215db428cacf597d0eeb64a28dfccfa377817",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-6AEB298F0941E208",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4634,7 +5644,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "fbb037901b46c7b22ef0294cd08c7e4647a7f84d1bc5d66a1320043b8ff96096",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-6427CFCDD81EEDCA",
       "tests": [
         "tests/test_validator_replay_lifecycle_feed_public_surface_coverage.py"
@@ -4673,7 +5692,16 @@
         "idempotency": "safe_authenticated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b6d00e7d9033396b4edde42ffbc81393b84c479bc86e56faf7b3065dc990d72d",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-0D67770619CA0647",
       "tests": [
         "tests/test_review_coverage_read_models.py"
@@ -4712,7 +5740,16 @@
         "idempotency": "safe_authenticated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "f5012cc4b2a788514e705b2d9b7f2ddb40220ba1e9c093fa426f959622ab62b8",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-1C48982950B7E289",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4749,7 +5786,16 @@
         "idempotency": "tx_skeleton_helper_no_state_mutation_until_signed_tx_submit",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "9d585c3c778bb67c6e6fc05202421caeafb1387c836bfaaccc707d501a778f8e",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A257C3C7D2A10CF9",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4788,7 +5834,16 @@
         "idempotency": "node_local_upload_helper_no_consensus_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "fd8353974f2fb3d740e666b23873652a3b5390beb859b25fcc23ab5fc024f0fc",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-9D551FBF3797BF76",
       "tests": [
         "tests/test_poh_video_upload_request_cap.py"
@@ -4828,7 +5883,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "7782a05180f5a44edf5d60fdb74c9eae6157cb944424d6598b2c7b983446d7ca",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-8A6B3BEDE044826B",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4865,7 +5929,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "5eb63df59e0ae4266dd432e036559100f48a384df8cad88f8cc28d74610fe230",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-1C70CC3DAC86EB8E",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4902,7 +5975,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "5b260c72e22284d32f7a05a1f21b6099856b64ca37600a424419cf29c20945aa",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-302C93AB7F1A867D",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4939,7 +6021,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "754149cb359d5ae4239c024c9edd0e6f734505d82f170ef9b2857340b864497f",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-FC8DE2E056DFA6A3",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -4976,7 +6067,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "1befa60e8618c2edad2aea4a6b5e56a7193299fbdb19eb566b0d2af47e49bd66",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-28D26A46F07531A6",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -5017,7 +6117,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "7fef349057476f6aeac81689749e5ebb15e8b703a7f4b347ea8ce8cbc5756a08",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-4CBFA6847142B599",
       "tests": [
         "tests/test_external_observer_live_gate_docs.py",
@@ -5068,7 +6177,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "4ce715fb61e1af8425ccc63cc37cdf2d0afb2bd0c7d599ae573715c3817efb40",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-38D6D9BE50465A56",
       "tests": [
         "tests/test_reputation_matrix_completion_v1_5.py"
@@ -5107,7 +6225,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "3352ac7082a2cf813ee76000fa8366dbf27f4e5fc5ab7946db6bed2060221666",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-2A97CF95EFCBCE17",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -5144,7 +6271,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "1832426eb6269e294b534ae4b7df844b1a534b184118cbecbbb1ef7783d85860",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-F7F0C1CB377A8E1A",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -5181,7 +6317,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "0f42263f30e15dd3be9c7f5e682e389b87a3f96c6d7cfa0127d1371e0fd04841",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-D52A5A9CC71BAB5D",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -5218,7 +6363,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "fb1361457a2ecb57b7cf3cd140055423da14d4435e0d14485d5eea60b4252868",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-8A85D91F285EEA26",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -5255,7 +6409,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "773af839d480cf9654983a84d3dd30c3b9914453aec9850c25c43dfdc6e98d16",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-C5E20A807643E820",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -5292,7 +6455,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "ea43719fd71b241258dd9c3f1d71106126618095531ab04a33b5913423fa8f6d",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-5DBE3D1B57FF3800",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -5329,7 +6501,16 @@
         "idempotency": "safe_env_gated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "190037d290e8d0d2cb2deca3421aedaa3370ef23a835d9b2507b20b2c9d6b851",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-9795882B19B3AEA1",
       "tests": [
         "tests/test_api_contract_map_v15.py",
@@ -5367,7 +6548,16 @@
         "idempotency": "safe_env_gated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "a172e15ad44392bb7dea91307ad8dc0e2a573f1a651269a417eca872cb7393ea",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-17EF4528F101252E",
       "tests": [
         "tests/test_api_contract_map_v15.py",
@@ -5405,7 +6595,16 @@
         "idempotency": "safe_env_gated_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "833c4223dce442cd18dece125c299b4626580e54b3c995ff8c7b945f2d499bd2",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-187E573271EA6E36",
       "tests": [
         "tests/test_api_contract_map_v15.py",
@@ -5443,7 +6642,16 @@
         "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "1b925c0431e34250e0987561f45df2bfb03e76b12f266fa299688dedd5b73999",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-7FCEC86AF617DFBF",
       "tests": [
         "tests/test_devnet_mode_separation.py",
@@ -5484,7 +6692,16 @@
         "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "62af2aa4500bd0d4f2e469a92014121fbdf1e22db609ccf940e7cc2508f47719",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-3FFABBEFCB7FF39D",
       "tests": [
         "tests/test_devnet_mode_separation.py",
@@ -5524,7 +6741,16 @@
         "idempotency": "safe_session_probe_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "6b12a23bf52197e78e50533e9e32c37d4f066338a88c69d9ced9368a3656f2ac",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-74C075AFE12560DE",
       "tests": [
         "tests/test_full_node_db_api_dispute_storage_coverage.py",
@@ -5565,7 +6791,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "c2dd8840fad66c6d60035318dab1cf027e207a6e5dfed2ab8565415733ef3224",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-150316944D629C32",
       "tests": [
         "tests/conftest.py",
@@ -6461,7 +7696,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "255fb8d49b2c09b931a2b112b1186c043c608808f48d32124d42c53fc2745918",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-8B7DD4B52B9456EC",
       "tests": [
         "tests/test_priority1_restart_replay_progress.py",
@@ -6499,7 +7743,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "3c1e886a3192fcd08fc33f388ca2a62f97841abfe801afc45863d7c8b64a5166",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-193D04E45DA375B3",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -6536,7 +7789,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "0898c386579a449cc43e95f4512b08c510d2965610c9dc7a30ea8bdaa533b915",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-C6E77A400A053E6C",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -6575,7 +7837,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b3b9fb8ffc655768b53a83766ac6e677ff02dac5667608163327ff120be1e254",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A6A03246B904655F",
       "tests": [
         "tests/test_block_timestamp_policy.py",
@@ -6646,7 +7917,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "24de79a0e090f5d186d61fee9cd5a566786b7432b35d73031b976bef8593418f",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-137CB9FB31356917",
       "tests": [
         "tests/p0/test_p0_consensus_core.py",
@@ -6985,7 +8265,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "7599450afef3547a3bd3370ce69810b7ccf46e7ab4c2ddbc4b1ac148f0a356d1",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A8CBEF524D20AD56",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -7025,7 +8314,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "f4ff97c017fa71269c058677010d25ab2c95e34b314546afd6b479161a64eb80",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-F693A62493C1AC49",
       "tests": [
         "tests/test_consensus_phase_bootstrap.py",
@@ -7075,7 +8373,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "3967c3ff9052b067829ca5cd36152417dd7251b1e06cb2a9b53e2229312331f0",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-4D50FAF4F66D0CCD",
       "tests": [
         "tests/test_cross_node_forensics_convergence.py",
@@ -7119,7 +8426,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "846a9f94e56e50d97bcb01bb0ef192ead291499338d5038b1340eb5b37cbd3c2",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-22D0EC22637F2A37",
       "tests": [
         "tests/test_helper_readiness_authority_contract.py",
@@ -7165,7 +8481,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "0c8157f6d85862ac2fa029daa24190aa03bb2ff22dfdbfcd19f3353b15a98905",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A0E0231D291ABB8E",
       "tests": [
         "tests/test_api_contract_map_v15.py",
@@ -7207,7 +8532,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "23aec7a3f16135e196d6b69066e376025d6b6faa3f348b2bb4b70a9f282bc60d",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-6F58230A3E73000F",
       "tests": [
         "tests/prod/test_public_beta_evidence_gates.py",
@@ -7250,7 +8584,16 @@
         "idempotency": "safe_diagnostic_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "10c6626c061d68f7db98b5ab9dcf921753ec83afb91a2ee0ee3bafc24cb8c88b",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-7794E1902B01CB23",
       "tests": [
         "tests/prod/test_public_beta_evidence_gates.py",
@@ -7306,7 +8649,16 @@
         "idempotency": "safe_read_no_state_mutation",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "explicit_metadata",
+      "semantic_derivation": "explicit_metadata",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "9a1fca1022a9673e14124c13c3f2499e6b5840312ddc579e8d15418970fbe05a",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-09C78B49CD03CB9F",
       "tests": [
         "tests/prod/test_public_beta_evidence_gates.py",
@@ -7347,7 +8699,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "4cf16697498c644f3cb4a8a6203cbe0ed02cbc5367e6445a7921320fe9116a80",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-029BC8FDA06E9937",
       "tests": [
         "tests/prod/test_public_beta_evidence_gates.py"
@@ -7384,7 +8745,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "559d8b43431e640e72fd31fff2e2eea2312a71156aaf3575bffdeac7f0924d18",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-B7D65C962A81B4E6",
       "tests": [
         "tests/test_devnet_join_anchor_safety.py",
@@ -7424,7 +8794,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "a7762fdb0ff73cef438e1fb031c8f3a061cadbd2df9aee194fabeaa2f5a23e93",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-2757A5AD73651C30",
       "tests": [
         "tests/test_net_partition_fail_closed.py",
@@ -7466,7 +8845,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "b7b8dade7de849e9208e9852f02b8383937cb190b571508ed414f64b71721190",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-28F65A35627B407B",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -7505,7 +8893,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "41878ad4716838f3afa4ce4c80b05c34ba6e0cc4ace2c127d65b592c69275e64",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-CBE8E17A78838B04",
       "tests": [
         "tests/prod/test_external_evidence_transcript_gates.py",
@@ -7545,7 +8942,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "ad0c85888e3ff9ce5eac627e0fb48b31f3bd43fac34906d9c54fe5054beeccb3",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-B81383D6C92F2A06",
       "tests": [
         "tests/test_tx_catalog_public_route_contract.py",
@@ -7585,7 +8991,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "d3c630214fbc7ef14a996e2305d1581e15f36fe0a4ec1d32f6ddcabafa336895",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-A3D2344F33C6912D",
       "tests": [
         "tests/prod/test_external_observer_signed_onboarding_tx_e2e.py",
@@ -7656,7 +9071,16 @@
         "idempotency": "canonical_tx_id_deduplication",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "c7657a10230baa10f33cebef0fd6698861b9bb48c2364c568423d6a29ee7d3bb",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-C6A91D2143954D6D",
       "tests": [
         "tests/test_api_internal_rule_parity.py",
@@ -7720,7 +9144,16 @@
         "idempotency": "route_specific_no_general_claim",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
-      "semantic_precision": "static_route_inference",
+      "semantic_derivation": "static_route_inference",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "semantic_review": {
+        "authority_effect": "none; does not activate public testnet or Mainnet",
+        "independent_review": false,
+        "review_digest": "215a20a3b8046f89394b8d76d17eeb120f7a63ad3eb52bf10185b5fc2d038c11",
+        "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
+        "reviewed_at": "2026-07-22T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+      },
       "stable_id": "ROUTE-49AAAF88CF6CF97C",
       "tests": [
         "tests/test_v2_spec_compiler.py"
@@ -7731,8 +9164,8 @@
     }
   ],
   "schema": "weall.v2.route_contract_map",
-  "semantic_review_complete": false,
+  "semantic_review_complete": true,
   "truth_boundary": "The exact uploaded v2.0 First Draft PDF is retained and hash-bound. Its extracted full-scope registers control W1 human-machine equality. Structural compiler coverage does not prove runtime correctness, independent review, interoperability, capacity, or production activation.",
   "unique_method_path_count": 155,
-  "version": "2.0.0-first-draft-full-scope-w1"
+  "version": "2.0.0-first-draft-full-scope-w1.1"
 }

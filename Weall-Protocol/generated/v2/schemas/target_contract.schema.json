@@ -80,6 +80,12 @@
       "minLength": 1,
       "type": "string"
     },
+    "payload_schema_definition": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
     "pdf_contract_digest": {
       "minLength": 1,
       "type": "string"
@@ -95,6 +101,9 @@
       "minLength": 1,
       "type": "string"
     },
+    "receipt_schema_definition": {
+      "type": "object"
+    },
     "replay": {
       "minLength": 1,
       "type": "string"
@@ -103,11 +112,16 @@
       "minLength": 1,
       "type": "string"
     },
+    "schema_definition_fingerprint": {
+      "minLength": 1,
+      "type": "string"
+    },
     "signer_or_sender": {
       "minLength": 1,
       "type": "string"
     },
     "source_contract": {
+      "minLength": 1,
       "type": "string"
     },
     "state_reads": {
@@ -147,7 +161,10 @@
     "primary_mechanism_id",
     "vector_ids",
     "status",
-    "contract_fingerprint"
+    "contract_fingerprint",
+    "payload_schema_definition",
+    "receipt_schema_definition",
+    "schema_definition_fingerprint"
   ],
   "title": "target_contract",
   "type": "object"

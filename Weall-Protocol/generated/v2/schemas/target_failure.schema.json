@@ -31,6 +31,9 @@
       "minimum": 1,
       "type": "integer"
     },
+    "failure_schema_definition": {
+      "type": "object"
+    },
     "nonce_behavior": {
       "minLength": 1,
       "type": "string"
@@ -123,7 +126,8 @@
     "primary_mechanism_id",
     "vector_ids",
     "status",
-    "contract_fingerprint"
+    "contract_fingerprint",
+    "failure_schema_definition"
   ],
   "title": "target_failure",
   "type": "object"
