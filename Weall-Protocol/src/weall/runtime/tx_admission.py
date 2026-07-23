@@ -447,7 +447,12 @@ def _reputation_and_flags_ok(
         return _rej("gate_denied", "banned")
 
     if acct.get("locked") is True:
-        return _rej("gate_denied", "locked")
+        # Recovery intentionally locks the account while authority replacement
+        # is pending. The owner must retain a narrow escape hatch to cancel the
+        # active request; every ordinary user action remains fail-closed.
+        tx_type = str(env.tx_type or "").strip().upper()
+        if tx_type != "ACCOUNT_RECOVERY_CANCEL":
+            return _rej("gate_denied", "locked")
 
     min_rep_units = _min_reputation_units(spec)
     if min_rep_units is not None:

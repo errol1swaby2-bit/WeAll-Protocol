@@ -32,6 +32,7 @@ from weall.runtime.reviewer_responsibilities import (
 )
 from weall.runtime.poh.state import (
     POH_STATUS_ACTIVE,
+    TIER2_VALIDITY_BLOCKS,
     require_valid_poh_tier,
     revoke_account_poh_status,
     set_account_poh_status,
@@ -275,6 +276,7 @@ def _grant_active_poh_tier(
         poh_tier=awarded_tier,
         status=POH_STATUS_ACTIVE,
         verified_at_height=height,
+        expires_at_height=(height + TIER2_VALIDITY_BLOCKS) if awarded_tier >= 2 else None,
         proof_commitment=_as_str(proof_commitment or "").strip() or None,
         issuer_authority_id=_as_str(issuer_authority_id or "").strip() or None,
         last_updated_height=height,

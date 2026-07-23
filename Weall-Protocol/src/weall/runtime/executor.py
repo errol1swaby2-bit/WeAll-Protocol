@@ -72,6 +72,7 @@ from weall.runtime.mempool import PersistentMempool, compute_tx_id
 from weall.runtime.node_lifecycle import evaluate_node_lifecycle_status
 from weall.runtime.node_runtime_config import PRODUCTION_SERVICE
 from weall.runtime.runtime_authority import effective_bft_enabled
+from weall.runtime.account_recovery_scheduler import schedule_account_recovery_system_txs
 from weall.runtime.poh.async_scheduler import schedule_poh_async_system_txs
 from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
 from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs

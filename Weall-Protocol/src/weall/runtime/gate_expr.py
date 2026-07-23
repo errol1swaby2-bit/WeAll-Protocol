@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.runtime.poh.state import effective_poh_tier
+from weall.runtime.account_recovery_policy import recovery_restriction_allows_tx, recovery_restriction_until_height
 
 Json = dict[str, Any]
 
@@ -850,6 +851,14 @@ def eval_gate(
 
     source = state if state is not None else ledger
     ledger_dict = _ledger_from_any(source)
+
+    tx_name = str(tx_type or "").strip().upper()
+    if tx_name and not recovery_restriction_allows_tx(ledger_dict, signer, tx_name):
+        return False, {
+            "error": "account_recovery_restriction_active",
+            "tx_type": tx_name,
+            "restriction_until_height": recovery_restriction_until_height(ledger_dict, signer),
+        }
 
     expr0 = (expr or "").strip()
     if not expr0:

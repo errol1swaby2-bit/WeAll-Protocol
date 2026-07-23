@@ -94,6 +94,8 @@ def _initial_state(self) -> Json:
 
     params: Json = {
         "poh_bootstrap_open": bootstrap_open_enabled,
+        # v2 chains retain guardian records only for historical replay.
+        "guardian_recovery_new_admission": False,
     }
     if bootstrap_open_enabled:
         params["poh_bootstrap_mode"] = "open"

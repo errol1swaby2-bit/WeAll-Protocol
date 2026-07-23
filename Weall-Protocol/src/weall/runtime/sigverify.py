@@ -190,8 +190,33 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
     if not msg_candidates:
         return False
 
+    # ACCOUNT_RECOVERY_REQUEST may be authorized by the separately registered
+    # offline recovery key. The key is purpose-limited to this exact canonical
+    # transaction domain; it is never added to the account's active authority
+    # key set and cannot sign ordinary account actions.
+    tx_type = str(tx.get("tx_type") or tx.get("type") or "").strip().upper()
+    payload = tx.get("payload") if isinstance(tx.get("payload"), dict) else {}
+    method = str(payload.get("method") or "").strip().lower()
+    if tx_type == "ACCOUNT_RECOVERY_REQUEST" and method == "offline_key":
+        recovery = acct.get("recovery") if isinstance(acct, dict) else None
+        offline_key = recovery.get("offline_key") if isinstance(recovery, dict) else None
+        if isinstance(offline_key, dict):
+            recovery_profile = normalize_signature_profile_id(
+                offline_key.get("sig_profile") or sig_profile
+            )
+            recovery_pubkey = str(offline_key.get("pubkey") or "").strip()
+            if recovery_profile == sig_profile and recovery_pubkey:
+                for msg in msg_candidates:
+                    if verify_signature_for_profile(
+                        sig_profile=sig_profile,
+                        message=msg,
+                        sig=sig,
+                        pubkey=recovery_pubkey,
+                    ):
+                        return True
+        return False
+
     if not active_keys:
-        tx_type = str(tx.get("tx_type") or tx.get("type") or "").strip().upper()
         if tx_type == "ACCOUNT_REGISTER":
             payload = tx.get("payload") if isinstance(tx.get("payload"), dict) else {}
             pk = payload.get("pubkey")

@@ -7,6 +7,12 @@ from ..errors import ApplyError
 from ..tx_admission_types import TxEnvelope
 from ..session_keys import revoke_session_record, store_session_record
 from ..public_protocol_policy import public_protocol_policy_violation
+from ..account_recovery_policy import (
+    RECOVERY_FAILED_WINDOW_BLOCKS,
+    RECOVERY_MAX_FAILED_ATTEMPTS,
+    RECOVERY_REQUEST_COOLDOWN_BLOCKS,
+    RECOVERY_RESTRICTION_BLOCKS,
+)
 from weall.crypto.account_keys import (
     account_key_pubkey,
     account_key_record_from_payload,
@@ -56,6 +62,36 @@ def _expect_nonce(a: Json, env: TxEnvelope) -> int:
     if got != want:
         raise ApplyError("invalid_tx", "bad_nonce", {"want": want, "got": got})
     return got
+
+
+def _require_known_not_banned_allow_locked(state: Json, account_id: str) -> Json:
+    accounts = _ensure(state, "accounts", {})
+    if not isinstance(accounts, dict):
+        raise ApplyError("invalid_state", "accounts_not_dict", {})
+    account = accounts.get(account_id)
+    if not isinstance(account, dict):
+        raise ApplyError("invalid_tx", "unknown_account", {"account_id": account_id})
+    if account.get("banned") is True:
+        raise ApplyError("forbidden", "account_banned", {"account_id": account_id})
+    return account
+
+
+def _guardian_recovery_admission_enabled(state: Json) -> bool:
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return True
+    raw = params.get("guardian_recovery_new_admission")
+    if raw is None:
+        # Historical snapshots without the selector retain replay compatibility.
+        return True
+    if isinstance(raw, bool):
+        return raw
+    return str(raw or "").strip().lower() in {"1", "true", "yes", "on", "enabled"}
+
+
+def _require_guardian_recovery_admission(state: Json) -> None:
+    if not _guardian_recovery_admission_enabled(state):
+        raise ApplyError("forbidden", "guardian_recovery_retired", {})
 
 
 def _require_not_banned_or_locked(state: Json, account_id: str) -> Json:
@@ -220,7 +256,15 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
             }
         },
         "devices": {"by_id": {}},
-        "recovery": {"config": None, "proposals": {}},
+        "recovery": {
+            "mode": None,
+            "config": None,
+            "offline_key": None,
+            "proposals": {},
+            "requests": {},
+            "authority_generation": 0,
+            "history": [],
+        },
         # Added: session keys for private endpoint gating (e.g., media upload).
         # API security expects accounts[acct]["session_keys"][session_key] dicts.
         "session_keys": {},
@@ -637,6 +681,7 @@ def _apply_account_security_policy_set(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_account_guardian_add(state: Json, env: TxEnvelope) -> Json:
+    _require_guardian_recovery_admission(state)
     a = _require_not_banned_or_locked(state, env.signer)
     exp = _expect_nonce(a, env)
     p = _payload(env)
@@ -658,6 +703,7 @@ def _apply_account_guardian_add(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_account_guardian_remove(state: Json, env: TxEnvelope) -> Json:
+    _require_guardian_recovery_admission(state)
     a = _require_not_banned_or_locked(state, env.signer)
     exp = _expect_nonce(a, env)
     p = _payload(env)
@@ -680,45 +726,70 @@ def _apply_account_guardian_remove(state: Json, env: TxEnvelope) -> Json:
     return state
 
 def _apply_account_recovery_config_set(state: Json, env: TxEnvelope) -> Json:
-    a = _require_not_banned_or_locked(state, env.signer)
-    exp = _expect_nonce(a, env)
-    p = _payload(env)
+    account = _require_not_banned_or_locked(state, env.signer)
+    expected_nonce = _expect_nonce(account, env)
+    payload = _payload(env)
 
-    cfg = p.get("config")
-    if not isinstance(cfg, dict):
-        # Back-compat: allow the flat payload shape used in MVP tests.
-        cfg = {
-            "guardians": p.get("guardians"),
-            "threshold": p.get("threshold"),
+    recovery_pubkey = _as_str(payload.get("recovery_pubkey") or "").strip()
+    recovery_key_commitment = _as_str(payload.get("recovery_key_commitment") or "").strip()
+    recovery_sig_profile = _as_str(
+        payload.get("recovery_sig_profile") or default_signature_profile_for_mode()
+    ).strip()
+
+    recovery = account.get("recovery")
+    if not isinstance(recovery, dict):
+        recovery = {}
+        account["recovery"] = recovery
+
+    if recovery_pubkey:
+        candidate = {
+            "pubkey": recovery_pubkey,
+            "sig_profile": recovery_sig_profile,
+        }
+        key_record = _key_record_from_payload_or_raise(state, candidate, key_type="recovery")
+        generation = _as_int(recovery.get("authority_generation"), 0) + 1
+        recovery["mode"] = "offline_key"
+        recovery["config"] = None
+        recovery["offline_key"] = {
+            "pubkey": account_key_pubkey(key_record),
+            "sig_profile": key_record.get("sig_profile"),
+            "key_id": key_record.get("key_id") or _mk_key_id(account_key_pubkey(key_record)),
+            "commitment": recovery_key_commitment or None,
+            "generation": generation,
+            "registered_height": _current_height(state),
+        }
+        recovery["authority_generation"] = generation
+        account["nonce"] = expected_nonce
+        return state
+
+    _require_guardian_recovery_admission(state)
+    raw_config = payload.get("config")
+    if not isinstance(raw_config, dict):
+        raw_config = {
+            "guardians": payload.get("guardians"),
+            "threshold": payload.get("threshold"),
         }
 
-    guardians = cfg.get("guardians")
-    threshold = cfg.get("threshold")
-
+    guardians = raw_config.get("guardians")
+    threshold = raw_config.get("threshold")
     if not isinstance(guardians, list) or not guardians:
         raise ApplyError("invalid_tx", "invalid_guardians", {})
     guardians_norm: list[str] = []
-    for g in guardians:
-        gs = _as_str(g).strip()
-        if not gs:
-            continue
-        guardians_norm.append(gs)
+    for guardian in guardians:
+        guardian_id = _as_str(guardian).strip()
+        if guardian_id and guardian_id not in guardians_norm:
+            guardians_norm.append(guardian_id)
     if not guardians_norm:
         raise ApplyError("invalid_tx", "invalid_guardians", {})
 
-    thr = _as_int(threshold, 0)
-    if thr <= 0 or thr > len(guardians_norm):
+    threshold_int = _as_int(threshold, 0)
+    if threshold_int <= 0 or threshold_int > len(guardians_norm):
         raise ApplyError("invalid_tx", "invalid_threshold", {"threshold": threshold})
 
-    recovery = a.get("recovery")
-    if not isinstance(recovery, dict):
-        recovery = {}
-        a["recovery"] = recovery
-    recovery["config"] = {"guardians": guardians_norm, "threshold": thr}
-
-    a["nonce"] = exp
+    recovery["mode"] = "legacy_guardian"
+    recovery["config"] = {"guardians": guardians_norm, "threshold": threshold_int}
+    account["nonce"] = expected_nonce
     return state
-
 
 def _apply_account_recovery_propose(state: Json, env: TxEnvelope) -> Json:
     a = _require_not_banned_or_locked(state, env.signer)
@@ -762,6 +833,9 @@ def _apply_account_recovery_approve(state: Json, env: TxEnvelope) -> Json:
         return _apply_account_recovery_vote(state, env)
 
     account_id, _acct, _recovery, req = _find_recovery_request(state, request_id)
+    if _as_str(req.get("method") or "legacy_guardian").strip().lower() != "legacy_guardian":
+        raise ApplyError("forbidden", "recovery_approval_not_required", {"request_id": request_id})
+    _require_guardian_recovery_admission(state)
     accounts = _ensure(state, "accounts", {})
     if not isinstance(accounts, dict):
         raise ApplyError("invalid_state", "accounts_not_dict", {})
@@ -864,56 +938,139 @@ def _apply_account_recovery_execute(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
-    """Open an account recovery request under the target account."""
-    requester = _require_not_banned_or_locked(state, env.signer)
-    exp = _expect_nonce(requester, env)
-    p = _payload(env)
+    """Open either an offline-key or historical guardian recovery request."""
 
-    request_id = _as_str(p.get("request_id") or "").strip()
-    target = _as_str(p.get("target") or env.signer).strip()
+    payload = _payload(env)
+    target = _as_str(payload.get("target") or env.signer).strip()
+    request_id = _as_str(payload.get("request_id") or "").strip()
     if not request_id:
         raise ApplyError("invalid_tx", "missing_request_id", {})
     if not target:
         raise ApplyError("invalid_tx", "missing_target", {})
 
-    subject = _require_not_banned_or_locked(state, target)
-    recovery, guardians, threshold = _normalized_guardians(subject)
-
+    subject = _require_known_not_banned_allow_locked(state, target)
+    recovery = subject.get("recovery")
+    if not isinstance(recovery, dict):
+        recovery = {}
+        subject["recovery"] = recovery
     requests = recovery.get("requests")
     if not isinstance(requests, dict):
         requests = {}
         recovery["requests"] = requests
-
     if request_id in requests:
         raise ApplyError("invalid_tx", "request_exists", {"request_id": request_id})
 
-    security_policy = subject.get("security_policy")
-    lock_on_request = False
-    if isinstance(security_policy, dict):
-        lock_on_request = bool(security_policy.get("lock_on_recovery_request"))
+    for existing_id, existing in requests.items():
+        if isinstance(existing, dict) and _as_str(existing.get("status")).lower() in {
+            "open", "approved", "finalized"
+        }:
+            raise ApplyError(
+                "forbidden",
+                "active_recovery_request_exists",
+                {"request_id": str(existing_id)},
+            )
 
-    requests[request_id] = {
-        "status": "open",
-        "target": target,
-        "requester": _as_str(env.signer).strip(),
-        "approvals": [],
-        "votes": {},
-        "guardian_threshold": threshold,
-        "guardians_snapshot": list(guardians),
-        "created_at": _as_int(state.get("height"), 0),
-    }
+    height = _current_height(state)
+    last_opened = _as_int(recovery.get("last_request_opened_height"), -RECOVERY_REQUEST_COOLDOWN_BLOCKS)
+    if height - last_opened < RECOVERY_REQUEST_COOLDOWN_BLOCKS:
+        raise ApplyError(
+            "forbidden",
+            "recovery_request_cooldown",
+            {"next_height": last_opened + RECOVERY_REQUEST_COOLDOWN_BLOCKS},
+        )
 
-    if lock_on_request:
-        subject["locked"] = True
+    failed_heights = [
+        _as_int(value, -1)
+        for value in recovery.get("failed_attempt_heights", [])
+        if _as_int(value, -1) >= height - RECOVERY_FAILED_WINDOW_BLOCKS
+    ]
+    recovery["failed_attempt_heights"] = failed_heights
+    if len(failed_heights) >= RECOVERY_MAX_FAILED_ATTEMPTS:
+        raise ApplyError("forbidden", "recovery_failed_attempt_limit", {"have": len(failed_heights)})
 
-    requester["nonce"] = exp
+    method = _as_str(payload.get("method") or recovery.get("mode") or "legacy_guardian").strip().lower()
+    if method == "offline_key":
+        if _as_str(env.signer).strip() != target:
+            raise ApplyError("forbidden", "offline_recovery_target_must_sign", {"target": target})
+        nonce_actor = subject
+    else:
+        nonce_actor = _require_not_banned_or_locked(state, _as_str(env.signer).strip())
+    expected_nonce = _expect_nonce(nonce_actor, env)
+
+    if method == "offline_key":
+        offline_key = recovery.get("offline_key")
+        if not isinstance(offline_key, dict) or not _as_str(offline_key.get("pubkey")).strip():
+            raise ApplyError("invalid_tx", "offline_recovery_not_configured", {})
+        generation = _as_int(payload.get("recovery_generation"), -1)
+        expected_generation = _as_int(offline_key.get("generation"), 0)
+        if generation != expected_generation:
+            raise ApplyError(
+                "invalid_tx",
+                "recovery_generation_mismatch",
+                {"want": expected_generation, "got": generation},
+            )
+        new_pubkey = _as_str(payload.get("new_pubkey") or "").strip()
+        new_recovery_pubkey = _as_str(payload.get("new_recovery_pubkey") or "").strip()
+        if not new_pubkey:
+            raise ApplyError("invalid_tx", "missing_new_pubkey", {})
+        if not new_recovery_pubkey:
+            raise ApplyError("invalid_tx", "missing_new_recovery_pubkey", {})
+        new_sig_profile = _as_str(
+            payload.get("new_sig_profile") or default_signature_profile_for_mode()
+        ).strip()
+        new_recovery_sig_profile = _as_str(
+            payload.get("new_recovery_sig_profile") or default_signature_profile_for_mode()
+        ).strip()
+        _key_record_from_payload_or_raise(
+            state, {"pubkey": new_pubkey, "sig_profile": new_sig_profile}, key_type="recovered"
+        )
+        _key_record_from_payload_or_raise(
+            state,
+            {"pubkey": new_recovery_pubkey, "sig_profile": new_recovery_sig_profile},
+            key_type="recovery",
+        )
+        requests[request_id] = {
+            "request_id": request_id,
+            "target": target,
+            "requester": target,
+            "method": "offline_key",
+            "status": "approved",
+            "created_at": height,
+            "recovery_generation": generation,
+            "new_pubkey": new_pubkey,
+            "new_sig_profile": new_sig_profile,
+            "new_recovery_pubkey": new_recovery_pubkey,
+            "new_recovery_sig_profile": new_recovery_sig_profile,
+            "new_recovery_key_commitment": _as_str(
+                payload.get("new_recovery_key_commitment") or ""
+            ).strip() or None,
+        }
+    else:
+        _require_guardian_recovery_admission(state)
+        recovery, guardians, threshold = _normalized_guardians(subject)
+        requests = recovery.setdefault("requests", {})
+        requests[request_id] = {
+            "request_id": request_id,
+            "status": "open",
+            "target": target,
+            "requester": _as_str(env.signer).strip(),
+            "method": "legacy_guardian",
+            "approvals": [],
+            "votes": {},
+            "guardian_threshold": threshold,
+            "guardians_snapshot": list(guardians),
+            "created_at": height,
+        }
+
+    recovery["last_request_opened_height"] = height
+    subject["locked"] = True
+    nonce_actor["nonce"] = expected_nonce
     return state
 
-
-
-
 def _apply_account_recovery_cancel(state: Json, env: TxEnvelope) -> Json:
-    actor = _require_not_banned_or_locked(state, env.signer)
+    # A recovery request may intentionally lock the account; the account owner
+    # must still be able to cancel that request with an authorized key.
+    actor = _require_known_not_banned_allow_locked(state, env.signer)
     exp = _expect_nonce(actor, env)
     p = _payload(env)
 
@@ -933,37 +1090,157 @@ def _apply_account_recovery_cancel(state: Json, env: TxEnvelope) -> Json:
     req["status"] = "cancelled"
     req["cancelled_by"] = _as_str(env.signer).strip()
     req["cancelled_at"] = _as_int(state.get("height"), 0)
+    if account_id == _as_str(env.signer).strip():
+        _acct["locked"] = False
 
     actor["nonce"] = exp
     return state
 
 
 def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
-    p = _payload(env)
-    request_id = _as_str(p.get("request_id") or "").strip()
+    payload = _payload(env)
+    request_id = _as_str(payload.get("request_id") or "").strip()
     if not request_id:
         raise ApplyError("invalid_tx", "missing_request_id", {})
 
-    account_id, acct, _recovery, req = _find_recovery_request(state, request_id)
-    approvals = req.get("approvals")
-    if not isinstance(approvals, list):
-        approvals = []
-    threshold = _as_int(req.get("guardian_threshold"), 0)
-    if threshold <= 0:
-        _, _, threshold = _normalized_guardians(acct)
-    if len(approvals) < max(1, threshold):
-        raise ApplyError("forbidden", "threshold_not_met", {"have": len(approvals), "need": max(1, threshold)})
-
-    status = _as_str(req.get("status") or "").strip().lower()
+    account_id, account, recovery, request = _find_recovery_request(state, request_id)
+    status = _as_str(request.get("status") or "").strip().lower()
     if status in {"cancelled", "finalized", "receipt_recorded"}:
-        raise ApplyError("invalid_tx", "request_not_finalizable", {"request_id": request_id, "status": status})
+        raise ApplyError(
+            "invalid_tx", "request_not_finalizable", {"request_id": request_id, "status": status}
+        )
 
-    req["status"] = "finalized"
-    req["finalized_at"] = _as_int(state.get("height"), 0)
-    req["finalized_by"] = _as_str(getattr(env, "signer", "")).strip() or "SYSTEM"
-    acct["locked"] = False
+    method = _as_str(request.get("method") or "legacy_guardian").strip().lower()
+    if method == "offline_key":
+        if status != "approved":
+            raise ApplyError("forbidden", "recovery_not_authorized", {"request_id": request_id})
+        current_offline = recovery.get("offline_key")
+        if not isinstance(current_offline, dict):
+            raise ApplyError("invalid_state", "offline_recovery_not_configured", {})
+        generation = _as_int(request.get("recovery_generation"), -1)
+        if generation != _as_int(current_offline.get("generation"), 0):
+            raise ApplyError("forbidden", "stale_recovery_generation", {"request_id": request_id})
+
+        height = _current_height(state)
+        new_key = _key_record_from_payload_or_raise(
+            state,
+            {
+                "pubkey": request.get("new_pubkey"),
+                "sig_profile": request.get("new_sig_profile"),
+            },
+            key_type="recovered",
+        )
+        new_recovery_key = _key_record_from_payload_or_raise(
+            state,
+            {
+                "pubkey": request.get("new_recovery_pubkey"),
+                "sig_profile": request.get("new_recovery_sig_profile"),
+            },
+            key_type="recovery",
+        )
+
+        keys = account.get("keys")
+        if not isinstance(keys, dict):
+            keys = {}
+            account["keys"] = keys
+        by_id = keys.get("by_id")
+        if not isinstance(by_id, dict):
+            by_id = {}
+            keys["by_id"] = by_id
+        revoked_key_ids: list[str] = []
+        for key_id in sorted(str(key) for key in by_id.keys()):
+            record = by_id.get(key_id)
+            if not isinstance(record, dict) or record.get("revoked") is True:
+                continue
+            record["revoked"] = True
+            record["revoked_at"] = height
+            record["revocation_reason"] = "account_recovery_authority_replacement"
+            revoked_key_ids.append(key_id)
+
+        new_pubkey = account_key_pubkey(new_key)
+        new_key_id = str(new_key.get("key_id") or _mk_key_id(new_pubkey))
+        new_key["key_id"] = new_key_id
+        new_key["authority_generation"] = generation + 1
+        by_id[new_key_id] = new_key
+
+        revoked_devices: list[str] = []
+        devices = account.get("devices")
+        device_map = devices.get("by_id") if isinstance(devices, dict) else None
+        if isinstance(device_map, dict):
+            for device_id in sorted(str(key) for key in device_map.keys()):
+                record = device_map.get(device_id)
+                if not isinstance(record, dict) or record.get("revoked") is True:
+                    continue
+                record["revoked"] = True
+                record["revoked_at"] = height
+                record["revocation_reason"] = "account_recovery"
+                revoked_devices.append(device_id)
+
+        revoked_sessions = 0
+        sessions = account.get("session_keys")
+        if isinstance(sessions, dict):
+            for record in sessions.values():
+                if not isinstance(record, dict) or record.get("active") is False:
+                    continue
+                record["active"] = False
+                record["revoked_at_height"] = height
+                record["revocation_reason"] = "account_recovery"
+                revoked_sessions += 1
+
+        next_generation = generation + 1
+        recovery["mode"] = "offline_key"
+        recovery["authority_generation"] = next_generation
+        recovery["offline_key"] = {
+            "pubkey": account_key_pubkey(new_recovery_key),
+            "sig_profile": new_recovery_key.get("sig_profile"),
+            "key_id": new_recovery_key.get("key_id")
+            or _mk_key_id(account_key_pubkey(new_recovery_key)),
+            "commitment": request.get("new_recovery_key_commitment"),
+            "generation": next_generation,
+            "registered_height": height,
+        }
+        recovery["restriction_until_height"] = height + RECOVERY_RESTRICTION_BLOCKS
+        recovery["last_finalized_height"] = height
+        history = recovery.get("history")
+        if not isinstance(history, list):
+            history = []
+            recovery["history"] = history
+        history.append(
+            {
+                "request_id": request_id,
+                "method": method,
+                "finalized_height": height,
+                "authority_generation": next_generation,
+                "revoked_key_ids": revoked_key_ids,
+                "revoked_device_ids": revoked_devices,
+                "revoked_session_count": revoked_sessions,
+                "restriction_until_height": recovery["restriction_until_height"],
+            }
+        )
+        for other_id, other in recovery.get("requests", {}).items():
+            if other_id != request_id and isinstance(other, dict) and _as_str(other.get("status")).lower() in {
+                "open", "approved"
+            }:
+                other["status"] = "superseded"
+                other["superseded_by"] = request_id
+        _sync_account_key_views(account)
+    else:
+        approvals = request.get("approvals")
+        if not isinstance(approvals, list):
+            approvals = []
+        threshold = _as_int(request.get("guardian_threshold"), 0)
+        if threshold <= 0:
+            _, _, threshold = _normalized_guardians(account)
+        if len(approvals) < max(1, threshold):
+            raise ApplyError(
+                "forbidden", "threshold_not_met", {"have": len(approvals), "need": max(1, threshold)}
+            )
+
+    request["status"] = "finalized"
+    request["finalized_at"] = _current_height(state)
+    request["finalized_by"] = _as_str(getattr(env, "signer", "")).strip() or "SYSTEM"
+    account["locked"] = False
     return state
-
 
 def _apply_account_recovery_receipt(state: Json, env: TxEnvelope) -> Json:
     p = _payload(env)
@@ -976,6 +1253,21 @@ def _apply_account_recovery_receipt(state: Json, env: TxEnvelope) -> Json:
     req["status"] = "receipt_recorded"
     req["receipt_status"] = status or "finalized"
     req["receipt_at"] = _as_int(state.get("height"), 0)
+    receipts = state.get("account_recovery_receipts")
+    if not isinstance(receipts, list):
+        receipts = []
+        state["account_recovery_receipts"] = receipts
+    receipts.append(
+        {
+            "request_id": request_id,
+            "account_id": _account_id,
+            "method": _as_str(req.get("method") or "legacy_guardian"),
+            "status": req["receipt_status"],
+            "height": req["receipt_at"],
+            "authority_generation": _as_int(_recovery.get("authority_generation"), 0),
+            "restriction_until_height": _as_int(_recovery.get("restriction_until_height"), 0),
+        }
+    )
     return state
 
 def _apply_account_recovery_vote(state: Json, env: TxEnvelope) -> Json:

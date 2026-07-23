@@ -111,15 +111,29 @@ class AccountUnlockPayload(_StrictModel):
 
 
 class AccountRecoveryConfigSetPayload(_StrictModel):
+    # v2 canonical offline recovery key registration.
+    recovery_pubkey: str | None = Field(default=None, min_length=1)
+    recovery_key_commitment: str | None = Field(default=None, min_length=1)
+    recovery_sig_profile: str | None = Field(default=None, min_length=1)
+
+    # Historical guardian shape retained for replay/migration only. New v2
+    # genesis state disables new guardian admission through chain parameters.
     guardians: list[str] | None = None
     threshold: int | None = Field(default=None, ge=0)
     delay_blocks: int | None = Field(default=None, ge=0)
-    recovery_sig_profile: str | None = Field(default=None, min_length=1)
+    config: Json | None = None
 
 
 class AccountRecoveryRequestPayload(_StrictModel):
-    request_id: str | None = None
+    request_id: str = Field(..., min_length=1)
     target: str | None = None
+    method: str | None = Field(default=None, min_length=1)
+    recovery_generation: int | None = Field(default=None, ge=0)
+    new_pubkey: str | None = Field(default=None, min_length=1)
+    new_sig_profile: str | None = Field(default=None, min_length=1)
+    new_recovery_pubkey: str | None = Field(default=None, min_length=1)
+    new_recovery_sig_profile: str | None = Field(default=None, min_length=1)
+    new_recovery_key_commitment: str | None = Field(default=None, min_length=1)
 
 
 class AccountRecoveryApprovePayload(_StrictModel):
