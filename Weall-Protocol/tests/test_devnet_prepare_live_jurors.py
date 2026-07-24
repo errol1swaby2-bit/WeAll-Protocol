@@ -46,3 +46,15 @@ def test_prepare_live_jurors_verifies_genesis_reviewer_without_self_grant() -> N
     assert "POH_BOOTSTRAP_TIER2_GRANT" not in script
     assert "/v1/dev/demo-seed" not in script
     assert "demo-seed" not in script
+
+
+def test_prepare_live_jurors_registers_genesis_mlkem_authority_through_normal_tx_flow() -> None:
+    script = _text("scripts/devnet_prepare_live_jurors.sh")
+    assert "generate_m2_actor_keys.mjs" in script
+    assert "evidence_kem_public_key_b64" in script
+    assert "ACCOUNT_SECURITY_POLICY_SET" in script
+    assert "devnet_tx.py --api" in script
+    assert "submit-tx" in script
+    assert "--wait" in script
+    assert "Genesis reviewer ML-KEM evidence authority registered through normal tx flow" in script
+    assert "/v1/dev/demo-seed" not in script

@@ -516,6 +516,20 @@ _run_live_devnet_flow() {
 
   _wait_live_case_assigned "${NODE1_API}" "${case_id}" "${NODE1_API}"
 
+  if [[ "${WEALL_M2_LIVE_BROWSER_HANDOFF:-0}" == "1" ]]; then
+    local manifest="${WEALL_M2_ACTOR_MANIFEST:-${DEVNET_DIR}/m2-live-actors.json}"
+    local reviewer_args=()
+    while IFS=$'\t' read -r juror role; do
+      [[ -n "${juror}" ]] || continue
+      reviewer_args+=(--reviewer "${juror}|${role}|$(_live_juror_keyfile "${juror}")")
+    done < <(_live_case_juror_lines "${NODE1_API}" "${case_id}")
+    python3 scripts/build_m2_browser_actor_manifest.py \
+      --api-base "${NODE1_API}" --kind live --case-id "${case_id}" \
+      --applicant-keyfile "${KEYFILE}" --output "${manifest}" "${reviewer_args[@]}"
+    echo "==> Live browser handoff ready: ${manifest}"
+    return 0
+  fi
+
   echo "==> Submitting assigned Live reviewer attendance/verdict txs through normal tx flow"
   while IFS=$'\t' read -r juror role; do
     [[ -n "${juror}" ]] || continue
@@ -655,6 +669,10 @@ if [[ "${WEALL_RUN_NATIVE_ASYNC_TIER1_E2E:-1}" == "1" ]]; then
   WEALL_DEVNET_DIR="${DEVNET_DIR}" \
   WEALL_NATIVE_ASYNC_CREATE_ACCOUNT="0" \
     bash ./scripts/demo_native_async_tier1_e2e.sh
+  if [[ "${WEALL_NATIVE_ASYNC_BROWSER_HANDOFF:-0}" == "1" ]]; then
+    echo "==> Controlled devnet paused after async case handoff for independent-browser reviewers"
+    exit 0
+  fi
 fi
 
 NODE2_AVAILABLE=0

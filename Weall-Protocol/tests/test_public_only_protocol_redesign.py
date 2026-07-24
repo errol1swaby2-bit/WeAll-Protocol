@@ -258,6 +258,75 @@ def test_legacy_fixtures_cannot_reintroduce_non_public_or_encoded_payloads() -> 
         assert violation.code == code
 
 
+
+def test_restricted_identity_evidence_key_envelopes_are_narrowly_allowed() -> None:
+    envelope = {
+        "algorithm": "ml-kem-768+aes-256-gcm",
+        "kemCiphertextB64": "reviewer-scoped-kem-ciphertext",
+        "nonceB64": "nonce",
+        "wrappedKeyB64": "wrapped-content-key",
+        "contextCommitment": "sha256:" + "1" * 64,
+        "envelopeCommitment": "sha256:" + "2" * 64,
+    }
+    bind = _tx(
+        "POH_ASYNC_EVIDENCE_BIND",
+        payload={
+            "case_id": "pohasync:@alice:1",
+            "evidence_id": "ev1",
+            "key_envelope_commitments": {"@alice": envelope, "@reviewer": envelope},
+        },
+    )
+    assert public_protocol_policy_violation(bind) is None
+
+    outside_restricted_tx = public_protocol_policy_violation(
+        _tx("GOV_PROPOSAL_CREATE", payload={"key_envelope_commitments": {"@alice": envelope}})
+    )
+    assert outside_restricted_tx is not None
+    assert outside_restricted_tx.code == OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED
+
+    outside_envelope_subtree = public_protocol_policy_violation(
+        _tx(
+            "POH_ASYNC_EVIDENCE_BIND",
+            payload={
+                "case_id": "pohasync:@alice:1",
+                "evidence_id": "ev1",
+                "metadata": {"kemCiphertextB64": "opaque"},
+            },
+        )
+    )
+    assert outside_envelope_subtree is not None
+    assert outside_envelope_subtree.code == OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED
+
+    unknown_opaque_envelope_field = public_protocol_policy_violation(
+        _tx(
+            "POH_ASYNC_EVIDENCE_BIND",
+            payload={
+                "case_id": "pohasync:@alice:1",
+                "evidence_id": "ev1",
+                "key_envelope_commitments": {
+                    "@alice": {"encrypted_payload": "opaque"}
+                },
+            },
+        )
+    )
+    assert unknown_opaque_envelope_field is not None
+    assert unknown_opaque_envelope_field.code == OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED
+
+    nested_opaque_envelope_field = public_protocol_policy_violation(
+        _tx(
+            "POH_ASYNC_EVIDENCE_BIND",
+            payload={
+                "case_id": "pohasync:@alice:1",
+                "evidence_id": "ev1",
+                "key_envelope_commitments": {
+                    "@alice": {"nested": {"kemCiphertextB64": "opaque"}}
+                },
+            },
+        )
+    )
+    assert nested_opaque_envelope_field is not None
+    assert nested_opaque_envelope_field.code == OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED
+
 def test_state_replay_rejects_non_inspectable_protocol_payload_deterministically() -> None:
     state = _state()
     with pytest.raises(ApplyError) as excinfo:

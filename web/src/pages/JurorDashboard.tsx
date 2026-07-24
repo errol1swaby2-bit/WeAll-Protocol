@@ -4,6 +4,7 @@ import { getApiBaseUrl, weall } from "../api/weall";
 import ErrorBanner from "../components/ErrorBanner";
 import RequirementList from "../components/RequirementList";
 import MediaGallery from "../components/MediaGallery";
+import EncryptedEvidenceViewer from "../components/EncryptedEvidenceViewer";
 import { getAuthHeaders, getSession, submitSignedTx } from "../auth/session";
 import { normalizeAccount } from "../auth/keys";
 import { checkGates, summarizeAccountState } from "../lib/gates";
@@ -96,6 +97,37 @@ function extractEvidenceMedia(evidence: any): any[] {
   });
 }
 
+
+function extractEncryptedEvidence(evidence: any): Array<{
+  evidenceId: string;
+  ciphertextCid: string;
+  ciphertextCommitment: string;
+  mimeType: string;
+  filename: string;
+}> {
+  const source = asRecord(evidence?.reviewable_evidence);
+  const out: Array<{ evidenceId: string; ciphertextCid: string; ciphertextCommitment: string; mimeType: string; filename: string }> = [];
+  for (const [evidenceId, raw] of Object.entries(source)) {
+    const item = asRecord(raw);
+    // Restricted PoH API reads expose the canonical state field names
+    // encrypted_blob_*; older browser-facing fixtures used ciphertext_*.
+    // Accept both shapes so reviewer decryption follows canonical state
+    // without treating the encrypted object as ordinary public media.
+    const ciphertextCid = String(item.ciphertext_cid || item.encrypted_blob_cid || "").trim();
+    if (!ciphertextCid) continue;
+    out.push({
+      evidenceId: String(evidenceId),
+      ciphertextCid,
+      ciphertextCommitment: String(
+        item.ciphertext_commitment || item.encrypted_blob_commitment || item.evidence_commitment || "",
+      ).trim(),
+      mimeType: String(item.plaintext_mime || "video/webm").trim() || "video/webm",
+      filename: String(item.filename || item.name || evidenceId).trim() || String(evidenceId),
+    });
+  }
+  return out;
+}
+
 function statusTone(statusRaw: any): "done" | "active" | "todo" {
   const s = String(statusRaw || "").toLowerCase();
   if (["complete", "completed", "finalized", "approved", "passed", "closed"].includes(s)) {
@@ -140,9 +172,14 @@ function asyncCaseDeclinedBy(caseRecord: any, account: string): boolean {
 function asyncCaseReviewedBy(caseRecord: any, account: string): boolean {
   const acct = normalizeAccount(account);
   const reviews = asRecord(caseRecord?.reviews);
+  const currentRound = Math.max(0, Number(caseRecord?.followup_round || 0));
   if (!acct) return false;
-  if (reviews[acct]) return true;
-  return Object.keys(reviews).some((key) => normalizeAccount(key) === acct);
+  return Object.entries(reviews).some(([key, value]) => {
+    const review = asRecord(value);
+    const reviewer = normalizeAccount(review.juror_id || key.replace(/^r\d+:/, ""));
+    const round = Math.max(0, Number(review.followup_round || 0));
+    return reviewer === acct && round === currentRound;
+  });
 }
 
 function liveCaseAcceptedBy(caseRecord: any, account: string): boolean {
@@ -750,7 +787,10 @@ export default function JurorDashboard(): JSX.Element {
               const caseId = String(c?.case_id || c?.id || "");
               const detail = expanded[caseId]?.case || expanded[caseId] || null;
               const evidence = detail || c || {};
-              const evidenceMedia = extractEvidenceMedia(evidence);
+              const encryptedEvidence = extractEncryptedEvidence(evidence);
+              const evidenceMedia = extractEvidenceMedia(evidence).filter(
+                (item) => !String(item?.ciphertext_cid || item?.encrypted_blob_cid || "").trim(),
+              );
               const sessionRec = tab === "live" ? sessionForCase(caseId) : null;
               const sessionId = String(sessionRec?.session_id || "");
               const sessionParticipants = sessionId ? participants[sessionId] || [] : [];
@@ -868,10 +908,20 @@ export default function JurorDashboard(): JSX.Element {
                       </div>
                     )}
 
+                    {encryptedEvidence.length && reviewerEvidenceUnlocked ? (
+                      <EncryptedEvidenceViewer
+                        base={apiBase}
+                        account={account}
+                        caseId={caseId}
+                        applicant={String(evidence?.account_id || evidence?.applicant || c?.account_id || c?.applicant || "")}
+                        items={encryptedEvidence}
+                        evidenceBinds={asRecord(evidence?.evidence_binds)}
+                      />
+                    ) : null}
                     {evidenceMedia.length && reviewerEvidenceUnlocked ? (
                       <MediaGallery base={apiBase} media={evidenceMedia} title="Restricted reviewer evidence" restrictedPlayback />
                     ) : null}
-                    {evidenceMedia.length && !reviewerEvidenceUnlocked ? (
+                    {(encryptedEvidence.length || evidenceMedia.length) && !reviewerEvidenceUnlocked ? (
                       <div className="infoCard">
                         <div className="feedMediaTitle">Evidence locked until acceptance</div>
                         <p className="cardDesc">Accept this review assignment before the verifier evidence video is loaded. This prevents reviewers from inspecting protected PoH evidence and then declining without a chain-visible acceptance record.</p>

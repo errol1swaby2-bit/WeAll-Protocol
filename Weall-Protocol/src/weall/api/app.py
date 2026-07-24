@@ -523,6 +523,9 @@ def create_app(*, boot_runtime: bool) -> FastAPI:
                 "Content-Type",
                 "X-WeAll-Account",
                 "X-WeAll-Session-Key",
+                "X-WeAll-Evidence-Encryption",
+                "X-WeAll-Evidence-Context-Commitment",
+                "X-WeAll-Evidence-Ciphertext-Commitment",
             ],
         )
 

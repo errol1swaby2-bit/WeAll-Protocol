@@ -50,11 +50,12 @@ PY
 
 OPERATOR_PUBKEY="$(_read_key_field "${OPERATOR_KEYFILE}" public_key_hex)"
 
-export WEALL_MODE="${WEALL_MODE:-devnet}"
+export WEALL_API_BOOT_RUNTIME=1
+export WEALL_MODE="${WEALL_MODE:-controlled_devnet}"
 export WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-controlled_devnet}"
 export WEALL_CHAIN_ID="${WEALL_CHAIN_ID:-weall-controlled-devnet}"
 export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${REPO_ROOT}/configs/chains/weall-controlled-devnet.json}"
-export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-0}"
+export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"
 export WEALL_NODE_ID="${WEALL_NODE_ID:-@devnet-joiner}"
 export WEALL_DB_PATH="${WEALL_DB_PATH:-${DEVNET_DIR}/node2/weall.db}"
 export WEALL_TX_INDEX_PATH="${WEALL_TX_INDEX_PATH:-${REPO_ROOT}/generated/tx_index.json}"

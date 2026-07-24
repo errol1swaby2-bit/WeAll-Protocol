@@ -291,7 +291,7 @@ txs:
   name: DISPUTE_OPEN
   domain: Dispute
   origin: USER
-  gate: Tier2+
+  gate: Tier1+
   context: mempool
   receipt_only: false
 - id: 201
@@ -414,7 +414,7 @@ txs:
   name: CONTENT_COMMENT_CREATE
   domain: Content
   origin: USER
-  gate: Tier2+
+  gate: Tier0+
   context: mempool
   receipt_only: false
   min_reputation: 1
@@ -436,7 +436,7 @@ txs:
   name: CONTENT_FLAG
   domain: Content
   origin: USER
-  gate: Tier2+
+  gate: Tier1+
   context: mempool
   receipt_only: false
 - id: 307

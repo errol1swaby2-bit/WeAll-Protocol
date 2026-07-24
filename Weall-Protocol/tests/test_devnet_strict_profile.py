@@ -57,7 +57,8 @@ def test_devnet_boot_scripts_default_to_controlled_profile() -> None:
     joining = (REPO_ROOT / "scripts/devnet_boot_joining_node.sh").read_text(encoding="utf-8")
 
     for text in (genesis, joining):
-        assert 'export WEALL_MODE="${WEALL_MODE:-devnet}"' in text
+        assert 'export WEALL_MODE="${WEALL_MODE:-controlled_devnet}"' in text
+        assert 'export WEALL_REQUIRE_CHAIN_MANIFEST="${WEALL_REQUIRE_CHAIN_MANIFEST:-1}"' in text
         assert 'export WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-controlled_devnet}"' in text
         assert 'export WEALL_POH_BOOTSTRAP_OPEN="${WEALL_POH_BOOTSTRAP_OPEN:-0}"' in text
         assert 'export WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-0}"' in text

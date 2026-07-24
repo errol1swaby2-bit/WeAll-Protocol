@@ -14,8 +14,8 @@
   ],
   "excluded_local_artifacts": [
     {
-      "path": "generated/README.md",
       "classification": "ignored_local_generated_documentation",
+      "path": "generated/README.md",
       "reason": "May exist in a developer workspace but is ignored by Git and is not a normative specification source or declared release evidence. The compiler excludes only this exact path."
     },
     {
@@ -24,8 +24,8 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     },
     {
-      "path": "generated/controlled_testnet_go_gate_runtime_v1_5.json",
       "classification": "ignored_local_generated_rehearsal_output",
+      "path": "generated/controlled_testnet_go_gate_runtime_v1_5.json",
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     },
     {
@@ -106,6 +106,17 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "../web/src/api/weall.ts",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/auth/evidenceCrypto.ts",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
     },
@@ -227,6 +238,17 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "../web/src/components/ContentTipButton.tsx",
+      "primary_mechanism_id": "M-069",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "routes",
+        "activation",
+        "presentation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "../web/src/components/EncryptedEvidenceViewer.tsx",
       "primary_mechanism_id": "M-069",
       "review_status": "mapped_current_snapshot"
     },
@@ -1327,6 +1349,16 @@
         "evidence"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "scripts/build_m2_browser_actor_manifest.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "scripts/build_node_operator_onboarding_bundle.py",
       "primary_mechanism_id": "M-075",
       "review_status": "mapped_current_snapshot"
@@ -1388,6 +1420,26 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "scripts/check_generated.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_m2_requirement_traceability.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_public_testnet_seed_registry_rotation.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
     },
@@ -1779,6 +1831,16 @@
       "classification": "authoritative_or_launch_critical",
       "path": "scripts/gen_consensus_bootstrap_thresholds_v1_5.py",
       "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_controlled_devnet_chain_manifest.py",
+      "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
     },
     {
@@ -3930,6 +3992,24 @@
         "mechanisms"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/account_recovery_policy.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/account_recovery_scheduler.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "src/weall/runtime/ancestry.py",
       "primary_mechanism_id": "M-012",
       "review_status": "mapped_current_snapshot"
@@ -5113,6 +5193,15 @@
         "mechanisms"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/poh/evidence_lifecycle.py",
+      "primary_mechanism_id": "M-028",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "src/weall/runtime/poh/juror_select.py",
       "primary_mechanism_id": "M-028",
       "review_status": "mapped_current_snapshot"
@@ -5205,6 +5294,15 @@
       "classification": "authoritative_or_launch_critical",
       "path": "src/weall/runtime/read_write_sets.py",
       "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/recovery_review.py",
+      "primary_mechanism_id": "M-028",
       "review_status": "mapped_current_snapshot"
     },
     {
@@ -5421,6 +5519,15 @@
       "classification": "authoritative_or_launch_critical",
       "path": "src/weall/runtime/testnet_capabilities.py",
       "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/tier2_responsibility.py",
+      "primary_mechanism_id": "M-028",
       "review_status": "mapped_current_snapshot"
     },
     {

@@ -243,6 +243,13 @@ def _build_testnet_genesis(*, chain_id: str, founding_account: str, founding_pub
             },
             "validator_candidate_lifecycle_gate_enabled": True,
             "validator_candidate_node_id_must_match_node_pubkey": True,
+            # New v2 chains fail closed on legacy guardian admission and
+            # require independent recovery and evidence-encryption authorities
+            # at account registration.  Historical guardian records remain
+            # replayable; no new guardian recovery can be admitted.
+            "guardian_recovery_new_admission": False,
+            "require_recovery_key_at_account_register": True,
+            "require_evidence_kem_at_account_register": True,
             "bft_signing_public_beta_gate_enabled": True,
             "public_mainnet_enabled": False,
             "public_testnet_v1": True,

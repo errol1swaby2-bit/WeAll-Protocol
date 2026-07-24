@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "milestone": "M2 account custody, human verification, recovery, and outside-tester onboarding",
+  "controlling_sources": [
+    "docs/REVIEWER_MILESTONE_GUIDE.md",
+    "docs/production_readiness/M2_REQUIREMENT_TRACEABILITY.json",
+    "specs/v2/source/requirements.json",
+    "specs/v2/source/WeAll.v2.0.Full-Scope.Product.and.Protocol.Specification.pdf"
+  ],
+  "deliverables": [
+    {
+      "id": "account-custody-e2e",
+      "title": "Account custody E2E proof",
+      "requirement_rows": [
+        "P0-07",
+        "P2-10"
+      ],
+      "implementation": [
+        "../web/tests/e2e/account_custody_registration_restore.spec.ts",
+        "../scripts/run_account_custody_real_stack_e2e.sh"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/browser/account-custody"
+      ]
+    },
+    {
+      "id": "async-poh-e2e",
+      "title": "PoH async E2E proof",
+      "requirement_rows": [
+        "P0-05",
+        "P0-06",
+        "P1-04",
+        "P1-05",
+        "P2-01"
+      ],
+      "implementation": [
+        "../web/tests/e2e/poh_async_independent_browsers.spec.ts",
+        "../scripts/run_m2_async_browser_e2e.sh"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/browser/async"
+      ]
+    },
+    {
+      "id": "live-poh-e2e",
+      "title": "PoH live E2E proof",
+      "requirement_rows": [
+        "P1-06",
+        "P1-07",
+        "P2-02",
+        "P2-04"
+      ],
+      "implementation": [
+        "../web/tests/e2e/poh_live_independent_browsers.spec.ts",
+        "../scripts/run_m2_live_browser_e2e.sh",
+        "../scripts/run_m2_media_rehearsal.sh"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/browser/live",
+        "artifacts/m2-closure/media"
+      ]
+    },
+    {
+      "id": "reviewer-queue-runbooks",
+      "title": "Reviewer queue and runbooks",
+      "requirement_rows": [
+        "P1-04",
+        "P2-03"
+      ],
+      "implementation": [
+        "docs/testnet/M2_ASYNC_REVIEWER_RUNBOOK.md",
+        "docs/testnet/M2_LIVE_REVIEWER_RUNBOOK.md"
+      ]
+    },
+    {
+      "id": "final-tier-and-gated-action",
+      "title": "Final tier update and eligibility-gated action",
+      "requirement_rows": [
+        "P1-08",
+        "P2-01",
+        "P2-02",
+        "P2-10"
+      ],
+      "implementation": [
+        "src/weall/runtime/poh/state.py",
+        "../web/tests/e2e/account_custody_registration_restore.spec.ts",
+        "../web/tests/e2e/poh_async_independent_browsers.spec.ts",
+        "../web/tests/e2e/poh_live_independent_browsers.spec.ts"
+      ]
+    }
+  ],
+  "normative_mappings": [
+    {
+      "id": "acct-tier-gates",
+      "requirement_ids": [
+        "ACCT-001",
+        "ACCT-002",
+        "ACCT-003"
+      ],
+      "requirement_rows": [
+        "P1-08",
+        "P2-01",
+        "P2-02"
+      ]
+    },
+    {
+      "id": "recovery-confidentiality-and-authority",
+      "requirement_ids": [
+        "KEY-101",
+        "KEY-103",
+        "KEY-104",
+        "KEY-105",
+        "KEY-106",
+        "KEY-107"
+      ],
+      "requirement_rows": [
+        "P0-01",
+        "P0-02",
+        "P0-04",
+        "P0-05",
+        "P1-01"
+      ]
+    },
+    {
+      "id": "recovery-panel-finalization-and-restriction",
+      "requirement_ids": [
+        "KEY-108",
+        "KEY-109",
+        "KEY-110",
+        "KEY-111",
+        "KEY-112",
+        "KEY-113"
+      ],
+      "requirement_rows": [
+        "P0-01",
+        "P0-02",
+        "P0-03",
+        "P1-01"
+      ]
+    },
+    {
+      "id": "continuity-evidence-policy",
+      "requirement_ids": [
+        "KEY-114",
+        "KEY-115",
+        "KEY-116",
+        "KEY-117"
+      ],
+      "requirement_rows": [
+        "P0-05",
+        "P1-01"
+      ]
+    },
+    {
+      "id": "recovery-reversal",
+      "requirement_ids": [
+        "KEY-118",
+        "KEY-119"
+      ],
+      "requirement_rows": [
+        "P1-02"
+      ]
+    },
+    {
+      "id": "async-poh",
+      "requirement_ids": [
+        "POH-101"
+      ],
+      "requirement_rows": [
+        "P0-05",
+        "P0-06",
+        "P1-04",
+        "P1-05",
+        "P2-01"
+      ]
+    },
+    {
+      "id": "tier2-lifecycle",
+      "requirement_ids": [
+        "POH-201",
+        "POH-202",
+        "POH-203",
+        "POH-204",
+        "POH-205",
+        "POH-206"
+      ],
+      "requirement_rows": [
+        "P1-06",
+        "P1-07",
+        "P2-02"
+      ]
+    },
+    {
+      "id": "restricted-evidence-lifecycle",
+      "requirement_ids": [
+        "POH-301",
+        "POH-302",
+        "POH-303",
+        "POH-304",
+        "POH-305",
+        "POH-306"
+      ],
+      "requirement_rows": [
+        "P0-05",
+        "P0-06",
+        "P1-03"
+      ]
+    }
+  ],
+  "scope_exclusions": [
+    {
+      "requirement_ids": [
+        "KEY-102"
+      ],
+      "requirement_rows": [
+        "P1-09"
+      ],
+      "reason": "Institutional representative identity is formally rescoped from M2 by ADR-M2-INSTITUTIONAL-IDENTITY-RESCOPE."
+    },
+    {
+      "requirement_ids": [
+        "KEY-120"
+      ],
+      "reason": "Fraud and reviewer-collusion sanction adjudication belongs to the Milestone 3 dispute and review scope; M2 preserves evidence and public receipts without claiming the sanction system closed."
+    }
+  ]
+}

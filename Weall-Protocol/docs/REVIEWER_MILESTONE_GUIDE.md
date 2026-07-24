@@ -208,16 +208,20 @@ Objective: make account creation, recovery, async verification, and live verific
 
 Current evidence:
 
-- Recovery file creation/verification exists.
-- Restore flow exists.
-- Signed transaction/session path exists.
-- Async/live PoH txs, routes, and frontend surfaces exist.
+- Stateful account creation, recovery-file verification, browser restart, restore, registration, and protected-action E2E are implemented.
+- Independent-browser async Tier 1 and live Tier 2 journeys are implemented.
+- Restricted evidence uses case-scoped encryption, reviewer envelopes, explicit closure, retention, deletion-due, erasure, and deletion-receipt states.
+- Continuity recovery enforces canonical evidence classes, a strong anchor, and five signed Tier 2 social attestations from distinct committed households when the social route is used.
+- Recovery reversal includes the complete restricted-height window.
+- Reviewer runbooks, restart/replay, two-node equality, observer catch-up, semantic scope crosswalk, and evidence-integrity tooling exist.
 
-Work remaining:
+Work remaining for formal closure:
 
-- Browser E2E proof for account creation, recovery verification, restore, and registration.
-- Full PoH async/live external rehearsal.
-- Media/live-room reliability proof.
+- Perform the legitimate operator-held ML-DSA public-testnet seed-registry rotation.
+- Create a clean implementation-freeze commit.
+- Run the complete closure suite from that freeze.
+- Build and validate the schema-v2 evidence manifest.
+- Create and independently validate the evidence-only closure commit.
 
 Deliverables:
 
@@ -225,12 +229,16 @@ Deliverables:
 - PoH async E2E proof.
 - PoH live E2E proof.
 - Reviewer queue/runbook.
+- Recovery and restricted-evidence lifecycle proof.
+- Semantic milestone/specification crosswalk.
+- Integrity-checked evidence-only closure package.
 
 Acceptance criteria:
 
 - Tester can create account, save recovery, restore after browser restart, submit verification, receive final tier update, and unlock gated actions.
+- Mandatory deterministic, browser, replay, multi-node, observer, artifact, and evidence-integrity gates pass from the recorded freeze commit.
 
-Truth boundary: testnet PoH readiness, not final public identity infrastructure.
+Truth boundary: controlled-testnet PoH and onboarding readiness only; not public beta, final public identity infrastructure, public validator admission, live economics, or Mainnet readiness.
 
 ### Milestone 3: Content, groups, dispute/review, and governance testnet flows
 

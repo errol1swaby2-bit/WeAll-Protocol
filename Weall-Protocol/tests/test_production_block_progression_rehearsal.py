@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -26,7 +27,12 @@ def test_controlled_devnet_boot_uses_manifest_clock_and_empty_blocks() -> None:
     assert clock["enabled"] is True
     assert clock["empty_blocks_enabled"] is True
     assert clock["target_block_interval_ms"] == 20_000
-    assert manifest["tx_index_hash"] == "123439e0b1aad73701697ab0fc20add446928c8ec5e510909af5666ab7f18a0c"
+    expected_tx_index_hash = hashlib.sha256((ROOT / "generated/tx_index.json").read_bytes()).hexdigest()
+    assert manifest["tx_index_hash"] == expected_tx_index_hash
+    assert manifest["mode"] == "controlled_devnet"
+    assert manifest["constitution_hash"] == hashlib.sha256(
+        (ROOT / manifest["constitution_document_path"]).read_bytes()
+    ).hexdigest()
 
 
 def test_rehearsal_waits_for_automatic_block_progression_not_manual_ticks() -> None:

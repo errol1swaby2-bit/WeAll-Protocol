@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from weall.runtime.dispute_engine import tick_dispute_lifecycle
+from weall.runtime.account_recovery_scheduler import schedule_account_recovery_system_txs
 from weall.runtime.domain_apply import apply_tx_atomic_meta
 from weall.runtime.gov_engine import tick_governance_lifecycle
 from weall.runtime.node_operator_scheduler import schedule_node_operator_system_txs
@@ -35,6 +36,7 @@ class SchedulerSet:
     facade directly.
     """
 
+    schedule_account_recovery_system_txs: Callable[..., Any] = schedule_account_recovery_system_txs
     schedule_poh_async_system_txs: Callable[..., Any] = schedule_poh_async_system_txs
     schedule_poh_tier2_system_txs: Callable[..., Any] = schedule_poh_tier2_system_txs
     schedule_poh_live_system_txs: Callable[..., Any] = schedule_poh_live_system_txs
@@ -64,6 +66,9 @@ class SchedulerSet:
             return cls.defaults()
 
         return cls(
+            schedule_account_recovery_system_txs=getattr(
+                executor_mod, "schedule_account_recovery_system_txs", schedule_account_recovery_system_txs
+            ),
             schedule_poh_async_system_txs=getattr(
                 executor_mod, "schedule_poh_async_system_txs", schedule_poh_async_system_txs
             ),

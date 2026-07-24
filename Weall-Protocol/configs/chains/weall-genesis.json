@@ -8,7 +8,7 @@
   "chain_id": "weall-prod",
   "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
   "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
-  "constitution_traceability_hash": "a2b9920333744a1b49d5a8788f08d07e0c300faa28f17f24db1f906a108205e1",
+  "constitution_traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
   "constitution_version": "draft-2",
   "constitutional_clock": {
     "allowed_clock_skew_ms": 2000,
@@ -21,8 +21,8 @@
     "procedure_time_source": "finalized_block_height",
     "target_block_interval_ms": 20000
   },
-  "genesis_hash": "309ef919aa5d3d2610f22fd687b2c0c7fe9939fa6c87cf1b61a12f0028cb158f",
-  "genesis_state_root": "309ef919aa5d3d2610f22fd687b2c0c7fe9939fa6c87cf1b61a12f0028cb158f",
+  "genesis_hash": "ebe9c4a20524a24692954c1be13ed0283aca85ad20e8df247d7d434a3402a659",
+  "genesis_state_root": "ebe9c4a20524a24692954c1be13ed0283aca85ad20e8df247d7d434a3402a659",
   "genesis_time_ms": 0,
   "mode": "prod",
   "name": "WeAll Genesis Canonical Chain",
@@ -33,6 +33,6 @@
   "trusted_authority_pubkeys": [
     "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"
   ],
-  "tx_index_hash": "c6863731be6076a20acb0284634d8b03fe48bad7db45cbb32e6394b10db5921f",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
   "version": 1
 }

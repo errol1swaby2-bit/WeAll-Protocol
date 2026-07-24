@@ -200,11 +200,29 @@ echo "==> Opening native async Tier-1 case ${case_id}"
 _submit "$ACCOUNT" "$KEYFILE" "POH_ASYNC_REQUEST_OPEN" \
   "{\"account_id\":\"${ACCOUNT}\",\"case_id\":\"${case_id}\",\"challenge_id\":\"${challenge_id}\",\"challenge_commitment\":\"${challenge_commitment}\",\"response_commitment\":\"${response_commitment}\",\"note\":\"fresh_demo_native_async_tier1\",\"ts_ms\":0}" >/dev/null
 
+ciphertext_commitment="sha256:$(printf '%s' "weall:native-async:ciphertext:${ACCOUNT}:${case_id}" | sha256sum | awk '{print $1}')"
+context_commitment="sha256:$(printf '%s' "weall:native-async:context:${ACCOUNT}:${case_id}" | sha256sum | awk '{print $1}')"
 _submit "$ACCOUNT" "$KEYFILE" "POH_ASYNC_EVIDENCE_DECLARE" \
-  "{\"case_id\":\"${case_id}\",\"evidence_id\":\"${evidence_id}\",\"evidence_commitment\":\"${evidence_commitment}\",\"response_commitment\":\"${response_commitment}\",\"kind\":\"fresh_demo_commitment_v1\",\"ts_ms\":0}" >/dev/null
+  "{\"case_id\":\"${case_id}\",\"evidence_id\":\"${evidence_id}\",\"evidence_commitment\":\"${evidence_commitment}\",\"response_commitment\":\"${response_commitment}\",\"kind\":\"encrypted_controlled_rehearsal_v1\",\"encrypted\":true,\"encryption_algorithm\":\"aes-256-gcm\",\"ciphertext_cid\":\"bafy-controlled-${stamp}\",\"ciphertext_commitment\":\"${ciphertext_commitment}\",\"encryption_context_commitment\":\"${context_commitment}\",\"ciphertext_size\":512,\"provider_ids\":[\"@controlled-provider\"],\"ts_ms\":0}" >/dev/null
 
+# Seal the encrypted evidence for the subject before assignment. The
+# deterministic scheduler requires a successful evidence bind before it can
+# select reviewers. Reviewer-specific envelopes are added after assignment.
+subject_principals_json="$(printf '%s\n' "$ACCOUNT" | /usr/bin/env python3 -c 'import json,sys; xs=[x.strip() for x in sys.stdin if x.strip()]; print(json.dumps({x:{"algorithm":"ml-kem-768+aes-256-gcm","kem_ciphertext_commitment":"sha256:"+"6"*64,"wrapped_key_commitment":"sha256:"+"7"*64,"envelope_commitment":"sha256:"+"8"*64} for x in xs},sort_keys=True))')"
 _submit "$ACCOUNT" "$KEYFILE" "POH_ASYNC_EVIDENCE_BIND" \
-  "{\"case_id\":\"${case_id}\",\"evidence_id\":\"${evidence_id}\",\"target_id\":\"${case_id}\",\"ts_ms\":0}" >/dev/null
+  "$(PRINCIPALS_JSON="$subject_principals_json" CASE_ID="$case_id" EVIDENCE_ID="$evidence_id" CIPHERTEXT_COMMITMENT="$ciphertext_commitment" /usr/bin/env python3 - <<'PY_SUBJECT_BIND'
+import json, os
+print(json.dumps({
+    "case_id": os.environ["CASE_ID"],
+    "evidence_id": os.environ["EVIDENCE_ID"],
+    "target_id": os.environ["CASE_ID"],
+    "evidence_root_commitment": os.environ["CIPHERTEXT_COMMITMENT"],
+    "key_envelope_commitments": json.loads(os.environ["PRINCIPALS_JSON"]),
+    "followup_round": 0,
+    "ts_ms": 0,
+}, separators=(",", ":")))
+PY_SUBJECT_BIND
+)" >/dev/null
 
 echo "==> Waiting for deterministic native async juror assignment"
 assigned_json="$(_wait_case_predicate "$case_id" assigned)"
@@ -223,6 +241,35 @@ PY
 if [[ "${#jurors[@]}" -lt 1 ]]; then
   echo "ERROR: expected at least 1 assigned juror, got ${#jurors[@]}" >&2
   exit 1
+fi
+
+principals_json="$(printf '%s\n' "$ACCOUNT" "${jurors[@]}" | /usr/bin/env python3 -c 'import json,sys; xs=[x.strip() for x in sys.stdin if x.strip()]; print(json.dumps({x:{"algorithm":"ml-kem-768+aes-256-gcm","kem_ciphertext_commitment":"sha256:"+"6"*64,"wrapped_key_commitment":"sha256:"+"7"*64,"envelope_commitment":"sha256:"+"8"*64} for x in xs},sort_keys=True))')"
+_submit "$ACCOUNT" "$KEYFILE" "POH_ASYNC_EVIDENCE_BIND" \
+  "$(PRINCIPALS_JSON="$principals_json" CASE_ID="$case_id" EVIDENCE_ID="$evidence_id" CIPHERTEXT_COMMITMENT="$ciphertext_commitment" /usr/bin/env python3 - <<'PY_BIND'
+import json, os
+print(json.dumps({
+    "case_id": os.environ["CASE_ID"],
+    "evidence_id": os.environ["EVIDENCE_ID"],
+    "target_id": os.environ["CASE_ID"],
+    "evidence_root_commitment": os.environ["CIPHERTEXT_COMMITMENT"],
+    "key_envelope_commitments": json.loads(os.environ["PRINCIPALS_JSON"]),
+    "followup_round": 0,
+    "ts_ms": 0,
+}, separators=(",", ":")))
+PY_BIND
+)" >/dev/null
+
+if [[ "${WEALL_NATIVE_ASYNC_BROWSER_HANDOFF:-0}" == "1" ]]; then
+  manifest="${WEALL_M2_ACTOR_MANIFEST:-${DEVNET_DIR}/m2-async-actors.json}"
+  reviewer_args=()
+  for juror in "${jurors[@]}"; do
+    reviewer_args+=(--reviewer "${juror}|reviewer|$(_juror_keyfile_for_account "$juror")")
+  done
+  python3 scripts/build_m2_browser_actor_manifest.py \
+    --api-base "$API" --kind async --case-id "$case_id" \
+    --applicant-keyfile "$KEYFILE" --output "$manifest" "${reviewer_args[@]}"
+  echo "==> Async browser handoff ready: ${manifest}"
+  exit 0
 fi
 
 echo "==> Accepting and voting native async verification case"

@@ -17,6 +17,8 @@ set -euo pipefail
 #   WEALL_DEVNET_LIVE_LOG_DIR=...    override log directory
 #   WEALL_DEVNET_AUTO_VENV=0         disable automatic .venv activation
 #   WEALL_DEVNET_READY_TIMEOUT=120   override readiness timeout in seconds
+#   WEALL_DEVNET_RESTART_PARITY_ATTEMPTS=6   sync/compare retries after restart
+#   WEALL_DEVNET_RESTART_PARITY_DELAY_SECONDS=1 delay between parity retries
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
@@ -53,6 +55,8 @@ activate_repo_venv
 NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"
 NODE2_API="${NODE2_API:-http://127.0.0.1:8002}"
 READY_TIMEOUT="${WEALL_DEVNET_READY_TIMEOUT:-120}"
+RESTART_PARITY_ATTEMPTS="${WEALL_DEVNET_RESTART_PARITY_ATTEMPTS:-6}"
+RESTART_PARITY_DELAY_SECONDS="${WEALL_DEVNET_RESTART_PARITY_DELAY_SECONDS:-1}"
 LOG_DIR="${WEALL_DEVNET_LIVE_LOG_DIR:-${REPO_ROOT}/.weall-devnet/logs}"
 
 NODE1_LOG="${LOG_DIR}/node1-restart-catchup-live.log"
@@ -208,6 +212,24 @@ compare_roots() {
   bash scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}" | tee -a "${COMPARE_LOG}"
 }
 
+sync_and_compare_roots() {
+  local label="$1"
+  local attempt
+  for ((attempt = 1; attempt <= RESTART_PARITY_ATTEMPTS; attempt++)); do
+    sync_node1_to_node2
+    if compare_roots "${label}-attempt-${attempt}"; then
+      echo "==> OK: restart parity reached label=${label} attempt=${attempt}"
+      return 0
+    fi
+    if (( attempt < RESTART_PARITY_ATTEMPTS )); then
+      echo "==> Retrying restart parity label=${label} next_attempt=$((attempt + 1))/${RESTART_PARITY_ATTEMPTS}"
+      sleep "${RESTART_PARITY_DELAY_SECONDS}"
+    fi
+  done
+  echo "ERROR: restart parity not reached label=${label} attempts=${RESTART_PARITY_ATTEMPTS}" >&2
+  return 1
+}
+
 if _bool_true "${WEALL_DEVNET_LIVE_RESET:-0}"; then
   echo "==> Resetting controlled-devnet state before restart/catch-up run"
   bash scripts/devnet_reset_state.sh
@@ -247,15 +269,13 @@ compare_roots "after-baseline-convergence"
 # Restart the joining node and verify it reloads the persisted canonical state.
 stop_node2_for_restart
 start_node2
-sync_node1_to_node2
-compare_roots "after-node2-restart-catchup"
+sync_and_compare_roots "after-node2-restart-catchup"
 
 # Restart the genesis/canonical producer and verify its persisted state matches
 # the joining node without requiring a DB copy.
 stop_node1_for_restart
 start_node1
-sync_node1_to_node2
-compare_roots "after-node1-restart-catchup"
+sync_and_compare_roots "after-node1-restart-catchup"
 
 echo "==> OK: live controlled-devnet restart/catch-up probe passed"
 echo "node1_log=${NODE1_LOG}"

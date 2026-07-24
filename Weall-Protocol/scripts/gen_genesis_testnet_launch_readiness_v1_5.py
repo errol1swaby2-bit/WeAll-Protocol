@@ -39,11 +39,24 @@ def build() -> Json:
     os.environ["WEALL_PUBLIC_TESTNET"] = "1"
     os.environ["WEALL_MODE"] = "prod"
     errors: list[str] = []
+    registry_path = ROOT / "configs" / "public_testnet_seed_registry.json"
+    raw_registry = json.loads(registry_path.read_text(encoding="utf-8"))
     registry: Json = {}
     try:
         registry = load_public_seed_registry(allow_local=False)
     except PublicSeedRegistryError as exc:
+        # A chain-identity rotation deliberately invalidates the old signature
+        # until the operator performs the ML-DSA signing ceremony. Preserve the
+        # checked-in commitments in the readiness report while keeping launch
+        # status blocked and truthfully unverified.
         errors.append(str(exc))
+        registry = dict(raw_registry)
+        registry["registry_source_kind"] = "checked_in_rotation_pending"
+        registry["seed_registry_signature_status"] = {
+            "verified": False,
+            "trust": "rotation_required",
+            "reason": "operator_mldsa_resign_required",
+        }
     finally:
         for k, v in old_env.items():
             if v is None:

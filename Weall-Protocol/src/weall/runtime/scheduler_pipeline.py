@@ -12,6 +12,8 @@ stable.
 from typing import Any
 
 from weall.runtime.runtime_context import SchedulerSet
+from weall.runtime.poh.state import process_tier2_lifecycle
+from weall.runtime.poh.evidence_lifecycle import process_evidence_lifecycle
 
 Json = dict[str, Any]
 
@@ -22,6 +24,9 @@ def _scheduler_set(scheduler_set: SchedulerSet | None = None) -> SchedulerSet:
 
 def run_core_schedulers(state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None) -> None:
     schedulers = _scheduler_set(scheduler_set)
+    process_tier2_lifecycle(state, next_height=next_height)
+    process_evidence_lifecycle(state, next_height=next_height)
+    schedulers.schedule_account_recovery_system_txs(state, next_height=next_height)
     schedulers.schedule_poh_async_system_txs(state, next_height=next_height)
     schedulers.schedule_poh_tier2_system_txs(state, next_height=next_height)
     schedulers.schedule_poh_live_system_txs(state, next_height=next_height)

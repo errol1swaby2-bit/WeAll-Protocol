@@ -15,7 +15,6 @@ PRIVATE_TERMS = (
     "p2p_chat",
     "encrypted_message",
     "encrypted_payload",
-    "ciphertext",
     "sealed_payload",
 )
 

@@ -1,0 +1,15 @@
+{
+  "equal": true,
+  "final": {
+    "chain_id": "weall-controlled-devnet",
+    "height": 5,
+    "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+    "schema_version": "1",
+    "state_root": "0a163430386d9686ca3478c214fb1895a737ee096baeb337c16842902b017f91",
+    "tip_hash": "81123c5975114449fedd2634896424625787263d66cb6b98cde9b8ede064ed1a",
+    "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+  },
+  "gate": "observer",
+  "schema_version": 1,
+  "source_log": "observer-catchup.txt"
+}

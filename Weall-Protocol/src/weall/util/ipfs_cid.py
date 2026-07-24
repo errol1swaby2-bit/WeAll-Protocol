@@ -188,6 +188,15 @@ def verify_cid_multihash_bytes(cid: str, data: bytes | bytearray | memoryview) -
     return CidByteVerification(False, True, "cid_multihash_mismatch", info.cid, info.version, info.codec, info.multihash_code, info.digest.hex(), actual.hex())
 
 
+
+def cidv1_raw_sha256(data: bytes | bytearray | memoryview) -> str:
+    """Return a dependency-free CIDv1/raw/sha2-256 identifier for exact bytes."""
+
+    digest = hashlib.sha256(bytes(data)).digest()
+    raw = bytes((0x01, _RAW_CODEC, _SHA2_256, len(digest))) + digest
+    encoded = base64.b32encode(raw).decode("ascii").lower().rstrip("=")
+    return "b" + encoded
+
 def hmac_compare_digest(a: bytes, b: bytes) -> bool:
     # Avoid importing hmac for older lightweight uses of this module while still
     # keeping a constant-time comparison for same-length digests.

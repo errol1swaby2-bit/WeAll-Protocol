@@ -1,0 +1,1178 @@
+==> Using active Python virtualenv: /home/errol/.venv
+==> Resetting controlled devnet state before auto-start
+ok=true
+devnet_dir=/tmp/weall_m2_live_browser_N1Boqg/.weall-devnet
+node1_dir=/tmp/weall_m2_live_browser_N1Boqg/.weall-devnet/node1
+node2_dir=/tmp/weall_m2_live_browser_N1Boqg/.weall-devnet/node2
+==> Node 1 not reachable at http://127.0.0.1:18111; auto-starting genesis devnet node
+{
+  "api": "http://127.0.0.1:18111",
+  "chain_id": "weall-controlled-devnet",
+  "height": 0,
+  "ok": true,
+  "state_root": "9c269f5d4ea7e18554b70bdeb9032f19747362320bc65a08c8292e9649919b27",
+  "tip_hash": ""
+}
+==> Node 1 chain identity
+{
+    "ok": true,
+    "chain_id": "weall-controlled-devnet",
+    "height": 1,
+    "tip": "0e330a0f7faf6e368b43eba688f6bb78627018f3894562be597541ad4fc00efb",
+    "tip_hash": "063a47fa301daf426e4bf709d56abdaf4403642145e657c44f47c0e1518ec54b",
+    "state_root": "9f4590f7148aa67f5143112a18d0e81d9509c156159f91c3a7f7c1adb994be17",
+    "snapshot_anchor": {
+        "height": 1,
+        "tip_hash": "063a47fa301daf426e4bf709d56abdaf4403642145e657c44f47c0e1518ec54b",
+        "state_root": "9f4590f7148aa67f5143112a18d0e81d9509c156159f91c3a7f7c1adb994be17",
+        "finalized_height": 0,
+        "finalized_block_id": "",
+        "snapshot_hash": "c3c375bcb71ec4aa1718d07c0cfabf1cf9cca29fe547bd1a2c2b0c3a32a1dbc7"
+    },
+    "finalized": {
+        "height": 0,
+        "block_id": ""
+    },
+    "schema_version": "1",
+    "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+    "chain_manifest": {
+        "enabled": true,
+        "path": "/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json",
+        "version": 1,
+        "chain_id": "weall-controlled-devnet",
+        "profile": "controlled_devnet_service",
+        "mode": "controlled_devnet",
+        "schema_version": "1",
+        "genesis_hash": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+        "genesis_state_root": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+        "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+        "constitution_version": "draft-2",
+        "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "constitution_traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+        "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "genesis_time_ms": 0,
+        "constitutional_clock": {
+            "allowed_clock_skew_ms": 2000,
+            "block_time_derivation": "genesis_time_plus_height_times_interval",
+            "empty_blocks_enabled": true,
+            "enabled": true,
+            "genesis_time_ms": 0,
+            "no_fast_forward": true,
+            "no_height_skip": true,
+            "procedure_time_source": "finalized_block_height",
+            "target_block_interval_ms": 20000
+        },
+        "authority_snapshot_version": 1,
+        "trusted_authority_pubkeys_count": 1,
+        "manifest_hash": "c3c6e7b0eb0b9b35a2436dc3e586542ef34f5840b176cd889b4dcf76020bda90",
+        "issues": [],
+        "ok": true,
+        "actual_tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "tx_index_hash_matches": true
+    },
+    "constitution": {
+        "version": "draft-2",
+        "hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "document_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+        "active": true,
+        "hash_matches_source": true,
+        "traceability_hash_matches_source": true,
+        "status": "genesis_bound"
+    },
+    "constitutional_clock": {
+        "enabled": true,
+        "target_block_interval_ms": 20000,
+        "empty_blocks_enabled": true,
+        "procedure_time_source": "finalized_block_height",
+        "block_time_derivation": "genesis_time_plus_height_times_interval",
+        "no_fast_forward": true,
+        "no_height_skip": true,
+        "allowed_clock_skew_ms": 2000,
+        "genesis_time_ms": 0,
+        "current_procedure_height": 1
+    },
+    "production_consensus_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+    "protocol_version": "2026.03-prod.6",
+    "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+    "genesis_bootstrap": {
+        "enabled": true,
+        "mode": "explicit",
+        "profile_hash": "eefe65bed383966c59881af226148290aa2bdaa8ac4898d9957646fbcb63915c"
+    },
+    "testnet_readiness": {
+        "external_observer_stage": "trusted_external_observer",
+        "governance": {
+            "mode": "limited_testnet",
+            "full_public_governance_ready": false,
+            "claim": "proposal/dispute mechanics may be exercised only within documented testnet limits until constitutional rights-floor enforcement is complete"
+        },
+        "disputes": {
+            "mode": "limited_testnet",
+            "full_public_moderation_ready": false,
+            "claim": "review and appeal flows are protocol surfaces, but public moderation claims remain limited until due-process coverage is complete"
+        },
+        "economics": {
+            "unlocked": false,
+            "enabled": false,
+            "locked": true,
+            "claim": "WeCoin/economic transfers and treasury actions remain unavailable unless the genesis lock and governance activation rules are satisfied; civic/social/governance actions remain fee-free"
+        },
+        "tokenomics": {
+            "stage": "locked_genesis_model",
+            "live_transfers_enabled": false,
+            "treasury_spend_enabled": false,
+            "rewards_enabled": false,
+            "civic_social_governance_fee_free": true,
+            "claim": "tokenomics are defined as a locked Genesis model for rehearsal; live economics require governance activation and are not claimed for external/public testing yet"
+        },
+        "block_production": {
+            "stage": "local_rehearsal_proof_required",
+            "production_profile_proven": false,
+            "public_multi_validator_bft_ready": false,
+            "claim": "local block production and diagnostics exist, but public multi-validator BFT is not claimed until reviewer gates and adversarial production-profile evidence pass"
+        },
+        "public_only_protocol_surface": {
+            "public_inspectability_required": true,
+            "opaque_protocol_payloads_supported": false,
+            "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events."
+        },
+        "poh": {
+            "mode": "allowlist",
+            "valid": true,
+            "mode_error": "",
+            "open_enabled": false,
+            "allowlist_enabled": true,
+            "open_max_height": null,
+            "open_expired": false,
+            "allowlist_expires_height": null,
+            "allowlist_expired": false,
+            "allowlist_count": 1,
+            "auto_locked_by_validator_quorum": false,
+            "auto_lock": {
+                "active_validators": 1,
+                "required_active_validators": 4,
+                "rule": "active_validators>=BFT_MIN_VALIDATORS"
+            },
+            "live_policy_mode": "bootstrap",
+            "production_live_quorum_required": false
+        },
+        "launch_matrix_capabilities": {
+            "schema": "weall.v1_5.testnet_capability_surface",
+            "phase": "public_beta_candidate",
+            "capabilities": {
+                "live_transfers": {
+                    "enabled": false,
+                    "feature": "balance_transfer",
+                    "phase": "public_beta_candidate",
+                    "blocked_by_launch_matrix": true,
+                    "disabled_reason": "Transfers are implemented but locked until economics activation is canonical and public claims are safe.",
+                    "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+                },
+                "live_rewards": {
+                    "enabled": false,
+                    "feature": "reward_issuance",
+                    "phase": "public_beta_candidate",
+                    "blocked_by_launch_matrix": true,
+                    "disabled_reason": "Issuance policy is implemented, but live rewards remain locked until economics activation and accounting proof.",
+                    "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+                },
+                "treasury_spend": {
+                    "enabled": false,
+                    "feature": "treasury_spend",
+                    "phase": "public_beta_candidate",
+                    "blocked_by_launch_matrix": true,
+                    "disabled_reason": "Treasury spending requires economics activation and treasury governance/public accountability proof.",
+                    "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+                },
+                "live_economics": {
+                    "enabled": false,
+                    "feature": "live_economics",
+                    "phase": "public_beta_candidate",
+                    "blocked_by_launch_matrix": true,
+                    "disabled_reason": "Live economics requires lock expiry, governance activation, legal/compliance review, accounting proof, and public testnet rehearsal.",
+                    "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+                },
+                "public_validator_join": {
+                    "enabled": false,
+                    "feature": "public_validator_promotion",
+                    "phase": "public_beta_candidate",
+                    "blocked_by_launch_matrix": true,
+                    "disabled_reason": "Public validator promotion requires separate external multi-validator proof and operator readiness gates.",
+                    "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+                },
+                "public_multi_validator_bft": {
+                    "enabled": false,
+                    "feature": "public_multi_validator_bft",
+                    "phase": "public_beta_candidate",
+                    "blocked_by_launch_matrix": true,
+                    "disabled_reason": "Public multi-validator BFT requires adversarial convergence, churn, partition/rejoin, equivocation, and restart/replay evidence.",
+                    "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+                },
+                "automatic_protocol_upgrade_apply": {
+                    "enabled": false,
+                    "feature": "automatic_protocol_upgrade_apply",
+                    "phase": "public_beta_candidate",
+                    "blocked_by_launch_matrix": true,
+                    "disabled_reason": "Protocol upgrades are record-only until signed artifact distribution, staging, migration, and rollback are implemented.",
+                    "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+                },
+                "production_helper_execution": {
+                    "enabled": false,
+                    "feature": "production_helper_execution",
+                    "phase": "public_beta_candidate",
+                    "blocked_by_launch_matrix": true,
+                    "disabled_reason": "Production helper execution requires serial-equivalence and multi-node Byzantine helper tests.",
+                    "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
+                }
+            },
+            "required_artifacts": {
+                "api_contract": {
+                    "path": "generated/api_contract_map_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.api_contract_map.v1_5"
+                },
+                "failure_code_registry": {
+                    "path": "generated/failure_code_registry_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.failure_code_registry"
+                },
+                "api_response_vectors": {
+                    "path": "generated/api_response_vectors_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.api_response_vectors"
+                },
+                "launch_disabled_matrix": {
+                    "path": "generated/launch_disabled_matrix_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.launch_disabled_matrix.v1_5"
+                },
+                "state_root_vectors": {
+                    "path": "generated/state_root_vectors_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.state_root_vectors"
+                },
+                "tokenomics_simulation": {
+                    "path": "generated/tokenomics_simulation_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.tokenomics_simulation"
+                },
+                "public_validator_preflight": {
+                    "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
+                },
+                "b582_b586_proof": {
+                    "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
+                },
+                "b587_b594_mechanism_completion": {
+                    "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
+                },
+                "public_beta_blocker_report": {
+                    "path": "generated/public_beta_blocker_report_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.public_beta_blocker_report"
+                },
+                "production_helper_topology_hardening_plan": {
+                    "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.production_helper_topology_hardening_plan"
+                },
+                "external_operator_transcript_requirements": {
+                    "path": "generated/external_operator_transcript_requirements_v1_5.json",
+                    "present": true,
+                    "ok": true,
+                    "schema": "weall.v1_5.external_operator_transcript_requirements"
+                }
+            },
+            "blocked_capabilities": [
+                "live_transfers",
+                "live_rewards",
+                "treasury_spend",
+                "live_economics",
+                "public_validator_join",
+                "public_multi_validator_bft",
+                "automatic_protocol_upgrade_apply",
+                "production_helper_execution"
+            ],
+            "artifact_blockers": [],
+            "controlled_mechanism_artifact_blockers": [],
+            "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": [
+                "b587_b594_mechanism_completion",
+                "public_beta_blocker_report"
+            ],
+            "public_beta_blocker_report": {
+                "present": true,
+                "ok": true,
+                "public_beta_ready": false,
+                "mainnet_ready": false,
+                "blocker_count": 15,
+                "blocker_catalog_count": 15,
+                "remaining_blocker_count": 8,
+                "closed_in_repository_count": 7,
+                "remaining_external_evidence_required_count": 8,
+                "remaining_mainnet_hardening_count": 4,
+                "p0_open_count": 4,
+                "p1_open_count": 4,
+                "p2_open_count": 0,
+                "p3_open_count": 0,
+                "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present"
+            },
+            "protocol_upgrade_lifecycle": {
+                "public_record_state": true,
+                "declaration_tx": "PROTOCOL_UPGRADE_DECLARE",
+                "scheduled_activation_tx": "PROTOCOL_UPGRADE_ACTIVATE",
+                "required_parent_boundary": "SYSTEM queue / receipt-only governance parent reference",
+                "activation_clock": "block_height",
+                "activation_record_only": true,
+                "automatic_software_apply_enabled": false,
+                "migration_execution_enabled": false,
+                "rollback_execution_enabled": false,
+                "economics_activation_enabled_by_upgrade": false,
+                "reviewer_surface": "GET /v1/status/testnet-capabilities",
+                "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
+            },
+            "governance_lifecycle": {
+                "public_record_state": true,
+                "progression_clock": "block_height",
+                "scheduler": "tick_governance_lifecycle",
+                "manual_wall_clock_protocol_state_allowed": false,
+                "ui_time_estimates_only": true,
+                "deterministic_receipt_txs": [
+                    "GOV_STAGE_SET",
+                    "GOV_VOTING_CLOSE",
+                    "GOV_TALLY_PUBLISH",
+                    "GOV_EXECUTE",
+                    "GOV_PROPOSAL_FINALIZE"
+                ],
+                "reviewer_surface": "GET /v1/status/testnet-capabilities",
+                "truth_boundary": "Governance procedure truth is block-height based; UI may render approximate human time but must not mutate protocol state from local wall-clock time."
+            },
+            "dispute_lifecycle": {
+                "public_record_state": true,
+                "progression_clock": "block_height",
+                "scheduler": "tick_dispute_lifecycle",
+                "manual_wall_clock_protocol_state_allowed": false,
+                "ui_time_estimates_only": true,
+                "deterministic_receipt_txs": [
+                    "DISPUTE_JUROR_TIMEOUT",
+                    "DISPUTE_FINAL_RECEIPT"
+                ],
+                "private_identity_evidence_publicly_exposed": false,
+                "reviewer_surface": "GET /v1/status/testnet-capabilities",
+                "truth_boundary": "Dispute windows, juror deadlines, appeal closure, and public outcomes are block-height bound; raw PoH/private identity evidence remains restricted."
+            },
+            "minimum_reviewer_civic_loop": {
+                "public_only_visibility": true,
+                "economics_locked_by_default": true,
+                "steps": [
+                    "account_identity_state",
+                    "human_verification_state",
+                    "public_posting_or_social_activity",
+                    "public_group_read_with_member_gated_participation",
+                    "governance_create_vote_finalize",
+                    "dispute_review_outcome_visibility",
+                    "reputation_outcome_visibility",
+                    "protocol_upgrade_record_lifecycle",
+                    "observer_node_status",
+                    "economics_locked_status"
+                ],
+                "frontend_entrypoints": {
+                    "account": "/profile",
+                    "account_detail_template": "/account/:account",
+                    "identity_verification": "/verification",
+                    "feed": "/feed",
+                    "create_post": "/create",
+                    "groups": "/groups",
+                    "group_detail_template": "/groups/:id",
+                    "governance": "/decisions",
+                    "governance_create": "/decisions/create",
+                    "governance_detail_template": "/decisions/:id",
+                    "disputes": "/reports",
+                    "dispute_detail_template": "/reports/:id",
+                    "review_center": "/reviews",
+                    "review_detail_template": "/reviews/:id",
+                    "reputation_visibility": "/activity",
+                    "node_status": "/node",
+                    "economics": "/economics"
+                },
+                "api_evidence_surfaces": {
+                    "account_identity_state": [
+                        "GET /v1/session/me",
+                        "GET /v1/accounts/{account}/profile"
+                    ],
+                    "human_verification_state": [
+                        "GET /v1/poh/async/my-cases",
+                        "GET /v1/poh/live/my-cases"
+                    ],
+                    "public_posting_or_social_activity": [
+                        "GET /v1/feed",
+                        "POST /v1/tx/submit",
+                        "GET /v1/content/{content_id}"
+                    ],
+                    "public_group_read_with_member_gated_participation": [
+                        "GET /v1/groups",
+                        "GET /v1/groups/{group_id}",
+                        "GET /v1/groups/{group_id}/feed",
+                        "GET /v1/groups/{group_id}/governance-contract"
+                    ],
+                    "governance_create_vote_finalize": [
+                        "GET /v1/gov/proposals",
+                        "GET /v1/gov/proposals/{proposal_id}",
+                        "GET /v1/gov/proposals/{proposal_id}/votes",
+                        "POST /v1/tx/submit"
+                    ],
+                    "dispute_review_outcome_visibility": [
+                        "GET /v1/disputes",
+                        "GET /v1/disputes/current",
+                        "GET /v1/disputes/{dispute_id}",
+                        "GET /v1/disputes/{dispute_id}/votes"
+                    ],
+                    "reputation_outcome_visibility": [
+                        "GET /v1/reputation/{account}/eligibility",
+                        "GET /v1/activity/notices"
+                    ],
+                    "protocol_upgrade_record_lifecycle": [
+                        "POST /v1/tx/submit",
+                        "GET /v1/status/testnet-capabilities"
+                    ],
+                    "observer_node_status": [
+                        "GET /v1/status",
+                        "GET /v1/chain/identity",
+                        "GET /v1/nodes/seeds",
+                        "GET /v1/nodes/validators",
+                        "GET /v1/observer/edge/status"
+                    ],
+                    "economics_locked_status": [
+                        "GET /v1/economics/status",
+                        "GET /v1/treasury/status",
+                        "GET /v1/wallet/{account}"
+                    ]
+                },
+                "canonical_route_boundary": {
+                    "governance_label": "Decisions",
+                    "governance_route": "/decisions",
+                    "dispute_label": "Reports",
+                    "dispute_route": "/reports",
+                    "legacy_aliases_removed": [
+                        "/proposals",
+                        "/disputes"
+                    ]
+                },
+                "truth_boundary": "This is a reviewer navigation map using current canonical frontend routes, not proof that public beta/mainnet gates are closed. Templates with ':' require a concrete public identifier before navigation."
+            },
+            "mechanism_completion_scope": "controlled_testnet_mechanisms_and_rehearsal_gates_not_public_beta_readiness",
+            "controlled_testnet_mechanisms_complete": true,
+            "public_beta_ready_claimed": false,
+            "truth_boundaries": {
+                "launch_matrix_is_guardrail_not_consensus": true,
+                "live_economics_enabled": false,
+                "public_validator_enabled": false,
+                "automatic_protocol_upgrades_enabled": false,
+                "production_helper_execution_enabled": false,
+                "legal_compliance_ready_claimed": false
+            }
+        }
+    },
+    "validator_epoch": 0,
+    "validator_set_hash": ""
+}
+{
+    "ok": true,
+    "chain_id": "weall-controlled-devnet",
+    "height": 1,
+    "tip": "0e330a0f7faf6e368b43eba688f6bb78627018f3894562be597541ad4fc00efb",
+    "tip_hash": "063a47fa301daf426e4bf709d56abdaf4403642145e657c44f47c0e1518ec54b",
+    "state_root": "9f4590f7148aa67f5143112a18d0e81d9509c156159f91c3a7f7c1adb994be17",
+    "snapshot_anchor": {
+        "height": 1,
+        "tip_hash": "063a47fa301daf426e4bf709d56abdaf4403642145e657c44f47c0e1518ec54b",
+        "state_root": "9f4590f7148aa67f5143112a18d0e81d9509c156159f91c3a7f7c1adb994be17",
+        "finalized_height": 0,
+        "finalized_block_id": "",
+        "snapshot_hash": "c3c375bcb71ec4aa1718d07c0cfabf1cf9cca29fe547bd1a2c2b0c3a32a1dbc7"
+    }
+}
+{
+    "ok": true,
+    "chain_id": "weall-controlled-devnet",
+    "schema_version": "1",
+    "genesis_hash": "",
+    "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+    "chain_manifest": {
+        "enabled": true,
+        "path": "/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json",
+        "version": 1,
+        "chain_id": "weall-controlled-devnet",
+        "profile": "controlled_devnet_service",
+        "mode": "controlled_devnet",
+        "schema_version": "1",
+        "genesis_hash": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+        "genesis_state_root": "2e9fba94ae809384a97b83753fb95513839d0baf2af4434ef613189f3c6ba0f7",
+        "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+        "constitution_version": "draft-2",
+        "constitution_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "constitution_traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+        "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "genesis_time_ms": 0,
+        "constitutional_clock": {
+            "allowed_clock_skew_ms": 2000,
+            "block_time_derivation": "genesis_time_plus_height_times_interval",
+            "empty_blocks_enabled": true,
+            "enabled": true,
+            "genesis_time_ms": 0,
+            "no_fast_forward": true,
+            "no_height_skip": true,
+            "procedure_time_source": "finalized_block_height",
+            "target_block_interval_ms": 20000
+        },
+        "authority_snapshot_version": 1,
+        "trusted_authority_pubkeys_count": 1,
+        "manifest_hash": "c3c6e7b0eb0b9b35a2436dc3e586542ef34f5840b176cd889b4dcf76020bda90",
+        "issues": [],
+        "ok": true,
+        "actual_tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+        "tx_index_hash_matches": true
+    },
+    "constitution": {
+        "version": "draft-2",
+        "hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "document_hash": "8c46d6f7faa642d38ca41a15bb203173993dbd2bfe0ccb9d15fb96c9c549f163",
+        "document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "traceability_hash": "c1dd2ccf25fe70a7954235a87e0d0dffca6cd7796e36158568ed9cae4ddc0e08",
+        "active": true,
+        "hash_matches_source": true,
+        "traceability_hash_matches_source": true,
+        "status": "genesis_bound"
+    },
+    "constitutional_clock": {
+        "enabled": true,
+        "target_block_interval_ms": 20000,
+        "empty_blocks_enabled": true,
+        "procedure_time_source": "finalized_block_height",
+        "block_time_derivation": "genesis_time_plus_height_times_interval",
+        "no_fast_forward": true,
+        "no_height_skip": true,
+        "allowed_clock_skew_ms": 2000,
+        "genesis_time_ms": 0,
+        "current_procedure_height": 1
+    },
+    "production_consensus_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+    "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+    "genesis_bootstrap": {
+        "enabled": true,
+        "mode": "explicit",
+        "profile_hash": "eefe65bed383966c59881af226148290aa2bdaa8ac4898d9957646fbcb63915c"
+    },
+    "trusted_anchor": {
+        "height": 1,
+        "tip_hash": "063a47fa301daf426e4bf709d56abdaf4403642145e657c44f47c0e1518ec54b",
+        "state_root": "9f4590f7148aa67f5143112a18d0e81d9509c156159f91c3a7f7c1adb994be17",
+        "finalized_height": 0,
+        "finalized_block_id": "",
+        "snapshot_hash": "c3c375bcb71ec4aa1718d07c0cfabf1cf9cca29fe547bd1a2c2b0c3a32a1dbc7"
+    }
+}
+==> Creating fresh account through node 1 normal tx flow
+{
+  "account": "@devnet-1f8bcd8241c7",
+  "account_state": {
+    "account_type": "human",
+    "active_keys": [
+      "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+    ],
+    "banned": false,
+    "devices": {
+      "by_id": {},
+      "redacted": true,
+      "summary": {
+        "active": 0,
+        "browser": 0,
+        "node": 0,
+        "revoked": 0,
+        "total": 0
+      }
+    },
+    "evidence_encryption": {
+      "algorithm": "ml-kem-768",
+      "public_key": "KYZhgYSLIrvNfbeea9c3zCeR7OBckceMxse8/pa6AhGti8DANrkS3IPPtCubJLG0PARe7hZgS4vJa7l9ZidCuAoLAltT3mWo+iYmTGdGXlMpSZgWABBNhZtELHuuIkZ3m0Ck8aI6ikyo2LQw4kBQ89qR6BChhIIqgfoxhMEHG/NFhBsdu+R3irY+R9TA/IVIl0pslLFNSPgVLsGzdJUREOZsnoYOa8MtV1giZbS4/PwPcfmevWsgU7sv6Ctvb0BHanQEotVKGdh3baZpwcNjyrQuVQAwDRcyiktIT6EpPBjKo3MQmBxZDiqZSEJFKfw1z2d3quoTwpYUdxfFOZEwd7deFpiK9UrCy8CxPEhd7JWqVyabqQWUFntDapC9hVcT4MQNbJRwgVKSkYaMozMWkqiY+1HE4CtRk2BCHWiKivZF5moKQ3hlzKq134Jfi9GHbAai62Ji0RVAFOGZlepWsGO19aa0sWE0YQExKAnEb5UJxAhCESk21KjLuUc/cUZWheeeM1Ugxch2sswTlKFEOXcXw1OJBRu3RgG6uoQXdzyAZwAVZ2u1ZHR9L8UtgFjOy8oiW0A31sBMcFqYchEsqLyENQuFc4Mm9TOTBaBQwXQGYHmGZcSSGKKEwRq553psYjFJeaImDqPG5cDNTgRpyPKCsgRU+TlhysEPmNmRZKTDDuOjXHFQ8dQV2pObUdrGIZsiERF47Hd9kol1bctgGMt93+oAiTfHuFSc6+WPwLw0JrJJJuMrgBNN4KCC8AWslte/SFjF+NRecwe3Ifl2z1KMa1evk8ecD9NjEMmuuBeJdSZvnpZnVvkJhRpHMpaFd0wBFLgIKJwvlnp4NtjNAmtC3COUb4mO+MaeraohdHBN6jBLLouya7CgahwzDtcNr5oaW9S/SiQZ8JCBacG2F5ZwYoNYJxqGMkPGlOVRkgOFgMCa0bTFJDRN2PAUt0dHBHRb+MsX5WK5FvwFynBzqJB/MAYz0wUyenZWZVOYm5bCoTHAHTkDTLgRXJc49CfDnyzJiRQFEmCOTpynDqASIegjBrpI8gzCd4cjEuhj+qycfXm4bjLMLnKPd1tPjRVBxWN0l+NLyAwCQaUy67pdSGEHqrpe6Xh6sONrFhrEqNwHu8RGc8paE2VpEhWpsBZuQ0aptBYtKMlkWIuI1MAquEgY29pDWsBScsYxwgiMbYWcAcm1wGFuxqF4N0pDcoSu+BCoAD2sxsafuQSsXUOfjLIWwGuO6jCqlElRnvirv4InymCUqCyn7rkA9ekZlBit1oMSqNZizqGA1Le7arueRwudx4hgt5BS0CusKCuMNjNC0bp61NoSXGJcRzAGEHdTm9K7yHANeTXNcDwpwiZ0/0dt0KaCC4oDKpUNQmcGuiXAxecaa+h+HSMgKpp8QRrPTNckV3aflPQhGMUAXUaUVRhzMyXCjRDJJfVVQVmUO0I8BaGVWmyCEdjBG1mA33UooBszUDgmE+ykMXQwi2B+4dtrxVq3faKguOcABDJaabOF41xm8rGg36e0LjBB6NgAKlEMiEIYwtPsKFK0Q8/sZoNW1lTjWFKbsPkqeAF/gYw=",
+      "registered_height": 1
+    },
+    "keys": {
+      "by_id": {
+        "k:3adc3f80c549d6ad": {
+          "active": true,
+          "created_height": 0,
+          "key_id": "k:3adc3f80c549d6ad",
+          "key_type": "main",
+          "pubkeys": {
+            "mldsa": "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+          },
+          "revoked": false,
+          "revoked_at": null,
+          "revoked_height": null,
+          "sig_profile": "pq-mldsa-v1"
+        }
+      }
+    },
+    "locked": false,
+    "nonce": 1,
+    "poh_tier": 0,
+    "poh_tier_label": "Unverified Account",
+    "pubkey": "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb",
+    "pubkeys": [
+      "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+    ],
+    "recovery": {
+      "authority_generation": 1,
+      "config": null,
+      "failed_attempt_heights": [],
+      "history": [],
+      "mode": "offline_key",
+      "offline_key": {
+        "commitment": null,
+        "generation": 1,
+        "key_id": "k:3ec16a471a42cc2b",
+        "pubkey": "a35a11f61da4709431944035b1afd481b400b9793a21e4a68223bca57d48037dbf6a91283ee4e870cd7ccc44b87a4ec6f28fb11c639356d40b98440a6198b5e5b8131c04ba9bbc263d1b69f876770135952d36e66e8711b5135843e2f6e7db0397ffe6a9f6c59ac06ec3dc3cbe0870a525fa2e06a172c7ae2f1c330bfc86391414ac4e80ddeadee189f595aae57e4fe21adeb03cb1d9e135e3f72540d7bafac2b8a2b226cf183ead620929d0c8e31fb4d64ed728bd1e65ccb4408110314d8163e3351be34c7a120a595b4bbfa6dfca09c516996eec3aaff3096dd76f51453d98a0d32847931dd2470daebf913064ca2f54642e79abf63968db062734a1324ef5032b8fa863c4be460d5a10d9df70457bbd7f29c7c34f69f79ba56906303726dd1cc9e5953885c80f6de6d83377ef9c9aa1a3ac267f80ebe12feeae688c0d04da003941197fbc68b1dbdb15b07a18dfd792ba86bd90cb1e0ef12c8e6d7f25155d7c8f6db9e9145183024d3da6d797b8b297f71ee47410f3d7f05bba862c1c0a794f54436318329f38bc3d18abea367db00815a7e0c2371f10463e436f6bb2e26b466309b7dcdcde3406a93649d1a15bbaef291d27b341766a8d61dd07757b8259d62715dbb4707ef28d490ed5807b484437d1f3593304ec62f15ec292c44164b50f9473e266a3b29adab5cf2eda659b17ccd6be8b4e9b15290d1557392c73d1252261c690960badfa1fe4fed30f787230465afee443b97f12d104def8a723f0b88682d6fdc48a580fa27c233347daab126bb464b2a919e02bff3031d8457cc65819852ea7e8aac7f5d1c2a9e84a0fd300adb65d3286480018c1f3ad4a3b8ed33c3929921701e8177702fcc2863bcdc92f6cc1bb05d8af2bb7bbf7bdebe56b2b0986891d1f642ac195aa61c51f492ecb4295266ed04549505c4ec4c6bae79dd62b24a3dbc6c708d0fbeb37d8f5d151e81a6360c1c29366754d003601b20d2bdc0a8d453f6bc50d6546fe0007c38b7d7e2a0724d02f40a04691c5d976e214ee0ac0cc12701424e993c935085fb39e2081c364cf0ee96f46defedaa6cb472fd4e362e92882c76ee2e2379d5969addfd94d30df37ac728f808c83e4ba443eb154b54919a7d85a33b38bc695556e2fbeeb456f3e6b64fe055dec87a6304260199d1ce63b9d92c00f84fa21f99f4daf872611f90e9a4bd8979431cbd63e3902b1e9a8c365e7ae5f3f030ce51cd04833f8e0cc403183e204f6373ee9968d2e4817a5c622094e37d5cac842a16097b073c6f17487fb26eae20b4d71bc7c723e1848100da3ebeb891c3be6b1ed91a0707cc475f9fe9f7b2a7a3d88cf0bd6d18d43c54450f0ba2acc5b2b1061c0d5852dcec0b9deb5eb03b85e6471fb7c38b32bb6f7abd849b028f87d7cd5ce53bffaaa4f0946a7aedd880656f3e902f381f6a3051146545bae6427b1bfd686ef2c743c3330e06dee855afb036222e5151cde9c7f6144c4ccdf0dcb40441cf181c161aa38ad96d6d8742b44418853ccc1d180c9ad962c278f878b36a2a11dc737ad05558beb1e43fa3c3098df15a7c0393ef8bf40bd26cfcdb57348f9a511fea0278932ac240d2fbb2d29b6cdef65efcc3a39c2bd4786066da5045074ee4653020937a3f3a6fde3dab47f81df36a13ae703ca1fd9adebff0e803e7c84876d7aee5e8110f166bae935684b0adcae54b08f844468ab1b8c7bafc82911d449aec4e949bf7980a696aeaf19bb76672434616d9d4dcae63f4ff65e0b3dce493167ca721db8a7f61fcb390c5300a43e253e7075d193008c5577935cf61adcc239e158fde09f54437c5c86749ca7ae8860df320929bd9289f1248fc9966fa2632e835a20ea6e635fbb74fe1eec380ccc956d7028da6472e415a102eb70f5eff8468e2cc4e7824ff371273e9c208ada2028842077825344d6b2b28cfa0f3ed5288aaa183facdc5f488a6b5fc4d44391b0a9640e29b9aaaa5340a3edf99ffe610a56c5efa344647bcb4c0e7e93fa52f51ab02271c4c9e2c26e74f9f1105bed51cb89db518759024a90df34172cacb4d5464f2b1c642c862264ea1dc78c93b477834c6a40761c0b9e91f3c1f0037b251d58d7ed21b842bba6ec5e0007ce194dd4e51df3630a333a4dde2cc322b26ac3da33d2c755038587941d95e84b5c1ed2f6b03bd953981c302db96dff5b01eec068bbbc5b4c6fdbb108cd1d9efbf8081dc6820e377e189f39816874c068cf16e28a405f52e3e734581faa996e38691bb22aaeed6355d161c86d8726322d1121a55c82130c281e57bf3c3a6702bde0e6c628b3bfa4c43bb6596ebd083bac64ce96756490185b484d8870903e19f69c3ff72aa5fb7a2fc42a21711cc0be7359dd20cb76dd9583f5336a81ebe6225e18b234789ac729b5b9e23389cb3e0c7e2acc04da61617d1393a8888d287ec4e5019da18511649349ae8a5f45128889f49a730b16ae5a3a04ac97ade28605ed0afc518df0a7c7bbeb7f948b3807e961995a72cde475644a922a29f3300756b6e5d70941bd62dcb7c7390f83f0a0797afa0b3c73e50b626619b8727b1f7ad7b0b455bd435042ca1fe5a2f8606a97c173668251c151292b5893da3789f63c41b410c5225fa4c7ab1738e114e1c00c144366edbb7197bebbb04be2b717d4fff83e86c4e50d75d5b2d0c62dea776453edee6c1536103bda3d09e821d0f45de4fdbc42ffe235da5660aabb14bb78297d04eb945d8e0f4e6902f60a0fb091ef40d7bb8a66",
+        "registered_height": 1,
+        "registered_via": "account_register",
+        "sig_profile": "pq-mldsa-v1"
+      },
+      "prior_offline_keys": [],
+      "proposals": {},
+      "requests": {}
+    },
+    "reputation": "0"
+  },
+  "api": "http://127.0.0.1:18111",
+  "chain_id": "weall-controlled-devnet",
+  "keyfile": "/home/errol/WeAll-Protocol/Weall-Protocol/.weall-devnet/accounts/devnet-account.json",
+  "ok": true,
+  "public_key_hex": "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb",
+  "submit": {
+    "gossip_propagation": {
+      "accepted": false,
+      "attempted": false
+    },
+    "mempool_size": 1,
+    "ok": true,
+    "status": "accepted",
+    "tx_id": "tx:46f5915a929960727c82faf27126622ffb32007a679765336aebf593f03abe6a",
+    "upstream_propagation": {
+      "accepted": false,
+      "attempted": false,
+      "error": "no_upstreams_configured",
+      "results": [],
+      "skipped": "no_upstreams_configured"
+    }
+  },
+  "tx_id": "tx:46f5915a929960727c82faf27126622ffb32007a679765336aebf593f03abe6a",
+  "tx_status": {
+    "block_id": "c53f36e6d966e52d11e82b4fbe2fd3477f04e0df49c8f17773c01b250b806323",
+    "height": 2,
+    "included_ts_ms": 40000,
+    "local_state_synced": true,
+    "ok": true,
+    "outbound_propagation": {},
+    "signer": "@devnet-1f8bcd8241c7",
+    "status": "confirmed",
+    "tx_id": "tx:46f5915a929960727c82faf27126622ffb32007a679765336aebf593f03abe6a",
+    "tx_type": "ACCOUNT_REGISTER"
+  }
+}
+==> Completing native async Tier-1 verification through assigned reviewer votes
+==> Applicant @devnet-1f8bcd8241c7 initial poh_tier=0
+==> Preparing 1 Live Verified reviewer accounts
+{"account": "@devnet-genesis", "ok": true, "poh_tier": 2, "pubkey": "", "reputation": "1"}
+==> Genesis reviewer ML-KEM evidence authority registered through normal tx flow
+==> Deterministic genesis-bound Live reviewer ready: @devnet-genesis tier=2 keyfile=/tmp/weall_m2_live_browser_N1Boqg/.weall-devnet/genesis-operator.json
+==> No open bootstrap or runtime reviewer self-grant was used
+==> Opening native async Tier-1 case pohasync:@devnet-1f8bcd8241c7:1784919594561
+==> Waiting for deterministic native async juror assignment
+{
+  "case": {
+    "accepted_jurors": [],
+    "account_id": "@devnet-1f8bcd8241c7",
+    "assigned": true,
+    "assigned_jurors": [
+      "@devnet-genesis"
+    ],
+    "case_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561",
+    "challenge_id": "prompt:1784919594561",
+    "declined_jurors": [],
+    "evidence_binds": {
+      "bind:pohasync:@devnet-1f8bcd8241c7:1784919594561:async-evidence:1784919594561:pohasync:@devnet-1f8bcd8241c7:1784919594561:r0": {
+        "bind_id": "bind:pohasync:@devnet-1f8bcd8241c7:1784919594561:async-evidence:1784919594561:pohasync:@devnet-1f8bcd8241c7:1784919594561:r0",
+        "evidence_id": "async-evidence:1784919594561",
+        "evidence_root_commitment": "sha256:8db05f1db8c645102c58933aa7a84b556d79d8618f2dd477f8e804453c74aee8",
+        "followup_round": 0,
+        "key_envelope_commitments": {},
+        "key_envelope_principals": [
+          "@devnet-1f8bcd8241c7"
+        ],
+        "target_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561"
+      }
+    },
+    "evidence_bound": true,
+    "evidence_commitments": {
+      "async-evidence:1784919594561": {
+        "declared_height": 4,
+        "encrypted_blob_commitment": "sha256:8db05f1db8c645102c58933aa7a84b556d79d8618f2dd477f8e804453c74aee8",
+        "encryption_context_commitment": "sha256:a150c1b5f9f3298dc7d4c89e3665c940360aedfff7c6efb9e57b7d076fe729ee",
+        "evidence_commitment": "sha256:13419617174bcbec3cfa469a86681c11ab7f6f8f25ca5f56dcd853cf97d1c52c",
+        "evidence_id": "async-evidence:1784919594561",
+        "followup_round": 0,
+        "kind": "encrypted_controlled_rehearsal_v1",
+        "response_commitment": "sha256:6ee60cf647595a4ee0c079c28ff841d74440af62c2b43e781d53bdef76b10e16",
+        "storage_mode": "encrypted_blob"
+      }
+    },
+    "evidence_declared": true,
+    "expires_height": 100003,
+    "finalized_height": null,
+    "finalized_ts_ms": null,
+    "followup_round": 0,
+    "jurors": {
+      "@devnet-genesis": {
+        "juror_id": "@devnet-genesis",
+        "status": "assigned"
+      }
+    },
+    "missing_steps": [],
+    "opened_height": 3,
+    "outcome": null,
+    "public_evidence_ids": [],
+    "receipt": {},
+    "reviewable": true,
+    "reviewable_evidence": {},
+    "reviewer_queue_reason": "assigned",
+    "reviewer_restricted_evidence": {},
+    "reviews": {},
+    "status": "assigned",
+    "tier_awarded": null
+  },
+  "ok": true
+}
+==> Accepting and voting native async verification case
+==> Juror @devnet-genesis submitted approve
+==> Waiting for native async finalization and Tier-1 account state
+{
+  "case": {
+    "accepted_jurors": [
+      "@devnet-genesis"
+    ],
+    "account_id": "@devnet-1f8bcd8241c7",
+    "assigned": true,
+    "assigned_jurors": [
+      "@devnet-genesis"
+    ],
+    "case_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561",
+    "challenge_id": "prompt:1784919594561",
+    "declined_jurors": [],
+    "evidence_binds": {
+      "bind:pohasync:@devnet-1f8bcd8241c7:1784919594561:async-evidence:1784919594561:pohasync:@devnet-1f8bcd8241c7:1784919594561:r0": {
+        "bind_id": "bind:pohasync:@devnet-1f8bcd8241c7:1784919594561:async-evidence:1784919594561:pohasync:@devnet-1f8bcd8241c7:1784919594561:r0",
+        "evidence_id": "async-evidence:1784919594561",
+        "evidence_root_commitment": "sha256:8db05f1db8c645102c58933aa7a84b556d79d8618f2dd477f8e804453c74aee8",
+        "followup_round": 0,
+        "key_envelope_commitments": {},
+        "key_envelope_principals": [
+          "@devnet-1f8bcd8241c7",
+          "@devnet-genesis"
+        ],
+        "target_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561"
+      }
+    },
+    "evidence_bound": true,
+    "evidence_commitments": {
+      "async-evidence:1784919594561": {
+        "declared_height": 4,
+        "encrypted_blob_commitment": "sha256:8db05f1db8c645102c58933aa7a84b556d79d8618f2dd477f8e804453c74aee8",
+        "encryption_context_commitment": "sha256:a150c1b5f9f3298dc7d4c89e3665c940360aedfff7c6efb9e57b7d076fe729ee",
+        "evidence_commitment": "sha256:13419617174bcbec3cfa469a86681c11ab7f6f8f25ca5f56dcd853cf97d1c52c",
+        "evidence_id": "async-evidence:1784919594561",
+        "followup_round": 0,
+        "kind": "encrypted_controlled_rehearsal_v1",
+        "response_commitment": "sha256:6ee60cf647595a4ee0c079c28ff841d74440af62c2b43e781d53bdef76b10e16",
+        "storage_mode": "encrypted_blob"
+      }
+    },
+    "evidence_declared": true,
+    "expires_height": 100003,
+    "finalized_height": 8,
+    "finalized_ts_ms": 0,
+    "followup_round": 0,
+    "jurors": {
+      "@devnet-genesis": {
+        "juror_id": "@devnet-genesis",
+        "status": "accepted"
+      }
+    },
+    "missing_steps": [],
+    "opened_height": 3,
+    "outcome": "approved",
+    "public_evidence_ids": [],
+    "receipt": {
+      "account_id": "@devnet-1f8bcd8241c7",
+      "case_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561",
+      "finalized_height": 8,
+      "outcome": "approved",
+      "receipt_id": "poh_async_rcpt:pohasync:@devnet-1f8bcd8241c7:1784919594561",
+      "threshold_summary": {
+        "approval_threshold": 1,
+        "minimum_reviews": 1,
+        "rejection_threshold": 1
+      },
+      "tier_awarded": 1,
+      "verification_type": "async"
+    },
+    "reviewable": true,
+    "reviewable_evidence": {},
+    "reviewer_queue_reason": "finalized",
+    "reviewer_restricted_evidence": {},
+    "reviews": {
+      "@devnet-genesis": {
+        "case_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561",
+        "followup_round": 0,
+        "juror_id": "@devnet-genesis",
+        "reason_code": "fresh_demo_review",
+        "review_commitment": "b51d9e72aa23122b0ce5fe6f5a5a745b61a0b05a94b6850d403a611e19d9961b",
+        "signature": "1dfaa2de08be1ec12d4723ec421163c03487eacdfbd5a30fc12c1f01c953242cf1f4132c2bf44f587e597ff07266d1d9cf6132561e4c3412a809f86fb9118d1c5a72066ab6b01272d6fe7ecd9d3d177bbdc0f023a4be262b9cffe819b1d10c12ba92e24385d91a75b103b69107361f32db555e93b814d1f42b39438eba005221ef496f173fbe5b3f5d7dfdf797052bcd015deeb56969bb6057f9eed80459e4e858ce325b7b34339335efbecaa5e6ca5c1a24f8bdcb7f29a6a44661b47685da8762beecb692892ece9d3ef449efa56981e2ed7bdc8b3ca0936d7e72c3992b37fde5c21a89b03dd874dcda95d4dc102f0f11f033e9dfa2184514308bc58723ae061c06d6d4c3a6295fea73e5d88cb5579bf06c0ba7ae4d2808bde85e96ae93bbe45959146dc0cae0912139139e2391a2f140336ab00ec04bcf7f9eef7e0a5c1f460a72480870b35204917f063178316e741435281c49a944f1dc7271486a6da130502247929b1f2d830a86ab0bd27852221ad9a06b964cc8c62fd0156b74b29cc7abea410f5fb19278178bb2be836a8eef145ae77f4037657e8bc879abf65f52a447f251643b175502356257865d96ab7f4aefc59aedd9c93c841163132f7007cc777714eacd24035f7eeb87feb27693ae73e31f406ed819f1c56334a3f36d9b69c60e7d2850b3667bb96eba5273fbc9b11ee9e6b0462fd4bc3830895b1c10497f78b626618e85b3470f6aa677f33fa53ec83284858a4a6be2e6c6d59889e58b9f34e8234185c51efcb09b05213177984ba0ada235b3e983d1fb095409cacbd82d45651db98ded1ab0fd399610df34bfcee4d054594f1ca86bcfe9f66971242f61349af39e5c77615e92afaed84bdcba69d937dbbb9f07e7ec2b3b656c9d453b32b1277135e62c5e02cbdbbeccae0ba0740c8a161be7f2bedc686aa0d0c41e0e2fd1e3f4fd9c19d6d23d164f2a3a7bbcaca7d016ffd1099547d9929ccaecffc74e1785641331476e4e33b068b064f734b7d1784646d93ec12105d199b40dce8bf2f9edb7e9e831144742f51396143595dc6046bae8bb79a8298e5625793f371982230b9ba5a78e03a14cb6946e83f1443e5ac6bc8c703d4e0e3480e868583cde16f304a20fac5c2473ede52b13a2d3b99fbeee7d73740574ef7fcfa1f23b8af496d95d04c4c1b09b1f9251fb48e7a5481675804f876e5f8be342a5b3b8bf4225bc12fc68fe56863b8f141b9a6f3d1a7a113a7d1b0ddfe48007742e098b67900a232bd275f996f33fcd7a4ee55c7835b0e21e19e1bdefc2cd2c57eef6aaa787f37e2e383442437b0a65efc964d55ec6e71cc55c1623af183c38b061704b4f399b7cb014218c16960bb529bfc2fc20adf790b9b7c08e1a1d62e0863d05b0d677516945fc97c881d6a2a94d54a2b128fbb8b8f8bd38c34f9385bdd3ca86459f5e2ed5e662c5d6d4ddcc9f367cc32115fceaf408ea2badbb3a5e6d1fa6192b09e20e22a77c7d5d9412701f30be9f94c2b22aba114a816d55fdc6e14b8b95556a9bc10546b887c8138dfcdc908137b703af987b356fbd7554002b4c5538859f85228b186bbb81b48cc615923149dc3cce85588d3b1b554a48bbbe24a87d5b18725bdac8119c318e9759c47e2dc970692224ce1f74bf9c1b89ac9d8294e22a835bab0c651d9f1528b4a790511eae3c91697f0f45594bb01a26dc2cdd2a754707102ab8167e12e6fbc07802d3b4b8c68c84819da3588fdc5ee867a5415edc47d750781acba1dadb6be1ffd3da36a5f00965dfd42d368a2b472c909597df1cacc0a308f558f8acdcea2378424268a1e24c41844832bfcfaa5a1d7733120d216f58822f877a38a14ca791fe05440d4b74a0d83038908321c62a71ffe7ed5cc5baf19d610ea2d3f7f6a6b7c74800a86b78352b8a2f5dbcb51a10543a3c19536b5339617a8317bb6811d434825ef1ad1655b380b9897d1893fbf06862ff9bee38d8cc6e1e05cbdfd314c2acc390e1f6d6c0439aa36ce9305b1533dd93b506da8d666552a3784f332f5c165d9d8bc9576b4bc39634577d00708fca9cb6ae3c40f140ccd2142371519449a8d7509de78bfb0ee97126f07a0ffbfadc3168732001aec5e08db2fd1ef4ca423cbc4e063ad1e8fee8cd355f307f815551f3a2b6662903e9cae953edac5a3341e320f3ef3128cfb62d9926901573122d603897ac67ba6f89c61e1685f7f583986e33781666f9a5539b5c28a33b6d8bf6e3133d8f21e6280e7b39e6442d79cad8489e899387abbcdd9755000934e55bd23e8c6717e55cd1d19e665f6644470dbcd76739d98aa9e33bb5961a5b9a1dcbfe827a87050d978fb939ea78d185f2deae424091f39cdfb5fd2bb98f68f41dd245bdcc5e330237174f621730a86c33ef080d747bb709c6c58c00281331ffb33fd3cabbf986da2d0c5823f923bdc823798f311699fe7816c52e06250aaf6dd107c22e55d8d2b8e039576a2624e06fe1d3d0d4bace85684735601fe03ad404f3b7bb4451b70fca166680895b872c0e79ce8abd678a3aff035ea562d83457999b48e2d54453817500ed9546662392748b9ac2066f01482b2b9d214a7ca86ec4ca424c7d8ebbd863a5a8b6642b7b250b0431cebe3f250e7e5865905cb3007e1ab58a6dd649a97ceed56f0aea79e2f4d84d49756e3fd69cd96583dc05f58d6cf10b9192f2183515fefd2a06b7cfbcf5afc6addb2d7a570fe902f80b4a51e21e3c9f2d4ffa32be18a52c98fb6854e775291105e6f373cf3846df1a0cb6d826a2ef284427de9791876a9bea423134d96309b11244333d58809f1991b4f3b3c068d66de418019b02ce0fd7d3e96f99f63f29eebddd38680fe6dd0cbb73ddc6852f71c874cf5c231798503e49e894a6087da157da6a8636c10220e89f0be3510b1931205d7c2bdf88c2bb9245a1dbec72ab63a579988402328ef34a67814de6d0c77df3ad765cd15318fe27296723a71d95ebf4031867bbe9e10a264d5333a67df18865d4257fcfc13f5cf3b3f6a8bd348026ede681236304ea96f9b2032c1d95f89571ac3bb9edc5fb98fc2953a1ceec92d0bad38fc2ff6470f1dd55f29f31eb2978494e54bf6a8004e2d0fff17d84d108531cae96bfbd6c5ac1df0e19ca63c13f1fd7fe3ef0b7a6c375557771b20194f4ac8be8e918f634594215376dda6db5279ae5b9d692347bdf2278c3899b926b87131f1479dda4e7df8173adab9394f76b839d3b5d6cda0c3dd13e6ded8fc5f2f43465fa9a1b5bf7860e5b308ecfb8a21faefc92ecce2877991207da02881928729bf3d89c8ecb2a9841261fde53f65c91678527c99e80f93851b70d6c7b2add9429863ba408626911c7256922f17f303696dce2c96476b1c2c41a2b4d12ffa2ff58d90071c696a9b946f462aa984c7ecfc6641da5fad9e2f5e0e2b7b68eac037551ce47d1a0b9693ceaad3cbc0eccf7c8b81a3c7c56ab3f712a46662dba4bf40abc1d49876d6fcc1998dc09c5fced0085f1d3d5377576f7bef2823cdd9ee1b2aaefa0563a7c01f18d819976a4d0372d50b2ca49424eec69f59fddd595124f770157b593e3cdb8e7f7985cec48f17f3fa52551d3e6b4f9b4dfb6be89ad8f17956e762906dbecf21b3b0f9058d4161f55fd3d7ab88352ae96cc2cc0992e71b4fb791b9c4275beafd85b6502fe7435fd8a1c8c760830f61295b06bfd6be32672b0a2b587b5b05ee7cbf732a472eeeb54dfa671d6e2bd19c723b1be00bd12052062fe64d256dc007946f10a0315f7d2a69761343dedb95c83d63c9f1c9645a8b31da7c4acd7462ea0751e1df6e4c6e5cd42fb7bc684bf82e19f1090ae158703d0b866ecd586880e827d269be745cfe0d4689bf3f090269e13178ff5b556fa7451ff389a37e64f377766ae4702ad4180080055772d9e5f1a8fbd7d58d3a7dc976ffa83b1fdf48d3310169db6751d7cc550df60c54991591c175c15764b23d3f5c809154369262c05bef31513d4b67234dd0d9c822242711904e8b314aef6ce44c1387acf59d3d4f976efc65503dc4b88bd844aeb620200d3c33a054aa55b2052495d4956187b18959f164ef7a26fd2048654342a009f5c24279ae17e4d665668a6aead4b3a8a7557b481eb76bda1a0e097a40d7e445b9be978791b7d2f51acdf5828c8402618d793f2e7e709b7e2a4b2d2ff8e4d484898dd8ae5b87c6c5767e3b2c2da0a58df7c913845090a20ce4918ae60c2752ecd604d1e5f0d78b993873278ea313b334bf48d70123fbf5e73ef10b76b406f4304fa39780644468791e1b9c26a152b0d2da30fcd623516ed70d16deba3a680d83f22b806ffbef4219da320295a57400dcf2d96fe03a7c6cc286756a341993ecd6019e8d4943e9b854833caa7dca6c0f04ec247b31b24858b9744c573cf004404e45c15d2b2e4fd44c417948e0b7ded2814f97472c56d309a95db59edfc7efa0adc2f0ebe665c961c9aa4fb8fadd9afcab63746c70b479fa3d1f9c2b4b68e13e001342ec96d7dd50db5d1d81822b955547ce0bef751a902e91ffd57fb2f3a129e6f1ef3073f7339120920abfd7743487f00c5e384eedf9ba6386266a1cfdba21c5b78d0df1a1c4957880c1f556369e1143a4f52a2a4c906363f46a4f1143444c700000000000000000000000000000000000000000000050a10171d21",
+        "submitted_height": 8,
+        "verdict": "approve"
+      }
+    },
+    "status": "approved",
+    "tier_awarded": 1
+  },
+  "ok": true
+}
+{
+  "account": "@devnet-1f8bcd8241c7",
+  "ok": true,
+  "state": {
+    "account_type": "human",
+    "active_keys": [
+      "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+    ],
+    "banned": false,
+    "devices": {
+      "by_id": {},
+      "redacted": true,
+      "summary": {
+        "active": 0,
+        "browser": 0,
+        "node": 0,
+        "revoked": 0,
+        "total": 0
+      }
+    },
+    "evidence_encryption": {
+      "algorithm": "ml-kem-768",
+      "public_key": "KYZhgYSLIrvNfbeea9c3zCeR7OBckceMxse8/pa6AhGti8DANrkS3IPPtCubJLG0PARe7hZgS4vJa7l9ZidCuAoLAltT3mWo+iYmTGdGXlMpSZgWABBNhZtELHuuIkZ3m0Ck8aI6ikyo2LQw4kBQ89qR6BChhIIqgfoxhMEHG/NFhBsdu+R3irY+R9TA/IVIl0pslLFNSPgVLsGzdJUREOZsnoYOa8MtV1giZbS4/PwPcfmevWsgU7sv6Ctvb0BHanQEotVKGdh3baZpwcNjyrQuVQAwDRcyiktIT6EpPBjKo3MQmBxZDiqZSEJFKfw1z2d3quoTwpYUdxfFOZEwd7deFpiK9UrCy8CxPEhd7JWqVyabqQWUFntDapC9hVcT4MQNbJRwgVKSkYaMozMWkqiY+1HE4CtRk2BCHWiKivZF5moKQ3hlzKq134Jfi9GHbAai62Ji0RVAFOGZlepWsGO19aa0sWE0YQExKAnEb5UJxAhCESk21KjLuUc/cUZWheeeM1Ugxch2sswTlKFEOXcXw1OJBRu3RgG6uoQXdzyAZwAVZ2u1ZHR9L8UtgFjOy8oiW0A31sBMcFqYchEsqLyENQuFc4Mm9TOTBaBQwXQGYHmGZcSSGKKEwRq553psYjFJeaImDqPG5cDNTgRpyPKCsgRU+TlhysEPmNmRZKTDDuOjXHFQ8dQV2pObUdrGIZsiERF47Hd9kol1bctgGMt93+oAiTfHuFSc6+WPwLw0JrJJJuMrgBNN4KCC8AWslte/SFjF+NRecwe3Ifl2z1KMa1evk8ecD9NjEMmuuBeJdSZvnpZnVvkJhRpHMpaFd0wBFLgIKJwvlnp4NtjNAmtC3COUb4mO+MaeraohdHBN6jBLLouya7CgahwzDtcNr5oaW9S/SiQZ8JCBacG2F5ZwYoNYJxqGMkPGlOVRkgOFgMCa0bTFJDRN2PAUt0dHBHRb+MsX5WK5FvwFynBzqJB/MAYz0wUyenZWZVOYm5bCoTHAHTkDTLgRXJc49CfDnyzJiRQFEmCOTpynDqASIegjBrpI8gzCd4cjEuhj+qycfXm4bjLMLnKPd1tPjRVBxWN0l+NLyAwCQaUy67pdSGEHqrpe6Xh6sONrFhrEqNwHu8RGc8paE2VpEhWpsBZuQ0aptBYtKMlkWIuI1MAquEgY29pDWsBScsYxwgiMbYWcAcm1wGFuxqF4N0pDcoSu+BCoAD2sxsafuQSsXUOfjLIWwGuO6jCqlElRnvirv4InymCUqCyn7rkA9ekZlBit1oMSqNZizqGA1Le7arueRwudx4hgt5BS0CusKCuMNjNC0bp61NoSXGJcRzAGEHdTm9K7yHANeTXNcDwpwiZ0/0dt0KaCC4oDKpUNQmcGuiXAxecaa+h+HSMgKpp8QRrPTNckV3aflPQhGMUAXUaUVRhzMyXCjRDJJfVVQVmUO0I8BaGVWmyCEdjBG1mA33UooBszUDgmE+ykMXQwi2B+4dtrxVq3faKguOcABDJaabOF41xm8rGg36e0LjBB6NgAKlEMiEIYwtPsKFK0Q8/sZoNW1lTjWFKbsPkqeAF/gYw=",
+      "registered_height": 1
+    },
+    "keys": {
+      "by_id": {
+        "k:3adc3f80c549d6ad": {
+          "active": true,
+          "created_height": 0,
+          "key_id": "k:3adc3f80c549d6ad",
+          "key_type": "main",
+          "pubkeys": {
+            "mldsa": "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+          },
+          "revoked": false,
+          "revoked_at": null,
+          "revoked_height": null,
+          "sig_profile": "pq-mldsa-v1"
+        }
+      }
+    },
+    "locked": false,
+    "nonce": 5,
+    "poh_status": "active",
+    "poh_tier": 1,
+    "poh_tier_label": "Async Verified Human",
+    "pubkey": "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb",
+    "pubkeys": [
+      "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+    ],
+    "recovery": {
+      "authority_generation": 1,
+      "config": null,
+      "failed_attempt_heights": [],
+      "history": [],
+      "mode": "offline_key",
+      "offline_key": {
+        "commitment": null,
+        "generation": 1,
+        "key_id": "k:3ec16a471a42cc2b",
+        "pubkey": "a35a11f61da4709431944035b1afd481b400b9793a21e4a68223bca57d48037dbf6a91283ee4e870cd7ccc44b87a4ec6f28fb11c639356d40b98440a6198b5e5b8131c04ba9bbc263d1b69f876770135952d36e66e8711b5135843e2f6e7db0397ffe6a9f6c59ac06ec3dc3cbe0870a525fa2e06a172c7ae2f1c330bfc86391414ac4e80ddeadee189f595aae57e4fe21adeb03cb1d9e135e3f72540d7bafac2b8a2b226cf183ead620929d0c8e31fb4d64ed728bd1e65ccb4408110314d8163e3351be34c7a120a595b4bbfa6dfca09c516996eec3aaff3096dd76f51453d98a0d32847931dd2470daebf913064ca2f54642e79abf63968db062734a1324ef5032b8fa863c4be460d5a10d9df70457bbd7f29c7c34f69f79ba56906303726dd1cc9e5953885c80f6de6d83377ef9c9aa1a3ac267f80ebe12feeae688c0d04da003941197fbc68b1dbdb15b07a18dfd792ba86bd90cb1e0ef12c8e6d7f25155d7c8f6db9e9145183024d3da6d797b8b297f71ee47410f3d7f05bba862c1c0a794f54436318329f38bc3d18abea367db00815a7e0c2371f10463e436f6bb2e26b466309b7dcdcde3406a93649d1a15bbaef291d27b341766a8d61dd07757b8259d62715dbb4707ef28d490ed5807b484437d1f3593304ec62f15ec292c44164b50f9473e266a3b29adab5cf2eda659b17ccd6be8b4e9b15290d1557392c73d1252261c690960badfa1fe4fed30f787230465afee443b97f12d104def8a723f0b88682d6fdc48a580fa27c233347daab126bb464b2a919e02bff3031d8457cc65819852ea7e8aac7f5d1c2a9e84a0fd300adb65d3286480018c1f3ad4a3b8ed33c3929921701e8177702fcc2863bcdc92f6cc1bb05d8af2bb7bbf7bdebe56b2b0986891d1f642ac195aa61c51f492ecb4295266ed04549505c4ec4c6bae79dd62b24a3dbc6c708d0fbeb37d8f5d151e81a6360c1c29366754d003601b20d2bdc0a8d453f6bc50d6546fe0007c38b7d7e2a0724d02f40a04691c5d976e214ee0ac0cc12701424e993c935085fb39e2081c364cf0ee96f46defedaa6cb472fd4e362e92882c76ee2e2379d5969addfd94d30df37ac728f808c83e4ba443eb154b54919a7d85a33b38bc695556e2fbeeb456f3e6b64fe055dec87a6304260199d1ce63b9d92c00f84fa21f99f4daf872611f90e9a4bd8979431cbd63e3902b1e9a8c365e7ae5f3f030ce51cd04833f8e0cc403183e204f6373ee9968d2e4817a5c622094e37d5cac842a16097b073c6f17487fb26eae20b4d71bc7c723e1848100da3ebeb891c3be6b1ed91a0707cc475f9fe9f7b2a7a3d88cf0bd6d18d43c54450f0ba2acc5b2b1061c0d5852dcec0b9deb5eb03b85e6471fb7c38b32bb6f7abd849b028f87d7cd5ce53bffaaa4f0946a7aedd880656f3e902f381f6a3051146545bae6427b1bfd686ef2c743c3330e06dee855afb036222e5151cde9c7f6144c4ccdf0dcb40441cf181c161aa38ad96d6d8742b44418853ccc1d180c9ad962c278f878b36a2a11dc737ad05558beb1e43fa3c3098df15a7c0393ef8bf40bd26cfcdb57348f9a511fea0278932ac240d2fbb2d29b6cdef65efcc3a39c2bd4786066da5045074ee4653020937a3f3a6fde3dab47f81df36a13ae703ca1fd9adebff0e803e7c84876d7aee5e8110f166bae935684b0adcae54b08f844468ab1b8c7bafc82911d449aec4e949bf7980a696aeaf19bb76672434616d9d4dcae63f4ff65e0b3dce493167ca721db8a7f61fcb390c5300a43e253e7075d193008c5577935cf61adcc239e158fde09f54437c5c86749ca7ae8860df320929bd9289f1248fc9966fa2632e835a20ea6e635fbb74fe1eec380ccc956d7028da6472e415a102eb70f5eff8468e2cc4e7824ff371273e9c208ada2028842077825344d6b2b28cfa0f3ed5288aaa183facdc5f488a6b5fc4d44391b0a9640e29b9aaaa5340a3edf99ffe610a56c5efa344647bcb4c0e7e93fa52f51ab02271c4c9e2c26e74f9f1105bed51cb89db518759024a90df34172cacb4d5464f2b1c642c862264ea1dc78c93b477834c6a40761c0b9e91f3c1f0037b251d58d7ed21b842bba6ec5e0007ce194dd4e51df3630a333a4dde2cc322b26ac3da33d2c755038587941d95e84b5c1ed2f6b03bd953981c302db96dff5b01eec068bbbc5b4c6fdbb108cd1d9efbf8081dc6820e377e189f39816874c068cf16e28a405f52e3e734581faa996e38691bb22aaeed6355d161c86d8726322d1121a55c82130c281e57bf3c3a6702bde0e6c628b3bfa4c43bb6596ebd083bac64ce96756490185b484d8870903e19f69c3ff72aa5fb7a2fc42a21711cc0be7359dd20cb76dd9583f5336a81ebe6225e18b234789ac729b5b9e23389cb3e0c7e2acc04da61617d1393a8888d287ec4e5019da18511649349ae8a5f45128889f49a730b16ae5a3a04ac97ade28605ed0afc518df0a7c7bbeb7f948b3807e961995a72cde475644a922a29f3300756b6e5d70941bd62dcb7c7390f83f0a0797afa0b3c73e50b626619b8727b1f7ad7b0b455bd435042ca1fe5a2f8606a97c173668251c151292b5893da3789f63c41b410c5225fa4c7ab1738e114e1c00c144366edbb7197bebbb04be2b717d4fff83e86c4e50d75d5b2d0c62dea776453edee6c1536103bda3d09e821d0f45de4fdbc42ffe235da5660aabb14bb78297d04eb945d8e0f4e6902f60a0fb091ef40d7bb8a66",
+        "registered_height": 1,
+        "registered_via": "account_register",
+        "sig_profile": "pq-mldsa-v1"
+      },
+      "prior_offline_keys": [],
+      "proposals": {},
+      "requests": {}
+    },
+    "reputation": "0"
+  }
+}
+{
+  "case": {
+    "accepted_jurors": [
+      "@devnet-genesis"
+    ],
+    "account_id": "@devnet-1f8bcd8241c7",
+    "assigned": true,
+    "assigned_jurors": [
+      "@devnet-genesis"
+    ],
+    "case_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561",
+    "challenge_id": "prompt:1784919594561",
+    "declined_jurors": [],
+    "evidence_binds": {
+      "bind:pohasync:@devnet-1f8bcd8241c7:1784919594561:async-evidence:1784919594561:pohasync:@devnet-1f8bcd8241c7:1784919594561:r0": {
+        "bind_id": "bind:pohasync:@devnet-1f8bcd8241c7:1784919594561:async-evidence:1784919594561:pohasync:@devnet-1f8bcd8241c7:1784919594561:r0",
+        "evidence_id": "async-evidence:1784919594561",
+        "evidence_root_commitment": "sha256:8db05f1db8c645102c58933aa7a84b556d79d8618f2dd477f8e804453c74aee8",
+        "followup_round": 0,
+        "key_envelope_commitments": {},
+        "key_envelope_principals": [
+          "@devnet-1f8bcd8241c7",
+          "@devnet-genesis"
+        ],
+        "target_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561"
+      }
+    },
+    "evidence_bound": true,
+    "evidence_commitments": {
+      "async-evidence:1784919594561": {
+        "declared_height": 4,
+        "encrypted_blob_commitment": "sha256:8db05f1db8c645102c58933aa7a84b556d79d8618f2dd477f8e804453c74aee8",
+        "encryption_context_commitment": "sha256:a150c1b5f9f3298dc7d4c89e3665c940360aedfff7c6efb9e57b7d076fe729ee",
+        "evidence_commitment": "sha256:13419617174bcbec3cfa469a86681c11ab7f6f8f25ca5f56dcd853cf97d1c52c",
+        "evidence_id": "async-evidence:1784919594561",
+        "followup_round": 0,
+        "kind": "encrypted_controlled_rehearsal_v1",
+        "response_commitment": "sha256:6ee60cf647595a4ee0c079c28ff841d74440af62c2b43e781d53bdef76b10e16",
+        "storage_mode": "encrypted_blob"
+      }
+    },
+    "evidence_declared": true,
+    "expires_height": 100003,
+    "finalized_height": 8,
+    "finalized_ts_ms": 0,
+    "followup_round": 0,
+    "jurors": {
+      "@devnet-genesis": {
+        "juror_id": "@devnet-genesis",
+        "status": "accepted"
+      }
+    },
+    "missing_steps": [],
+    "opened_height": 3,
+    "outcome": "approved",
+    "public_evidence_ids": [],
+    "receipt": {
+      "account_id": "@devnet-1f8bcd8241c7",
+      "case_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561",
+      "finalized_height": 8,
+      "outcome": "approved",
+      "receipt_id": "poh_async_rcpt:pohasync:@devnet-1f8bcd8241c7:1784919594561",
+      "threshold_summary": {
+        "approval_threshold": 1,
+        "minimum_reviews": 1,
+        "rejection_threshold": 1
+      },
+      "tier_awarded": 1,
+      "verification_type": "async"
+    },
+    "reviewable": true,
+    "reviewable_evidence": {},
+    "reviewer_queue_reason": "finalized",
+    "reviewer_restricted_evidence": {},
+    "reviews": {
+      "@devnet-genesis": {
+        "case_id": "pohasync:@devnet-1f8bcd8241c7:1784919594561",
+        "followup_round": 0,
+        "juror_id": "@devnet-genesis",
+        "reason_code": "fresh_demo_review",
+        "review_commitment": "b51d9e72aa23122b0ce5fe6f5a5a745b61a0b05a94b6850d403a611e19d9961b",
+        "signature": "1dfaa2de08be1ec12d4723ec421163c03487eacdfbd5a30fc12c1f01c953242cf1f4132c2bf44f587e597ff07266d1d9cf6132561e4c3412a809f86fb9118d1c5a72066ab6b01272d6fe7ecd9d3d177bbdc0f023a4be262b9cffe819b1d10c12ba92e24385d91a75b103b69107361f32db555e93b814d1f42b39438eba005221ef496f173fbe5b3f5d7dfdf797052bcd015deeb56969bb6057f9eed80459e4e858ce325b7b34339335efbecaa5e6ca5c1a24f8bdcb7f29a6a44661b47685da8762beecb692892ece9d3ef449efa56981e2ed7bdc8b3ca0936d7e72c3992b37fde5c21a89b03dd874dcda95d4dc102f0f11f033e9dfa2184514308bc58723ae061c06d6d4c3a6295fea73e5d88cb5579bf06c0ba7ae4d2808bde85e96ae93bbe45959146dc0cae0912139139e2391a2f140336ab00ec04bcf7f9eef7e0a5c1f460a72480870b35204917f063178316e741435281c49a944f1dc7271486a6da130502247929b1f2d830a86ab0bd27852221ad9a06b964cc8c62fd0156b74b29cc7abea410f5fb19278178bb2be836a8eef145ae77f4037657e8bc879abf65f52a447f251643b175502356257865d96ab7f4aefc59aedd9c93c841163132f7007cc777714eacd24035f7eeb87feb27693ae73e31f406ed819f1c56334a3f36d9b69c60e7d2850b3667bb96eba5273fbc9b11ee9e6b0462fd4bc3830895b1c10497f78b626618e85b3470f6aa677f33fa53ec83284858a4a6be2e6c6d59889e58b9f34e8234185c51efcb09b05213177984ba0ada235b3e983d1fb095409cacbd82d45651db98ded1ab0fd399610df34bfcee4d054594f1ca86bcfe9f66971242f61349af39e5c77615e92afaed84bdcba69d937dbbb9f07e7ec2b3b656c9d453b32b1277135e62c5e02cbdbbeccae0ba0740c8a161be7f2bedc686aa0d0c41e0e2fd1e3f4fd9c19d6d23d164f2a3a7bbcaca7d016ffd1099547d9929ccaecffc74e1785641331476e4e33b068b064f734b7d1784646d93ec12105d199b40dce8bf2f9edb7e9e831144742f51396143595dc6046bae8bb79a8298e5625793f371982230b9ba5a78e03a14cb6946e83f1443e5ac6bc8c703d4e0e3480e868583cde16f304a20fac5c2473ede52b13a2d3b99fbeee7d73740574ef7fcfa1f23b8af496d95d04c4c1b09b1f9251fb48e7a5481675804f876e5f8be342a5b3b8bf4225bc12fc68fe56863b8f141b9a6f3d1a7a113a7d1b0ddfe48007742e098b67900a232bd275f996f33fcd7a4ee55c7835b0e21e19e1bdefc2cd2c57eef6aaa787f37e2e383442437b0a65efc964d55ec6e71cc55c1623af183c38b061704b4f399b7cb014218c16960bb529bfc2fc20adf790b9b7c08e1a1d62e0863d05b0d677516945fc97c881d6a2a94d54a2b128fbb8b8f8bd38c34f9385bdd3ca86459f5e2ed5e662c5d6d4ddcc9f367cc32115fceaf408ea2badbb3a5e6d1fa6192b09e20e22a77c7d5d9412701f30be9f94c2b22aba114a816d55fdc6e14b8b95556a9bc10546b887c8138dfcdc908137b703af987b356fbd7554002b4c5538859f85228b186bbb81b48cc615923149dc3cce85588d3b1b554a48bbbe24a87d5b18725bdac8119c318e9759c47e2dc970692224ce1f74bf9c1b89ac9d8294e22a835bab0c651d9f1528b4a790511eae3c91697f0f45594bb01a26dc2cdd2a754707102ab8167e12e6fbc07802d3b4b8c68c84819da3588fdc5ee867a5415edc47d750781acba1dadb6be1ffd3da36a5f00965dfd42d368a2b472c909597df1cacc0a308f558f8acdcea2378424268a1e24c41844832bfcfaa5a1d7733120d216f58822f877a38a14ca791fe05440d4b74a0d83038908321c62a71ffe7ed5cc5baf19d610ea2d3f7f6a6b7c74800a86b78352b8a2f5dbcb51a10543a3c19536b5339617a8317bb6811d434825ef1ad1655b380b9897d1893fbf06862ff9bee38d8cc6e1e05cbdfd314c2acc390e1f6d6c0439aa36ce9305b1533dd93b506da8d666552a3784f332f5c165d9d8bc9576b4bc39634577d00708fca9cb6ae3c40f140ccd2142371519449a8d7509de78bfb0ee97126f07a0ffbfadc3168732001aec5e08db2fd1ef4ca423cbc4e063ad1e8fee8cd355f307f815551f3a2b6662903e9cae953edac5a3341e320f3ef3128cfb62d9926901573122d603897ac67ba6f89c61e1685f7f583986e33781666f9a5539b5c28a33b6d8bf6e3133d8f21e6280e7b39e6442d79cad8489e899387abbcdd9755000934e55bd23e8c6717e55cd1d19e665f6644470dbcd76739d98aa9e33bb5961a5b9a1dcbfe827a87050d978fb939ea78d185f2deae424091f39cdfb5fd2bb98f68f41dd245bdcc5e330237174f621730a86c33ef080d747bb709c6c58c00281331ffb33fd3cabbf986da2d0c5823f923bdc823798f311699fe7816c52e06250aaf6dd107c22e55d8d2b8e039576a2624e06fe1d3d0d4bace85684735601fe03ad404f3b7bb4451b70fca166680895b872c0e79ce8abd678a3aff035ea562d83457999b48e2d54453817500ed9546662392748b9ac2066f01482b2b9d214a7ca86ec4ca424c7d8ebbd863a5a8b6642b7b250b0431cebe3f250e7e5865905cb3007e1ab58a6dd649a97ceed56f0aea79e2f4d84d49756e3fd69cd96583dc05f58d6cf10b9192f2183515fefd2a06b7cfbcf5afc6addb2d7a570fe902f80b4a51e21e3c9f2d4ffa32be18a52c98fb6854e775291105e6f373cf3846df1a0cb6d826a2ef284427de9791876a9bea423134d96309b11244333d58809f1991b4f3b3c068d66de418019b02ce0fd7d3e96f99f63f29eebddd38680fe6dd0cbb73ddc6852f71c874cf5c231798503e49e894a6087da157da6a8636c10220e89f0be3510b1931205d7c2bdf88c2bb9245a1dbec72ab63a579988402328ef34a67814de6d0c77df3ad765cd15318fe27296723a71d95ebf4031867bbe9e10a264d5333a67df18865d4257fcfc13f5cf3b3f6a8bd348026ede681236304ea96f9b2032c1d95f89571ac3bb9edc5fb98fc2953a1ceec92d0bad38fc2ff6470f1dd55f29f31eb2978494e54bf6a8004e2d0fff17d84d108531cae96bfbd6c5ac1df0e19ca63c13f1fd7fe3ef0b7a6c375557771b20194f4ac8be8e918f634594215376dda6db5279ae5b9d692347bdf2278c3899b926b87131f1479dda4e7df8173adab9394f76b839d3b5d6cda0c3dd13e6ded8fc5f2f43465fa9a1b5bf7860e5b308ecfb8a21faefc92ecce2877991207da02881928729bf3d89c8ecb2a9841261fde53f65c91678527c99e80f93851b70d6c7b2add9429863ba408626911c7256922f17f303696dce2c96476b1c2c41a2b4d12ffa2ff58d90071c696a9b946f462aa984c7ecfc6641da5fad9e2f5e0e2b7b68eac037551ce47d1a0b9693ceaad3cbc0eccf7c8b81a3c7c56ab3f712a46662dba4bf40abc1d49876d6fcc1998dc09c5fced0085f1d3d5377576f7bef2823cdd9ee1b2aaefa0563a7c01f18d819976a4d0372d50b2ca49424eec69f59fddd595124f770157b593e3cdb8e7f7985cec48f17f3fa52551d3e6b4f9b4dfb6be89ad8f17956e762906dbecf21b3b0f9058d4161f55fd3d7ab88352ae96cc2cc0992e71b4fb791b9c4275beafd85b6502fe7435fd8a1c8c760830f61295b06bfd6be32672b0a2b587b5b05ee7cbf732a472eeeb54dfa671d6e2bd19c723b1be00bd12052062fe64d256dc007946f10a0315f7d2a69761343dedb95c83d63c9f1c9645a8b31da7c4acd7462ea0751e1df6e4c6e5cd42fb7bc684bf82e19f1090ae158703d0b866ecd586880e827d269be745cfe0d4689bf3f090269e13178ff5b556fa7451ff389a37e64f377766ae4702ad4180080055772d9e5f1a8fbd7d58d3a7dc976ffa83b1fdf48d3310169db6751d7cc550df60c54991591c175c15764b23d3f5c809154369262c05bef31513d4b67234dd0d9c822242711904e8b314aef6ce44c1387acf59d3d4f976efc65503dc4b88bd844aeb620200d3c33a054aa55b2052495d4956187b18959f164ef7a26fd2048654342a009f5c24279ae17e4d665668a6aead4b3a8a7557b481eb76bda1a0e097a40d7e445b9be978791b7d2f51acdf5828c8402618d793f2e7e709b7e2a4b2d2ff8e4d484898dd8ae5b87c6c5767e3b2c2da0a58df7c913845090a20ce4918ae60c2752ecd604d1e5f0d78b993873278ea313b334bf48d70123fbf5e73ef10b76b406f4304fa39780644468791e1b9c26a152b0d2da30fcd623516ed70d16deba3a680d83f22b806ffbef4219da320295a57400dcf2d96fe03a7c6cc286756a341993ecd6019e8d4943e9b854833caa7dca6c0f04ec247b31b24858b9744c573cf004404e45c15d2b2e4fd44c417948e0b7ded2814f97472c56d309a95db59edfc7efa0adc2f0ebe665c961c9aa4fb8fadd9afcab63746c70b479fa3d1f9c2b4b68e13e001342ec96d7dd50db5d1d81822b955547ce0bef751a902e91ffd57fb2f3a129e6f1ef3073f7339120920abfd7743487f00c5e384eedf9ba6386266a1cfdba21c5b78d0df1a1c4957880c1f556369e1143a4f52a2a4c906363f46a4f1143444c700000000000000000000000000000000000000000000050a10171d21",
+        "submitted_height": 8,
+        "verdict": "approve"
+      }
+    },
+    "status": "approved",
+    "tier_awarded": 1
+  },
+  "ok": true
+}
+==> Native async Tier-1 flow complete: @devnet-1f8bcd8241c7 is Verified Person via pohasync:@devnet-1f8bcd8241c7:1784919594561
+==> Node 2 not reachable at http://127.0.0.1:8002; skipped cross-node root comparison
+==> Completing optional native live Tier-2 verification through assigned reviewer votes
+==> Verifying deterministic genesis-bound Live reviewer authority
+{"account": "@devnet-genesis", "ok": true, "poh_tier": 2, "pubkey": "", "reputation": "1"}
+==> Genesis reviewer ML-KEM evidence authority already current
+==> Deterministic genesis-bound Live reviewer ready: @devnet-genesis tier=2 keyfile=/tmp/weall_m2_live_browser_N1Boqg/.weall-devnet/genesis-operator.json
+==> No open bootstrap or runtime reviewer self-grant was used
+==> Requesting protocol-native Live live PoH through node 1 normal tx flow
+{
+  "account": "@devnet-1f8bcd8241c7",
+  "account_state": {
+    "account_type": "human",
+    "active_keys": [
+      "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+    ],
+    "banned": false,
+    "devices": {
+      "by_id": {},
+      "redacted": true,
+      "summary": {
+        "active": 0,
+        "browser": 0,
+        "node": 0,
+        "revoked": 0,
+        "total": 0
+      }
+    },
+    "evidence_encryption": {
+      "algorithm": "ml-kem-768",
+      "public_key": "KYZhgYSLIrvNfbeea9c3zCeR7OBckceMxse8/pa6AhGti8DANrkS3IPPtCubJLG0PARe7hZgS4vJa7l9ZidCuAoLAltT3mWo+iYmTGdGXlMpSZgWABBNhZtELHuuIkZ3m0Ck8aI6ikyo2LQw4kBQ89qR6BChhIIqgfoxhMEHG/NFhBsdu+R3irY+R9TA/IVIl0pslLFNSPgVLsGzdJUREOZsnoYOa8MtV1giZbS4/PwPcfmevWsgU7sv6Ctvb0BHanQEotVKGdh3baZpwcNjyrQuVQAwDRcyiktIT6EpPBjKo3MQmBxZDiqZSEJFKfw1z2d3quoTwpYUdxfFOZEwd7deFpiK9UrCy8CxPEhd7JWqVyabqQWUFntDapC9hVcT4MQNbJRwgVKSkYaMozMWkqiY+1HE4CtRk2BCHWiKivZF5moKQ3hlzKq134Jfi9GHbAai62Ji0RVAFOGZlepWsGO19aa0sWE0YQExKAnEb5UJxAhCESk21KjLuUc/cUZWheeeM1Ugxch2sswTlKFEOXcXw1OJBRu3RgG6uoQXdzyAZwAVZ2u1ZHR9L8UtgFjOy8oiW0A31sBMcFqYchEsqLyENQuFc4Mm9TOTBaBQwXQGYHmGZcSSGKKEwRq553psYjFJeaImDqPG5cDNTgRpyPKCsgRU+TlhysEPmNmRZKTDDuOjXHFQ8dQV2pObUdrGIZsiERF47Hd9kol1bctgGMt93+oAiTfHuFSc6+WPwLw0JrJJJuMrgBNN4KCC8AWslte/SFjF+NRecwe3Ifl2z1KMa1evk8ecD9NjEMmuuBeJdSZvnpZnVvkJhRpHMpaFd0wBFLgIKJwvlnp4NtjNAmtC3COUb4mO+MaeraohdHBN6jBLLouya7CgahwzDtcNr5oaW9S/SiQZ8JCBacG2F5ZwYoNYJxqGMkPGlOVRkgOFgMCa0bTFJDRN2PAUt0dHBHRb+MsX5WK5FvwFynBzqJB/MAYz0wUyenZWZVOYm5bCoTHAHTkDTLgRXJc49CfDnyzJiRQFEmCOTpynDqASIegjBrpI8gzCd4cjEuhj+qycfXm4bjLMLnKPd1tPjRVBxWN0l+NLyAwCQaUy67pdSGEHqrpe6Xh6sONrFhrEqNwHu8RGc8paE2VpEhWpsBZuQ0aptBYtKMlkWIuI1MAquEgY29pDWsBScsYxwgiMbYWcAcm1wGFuxqF4N0pDcoSu+BCoAD2sxsafuQSsXUOfjLIWwGuO6jCqlElRnvirv4InymCUqCyn7rkA9ekZlBit1oMSqNZizqGA1Le7arueRwudx4hgt5BS0CusKCuMNjNC0bp61NoSXGJcRzAGEHdTm9K7yHANeTXNcDwpwiZ0/0dt0KaCC4oDKpUNQmcGuiXAxecaa+h+HSMgKpp8QRrPTNckV3aflPQhGMUAXUaUVRhzMyXCjRDJJfVVQVmUO0I8BaGVWmyCEdjBG1mA33UooBszUDgmE+ykMXQwi2B+4dtrxVq3faKguOcABDJaabOF41xm8rGg36e0LjBB6NgAKlEMiEIYwtPsKFK0Q8/sZoNW1lTjWFKbsPkqeAF/gYw=",
+      "registered_height": 1
+    },
+    "keys": {
+      "by_id": {
+        "k:3adc3f80c549d6ad": {
+          "active": true,
+          "created_height": 0,
+          "key_id": "k:3adc3f80c549d6ad",
+          "key_type": "main",
+          "pubkeys": {
+            "mldsa": "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+          },
+          "revoked": false,
+          "revoked_at": null,
+          "revoked_height": null,
+          "sig_profile": "pq-mldsa-v1"
+        }
+      }
+    },
+    "locked": false,
+    "nonce": 6,
+    "poh_status": "active",
+    "poh_tier": 1,
+    "poh_tier_label": "Async Verified Human",
+    "pubkey": "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb",
+    "pubkeys": [
+      "1f8bcd8241c70fa1a230f8bd4072e04a160ad803633c07ee2147da2915d9bebf6f8c2c49ba444e9e808610ab2347f3cf3dd57d94d1d1ce8cbae02bb3864a6b7fe8285f95a33b52664cde4089e3f52f6ba47afa22ad4506e1b504d782ab8f4f55be1bd181d1493167e2c3b535715d67f1071dfc94fc2b9c187ff44518e519353d4db7fab092d873711eaaf0c8cbbba368bf1d08cb30d238bf2c2214848977cd11cbc10e18d9e5df89bd0b6e92c31e1a46df19e0efbac1d7cce61b83277495e65eb2829b4cd1d475964f77b87951cf2b100bdb2fd3eb0665862a912329e477c38e9b63ed34dfc47f30c7adb505509d1973351d32bbaa8617c471b9c6cbc494b5d088bd92d8a6ab71d8cb500d73e0ac5ce4a63867dcaee3dbca3c45ffd083885ea9d5803a68f30d4ec70cc365708fa617b6dc49592004d5e18b693ad1f51ef8b94e70e27b07a7b78146e324cf3eb72b8a728296fa65e4c035a5d7d51cc21d5c64a085e0f851c0ce4e5c27ec475a03bb163e1a76de26a245fb4dd44d53e372b9fc6b3f17a28f055318b1afe19193d27b3d57b8707c0e5dc02f602176570fc986792205ef0e3ad0a2b7c3c6f5e2990f59db73e7853abdee9d277322afb5e958706a3bbc011b1e1475452a429a8820bb3d4d6b1c185e2bc175b9684303cbb64238bd4262a43df532f88e048d3d62efd71b423177c9fd5a545105ae384c96d18f4d1624104d3c22856aeaf8a23481dac8d9180e28e99c5149ce99777c1fb9a06a849374791ab435f6629389c13af891488f1fe4480dbeed6a9864a467063c3a2977658b46d2cc6848b920346a22fc56291e49157a94d625edf2b964519904d1e04410858356eb57b61649db91631aab3836b8306101dbfc09c2474f5e5da5b5492b315a7306bce301440de23bb9f68365bb452b2d804536f03cc21bb57231a9a712d1b6b9de6778f72a94cf19c68f9b1dfe6248dad24b272189640bdb9ce16c91cea772d8df6ee230b46afec874845416dfdc97ed7d67ca9cacfe4637b0118059fc864ee550f43a54f1d9cc1fd97ee2aeb9e6f75aea34f1b7fccb0b1273b334d28be5f47fda3ff9bba8c0a9dec093d0fef898bd1a5666b1c788d63941cde0145b0345e5d7738145d1ab40ea5a1904c4874e12a8767efd6fdd30a6268b7f372dc263cdb06924f60c96fffc524338050e419fece0dc8edc43492ba3cbadce84dd6f647b7800a530d2b7829c00c957d792d3f3a48adbc9d1355fdcf39dbdd2e565c290d196f24ea5eacdc6ba0f49b93f190a018a8a6b1b10578556c20b248701edc0d66a531be9ff3228d1f6452c0bdaa9c9e79f6a49ec6d5e5c20e1984d1d5e799cc85046d1ef9b8318e337658172b8c69089d7aecd012d15cf266acd30b2ac19767451d77583cc6ea86b5653e7c9701aa4244c939670538093ba062b78f517cd0b4cbeac10b346439bcf83b6b9f18e65d5c8a087617e380521b9723cfc15dcfcf63971556c889dd133175127c4e787ff24f30886f04180029bba33117564da487e031ecae7b99db5fe4c977f44b85833c023b4e8c6a83f8f44054c208aa93c555cacbd883f9a634e21e74a1b9a83e8a6ef076a36274cb48ad529f62aa85bb75fabec133dcc2240b692eadc961b6d2155a46b3469dc70020e1009a010deb8cf72be946ea5c3d9bca7ad6fd378c813dc1a117789a10074d7ea53a964330706164bd75af1046b5a5a17f9670edd84071a0776d312bb40fe5c067b37e4f234a36c5fb88aca10cb6fb6c629c298a02cccfe0a228cb6f3cb40a360c5bb62a103ab30a610c429db687356ad7761981e9b2e0f529d70f52b85ba52a029e789a44775453caeb7e142c54287617892e82469f5734f595769b7d584ea2a7ef4709c6bc43179989335ad529f2f641d86784c273fbbe2fa9f046706c9ddce021b08025f5fc4a9e474e21603955394e159f0ea195de9aabf647638553d4ab65ef721f896713149200bbdd0928d54128e29992df0f755672c44d5ac6dde1a50d2f94fdf835607a9e2931db136300842536cfe3c3d5e911e616e9fb233521478cd37ccfd8dd5bd7abff4ab798b507061a8493d587b0d3e280c1da1ea29ee36ca655e2979347c3d4924f4b3f03fcaaea6bf9df456743b3ea6862c9fd3db8b7a03821d9d8f2d014fe39bc27066f944447c3bca717e261c3a358f26cb4743a5ac3af3d71733f59d244d799e6ee9c2bef4192584fe5ceffb5db0a3f09661fe1315b2733d63d9e3ff406bbc238d34834cab54f84b4499f3e57807426e2f2e3ab4c2693557d60f6d2fdec64733267b62babf1c2bfa497413679b556e3021b01c47868f0709d03da73fab8b6bcd8ddfc86f4809796944d1d7f5c529d73a8af1f1ae80515f97cd37b762ae7aac004325e2e236b2954d00d1593e577255fe050ceed246ba9ba9cfeb4b0c0130d193d27f1d348deacb5cd5adf2381d064854e7575c00480ffe9403417b4a312f49aff7c575f978c8859a0f73b2680350ee8a1b6f83d9e09fc96aec12913a31a8d2df55952fea288161bdb341a15d1781cb11301cbb786228fb4f62553cebde7a29e3f19b1e0e939b35f86df42a2894a3d69ad33d7edac3238a340d0c5cb62a5c999eb18bbaf9c71a0c0a582c162d55096a4d90d16a916a6c0b1cf49eedd06ff9e267a9e7bd3c09d2304a0b4320fe304c3de1d1106997582038065de65a268760743693139dd8a756637033046e4cb19266ed88906ed87ea39b0806054987f44a192278fb"
+    ],
+    "recovery": {
+      "authority_generation": 1,
+      "config": null,
+      "failed_attempt_heights": [],
+      "history": [],
+      "mode": "offline_key",
+      "offline_key": {
+        "commitment": null,
+        "generation": 1,
+        "key_id": "k:3ec16a471a42cc2b",
+        "pubkey": "a35a11f61da4709431944035b1afd481b400b9793a21e4a68223bca57d48037dbf6a91283ee4e870cd7ccc44b87a4ec6f28fb11c639356d40b98440a6198b5e5b8131c04ba9bbc263d1b69f876770135952d36e66e8711b5135843e2f6e7db0397ffe6a9f6c59ac06ec3dc3cbe0870a525fa2e06a172c7ae2f1c330bfc86391414ac4e80ddeadee189f595aae57e4fe21adeb03cb1d9e135e3f72540d7bafac2b8a2b226cf183ead620929d0c8e31fb4d64ed728bd1e65ccb4408110314d8163e3351be34c7a120a595b4bbfa6dfca09c516996eec3aaff3096dd76f51453d98a0d32847931dd2470daebf913064ca2f54642e79abf63968db062734a1324ef5032b8fa863c4be460d5a10d9df70457bbd7f29c7c34f69f79ba56906303726dd1cc9e5953885c80f6de6d83377ef9c9aa1a3ac267f80ebe12feeae688c0d04da003941197fbc68b1dbdb15b07a18dfd792ba86bd90cb1e0ef12c8e6d7f25155d7c8f6db9e9145183024d3da6d797b8b297f71ee47410f3d7f05bba862c1c0a794f54436318329f38bc3d18abea367db00815a7e0c2371f10463e436f6bb2e26b466309b7dcdcde3406a93649d1a15bbaef291d27b341766a8d61dd07757b8259d62715dbb4707ef28d490ed5807b484437d1f3593304ec62f15ec292c44164b50f9473e266a3b29adab5cf2eda659b17ccd6be8b4e9b15290d1557392c73d1252261c690960badfa1fe4fed30f787230465afee443b97f12d104def8a723f0b88682d6fdc48a580fa27c233347daab126bb464b2a919e02bff3031d8457cc65819852ea7e8aac7f5d1c2a9e84a0fd300adb65d3286480018c1f3ad4a3b8ed33c3929921701e8177702fcc2863bcdc92f6cc1bb05d8af2bb7bbf7bdebe56b2b0986891d1f642ac195aa61c51f492ecb4295266ed04549505c4ec4c6bae79dd62b24a3dbc6c708d0fbeb37d8f5d151e81a6360c1c29366754d003601b20d2bdc0a8d453f6bc50d6546fe0007c38b7d7e2a0724d02f40a04691c5d976e214ee0ac0cc12701424e993c935085fb39e2081c364cf0ee96f46defedaa6cb472fd4e362e92882c76ee2e2379d5969addfd94d30df37ac728f808c83e4ba443eb154b54919a7d85a33b38bc695556e2fbeeb456f3e6b64fe055dec87a6304260199d1ce63b9d92c00f84fa21f99f4daf872611f90e9a4bd8979431cbd63e3902b1e9a8c365e7ae5f3f030ce51cd04833f8e0cc403183e204f6373ee9968d2e4817a5c622094e37d5cac842a16097b073c6f17487fb26eae20b4d71bc7c723e1848100da3ebeb891c3be6b1ed91a0707cc475f9fe9f7b2a7a3d88cf0bd6d18d43c54450f0ba2acc5b2b1061c0d5852dcec0b9deb5eb03b85e6471fb7c38b32bb6f7abd849b028f87d7cd5ce53bffaaa4f0946a7aedd880656f3e902f381f6a3051146545bae6427b1bfd686ef2c743c3330e06dee855afb036222e5151cde9c7f6144c4ccdf0dcb40441cf181c161aa38ad96d6d8742b44418853ccc1d180c9ad962c278f878b36a2a11dc737ad05558beb1e43fa3c3098df15a7c0393ef8bf40bd26cfcdb57348f9a511fea0278932ac240d2fbb2d29b6cdef65efcc3a39c2bd4786066da5045074ee4653020937a3f3a6fde3dab47f81df36a13ae703ca1fd9adebff0e803e7c84876d7aee5e8110f166bae935684b0adcae54b08f844468ab1b8c7bafc82911d449aec4e949bf7980a696aeaf19bb76672434616d9d4dcae63f4ff65e0b3dce493167ca721db8a7f61fcb390c5300a43e253e7075d193008c5577935cf61adcc239e158fde09f54437c5c86749ca7ae8860df320929bd9289f1248fc9966fa2632e835a20ea6e635fbb74fe1eec380ccc956d7028da6472e415a102eb70f5eff8468e2cc4e7824ff371273e9c208ada2028842077825344d6b2b28cfa0f3ed5288aaa183facdc5f488a6b5fc4d44391b0a9640e29b9aaaa5340a3edf99ffe610a56c5efa344647bcb4c0e7e93fa52f51ab02271c4c9e2c26e74f9f1105bed51cb89db518759024a90df34172cacb4d5464f2b1c642c862264ea1dc78c93b477834c6a40761c0b9e91f3c1f0037b251d58d7ed21b842bba6ec5e0007ce194dd4e51df3630a333a4dde2cc322b26ac3da33d2c755038587941d95e84b5c1ed2f6b03bd953981c302db96dff5b01eec068bbbc5b4c6fdbb108cd1d9efbf8081dc6820e377e189f39816874c068cf16e28a405f52e3e734581faa996e38691bb22aaeed6355d161c86d8726322d1121a55c82130c281e57bf3c3a6702bde0e6c628b3bfa4c43bb6596ebd083bac64ce96756490185b484d8870903e19f69c3ff72aa5fb7a2fc42a21711cc0be7359dd20cb76dd9583f5336a81ebe6225e18b234789ac729b5b9e23389cb3e0c7e2acc04da61617d1393a8888d287ec4e5019da18511649349ae8a5f45128889f49a730b16ae5a3a04ac97ade28605ed0afc518df0a7c7bbeb7f948b3807e961995a72cde475644a922a29f3300756b6e5d70941bd62dcb7c7390f83f0a0797afa0b3c73e50b626619b8727b1f7ad7b0b455bd435042ca1fe5a2f8606a97c173668251c151292b5893da3789f63c41b410c5225fa4c7ab1738e114e1c00c144366edbb7197bebbb04be2b717d4fff83e86c4e50d75d5b2d0c62dea776453edee6c1536103bda3d09e821d0f45de4fdbc42ffe235da5660aabb14bb78297d04eb945d8e0f4e6902f60a0fb091ef40d7bb8a66",
+        "registered_height": 1,
+        "registered_via": "account_register",
+        "sig_profile": "pq-mldsa-v1"
+      },
+      "prior_offline_keys": [],
+      "proposals": {},
+      "requests": {}
+    },
+    "reputation": "0"
+  },
+  "api": "http://127.0.0.1:18111",
+  "case": {
+    "account_id": "@devnet-1f8bcd8241c7",
+    "case_id": "poh_live:@devnet-1f8bcd8241c7:6",
+    "device_pairing_commitment": "a8ff431581ab11c638860640c218340a648499b05bd57b88322897e61d48959f",
+    "finalized_ts_ms": null,
+    "init_ts_ms": 0,
+    "jurors": [
+      {
+        "accepted": false,
+        "attended": false,
+        "attended_ts_ms": null,
+        "juror_id": "@devnet-genesis",
+        "role": "interacting",
+        "verdict": null
+      }
+    ],
+    "outcome": null,
+    "poh_nft_token_id": null,
+    "prompt_commitment": "7ba2b2fc7450868346c0a2eda06e34e2894376bfa9894310866a25dfe08cdd05",
+    "relay_authority": "transport_only",
+    "relay_commitment": null,
+    "requested_by": "@devnet-1f8bcd8241c7",
+    "room_commitment": "3c123d73470368bbbd400007a493062d0a9ea23517677973d6e93d8ed7a65937",
+    "session_commitment": "0f86f04bbd46a3837757821c1de8cf0ab4b52dad5b70169285efaf6ee042ef48",
+    "status": "init",
+    "tier_awarded": null
+  },
+  "case_id": "poh_live:@devnet-1f8bcd8241c7:6",
+  "chain_id": "weall-controlled-devnet",
+  "ok": true,
+  "submit": {
+    "gossip_propagation": {
+      "accepted": false,
+      "attempted": false
+    },
+    "mempool_size": 1,
+    "ok": true,
+    "status": "accepted",
+    "tx_id": "tx:ef60a8e46c92d0c29d27fe396565c3aece7281b4bfea1c99e6c4c26f1b860569",
+    "upstream_propagation": {
+      "accepted": false,
+      "attempted": false,
+      "error": "no_upstreams_configured",
+      "results": [],
+      "skipped": "no_upstreams_configured"
+    }
+  },
+  "tx_id": "tx:ef60a8e46c92d0c29d27fe396565c3aece7281b4bfea1c99e6c4c26f1b860569",
+  "tx_status": {
+    "block_id": "34bbab1ef3c029a004582e6c5a188875ed40d2ebcbeadab7cf1fc2d219f77fd5",
+    "height": 10,
+    "included_ts_ms": 200000,
+    "local_state_synced": true,
+    "ok": true,
+    "outbound_propagation": {},
+    "signer": "@devnet-1f8bcd8241c7",
+    "status": "confirmed",
+    "tx_id": "tx:ef60a8e46c92d0c29d27fe396565c3aece7281b4bfea1c99e6c4c26f1b860569",
+    "tx_type": "POH_LIVE_REQUEST_OPEN"
+  },
+  "tx_type": "POH_LIVE_REQUEST_OPEN"
+}
+{"case_id": "poh_live:@devnet-1f8bcd8241c7:6", "kind": "live", "ok": true, "output": "/tmp/weall_m2_live_browser_N1Boqg/.weall-devnet/m2-live-actors.json", "reviewer_count": 1}
+==> Live browser handoff ready: /tmp/weall_m2_live_browser_N1Boqg/.weall-devnet/m2-live-actors.json
+==> Controlled devnet onboarding E2E complete
+==> Auto-started node 1 left running pid=29571 log=/tmp/weall_m2_live_browser_N1Boqg/.weall-devnet/logs/node1.log

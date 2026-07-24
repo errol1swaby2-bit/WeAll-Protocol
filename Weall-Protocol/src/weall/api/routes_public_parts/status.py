@@ -1242,13 +1242,22 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
     if not clock_policy.enabled:
         clock_policy = policy_from_state(state if isinstance(state, dict) else {})
     constitutional_clock = policy_to_json(clock_policy, current_height=constitutional_procedure_height(state if isinstance(state, dict) else {}))
+    # The current state root is not necessarily the manifest's genesis-state
+    # commitment. In particular, a joining controlled-devnet node begins with a
+    # provisional height-zero local state and adopts the canonical state through
+    # trusted-anchor sync. Treating that provisional root as canonical genesis
+    # makes an otherwise compatible joiner report a false manifest mismatch.
+    #
+    # Static production genesis commitments are validated fail-closed while the
+    # executor loads the pinned genesis ledger. This status surface therefore
+    # validates immutable manifest/config commitments here and reports the live
+    # state root separately below.
     chain_manifest_report = chain_manifest_status(
         manifest=chain_manifest,
         chain_id=chain_id,
         mode=manifest_mode,
         tx_index_path=_safe_str(getattr(ex, "tx_index_path", ""), ""),
         schema_version=_schema_version(ex, state if isinstance(state, dict) else {}),
-        state_root=state_root if height == 0 else "",
         strict=_env_bool("WEALL_REQUIRE_CHAIN_MANIFEST", False),
     )
 

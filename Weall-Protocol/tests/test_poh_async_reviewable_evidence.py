@@ -28,7 +28,7 @@ def _state() -> dict:
     }
 
 
-def test_async_evidence_declare_stores_reviewable_video_reference_without_granting_tier() -> None:
+def test_async_evidence_declare_stores_encrypted_reference_without_granting_tier() -> None:
     st = _state()
     opened = apply_tx(
         st,
@@ -56,14 +56,14 @@ def test_async_evidence_declare_stores_reviewable_video_reference_without_granti
                 "evidence_id": "evidence:video:1",
                 "evidence_commitment": "commit:video",
                 "response_commitment": "commit:response",
-                "kind": "fresh_recorded_video_v1",
-                "public_evidence_id": "ipfs://bafyvideo",
-                "evidence_cid": "bafyvideo",
-                "uri": "ipfs://bafyvideo",
-                "mime": "video/webm",
-                "name": "poh_async_video.webm",
-                "size": 12345,
-                "video_commitment": "commit:video",
+                "kind": "encrypted_fresh_recorded_video_v1",
+                "encrypted": True,
+                "encryption_algorithm": "aes-256-gcm",
+                "ciphertext_cid": "bafyvideo",
+                "ciphertext_commitment": "a" * 64,
+                "encryption_context_commitment": "b" * 64,
+                "provider_ids": ["@provider"],
+                "ciphertext_size": 12345,
             },
             signer="@alice",
             nonce=2,
@@ -73,13 +73,14 @@ def test_async_evidence_declare_stores_reviewable_video_reference_without_granti
 
     case = st["poh"]["async_cases"]["case:@alice:1"]
     rec = case["evidence_commitments"]["evidence:video:1"]
-    assert rec["kind"] == "fresh_recorded_video_v1"
+    assert rec["kind"] == "encrypted_fresh_recorded_video_v1"
     assert "evidence_cid" not in rec
     assert "mime" not in rec
     assert case["public_evidence_ids"] == []
     assert case["reviewable_evidence"] == {}
     protected = case["reviewer_restricted_evidence"]["evidence:video:1"]
-    assert protected["evidence_cid"] == "bafyvideo"
-    assert protected["mime"] == "video/webm"
-    assert protected["uri"] == "ipfs://bafyvideo"
+    assert protected["encrypted_blob_cid"] == "bafyvideo"
+    assert protected["encrypted_blob_mime"] == "application/octet-stream"
+    assert protected["provider_ids"] == ["@provider"]
+    assert "uri" not in protected
     assert st["accounts"]["@alice"]["poh_tier"] == 0

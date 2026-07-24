@@ -1,0 +1,62 @@
+
+> weall-web@0.1.0 build
+> tsc -b && vite build
+
+vite v8.0.16 building client environment for production...
+[2Ktransforming...✓ 126 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                    0.80 kB │ gzip:  0.36 kB
+dist/assets/index-Bpt3Lvwf.css                    40.40 kB │ gzip:  8.27 kB
+dist/assets/useTxQueue-D_wQqjpE.js                 0.07 kB │ gzip:  0.09 kB
+dist/assets/useSignerSubmissionBusy-C4E9HFfI.js    0.39 kB │ gzip:  0.27 kB
+dist/assets/accountSurface-Yk6xdbPY.js             0.46 kB │ gzip:  0.30 kB
+dist/assets/rolldown-runtime-Bh1tDfsg.js           0.56 kB │ gzip:  0.36 kB
+dist/assets/capabilities-DopgV2u5.js               0.62 kB │ gzip:  0.37 kB
+dist/assets/useMutationRefresh-CPCvOOVw.js         0.69 kB │ gzip:  0.40 kB
+dist/assets/RequirementList-tlIDme5A.js            0.80 kB │ gzip:  0.42 kB
+dist/assets/groupsRevalidation-BXuZF1-i.js         1.41 kB │ gzip:  0.57 kB
+dist/assets/ActionLifecycleCard-BemnHZ5p.js        1.45 kB │ gzip:  0.69 kB
+dist/assets/liveRoom-CKav6tlw.js                   1.85 kB │ gzip:  0.90 kB
+dist/assets/procedureClock-Yj_AH3dY.js             1.87 kB │ gzip:  0.74 kB
+dist/assets/disputeRevalidation-DKutjWTs.js        1.90 kB │ gzip:  0.77 kB
+dist/assets/ProcedureTimeline-B0C8uBYx.js          2.62 kB │ gzip:  0.79 kB
+dist/assets/passkeys-CxNhin3k.js                   2.75 kB │ gzip:  1.23 kB
+dist/assets/txAction-BuujT9M3.js                   3.14 kB │ gzip:  1.00 kB
+dist/assets/reviewLanes-B4ybVKA6.js                3.86 kB │ gzip:  1.53 kB
+dist/assets/Feed-BbKsMwGY.js                       4.09 kB │ gzip:  1.55 kB
+dist/assets/evidenceCrypto-C_iuNf09.js             5.15 kB │ gzip:  1.80 kB
+dist/assets/NodeConnectionPanel-xwigdimf.js        5.28 kB │ gzip:  1.84 kB
+dist/assets/Activity-CX2WjKFw.js                   5.39 kB │ gzip:  1.98 kB
+dist/assets/MediaGallery-CGRLkHoR.js               6.10 kB │ gzip:  2.42 kB
+dist/assets/Groups-Df9Tkh0k.js                     7.13 kB │ gzip:  2.27 kB
+dist/assets/Economics-BA8WFE_I.js                  7.40 kB │ gzip:  2.20 kB
+dist/assets/GroupCreate-DE6cQy-X.js                9.53 kB │ gzip:  3.17 kB
+dist/assets/SettingsPage-DiVqntXi.js              11.70 kB │ gzip:  3.28 kB
+dist/assets/Disputes-D9BHWScA.js                  11.76 kB │ gzip:  3.40 kB
+dist/assets/ProposalCreate-BZg8G3oy.js            12.05 kB │ gzip:  4.06 kB
+dist/assets/Tools-M6DISmpl.js                     12.93 kB │ gzip:  3.02 kB
+dist/assets/Thread-sd8Zy8hy.js                    14.03 kB │ gzip:  3.74 kB
+dist/assets/Proposals-HRPIj1_p.js                 14.32 kB │ gzip:  3.87 kB
+dist/assets/SessionDevicesPage-Alc-f66m.js        14.83 kB │ gzip:  4.12 kB
+dist/assets/DisputeReview-BPNigLXd.js             17.13 kB │ gzip:  4.86 kB
+dist/assets/Content-CYKekMSH.js                   17.49 kB │ gzip:  4.59 kB
+dist/assets/TransactionsPage-NhqdfBYx.js          18.45 kB │ gzip:  5.01 kB
+dist/assets/FeedView-BWWDuBYu.js                  18.52 kB │ gzip:  5.92 kB
+dist/assets/HomeDashboard-Bpv9dFmz.js             18.77 kB │ gzip:  5.50 kB
+dist/assets/Group-BArwixF-.js                     19.44 kB │ gzip:  5.45 kB
+dist/assets/DisputeDetail-DOUvTP10.js             21.03 kB │ gzip:  5.68 kB
+dist/assets/vendor-CcUYofyK.js                    22.08 kB │ gzip:  8.68 kB
+dist/assets/LoginPage-Ayfv4TxL.js                 23.45 kB │ gzip:  6.30 kB
+dist/assets/Post-BK4rHAI9.js                      28.83 kB │ gzip:  8.75 kB
+dist/assets/LiveVerificationRoom-D92BAYlP.js      29.44 kB │ gzip:  9.07 kB
+dist/assets/JurorDashboard-D9TXX4X9.js            29.73 kB │ gzip:  8.36 kB
+dist/assets/Proposal-Ce0xrLWL.js                  34.20 kB │ gzip:  8.36 kB
+dist/assets/PohPage-vwKNYjOa.js                   40.00 kB │ gzip: 11.18 kB
+dist/assets/router-BjEm1q08.js                    53.22 kB │ gzip: 13.86 kB
+dist/assets/NodeDashboard-C7cYljj8.js             53.71 kB │ gzip: 14.09 kB
+dist/assets/Account-CJRQVgMb.js                   62.74 kB │ gzip: 14.66 kB
+dist/assets/index-B6hAB3Gl.js                    115.42 kB │ gzip: 33.70 kB
+dist/assets/react-vendor-CIxRT3XZ.js             139.88 kB │ gzip: 45.35 kB
+
+✓ built in 337ms

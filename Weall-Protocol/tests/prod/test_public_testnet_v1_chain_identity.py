@@ -88,12 +88,20 @@ def test_checked_in_registry_and_trust_roots_match_current_public_testnet_identi
     monkeypatch.delenv("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEYS", raising=False)
     monkeypatch.delenv("WEALL_EXPECTED_TX_INDEX_HASH", raising=False)
 
-    loaded = load_public_seed_registry(allow_local=False)
-
-    assert loaded["tx_index_hash"] == manifest["tx_index_hash"]
-    assert loaded["seed_registry_signature_status"]["verified"] is True
-    assert loaded["seed_registry_signature_status"]["trust"] == "pinned"
-    assert loaded["provider_authority"] is False
+    if registry.get("seed_registry_rotation_required") is True:
+        # A chain-identity reset invalidates the previous signature.  The
+        # repository intentionally remains fail-closed until the operator
+        # performs the documented ML-DSA re-signing ceremony.
+        with pytest.raises(PublicSeedRegistryError):
+            load_public_seed_registry(allow_local=False)
+        assert registry.get("pq_resign_required_before_public_testnet") is True
+        assert not str(registry.get("seed_registry_signature") or "").strip()
+    else:
+        loaded = load_public_seed_registry(allow_local=False)
+        assert loaded["tx_index_hash"] == manifest["tx_index_hash"]
+        assert loaded["seed_registry_signature_status"]["verified"] is True
+        assert loaded["seed_registry_signature_status"]["trust"] == "pinned"
+        assert loaded["provider_authority"] is False
 
 
 def test_public_registry_is_rejected_when_it_does_not_match_repo_trust_roots(tmp_path, monkeypatch) -> None:

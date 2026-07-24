@@ -270,6 +270,7 @@ def pick_tier2_jurors(
     n_jurors: int = 3,
     min_rep_units: int | None = None,
     min_rep: Any = 0,
+    excluded_accounts: set[str] | None = None,
 ) -> list[str]:
     """Deterministically pick Tier 2 jurors.
 
@@ -291,7 +292,8 @@ def pick_tier2_jurors(
         min_rep=min_rep,
         reviewer_lane=POH_TIER2_REVIEW_LANE,
     )
-    pool = [a for a in pool if a != target_account]
+    excluded = {str(value).strip() for value in (excluded_accounts or set()) if str(value).strip()}
+    pool = [a for a in pool if a != target_account and a not in excluded]
 
     need = int(n_jurors)
     if len(pool) < need:
@@ -312,6 +314,7 @@ def pick_async_jurors(
     min_rep: Any = 0,
     allow_partial: bool = False,
     allow_roleless_bootstrap: bool = False,
+    excluded_accounts: set[str] | None = None,
 ) -> list[str]:
     """Deterministically pick jurors for native async Tier-1 review.
 
@@ -328,7 +331,8 @@ def pick_async_jurors(
         allow_roleless_bootstrap=bool(allow_roleless_bootstrap),
         reviewer_lane=POH_ASYNC_REVIEW_LANE,
     )
-    pool = [a for a in pool if a != target_account]
+    excluded = {str(value).strip() for value in (excluded_accounts or set()) if str(value).strip()}
+    pool = [a for a in pool if a != target_account and a not in excluded]
 
     need = int(n_jurors)
     if len(pool) < need and not bool(allow_partial):

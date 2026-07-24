@@ -46,6 +46,56 @@ NON_INSPECTABLE_PROTOCOL_KEYS: set[str] = {
     _legacy_token("wh", "isper"),
 }
 
+
+# Proof-of-Humanity raw identity evidence is the sole protocol-native exception
+# to the public-readable content rule. Consensus stores only deterministic
+# commitments, encrypted-object identifiers, and reviewer key-envelope
+# commitments; plaintext identity evidence never enters consensus state.
+RESTRICTED_IDENTITY_EVIDENCE_TXS: set[str] = {
+    "POH_ASYNC_EVIDENCE_DECLARE",
+    "POH_ASYNC_EVIDENCE_BIND",
+    "POH_EVIDENCE_DECLARE",
+    "ACCOUNT_RECOVERY_REQUEST",
+    "ACCOUNT_RECOVERY_APPROVE",
+}
+
+RESTRICTED_IDENTITY_EVIDENCE_ENVELOPE_TXS: set[str] = {
+    "POH_ASYNC_EVIDENCE_BIND",
+    "ACCOUNT_RECOVERY_APPROVE",
+}
+
+SAFE_RESTRICTED_EVIDENCE_KEYS: set[str] = {
+    "encrypted",
+    "encryption_algorithm",
+    "ciphertext_cid",
+    "ciphertext_commitment",
+    "encryption_context_commitment",
+    "ciphertext_size",
+    "key_envelope_commitments",
+    "kem_ciphertext_commitment",
+    "wrapped_key_commitment",
+    "envelope_commitment",
+}
+
+# Reviewer-scoped PoH/recovery key envelopes are the transport mechanism for
+# granting a subject or assigned reviewer access to the encrypted evidence
+# object.  Their ciphertext is intentionally opaque, but only inside the
+# designated key_envelope_commitments subtree of a restricted identity-
+# evidence transaction.  Every other opaque protocol field remains rejected.
+SAFE_RESTRICTED_EVIDENCE_ENVELOPE_KEYS: set[str] = {
+    "algorithm",
+    "kemciphertextb64",
+    "kem_ciphertext_b64",
+    "nonceb64",
+    "nonce_b64",
+    "wrappedkeyb64",
+    "wrapped_key_b64",
+    "contextcommitment",
+    "context_commitment",
+    "envelopecommitment",
+    "envelope_commitment",
+}
+
 NON_PUBLIC_GROUP_KEYS: set[str] = {
     _legacy_token("pri", "vate", "_", "group"),
     "is_private",
@@ -194,7 +244,26 @@ def _scan_public_protocol_payload(
         nv = _norm_value(child) if isinstance(child, (str, bool, int, float)) else ""
         child_parts = (*path_parts, key)
 
-        if nk in NON_INSPECTABLE_PROTOCOL_KEYS or _legacy_token("cipher", "text") in nk or _legacy_token("encr", "yption") in nk:
+        restricted_identity_evidence_field = (
+            tx_type in RESTRICTED_IDENTITY_EVIDENCE_TXS
+            and nk in SAFE_RESTRICTED_EVIDENCE_KEYS
+        )
+        restricted_identity_envelope_field = (
+            tx_type in RESTRICTED_IDENTITY_EVIDENCE_ENVELOPE_TXS
+            and len(path_parts) == 2
+            and _norm_key(path_parts[0]) == "key_envelope_commitments"
+            and bool(str(path_parts[1] or "").strip())
+            and nk in SAFE_RESTRICTED_EVIDENCE_ENVELOPE_KEYS
+        )
+        if (
+            not restricted_identity_evidence_field
+            and not restricted_identity_envelope_field
+            and (
+                nk in NON_INSPECTABLE_PROTOCOL_KEYS
+                or _legacy_token("cipher", "text") in nk
+                or _legacy_token("encr", "yption") in nk
+            )
+        ):
             return PublicProtocolPolicyViolation(
                 OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
                 "non_inspectable_protocol_payloads_are_unsupported",
@@ -232,7 +301,11 @@ def _scan_public_protocol_payload(
                     {"tx_type": tx_type, "field": nk, "path": _format_path(child_parts)},
                 )
 
-        violation = _scan_public_protocol_payload(child, tx_type=tx_type, path_parts=child_parts)
+        violation = _scan_public_protocol_payload(
+            child,
+            tx_type=tx_type,
+            path_parts=child_parts,
+        )
         if violation is not None:
             return violation
 

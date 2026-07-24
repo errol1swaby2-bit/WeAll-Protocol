@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "84f75ab46aa848cf956795fbddd7f750428a60725075e5d2a078023635ee6610"
+    "source_tree_digest": "e78878978be5d79896208b0ca3c2a198d59d8edaf17439e433eb15b06f0513d3"
   },
   "rows": [
     {
@@ -1383,18 +1383,23 @@
         "src/weall/crypto/account_keys.py",
         "src/weall/poh/apply.py",
         "src/weall/poh/finalize.py",
+        "src/weall/runtime/account_recovery_policy.py",
+        "src/weall/runtime/account_recovery_scheduler.py",
         "src/weall/runtime/apply/identity.py",
         "src/weall/runtime/apply/poh.py",
         "src/weall/runtime/apply/roles.py",
         "src/weall/runtime/poh/async_scheduler.py",
         "src/weall/runtime/poh/bootstrap_quorum.py",
         "src/weall/runtime/poh/eligibility.py",
+        "src/weall/runtime/poh/evidence_lifecycle.py",
         "src/weall/runtime/poh/juror_select.py",
         "src/weall/runtime/poh/live_quorum.py",
         "src/weall/runtime/poh/live_scheduler.py",
         "src/weall/runtime/poh/state.py",
         "src/weall/runtime/poh/tier2_scheduler.py",
-        "src/weall/runtime/session_keys.py"
+        "src/weall/runtime/recovery_review.py",
+        "src/weall/runtime/session_keys.py",
+        "src/weall/runtime/tier2_responsibility.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -3109,6 +3114,7 @@
       "repository_evidence_paths": [
         "../web/src/App.tsx",
         "../web/src/api/weall.ts",
+        "../web/src/auth/evidenceCrypto.ts",
         "../web/src/auth/keys.ts",
         "../web/src/auth/nodeKeys.ts",
         "../web/src/auth/passkeys.ts",
@@ -3120,6 +3126,7 @@
         "../web/src/components/AppShell.tsx",
         "../web/src/components/ConnectionPill.tsx",
         "../web/src/components/ContentTipButton.tsx",
+        "../web/src/components/EncryptedEvidenceViewer.tsx",
         "../web/src/components/ErrorBanner.tsx",
         "../web/src/components/ErrorBoundary.tsx",
         "../web/src/components/FabActionButton.tsx",
@@ -3605,10 +3612,13 @@
         "scripts/bft_consensus_resilience_matrix.py",
         "scripts/bft_fault_injection_soak.py",
         "scripts/build_external_observer_bundle.py",
+        "scripts/build_m2_browser_actor_manifest.py",
         "scripts/build_production_genesis_manifest.py",
         "scripts/build_reviewer_lan_genesis.py",
         "scripts/check_backend_test_dependencies.py",
         "scripts/check_generated.py",
+        "scripts/check_m2_requirement_traceability.py",
+        "scripts/check_public_testnet_seed_registry_rotation.py",
         "scripts/check_reviewer_truth_boundaries.py",
         "scripts/check_tx_canon_artifacts.py",
         "scripts/check_v15_public_readiness_artifacts.py",
@@ -3644,6 +3654,7 @@
         "scripts/gen_b577_b581_containerized_adversarial_proof_v1_5.py",
         "scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py",
         "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py",
+        "scripts/gen_controlled_devnet_chain_manifest.py",
         "scripts/gen_crypto_posture_v1_5.py",
         "scripts/gen_failure_code_registry_v1_5.py",
         "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py",

@@ -87,7 +87,11 @@ def _normalize_keys(acct: dict[str, Any]) -> list[dict]:
 
 class AccountRegisterTxRequest(BaseModel):
     account_id: str = Field(..., min_length=1, max_length=128)
-    pubkey: str = Field(..., min_length=1, max_length=256)
+    pubkey: str = Field(..., min_length=1, max_length=8192)
+    recovery_pubkey: str | None = Field(default=None, max_length=8192)
+    recovery_sig_profile: str | None = Field(default="pq-mldsa-v1", max_length=64)
+    evidence_kem_pubkey: str | None = Field(default=None, max_length=8192)
+    evidence_kem_algorithm: str | None = Field(default="ml-kem-768", max_length=64)
     parent: str | None = Field(default=None, max_length=256)
 
 
@@ -260,7 +264,11 @@ def v1_account_tx_register(req: AccountRegisterTxRequest) -> dict[str, Any]:
             "tx_type": "ACCOUNT_REGISTER",
             "signer_hint": account_id,
             "parent": parent,
-            "payload": {"pubkey": pubkey},
+            "payload": {
+                "pubkey": pubkey,
+                **({"recovery_pubkey": str(req.recovery_pubkey).strip(), "recovery_sig_profile": str(req.recovery_sig_profile or "pq-mldsa-v1").strip()} if req.recovery_pubkey else {}),
+                **({"evidence_kem_pubkey": str(req.evidence_kem_pubkey).strip(), "evidence_kem_algorithm": str(req.evidence_kem_algorithm or "ml-kem-768").strip()} if req.evidence_kem_pubkey else {}),
+            },
         },
     }
 

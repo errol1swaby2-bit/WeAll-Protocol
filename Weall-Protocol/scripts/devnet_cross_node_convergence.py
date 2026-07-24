@@ -271,6 +271,40 @@ def compare_identities(left: Json, right: Json) -> list[Json]:
     return mismatches
 
 
+def chain_manifest_failures(identity: Json, *, node: str) -> list[Json]:
+    manifest = identity.get("chain_manifest")
+    if not isinstance(manifest, dict):
+        return [{"node": node, "failure": "chain_manifest_status_missing"}]
+
+    failures: list[Json] = []
+    if manifest.get("ok") is not True:
+        failures.append(
+            {
+                "node": node,
+                "failure": "chain_manifest_not_ok",
+                "issues": list(manifest.get("issues") or []),
+            }
+        )
+    if str(manifest.get("mode") or "").strip().lower() != "controlled_devnet":
+        failures.append(
+            {
+                "node": node,
+                "failure": "chain_manifest_mode_not_controlled_devnet",
+                "actual": manifest.get("mode"),
+            }
+        )
+    if manifest.get("tx_index_hash_matches") is not True:
+        failures.append(
+            {
+                "node": node,
+                "failure": "chain_manifest_tx_index_hash_not_current",
+                "expected": manifest.get("tx_index_hash"),
+                "actual": manifest.get("actual_tx_index_hash"),
+            }
+        )
+    return failures
+
+
 def classify_tx_visibility(*, status: Json, expected_status: str = "confirmed") -> tuple[bool, Json]:
     actual = str(status.get("status") or "").strip().lower()
     expected = str(expected_status or "confirmed").strip().lower()
@@ -337,6 +371,15 @@ def run_probe(args: argparse.Namespace) -> Json:
     except NodeUnavailable as exc:
         return node_unavailable_result(plan, exc)
     result["events"].append({"step": "identity_before", "node1": node1_identity_before, "node2": node2_identity_before})
+    manifest_failures_before = [
+        *chain_manifest_failures(node1_identity_before, node="node1"),
+        *chain_manifest_failures(node2_identity_before, node="node2"),
+    ]
+    result["chain_manifest_before"] = {"ok": not manifest_failures_before, "failures": manifest_failures_before}
+    if manifest_failures_before:
+        result["ok"] = False
+        result["failure"] = "chain_manifest_invalid_before_probe"
+        return result
 
     create = _run_json(
         [
@@ -457,7 +500,20 @@ def run_probe(args: argparse.Namespace) -> Json:
     except NodeUnavailable as exc:
         return node_unavailable_result(plan, exc)
     mismatches = compare_identities(node1_identity_after, node2_identity_after)
-    result["identity_after"] = {"node1": node1_identity_after, "node2": node2_identity_after, "mismatches": mismatches}
+    manifest_failures_after = [
+        *chain_manifest_failures(node1_identity_after, node="node1"),
+        *chain_manifest_failures(node2_identity_after, node="node2"),
+    ]
+    result["identity_after"] = {
+        "node1": node1_identity_after,
+        "node2": node2_identity_after,
+        "mismatches": mismatches,
+        "chain_manifest_failures": manifest_failures_after,
+    }
+    if manifest_failures_after:
+        result["ok"] = False
+        result["failure"] = "chain_manifest_invalid_after_bidirectional_sync"
+        return result
     if mismatches:
         result["ok"] = False
         result["failure"] = "identity_mismatch_after_bidirectional_sync"

@@ -447,7 +447,17 @@ def _reputation_and_flags_ok(
         return _rej("gate_denied", "banned")
 
     if acct.get("locked") is True:
-        return _rej("gate_denied", "locked")
+        # The only subject-signed transaction allowed while an independent
+        # recovery is locked is the case-scoped encrypted-evidence bind. Its
+        # signature is verified exclusively against the proposed replacement
+        # authority, never against the displaced active key. Merely using the
+        # ACCOUNT_RECOVERY_APPROVE type is insufficient: reviewer votes and
+        # legacy approvals must remain locked out at admission.
+        tx_type = str(env.tx_type or "").strip().upper()
+        payload = env.payload if isinstance(env.payload, dict) else {}
+        decision = str(payload.get("decision") or "").strip().lower()
+        if tx_type != "ACCOUNT_RECOVERY_APPROVE" or decision != "evidence_bind":
+            return _rej("gate_denied", "locked")
 
     min_rep_units = _min_reputation_units(spec)
     if min_rep_units is not None:

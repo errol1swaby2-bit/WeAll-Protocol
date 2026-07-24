@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -24,8 +25,17 @@ def test_controlled_devnet_manifest_exists_for_external_observer_rehearsal() -> 
     assert manifest["authority"]["lan_http_allowed_for_rehearsal"] is True
     assert manifest["authority"]["authority_snapshot_required"] is False
     assert manifest["authority"]["signed_snapshot_required"] is False
-    assert manifest["tx_index_hash"]
+    assert manifest["tx_index_hash"] == hashlib.sha256(
+        (ROOT / "generated" / "tx_index.json").read_bytes()
+    ).hexdigest()
     assert manifest["protocol_profile_hash"]
+    assert manifest["constitution_version"] == "draft-2"
+    assert manifest["constitution_hash"] == hashlib.sha256(
+        (ROOT / manifest["constitution_document_path"]).read_bytes()
+    ).hexdigest()
+    assert manifest["constitution_traceability_hash"] == hashlib.sha256(
+        (ROOT / "docs" / "constitution" / "CONSTITUTIONAL_TRACEABILITY.md").read_bytes()
+    ).hexdigest()
 
 
 def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehearsal_flag(

@@ -11,7 +11,7 @@ def _empty_state() -> dict:
     return {
         "accounts": {},
         "roles": {},
-        "params": {},
+        "params": {"guardian_recovery_new_admission": True},
         "poh": {},
         "last_block_ts_ms": 0,
     }

@@ -754,10 +754,17 @@ def _apply_post_delete(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_comment_create(state: Json, env: TxEnvelope) -> Json:
-    if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_tier2_action")
-
     payload = _as_dict(env.payload)
+    surface = _as_str(payload.get("surface")).strip().lower()
+    public_lobby = surface == "public_lobby"
+    if not env.system:
+        _require_min_poh_tier(
+            state,
+            signer=env.signer,
+            min_tier=0 if public_lobby else 2,
+            action="public_lobby_comment" if public_lobby else "content_tier2_action",
+        )
+
     content = _ensure_root(state)
     comments = content["comments"]
 
@@ -768,6 +775,28 @@ def _apply_comment_create(state: Json, env: TxEnvelope) -> Json:
     parent_post = _as_str(payload.get("post_id")).strip()
     if not parent_post:
         raise ContentApplyError("invalid_payload", "missing_post_id", {})
+    body = _as_str(payload.get("body"))
+    if public_lobby:
+        if not parent_post.startswith("public-lobby:"):
+            raise ContentApplyError("invalid_payload", "invalid_public_lobby_target", {"post_id": parent_post})
+        if len(body.encode("utf-8")) > 2_000:
+            raise ContentApplyError("invalid_payload", "public_lobby_comment_too_large", {})
+        lowered = body.lower()
+        if any(marker in lowered for marker in ("http://", "https://", "ipfs://", "data:")):
+            raise ContentApplyError("invalid_payload", "public_lobby_links_forbidden", {})
+        comments[comment_id] = {
+            "comment_id": comment_id,
+            "post_id": parent_post,
+            "surface": "public_lobby",
+            "author": env.signer,
+            "body": body,
+            "created_nonce": int(env.nonce),
+            "visibility": "public",
+            "labels": [],
+            "deleted": False,
+        }
+        _ensure_account_nonce(state, env.signer, env.nonce)
+        return {"applied": "CONTENT_COMMENT_CREATE", "comment_id": comment_id, "surface": "public_lobby"}
 
     posts = content.get("posts")
     if (
@@ -855,7 +884,7 @@ def _apply_reaction_set(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
-        _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_tier2_action")
+        _require_min_poh_tier(state, signer=env.signer, min_tier=1, action="content_flag")
 
     payload = _as_dict(env.payload)
     content = _ensure_root(state)

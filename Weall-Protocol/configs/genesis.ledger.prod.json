@@ -80,6 +80,7 @@
     "economic_unlock_time": 1786144894,
     "economics_enabled": false,
     "genesis_time": 1778368894,
+    "guardian_recovery_new_admission": false,
     "poh": {
       "live_min_panel_after_bootstrap": 10,
       "live_partial_panels_enabled": true,
@@ -91,6 +92,8 @@
     "poh_live_partial_panels_enabled": true,
     "poh_live_partial_until_height": 1008,
     "public_mainnet_enabled": false,
+    "require_evidence_kem_at_account_register": true,
+    "require_recovery_key_at_account_register": true,
     "validator_candidate_lifecycle_gate_enabled": true,
     "validator_candidate_node_id_must_match_node_pubkey": true
   },

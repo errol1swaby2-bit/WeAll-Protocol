@@ -480,7 +480,7 @@
     "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
     "version": "1.25.0"
   },
-  "source_sha256": "a5d32add0a129a311e265faadc8c722408c749105e62b2a8e966a059f767f7a2",
+  "source_sha256": "a841491cec6deefd4838e4c1bf4f574a338710e0746cc224c8ad9b7bbd1a21e0",
   "tx_types": [
     {
       "context": "mempool",
@@ -874,13 +874,13 @@
       "context": "mempool",
       "domain": "Dispute",
       "gates": {
-        "subject_gate": "Tier2+"
+        "subject_gate": "Tier1+"
       },
       "id": "b785ec5a1905dd27",
       "name": "DISPUTE_OPEN",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier2+"
+      "subject_gate": "Tier1+"
     },
     {
       "context": "block",
@@ -1050,13 +1050,13 @@
       "context": "mempool",
       "domain": "Content",
       "gates": {
-        "subject_gate": "Tier2+"
+        "subject_gate": "Tier0+"
       },
       "id": "3af1ac0fb0e7047c",
       "name": "CONTENT_COMMENT_CREATE",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier2+"
+      "subject_gate": "Tier0+"
     },
     {
       "context": "mempool",
@@ -1086,13 +1086,13 @@
       "context": "mempool",
       "domain": "Content",
       "gates": {
-        "subject_gate": "Tier2+"
+        "subject_gate": "Tier1+"
       },
       "id": "82809539c06b9357",
       "name": "CONTENT_FLAG",
       "origin": "USER",
       "receipt_only": false,
-      "subject_gate": "Tier2+"
+      "subject_gate": "Tier1+"
     },
     {
       "context": "block",
