@@ -1,5 +1,0 @@
-
-> weall-web@0.1.0 test:account-custody-source
-> node scripts/test_account_custody_source.mjs
-
-batch469 account custody source checks passed

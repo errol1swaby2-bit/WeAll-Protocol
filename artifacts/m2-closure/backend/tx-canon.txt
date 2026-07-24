@@ -1,1 +1,0 @@
-✅ tx canon artifacts are synchronized (236 tx types, version 1.25.0)

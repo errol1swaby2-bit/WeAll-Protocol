@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1819,
+  "file_count": 1820,
   "files": [
     {
       "affected_registers": [
@@ -771,6 +771,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "docs/MILESTONE_NAMING.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "8006db6bed4686be90495ec91c3abb09c105ef2a9db35af30577f1d4905425de",
+      "source_id": "SRC-1EDB5250126203BE"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
       "path": "docs/NATIVE_POH_BOOTSTRAP_LIMITS.md",
       "primary_mechanism_id": "M-076",
       "sha256": "a8ddc3219f6e2238a508de4c139da1a0e895a158e3ad94c9bbfe1f0a7201954f",
@@ -1076,7 +1089,7 @@
       ],
       "path": "docs/REVIEWER_MILESTONE_GUIDE.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "c56ae44c0076551abd6a9db26d8b001f40fc6ee65180811df94cdae03b0c78b8",
+      "sha256": "8ed83a760e0630ae5320b8234053b723ed6b56f9b066fe613d2604dfdc5f2288",
       "source_id": "SRC-345BCCF06EF9F0B4"
     },
     {
@@ -1090,7 +1103,7 @@
       ],
       "path": "docs/REVIEWER_PRODUCTION_READINESS_MILESTONE.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "28e0bbe21a971bec2e290013c8b3cedc364808ca4df5b99d839bd23c68ea63de",
+      "sha256": "356866a1c454a9a29503edc6497510cc3c1c3cdb2532d195d04898b9d04c0ffe",
       "source_id": "SRC-FB6C497F3AE22069"
     },
     {

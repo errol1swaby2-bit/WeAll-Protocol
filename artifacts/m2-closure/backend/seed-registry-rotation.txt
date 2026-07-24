@@ -1,1 +1,0 @@
-OK: public-testnet seed registry commitments and pinned signature are current

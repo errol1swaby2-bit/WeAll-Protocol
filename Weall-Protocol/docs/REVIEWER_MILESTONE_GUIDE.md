@@ -8,6 +8,8 @@ For the authoritative truth boundary, see `docs/TRUTH_BOUNDARY.md`.
 
 For command evidence and captured outputs, see `docs/REVIEWER_EVIDENCE_INDEX.md`.
 
+For canonical milestone identifiers and closure language, see `docs/MILESTONE_NAMING.md`.
+
 ## Current reviewer posture
 
 WeAll should be reviewed as a serious open-source Layer 1 coordination protocol implementation moving from private/local and external-observer rehearsal readiness toward public testnet readiness.
@@ -163,13 +165,18 @@ Save command transcripts for:
 11. Local block-production proof with `public_multi_validator_bft_ready: False`.
 12. First external observer remote/signed proof, if it has actually been run.
 
-If item 11 has not been run yet, the correct claim is:
+If item 12 has not been run yet, the correct claim is:
 
 > Local observer preconditions and authority lock pass. Signed remote external observer onboarding remains the next proof before claiming first trusted external observer readiness.
 
-## reviewer milestone plan
+## Reviewer readiness roadmap
 
-### Milestone 1: Clean clone and external observer onboarding hardening
+The `R-M` identifiers below are reviewer-readiness tracks. They are
+distinct from the closed `Spec-M1 / W1.1` specification-control
+milestone. See `docs/MILESTONE_NAMING.md`.
+
+
+### Reviewer Track R-M1: Clean clone and external observer onboarding hardening
 
 Objective: make a new reviewer/tester able to clone, boot, and safely run an observer without validator authority.
 
@@ -202,7 +209,7 @@ Acceptance criteria:
 
 Truth boundary: external observer readiness only; not public BFT or mainnet readiness.
 
-### Milestone 2: Account custody, PoH verification, and onboarding UX
+### Reviewer Track R-M2 / Implementation M2: Account custody, PoH verification, and onboarding UX
 
 Objective: make account creation, recovery, async verification, and live verification reliable for outside testers.
 
@@ -215,13 +222,17 @@ Current evidence:
 - Recovery reversal includes the complete restricted-height window.
 - Reviewer runbooks, restart/replay, two-node equality, observer catch-up, semantic scope crosswalk, and evidence-integrity tooling exist.
 
-Work remaining for formal closure:
+Formal closure status:
 
-- Perform the legitimate operator-held ML-DSA public-testnet seed-registry rotation.
-- Create a clean implementation-freeze commit.
-- Run the complete closure suite from that freeze.
-- Build and validate the schema-v2 evidence manifest.
-- Create and independently validate the evidence-only closure commit.
+- M2 is closed through the required implementation-freeze and
+  evidence-only two-commit protocol.
+- The original closure pair remains preserved in Git history.
+- The authoritative latest freeze commit, tree hash, command ledger,
+  artifact hashes, state-root summaries, and truth boundary are recorded
+  in `artifacts/m2-closure/M2_EVIDENCE_MANIFEST.json`.
+- Any later closure-relevant source or documentation change requires a
+  new roll-forward evidence pair before claiming byte-for-byte closure
+  for the newer tree.
 
 Deliverables:
 
@@ -240,7 +251,7 @@ Acceptance criteria:
 
 Truth boundary: controlled-testnet PoH and onboarding readiness only; not public beta, final public identity infrastructure, public validator admission, live economics, or Mainnet readiness.
 
-### Milestone 3: Content, groups, dispute/review, and governance testnet flows
+### Reviewer Track R-M3: Content, groups, dispute/review, and governance testnet flows
 
 Objective: prove the social/governance loop from verified user action through network review and governance.
 
@@ -270,7 +281,7 @@ Acceptance criteria:
 
 Truth boundary: public testnet social/governance flows, not finalized production constitutional governance.
 
-### Milestone 4: Locked tokenomics, wallet, tips, treasury, and reward accounting testnet proof
+### Reviewer Track R-M4: Locked tokenomics, wallet, tips, treasury, and reward accounting testnet proof
 
 Objective: keep economics locked while proving the accounting model is safe and testnet-activatable.
 
@@ -304,7 +315,7 @@ Acceptance criteria:
 
 Truth boundary: locked testnet tokenomics only; not live economics.
 
-### Milestone 5: Deterministic block progression, validator promotion, and multi-node/BFT testnet readiness
+### Reviewer Track R-M5: Deterministic block progression, validator promotion, and multi-node/BFT testnet readiness
 
 Objective: move from local block proof toward safe public multi-validator testnet readiness.
 
@@ -336,7 +347,7 @@ Acceptance criteria:
 
 Truth boundary: public multi-validator BFT readiness only after adversarial gates pass.
 
-### Milestone 6: Documentation, reproducibility, security hardening, and external tester reporting
+### Reviewer Track R-M6: Documentation, reproducibility, security hardening, and external tester reporting
 
 Objective: make the project reviewable by reviewer, external testers, and future contributors.
 
