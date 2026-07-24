@@ -1,0 +1,10 @@
+{
+  "api_base": "http://127.0.0.1:18101",
+  "applicant": "@devnet-c4991d6791a9",
+  "case_id": "pohasync:@devnet-c4991d6791a9:1784932393643",
+  "kind": "async",
+  "reviewers": [
+    "@devnet-genesis"
+  ],
+  "schema_version": 1
+}

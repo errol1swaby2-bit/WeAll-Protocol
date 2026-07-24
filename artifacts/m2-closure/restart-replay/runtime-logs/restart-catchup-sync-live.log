@@ -1,0 +1,4 @@
+==> OK: target synced to source height=4 state_root=5850b33c24ab0dfe3685ebf5cb8837d9f0aeee5e91a2e9500c242eae1d950fe0 source=http://127.0.0.1:18201 target=http://127.0.0.1:18202
+==> Sync round 1: source_height=5 target_height=4 source=http://127.0.0.1:18201 target=http://127.0.0.1:18202
+{"ok":true,"applied_count":1,"metas":[{"ok":true,"error":"","height":5,"block_id":"7d86b03eed869a1eb8660e8dbff9ed0335df6714023034f65d4de9e0352d36ef","applied_count":0}],"height":5}
+==> OK: target synced to source height=5 state_root=c0138ca34cfd05b0541bcf4819d7b3fc9fa3eb90d9096abcac72f68367ee55cb source=http://127.0.0.1:18201 target=http://127.0.0.1:18202

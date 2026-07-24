@@ -1,0 +1,13 @@
+{
+  "genesis_chain_id": "weall-prod",
+  "genesis_hash": "ebe9c4a20524a24692954c1be13ed0283aca85ad20e8df247d7d434a3402a659",
+  "genesis_path": "/home/errol/WeAll-Protocol/Weall-Protocol/configs/genesis.ledger.prod.json",
+  "genesis_state_root": "ebe9c4a20524a24692954c1be13ed0283aca85ad20e8df247d7d434a3402a659",
+  "issues": [],
+  "manifest_chain_id": "weall-prod",
+  "manifest_path": "/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-genesis.json",
+  "ok": true,
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69",
+  "tx_index_path": "/home/errol/WeAll-Protocol/Weall-Protocol/generated/tx_index.json"
+}
+ok: production genesis artifacts are pinned, current, and mutually consistent

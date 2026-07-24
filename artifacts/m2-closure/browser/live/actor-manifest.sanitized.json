@@ -1,0 +1,13 @@
+{
+  "api_base": "http://127.0.0.1:18111",
+  "applicant": "@devnet-16d7fd3e9c14",
+  "case_id": "poh_live:@devnet-16d7fd3e9c14:6",
+  "kind": "live",
+  "reviewers": [
+    {
+      "account": "@devnet-genesis",
+      "role": "interacting"
+    }
+  ],
+  "schema_version": 1
+}

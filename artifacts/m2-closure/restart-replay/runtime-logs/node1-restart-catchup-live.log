@@ -1,0 +1,159 @@
+==> Booting genesis devnet node
+mode=controlled_devnet
+runtime_profile=controlled_devnet
+chain_id=weall-controlled-devnet
+node_id=@devnet-genesis
+bootstrap_operator=@devnet-genesis
+bootstrap_juror=1
+poh_bootstrap_open=0
+poh_bootstrap_max_height=500
+tier2_jurors=1
+tier2_min_reviews=1
+async_jurors=1
+async_min_reviews=1
+live_partial_panels=1
+live_partial_until_height=500
+operator_keyfile=/tmp/weall_m2_restart_replay_0PvICN/.weall-devnet/genesis-operator.json
+db=/tmp/weall_m2_restart_replay_0PvICN/.weall-devnet/node1/weall.db
+block_loop_lock=/tmp/weall_m2_restart_replay_0PvICN/.weall-devnet/node1/block_loop.lock
+chain_manifest=/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json
+produce_empty_blocks=1
+bind=127.0.0.1:18201
+identity=http://127.0.0.1:18201/v1/chain/identity
+[2026-07-24 15:43:01 -0700] [67037] [INFO] Starting gunicorn 26.0.0
+[2026-07-24 15:43:01 -0700] [67037] [INFO] Listening at: http://127.0.0.1:18201 (67037)
+[2026-07-24 15:43:01 -0700] [67037] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-07-24 15:43:01 -0700] [67048] [INFO] Booting worker with pid: 67048
+[2026-07-24 15:43:01 -0700] [67037] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-07-24 15:43:01 -0700] [67048] [INFO] Started server process [67048]
+[2026-07-24 15:43:01 -0700] [67048] [INFO] Waiting for application startup.
+[2026-07-24 15:43:01 -0700] [67048] [INFO] Application startup complete.
+127.0.0.1:60832 - "GET /v1/readyz HTTP/1.1" 200
+127.0.0.1:60842 - "GET /v1/chain/genesis HTTP/1.1" 200
+127.0.0.1:60840 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:60856 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:60872 - "POST /v1/accounts/tx/register HTTP/1.1" 200
+127.0.0.1:60876 - "GET /v1/accounts/%40devnet_crossnode_20260724-224303-67067 HTTP/1.1" 200
+127.0.0.1:60890 - "POST /v1/tx/submit HTTP/1.1" 200
+127.0.0.1:60896 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60900 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60912 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60920 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60926 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60936 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60944 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60950 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60956 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60958 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60962 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60978 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:60988 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:32770 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:32782 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:32786 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:32794 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:32802 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36210 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36218 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36228 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36244 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36248 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36252 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36256 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36270 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36276 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36278 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36284 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36292 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36300 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36304 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36316 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36326 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36338 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36346 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36350 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36366 - "GET /v1/tx/status/tx%3Ad4617fdc5573576a526bbe4d97db692aab6cdfa9265f3a1c43345b5629b941dc HTTP/1.1" 200
+127.0.0.1:36374 - "GET /v1/accounts/%40devnet_crossnode_20260724-224303-67067 HTTP/1.1" 200
+127.0.0.1:36386 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:36396 - "POST /v1/sync/request HTTP/1.1" 200
+127.0.0.1:57830 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:54734 - "POST /v1/tx/submit HTTP/1.1" 200
+127.0.0.1:54744 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54750 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54752 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54760 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54772 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54776 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54782 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54790 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54800 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54804 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54816 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54824 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54840 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54856 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54864 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54880 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54896 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54902 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:54916 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:57840 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:57850 - "POST /v1/sync/request HTTP/1.1" 200
+127.0.0.1:57866 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:57882 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:57894 - "GET /v1/tx/status/tx%3A1f01d3bd1d466b3458a21eb78c0aaa1208aab05952cccb99fb5e4a0b14ac4117 HTTP/1.1" 200
+127.0.0.1:57908 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:57920 - "GET /v1/chain/genesis HTTP/1.1" 200
+127.0.0.1:57932 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:57936 - "GET /v1/chain/identity HTTP/1.1" 200
+[2026-07-24 15:44:06 -0700] [67037] [INFO] Handling signal: term
+[2026-07-24 15:44:06 -0700] [67048] [INFO] Shutting down
+[2026-07-24 15:44:06 -0700] [67048] [INFO] Error while closing socket [Errno 9] Bad file descriptor
+[2026-07-24 15:44:06 -0700] [67048] [INFO] Waiting for application shutdown.
+[2026-07-24 15:44:06 -0700] [67048] [INFO] Application shutdown complete.
+[2026-07-24 15:44:06 -0700] [67048] [INFO] Finished server process [67048]
+[2026-07-24 15:44:06 -0700] [67037] [INFO] Worker (pid:67048) was sent SIGTERM!
+[2026-07-24 15:44:06 -0700] [67037] [INFO] Shutting down: Master
+==> Booting genesis devnet node
+mode=controlled_devnet
+runtime_profile=controlled_devnet
+chain_id=weall-controlled-devnet
+node_id=@devnet-genesis
+bootstrap_operator=@devnet-genesis
+bootstrap_juror=1
+poh_bootstrap_open=0
+poh_bootstrap_max_height=500
+tier2_jurors=1
+tier2_min_reviews=1
+async_jurors=1
+async_min_reviews=1
+live_partial_panels=1
+live_partial_until_height=500
+operator_keyfile=/tmp/weall_m2_restart_replay_0PvICN/.weall-devnet/genesis-operator.json
+db=/tmp/weall_m2_restart_replay_0PvICN/.weall-devnet/node1/weall.db
+block_loop_lock=/tmp/weall_m2_restart_replay_0PvICN/.weall-devnet/node1/block_loop.lock
+chain_manifest=/home/errol/WeAll-Protocol/Weall-Protocol/configs/chains/weall-controlled-devnet.json
+produce_empty_blocks=1
+bind=127.0.0.1:18201
+identity=http://127.0.0.1:18201/v1/chain/identity
+[2026-07-24 15:44:07 -0700] [67147] [INFO] Starting gunicorn 26.0.0
+[2026-07-24 15:44:07 -0700] [67147] [INFO] Listening at: http://127.0.0.1:18201 (67147)
+[2026-07-24 15:44:07 -0700] [67147] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-07-24 15:44:07 -0700] [67158] [INFO] Booting worker with pid: 67158
+[2026-07-24 15:44:08 -0700] [67147] [INFO] Control socket listening at /run/user/1000/gunicorn.ctl
+[2026-07-24 15:44:08 -0700] [67158] [INFO] Started server process [67158]
+[2026-07-24 15:44:08 -0700] [67158] [INFO] Waiting for application startup.
+[2026-07-24 15:44:08 -0700] [67158] [INFO] Application startup complete.
+127.0.0.1:57958 - "GET /v1/readyz HTTP/1.1" 200
+127.0.0.1:57966 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:57974 - "POST /v1/sync/request HTTP/1.1" 200
+127.0.0.1:57990 - "GET /v1/chain/identity HTTP/1.1" 200
+127.0.0.1:57992 - "GET /v1/chain/identity HTTP/1.1" 200
+[2026-07-24 15:44:09 -0700] [67147] [INFO] Handling signal: term
+[2026-07-24 15:44:09 -0700] [67158] [INFO] Shutting down
+[2026-07-24 15:44:09 -0700] [67158] [INFO] Error while closing socket [Errno 9] Bad file descriptor
+[2026-07-24 15:44:09 -0700] [67158] [INFO] Waiting for application shutdown.
+[2026-07-24 15:44:09 -0700] [67158] [INFO] Application shutdown complete.
+[2026-07-24 15:44:09 -0700] [67158] [INFO] Finished server process [67158]
+[2026-07-24 15:44:09 -0700] [67147] [INFO] Worker (pid:67158) was sent SIGTERM!
+[2026-07-24 15:44:09 -0700] [67147] [INFO] Shutting down: Master
