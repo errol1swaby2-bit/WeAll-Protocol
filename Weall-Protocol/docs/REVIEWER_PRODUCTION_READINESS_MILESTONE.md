@@ -11,6 +11,7 @@ See also:
 - `docs/TRUTH_BOUNDARY.md`
 - `docs/REVIEWER_EVIDENCE_INDEX.md`
 - `docs/REVIEWER_MILESTONE_GUIDE.md`
+- `docs/MILESTONE_NAMING.md`
 
 ## What is proven today
 

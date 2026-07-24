@@ -6,10 +6,10 @@ OK: real M2 backend reachable at http://127.0.0.1:18081
 
 Running 2 tests using 1 worker
 
-  ✓  1 [chromium] › tests/e2e/account_custody_registration_restore.spec.ts:144:3 › real browser account custody › browser ML-DSA-65 custody primitives execute with protocol sizes and context (663ms)
-  ✓  2 [chromium] › tests/e2e/account_custody_registration_restore.spec.ts:176:3 › real browser account custody › create, verify, register, restart, restore, and submit a protected signed action (5.3s)
+  ✓  1 [chromium] › tests/e2e/account_custody_registration_restore.spec.ts:144:3 › real browser account custody › browser ML-DSA-65 custody primitives execute with protocol sizes and context (607ms)
+  ✓  2 [chromium] › tests/e2e/account_custody_registration_restore.spec.ts:176:3 › real browser account custody › create, verify, register, restart, restore, and submit a protected signed action (5.1s)
 
-  2 passed (7.2s)
+  2 passed (7.8s)
 
 To open last HTML report run:
 [36m[39m

@@ -5,8 +5,8 @@
     "height": 5,
     "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
     "schema_version": "1",
-    "state_root": "39f31c8820d47be73b1ffb246bf455317a67211fa055b28c47e79119ff7369bd",
-    "tip_hash": "c37de629f7dfba3aec26b7896d556883657b809b3e77a7a1ff9857da79d2c124",
+    "state_root": "c0138ca34cfd05b0541bcf4819d7b3fc9fa3eb90d9096abcac72f68367ee55cb",
+    "tip_hash": "f5eb117a1fa55b71c4283c42c224e825f22b663f374787178ad4985d5bbc4715",
     "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
   },
   "gate": "restart-replay",

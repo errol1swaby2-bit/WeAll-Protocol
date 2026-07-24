@@ -1,5 +1,4 @@
-==> OK: target synced to source height=4 state_root=64ddf7322a5b73dcea2d1d039a9c6123b895e375eef699197419c4185fab2624 source=http://127.0.0.1:18221 target=http://127.0.0.1:18222
-==> OK: target synced to source height=4 state_root=64ddf7322a5b73dcea2d1d039a9c6123b895e375eef699197419c4185fab2624 source=http://127.0.0.1:18221 target=http://127.0.0.1:18222
+==> OK: target synced to source height=4 state_root=ae2bb2d4b8890e820814ab16a2675874e6668325c50fbb53563d82f0d831c6d6 source=http://127.0.0.1:18221 target=http://127.0.0.1:18222
 ==> Sync round 1: source_height=5 target_height=4 source=http://127.0.0.1:18221 target=http://127.0.0.1:18222
-{"ok":true,"applied_count":1,"metas":[{"ok":true,"error":"","height":5,"block_id":"56290e86c67cbd5be598319120c5ab5fc82f70818d22b7ad4ea1b19290dc853a","applied_count":0}],"height":5}
-==> OK: target synced to source height=5 state_root=0a163430386d9686ca3478c214fb1895a737ee096baeb337c16842902b017f91 source=http://127.0.0.1:18221 target=http://127.0.0.1:18222
+{"ok":true,"applied_count":1,"metas":[{"ok":true,"error":"","height":5,"block_id":"8edd521ba4af5b7a464b1535eb038f24db69e93e4b8afc8ad0fffcf20b6893a6","applied_count":0}],"height":5}
+==> OK: target synced to source height=5 state_root=a8b284fb3c1fd3bd4834fded138683507cd63cf2c0e588e2b02377f288a1a2bf source=http://127.0.0.1:18221 target=http://127.0.0.1:18222
