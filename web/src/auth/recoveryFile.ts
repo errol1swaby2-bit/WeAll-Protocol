@@ -5,6 +5,7 @@ import {
   normalizeAccount,
   validateKeypair,
 } from "./keys";
+import { validateEvidenceKemKeypair } from "./evidenceCrypto";
 
 export type RecoveryKeyFileV2 = {
   type: "weall_recovery_key";
@@ -16,6 +17,10 @@ export type RecoveryKeyFileV2 = {
   account: string;
   publicKeyB64: string;
   secretKeyB64: string;
+  recoveryAuthorityPublicKeyB64?: string;
+  recoveryAuthoritySecretKeyB64?: string;
+  evidenceKemPublicKeyB64?: string;
+  evidenceKemSecretKeyB64?: string;
   createdAt: string;
   warning: string;
 };
@@ -27,13 +32,40 @@ function safeFileAccount(account: string): string {
 }
 
 function warningText(): string {
-  return "Anyone with this file can restore this WeAll account key. It contains the ML-DSA-65 signing seed; store it somewhere private.";
+  return "Anyone with this file can restore this WeAll account key. It contains the active ML-DSA-65 signing seed plus any included recovery/evidence secrets; store it somewhere private.";
+}
+
+function validateAuxiliaryRecoveryMaterial(value: {
+  recoveryAuthorityPublicKeyB64?: string;
+  recoveryAuthoritySecretKeyB64?: string;
+  evidenceKemPublicKeyB64?: string;
+  evidenceKemSecretKeyB64?: string;
+}): void {
+  const recoveryPublic = String(value.recoveryAuthorityPublicKeyB64 || "").trim();
+  const recoverySecret = String(value.recoveryAuthoritySecretKeyB64 || "").trim();
+  if (Boolean(recoveryPublic) !== Boolean(recoverySecret)) throw new Error("incomplete_recovery_authority_keypair");
+  if (recoveryPublic && recoverySecret) {
+    const valid = validateKeypair(recoveryPublic, recoverySecret);
+    if (!valid.ok) throw new Error(`invalid_recovery_authority:${valid.reason || "unknown"}`);
+  }
+
+  const kemPublic = String(value.evidenceKemPublicKeyB64 || "").trim();
+  const kemSecret = String(value.evidenceKemSecretKeyB64 || "").trim();
+  if (Boolean(kemPublic) !== Boolean(kemSecret)) throw new Error("incomplete_evidence_kem_keypair");
+  if (kemPublic && kemSecret) {
+    const valid = validateEvidenceKemKeypair({ publicKeyB64: kemPublic, secretKeyB64: kemSecret });
+    if (!valid.ok) throw new Error(valid.reason);
+  }
 }
 
 export function buildRecoveryKeyFile(args: {
   account: string;
   secretKeyB64: string;
   publicKeyB64?: string;
+  recoveryAuthorityPublicKeyB64?: string;
+  recoveryAuthoritySecretKeyB64?: string;
+  evidenceKemPublicKeyB64?: string;
+  evidenceKemSecretKeyB64?: string;
   createdAt?: Date;
 }): RecoveryKeyFileV2 {
   const account = normalizeAccount(args.account);
@@ -42,6 +74,7 @@ export function buildRecoveryKeyFile(args: {
   const valid = validateKeypair(publicKeyB64, secretKeyB64);
   if (!account) throw new Error("account_required");
   if (!valid.ok) throw new Error(`invalid_recovery_key:${valid.reason || "unknown"}`);
+  validateAuxiliaryRecoveryMaterial(args);
   return {
     type: "weall_recovery_key",
     version: 2,
@@ -52,6 +85,10 @@ export function buildRecoveryKeyFile(args: {
     account,
     publicKeyB64,
     secretKeyB64,
+    recoveryAuthorityPublicKeyB64: String(args.recoveryAuthorityPublicKeyB64 || "").trim() || undefined,
+    recoveryAuthoritySecretKeyB64: String(args.recoveryAuthoritySecretKeyB64 || "").trim() || undefined,
+    evidenceKemPublicKeyB64: String(args.evidenceKemPublicKeyB64 || "").trim() || undefined,
+    evidenceKemSecretKeyB64: String(args.evidenceKemSecretKeyB64 || "").trim() || undefined,
     createdAt: (args.createdAt || new Date()).toISOString(),
     warning: warningText(),
   };
@@ -69,6 +106,10 @@ export function downloadRecoveryKeyFile(args: {
   account: string;
   secretKeyB64: string;
   publicKeyB64?: string;
+  recoveryAuthorityPublicKeyB64?: string;
+  recoveryAuthoritySecretKeyB64?: string;
+  evidenceKemPublicKeyB64?: string;
+  evidenceKemSecretKeyB64?: string;
 }): RecoveryKeyFileV2 {
   const file = buildRecoveryKeyFile(args);
   const blob = new Blob([recoveryFileText(file)], { type: "application/json" });
@@ -116,6 +157,7 @@ export function parseRecoveryKeyFileText(text: string): RecoveryKeyFileV2 {
   const valid = validateKeypair(publicKeyB64, secretKeyB64);
   if (!account) throw new Error("recovery_file_missing_account");
   if (!valid.ok) throw new Error(`invalid_recovery_key:${valid.reason || "unknown"}`);
+  validateAuxiliaryRecoveryMaterial(parsed);
 
   return {
     type: "weall_recovery_key",
@@ -127,6 +169,10 @@ export function parseRecoveryKeyFileText(text: string): RecoveryKeyFileV2 {
     account,
     publicKeyB64,
     secretKeyB64,
+    recoveryAuthorityPublicKeyB64: String(parsed.recoveryAuthorityPublicKeyB64 || "").trim() || undefined,
+    recoveryAuthoritySecretKeyB64: String(parsed.recoveryAuthoritySecretKeyB64 || "").trim() || undefined,
+    evidenceKemPublicKeyB64: String(parsed.evidenceKemPublicKeyB64 || "").trim() || undefined,
+    evidenceKemSecretKeyB64: String(parsed.evidenceKemSecretKeyB64 || "").trim() || undefined,
     createdAt: String(parsed.createdAt || new Date(0).toISOString()),
     warning: String(parsed.warning || warningText()),
   };
@@ -168,5 +214,10 @@ export function verifyRecoveryKeyFileForAccount(file: RecoveryKeyFileV2, expecte
 
   const valid = validateKeypair(file.publicKeyB64, file.secretKeyB64);
   if (!valid.ok) return { ok: false, reason: valid.reason || "invalid_recovery_key" };
+  try {
+    validateAuxiliaryRecoveryMaterial(file);
+  } catch (error) {
+    return { ok: false, reason: String((error as Error)?.message || error || "invalid_auxiliary_recovery_material") };
+  }
   return { ok: true };
 }

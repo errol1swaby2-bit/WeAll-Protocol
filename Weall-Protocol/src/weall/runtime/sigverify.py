@@ -65,9 +65,14 @@ def _extract_active_keys(acct: Any, *, sig_profile: str = "") -> list[str]:
                 if bool(rec.get("revoked", False)) is True:
                     continue
                 rec_profile = normalize_signature_profile_id(rec.get("sig_profile"))
-                if wanted and rec_profile and rec_profile != wanted:
+                # Historical genesis/bootstrap records predate explicit
+                # sig_profile metadata but contain ML-DSA public keys.  Treat
+                # only that missing-profile shape as the active ML-DSA profile;
+                # explicit unknown or different profiles still fail closed.
+                effective_profile = rec_profile or PQ_MLDSA_V1
+                if wanted and effective_profile != wanted:
                     continue
-                if rec_profile == PQ_MLDSA_V1:
+                if effective_profile == PQ_MLDSA_V1:
                     pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
                     _add_pubkey(out, seen, pubkeys.get("mldsa") or rec.get("pubkey"))
             return out
@@ -190,31 +195,86 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
     if not msg_candidates:
         return False
 
-    # ACCOUNT_RECOVERY_REQUEST may be authorized by the separately registered
-    # offline recovery key. The key is purpose-limited to this exact canonical
-    # transaction domain; it is never added to the account's active authority
-    # key set and cannot sign ordinary account actions.
+    # Recovery authorization is purpose-limited and never falls through to an
+    # ordinary active account key when independent authority is required.
     tx_type = str(tx.get("tx_type") or tx.get("type") or "").strip().upper()
     payload = tx.get("payload") if isinstance(tx.get("payload"), dict) else {}
     method = str(payload.get("method") or "").strip().lower()
-    if tx_type == "ACCOUNT_RECOVERY_REQUEST" and method == "offline_key":
-        recovery = acct.get("recovery") if isinstance(acct, dict) else None
-        offline_key = recovery.get("offline_key") if isinstance(recovery, dict) else None
-        if isinstance(offline_key, dict):
-            recovery_profile = normalize_signature_profile_id(
-                offline_key.get("sig_profile") or sig_profile
+    recovery = acct.get("recovery") if isinstance(acct, dict) else None
+    if not isinstance(recovery, dict):
+        recovery = {}
+
+    def verifies_with(pubkey: str, profile: str | None = None) -> bool:
+        wanted_profile = normalize_signature_profile_id(profile or sig_profile)
+        if wanted_profile != sig_profile or not pubkey:
+            return False
+        return any(
+            verify_signature_for_profile(
+                sig_profile=sig_profile,
+                message=msg,
+                sig=sig,
+                pubkey=pubkey,
             )
-            recovery_pubkey = str(offline_key.get("pubkey") or "").strip()
-            if recovery_profile == sig_profile and recovery_pubkey:
-                for msg in msg_candidates:
-                    if verify_signature_for_profile(
-                        sig_profile=sig_profile,
-                        message=msg,
-                        sig=sig,
-                        pubkey=recovery_pubkey,
+            for msg in msg_candidates
+        )
+
+    if tx_type == "ACCOUNT_RECOVERY_CONFIG_SET":
+        current = recovery.get("offline_key")
+        if isinstance(current, dict) and str(current.get("pubkey") or "").strip():
+            if str(payload.get("authorization") or "").strip().lower() != "offline_key":
+                return False
+            return verifies_with(
+                str(current.get("pubkey") or "").strip(),
+                str(current.get("sig_profile") or sig_profile),
+            )
+        # Initial enrollment for legacy accounts may use the active key exactly
+        # once. Subsequent rotations are handled above and cannot fall through.
+
+    if tx_type == "ACCOUNT_RECOVERY_APPROVE" and str(payload.get("decision") or "").strip().lower() == "evidence_bind":
+        request_id = str(payload.get("request_id") or "").strip()
+        requests = recovery.get("requests") if isinstance(recovery.get("requests"), dict) else {}
+        request = requests.get(request_id) if isinstance(requests, dict) else None
+        if not isinstance(request, dict):
+            return False
+        request_method = str(request.get("method") or "").strip().lower()
+        if request_method not in {"continuity", "reversal"}:
+            return False
+        return verifies_with(str(request.get("new_pubkey") or "").strip(), sig_profile)
+
+    if tx_type == "ACCOUNT_RECOVERY_REQUEST":
+        if method == "offline_key":
+            current = recovery.get("offline_key")
+            if not isinstance(current, dict):
+                return False
+            return verifies_with(
+                str(current.get("pubkey") or "").strip(),
+                str(current.get("sig_profile") or sig_profile),
+            )
+        if method == "continuity":
+            # The claimant proves possession of the proposed replacement key;
+            # reviewer consensus supplies continuity authority.
+            return verifies_with(str(payload.get("new_pubkey") or "").strip(), sig_profile)
+        if method == "reversal":
+            authorization = str(payload.get("authorization") or "continuity").strip().lower()
+            if authorization == "offline_key":
+                wanted_key_id = str(payload.get("authorization_key_id") or "").strip()
+                candidates = recovery.get("prior_offline_keys")
+                if not isinstance(candidates, list):
+                    return False
+                for record in candidates:
+                    if not isinstance(record, dict):
+                        continue
+                    if wanted_key_id and str(record.get("key_id") or "").strip() != wanted_key_id:
+                        continue
+                    if verifies_with(
+                        str(record.get("pubkey") or "").strip(),
+                        str(record.get("sig_profile") or sig_profile),
                     ):
                         return True
-        return False
+                return False
+            if authorization == "continuity":
+                return verifies_with(str(payload.get("new_pubkey") or "").strip(), sig_profile)
+            return False
 
     if not active_keys:
         if tx_type == "ACCOUNT_REGISTER":

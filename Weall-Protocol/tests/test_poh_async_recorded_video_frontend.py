@@ -60,7 +60,7 @@ def test_tier1_async_video_upload_is_dedicated_and_fail_closed() -> None:
     assert '"/poh/async/evidence/video/upload"' in route
     assert "WEALL_ENABLE_POH_ASYNC_VIDEO_UPLOAD" in route
     assert "WEALL_POH_ASYNC_VIDEO_MAX_BYTES" in route
-    assert "video_file_required" in route
+    assert "encrypted_ciphertext_file_required" in route
     assert "endpoint_disabled" in route
 
 

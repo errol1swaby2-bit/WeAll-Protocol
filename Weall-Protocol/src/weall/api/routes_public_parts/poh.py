@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import base64
 import hashlib
+import io
 import hmac
 import json
 import mimetypes
@@ -20,7 +22,7 @@ from weall.api.ipfs import ipfs_add_fileobj, ipfs_gateway_url
 from weall.api.routes_public_parts.common import _snapshot
 from weall.api.security import require_account_session
 from weall.runtime.system_tx_engine import enqueue_system_tx
-from weall.util.ipfs_cid import validate_ipfs_cid
+from weall.util.ipfs_cid import cidv1_raw_sha256, validate_ipfs_cid
 
 router = APIRouter()
 
@@ -115,10 +117,40 @@ class PohTier2VideoUploadResponse(BaseModel):
     uri: str
     gateway_url: str
     video_commitment: str
+    provider_id: str
+
+
+def _controlled_local_evidence_store_enabled() -> bool:
+    enabled = _env_bool("WEALL_POH_ENCRYPTED_LOCAL_STORE_ENABLED", False)
+    if enabled and _is_prod():
+        raise PohRouteConfigError("controlled_local_evidence_store_forbidden_in_prod")
+    return enabled
+
+
+def _store_encrypted_ciphertext_locally(data: bytes, cid: str) -> None:
+    """Populate the observer media cache for controlled, non-production E2E."""
+
+    root = Path(str(os.environ.get("WEALL_MEDIA_CACHE_DIR") or ".weall-media-cache")).expanduser().resolve()
+    digest = hashlib.sha256(cid.encode("utf-8")).hexdigest()
+    path = root / digest[:2] / f"{digest}.bin"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_bytes(data)
+    tmp.replace(path)
+    meta = {
+        "cid": cid,
+        "size": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "verification": "cidv1_raw_sha2_256",
+        "verified_at_ms": _now_ms(),
+    }
+    meta_path = path.with_suffix(path.suffix + ".meta.json")
+    meta_path.write_text(json.dumps(meta, sort_keys=True, separators=(",", ":")), encoding="utf-8")
 
 
 async def _upload_poh_video_evidence(
     *,
+    request: Request,
     file: UploadFile,
     enabled_env: str,
     max_bytes_env: str,
@@ -126,57 +158,92 @@ async def _upload_poh_video_evidence(
     default_name: str,
     default_max_bytes: int = 25 * 1024 * 1024,
 ) -> PohTier2VideoUploadResponse:
+    """Store client-side encrypted evidence ciphertext only.
+
+    The server never receives a plaintext video through this route.  The caller
+    must authenticate and provide commitments produced before upload.
+    """
     if not _env_bool(enabled_env, False):
         raise ApiError.not_found("not_found", "endpoint_disabled")
+    st = _snapshot(request)
+    _require_session_principal_for_poh_identity_evidence(
+        request, st, purpose="encrypted PoH evidence upload"
+    )
+    algorithm = str(request.headers.get("x-weall-evidence-encryption") or "").strip().lower()
+    context_commitment = str(
+        request.headers.get("x-weall-evidence-context-commitment") or ""
+    ).strip().lower()
+    ciphertext_commitment = str(
+        request.headers.get("x-weall-evidence-ciphertext-commitment") or ""
+    ).strip().lower()
+    if algorithm != "aes-256-gcm":
+        raise ApiError.bad_request("invalid_payload", "client_side_aes_256_gcm_required")
+    for name, value in (
+        ("encryption_context_commitment", context_commitment),
+        ("ciphertext_commitment", ciphertext_commitment),
+    ):
+        normalized = value.removeprefix("sha256:")
+        if len(normalized) != 64 or any(ch not in "0123456789abcdef" for ch in normalized):
+            raise ApiError.bad_request("invalid_payload", f"invalid_{name}")
 
     max_bytes = _env_int(max_bytes_env, default_max_bytes)
-
-    name = (file.filename or default_name).strip() or default_name
-    mime = (file.content_type or "").strip() or (
-        mimetypes.guess_type(name)[0] or "application/octet-stream"
-    )
-
-    if not mime.startswith("video/"):
-        raise ApiError.invalid("invalid_payload", "video_file_required")
-
-    size = _file_size(file)
+    upload_name = (file.filename or default_name).strip() or default_name
+    mime = (file.content_type or "").strip().lower()
+    if mime not in {"application/octet-stream", "application/x-weall-encrypted-evidence"}:
+        raise ApiError.bad_request("invalid_payload", "encrypted_ciphertext_file_required")
+    # The submitted commitment must bind the exact ciphertext bytes.  Reading
+    # the bounded object before provider upload prevents a client from declaring
+    # one commitment while storing a different blob.
+    data = await file.read(max_bytes + 1)
+    size = len(data)
     if size == 0:
-        raise ApiError.invalid("invalid_payload", "empty_file")
-    if size > 0 and size > max_bytes:
-        raise ApiError.invalid("invalid_payload", f"file_too_large (max {max_bytes} bytes)")
-
-    try:
-        file.file.seek(0)
-    except Exception:
-        pass
-
-    pin_on_upload = _env_bool(pin_env, False)
-
-    try:
-        cid, ipfs_reported_size = ipfs_add_fileobj(
-            name=name, fileobj=file.file, pin=bool(pin_on_upload)
+        raise ApiError.bad_request("invalid_payload", "empty_file")
+    if size > max_bytes:
+        raise ApiError.bad_request("invalid_payload", f"file_too_large (max {max_bytes} bytes)")
+    actual_commitment = "sha256:" + hashlib.sha256(data).hexdigest()
+    if not hmac.compare_digest(actual_commitment, ciphertext_commitment):
+        raise ApiError.bad_request(
+            "invalid_payload",
+            "ciphertext_commitment_mismatch",
+            {"declared": ciphertext_commitment, "actual": actual_commitment},
         )
-    except RuntimeError as e:
-        raise ApiError.bad_request("ipfs_error", str(e))
 
-    v = validate_ipfs_cid(cid)
-    if not v.ok:
-        raise ApiError.bad_request("ipfs_error", f"invalid_cid_from_ipfs:{v.reason}")
-
-    final_size = size if size >= 0 else int(ipfs_reported_size)
-    uri = f"ipfs://{cid}"
-    gw = ipfs_gateway_url(cid)
-    video_commitment = _sha256_hex(cid.encode("utf-8"))
-
+    if _controlled_local_evidence_store_enabled():
+        cid = cidv1_raw_sha256(data)
+        _store_encrypted_ciphertext_locally(data, cid)
+        ipfs_reported_size = size
+    else:
+        try:
+            cid, ipfs_reported_size = ipfs_add_fileobj(
+                name=upload_name,
+                fileobj=io.BytesIO(data),
+                pin=bool(_env_bool(pin_env, False)),
+            )
+        except RuntimeError as exc:
+            raise ApiError.bad_request("ipfs_error", str(exc))
+    valid = validate_ipfs_cid(cid)
+    if not valid.ok:
+        raise ApiError.bad_request("ipfs_error", f"invalid_cid_from_ipfs:{valid.reason}")
+    final_size = int(ipfs_reported_size)
+    provider_id = str(
+        os.getenv("WEALL_EVIDENCE_PROVIDER_ID")
+        or os.getenv("WEALL_NODE_ACCOUNT")
+        or ""
+    ).strip()
+    if not provider_id:
+        if _is_prod():
+            raise PohRouteConfigError("missing_evidence_provider_id")
+        provider_id = "@local-evidence-provider"
     return PohTier2VideoUploadResponse(
         ok=True,
         cid=cid,
         size=int(final_size),
-        name=name,
-        mime=mime,
-        uri=uri,
-        gateway_url=gw,
-        video_commitment=video_commitment,
+        name=upload_name,
+        mime="application/octet-stream",
+        uri=f"ipfs://{cid}",
+        gateway_url=(f"/v1/media/proxy/{cid}" if _controlled_local_evidence_store_enabled() else ipfs_gateway_url(cid)),
+        video_commitment=ciphertext_commitment,
+        provider_id=provider_id,
     )
 
 
@@ -197,6 +264,7 @@ async def poh_async_video_upload(
     """
 
     return await _upload_poh_video_evidence(
+        request=request,
         file=file,
         enabled_env="WEALL_ENABLE_POH_ASYNC_VIDEO_UPLOAD",
         max_bytes_env="WEALL_POH_ASYNC_VIDEO_MAX_BYTES",
@@ -213,71 +281,14 @@ async def poh_async_video_upload(
 async def poh_tier2_video_upload(
     request: Request, file: UploadFile = File(...)
 ) -> PohTier2VideoUploadResponse:
-    """Upload Tier-2 video evidence to IPFS and return a CID + commitment.
-
-    Why this exists:
-      - /v1/media/upload is Live gated (for public social content).
-      - Tier-2 applicants are usually Tier-1 users and need a safe intake path.
-
-    Production posture:
-      - Endpoint is OFF by default. Enable explicitly with:
-          WEALL_ENABLE_POH_TIER2_VIDEO_UPLOAD=1
-      - Strict size limits (default 25MB) to reduce abuse.
-      - We do NOT pin on upload by default.
-        Durability should come from operator pin workflows.
-    """
-
-    if not _env_bool("WEALL_ENABLE_POH_TIER2_VIDEO_UPLOAD", False):
-        # fail-closed unless explicitly enabled
-        raise ApiError.not_found("not_found", "endpoint_disabled")
-
-    max_bytes = _env_int("WEALL_POH_TIER2_VIDEO_MAX_BYTES", 25 * 1024 * 1024)
-
-    name = (file.filename or "poh_tier2_video").strip() or "poh_tier2_video"
-    mime = (file.content_type or "").strip() or (
-        mimetypes.guess_type(name)[0] or "application/octet-stream"
-    )
-
-    size = _file_size(file)
-    if size == 0:
-        raise ApiError.invalid("invalid_payload", "empty_file")
-    if size > 0 and size > max_bytes:
-        raise ApiError.invalid("invalid_payload", f"file_too_large (max {max_bytes} bytes)")
-
-    try:
-        file.file.seek(0)
-    except Exception:
-        pass
-
-    pin_on_upload = _env_bool("WEALL_POH_TIER2_VIDEO_PIN_ON_UPLOAD", False)
-
-    try:
-        cid, ipfs_reported_size = ipfs_add_fileobj(
-            name=name, fileobj=file.file, pin=bool(pin_on_upload)
-        )
-    except RuntimeError as e:
-        raise ApiError.bad_request("ipfs_error", str(e))
-
-    v = validate_ipfs_cid(cid)
-    if not v.ok:
-        raise ApiError.bad_request("ipfs_error", f"invalid_cid_from_ipfs:{v.reason}")
-
-    final_size = size if size >= 0 else int(ipfs_reported_size)
-    uri = f"ipfs://{cid}"
-    gw = ipfs_gateway_url(cid)
-
-    # Commitment used by POH_TIER2_REQUEST_OPEN if client prefers commitments over raw CIDs.
-    video_commitment = _sha256_hex(cid.encode("utf-8"))
-
-    return PohTier2VideoUploadResponse(
-        ok=True,
-        cid=cid,
-        size=int(final_size),
-        name=name,
-        mime=mime,
-        uri=uri,
-        gateway_url=gw,
-        video_commitment=video_commitment,
+    """Upload client-side encrypted Tier-2 evidence ciphertext."""
+    return await _upload_poh_video_evidence(
+        request=request,
+        file=file,
+        enabled_env="WEALL_ENABLE_POH_TIER2_VIDEO_UPLOAD",
+        max_bytes_env="WEALL_POH_TIER2_VIDEO_MAX_BYTES",
+        pin_env="WEALL_POH_TIER2_VIDEO_PIN_ON_UPLOAD",
+        default_name="poh_tier2_encrypted.bin",
     )
 
 
@@ -302,6 +313,7 @@ class PohAsyncCaseModel(BaseModel):
     case_id: str
     account_id: str
     status: str
+    followup_round: int = 0
     opened_height: int | None = None
     expires_height: int | None = None
     finalized_height: int | None = None
@@ -328,6 +340,60 @@ class PohAsyncCaseModel(BaseModel):
     reviewer_queue_reason: str | None = None
 
 
+def _restricted_evidence_binds(st: Json, raw_case: Json) -> dict[str, object]:
+    """Join case bind metadata with case-scoped recipient envelopes.
+
+    The canonical evidence lifecycle owns the full ML-KEM envelopes so they are
+    never duplicated across consensus records.  Restricted API reads expose
+    them only to the authenticated subject or a chain-accepted reviewer.
+    """
+
+    raw_binds = raw_case.get("evidence_binds")
+    out: dict[str, object] = {
+        str(key): dict(value)
+        for key, value in (raw_binds.items() if isinstance(raw_binds, dict) else [])
+        if isinstance(value, dict)
+    }
+    poh = st.get("poh") if isinstance(st.get("poh"), dict) else {}
+    lifecycle = poh.get("evidence_lifecycle") if isinstance(poh.get("evidence_lifecycle"), dict) else {}
+    by_evidence = lifecycle.get("by_evidence") if isinstance(lifecycle.get("by_evidence"), dict) else {}
+    for bind_id, bind_any in list(out.items()):
+        bind = bind_any if isinstance(bind_any, dict) else {}
+        evidence_id = str(bind.get("evidence_id") or "").strip()
+        rec = by_evidence.get(evidence_id) if evidence_id else None
+        if isinstance(rec, dict):
+            envelopes = rec.get("key_envelope_commitments")
+            if isinstance(envelopes, dict):
+                bind["key_envelope_commitments"] = dict(envelopes)
+        out[bind_id] = bind
+    return out
+
+
+def _public_evidence_binds(value: Any) -> dict[str, object]:
+    """Expose only non-decrypting envelope commitments on public case reads."""
+
+    out: dict[str, object] = {}
+    if not isinstance(value, dict):
+        return out
+    for evidence_id, raw_bind in value.items():
+        if not isinstance(raw_bind, dict):
+            continue
+        bind = {key: item for key, item in raw_bind.items() if key != "key_envelope_commitments"}
+        raw_envelopes = raw_bind.get("key_envelope_commitments")
+        public_envelopes: dict[str, object] = {}
+        if isinstance(raw_envelopes, dict):
+            for principal, raw_envelope in raw_envelopes.items():
+                if not isinstance(raw_envelope, dict):
+                    continue
+                public_envelopes[str(principal)] = {
+                    key: raw_envelope.get(key)
+                    for key in ("algorithm", "context_commitment", "envelope_commitment")
+                    if raw_envelope.get(key) is not None
+                }
+        bind["key_envelope_commitments"] = public_envelopes
+        out[str(evidence_id)] = bind
+    return out
+
 def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evidence: bool = False) -> PohAsyncCaseModel:
     def _list(v: Any) -> list[object]:
         return list(v) if isinstance(v, list) else []
@@ -351,14 +417,12 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evi
         or _opt_int_value(r.get("finalized_height")) is not None
     )
     evidence_declared = bool(evidence_commitments or public_evidence_ids or reviewable_evidence_raw or reviewer_restricted_raw or final_or_reviewed)
-    # Batch 422: older rehearsal runs could enqueue POH_ASYNC_JUROR_ASSIGN after
-    # evidence declare and before evidence bind, making the bind tx fail while
-    # reviewer-restricted evidence still became visible and the case finalized.
-    # Surface that case as effectively complete instead of leaving the observer
-    # UI stuck on missing evidence_bind.  New scheduler logic prevents the race.
-    evidence_bound = bool(evidence_binds or public_evidence_ids or reviewable_evidence_raw or reviewer_restricted_raw or final_or_reviewed)
+    # Reviewability is a protocol truth boundary. Declared ciphertext does not
+    # become reviewable until the subject has sealed a canonical bind and key
+    # envelopes for the assigned reviewers.
+    evidence_bound = bool(evidence_binds or public_evidence_ids or reviewable_evidence_raw or final_or_reviewed)
     assigned = bool([j for j in assigned_jurors if str(j or "").strip()] or jurors)
-    reviewable = bool(final_or_reviewed or (evidence_declared and evidence_bound))
+    reviewable = bool(final_or_reviewed or (evidence_declared and evidence_bound and assigned))
     missing_steps: list[str] = []
     if not evidence_declared:
         missing_steps.append("evidence_declare")
@@ -379,6 +443,7 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evi
         case_id=str(case_id),
         account_id=str(r.get("account_id") or "").strip(),
         status=status,
+        followup_round=max(0, _opt_int_value(r.get("followup_round")) or 0),
         opened_height=_opt_int_value(r.get("opened_height")),
         expires_height=_opt_int_value(r.get("expires_height")),
         finalized_height=_opt_int_value(r.get("finalized_height")),
@@ -392,7 +457,7 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evi
         jurors=jurors,
         reviews=_dict(r.get("reviews")),
         evidence_commitments=evidence_commitments,
-        evidence_binds=evidence_binds,
+        evidence_binds=(evidence_binds if include_restricted_evidence else _public_evidence_binds(evidence_binds)),
         public_evidence_ids=public_evidence_ids,
         reviewable_evidence=_dict(r.get("reviewer_restricted_evidence") if include_restricted_evidence else r.get("reviewable_evidence")),
         reviewer_restricted_evidence=_dict(r.get("reviewer_restricted_evidence") if include_restricted_evidence else {}),
@@ -404,7 +469,6 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evi
         missing_steps=missing_steps,
         reviewer_queue_reason=reviewer_queue_reason,
     )
-
 
 def _request_account(request: Request) -> str:
     return str(request.headers.get("x-weall-account") or "").strip()
@@ -464,9 +528,15 @@ def _require_poh_session_matches(request: Request, st: Json, *, expected: str, p
 def _async_case_allows_restricted_evidence(raw: dict[str, object], *, account: str) -> bool:
     if not account:
         return False
+    status = str(raw.get("status") or "").strip().lower()
+    if status in {"approved", "rejected", "expired", "finalized", "receipt_recorded"}:
+        return False
     acct = str(account or "").strip()
     if str(raw.get("account_id") or "").strip() == acct:
         return True
+    binds = raw.get("evidence_binds")
+    if not isinstance(binds, dict) or not binds:
+        return False
 
     # Reviewer evidence is intentionally withheld until the reviewer accepts the
     # assignment.  Assignment alone should only reveal commitments/metadata so a
@@ -508,7 +578,10 @@ def poh_async_case(case_id: str, request: Request) -> PohAsyncCaseResponse:
         raise ApiError.not_found("not_found", "async_case_not_found")
     principal = _session_principal_for_restricted_poh(request, st)
     include_private = _async_case_allows_restricted_evidence(raw, account=principal)
-    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, raw, include_restricted_evidence=include_private))
+    case_source = dict(raw)
+    if include_private:
+        case_source["evidence_binds"] = _restricted_evidence_binds(st, raw)
+    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, case_source, include_restricted_evidence=include_private))
 
 
 @router.get(
@@ -527,7 +600,10 @@ def poh_async_my_cases(account: str, request: Request) -> PohAsyncCaseListRespon
         if str(raw.get("account_id") or "").strip() == acct:
             principal = _session_principal_for_restricted_poh(request, st)
             include_private = principal == acct
-            out.append(_as_async_case(str(cid), raw, include_restricted_evidence=include_private))
+            case_source = dict(raw)
+            if include_private:
+                case_source["evidence_binds"] = _restricted_evidence_binds(st, raw)
+            out.append(_as_async_case(str(cid), case_source, include_restricted_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     return PohAsyncCaseListResponse(
         ok=True,
@@ -562,7 +638,10 @@ def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListRespo
                 continue
             principal = _session_principal_for_restricted_poh(request, st)
             include_private = principal == j
-            out.append(_as_async_case(str(cid), raw, include_restricted_evidence=include_private))
+            case_source = dict(raw)
+            if include_private:
+                case_source["evidence_binds"] = _restricted_evidence_binds(st, raw)
+            out.append(_as_async_case(str(cid), case_source, include_restricted_evidence=include_private))
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     roles = st.get("roles") if isinstance(st.get("roles"), dict) else {}
     juror_roles = roles.get("jurors") if isinstance(roles.get("jurors"), dict) else {}
@@ -2741,7 +2820,7 @@ class PohAsyncReviewSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
     verdict: str = Field(..., min_length=1)
     reason_code: str | None = Field(default=None, max_length=128)
-
+    followup_round: int | None = Field(default=None, ge=0)
 
 class PohChallengeOpenSkeletonRequest(BaseModel):
     account_id: str = Field(..., min_length=1)
@@ -2845,7 +2924,7 @@ def poh_async_tx_review(req: PohAsyncReviewSkeletonRequest, request: Request) ->
             "verdict must be approve, reject, needs_followup, invalid_evidence, or abstain",
             {"verdict": verdict},
         )
-    payload: Json = {"case_id": cid, "verdict": verdict, "ts_ms": 0}
+    payload: Json = {"case_id": cid, "verdict": verdict, "ts_ms": 0, **({"followup_round": int(req.followup_round)} if req.followup_round is not None else {})}
     reason_code = str(req.reason_code or "").strip()
     if reason_code:
         payload["reason_code"] = reason_code

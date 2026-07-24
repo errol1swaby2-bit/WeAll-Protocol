@@ -1,0 +1,352 @@
+{
+  "schema_version": 1,
+  "milestone": "M2 account custody, human verification, recovery, and outside-tester onboarding",
+  "closure_policy": "implementation plus externally generated evidence",
+  "requirements": [
+    {
+      "id": "P0-01",
+      "title": "Ordinary active keys cannot replace the recovery authority",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/sigverify.py",
+        "src/weall/runtime/apply/identity.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P0-02",
+      "title": "Prior active keys cannot cancel valid independent recovery",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/account_recovery_policy.py",
+        "src/weall/runtime/apply/identity.py",
+        "src/weall/runtime/tx_admission.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P0-03",
+      "title": "Canonical failed-recovery accounting and rate limits",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/apply/identity.py",
+        "src/weall/runtime/account_recovery_scheduler.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P0-04",
+      "title": "Guardian recovery retired on pinned v2 genesis states",
+      "status": "implemented_requires_operator_signature_rotation",
+      "implementation": [
+        "configs/genesis.ledger.prod.json",
+        "configs/genesis.ledger.testnet-v1.json",
+        "scripts/build_production_genesis_manifest.py",
+        "scripts/gen_public_testnet_v1_chain_identity.py",
+        "scripts/rotate_public_testnet_seed_registry_m2.sh"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py",
+        "tests/prod/test_public_testnet_v1_chain_identity.py"
+      ],
+      "evidence_gate": "scripts/check_public_testnet_seed_registry_rotation.py"
+    },
+    {
+      "id": "P0-05",
+      "title": "Encrypted case-scoped PoH and recovery evidence",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/poh/evidence_lifecycle.py",
+        "src/weall/api/routes_public_parts/poh.py",
+        "../web/src/auth/evidenceCrypto.ts",
+        "../web/src/pages/AccountVerificationPage.tsx",
+        "../web/src/components/EncryptedEvidenceViewer.tsx",
+        "../web/tests/e2e/m2_actor_helpers.ts"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py",
+        "tests/test_restricted_poh_session_and_webrtc_transport.py",
+        "../web/tests/e2e/poh_async_independent_browsers.spec.ts"
+      ]
+    },
+    {
+      "id": "P0-06",
+      "title": "Reviewer evidence access revoked at closure",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/poh/evidence_lifecycle.py",
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/api/routes_public_parts/poh.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py",
+        "tests/test_restricted_poh_session_and_webrtc_transport.py"
+      ]
+    },
+    {
+      "id": "P0-07",
+      "title": "Account-private-key persistence source regression fixed",
+      "status": "implemented",
+      "implementation": [
+        "../web/src/auth/keys.ts"
+      ],
+      "tests": [
+        "tests/test_login_recovery_passkey_ux.py",
+        "../web/scripts/test_account_custody_crypto_source.mjs"
+      ]
+    },
+    {
+      "id": "P0-08",
+      "title": "Complete backend and frontend suites",
+      "status": "evidence_required",
+      "implementation": [
+        "../scripts/run_m2_complete_closure.sh"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/backend",
+        "artifacts/m2-closure/frontend"
+      ]
+    },
+    {
+      "id": "P1-01",
+      "title": "Tier 2 continuity recovery with 15 reviewers and 10 approvals",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/recovery_review.py",
+        "src/weall/runtime/apply/identity.py",
+        "src/weall/runtime/account_recovery_scheduler.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P1-02",
+      "title": "Recovery reversal with fresh 25-reviewer panel and 20 approvals",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/recovery_review.py",
+        "src/weall/runtime/apply/identity.py",
+        "src/weall/runtime/account_recovery_scheduler.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P1-03",
+      "title": "Evidence retention, deletion deadline, retries, and provider attestations",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/poh/evidence_lifecycle.py",
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/runtime/scheduler_pipeline.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P1-04",
+      "title": "Async reviewer decline replacement",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/poh/async_scheduler.py",
+        "src/weall/runtime/poh/juror_select.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py",
+        "tests/test_poh_async_safety.py"
+      ]
+    },
+    {
+      "id": "P1-05",
+      "title": "Async follow-up evidence lifecycle",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/runtime/poh/async_scheduler.py"
+      ],
+      "tests": [
+        "tests/test_poh_async_safety.py"
+      ]
+    },
+    {
+      "id": "P1-06",
+      "title": "Actual Tier 2 reverification cases",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/poh/state.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P1-07",
+      "title": "Tier-2-only responsibility replacement and safe withdrawal",
+      "status": "implemented",
+      "implementation": [
+        "src/weall/runtime/tier2_responsibility.py",
+        "src/weall/runtime/poh/state.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P1-08",
+      "title": "ACCT Tier 0 and Tier 1 gate corrections",
+      "status": "implemented",
+      "implementation": [
+        "specs/tx_canon/tx_canon.yaml",
+        "src/weall/runtime/apply/content.py",
+        "src/weall/runtime/apply/dispute.py"
+      ],
+      "tests": [
+        "tests/test_m2_complete_security_and_lifecycle.py"
+      ]
+    },
+    {
+      "id": "P1-09",
+      "title": "Institutional identity removed from M2 by formal architecture decision",
+      "status": "rescoped",
+      "implementation": [
+        "docs/architecture/ADR-M2-INSTITUTIONAL-IDENTITY-RESCOPE.md"
+      ]
+    },
+    {
+      "id": "P2-01",
+      "title": "Independent-browser async applicant and reviewer E2E",
+      "status": "evidence_required",
+      "implementation": [
+        "../web/tests/e2e/poh_async_independent_browsers.spec.ts",
+        "../scripts/run_m2_async_browser_e2e.sh",
+        "../web/src/components/EncryptedEvidenceViewer.tsx"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/browser/async"
+      ]
+    },
+    {
+      "id": "P2-02",
+      "title": "Independent-browser live applicant and reviewer E2E",
+      "status": "evidence_required",
+      "implementation": [
+        "../web/tests/e2e/poh_live_independent_browsers.spec.ts",
+        "../scripts/run_m2_live_browser_e2e.sh"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/browser/live"
+      ]
+    },
+    {
+      "id": "P2-03",
+      "title": "Async and live reviewer runbooks",
+      "status": "implemented",
+      "implementation": [
+        "docs/testnet/M2_ASYNC_REVIEWER_RUNBOOK.md",
+        "docs/testnet/M2_LIVE_REVIEWER_RUNBOOK.md"
+      ]
+    },
+    {
+      "id": "P2-04",
+      "title": "Media interruption and reviewer replacement rehearsal",
+      "status": "evidence_required",
+      "implementation": [
+        "../scripts/run_m2_media_rehearsal.sh",
+        "docs/testnet/M2_MEDIA_INTERRUPTION_REPLACEMENT_REHEARSAL.md"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/media"
+      ]
+    },
+    {
+      "id": "P2-05",
+      "title": "Backend restart and deterministic replay",
+      "status": "evidence_required",
+      "implementation": [
+        "../scripts/run_m2_restart_replay_gate.sh"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/restart-replay"
+      ]
+    },
+    {
+      "id": "P2-06",
+      "title": "Two-node state-root equality",
+      "status": "evidence_required",
+      "implementation": [
+        "../scripts/run_m2_two_node_state_root_gate.sh"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/two-node"
+      ]
+    },
+    {
+      "id": "P2-07",
+      "title": "Observer catch-up",
+      "status": "evidence_required",
+      "implementation": [
+        "../scripts/run_m2_observer_catchup_gate.sh"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/observer"
+      ]
+    },
+    {
+      "id": "P2-08",
+      "title": "Requirement traceability",
+      "status": "implemented",
+      "implementation": [
+        "docs/production_readiness/M2_REQUIREMENT_TRACEABILITY.json",
+        "docs/production_readiness/M2_SCOPE_CROSSWALK.json",
+        "scripts/check_m2_requirement_traceability.py"
+      ]
+    },
+    {
+      "id": "P2-09",
+      "title": "Implementation-freeze followed by evidence-only closure commit",
+      "status": "evidence_required",
+      "implementation": [
+        "docs/production_readiness/M2_CLOSURE_PROCESS.md",
+        "../scripts/check_m2_evidence_only_commit.sh",
+        "../scripts/build_m2_evidence_manifest.py",
+        "../scripts/check_m2_evidence_manifest.py",
+        "../scripts/m2_evidence_contract.py",
+        "../scripts/extract_m2_state_root_summary.py"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/M2_EVIDENCE_MANIFEST.json"
+      ],
+      "tests": [
+        "tests/test_m2_closure_integrity.py"
+      ]
+    },
+    {
+      "id": "P2-10",
+      "title": "Stateful account custody create, verify, register, restart, restore, and protected-action E2E",
+      "status": "evidence_required",
+      "implementation": [
+        "../web/tests/e2e/account_custody_registration_restore.spec.ts",
+        "../scripts/run_account_custody_real_stack_e2e.sh",
+        "../web/src/auth/keys.ts",
+        "../web/src/auth/recoveryFile.ts"
+      ],
+      "tests": [
+        "../web/tests/e2e/account_custody_registration_restore.spec.ts",
+        "../web/scripts/test_account_custody_source.mjs",
+        "../web/scripts/test_account_custody_crypto_source.mjs"
+      ],
+      "evidence": [
+        "artifacts/m2-closure/browser/account-custody"
+      ]
+    }
+  ]
+}

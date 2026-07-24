@@ -1,7 +1,8 @@
 import { ml_dsa65 } from "@noble/post-quantum/ml-dsa.js";
 
 // Raw account secret material is kept only for the active browser session or in an
-// explicitly user-exported recovery file. Local storage contains public metadata only.
+// explicitly user-exported recovery file. We never persist raw account private keys
+// in localStorage; local storage contains public metadata only.
 export type KeypairB64 = {
   pubkeyB64: string;
   secretKeyB64: string;
@@ -159,6 +160,44 @@ export function generateKeypair(): KeypairB64 {
     pubkeyB64: bytesToB64(kp.publicKey),
     secretKeyB64: bytesToB64(seed),
   };
+}
+
+
+const RECOVERY_AUTH_PUBLIC_PREFIX = "weall_recovery_authority_public::";
+const RECOVERY_AUTH_SECRET_PREFIX = "weall_recovery_authority_secret::";
+
+function recoveryAuthorityPublicKey(account: string): string {
+  return `${RECOVERY_AUTH_PUBLIC_PREFIX}${normalizeAccount(account)}`;
+}
+
+function recoveryAuthoritySecretKey(account: string): string {
+  return `${RECOVERY_AUTH_SECRET_PREFIX}${normalizeAccount(account)}`;
+}
+
+export function saveRecoveryAuthorityKeypair(account: string, pair: KeypairB64): void {
+  const normalized = normalizeAccount(account);
+  if (!normalized) throw new Error("account_required");
+  const valid = validateKeypair(pair.pubkeyB64, pair.secretKeyB64);
+  if (!valid.ok) throw new Error(`invalid_recovery_authority:${valid.reason || "unknown"}`);
+  localStorage.setItem(recoveryAuthorityPublicKey(normalized), pair.pubkeyB64);
+  sessionStorage.setItem(recoveryAuthoritySecretKey(normalized), pair.secretKeyB64);
+}
+
+export function loadRecoveryAuthorityKeypair(account: string): KeypairB64 | null {
+  const normalized = normalizeAccount(account);
+  if (!normalized) return null;
+  const pubkeyB64 = String(localStorage.getItem(recoveryAuthorityPublicKey(normalized)) || "").trim();
+  const secretKeyB64 = String(sessionStorage.getItem(recoveryAuthoritySecretKey(normalized)) || "").trim();
+  if (!pubkeyB64 || !secretKeyB64) return null;
+  return validateKeypair(pubkeyB64, secretKeyB64).ok ? { pubkeyB64, secretKeyB64 } : null;
+}
+
+export function ensureRecoveryAuthorityKeypair(account: string): KeypairB64 {
+  const existing = loadRecoveryAuthorityKeypair(account);
+  if (existing) return existing;
+  const pair = generateKeypair();
+  saveRecoveryAuthorityKeypair(account, pair);
+  return pair;
 }
 
 export function derivePublicKeyFromSecretKey(secretKeyB64: string): string {

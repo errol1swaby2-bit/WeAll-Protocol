@@ -57,3 +57,46 @@ def test_devnet_tx_ensure_keyfile_creates_reusable_key_material(tmp_path: Path) 
     )
     second_payload = json.loads(second.stdout)
     assert second_payload["public_key_hex"] == first_payload["public_key_hex"]
+
+
+def test_devnet_tx_ensure_keyfile_fresh_rotates_active_key_material(tmp_path: Path) -> None:
+    keyfile = tmp_path / "devnet-account.json"
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "ensure-keyfile",
+            "--account",
+            "@devnet-fresh",
+            "--keyfile",
+            str(keyfile),
+        ],
+        cwd=str(ROOT),
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    before = json.loads(keyfile.read_text(encoding="utf-8"))
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "ensure-keyfile",
+            "--account",
+            "@devnet-fresh",
+            "--keyfile",
+            str(keyfile),
+            "--fresh",
+        ],
+        cwd=str(ROOT),
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    after = json.loads(keyfile.read_text(encoding="utf-8"))
+
+    assert after["account"] == "@devnet-fresh"
+    assert after["private_key_hex"] != before["private_key_hex"]
+    assert after["public_key_hex"] != before["public_key_hex"]

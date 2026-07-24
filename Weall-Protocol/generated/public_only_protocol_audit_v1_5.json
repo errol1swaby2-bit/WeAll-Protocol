@@ -51,7 +51,7 @@
     {
       "category": "frontend",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
-      "match_count": 2,
+      "match_count": 3,
       "path": "../web/scripts/test_reviewer_critical_flows_source.mjs"
     },
     {
@@ -64,13 +64,37 @@
       "category": "frontend",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
-      "path": "../web/src/pages/Disputes.tsx"
+      "path": "../web/src/auth/evidenceCrypto.ts"
     },
     {
       "category": "frontend",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "../web/src/components/EncryptedEvidenceViewer.tsx"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "../web/src/pages/AccountVerificationPage.tsx"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "../web/src/pages/Disputes.tsx"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 2,
       "path": "../web/src/pages/JurorDashboard.tsx"
+    },
+    {
+      "category": "frontend",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "../web/tests/e2e/m2_actor_helpers.ts"
     },
     {
       "category": "docs/specs",
@@ -83,6 +107,18 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
       "path": "docs/audits/late_stage_nlnet_public_testnet_gap_inventory_v1_5.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/production_readiness/M2_RECOVERY_TIER2_PATCH.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/production_readiness/M2_TRUTH_BOUNDARIES.md"
     },
     {
       "category": "docs/specs",
@@ -121,6 +157,24 @@
       "path": "docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md"
     },
     {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/testnet/M2_ACCOUNT_RECOVERY_RUNBOOK.md"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/testnet/M2_ASYNC_REVIEWER_RUNBOOK.md"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/current_tx_canon.json"
+    },
+    {
       "category": "generated",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
@@ -131,6 +185,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "generated/v2/route_contract_map.json"
+    },
+    {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/runtime_state_inventory.json"
     },
     {
       "category": "generated",
@@ -169,10 +229,28 @@
       "path": "generated/v2/target_tx_canon.json"
     },
     {
+      "category": "generated",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "generated/v2/tx_contract_matrix.json"
+    },
+    {
+      "category": "scripts",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "scripts/demo_native_async_tier1_e2e.sh"
+    },
+    {
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
       "path": "specs/v2/source/requirements.json"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "specs/v2/source/stable_ids.json"
     },
     {
       "category": "docs/specs",
@@ -190,13 +268,67 @@
       "category": "backend/api",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "src/weall/api/app.py"
+    },
+    {
+      "category": "backend/api",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "src/weall/api/routes_public_parts/groups.py"
+    },
+    {
+      "category": "backend/api",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/api/routes_public_parts/poh.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/apply/identity.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/apply/poh.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/poh/evidence_lifecycle.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/public_protocol_policy.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/tx_schema.py"
     },
     {
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
-      "match_count": 10,
+      "match_count": 1,
+      "path": "tests/test_async_verification_submission_reviewer_feed.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 9,
       "path": "tests/test_direct_message_transaction_quarantine.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_frontend_poh_media_and_live_room.py"
     },
     {
       "category": "tests",
@@ -208,7 +340,55 @@
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "tests/test_m2_complete_security_and_lifecycle.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_native_async_demo_scripts.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_poh_async_recorded_video_frontend.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_poh_async_reviewable_evidence.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_poh_async_safety.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_poh_privacy_system_only_and_live_transport.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 2,
+      "path": "tests/test_public_only_protocol_redesign.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "tests/test_release_docs_truth_sync.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_restricted_poh_session_and_webrtc_transport.py"
     }
   ],
   "inventory_classification": {
@@ -228,7 +408,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 28,
+  "inventory_hit_count": 58,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

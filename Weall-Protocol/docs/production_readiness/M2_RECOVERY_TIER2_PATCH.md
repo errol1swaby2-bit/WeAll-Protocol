@@ -1,96 +1,125 @@
-# Milestone 2 Recovery and Tier-2 Lifecycle Patch
+# Milestone 2 complete-objectives implementation patch
 
 ## Scope
 
-This patch closes the consensus-critical foundation for Milestone 2 account recovery and Tier-2 expiration handling. It does not claim completion of continuity-panel recovery, recovery reversal, encrypted evidence deletion, or the complete async/live multi-browser tester journey.
+This patch addresses the code, test, runbook, and closure-harness work identified by the Milestone 2 pre-push audit. It replaces the earlier recovery/Tier-2 foundation posture with a complete implementation candidate for the human-account custody, recovery, Proof-of-Humanity, evidence-lifecycle, reviewer, and outside-tester objectives.
 
-Implemented behavior:
+Milestone 2 is **not closed merely because this patch applies**. Closure additionally requires:
 
-- Purpose-limited offline recovery keys can authorize only `ACCOUNT_RECOVERY_REQUEST` transactions.
-- Offline recovery finalization atomically replaces account authority and rotates the offline recovery key.
-- Finalization revokes prior account keys, devices, and session keys.
-- Recovery starts an 8,640-finalized-block restriction window enforced in admission gates and again at apply time.
-- A locked account retains a narrow ability to cancel its active recovery request.
-- New states created by the v2 genesis bootstrap disable new guardian recovery admission while historical states without the selector remain replay-compatible.
-- Authorized recovery requests are finalized and receipted by deterministic system transactions.
-- Tier 2 receives an exact 777,600-block validity term.
-- Tier-2 reminder heights, reverification opening, and expiry are processed deterministically before user transactions.
-- Expired Tier 2 falls back to Tier 1 rather than Tier 0.
-- Legacy account mirrors now reflect canonical PoH downgrades instead of preserving stale higher tiers.
-- The browser custody journey has a mandatory real-stack launcher that fails when the backend is unavailable rather than silently skipping.
+1. An operator-signed replacement public-testnet seed registry bound to the regenerated chain identity.
+2. A clean implementation-freeze commit.
+3. A successful run of `scripts/run_m2_complete_closure.sh` in the maintainer WSL environment.
+4. A direct child evidence-only commit containing the generated `artifacts/m2-closure/**` transcripts and manifest.
 
-## Consensus boundaries
+## Implemented P0 security and correctness behavior
 
-### Offline recovery authority
+- Ordinary active account authority cannot rotate an already registered offline recovery authority.
+- New v2 registrations require an independent offline ML-DSA recovery key and ML-KEM evidence-encryption key.
+- Recovery replacement keys must be fresh and independent from all current and prior account/recovery authority.
+- A prior active key cannot cancel an independently authorized offline, continuity, or reversal recovery.
+- Failed recovery decisions are recorded canonically and enforced through the rolling failure window and cooldown policy.
+- Guardian recovery is disabled in the regenerated production and public-testnet genesis states. Historical replay behavior remains interpretable.
+- PoH and continuity/reversal evidence is encrypted before provider upload and bound to exact ciphertext bytes.
+- Full recipient key envelopes are available only to an authenticated subject or chain-accepted reviewer while the case remains open.
+- Reviewer envelope access is removed when the case closes and evidence enters sealed retention.
+- The account-private-key persistence source regression is corrected and covered by source tests.
 
-The configured offline key is stored outside the account's active key set. Signature verification selects it only when all of the following hold:
+## Implemented P1 lifecycle behavior
 
-1. The transaction type is `ACCOUNT_RECOVERY_REQUEST`.
-2. The payload method is `offline_key`.
-3. The transaction signature profile matches the configured recovery-key profile.
-4. The signature verifies against the configured recovery public key.
+### Account recovery
 
-A recovery-key signature does not fall through to ordinary active-key authorization.
+The canonical recovery methods are:
 
-### Atomic replacement
+- `offline_key`: authorization by the currently registered purpose-limited offline recovery authority.
+- `continuity`: two independent evidence classes, at least one strong continuity anchor, a deterministic 15-reviewer panel, and 10 approvals.
+- `reversal`: a challenge during the recovery restriction window using a fresh 25-reviewer panel, excluding prior recovery reviewers, and requiring 20 approvals.
 
-`ACCOUNT_RECOVERY_FINALIZE` performs one state transition that:
+Successful finalization atomically:
 
-1. Rechecks the recovery generation.
-2. Revokes every previously active account key.
-3. Installs the requested replacement authority key.
-4. Revokes registered devices.
-5. Revokes active session keys.
-6. Rotates the offline recovery key and generation.
-7. Starts the post-recovery restriction window.
-8. Supersedes other open or approved recovery requests.
-9. Synchronizes all legacy key mirrors.
+1. Revalidates the request and authority generation.
+2. Revokes all prior account authority keys.
+3. Revokes all registered devices and active sessions.
+4. Installs one fresh replacement account authority.
+5. Installs one fresh independent offline recovery authority.
+6. Starts or extends the 8,640-block high-risk restriction.
+7. Seals case evidence and removes reviewer key envelopes.
+8. Emits a public recovery or reversal receipt and incident history.
 
-### Post-recovery restriction
+### Encrypted evidence lifecycle
 
-The restriction remains active through `restriction_until_height`. The default check evaluates the next candidate height. Only the explicit low-risk allowlist in `account_recovery_policy.py` remains available. Apply-time enforcement protects replay and block ingestion even when mempool admission is bypassed.
+Every registered evidence object follows a deterministic lifecycle:
 
-### Tier-2 expiration
+```text
+uploaded
+→ reviewer_accessible
+→ sealed_retention
+→ deletion_due
+→ erasure_pending
+→ erased
+```
 
-A Tier-2 award remains effective through `expires_at_height`. At the first later block, the lifecycle processor records expiration before user transactions. Canonical historical status retains the prior Tier-2 award and marks it expired; effective standing and account mirrors become Tier 1.
+The lifecycle records the retention due height, the 4,320-block deletion-completion deadline, 180-block retries, deadline-missed receipts, provider deletion attestations, key-erasure commitments, and the final erasure receipt. Provider attestations must be signed by a provider recorded for that evidence object.
 
-## Chain-identity note
+The controlled local encrypted-object store used by browser E2E is non-production infrastructure. Production deployments must use an accountable provider integration and complete its deletion attestations.
 
-This patch does not rewrite the checked-in production or public-testnet genesis ledgers because doing so changes pinned genesis hashes and invalidates the currently signed public seed registry. The v2 bootstrap default disables new guardian admission for newly created states. A coordinated public-testnet reset must regenerate the ledger and manifest, update trust roots, and republish a newly signed seed registry in one controlled operation.
+### Async and live PoH
 
-## Required validation
+- Declined async reviewers are deterministically replaced.
+- Follow-up reviews open a new canonical follow-up round in which the applicant may bind new encrypted evidence and reviewers must review the current round.
+- Browser E2E actors use independent browser contexts and authenticated session keys.
+- The async browser journey performs an actual AES-GCM encryption, provider upload, per-recipient ML-KEM wrapping, reviewer-side decryption, follow-up review, finalization, and Tier 1 observation.
+- The live browser journey uses separate applicant/reviewer contexts, fake CI camera/microphone transport, chain-committed acceptance and attendance, UI-submitted verdicts, Tier 2 finalization, and a Tier-2-gated action.
+- WebRTC remains non-authoritative transport; only signed canonical attendance and verdict transactions affect civic status.
 
-Run the targeted backend suite:
+### Tier 2 lifecycle
+
+- Tier 2 is valid for exactly 777,600 finalized blocks.
+- Five canonical reminder receipts are emitted.
+- A real reverification case is opened at the configured boundary.
+- Expiration is processed before user transactions at the first later height and falls back to Tier 1.
+- Existing frozen electorates remain unchanged.
+- Tier-2-only assignments stop accepting new work and enter deterministic replacement or bounded safe-withdrawal state.
+
+### Account gates and institutional identity
+
+The account-tier gates are corrected so designated low-risk public discussion and reaction actions are available at Tier 0, while Tier 1 may perform the specification-authorized flag/dispute actions. Higher-authority governance and responsibility actions remain Tier 2 gated.
+
+Institutional identity is formally removed from the Milestone 2 closure boundary by `docs/architecture/ADR-M2-INSTITUTIONAL-IDENTITY-RESCOPE.md`. No M2 claim includes institutional formation or representative authority.
+
+## Pinned chain and seed-registry boundary
+
+The production and public-testnet genesis ledgers, manifests, trust roots, transaction-index commitments, and chain commitments are regenerated for the new v2 account requirements and guardian retirement.
+
+The repository intentionally marks the checked-in seed registry as `rotation_required`. The private signing authority is not stored in the repository and cannot be manufactured by a patch. Before closure, the operator must run:
 
 ```bash
 cd Weall-Protocol
-python3 -m pytest -q \
-  tests/test_identity_domain_mvp.py \
-  tests/test_poh_async_safety.py \
-  tests/test_poh_two_tier_hard_invariant.py \
-  tests/test_poh_v2_two_tier_migration.py \
-  tests/test_poh_eligibility_rules.py \
-  tests/test_reviewer_safety.py \
-  tests/test_m2_account_recovery_and_tier2_lifecycle.py
+read -rsp "Seed-registry ML-DSA private key: " WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY
+export WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY
+printf "\n"
+bash scripts/rotate_public_testnet_seed_registry_m2.sh
+unset WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY
+PYTHONPATH=src python3 scripts/check_public_testnet_seed_registry_rotation.py
 ```
 
-Run the mandatory custody journey:
+The strict closure runner fails until that signed registry validates against the regenerated chain commitments.
+
+## Required closure
+
+After applying, reviewing, and committing this patch as the implementation freeze:
 
 ```bash
-bash scripts/run_account_custody_real_stack_e2e.sh
+export M2_IMPLEMENTATION_FREEZE_COMMIT="$(git rev-parse HEAD)"
+bash scripts/run_m2_complete_closure.sh
 ```
 
-The real-stack launcher installs frontend dependencies when absent, starts an isolated backend, requires the real backend path, and preserves no runtime directory unless `WEALL_KEEP_M2_CUSTODY_RUNTIME=1` is set.
+The runner executes the complete backend suite, generated-artifact checks, frontend typecheck/build/safety gates, mandatory custody/async/live browser journeys, media rehearsal, restart/replay, two-node state-root equality, observer catch-up, artifact sanitization, and evidence-manifest generation.
 
-## Remaining Milestone 2 implementation
+Then stage only `artifacts/m2-closure/**` and validate:
 
-The following items require subsequent patches before the complete Milestone 2 list can be honestly closed:
+```bash
+M2_IMPLEMENTATION_FREEZE_COMMIT="$M2_IMPLEMENTATION_FREEZE_COMMIT" \
+  bash scripts/check_m2_evidence_only_commit.sh --cached
+```
 
-- Tier-2 continuity-panel recovery with evidence-class and reviewer-conflict enforcement.
-- Recovery reversal with a fresh 25-reviewer panel and 20-approval threshold.
-- Canonical failure accounting for continuity recovery attempts.
-- Responsibility replacement and safe withdrawal after Tier-2 expiration.
-- Encrypted PoH evidence grants, closure-time revocation, retention, deletion retries, and provider attestations.
-- Complete real-browser async Tier-1 and live Tier-2 journeys with independent actors.
-- External reviewer/tester runbooks and multi-node evidence capture for those journeys.
-- Coordinated chain-identity reset and signed registry republishing to retire guardian admission on the pinned public testnet.
+The evidence-only commit must be the direct child of the implementation-freeze commit. No source, config, test, or specification file may change in that commit.

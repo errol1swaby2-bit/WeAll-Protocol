@@ -69,8 +69,12 @@ def test_async_restricted_evidence_option_b_public_state_redacts_uri() -> None:
                 "evidence_id": "ev1",
                 "evidence_commitment": "c" * 64,
                 "response_commitment": "d" * 64,
-                "uri": "ipfs://bafybeigdyrzt",
-                "video_commitment": "e" * 64,
+                "encrypted": True,
+                "encryption_algorithm": "aes-256-gcm",
+                "ciphertext_cid": "bafybeigdyrzt",
+                "ciphertext_commitment": "e" * 64,
+                "encryption_context_commitment": "f" * 64,
+                "provider_ids": ["@provider"],
             },
         ),
     )
@@ -80,7 +84,8 @@ def test_async_restricted_evidence_option_b_public_state_redacts_uri() -> None:
     assert case["reviewable_evidence"] == {}
     assert case["evidence_commitments"]["ev1"]["evidence_commitment"] == "c" * 64
     assert "uri" not in case["evidence_commitments"]["ev1"]
-    assert case["reviewer_restricted_evidence"]["ev1"]["uri"] == "ipfs://bafybeigdyrzt"
+    assert case["reviewer_restricted_evidence"]["ev1"]["encrypted_blob_cid"] == "bafybeigdyrzt"
+    assert "uri" not in case["reviewer_restricted_evidence"]["ev1"]
 
 
 @pytest.mark.parametrize(

@@ -11,7 +11,12 @@ import {
   submitSignedTx,
   submitSignedTxInSequence,
 } from "../auth/session";
-import { normalizeAccount } from "../auth/keys";
+import { ensureRecoveryAuthorityKeypair, normalizeAccount } from "../auth/keys";
+import {
+  ensureEvidenceKemKeypair,
+  encryptEvidenceBlob,
+  wrapEvidenceKeyForRecipient,
+} from "../auth/evidenceCrypto";
 import { useAccount } from "../context/AccountContext";
 import { useTxQueue } from "../hooks/useTxQueue";
 import { useSignerSubmissionBusy } from "../hooks/useSignerSubmissionBusy";
@@ -48,6 +53,7 @@ type UploadState = {
   mime?: string;
   name?: string;
   size?: number;
+  provider_id?: string;
 };
 
 type StageTone = "done" | "active" | "locked";
@@ -374,6 +380,23 @@ async function waitForAsyncCaseVisible(account: string, caseId: string, base: st
   return reviewability.reviewable;
 }
 
+async function waitForAsyncAssignedCase(account: string, caseId: string, base: string, headers?: HeadersInit, maxWaitMs = 120000): Promise<any> {
+  const deadline = Date.now() + Math.max(1000, maxWaitMs);
+  while (Date.now() < deadline) {
+    try {
+      const mine = await weall.pohAsyncMyCases(account, base, headers);
+      const cases = Array.isArray(mine?.cases) ? mine.cases : [];
+      const found = cases.find((item: any) => String(item?.case_id || "").trim() === String(caseId || "").trim());
+      const assigned = Array.isArray(found?.assigned_jurors) ? found.assigned_jurors.filter(Boolean) : [];
+      if (found && assigned.length > 0) return found;
+    } catch {
+      // Keep polling while the producing node commits assignment.
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 750));
+  }
+  throw new Error("Async verification reviewer assignment did not become visible before timeout.");
+}
+
 export default function AccountVerificationPage(): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const session = getSession();
@@ -553,6 +576,10 @@ export default function AccountVerificationPage(): JSX.Element {
           tx_type: "ACCOUNT_REGISTER",
           payload: {
             pubkey: kp.pubkeyB64,
+            recovery_pubkey: ensureRecoveryAuthorityKeypair(acct).pubkeyB64,
+            recovery_sig_profile: "pq-mldsa-v1",
+            evidence_kem_pubkey: ensureEvidenceKemKeypair(acct).publicKeyB64,
+            evidence_kem_algorithm: "ml-kem-768",
           },
           parent: null,
           base,
@@ -776,30 +803,36 @@ export default function AccountVerificationPage(): JSX.Element {
             : "Async verification evidence submitted and reviewer-visible.",
         finality: { timeoutMs: 20_000, reconcile: async () => reconcileAsyncCompatibilityCase(acct, base, headers) },
         errorMessage: (e) => prettyErr(e).msg,
-        getTxId: (res: any) => res?.bind?.result?.tx_id || res?.declare?.result?.tx_id || res?.open?.result?.tx_id,
+        getTxId: (res: any) => res?.access_bind?.result?.tx_id || res?.bind?.result?.tx_id || res?.declare?.result?.tx_id || res?.open?.result?.tx_id,
         task: async () => {
-          const file = new File([asyncRecordedBlob], `${challenge.challengeId}.webm`, { type: asyncRecordedBlob.type || "video/webm" });
-          const upload: UploadState = await weall.pohAsyncVideoUpload(file, base, headers);
+          const caseId = `pohasync:${String(acct).replace(/^@/, "")}:${challenge.challengeId}`;
+          const evidenceContext = `weall:poh-evidence:v1:${caseId}:${acct}`;
+          const encryptedEvidence = await encryptEvidenceBlob({
+            blob: asyncRecordedBlob,
+            filename: `${challenge.challengeId}.webm`,
+            context: evidenceContext,
+          });
+          const uploadHeaders = new Headers(headers || {});
+          uploadHeaders.set("X-WeAll-Evidence-Encryption", "aes-256-gcm");
+          uploadHeaders.set("X-WeAll-Evidence-Context-Commitment", encryptedEvidence.encryptionContextCommitment);
+          uploadHeaders.set("X-WeAll-Evidence-Ciphertext-Commitment", encryptedEvidence.ciphertextCommitment);
+          const upload: UploadState = await weall.pohAsyncVideoUpload(encryptedEvidence.file, base, uploadHeaders);
           setAsyncUpload(upload);
 
-          const caseId = `pohasync:${String(acct).replace(/^@/, "")}:${challenge.challengeId}`;
           const challengeCommitment = await sha256HexText(`weall:poh_async_challenge_v1:${acct}:${challenge.challengeId}:${challenge.phrase}`);
-          const responseCommitment = await sha256HexText(`weall:poh_async_response_v1:${acct}:${challenge.challengeId}:${upload.video_commitment || upload.cid || ""}:${asyncAbout.trim()}:${asyncWhyJoining.trim()}`);
-          const evidenceCommitment = upload.video_commitment || await sha256HexText(`weall:poh_async_evidence_v1:${upload.cid || ""}`);
+          const responseCommitment = await sha256HexText(`weall:poh_async_response_v1:${acct}:${challenge.challengeId}:${encryptedEvidence.ciphertextCommitment}:${asyncAbout.trim()}:${asyncWhyJoining.trim()}`);
+          const evidenceCommitment = encryptedEvidence.ciphertextCommitment;
           const evidenceId = `async-evidence:${challenge.challengeId}`;
 
           // Batch 400: keep the native async evidence sequence contiguous.
           // Submit request-open, evidence-declare, and evidence-bind first; then
-          // wait for the bound async case to become locally visible/reviewable.
-          // The UI must not report final success after request-open alone.
-          // Submit the three native async-verification transactions as one
-          // signer sequence.  This prevents the observer-edge UI from reusing
-          // stale local nonce reservations between request-open, evidence
-          // declaration, and evidence binding while still keeping each step as a
-          // normal signed protocol tx forwarded through the observer tx queue.
+          // wait for deterministic reviewer assignment and add reviewer envelopes.
+          // Submit the remaining same-signer verification txs immediately with
+          // the reserved nonce cursor. Mempool admission now accepts nonce N+1 when nonce
+          // N is already pending for the same signer. Legacy evidence_cid and
+          // video_commitment plaintext fields are intentionally not submitted.
           const sequence = await beginNonceSequence(acct, base);
           const openedAtMs = Date.now();
-
           const open = await submitSignedTxInSequence({
             sequence,
             tx_type: "POH_ASYNC_REQUEST_OPEN",
@@ -809,18 +842,12 @@ export default function AccountVerificationPage(): JSX.Element {
               challenge_id: challenge.challengeId,
               challenge_commitment: challengeCommitment,
               response_commitment: responseCommitment,
-              note: "fresh_recorded_video_v1",
+              note: "encrypted_fresh_recorded_video_v1",
               ts_ms: openedAtMs,
             }),
             parent: null,
             base,
           });
-
-          // Submit the remaining same-signer verification txs immediately with
-          // contiguous nonces. Mempool admission now accepts nonce N+1 when nonce
-          // N is already pending for the same signer; block admission still
-          // enforces strict replay-safe ordering.
-
           const declare = await submitSignedTxInSequence({
             sequence,
             tx_type: "POH_ASYNC_EVIDENCE_DECLARE",
@@ -829,24 +856,28 @@ export default function AccountVerificationPage(): JSX.Element {
               evidence_id: evidenceId,
               evidence_commitment: evidenceCommitment,
               response_commitment: responseCommitment,
-              kind: "fresh_recorded_video_v1",
-              note: "fresh_1_to_2_minute_in_app_recording",
-              public_evidence_id: upload.uri || (upload.cid ? `ipfs://${upload.cid}` : ""),
-              evidence_cid: upload.cid || "",
-              uri: upload.uri || "",
-              mime: upload.mime || "video/webm",
-              name: upload.name || file.name,
-              size: upload.size || file.size,
-              video_commitment: upload.video_commitment || evidenceCommitment,
+              encrypted: true,
+              encryption_algorithm: "aes-256-gcm",
+              ciphertext_cid: upload.cid || "",
+              ciphertext_commitment: encryptedEvidence.ciphertextCommitment,
+              encryption_context_commitment: encryptedEvidence.encryptionContextCommitment,
+              provider_ids: [String(upload.provider_id || "").trim()].filter(Boolean),
+              ciphertext_mime: "application/octet-stream",
+              ciphertext_size: upload.size || encryptedEvidence.file.size,
+              kind: "encrypted_fresh_recorded_video_v1",
+              note: "client_side_encrypted_recording",
               ts_ms: openedAtMs,
             }),
             parent: open?.result?.tx_id || null,
             base,
           });
 
-          // Evidence binding is the point where the async request becomes a
-          // complete reviewable case.
-
+          const subjectKem = ensureEvidenceKemKeypair(acct);
+          const subjectEnvelope = await wrapEvidenceKeyForRecipient({
+            contentKey: encryptedEvidence.contentKey,
+            recipientPublicKeyB64: subjectKem.publicKeyB64,
+            context: `${evidenceContext}:${acct}`,
+          });
           const bind = await submitSignedTxInSequence({
             sequence,
             tx_type: "POH_ASYNC_EVIDENCE_BIND",
@@ -854,11 +885,58 @@ export default function AccountVerificationPage(): JSX.Element {
               case_id: caseId,
               evidence_id: evidenceId,
               target_id: caseId,
-              ts_ms: openedAtMs,
+              key_envelope_commitments: { [acct]: subjectEnvelope },
+              evidence_root_commitment: encryptedEvidence.ciphertextCommitment,
+              followup_round: 0,
+              ts_ms: Date.now(),
             }),
             parent: declare?.result?.tx_id || null,
             base,
           });
+
+          const assignedCase = await waitForAsyncAssignedCase(acct, caseId, base, headers);
+          const assignedJurors = Array.isArray(assignedCase?.assigned_jurors)
+            ? assignedCase.assigned_jurors
+            : [];
+          const reviewerIds: string[] = Array.from(
+            new Set<string>(
+              assignedJurors
+                .map((value: unknown): string => String(value ?? "").trim())
+                .filter((value: string): boolean => value.length > 0),
+            ),
+          );
+          const keyEnvelopes: Record<string, any> = { [acct]: subjectEnvelope };
+          for (const recipient of reviewerIds) {
+            const view = await weall.account(recipient, base);
+            const state = view?.state && typeof view.state === "object" ? view.state : view;
+            const publicKeyB64 = String(state?.evidence_encryption?.public_key || state?.evidence_encryption?.pubkey || "").trim();
+            if (!publicKeyB64) throw new Error(`Assigned reviewer ${recipient} has no registered ML-KEM evidence key.`);
+            keyEnvelopes[recipient] = await wrapEvidenceKeyForRecipient({
+              contentKey: encryptedEvidence.contentKey,
+              recipientPublicKeyB64: publicKeyB64,
+              context: `${evidenceContext}:${recipient}`,
+            });
+          }
+
+          let accessBind: any = null;
+          if (reviewerIds.length > 0) {
+            const accessSequence = await beginNonceSequence(acct, base);
+            accessBind = await submitSignedTxInSequence({
+              sequence: accessSequence,
+              tx_type: "POH_ASYNC_EVIDENCE_BIND",
+              payloadFactory: () => ({
+                case_id: caseId,
+                evidence_id: evidenceId,
+                target_id: caseId,
+                key_envelope_commitments: keyEnvelopes,
+                evidence_root_commitment: encryptedEvidence.ciphertextCommitment,
+                followup_round: Number(assignedCase.followup_round || 0),
+                ts_ms: Date.now(),
+              }),
+              parent: bind?.result?.tx_id || null,
+              base,
+            });
+          }
 
           const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers, { maxWaitMs: 120000, intervalMs: 1000 });
           let reviewability = await waitForAsyncCaseReviewable(acct, caseId, base, headers, { maxWaitMs: 1000, intervalMs: 500 });
@@ -887,7 +965,7 @@ export default function AccountVerificationPage(): JSX.Element {
             console.info(`Async verification txs were submitted, but the case is not reviewable yet. Missing: ${missing}. Wait for observer/genesis sync and refresh.`);
           }
 
-          return { challenge, case_id: caseId, reviewability, pending_reviewability: pendingReviewability, missing_steps: reviewability.missingSteps, upload, open, declare, bind };
+          return { challenge, case_id: caseId, reviewability, pending_reviewability: pendingReviewability, missing_steps: reviewability.missingSteps, upload, open, declare, bind, access_bind: accessBind };
         },
       });
 

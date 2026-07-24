@@ -26,6 +26,8 @@ def test_devnet_restart_catchup_live_documents_operational_knobs() -> None:
     assert "WEALL_DEVNET_LIVE_LOG_DIR" in text
     assert "WEALL_DEVNET_AUTO_VENV" in text
     assert "WEALL_DEVNET_READY_TIMEOUT" in text
+    assert "WEALL_DEVNET_RESTART_PARITY_ATTEMPTS" in text
+    assert "WEALL_DEVNET_RESTART_PARITY_DELAY_SECONDS" in text
     assert "NODE1_API" in text
     assert "NODE2_API" in text
 
@@ -53,12 +55,17 @@ def test_devnet_restart_catchup_live_restarts_both_nodes() -> None:
 
 def test_devnet_restart_catchup_live_syncs_and_compares_after_restart() -> None:
     text = RUNNER.read_text(encoding="utf-8")
-    node2_restart_index = text.index("after-node2-restart-catchup")
-    node1_restart_index = text.index("after-node1-restart-catchup")
-    assert text.index("sync_node1_to_node2", node2_restart_index - 300) < node2_restart_index
-    assert text.index("sync_node1_to_node2", node1_restart_index - 300) < node1_restart_index
-    assert "compare_roots \"after-node2-restart-catchup\"" in text
-    assert "compare_roots \"after-node1-restart-catchup\"" in text
+    assert 'sync_and_compare_roots "after-node2-restart-catchup"' in text
+    assert 'sync_and_compare_roots "after-node1-restart-catchup"' in text
+    assert "sync_node1_to_node2" in text
+    assert 'compare_roots "${label}-attempt-${attempt}"' in text
+
+
+def test_devnet_restart_catchup_live_retries_height_boundary_races() -> None:
+    text = RUNNER.read_text(encoding="utf-8")
+    assert "for ((attempt = 1; attempt <= RESTART_PARITY_ATTEMPTS; attempt++))" in text
+    assert "Retrying restart parity" in text
+    assert "restart parity not reached" in text
 
 
 def test_devnet_restart_catchup_live_auto_activates_repo_venv() -> None:

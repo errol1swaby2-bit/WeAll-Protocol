@@ -72,7 +72,7 @@ def test_poh_upheld_challenge_flags_prior_approving_reviewers() -> None:
 
 
 def test_dispute_target_registry_and_unsupported_action_rejection() -> None:
-    state = {"height": 1, "accounts": {"alice": {}, "bob": {}}, "disputes_by_id": {}}
+    state = {"height": 1, "accounts": {"alice": {"poh_tier": 1, "poh_status": "active"}, "bob": {}}, "disputes_by_id": {}}
     with pytest.raises(DisputeApplyError) as exc:
         apply_dispute(state, _env("DISPUTE_OPEN", signer="alice", nonce=1, payload={"dispute_id": "bad", "target_type": "weather", "target_id": "x", "reason": "unsupported"}))
     assert exc.value.reason == "unsupported_dispute_target_type"

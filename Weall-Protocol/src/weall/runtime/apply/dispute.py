@@ -21,6 +21,7 @@ from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.reviewer_responsibilities import DISPUTE_REVIEW_LANE, eligible_reviewer_ids, reviewer_lane_active
 from weall.runtime.reputation_events import append_reputation_event
+from weall.runtime.poh.state import effective_poh_tier
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
@@ -1027,6 +1028,20 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
     if not target_type or not target_id:
         raise DisputeApplyError("invalid_payload", "missing_target", {"tx_type": env.tx_type})
     target_type = _validate_dispute_target_type(target_type)
+    if not bool(getattr(env, "system", False)) and effective_poh_tier(state, str(env.signer)) < 1:
+        raise DisputeApplyError("forbidden", "tier1_required_for_dispute", {"account": str(env.signer)})
+    if target_type in {"proposal", "governance", "governance_proposal"}:
+        proposals = state.get("gov_proposals_by_id")
+        proposal = proposals.get(target_id) if isinstance(proposals, dict) else None
+        if not isinstance(proposal, dict):
+            raise DisputeApplyError("not_found", "proposal_not_found", {"target_id": target_id})
+        proposal_status = _as_str(proposal.get("status") or proposal.get("stage")).strip().lower()
+        if proposal_status not in {"finalized", "executed", "rejected", "expired", "cancelled", "closed"}:
+            raise DisputeApplyError(
+                "forbidden",
+                "active_proposal_dispute_protected",
+                {"target_id": target_id, "status": proposal_status},
+            )
 
     disputes = _ensure_disputes(state)
     if dispute_id in disputes:

@@ -75,3 +75,17 @@ def test_devnet_scripts_do_not_call_demo_seed() -> None:
         text = (REPO_ROOT / rel).read_text(encoding="utf-8")
         assert "/v1/dev/demo-seed" not in text
         assert "WEALL_ENABLE_DEMO_SEED_ROUTE" not in text
+
+
+def test_devnet_account_creation_preserves_generated_recovery_and_kem_authorities() -> None:
+    script = (REPO_ROOT / "scripts/devnet_create_account.sh").read_text(encoding="utf-8")
+    ensure_idx = script.index('python3 scripts/devnet_tx.py "${ENSURE_ARGS[@]}"')
+    generate_idx = script.index('generate_m2_actor_keys.mjs')
+    register_idx = script.index('python3 scripts/devnet_tx.py "${ARGS[@]}"')
+
+    assert 'ENSURE_ARGS+=(--fresh)' in script
+    assert 'ARGS=(--api "${API}" create-account --keyfile "${KEYFILE}" --reuse-keyfile)' in script
+    assert ensure_idx < generate_idx < register_idx
+    assert "would discard\n# the newly generated authorities" in script
+    assert "account_register_evidence_kem_postcondition_failed" in script
+    assert "account_register_recovery_key_postcondition_failed" in script

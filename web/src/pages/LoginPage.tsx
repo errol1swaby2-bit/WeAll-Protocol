@@ -3,6 +3,8 @@ import type { FormEvent, ReactNode } from "react"
 
 import { ApiError, fetchStatus, getApiBase, setApiBase } from "../api/weall"
 import { ensureKeypair, getKeypair, getSession, issueSessionFromSecretKey, loginOnThisDevice, restoreAccountAndLoginOnThisDevice } from "../auth/session"
+import { generateKeypair, saveRecoveryAuthorityKeypair } from "../auth/keys"
+import { generateEvidenceKemKeypair, saveEvidenceKemKeypair } from "../auth/evidenceCrypto"
 import { buildRecoveryKeyFile, downloadRecoveryKeyFile, parseRecoveryKeyFileText, readRecoveryKeyFile, recoveryFileText, verifyRecoveryKeyFileForAccount } from "../auth/recoveryFile"
 import { confirmEasySignIn, getEasySignInForAccount, listEasySignInRecords, passkeysAvailable, registerEasySignIn } from "../auth/passkeys"
 import { consumeReturnTo, nav } from "../lib/router"
@@ -43,6 +45,10 @@ type CreatedKeyState = {
   account: string
   pubkeyB64: string
   secretKeyB64: string
+  recoveryAuthorityPublicKeyB64: string
+  recoveryAuthoritySecretKeyB64: string
+  evidenceKemPublicKeyB64: string
+  evidenceKemSecretKeyB64: string
 }
 
 function apiJoin(base: string, path: string): string {
@@ -247,8 +253,20 @@ export default function LoginPage() {
     setBusy(true)
     try {
       const keypair = ensureKeypair(account)
+      const recoveryAuthority = generateKeypair()
+      const evidenceKem = generateEvidenceKemKeypair()
+      saveRecoveryAuthorityKeypair(account, recoveryAuthority)
+      saveEvidenceKemKeypair(account, evidenceKem)
       issueSessionFromSecretKey({ account, secretKeyB64: keypair.secretKeyB64 })
-      setCreatedKey({ account, pubkeyB64: keypair.pubkeyB64, secretKeyB64: keypair.secretKeyB64 })
+      setCreatedKey({
+        account,
+        pubkeyB64: keypair.pubkeyB64,
+        secretKeyB64: keypair.secretKeyB64,
+        recoveryAuthorityPublicKeyB64: recoveryAuthority.pubkeyB64,
+        recoveryAuthoritySecretKeyB64: recoveryAuthority.secretKeyB64,
+        evidenceKemPublicKeyB64: evidenceKem.publicKeyB64,
+        evidenceKemSecretKeyB64: evidenceKem.secretKeyB64,
+      })
       setRecoverySaved(false)
       setRecoveryDownloaded(false)
       setRecoveryVerified(false)
@@ -269,6 +287,10 @@ export default function LoginPage() {
         account: createdKey.account,
         publicKeyB64: createdKey.pubkeyB64,
         secretKeyB64: createdKey.secretKeyB64,
+        recoveryAuthorityPublicKeyB64: createdKey.recoveryAuthorityPublicKeyB64,
+        recoveryAuthoritySecretKeyB64: createdKey.recoveryAuthoritySecretKeyB64,
+        evidenceKemPublicKeyB64: createdKey.evidenceKemPublicKeyB64,
+        evidenceKemSecretKeyB64: createdKey.evidenceKemSecretKeyB64,
       })
       setRecoveryDownloaded(true)
       setRecoverySaved(false)
@@ -286,6 +308,10 @@ export default function LoginPage() {
         account: createdKey.account,
         publicKeyB64: createdKey.pubkeyB64,
         secretKeyB64: createdKey.secretKeyB64,
+        recoveryAuthorityPublicKeyB64: createdKey.recoveryAuthorityPublicKeyB64,
+        recoveryAuthoritySecretKeyB64: createdKey.recoveryAuthoritySecretKeyB64,
+        evidenceKemPublicKeyB64: createdKey.evidenceKemPublicKeyB64,
+        evidenceKemSecretKeyB64: createdKey.evidenceKemSecretKeyB64,
       })
       await navigator.clipboard.writeText(recoveryFileText(file))
       setRecoveryDownloaded(true)
@@ -389,6 +415,18 @@ export default function LoginPage() {
       const parsed = await readRecoveryKeyFile(file)
       setRestoreAccountInput(parsed.account)
       setRecoveryKeyInput(parsed.secretKeyB64)
+      if (parsed.recoveryAuthorityPublicKeyB64 && parsed.recoveryAuthoritySecretKeyB64) {
+        saveRecoveryAuthorityKeypair(parsed.account, {
+          pubkeyB64: parsed.recoveryAuthorityPublicKeyB64,
+          secretKeyB64: parsed.recoveryAuthoritySecretKeyB64,
+        })
+      }
+      if (parsed.evidenceKemPublicKeyB64 && parsed.evidenceKemSecretKeyB64) {
+        saveEvidenceKemKeypair(parsed.account, {
+          publicKeyB64: parsed.evidenceKemPublicKeyB64,
+          secretKeyB64: parsed.evidenceKemSecretKeyB64,
+        })
+      }
       setNotice("Recovery file loaded. Review the handle, then sign in.")
     } catch (err) {
       setError(humanizeApiError(err, "Could not read that recovery file."))
@@ -404,6 +442,18 @@ export default function LoginPage() {
       const parsed = parseRecoveryKeyFileText(trimmed)
       setRestoreAccountInput(parsed.account)
       setRecoveryKeyInput(parsed.secretKeyB64)
+      if (parsed.recoveryAuthorityPublicKeyB64 && parsed.recoveryAuthoritySecretKeyB64) {
+        saveRecoveryAuthorityKeypair(parsed.account, {
+          pubkeyB64: parsed.recoveryAuthorityPublicKeyB64,
+          secretKeyB64: parsed.recoveryAuthoritySecretKeyB64,
+        })
+      }
+      if (parsed.evidenceKemPublicKeyB64 && parsed.evidenceKemSecretKeyB64) {
+        saveEvidenceKemKeypair(parsed.account, {
+          publicKeyB64: parsed.evidenceKemPublicKeyB64,
+          secretKeyB64: parsed.evidenceKemSecretKeyB64,
+        })
+      }
       setNotice("Recovery JSON detected and loaded.")
     } catch {
       // Leave text as-is so the user can finish editing/pasting.

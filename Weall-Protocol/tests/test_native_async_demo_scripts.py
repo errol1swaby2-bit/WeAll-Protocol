@@ -14,7 +14,13 @@ def test_native_async_demo_script_exercises_full_tier1_flow() -> None:
 
     assert "POH_ASYNC_REQUEST_OPEN" in script
     assert "POH_ASYNC_EVIDENCE_DECLARE" in script
-    assert "POH_ASYNC_EVIDENCE_BIND" in script
+    assert script.count('"POH_ASYNC_EVIDENCE_BIND"') >= 2
+    first_bind = script.index('"POH_ASYNC_EVIDENCE_BIND"')
+    assignment_wait = script.index("Waiting for deterministic native async juror assignment")
+    second_bind = script.index('"POH_ASYNC_EVIDENCE_BIND"', first_bind + 1)
+    assert first_bind < assignment_wait < second_bind
+    assert "subject_principals_json" in script
+    assert 'CIPHERTEXT_COMMITMENT="$ciphertext_commitment"' in script
     assert "POH_ASYNC_JUROR_ACCEPT" in script
     assert "POH_ASYNC_REVIEW_SUBMIT" in script
     assert "Waiting for native async finalization" in script

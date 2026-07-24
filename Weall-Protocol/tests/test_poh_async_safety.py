@@ -61,6 +61,45 @@ def _state() -> dict:
     }
 
 
+def _encrypted_evidence_payload(*, case_id: str, evidence_id: str, seed: str, round_no: int = 0) -> dict:
+    digit = (seed[:1] or "1").lower()
+    if digit not in "0123456789abcdef":
+        digit = "1"
+    return {
+        "case_id": case_id,
+        "evidence_id": evidence_id,
+        "evidence_commitment": f"sha256:{digit * 64}",
+        "response_commitment": f"sha256:{digit * 64}",
+        "encrypted": True,
+        "encryption_algorithm": "aes-256-gcm",
+        "ciphertext_cid": f"bafy-test-{evidence_id}-{round_no}",
+        "ciphertext_commitment": f"sha256:{digit * 64}",
+        "encryption_context_commitment": f"sha256:{('f' if digit != 'f' else 'e') * 64}",
+        "ciphertext_size": 128,
+        "provider_ids": ["provider-1"],
+        "followup_round": round_no,
+    }
+
+
+def _bind_payload(*, case_id: str, evidence_id: str, principals: list[str], round_no: int = 0) -> dict:
+    return {
+        "case_id": case_id,
+        "evidence_id": evidence_id,
+        "target_id": case_id,
+        "followup_round": round_no,
+        "evidence_root_commitment": "sha256:" + "a" * 64,
+        "key_envelope_commitments": {
+            principal: {
+                "algorithm": "ml-kem-768+a256gcm",
+                "kem_ciphertext_commitment": "sha256:" + "b" * 64,
+                "wrapped_key_commitment": "sha256:" + "c" * 64,
+                "envelope_commitment": "sha256:" + "d" * 64,
+            }
+            for principal in principals
+        },
+    }
+
+
 def _open_with_evidence(st: dict) -> str:
     opened = apply_tx(
         st,
@@ -82,27 +121,22 @@ def _open_with_evidence(st: dict) -> str:
         st,
         _env(
             "POH_ASYNC_EVIDENCE_DECLARE",
-            {
-                "case_id": case_id,
-                "evidence_id": "evi:1",
-                "evidence_commitment": "commit:evidence:1",
-                "response_commitment": "commit:response:1",
-            },
+            _encrypted_evidence_payload(case_id=case_id, evidence_id="evi:1", seed="1"),
             signer="alice",
             nonce=2,
         ),
     )
     assert declared and declared["applied"] == "POH_ASYNC_EVIDENCE_DECLARE"
-    bound = apply_tx(
+    sealed = apply_tx(
         st,
         _env(
             "POH_ASYNC_EVIDENCE_BIND",
-            {"case_id": case_id, "evidence_id": "evi:1", "target_id": case_id},
+            _bind_payload(case_id=case_id, evidence_id="evi:1", principals=["alice"]),
             signer="alice",
             nonce=3,
         ),
     )
-    assert bound and bound["applied"] == "POH_ASYNC_EVIDENCE_BIND"
+    assert sealed and sealed["applied"] == "POH_ASYNC_EVIDENCE_BIND"
     return case_id
 
 
@@ -119,6 +153,16 @@ def _assign_accept(st: dict, case_id: str) -> None:
         ),
     )
     assert assigned and assigned["applied"] == "POH_ASYNC_JUROR_ASSIGN"
+    bound = apply_tx(
+        st,
+        _env(
+            "POH_ASYNC_EVIDENCE_BIND",
+            _bind_payload(case_id=case_id, evidence_id="evi:1", principals=["alice", "j1", "j2", "j3"]),
+            signer="alice",
+            nonce=3,
+        ),
+    )
+    assert bound and bound["applied"] == "POH_ASYNC_EVIDENCE_BIND"
     for nonce, juror in enumerate(("j1", "j2", "j3"), start=5):
         accepted = apply_tx(st, _env("POH_ASYNC_JUROR_ACCEPT", {"case_id": case_id}, signer=juror, nonce=nonce))
         assert accepted and accepted["applied"] == "POH_ASYNC_JUROR_ACCEPT"
@@ -159,16 +203,16 @@ def test_async_evidence_locks_after_assignment() -> None:
             st,
             _env(
                 "POH_ASYNC_EVIDENCE_DECLARE",
-                {"case_id": case_id, "evidence_id": "evi:swap", "response_commitment": "commit:swap"},
+                _encrypted_evidence_payload(case_id=case_id, evidence_id="evi:swap", seed="2"),
                 signer="alice",
                 nonce=5,
             ),
         )
     assert changed.value.reason == "async_evidence_locked"
-    assert st["poh"]["async_cases"][case_id]["response_commitment"] == "commit:response:1"
+    assert set(st["poh"]["async_cases"][case_id]["evidence_commitments"]) == {"evi:1"}
 
 
-def test_async_needs_followup_blocks_finalization() -> None:
+def test_async_needs_followup_requires_new_sealed_round_before_finalization() -> None:
     st = _state()
     case_id = _open_with_evidence(st)
     _assign_accept(st, case_id)
@@ -185,8 +229,47 @@ def test_async_needs_followup_blocks_finalization() -> None:
             _env("POH_ASYNC_FINALIZE", {"case_id": case_id}, signer="SYSTEM", nonce=11, system=True, parent="POH_ASYNC_REVIEW_SUBMIT"),
         )
     assert premature.value.reason == "async_case_needs_followup"
-    assert effective_poh_tier(st, "alice") == 0
-    assert st["poh"]["async_cases"][case_id]["status"] == "needs_followup"
+    assert st["poh"]["async_cases"][case_id]["followup_round"] == 1
+
+    declared = apply_tx(
+        st,
+        _env(
+            "POH_ASYNC_EVIDENCE_DECLARE",
+            _encrypted_evidence_payload(case_id=case_id, evidence_id="evi:followup", seed="3", round_no=1),
+            signer="alice",
+            nonce=12,
+        ),
+    )
+    assert declared and declared["applied"] == "POH_ASYNC_EVIDENCE_DECLARE"
+    bound = apply_tx(
+        st,
+        _env(
+            "POH_ASYNC_EVIDENCE_BIND",
+            _bind_payload(case_id=case_id, evidence_id="evi:followup", principals=["alice", "j1", "j2", "j3"], round_no=1),
+            signer="alice",
+            nonce=13,
+        ),
+    )
+    assert bound and bound["applied"] == "POH_ASYNC_EVIDENCE_BIND"
+    for nonce, juror, verdict in (
+        (14, "j1", "approve"),
+        (15, "j2", "approve"),
+        (16, "j3", "reject"),
+    ):
+        apply_tx(
+            st,
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": verdict, "followup_round": 1},
+                signer=juror,
+                nonce=nonce,
+            ),
+        )
+    finalized = apply_tx(
+        st,
+        _env("POH_ASYNC_FINALIZE", {"case_id": case_id}, signer="SYSTEM", nonce=17, system=True, parent="POH_ASYNC_REVIEW_SUBMIT"),
+    )
+    assert finalized and finalized["outcome"] == "approved"
 
 
 def test_async_receipt_must_match_finalized_case_state() -> None:
@@ -247,6 +330,16 @@ def test_async_scheduler_queues_assign_finalize_and_receipt() -> None:
     assigned = apply_tx(st, _env("POH_ASYNC_JUROR_ASSIGN", dict(assign_payload), signer="SYSTEM", nonce=4, system=True, parent="POH_ASYNC_REQUEST_OPEN"))
     assert assigned and assigned["applied"] == "POH_ASYNC_JUROR_ASSIGN"
     jurors = [str(j) for j in assigned["jurors"]]
+    bound = apply_tx(
+        st,
+        _env(
+            "POH_ASYNC_EVIDENCE_BIND",
+            _bind_payload(case_id=case_id, evidence_id="evi:1", principals=["alice", *jurors]),
+            signer="alice",
+            nonce=3,
+        ),
+    )
+    assert bound and bound["applied"] == "POH_ASYNC_EVIDENCE_BIND"
     for nonce, juror in enumerate(jurors, start=5):
         apply_tx(st, _env("POH_ASYNC_JUROR_ACCEPT", {"case_id": case_id}, signer=juror, nonce=nonce))
     for nonce, juror, verdict in (

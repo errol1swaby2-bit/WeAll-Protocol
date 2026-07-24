@@ -1,5 +1,5 @@
 {
-  "count": 972,
+  "count": 1053,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "84f75ab46aa848cf956795fbddd7f750428a60725075e5d2a078023635ee6610"
+    "source_tree_digest": "e78878978be5d79896208b0ca3c2a198d59d8edaf17439e433eb15b06f0513d3"
   },
   "rows": [
     {
@@ -5807,6 +5807,34 @@
       "source": "src/weall/runtime/apply/content.py",
       "stable_id": "STATE-F2492AE633050FCE",
       "state_key_or_namespace": "status",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Content",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-0303"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/content.py",
+      "stable_id": "STATE-F454132CA247C64B",
+      "state_key_or_namespace": "surface",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -15866,7 +15894,8 @@
         "TX-2102",
         "TX-2103",
         "TX-2104",
-        "TX-2106"
+        "TX-2106",
+        "TX-2107"
       ],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -15882,6 +15911,7 @@
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_receipt",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
       ],
       "primary_mechanism_id": "M-028",
@@ -15898,7 +15928,8 @@
         "TX-2102",
         "TX-2103",
         "TX-2104",
-        "TX-2106"
+        "TX-2106",
+        "TX-2107"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -15910,7 +15941,114 @@
         "TX-2102",
         "TX-2103",
         "TX-2104",
+        "TX-2106",
+        "TX-2107"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2103"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-6B6D4F856735593D",
+      "state_key_or_namespace": "<update:dynamic>",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2103"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2103"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-2106"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2106"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-3E1B36F4143FA0B3",
+      "state_key_or_namespace": "account_recovery_incidents",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2106"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2106"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2107"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_receipt"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2107"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-8B397A00D4A097BD",
+      "state_key_or_namespace": "account_recovery_receipts",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2107"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2107"
       ]
     },
     {
@@ -15983,6 +16121,86 @@
     },
     {
       "creation_contracts": [
+        "TX-2103",
+        "TX-2106",
+        "TX-2107"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_receipt",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-980E093D0E07B211",
+      "state_key_or_namespace": "active_reversal_request_id",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2103",
+        "TX-2106",
+        "TX-2107"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2103",
+        "TX-2106",
+        "TX-2107"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2107"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-B47A03B7A89F2EB1",
+      "state_key_or_namespace": "approval_count",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-2104"
       ],
       "domain": "Identity",
@@ -16017,6 +16235,130 @@
       "writes_by": [
         "TX-2104"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103",
+        "TX-2104",
+        "TX-2106"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-BA9F4C0DD565F7A0",
+      "state_key_or_namespace": "assigned_reviewers",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-6BCD9F22AE9E9796",
+      "state_key_or_namespace": "attestation_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2100"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2100",
+        "TX-2107"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-F932F54B6D1AC52F",
+      "state_key_or_namespace": "authority_generation",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2100"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2100"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2100",
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-DCA116EA0C779CB8",
+      "state_key_or_namespace": "authorization",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [],
@@ -16171,12 +16513,77 @@
     },
     {
       "creation_contracts": [
+        "TX-2103"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103",
+        "TX-2106",
+        "TX-2107"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-BD0D1C3299CFC514",
+      "state_key_or_namespace": "challenged_request_id",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2103"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2103"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-FC6DAC2C41EDA8E6",
+      "state_key_or_namespace": "class_id",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
         "TX-2100",
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16191,7 +16598,6 @@
         "src/weall/runtime/apply/identity.py#_apply_account_guardian_remove",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set",
-        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
       ],
       "primary_mechanism_id": "M-028",
@@ -16200,8 +16606,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16214,8 +16619,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -16226,9 +16630,64 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2100"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-71586CC2DD2DAB25",
+      "state_key_or_namespace": "current_recovery_generation",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-3805274BDE79C876",
+      "state_key_or_namespace": "decision",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [],
@@ -16329,6 +16788,282 @@
       ]
     },
     {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-DBDAAD1665561737",
+      "state_key_or_namespace": "evidence_access_ready",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-B5B4AC79D2AD8170",
+      "state_key_or_namespace": "evidence_bound_ids",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0008"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_security_policy_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-217F61D9FC7BEBE0",
+      "state_key_or_namespace": "evidence_encryption",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0008"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0008"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-A3CD98ED457E759D",
+      "state_key_or_namespace": "evidence_id",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-01A65B217C2D63E2",
+      "state_key_or_namespace": "evidence_ids",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001",
+        "TX-0008"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-A17E359CFE415DD4",
+      "state_key_or_namespace": "evidence_kem_algorithm",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001",
+        "TX-0008"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-8E8B3EC10E4A8D74",
+      "state_key_or_namespace": "evidence_kem_pubkey",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-42C9AE5B045B1F67",
+      "state_key_or_namespace": "evidence_policy_version",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-55285A955AAB6692",
+      "state_key_or_namespace": "excluded_reviewers",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16355,6 +17090,83 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2100",
+        "TX-2103"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2100",
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-870DDBADD8232643",
+      "state_key_or_namespace": "failed_attempt_heights",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2100",
+        "TX-2103"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2100",
+        "TX-2103"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2100"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2100"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-F7F3412C2A7522E2",
+      "state_key_or_namespace": "failed_attempts",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2100"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2100"
+      ]
     },
     {
       "creation_contracts": [
@@ -16437,6 +17249,36 @@
       "mutators": [],
       "primary_mechanism_id": "M-028",
       "reads_by": [
+        "TX-2100",
+        "TX-2103",
+        "TX-2106"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-D0204CAE1C5A2DF4",
+      "state_key_or_namespace": "generation",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
         "TX-2101",
         "TX-2102"
       ],
@@ -16494,8 +17336,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16509,7 +17350,6 @@
         "src/weall/runtime/apply/identity.py#_apply_account_guardian_add",
         "src/weall/runtime/apply/identity.py#_apply_account_guardian_remove",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve",
-        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
       ],
       "primary_mechanism_id": "M-028",
@@ -16518,8 +17358,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16531,8 +17370,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -16542,8 +17380,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ]
     },
     {
@@ -16596,17 +17433,133 @@
         "TX-0003",
         "TX-0005",
         "TX-0006",
-        "TX-0007",
-        "TX-2103",
-        "TX-2105",
-        "TX-2106",
-        "TX-2107"
+        "TX-0007"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/identity.py",
       "stable_id": "STATE-E4516497BB111F69",
       "state_key_or_namespace": "height",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2106"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2106"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-137668039F42D330",
+      "state_key_or_namespace": "history",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2106"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2106"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-1EE7E36CD41BD54E",
+      "state_key_or_namespace": "household_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-FAD967B6C08C6C10",
+      "state_key_or_namespace": "independence_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-732D68F5B111E017",
+      "state_key_or_namespace": "key_envelope_commitments",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -16633,7 +17586,8 @@
       "primary_mechanism_id": "M-028",
       "reads_by": [
         "TX-0001",
-        "TX-0002"
+        "TX-0002",
+        "TX-2100"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -16746,6 +17700,211 @@
       "writes_by": []
     },
     {
+      "creation_contracts": [
+        "TX-2106"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-41C23D953E0920C2",
+      "state_key_or_namespace": "last_finalized_height",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2106"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2106"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2103"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-F887BA05289B6840",
+      "state_key_or_namespace": "last_request_opened_height",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2103"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2103"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0009",
+        "TX-0010",
+        "TX-2103",
+        "TX-2105",
+        "TX-2106",
+        "TX-2107"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_lock",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_cancel",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_receipt",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_request",
+        "src/weall/runtime/apply/identity.py#_apply_account_unlock"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0002",
+        "TX-0003",
+        "TX-0004",
+        "TX-0005",
+        "TX-0006",
+        "TX-0007",
+        "TX-0008",
+        "TX-2100",
+        "TX-2101",
+        "TX-2102",
+        "TX-2103",
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-4AEEB2DC33E5E237",
+      "state_key_or_namespace": "locked",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0009",
+        "TX-0010",
+        "TX-2103",
+        "TX-2105",
+        "TX-2106",
+        "TX-2107"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0009",
+        "TX-0010",
+        "TX-2103",
+        "TX-2105",
+        "TX-2106",
+        "TX-2107"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103",
+        "TX-2104",
+        "TX-2105",
+        "TX-2106",
+        "TX-2107"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-03E61A79D53AA48F",
+      "state_key_or_namespace": "method",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2100"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-C7F4E010E2F74C20",
+      "state_key_or_namespace": "mode",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2100"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2100"
+      ]
+    },
+    {
       "creation_contracts": [],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16763,8 +17922,8 @@
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/identity.py",
-      "stable_id": "STATE-B5AC21821396CC7A",
-      "state_key_or_namespace": "lock_on_recovery_request",
+      "stable_id": "STATE-A08ECABF203AD333",
+      "state_key_or_namespace": "new_pubkey",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -16774,12 +17933,7 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [
-        "TX-0009",
-        "TX-0010",
-        "TX-2103",
-        "TX-2106"
-      ],
+      "creation_contracts": [],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -16788,50 +17942,107 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/identity.py#_apply_account_lock",
-        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
-        "src/weall/runtime/apply/identity.py#_apply_account_recovery_request",
-        "src/weall/runtime/apply/identity.py#_apply_account_unlock"
-      ],
+      "mutators": [],
       "primary_mechanism_id": "M-028",
       "reads_by": [
-        "TX-0002",
-        "TX-0003",
-        "TX-0004",
-        "TX-0005",
-        "TX-0006",
-        "TX-0007",
-        "TX-0008",
-        "TX-2100",
-        "TX-2101",
-        "TX-2102",
-        "TX-2103",
-        "TX-2104",
-        "TX-2105"
+        "TX-2103"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/identity.py",
-      "stable_id": "STATE-4AEEB2DC33E5E237",
-      "state_key_or_namespace": "locked",
+      "stable_id": "STATE-C4E6F8B05BBEDE7E",
+      "state_key_or_namespace": "new_recovery_key_commitment",
       "status": "current_partial",
-      "transition_contracts": [
-        "TX-0009",
-        "TX-0010",
-        "TX-2103",
-        "TX-2106"
-      ],
+      "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": [
-        "TX-0009",
-        "TX-0010",
-        "TX-2103",
-        "TX-2106"
-      ]
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-94D9493EB874F92B",
+      "state_key_or_namespace": "new_recovery_pubkey",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-9ADF79F677DE2095",
+      "state_key_or_namespace": "new_recovery_sig_profile",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-70A9180879C6DBFA",
+      "state_key_or_namespace": "new_sig_profile",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -16927,6 +18138,100 @@
       ]
     },
     {
+      "creation_contracts": [
+        "TX-2100"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2100",
+        "TX-2103",
+        "TX-2106"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-413CC2F5F1C57D4F",
+      "state_key_or_namespace": "offline_key",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2100"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2100"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2107"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-13422E875F1C030D",
+      "state_key_or_namespace": "panel_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-7805603028AFB38B",
+      "state_key_or_namespace": "params",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16955,6 +18260,42 @@
       "writes_by": []
     },
     {
+      "creation_contracts": [
+        "TX-2100"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2100"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-118DD31FF82E9172",
+      "state_key_or_namespace": "prior_offline_keys",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2100"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2100"
+      ]
+    },
+    {
       "creation_contracts": [],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -16968,13 +18309,43 @@
       "primary_mechanism_id": "M-028",
       "reads_by": [
         "TX-0003",
-        "TX-0004"
+        "TX-0004",
+        "TX-2100",
+        "TX-2103"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/identity.py",
       "stable_id": "STATE-6B530B17C71D8AEE",
       "state_key_or_namespace": "pubkey",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-D51BF7C556793AA5",
+      "state_key_or_namespace": "reason_code",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -16999,7 +18370,9 @@
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_receipt"
       ],
       "primary_mechanism_id": "M-028",
-      "reads_by": [],
+      "reads_by": [
+        "TX-2107"
+      ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/identity.py",
@@ -17057,8 +18430,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17073,7 +18445,6 @@
         "src/weall/runtime/apply/identity.py#_apply_account_guardian_remove",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set",
-        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
       ],
       "primary_mechanism_id": "M-028",
@@ -17082,8 +18453,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17096,8 +18466,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -17108,9 +18477,95 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103",
+        "TX-2106"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-D46636D4CDE91817",
+      "state_key_or_namespace": "recovery_generation",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001",
+        "TX-2100"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-BD2691C782F3812B",
+      "state_key_or_namespace": "recovery_key_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001",
+        "TX-2100"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-D5E2205F6AD37315",
+      "state_key_or_namespace": "recovery_pubkey",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -17144,6 +18599,71 @@
       ],
       "writes_by": [
         "TX-0001"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001",
+        "TX-2100"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-5A5669CF2FB82D6F",
+      "state_key_or_namespace": "recovery_sig_profile",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2107"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-21DCF85DC446DA89",
+      "state_key_or_namespace": "rejection_count",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
       ]
     },
     {
@@ -17224,7 +18744,8 @@
       "primary_mechanism_id": "M-028",
       "reads_by": [
         "TX-2103",
-        "TX-2104"
+        "TX-2104",
+        "TX-2106"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17241,6 +18762,236 @@
       ],
       "writes_by": [
         "TX-2103"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-CCAE07684B0684D3",
+      "state_key_or_namespace": "require_evidence_kem_at_account_register",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-566E63D9AD27E28A",
+      "state_key_or_namespace": "require_recovery_key_at_account_register",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2103",
+        "TX-2106"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2103",
+        "TX-2106",
+        "TX-2107"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-476F90727ACA0E4B",
+      "state_key_or_namespace": "restriction_until_height",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2103",
+        "TX-2106"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2103",
+        "TX-2106"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2100"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-B8CD784A7461E77C",
+      "state_key_or_namespace": "retired_height",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2100"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2100"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2100"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_config_set"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-52E994F67C81E52D",
+      "state_key_or_namespace": "retired_reason",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2100"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2100"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-B10B42DF4207F105",
+      "state_key_or_namespace": "review_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-0E940C626F5D7BE0",
+      "state_key_or_namespace": "reviews",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
       ]
     },
     {
@@ -17409,8 +19160,7 @@
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
-        "TX-0008",
-        "TX-2103"
+        "TX-0008"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17624,6 +19374,229 @@
       ]
     },
     {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0001",
+        "TX-2100"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-4866ED248CC82370",
+      "state_key_or_namespace": "sig_profile",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-A9CAF165CFDC20AA",
+      "state_key_or_namespace": "social_attestation_commitments",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-8E4ED75F8F052100",
+      "state_key_or_namespace": "social_attestation_count",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-F1A85390550715F3",
+      "state_key_or_namespace": "social_attestation_minimum",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-771940DA859000A7",
+      "state_key_or_namespace": "social_attestation_required",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-2104"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-0BE0E8BC615AF0B4",
+      "state_key_or_namespace": "social_attestations",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-696121C2A5EEDACB",
+      "state_key_or_namespace": "social_attestations_satisfied_height",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
+      ]
+    },
+    {
       "creation_contracts": [
         "TX-2104",
         "TX-2105",
@@ -17646,6 +19619,7 @@
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
+        "TX-2103",
         "TX-2104",
         "TX-2105",
         "TX-2106",
@@ -17672,6 +19646,74 @@
         "TX-2105",
         "TX-2106",
         "TX-2107"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2104"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-A6BF8E523E26ED90",
+      "state_key_or_namespace": "submitted_review_count",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2104"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2104"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-2106"
+      ],
+      "domain": "Identity",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/identity.py",
+      "stable_id": "STATE-406664D6BF43572D",
+      "state_key_or_namespace": "superseded_by",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-2106"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-2106"
       ]
     },
     {
@@ -17709,8 +19751,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "domain": "Identity",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -17724,7 +19765,6 @@
         "src/weall/runtime/apply/identity.py#_apply_account_guardian_add",
         "src/weall/runtime/apply/identity.py#_apply_account_guardian_remove",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_approve",
-        "src/weall/runtime/apply/identity.py#_apply_account_recovery_finalize",
         "src/weall/runtime/apply/identity.py#_apply_account_recovery_request"
       ],
       "primary_mechanism_id": "M-028",
@@ -17733,8 +19773,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -17746,8 +19785,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -17757,8 +19795,7 @@
         "TX-2101",
         "TX-2102",
         "TX-2103",
-        "TX-2104",
-        "TX-2106"
+        "TX-2104"
       ]
     },
     {
@@ -21725,7 +23762,8 @@
         "TX-0102",
         "TX-0121",
         "TX-0126",
-        "TX-2611"
+        "TX-2611",
+        "TX-2612"
       ],
       "domain": "PoH",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -21737,6 +23775,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_juror_accept",
         "src/weall/runtime/apply/poh.py#apply_poh_async_juror_assign",
         "src/weall/runtime/apply/poh.py#apply_poh_live_finalize",
         "src/weall/runtime/apply/poh.py#apply_poh_live_juror_assign"
@@ -21755,7 +23794,8 @@
         "TX-0102",
         "TX-0121",
         "TX-0126",
-        "TX-2611"
+        "TX-2611",
+        "TX-2612"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -21767,7 +23807,8 @@
         "TX-0102",
         "TX-0121",
         "TX-0126",
-        "TX-2611"
+        "TX-2611",
+        "TX-2612"
       ]
     },
     {
@@ -21893,7 +23934,8 @@
         "TX-0102",
         "TX-0121",
         "TX-0126",
-        "TX-0128"
+        "TX-0128",
+        "TX-2609"
       ],
       "domain": "PoH",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -21905,6 +23947,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_declare",
         "src/weall/runtime/apply/poh.py#apply_poh_bootstrap_tier2_grant",
         "src/weall/runtime/apply/poh.py#apply_poh_live_finalize",
         "src/weall/runtime/apply/poh.py#apply_poh_live_juror_assign"
@@ -21923,7 +23966,8 @@
         "TX-0102",
         "TX-0121",
         "TX-0126",
-        "TX-0128"
+        "TX-0128",
+        "TX-2609"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -21935,7 +23979,8 @@
         "TX-0102",
         "TX-0121",
         "TX-0126",
-        "TX-0128"
+        "TX-0128",
+        "TX-2609"
       ]
     },
     {
@@ -22593,6 +24638,7 @@
         "TX-0101",
         "TX-0102",
         "TX-2608",
+        "TX-2610",
         "TX-2611",
         "TX-2612",
         "TX-2613",
@@ -22700,6 +24746,36 @@
       "writes_by": [
         "TX-0124"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-C6D73D61C0A0A95A",
+      "state_key_or_namespace": "attestation_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [],
@@ -23108,6 +25184,99 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
+        "TX-2609"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-5BF74FB8053AD877",
+      "state_key_or_namespace": "ciphertext_cid",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-BA5B6B81C4AF612F",
+      "state_key_or_namespace": "ciphertext_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-E86E55D80C1E8966",
+      "state_key_or_namespace": "ciphertext_size",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
         "TX-2611"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -23315,37 +25484,6 @@
       ]
     },
     {
-      "creation_contracts": [],
-      "domain": "PoH",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
-      "primary_mechanism_id": "M-028",
-      "reads_by": [
-        "TX-0100",
-        "TX-0101",
-        "TX-0102",
-        "TX-2609"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/poh.py",
-      "stable_id": "STATE-1201C7B1FC35D891",
-      "state_key_or_namespace": "declared_height",
-      "status": "current_partial",
-      "transition_contracts": [],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": []
-    },
-    {
       "creation_contracts": [
         "TX-0100",
         "TX-0101",
@@ -23369,6 +25507,7 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
+        "TX-2610",
         "TX-2612",
         "TX-2613",
         "TX-2614"
@@ -23481,6 +25620,161 @@
       "writes_by": []
     },
     {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-D13AFA48C4A5BFDD",
+      "state_key_or_namespace": "encrypted",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2610"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-59D84E3AA6229A20",
+      "state_key_or_namespace": "encrypted_blob_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-B666CF16336B01BF",
+      "state_key_or_namespace": "encrypted_blob_size",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-B7779181F7D39EBE",
+      "state_key_or_namespace": "encryption_algorithm",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-1AAE820C00161E92",
+      "state_key_or_namespace": "encryption_context_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [
         "TX-0126"
       ],
@@ -23563,7 +25857,8 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2610"
+        "TX-2610",
+        "TX-2611"
       ],
       "domain": "PoH",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -23575,14 +25870,17 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/poh.py#apply_poh",
-        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_bind"
+        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_bind",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_juror_assign"
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2610"
+        "TX-2610",
+        "TX-2611",
+        "TX-2612"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -23594,7 +25892,8 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2610"
+        "TX-2610",
+        "TX-2611"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -23604,7 +25903,8 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2610"
+        "TX-2610",
+        "TX-2611"
       ]
     },
     {
@@ -23623,7 +25923,9 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2609"
+        "TX-2609",
+        "TX-2610",
+        "TX-2611"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -23663,7 +25965,9 @@
         "TX-0101",
         "TX-0102",
         "TX-2609",
-        "TX-2610"
+        "TX-2610",
+        "TX-2611",
+        "TX-2612"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -23686,6 +25990,50 @@
         "TX-0101",
         "TX-0102",
         "TX-2609"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-E84847B8144A1397",
+      "state_key_or_namespace": "evidence_deletion_attestations",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102"
       ]
     },
     {
@@ -23763,6 +26111,37 @@
         "TX-0102",
         "TX-0104"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2610"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-5FBFEDBC8FCD5ED8",
+      "state_key_or_namespace": "evidence_root_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [],
@@ -23948,6 +26327,103 @@
       ]
     },
     {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2614"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_review_submit"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-A8C26A3775DD041B",
+      "state_key_or_namespace": "followup_requested_height",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2614"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2614"
+      ]
+    },
+    {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2614"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_review_submit"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609",
+        "TX-2610",
+        "TX-2611",
+        "TX-2612",
+        "TX-2614"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-CD95618EF01D3D81",
+      "state_key_or_namespace": "followup_round",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2614"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2614"
+      ]
+    },
+    {
       "creation_contracts": [],
       "domain": "PoH",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -23974,8 +26450,11 @@
         "TX-2603",
         "TX-2608",
         "TX-2609",
+        "TX-2610",
+        "TX-2611",
         "TX-2614",
-        "TX-2615"
+        "TX-2615",
+        "TX-2616"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -24185,6 +26664,68 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
+        "TX-2610",
+        "TX-2612"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-C7685DDBC14F1AED",
+      "state_key_or_namespace": "key_envelope_commitments",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-97D0587301D10EFE",
+      "state_key_or_namespace": "key_erasure_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
         "TX-2609"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -24355,6 +26896,55 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2611"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_juror_assign"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2611"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-884909A5A5A404E3",
+      "state_key_or_namespace": "migration_receipts",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2611"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2611"
+      ]
     },
     {
       "creation_contracts": [
@@ -25463,6 +28053,37 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
+        "TX-2609"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-5878BC24C3BDD942",
+      "state_key_or_namespace": "provider_ids",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
         "TX-0128"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -26102,7 +28723,8 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2609"
+        "TX-2609",
+        "TX-2616"
       ],
       "domain": "PoH",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -26114,7 +28736,8 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/poh.py#apply_poh",
-        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_declare"
+        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_declare",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_receipt"
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
@@ -26133,7 +28756,8 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2609"
+        "TX-2609",
+        "TX-2616"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -26143,7 +28767,8 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2609"
+        "TX-2609",
+        "TX-2616"
       ]
     },
     {
@@ -26409,6 +29034,7 @@
         "TX-0126",
         "TX-0129",
         "TX-2609",
+        "TX-2610",
         "TX-2611",
         "TX-2612",
         "TX-2613",
@@ -26425,6 +29051,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_bind",
         "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_declare",
         "src/weall/runtime/apply/poh.py#apply_poh_async_finalize",
         "src/weall/runtime/apply/poh.py#apply_poh_async_juror_accept",
@@ -26484,6 +29111,7 @@
         "TX-0126",
         "TX-0129",
         "TX-2609",
+        "TX-2610",
         "TX-2611",
         "TX-2612",
         "TX-2613",
@@ -26509,11 +29137,93 @@
         "TX-0126",
         "TX-0129",
         "TX-2609",
+        "TX-2610",
         "TX-2611",
         "TX-2612",
         "TX-2613",
         "TX-2614",
         "TX-2615"
+      ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-1B0A73598C373995",
+      "state_key_or_namespace": "storage_commitment",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
+      ],
+      "domain": "PoH",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/poh.py#apply_poh",
+        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_declare"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2610",
+        "TX-2611",
+        "TX-2612"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/poh.py",
+      "stable_id": "STATE-B2A2BA122A542B28",
+      "state_key_or_namespace": "storage_mode",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0100",
+        "TX-0101",
+        "TX-0102",
+        "TX-2609"
       ]
     },
     {
@@ -26885,55 +29595,6 @@
         "TX-0100",
         "TX-0101",
         "TX-0102",
-        "TX-2609"
-      ],
-      "domain": "PoH",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/poh.py#apply_poh",
-        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_declare"
-      ],
-      "primary_mechanism_id": "M-028",
-      "reads_by": [
-        "TX-0100",
-        "TX-0101",
-        "TX-0102",
-        "TX-2609"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/poh.py",
-      "stable_id": "STATE-5726952574C4457E",
-      "state_key_or_namespace": "uri",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0100",
-        "TX-0101",
-        "TX-0102",
-        "TX-2609"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0100",
-        "TX-0101",
-        "TX-0102",
-        "TX-2609"
-      ]
-    },
-    {
-      "creation_contracts": [
-        "TX-0100",
-        "TX-0101",
-        "TX-0102",
         "TX-0114",
         "TX-0125"
       ],
@@ -27055,12 +29716,7 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [
-        "TX-0100",
-        "TX-0101",
-        "TX-0102",
-        "TX-2609"
-      ],
+      "creation_contracts": [],
       "domain": "PoH",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -27069,18 +29725,14 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/poh.py#apply_poh",
-        "src/weall/runtime/apply/poh.py#apply_poh_async_evidence_declare"
-      ],
+      "mutators": [],
       "primary_mechanism_id": "M-028",
       "reads_by": [
         "TX-0100",
         "TX-0101",
         "TX-0102",
         "TX-0110",
-        "TX-0115",
-        "TX-2609"
+        "TX-0115"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -27088,22 +29740,12 @@
       "stable_id": "STATE-066FE003A9DA8FE3",
       "state_key_or_namespace": "video_commitment",
       "status": "current_partial",
-      "transition_contracts": [
-        "TX-0100",
-        "TX-0101",
-        "TX-0102",
-        "TX-2609"
-      ],
+      "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": [
-        "TX-0100",
-        "TX-0101",
-        "TX-0102",
-        "TX-2609"
-      ]
+      "writes_by": []
     },
     {
       "creation_contracts": [

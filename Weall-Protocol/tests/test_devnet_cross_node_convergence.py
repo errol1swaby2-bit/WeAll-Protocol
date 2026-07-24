@@ -112,6 +112,40 @@ def test_cross_node_convergence_compare_identity_detects_mismatch() -> None:
     assert mismatch_fields == {"tip_hash", "state_root"}
 
 
+
+
+def test_cross_node_convergence_rejects_invalid_chain_manifest() -> None:
+    helper = _load_helper()
+    valid = {
+        "chain_manifest": {
+            "ok": True,
+            "mode": "controlled_devnet",
+            "tx_index_hash": "a" * 64,
+            "actual_tx_index_hash": "a" * 64,
+            "tx_index_hash_matches": True,
+            "issues": [],
+        }
+    }
+    assert helper.chain_manifest_failures(valid, node="node1") == []
+
+    invalid = {
+        "chain_manifest": {
+            "ok": False,
+            "mode": "devnet",
+            "tx_index_hash": "a" * 64,
+            "actual_tx_index_hash": "b" * 64,
+            "tx_index_hash_matches": False,
+            "issues": ["chain_manifest_mode_mismatch", "chain_manifest_tx_index_hash_mismatch"],
+        }
+    }
+    failures = helper.chain_manifest_failures(invalid, node="node2")
+    assert {failure["failure"] for failure in failures} == {
+        "chain_manifest_not_ok",
+        "chain_manifest_mode_not_controlled_devnet",
+        "chain_manifest_tx_index_hash_not_current",
+    }
+
+
 def test_cross_node_convergence_tx_visibility_classifier() -> None:
     helper = _load_helper()
     ok, detail = helper.classify_tx_visibility(status={"status": "confirmed"})

@@ -22,6 +22,9 @@ def test_genesis_testnet_launch_readiness_generator_static_verdict():
     assert payload["registry"]["chain_id"] == "weall-testnet-v1"
     assert payload["registry"]["network_id"] == "weall-public-observer-testnet-v1"
     assert payload["registry"]["signature_status"]["verified"] is True
+    assert payload["registry"]["signature_status"]["trust"] == "pinned"
+    assert payload["static_readiness_verdict"] == "ready_for_live_endpoint_rehearsal"
+    assert payload["registry"]["errors"] == []
     assert payload["observer_boot_script_checks"]["enables_direct_p2p_mesh_loop"] is True
     assert payload["observer_boot_script_checks"]["refuses_observer_validator_signing"] is True
     assert payload["named_provider_dependency"] is False

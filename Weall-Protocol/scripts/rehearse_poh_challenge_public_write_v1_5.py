@@ -10,6 +10,11 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+# This rehearsal supplies its own isolated temporary executor below.
+# Prevent the module-level FastAPI app from booting the operator's default DB
+# while this module is being imported.
+os.environ.setdefault("WEALL_API_BOOT_RUNTIME", "0")
+
 from weall.api.app import create_app
 from weall.runtime.executor import WeAllExecutor
 

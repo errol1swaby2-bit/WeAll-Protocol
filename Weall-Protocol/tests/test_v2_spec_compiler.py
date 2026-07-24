@@ -323,7 +323,7 @@ def test_exact_state_contracts_are_separate_from_runtime_inventory() -> None:
     exact = _read("generated/v2/state_contract_index.json")
     runtime = _read("generated/v2/runtime_state_inventory.json")
     assert exact["count"] == 94
-    assert runtime["count"] == 972
+    assert runtime["count"] == 1053
     assert len({row["canonical_name"] for row in exact["rows"]}) == 94
     for row in exact["rows"]:
         assert row["stable_id"].startswith("STATE-FS-")

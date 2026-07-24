@@ -21,6 +21,7 @@ function assertNotIncludes(src, needle, label) {
 const router = read("src/lib/router.ts");
 const account = read("src/pages/Account.tsx");
 const verification = read("src/pages/AccountVerificationPage.tsx");
+const jurorDashboard = read("src/pages/JurorDashboard.tsx");
 const liveRoom = read("src/pages/LiveVerificationRoom.tsx");
 const createPost = read("src/pages/CreatePostPage.tsx");
 const feed = read("src/components/FeedView.tsx");
@@ -36,7 +37,7 @@ const protocolSummary = read("src/components/ProtocolStatusSummary.tsx");
 const api = read("src/api/weall.ts");
 const app = read("src/App.tsx");
 
-const combined = [router, account, verification, liveRoom, createPost, feed, group, disputes, proposals, proposalsList, economics, wallet, node, statusLib, protocolSummary, api, app].join("\n");
+const combined = [router, account, verification, jurorDashboard, liveRoom, createPost, feed, group, disputes, proposals, proposalsList, economics, wallet, node, statusLib, protocolSummary, api, app].join("\n");
 
 // Account recovery / custody / profile reviewability.
 assertAnyIncludes(account, ["needs recovery", "recovery secrets", "Account posture"], "account recovery/custody reviewer copy");
@@ -49,6 +50,9 @@ assertIncludes(verification, "Open live verification", "live PoH request copy");
 assertIncludes(liveRoom, "live verification", "live verification room copy");
 assertIncludes(api, "/v1/poh/live/tx/request", "live PoH API client route");
 assertIncludes(api, "/v1/poh/async", "async PoH API client route family");
+assertIncludes(jurorDashboard, "item.ciphertext_cid || item.encrypted_blob_cid", "canonical restricted evidence CID fallback");
+assertIncludes(jurorDashboard, "item.ciphertext_commitment || item.encrypted_blob_commitment || item.evidence_commitment", "canonical restricted evidence commitment fallback");
+assertIncludes(jurorDashboard, "item?.ciphertext_cid || item?.encrypted_blob_cid", "restricted ciphertext excluded from ordinary media gallery");
 
 // Content posting / feed review.
 assertIncludes(createPost, "Create", "create-post page");

@@ -8,7 +8,13 @@ lookups. Domain appliers should use this module instead of reading or writing
 ``accounts[account_id]['poh_tier']`` directly.
 """
 
+import hashlib
 from typing import Any, Literal
+
+from weall.runtime.tier2_responsibility import (
+    mark_tier2_responsibilities_for_replacement,
+    process_safe_withdrawals,
+)
 
 Json = dict[str, Any]
 
@@ -351,27 +357,92 @@ def process_tier2_lifecycle(state: Json, *, next_height: int) -> Json:
             reminder_height = int(reminder_height)
             if height == reminder_height and reminder_height not in emitted:
                 item["reminders_emitted"].append(reminder_height)
-                receipts.append(
-                    {
-                        "receipt_type": "poh_tier2_expiry_reminder",
-                        "account_id": account_id,
+                reminder_receipt = {
+                    "receipt_type": "poh_tier2_expiry_reminder",
+                    "account_id": account_id,
+                    "height": height,
+                    "expires_at_height": expires_at,
+                }
+                receipts.append(reminder_receipt)
+                notifications = state.setdefault("notifications", {})
+                by_account_notifications = notifications.setdefault("by_account", {}) if isinstance(notifications, dict) else {}
+                account_notifications = by_account_notifications.setdefault(account_id, []) if isinstance(by_account_notifications, dict) else []
+                notification_id = f"poh-tier2-reminder:{account_id}:{height}"
+                if isinstance(account_notifications, list) and not any(
+                    isinstance(value, dict) and value.get("notification_id") == notification_id
+                    for value in account_notifications
+                ):
+                    account_notifications.append({
+                        "notification_id": notification_id,
+                        "kind": "poh_tier2_expiry_reminder",
                         "height": height,
                         "expires_at_height": expires_at,
-                    }
-                )
+                        "read": False,
+                    })
                 reminders += 1
 
         open_height = int(item.get("reverification_open_height") or 0)
         if height >= open_height and height <= expires_at and not item.get("reverification_opened"):
             item["reverification_opened"] = True
-            item["reverification_opened_height"] = height
+            item["reverification_opened_height"] = open_height
             item["status"] = "reverification_open"
+            case_id = f"poh_live:reverify:{account_id}:{expires_at}"
+            live_cases = poh.setdefault("live_cases", {})
+            if case_id not in live_cases:
+                def commitment(label: str) -> str:
+                    return hashlib.sha256(
+                        f"{_as_str(state.get('chain_id'))}|{label}|{case_id}|{account_id}|{open_height}".encode("utf-8")
+                    ).hexdigest()
+                request_commitment = commitment("POH_TIER2_REVERIFY_REQUEST")
+                live_cases[case_id] = {
+                    "case_id": case_id,
+                    "account_id": account_id,
+                    "requested_by": "SYSTEM",
+                    "status": "requested",
+                    "jurors": {},
+                    "target_tier": 2,
+                    "request_commitment": request_commitment,
+                    "requested_height": open_height,
+                    "requested_ts_ms": 0,
+                    "protocol_native": True,
+                    "relay_authority": "transport_only",
+                    "reverification": True,
+                    "reverification_for_expiry_height": expires_at,
+                    "session_commitment": commitment("POH_TIER2_REVERIFY_SESSION"),
+                    "room_commitment": commitment("POH_TIER2_REVERIFY_ROOM"),
+                    "prompt_commitment": commitment("POH_TIER2_REVERIFY_PROMPT"),
+                    "device_pairing_commitment": commitment("POH_TIER2_REVERIFY_DEVICE"),
+                }
+                session_id = f"session:{case_id}"
+                poh.setdefault("live_sessions", {})[session_id] = {
+                    "session_id": session_id,
+                    "case_id": case_id,
+                    "account_id": account_id,
+                    "status": "requested",
+                    "created_height": open_height,
+                    "created_ts_ms": 0,
+                    "request_commitment": request_commitment,
+                    "relay_authority": "transport_only",
+                    "session_commitment": live_cases[case_id]["session_commitment"],
+                    "room_commitment": live_cases[case_id]["room_commitment"],
+                    "prompt_commitment": live_cases[case_id]["prompt_commitment"],
+                    "device_pairing_commitment": live_cases[case_id]["device_pairing_commitment"],
+                }
+                poh.setdefault("live_session_participants", {}).setdefault(session_id, {})[account_id] = {
+                    "role": "subject",
+                    "status": "requested",
+                    "joined_ts_ms": None,
+                    "left_ts_ms": None,
+                }
+            item["reverification_case_id"] = case_id
             receipts.append(
                 {
                     "receipt_type": "poh_tier2_reverification_open",
                     "account_id": account_id,
-                    "height": height,
+                    "height": open_height,
+                    "processed_height": height,
                     "expires_at_height": expires_at,
+                    "case_id": case_id,
                 }
             )
             opened += 1
@@ -386,14 +457,24 @@ def process_tier2_lifecycle(state: Json, *, next_height: int) -> Json:
             if isinstance(accounts, dict) and isinstance(accounts.get(account_id), dict):
                 accounts[account_id]["poh_tier"] = 1
                 accounts[account_id]["poh_status"] = POH_STATUS_EXPIRED
+            responsibilities = mark_tier2_responsibilities_for_replacement(
+                state, account_id=account_id, height=height
+            )
             receipts.append(
                 {
                     "receipt_type": "poh_tier2_expired_to_tier1",
                     "account_id": account_id,
                     "height": height,
                     "expires_at_height": expires_at,
+                    "responsibility_replacement_count": len(responsibilities),
                 }
             )
             expired += 1
 
-    return {"reminders": reminders, "reverification_opened": opened, "expired": expired}
+    safe_withdrawals = process_safe_withdrawals(state, next_height=height)
+    return {
+        "reminders": reminders,
+        "reverification_opened": opened,
+        "expired": expired,
+        "safe_withdrawals": safe_withdrawals,
+    }

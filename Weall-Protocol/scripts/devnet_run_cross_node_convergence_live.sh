@@ -172,6 +172,10 @@ if [[ "${probe_rc}" -ne 0 ]]; then
   exit "${probe_rc}"
 fi
 
+# Fail closed unless each node reports a current, valid controlled-devnet
+# manifest in addition to matching canonical chain state.
+bash scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}"
+
 echo "==> OK: live controlled-devnet cross-node convergence probe passed"
 echo "node1_log=${NODE1_LOG}"
 echo "node2_log=${NODE2_LOG}"

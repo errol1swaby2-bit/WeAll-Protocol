@@ -48,6 +48,13 @@ class AccountRegisterPayload(_StrictModel):
     sig_profile: str | None = Field(default=None, min_length=1)
     pubkeys: dict[str, str] | None = None
     mldsa_pubkey: str | None = Field(default=None, min_length=1)
+    # Independent offline recovery authority and reviewer-evidence KEM key.
+    # Neither secret enters consensus state.
+    recovery_pubkey: str | None = Field(default=None, min_length=1)
+    recovery_sig_profile: str | None = Field(default=None, min_length=1)
+    recovery_key_commitment: str | None = Field(default=None, min_length=1)
+    evidence_kem_pubkey: str | None = Field(default=None, min_length=1)
+    evidence_kem_algorithm: str | None = Field(default=None, min_length=1)
 
 
 class AccountKeyAddPayload(_StrictModel):
@@ -100,6 +107,8 @@ class AccountSecurityPolicySetPayload(_StrictModel):
     lock_on_recovery_request: bool | None = None
     session_ttl_s: int | None = Field(default=None, ge=0)
     require_guardian_threshold_for_unlock: bool | None = None
+    evidence_kem_pubkey: str | None = Field(default=None, min_length=1)
+    evidence_kem_algorithm: str | None = Field(default=None, min_length=1)
 
 
 class AccountLockPayload(_StrictModel):
@@ -111,10 +120,14 @@ class AccountUnlockPayload(_StrictModel):
 
 
 class AccountRecoveryConfigSetPayload(_StrictModel):
-    # v2 canonical offline recovery key registration.
+    # v2 canonical offline recovery key registration. Initial registration may
+    # occur once when no key was committed at ACCOUNT_REGISTER. Every rotation
+    # is signed by the currently registered recovery authority.
     recovery_pubkey: str | None = Field(default=None, min_length=1)
     recovery_key_commitment: str | None = Field(default=None, min_length=1)
     recovery_sig_profile: str | None = Field(default=None, min_length=1)
+    current_recovery_generation: int | None = Field(default=None, ge=0)
+    authorization: str | None = Field(default=None, min_length=1)
 
     # Historical guardian shape retained for replay/migration only. New v2
     # genesis state disables new guardian admission through chain parameters.
@@ -128,16 +141,34 @@ class AccountRecoveryRequestPayload(_StrictModel):
     request_id: str = Field(..., min_length=1)
     target: str | None = None
     method: str | None = Field(default=None, min_length=1)
+    authorization: str | None = Field(default=None, min_length=1)
+    authorization_key_id: str | None = Field(default=None, min_length=1)
+    challenged_request_id: str | None = Field(default=None, min_length=1)
     recovery_generation: int | None = Field(default=None, ge=0)
     new_pubkey: str | None = Field(default=None, min_length=1)
     new_sig_profile: str | None = Field(default=None, min_length=1)
     new_recovery_pubkey: str | None = Field(default=None, min_length=1)
     new_recovery_sig_profile: str | None = Field(default=None, min_length=1)
     new_recovery_key_commitment: str | None = Field(default=None, min_length=1)
+    evidence_class_commitments: list[dict[str, Any]] | None = None
+    strong_anchor_commitment: str | None = Field(default=None, min_length=1)
+    social_attestation_commitments: list[str] | None = None
+    evidence_policy_version: str | None = Field(default=None, min_length=1)
+    recovery_evidence: list[dict[str, Any]] | None = None
 
 
 class AccountRecoveryApprovePayload(_StrictModel):
     request_id: str = Field(..., min_length=1)
+    decision: str | None = Field(default=None, min_length=1)
+    review_commitment: str | None = Field(default=None, min_length=1)
+    reason_code: str | None = None
+    evidence_id: str | None = Field(default=None, min_length=1)
+    key_envelope_commitments: dict[str, Any] | None = None
+    # Signed social-continuity declarations expose commitments only.  Raw
+    # household/dependency evidence remains inside encrypted recovery evidence.
+    attestation_commitment: str | None = Field(default=None, min_length=1)
+    household_commitment: str | None = Field(default=None, min_length=1)
+    independence_commitment: str | None = Field(default=None, min_length=1)
 
 
 class AccountRecoveryCancelPayload(_StrictModel):
@@ -177,6 +208,10 @@ class PohEvidenceDeclarePayload(_StrictModel):
     cid: str | None = None
     kind: str | None = None
     note: str | None = None
+    provider_id: str | None = None
+    storage_commitment: str | None = None
+    key_erasure_commitment: str | None = None
+    attestation_commitment: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)
 
 
@@ -220,6 +255,14 @@ class PohAsyncEvidenceDeclarePayload(_StrictModel):
     evidence_commitment: str | None = None
     response_commitment: str | None = None
     public_evidence_id: str | None = None
+    encrypted: bool = True
+    encryption_algorithm: str = "aes-256-gcm"
+    ciphertext_cid: str | None = Field(default=None, min_length=1)
+    ciphertext_commitment: str | None = Field(default=None, min_length=1)
+    encryption_context_commitment: str | None = Field(default=None, min_length=1)
+    provider_ids: list[str] = Field(default_factory=list)
+    ciphertext_mime: str | None = Field(default="application/octet-stream", min_length=1)
+    ciphertext_size: int | None = Field(default=None, ge=0)
     evidence_cid: str | None = Field(default=None, min_length=1)
     uri: str | None = Field(default=None, min_length=1)
     mime: str | None = Field(default=None, min_length=1)
@@ -236,6 +279,9 @@ class PohAsyncEvidenceBindPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
     evidence_id: str = Field(..., min_length=1)
     target_id: str | None = None
+    key_envelope_commitments: dict[str, Any] = Field(default_factory=dict)
+    evidence_root_commitment: str | None = None
+    followup_round: int | None = Field(default=None, ge=0)
     ts_ms: int | None = Field(default=None, ge=0)
 
 
@@ -262,6 +308,7 @@ class PohAsyncReviewSubmitPayload(_StrictModel):
     verdict: str = Field(..., min_length=1)
     reason_code: str | None = None
     review_commitment: str | None = None
+    followup_round: int | None = Field(default=None, ge=0)
     note: str | None = None
     ts_ms: int | None = Field(default=None, ge=0)
 
@@ -456,6 +503,7 @@ class ContentCommentCreatePayload(_StrictModel):
     comment_id: str | None = Field(default=None, min_length=1)
     post_id: str = Field(..., min_length=1)
     body: str = Field(..., min_length=1)
+    surface: str | None = None
 
 
 class ContentCommentDeletePayload(_StrictModel):

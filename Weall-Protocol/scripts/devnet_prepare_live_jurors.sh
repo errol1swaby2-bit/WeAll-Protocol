@@ -92,6 +92,88 @@ if [[ ! -f "${GENESIS_REVIEWER_KEYFILE}" ]]; then
   exit 2
 fi
 
+if [[ ! -d "${ROOT}/../web/node_modules" ]]; then
+  echo "ERROR: web dependencies are required to prepare the genesis reviewer ML-KEM authority. Run: cd ${ROOT}/../web && npm ci" >&2
+  exit 2
+fi
+
+# The genesis bootstrap account predates normal ACCOUNT_REGISTER and therefore
+# does not automatically receive an evidence-encryption authority. Generate the
+# controlled reviewer authority in its operator-only keyfile, then register the
+# public ML-KEM key through the normal signed account-security transaction path.
+node "${ROOT}/../web/scripts/generate_m2_actor_keys.mjs" "${GENESIS_REVIEWER_KEYFILE}" >/dev/null
+
+_keyfile_field() {
+  local field="$1"
+  python3 - "${GENESIS_REVIEWER_KEYFILE}" "${field}" <<'PY_KEYFILE_FIELD'
+import json, sys
+path, field = sys.argv[1], sys.argv[2]
+with open(path, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+print(str(data.get(field) or '').strip())
+PY_KEYFILE_FIELD
+}
+
+_account_evidence_kem_pubkey() {
+  /usr/bin/env python3 - "$API" "$GENESIS_REVIEWER_ACCOUNT" <<'PY_EVIDENCE_KEM'
+import json, sys, urllib.parse, urllib.request
+api, account = sys.argv[1].rstrip('/'), sys.argv[2]
+with urllib.request.urlopen(api + '/v1/accounts/' + urllib.parse.quote(account, safe=''), timeout=15) as resp:
+    out = json.loads(resp.read().decode('utf-8'))
+state = out.get('state') if isinstance(out, dict) else {}
+evidence = state.get('evidence_encryption') if isinstance(state, dict) else {}
+print(str((evidence or {}).get('public_key') or '').strip())
+PY_EVIDENCE_KEM
+}
+
+_register_genesis_evidence_kem_if_needed() {
+  local expected current payload out_file status after
+  expected="$(_keyfile_field evidence_kem_public_key_b64)"
+  if [[ -z "${expected}" ]]; then
+    echo "ERROR: genesis reviewer ML-KEM public key was not generated" >&2
+    exit 2
+  fi
+  current="$(_account_evidence_kem_pubkey)"
+  if [[ "${current}" == "${expected}" ]]; then
+    echo "==> Genesis reviewer ML-KEM evidence authority already current"
+    return 0
+  fi
+
+  payload="$(python3 - "${expected}" <<'PY_EVIDENCE_PAYLOAD'
+import json, sys
+print(json.dumps({
+    "evidence_kem_pubkey": sys.argv[1],
+    "evidence_kem_algorithm": "ml-kem-768",
+}, sort_keys=True, separators=(",", ":")))
+PY_EVIDENCE_PAYLOAD
+)"
+  out_file="${DEVNET_DIR}/genesis-evidence-kem-register.json"
+  python3 scripts/devnet_tx.py --api "${API}" submit-tx \
+    --account "${GENESIS_REVIEWER_ACCOUNT}" \
+    --keyfile "${GENESIS_REVIEWER_KEYFILE}" \
+    --tx-type ACCOUNT_SECURITY_POLICY_SET \
+    --payload-json "${payload}" \
+    --wait > "${out_file}"
+  status="$(python3 - "${out_file}" <<'PY_EVIDENCE_STATUS'
+import json, sys
+with open(sys.argv[1], 'r', encoding='utf-8') as f:
+    out = json.load(f)
+print(str((out.get('tx_status') or {}).get('status') or '').strip().lower())
+PY_EVIDENCE_STATUS
+)"
+  if [[ "${status}" != "confirmed" ]]; then
+    echo "ERROR: genesis reviewer ML-KEM registration transaction did not confirm" >&2
+    cat "${out_file}" >&2
+    exit 1
+  fi
+  after="$(_account_evidence_kem_pubkey)"
+  if [[ "${after}" != "${expected}" ]]; then
+    echo "ERROR: genesis reviewer ML-KEM public key is not canonical after confirmation" >&2
+    exit 1
+  fi
+  echo "==> Genesis reviewer ML-KEM evidence authority registered through normal tx flow"
+}
+
 account_json="$(_account_json "${GENESIS_REVIEWER_ACCOUNT}")"
 echo "${account_json}"
 
@@ -123,6 +205,8 @@ if [[ ! "${tier}" =~ ^[0-9]+$ || "${tier}" -lt 2 ]]; then
   echo "ERROR: deterministic genesis reviewer is not Live/Tier-2 eligible: ${GENESIS_REVIEWER_ACCOUNT} tier=${tier}" >&2
   exit 1
 fi
+
+_register_genesis_evidence_kem_if_needed
 
 _roles_json >/dev/null || true
 

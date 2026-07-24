@@ -64,7 +64,8 @@ def _session_state() -> dict[str, Any]:
                     "assigned_jurors": ["@juror"],
                     "accepted_jurors": ["@juror"],
                     "jurors": {"@juror": {"accepted": True}},
-                    "reviewer_restricted_evidence": {"video_cid": "restricted-cid-do-not-leak"},
+                    "reviewer_restricted_evidence": {"ev1": {"encrypted_blob_cid": "restricted-cid-do-not-leak"}},
+                    "evidence_binds": {"bind:case-1:ev1": {"evidence_id": "ev1", "target_id": "case-1"}},
                     "reviewable_evidence": {"commitment": "c" * 64},
                 }
             },
@@ -158,7 +159,7 @@ def test_poh_sensitive_case_read_requires_session_and_redacts_unrelated_viewer(m
         headers={"x-weall-account": "@juror", "x-weall-session-key": "juror-session"},
     )
     assert juror.status_code == 200, juror.text
-    assert juror.json()["case"]["reviewer_restricted_evidence"]["video_cid"] == "restricted-cid-do-not-leak"
+    assert juror.json()["case"]["reviewer_restricted_evidence"]["ev1"]["encrypted_blob_cid"] == "restricted-cid-do-not-leak"
 
 
 
@@ -186,7 +187,7 @@ def test_poh_sensitive_case_read_withholds_raw_evidence_until_reviewer_accepts(m
         headers={"x-weall-account": "@juror", "x-weall-session-key": "juror-session"},
     )
     assert accepted.status_code == 200, accepted.text
-    assert accepted.json()["case"]["reviewer_restricted_evidence"]["video_cid"] == "restricted-cid-do-not-leak"
+    assert accepted.json()["case"]["reviewer_restricted_evidence"]["ev1"]["encrypted_blob_cid"] == "restricted-cid-do-not-leak"
 
 def test_scoped_poh_queues_reject_session_mismatch(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")

@@ -18,6 +18,10 @@ type RecoveryFileV2 = {
   account: string;
   publicKeyB64: string;
   secretKeyB64: string;
+  recoveryAuthorityPublicKeyB64: string;
+  recoveryAuthoritySecretKeyB64: string;
+  evidenceKemPublicKeyB64: string;
+  evidenceKemSecretKeyB64: string;
 };
 
 function extractTxId(value: unknown, depth = 0): string {
@@ -211,6 +215,11 @@ test.describe("real browser account custody", () => {
       });
       expect(Buffer.from(recovery.secretKeyB64, "base64")).toHaveLength(32);
       expect(Buffer.from(recovery.publicKeyB64, "base64")).toHaveLength(1952);
+      expect(Buffer.from(recovery.recoveryAuthoritySecretKeyB64, "base64")).toHaveLength(32);
+      expect(Buffer.from(recovery.recoveryAuthorityPublicKeyB64, "base64")).toHaveLength(1952);
+      expect(Buffer.from(recovery.evidenceKemPublicKeyB64, "base64")).toHaveLength(1184);
+      expect(Buffer.from(recovery.evidenceKemSecretKeyB64, "base64").length).toBeGreaterThan(0);
+      expect(recovery.recoveryAuthorityPublicKeyB64).not.toBe(recovery.publicKeyB64);
 
       const recoveryText = firstPage.getByTestId("verify-created-recovery-json");
       await recoveryText.fill('{"type":');
@@ -236,10 +245,22 @@ test.describe("real browser account custody", () => {
       const storageBeforeRegistration = await firstPage.evaluate((acct: string) => ({
         publicMetadata: localStorage.getItem(`weall_keypair::${acct}`),
         sessionSecret: sessionStorage.getItem(`weall_secret::${acct}`),
+        recoveryPublic: localStorage.getItem(`weall_recovery_authority_public::${acct}`),
+        recoverySecretInLocal: localStorage.getItem(`weall_recovery_authority_secret::${acct}`),
+        recoverySecretInSession: sessionStorage.getItem(`weall_recovery_authority_secret::${acct}`),
+        evidencePublic: localStorage.getItem(`weall_evidence_kem_public::${acct}`),
+        evidenceSecretInLocal: localStorage.getItem(`weall_evidence_kem_secret::${acct}`),
+        evidenceSecretInSession: sessionStorage.getItem(`weall_evidence_kem_secret::${acct}`),
       }), account);
       expect(storageBeforeRegistration.publicMetadata).toContain(recovery.publicKeyB64);
       expect(storageBeforeRegistration.publicMetadata).not.toContain(recovery.secretKeyB64);
       expect(storageBeforeRegistration.sessionSecret).toBe(recovery.secretKeyB64);
+      expect(storageBeforeRegistration.recoveryPublic).toBe(recovery.recoveryAuthorityPublicKeyB64);
+      expect(storageBeforeRegistration.recoverySecretInLocal).toBeNull();
+      expect(storageBeforeRegistration.recoverySecretInSession).toBe(recovery.recoveryAuthoritySecretKeyB64);
+      expect(storageBeforeRegistration.evidencePublic).toBe(recovery.evidenceKemPublicKeyB64);
+      expect(storageBeforeRegistration.evidenceSecretInLocal).toBeNull();
+      expect(storageBeforeRegistration.evidenceSecretInSession).toBe(recovery.evidenceKemSecretKeyB64);
 
       await continueButton.click();
       await firstPage.waitForURL(/#\/verification$/);
@@ -257,6 +278,8 @@ test.describe("real browser account custody", () => {
       );
       expect(accountBeforeRestart?.account).toBe(account);
       assertSingleCanonicalAccountKey(accountBeforeRestart, recovery.publicKeyB64);
+      expect(accountBeforeRestart?.state?.recovery?.offline_key?.pubkey).toBe(recovery.recoveryAuthorityPublicKeyB64);
+      expect(accountBeforeRestart?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
       const refreshStatusButton = firstPage.getByRole("button", { name: "Refresh status" });
       await expect(refreshStatusButton).toBeEnabled({ timeout: 30_000 });
@@ -277,8 +300,20 @@ test.describe("real browser account custody", () => {
           session: localStorage.getItem("weall_session_v1"),
           publicMetadata: localStorage.getItem(`weall_keypair::${acct}`),
           sessionSecret: sessionStorage.getItem(`weall_secret::${acct}`),
+          recoveryPublic: localStorage.getItem(`weall_recovery_authority_public::${acct}`),
+          recoverySecret: sessionStorage.getItem(`weall_recovery_authority_secret::${acct}`),
+          evidencePublic: localStorage.getItem(`weall_evidence_kem_public::${acct}`),
+          evidenceSecret: sessionStorage.getItem(`weall_evidence_kem_secret::${acct}`),
         }), account);
-        expect(initiallyClean).toEqual({ session: null, publicMetadata: null, sessionSecret: null });
+        expect(initiallyClean).toEqual({
+          session: null,
+          publicMetadata: null,
+          sessionSecret: null,
+          recoveryPublic: null,
+          recoverySecret: null,
+          evidencePublic: null,
+          evidenceSecret: null,
+        });
 
         await restoredPage.getByRole("button", { name: "Sign in", exact: true }).first().click();
         const restoreForm = restoredPage.getByTestId("restore-account-form");
@@ -301,15 +336,29 @@ test.describe("real browser account custody", () => {
           session: localStorage.getItem("weall_session_v1"),
           publicMetadata: localStorage.getItem(`weall_keypair::${acct}`),
           sessionSecret: sessionStorage.getItem(`weall_secret::${acct}`),
+          recoveryPublic: localStorage.getItem(`weall_recovery_authority_public::${acct}`),
+          recoverySecretInLocal: localStorage.getItem(`weall_recovery_authority_secret::${acct}`),
+          recoverySecretInSession: sessionStorage.getItem(`weall_recovery_authority_secret::${acct}`),
+          evidencePublic: localStorage.getItem(`weall_evidence_kem_public::${acct}`),
+          evidenceSecretInLocal: localStorage.getItem(`weall_evidence_kem_secret::${acct}`),
+          evidenceSecretInSession: sessionStorage.getItem(`weall_evidence_kem_secret::${acct}`),
         }), account);
         expect(restoredStorage.session).toContain(account);
         expect(restoredStorage.publicMetadata).toContain(recovery.publicKeyB64);
         expect(restoredStorage.publicMetadata).not.toContain(recovery.secretKeyB64);
         expect(restoredStorage.sessionSecret).toBe(recovery.secretKeyB64);
+        expect(restoredStorage.recoveryPublic).toBe(recovery.recoveryAuthorityPublicKeyB64);
+        expect(restoredStorage.recoverySecretInLocal).toBeNull();
+        expect(restoredStorage.recoverySecretInSession).toBe(recovery.recoveryAuthoritySecretKeyB64);
+        expect(restoredStorage.evidencePublic).toBe(recovery.evidenceKemPublicKeyB64);
+        expect(restoredStorage.evidenceSecretInLocal).toBeNull();
+        expect(restoredStorage.evidenceSecretInSession).toBe(recovery.evidenceKemSecretKeyB64);
 
         const accountAfterRestore = await getJson(restoredPage.request, accountPath);
         expect(accountAfterRestore?.account).toBe(account);
         assertSingleCanonicalAccountKey(accountAfterRestore, recovery.publicKeyB64);
+        expect(accountAfterRestore?.state?.recovery?.offline_key?.pubkey).toBe(recovery.recoveryAuthorityPublicKeyB64);
+        expect(accountAfterRestore?.state?.evidence_encryption?.public_key).toBe(recovery.evidenceKemPublicKeyB64);
 
         await restoredPage.goto("/#/profile");
         await expect(restoredPage.getByText(account).first()).toBeVisible({ timeout: 30_000 });

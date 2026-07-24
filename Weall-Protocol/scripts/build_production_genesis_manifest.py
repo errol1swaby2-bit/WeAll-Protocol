@@ -245,6 +245,13 @@ def _build_genesis(
             # Public BFT signing remains fail-closed until the active validator
             # set has reached BFT_MIN_VALIDATORS and consensus_phase is
             # explicitly bft_active.
+            # New v2 chains fail closed on legacy guardian admission and
+            # require independent recovery and evidence-encryption authorities
+            # at account registration.  Historical guardian records remain
+            # replayable; no new guardian recovery can be admitted.
+            "guardian_recovery_new_admission": False,
+            "require_recovery_key_at_account_register": True,
+            "require_evidence_kem_at_account_register": True,
             "bft_signing_public_beta_gate_enabled": True,
             "public_mainnet_enabled": False,
         },
@@ -276,6 +283,10 @@ def _build_manifest(
     protocol_profile_hash: str,
     authority_pubkey: str,
 ) -> Json:
+    constitution_path = ROOT / "docs" / "constitution" / "WEALL_GENESIS_CONSTITUTION_DRAFT_2.md"
+    traceability_path = ROOT / "docs" / "constitution" / "CONSTITUTIONAL_TRACEABILITY.md"
+    if not constitution_path.is_file() or not traceability_path.is_file():
+        raise SystemExit("constitution_source_missing")
     return {
         "authority": {
             "authority_snapshot_required": True,
@@ -284,7 +295,23 @@ def _build_manifest(
         },
         "authority_snapshot_version": 1,
         "chain_id": chain_id,
+        "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
+        "constitution_hash": _file_hash(constitution_path),
+        "constitution_traceability_hash": _file_hash(traceability_path),
+        "constitution_version": "draft-2",
+        "constitutional_clock": {
+            "allowed_clock_skew_ms": 2000,
+            "block_time_derivation": "genesis_time_plus_height_times_interval",
+            "empty_blocks_enabled": True,
+            "enabled": True,
+            "genesis_time_ms": 0,
+            "no_fast_forward": True,
+            "no_height_skip": True,
+            "procedure_time_source": "finalized_block_height",
+            "target_block_interval_ms": 20000,
+        },
         "genesis_hash": genesis_hash,
+        "genesis_time_ms": 0,
         "genesis_state_root": genesis_state_root,
         "mode": "prod",
         "name": "WeAll Genesis Canonical Chain",

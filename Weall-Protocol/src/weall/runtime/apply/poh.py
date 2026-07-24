@@ -24,6 +24,13 @@ from weall.runtime.poh.live_quorum import (
     required_live_passes,
 )
 from weall.runtime.poh.bootstrap_quorum import adaptive_bootstrap_review_policy
+from weall.runtime.poh.evidence_lifecycle import (
+    close_case_evidence,
+    evidence_record,
+    mark_reviewer_accessible,
+    record_provider_deletion_attestation,
+    register_encrypted_evidence,
+)
 from weall.runtime.reviewer_responsibilities import (
     POH_ASYNC_REVIEW_LANE,
     POH_LIVE_REVIEW_LANE,
@@ -1970,20 +1977,12 @@ def _async_case_open_or_reviewable(case: Json, *, case_id: str) -> str:
 
 
 def _require_async_evidence_mutable(case: Json, *, case_id: str) -> None:
-    """Fail closed once evidence has entered review scope.
-
-    Jurors must vote on a stable evidence set.  After assignment starts, the
-    applicant may not replace response/evidence commitments until a future
-    explicit follow-up transaction exists and seals a new evidence root.
-    """
-
+    """Permit initial evidence and explicit follow-up rounds only."""
     status = _as_str(case.get("status") or "").strip().lower()
-    if status in ("assigned", "under_review", "needs_followup", "approved", "rejected", "expired", "finalized"):
-        raise ApplyError(
-            "invalid_tx",
-            "async_evidence_locked",
-            {"case_id": case_id, "status": status},
-        )
+    if status in ("assigned", "under_review", "approved", "rejected", "expired", "finalized"):
+        raise ApplyError("invalid_tx", "async_evidence_locked", {"case_id": case_id, "status": status})
+    # ``needs_followup`` is intentionally mutable. A successful bind seals the
+    # next evidence root and resumes review under a monotonically increasing round.
 
 
 def _async_case_has_declared_evidence(case: Json) -> bool:
@@ -2013,10 +2012,12 @@ def _async_case_has_declared_evidence(case: Json) -> bool:
 
 
 def _async_reviews_have_followup_request(case: Json) -> bool:
-    reviews = case.get("reviews")
-    reviews = reviews if isinstance(reviews, dict) else {}
+    current_round = _as_int(case.get("followup_round") or 0, 0)
+    reviews = case.get("reviews") if isinstance(case.get("reviews"), dict) else {}
     for review_any in reviews.values():
         review = review_any if isinstance(review_any, dict) else {}
+        if _as_int(review.get("followup_round") or 0, 0) != current_round:
+            continue
         if _as_str(review.get("verdict") or "").strip().lower() == "needs_followup":
             return True
     return False
@@ -2036,13 +2037,15 @@ def _append_unique_str(values: Any, value: str) -> list[str]:
 
 
 def _async_review_counts(case: Json) -> tuple[int, int, int]:
-    reviews = case.get("reviews")
-    reviews = reviews if isinstance(reviews, dict) else {}
+    reviews = case.get("reviews") if isinstance(case.get("reviews"), dict) else {}
+    current_round = _as_int(case.get("followup_round") or 0, 0)
     approvals = 0
     rejections = 0
     counted = 0
     for review_any in reviews.values():
         review = review_any if isinstance(review_any, dict) else {}
+        if _as_int(review.get("followup_round") or 0, 0) != current_round:
+            continue
         verdict = _as_str(review.get("verdict") or "").strip().lower()
         if verdict == "approve":
             approvals += 1
@@ -2050,11 +2053,6 @@ def _async_review_counts(case: Json) -> tuple[int, int, int]:
         elif verdict in ("reject", "invalid_evidence"):
             rejections += 1
             counted += 1
-        elif verdict in ("abstain", "needs_followup"):
-            # Abstain and needs_followup are real reviews, but they do not
-            # satisfy the finalization denominator. needs_followup pauses the
-            # case until a future explicit follow-up path exists.
-            continue
     return approvals, rejections, counted
 
 
@@ -2167,90 +2165,131 @@ def apply_poh_async_evidence_declare(state: Json, env: Any) -> Json:
     p = _payload(env)
     _reject_native_async_sensitive_identity_fields(p)
     case_id = _as_str(p.get("case_id") or "").strip()
-    evidence_commitment = _as_str(p.get("evidence_commitment") or "").strip()
-    response_commitment = _as_str(p.get("response_commitment") or "").strip()
     if not case_id:
         raise ApplyError("invalid_tx", "missing_case_id", {})
-    evidence_commitment = _validate_commitment_format(
-        evidence_commitment, field="evidence_commitment", case_id=case_id, required=False
-    )
-    response_commitment = _validate_commitment_format(
-        response_commitment, field="response_commitment", case_id=case_id, required=False
-    )
-    if not evidence_commitment and not response_commitment:
-        raise ApplyError("invalid_tx", "missing_evidence_commitment", {"case_id": case_id})
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
     _require_async_evidence_mutable(case, case_id=case_id)
     account_id = _as_str(case.get("account_id") or "").strip()
     _require_subject_signer(env, account_id)
 
+    # Raw evidence locations never belong in canonical state.  A declaration may
+    # either be (a) an encrypted object reference with a pinned case context or
+    # (b) a commitment-only record used by historical replay, deterministic
+    # harnesses, and evidence classes that have no externally retrievable blob.
+    # Commitment-only compatibility does not expose plaintext and therefore does
+    # not weaken the production confidentiality boundary.
+    plaintext_fields = ("evidence_cid", "uri", "mime", "video_commitment")
+    if any(p.get(field) not in (None, "") for field in plaintext_fields):
+        raise ApplyError("invalid_tx", "plaintext_poh_evidence_forbidden", {"case_id": case_id})
+
+    provider_ids = [
+        _as_str(value).strip()
+        for value in (p.get("provider_ids") if isinstance(p.get("provider_ids"), list) else [])
+        if _as_str(value).strip()
+    ]
+    encrypted_reference_supplied = any(
+        p.get(field) not in (None, "", [], {})
+        for field in (
+            "ciphertext_cid",
+            "ciphertext_commitment",
+            "encryption_context_commitment",
+            "provider_ids",
+            "encrypted",
+            "encryption_algorithm",
+        )
+    )
+
+    evidence_commitment = _validate_commitment_format(
+        p.get("evidence_commitment") or p.get("ciphertext_commitment"),
+        field="evidence_commitment",
+        case_id=case_id,
+        required=True,
+    )
+    response_commitment = _validate_commitment_format(
+        p.get("response_commitment"),
+        field="response_commitment",
+        case_id=case_id,
+        required=False,
+    )
     evidence_id = _as_str(p.get("evidence_id") or "").strip()
     if not evidence_id:
-        basis = evidence_commitment or response_commitment or str(_as_int(_get_env(env, "nonce", 0)))
-        evidence_id = f"async-evidence:{_sha256_hex(f'{case_id}|{basis}'.encode())[:24]}"
+        evidence_id = f"async-evidence:{_sha256_hex(f'{case_id}|{evidence_commitment}'.encode())[:24]}"
+    commitments = case.setdefault("evidence_commitments", {})
+    if evidence_id in commitments:
+        raise ApplyError("invalid_tx", "evidence_already_declared", {"evidence_id": evidence_id})
 
-    commitments = case.get("evidence_commitments")
-    if not isinstance(commitments, dict):
-        commitments = {}
-        case["evidence_commitments"] = commitments
+    followup_round = _as_int(case.get("followup_round") or 0, 0)
     rec: Json = {
         "evidence_id": evidence_id,
         "evidence_commitment": evidence_commitment,
         "response_commitment": response_commitment,
-        "kind": _as_str(p.get("kind") or "commitment").strip() or "commitment",
+        "kind": _as_str(p.get("kind") or "identity_evidence_commitment").strip(),
         "declared_height": int(state.get("height") or 0),
+        "followup_round": followup_round,
     }
 
-    commitments[evidence_id] = rec
+    if encrypted_reference_supplied:
+        if p.get("encrypted") is not True or _as_str(p.get("encryption_algorithm") or "").lower() != "aes-256-gcm":
+            raise ApplyError("invalid_tx", "encrypted_poh_evidence_required", {"case_id": case_id})
+        encrypted_blob_cid = _as_str(p.get("ciphertext_cid") or "").strip()
+        encrypted_blob_commitment = _validate_commitment_format(
+            p.get("ciphertext_commitment") or evidence_commitment,
+            field="encrypted_blob_commitment",
+            case_id=case_id,
+            required=True,
+        )
+        context_commitment = _validate_commitment_format(
+            p.get("encryption_context_commitment"),
+            field="encryption_context_commitment",
+            case_id=case_id,
+            required=True,
+        )
+        if not encrypted_blob_cid or not provider_ids:
+            raise ApplyError("invalid_tx", "missing_encrypted_evidence_location", {"case_id": case_id})
+        if len(encrypted_blob_cid) > 256 or any(ch.isspace() for ch in encrypted_blob_cid):
+            raise ApplyError("invalid_tx", "invalid_encrypted_blob_cid", {"case_id": case_id})
+        rec.update(
+            {
+                "storage_mode": "encrypted_blob",
+                "encrypted_blob_commitment": encrypted_blob_commitment,
+                "encryption_context_commitment": context_commitment,
+            }
+        )
+        commitments[evidence_id] = rec
+        reviewer_restricted = case.setdefault("reviewer_restricted_evidence", {})
+        reviewer_restricted[evidence_id] = {
+            **rec,
+            "encrypted_blob_cid": encrypted_blob_cid,
+            "encrypted_blob_mime": "application/octet-stream",
+            "encrypted_blob_size": _as_int(p.get("ciphertext_size") or p.get("encrypted_blob_size") or 0, 0),
+            "provider_ids": sorted(set(provider_ids)),
+            "visibility": "reviewer_restricted_encrypted_blob",
+        }
+        try:
+            register_encrypted_evidence(
+                state,
+                case_id=case_id,
+                evidence_id=evidence_id,
+                subject_id=account_id,
+                ciphertext_cid=encrypted_blob_cid,
+                ciphertext_commitment=encrypted_blob_commitment,
+                encryption_context_commitment=context_commitment,
+                provider_ids=provider_ids,
+                declared_height=int(state.get("height") or 0),
+            )
+        except ValueError as exc:
+            raise ApplyError("invalid_tx", str(exc), {"case_id": case_id, "evidence_id": evidence_id}) from exc
+    else:
+        rec["storage_mode"] = "commitment_only"
+        commitments[evidence_id] = rec
+        case.setdefault("reviewer_restricted_evidence", {})
+
     if response_commitment:
         case["response_commitment"] = response_commitment
-
-    # Identity-protection posture: async PoH evidence may contain sensitive
-    # identity material. Public case state keeps commitments, assignments,
-    # votes, outcomes, and review receipts inspectable. Content-addressed
-    # evidence references remain in a protected reviewer/subject envelope.
-    protected_rec: Json = {
-        "evidence_id": evidence_id,
-        "evidence_commitment": evidence_commitment,
-        "response_commitment": response_commitment,
-        "kind": rec["kind"],
-        "declared_height": rec["declared_height"],
-        "visibility": "reviewer_restricted",
-    }
-    for key in ("evidence_cid", "mime", "name", "filename", "size"):
-        value = p.get(key)
-        if value is None:
-            continue
-        if isinstance(value, str):
-            value = value.strip()
-            if not value:
-                continue
-        protected_rec[key] = value
-
-    uri = _validate_ipfs_uri(p.get("uri"), field="uri", case_id=case_id)
-    if uri:
-        protected_rec["uri"] = uri
-
-    video_commitment = _validate_commitment_format(
-        p.get("video_commitment"), field="video_commitment", case_id=case_id, required=False
-    )
-    if video_commitment:
-        protected_rec["video_commitment"] = video_commitment
-
-    reviewer_restricted = case.get("reviewer_restricted_evidence")
-    if not isinstance(reviewer_restricted, dict):
-        reviewer_restricted = {}
-        case["reviewer_restricted_evidence"] = reviewer_restricted
-    if any(k in protected_rec for k in ("evidence_cid", "uri", "video_commitment")):
-        reviewer_restricted[evidence_id] = protected_rec
-
-    # Preserve the old fields as explicitly empty public surfaces so stale
-    # clients/tests do not mistake absence for unredacted public evidence.
     case["public_evidence_ids"] = []
     case["reviewable_evidence"] = {}
-
-    case["status"] = "evidence_submitted"
+    case["status"] = "followup_evidence_submitted" if followup_round else "evidence_submitted"
     return {"applied": "POH_ASYNC_EVIDENCE_DECLARE", "case_id": case_id, "evidence_id": evidence_id}
 
 
@@ -2260,22 +2299,74 @@ def apply_poh_async_evidence_bind(state: Json, env: Any) -> Json:
     case_id = _as_str(p.get("case_id") or "").strip()
     evidence_id = _as_str(p.get("evidence_id") or "").strip()
     if not case_id or not evidence_id:
-        raise ApplyError("invalid_tx", "missing_case_or_evidence_id", {"case_id": case_id, "evidence_id": evidence_id})
+        raise ApplyError("invalid_tx", "missing_case_or_evidence_id", {})
     case = _get_async_case(state, case_id)
     _async_case_open_or_reviewable(case, case_id=case_id)
-    _require_async_evidence_mutable(case, case_id=case_id)
+    status = _as_str(case.get("status") or "").strip().lower()
+    if status not in {"evidence_submitted", "followup_evidence_submitted", "needs_followup", "assigned"}:
+        _require_async_evidence_mutable(case, case_id=case_id)
     account_id = _as_str(case.get("account_id") or "").strip()
     _require_subject_signer(env, account_id)
     commitments = case.get("evidence_commitments")
     if not isinstance(commitments, dict) or evidence_id not in commitments:
         raise ApplyError("invalid_tx", "evidence_not_declared", {"case_id": case_id, "evidence_id": evidence_id})
-    binds = case.get("evidence_binds")
-    if not isinstance(binds, dict):
-        binds = {}
-        case["evidence_binds"] = binds
+    current_round = _as_int(case.get("followup_round") or 0, 0)
+    supplied_round = _as_int(p.get("followup_round"), current_round)
+    if supplied_round != current_round:
+        raise ApplyError("invalid_tx", "followup_round_mismatch", {"want": current_round, "got": supplied_round})
+
+    assigned = {
+        _as_str(value).strip()
+        for value in case.get("assigned_jurors", [])
+        if _as_str(value).strip() and _as_str(value).strip() not in set(case.get("declined_jurors", []))
+    }
+    required_principals = {account_id, *assigned}
+    envelopes = p.get("key_envelope_commitments")
+    if not isinstance(envelopes, dict):
+        envelopes = {}
+    evidence_rec = commitments[evidence_id] if isinstance(commitments[evidence_id], dict) else {}
+    storage_mode = _as_str(evidence_rec.get("storage_mode") or "commitment_only").strip().lower()
+    if storage_mode == "encrypted_blob":
+        try:
+            mark_reviewer_accessible(
+                state,
+                evidence_id=evidence_id,
+                key_envelope_commitments=envelopes,
+                required_principals=required_principals,
+                height=int(state.get("height") or 0),
+            )
+        except ValueError as exc:
+            raise ApplyError("invalid_tx", str(exc), {"case_id": case_id, "evidence_id": evidence_id}) from exc
+    elif envelopes:
+        raise ApplyError(
+            "invalid_tx",
+            "key_envelopes_for_commitment_only_evidence",
+            {"case_id": case_id, "evidence_id": evidence_id},
+        )
+    binds = case.setdefault("evidence_binds", {})
     target_id = _as_str(p.get("target_id") or "").strip() or case_id
-    bind_id = f"bind:{case_id}:{evidence_id}:{target_id}"
-    binds[bind_id] = {"bind_id": bind_id, "evidence_id": evidence_id, "target_id": target_id}
+    bind_id = f"bind:{case_id}:{evidence_id}:{target_id}:r{current_round}"
+    binds[bind_id] = {
+        "bind_id": bind_id,
+        "evidence_id": evidence_id,
+        "target_id": target_id,
+        "followup_round": current_round,
+        "evidence_root_commitment": _validate_commitment_format(
+            p.get("evidence_root_commitment")
+            or evidence_rec.get("encrypted_blob_commitment")
+            or evidence_rec.get("evidence_commitment"),
+            field="evidence_root_commitment",
+            case_id=case_id,
+            required=True,
+        ),
+        "key_envelope_principals": sorted(envelopes.keys()),
+    }
+    if status in {"needs_followup", "followup_evidence_submitted"}:
+        # Supersede only the prior-round follow-up signal. Reviewers submit a new
+        # signed decision for this sealed evidence round.
+        case["status"] = "under_review"
+    else:
+        case["status"] = "evidence_bound"
     return {"applied": "POH_ASYNC_EVIDENCE_BIND", "case_id": case_id, "bind_id": bind_id}
 
 
@@ -2302,6 +2393,56 @@ def apply_poh_async_juror_assign(state: Json, env: Any) -> Json:
         raise ApplyError(
             "invalid_tx",
             "async_evidence_required_before_assignment",
+            {"case_id": case_id},
+        )
+
+    # POH_ASYNC_EVIDENCE_BIND has succeeded before normal reviewer assignment.
+    # The initial bind seals the evidence root and subject envelope into the
+    # case. A later signed bind may add reviewer-specific key envelopes after
+    # the deterministic juror set is known. Historical commitment-only replay
+    # artifacts may synthesize a migration-only bind because they contain no
+    # retrievable ciphertext or reviewer key material.
+    binds = case.get("evidence_binds")
+    if not isinstance(binds, dict) or not binds:
+        commitments = case.get("evidence_commitments")
+        commitments = commitments if isinstance(commitments, dict) else {}
+        current_round = _as_int(case.get("followup_round") or 0, 0)
+        eligible = [
+            (str(evidence_id), rec_any if isinstance(rec_any, dict) else {})
+            for evidence_id, rec_any in sorted(commitments.items())
+            if _as_int((rec_any if isinstance(rec_any, dict) else {}).get("followup_round") or 0, 0) == current_round
+        ]
+        commitment_only = bool(eligible) and all(
+            _as_str(rec.get("storage_mode") or "commitment_only").strip().lower() == "commitment_only"
+            for _evidence_id, rec in eligible
+        )
+        if commitment_only:
+            binds = {}
+            for evidence_id, rec in eligible:
+                bind_id = f"migration-bind:{case_id}:{evidence_id}:r{current_round}"
+                binds[bind_id] = {
+                    "bind_id": bind_id,
+                    "evidence_id": evidence_id,
+                    "target_id": case_id,
+                    "followup_round": current_round,
+                    "evidence_root_commitment": rec.get("evidence_commitment"),
+                    "key_envelope_principals": [],
+                    "migration_only": True,
+                }
+            case["evidence_binds"] = binds
+            case.setdefault("migration_receipts", []).append(
+                {
+                    "kind": "commitment_only_evidence_bind",
+                    "height": int(state.get("height") or 0),
+                    "evidence_ids": [evidence_id for evidence_id, _rec in eligible],
+                }
+            )
+
+    binds = case.get("evidence_binds")
+    if not isinstance(binds, dict) or not binds:
+        raise ApplyError(
+            "invalid_tx",
+            "async_evidence_bind_required_before_assignment",
             {"case_id": case_id},
         )
 
@@ -2370,6 +2511,27 @@ def apply_poh_async_juror_accept(state: Json, env: Any) -> Json:
     _require_active_reviewer_lane(state, juror_id, lane=POH_ASYNC_REVIEW_LANE, case_id=case_id)
     if juror_id not in list(case.get("assigned_jurors") or []):
         raise ApplyError("forbidden", "juror_not_assigned", {"case_id": case_id, "juror": juror_id})
+    if not isinstance(case.get("evidence_binds"), dict) or not case.get("evidence_binds"):
+        raise ApplyError("invalid_tx", "async_evidence_bind_required_before_acceptance", {"case_id": case_id})
+    commitments = case.get("evidence_commitments") if isinstance(case.get("evidence_commitments"), dict) else {}
+    missing_envelopes: list[str] = []
+    for evidence_id, declared_any in commitments.items():
+        declared = declared_any if isinstance(declared_any, dict) else {}
+        if _as_int(declared.get("followup_round") or 0, 0) != _as_int(case.get("followup_round") or 0, 0):
+            continue
+        storage_mode = _as_str(declared.get("storage_mode") or "commitment_only").strip().lower()
+        if storage_mode != "encrypted_blob":
+            continue
+        lifecycle = evidence_record(state, str(evidence_id))
+        envelopes = lifecycle.get("key_envelope_commitments") if isinstance(lifecycle, dict) else None
+        if not isinstance(envelopes, dict) or juror_id not in envelopes:
+            missing_envelopes.append(str(evidence_id))
+    if missing_envelopes:
+        raise ApplyError(
+            "invalid_tx",
+            "async_reviewer_key_envelope_required",
+            {"case_id": case_id, "juror": juror_id, "evidence_ids": sorted(missing_envelopes)},
+        )
     if juror_id in list(case.get("declined_jurors") or []):
         raise ApplyError("invalid_tx", "juror_already_declined", {"case_id": case_id, "juror": juror_id})
     case["accepted_jurors"] = _append_unique_str(case.get("accepted_jurors"), juror_id)
@@ -2418,25 +2580,33 @@ def apply_poh_async_review_submit(state: Json, env: Any) -> Json:
         raise ApplyError("forbidden", "juror_not_accepted", {"case_id": case_id, "juror": juror_id})
     if juror_id in list(case.get("declined_jurors") or []):
         raise ApplyError("forbidden", "juror_declined", {"case_id": case_id, "juror": juror_id})
-    reviews = case.get("reviews")
-    if not isinstance(reviews, dict):
-        reviews = {}
-        case["reviews"] = reviews
-    if juror_id in reviews:
+    current_round = _as_int(case.get("followup_round") or 0, 0)
+    supplied_round = _as_int(p.get("followup_round"), current_round)
+    if supplied_round != current_round:
+        raise ApplyError("invalid_tx", "followup_round_mismatch", {"want": current_round, "got": supplied_round})
+    reviews = case.setdefault("reviews", {})
+    review_key = juror_id if current_round == 0 else f"r{current_round}:{juror_id}"
+    if review_key in reviews:
         raise ApplyError("invalid_tx", "duplicate_async_review", {"case_id": case_id, "juror": juror_id})
-    review_commitment = _as_str(p.get("review_commitment") or "").strip()
-    if not review_commitment:
-        review_commitment = _sha256_hex(f"{_chain_id(state)}|POH_ASYNC_REVIEW|{case_id}|{juror_id}|{verdict}".encode())
-    reviews[juror_id] = {
+    review_commitment = _as_str(p.get("review_commitment") or "").strip() or _sha256_hex(
+        f"{_chain_id(state)}|POH_ASYNC_REVIEW|{case_id}|{current_round}|{juror_id}|{verdict}".encode()
+    )
+    reviews[review_key] = {
         "case_id": case_id,
         "juror_id": juror_id,
         "verdict": verdict,
         "reason_code": _as_str(p.get("reason_code") or "").strip(),
         "review_commitment": review_commitment,
+        "followup_round": current_round,
         "submitted_height": int(state.get("height") or 0),
         "signature": _as_str(_get_env(env, "sig", "")).strip(),
     }
-    case["status"] = "needs_followup" if verdict == "needs_followup" else "under_review"
+    if verdict == "needs_followup":
+        case["status"] = "needs_followup"
+        case["followup_requested_height"] = int(state.get("height") or 0)
+        case["followup_round"] = current_round + 1
+    else:
+        case["status"] = "under_review"
     return {"applied": "POH_ASYNC_REVIEW_SUBMIT", "case_id": case_id, "juror": juror_id, "verdict": verdict}
 
 
@@ -2457,7 +2627,7 @@ def apply_poh_async_finalize(state: Json, env: Any) -> Json:
         }
 
     approvals, rejections, counted = _async_review_counts(case)
-    if _async_reviews_have_followup_request(case):
+    if status == "needs_followup" or _async_reviews_have_followup_request(case):
         case["status"] = "needs_followup"
         raise ApplyError(
             "invalid_tx",
@@ -2566,6 +2736,12 @@ def apply_poh_async_receipt(state: Json, env: Any) -> Json:
     if p.get("tier_awarded") is not None and _as_int(p.get("tier_awarded") or 0, 0) != tier_awarded:
         raise ApplyError("invalid_tx", "async_receipt_tier_mismatch", {"case_id": case_id, "tier_awarded": tier_awarded, "supplied_tier_awarded": _as_int(p.get("tier_awarded") or 0, 0)})
     case["receipt_id"] = receipt_id
+    close_case_evidence(
+        state,
+        case_id=case_id,
+        finalized_height=_as_int(case.get("finalized_height") or state.get("height") or 0, 0),
+    )
+    case["reviewer_restricted_evidence"] = {}
     case["receipt"] = {
         "receipt_id": receipt_id,
         "case_id": case_id,
@@ -2642,11 +2818,14 @@ def apply_poh_tier2_request_open(state: Json, env: Any) -> Json:
         reason="tier2_request_requires_tier1",
     )
 
+    if video_cid:
+        raise ApplyError(
+            "invalid_tx",
+            "plaintext_poh_evidence_forbidden",
+            {"field": "video_cid", "required": "video_commitment"},
+        )
     if not video_commitment:
-        if video_cid:
-            video_commitment = _sha256_hex(video_cid.encode("utf-8"))
-        else:
-            raise ApplyError("invalid_tx", "missing_video_commitment", {})
+        raise ApplyError("invalid_tx", "missing_video_commitment", {})
 
     case_id = _case_id("poh2", account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0)))
     cases = _tier2_cases(state)
@@ -3725,6 +3904,12 @@ def apply_poh(state: Json, env: Any) -> Json | None:
 
         p = _payload(env)
         if t == "POH_APPLICATION_SUBMIT":
+            if any(p.get(field) for field in ("video_cid", "evidence_cid", "uri", "cid")):
+                raise ApplyError(
+                    "invalid_tx",
+                    "plaintext_poh_evidence_forbidden",
+                    {"tx_type": t},
+                )
             account_id = _as_str(p.get("account_id") or _signer(env)).strip()
             app_id = _as_str(p.get("application_id") or "").strip() or _case_id(
                 "pohapp", account_id=account_id, nonce=_as_int(_get_env(env, "nonce", 0))
@@ -3737,10 +3922,42 @@ def apply_poh(state: Json, env: Any) -> Json | None:
             return {"applied": t, "application_id": app_id}
 
         if t == "POH_EVIDENCE_DECLARE":
-            evidence_id = (
-                _as_str(p.get("evidence_id") or "").strip()
-                or _as_str(p.get("cid") or p.get("video_cid") or "").strip()
-            )
+            evidence_id = _as_str(p.get("evidence_id") or "").strip()
+            kind = _as_str(p.get("kind") or "").strip().lower()
+            if kind == "deletion_attestation":
+                if not evidence_id:
+                    raise ApplyError("invalid_tx", "missing_evidence_id", {})
+                try:
+                    record_provider_deletion_attestation(
+                        state,
+                        evidence_id=evidence_id,
+                        provider_id=_signer(env),
+                        storage_commitment=_validate_commitment_format(
+                            p.get("storage_commitment"), field="storage_commitment", required=True
+                        ),
+                        key_erasure_commitment=_validate_commitment_format(
+                            p.get("key_erasure_commitment"), field="key_erasure_commitment", required=True
+                        ),
+                        attestation_commitment=_validate_commitment_format(
+                            p.get("attestation_commitment"), field="attestation_commitment", required=True
+                        ),
+                        height=int(state.get("height") or 0),
+                    )
+                except ValueError as exc:
+                    raise ApplyError("invalid_tx", str(exc), {"evidence_id": evidence_id}) from exc
+                attestation_key = f"{evidence_id}:{_signer(env)}"
+                poh.setdefault("evidence_deletion_attestations", {})[attestation_key] = {
+                    "evidence_id": evidence_id,
+                    "kind": kind,
+                    "provider_id": _signer(env),
+                    "attestation_commitment": p.get("attestation_commitment"),
+                    "height": int(state.get("height") or 0),
+                }
+                return {"applied": t, "evidence_id": evidence_id, "provider_id": _signer(env)}
+            # Legacy generic PoH evidence may contain commitments only. Raw CIDs
+            # are rejected so this path cannot bypass encrypted async intake.
+            if p.get("cid"):
+                raise ApplyError("invalid_tx", "plaintext_poh_evidence_forbidden", {})
             if not evidence_id:
                 evidence_id = f"evi:{_signer(env)}:{_as_int(_get_env(env, 'nonce', 0))}"
             poh["evidence"][evidence_id] = {"evidence_id": evidence_id, "payload": p}

@@ -14,7 +14,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_async_evidence_declare_schema_accepts_reviewable_video_metadata() -> None:
+def test_async_evidence_declare_schema_accepts_encrypted_video_metadata() -> None:
     env = {
         "chain_id": "weall-controlled-devnet",
         "tx_type": "POH_ASYNC_EVIDENCE_DECLARE",
@@ -25,14 +25,14 @@ def test_async_evidence_declare_schema_accepts_reviewable_video_metadata() -> No
             "evidence_id": "async-evidence:challenge1",
             "evidence_commitment": "commit:video",
             "response_commitment": "commit:response",
-            "public_evidence_id": "ipfs://bafyvideo",
-            "evidence_cid": "bafyvideo",
-            "uri": "ipfs://bafyvideo",
-            "mime": "video/webm",
-            "name": "poh_async_video.webm",
-            "size": 12345,
-            "video_commitment": "commit:video",
-            "kind": "fresh_recorded_video_v1",
+            "encrypted": True,
+            "encryption_algorithm": "aes-256-gcm",
+            "ciphertext_cid": "bafyvideo",
+            "ciphertext_commitment": "a" * 64,
+            "encryption_context_commitment": "b" * 64,
+            "provider_ids": ["@provider"],
+            "ciphertext_size": 12345,
+            "kind": "encrypted_fresh_recorded_video_v1",
             "note": "fresh_1_to_2_minute_in_app_recording",
             "ts_ms": 0,
         },
@@ -44,10 +44,11 @@ def test_async_evidence_declare_schema_accepts_reviewable_video_metadata() -> No
 
     assert envelope.tx_type == "POH_ASYNC_EVIDENCE_DECLARE"
     assert payload is not None
-    assert getattr(payload, "evidence_cid") == "bafyvideo"
-    assert getattr(payload, "uri") == "ipfs://bafyvideo"
-    assert getattr(payload, "mime") == "video/webm"
-    assert getattr(payload, "video_commitment") == "commit:video"
+    assert getattr(payload, "encrypted") is True
+    assert getattr(payload, "encryption_algorithm") == "aes-256-gcm"
+    assert getattr(payload, "ciphertext_cid") == "bafyvideo"
+    assert getattr(payload, "ciphertext_commitment") == "a" * 64
+    assert getattr(payload, "provider_ids") == ["@provider"]
 
 
 def test_account_verification_submits_native_async_tx_sequence() -> None:
@@ -58,9 +59,10 @@ def test_account_verification_submits_native_async_tx_sequence() -> None:
     assert 'tx_type: "POH_ASYNC_REQUEST_OPEN"' in page
     assert 'tx_type: "POH_ASYNC_EVIDENCE_DECLARE"' in page
     assert 'tx_type: "POH_ASYNC_EVIDENCE_BIND"' in page
-    assert "fresh_recorded_video_v1" in page
-    assert "evidence_cid" in page
-    assert "video_commitment" in page
+    assert "encrypted_fresh_recorded_video_v1" in page
+    assert "ciphertext_cid" in page
+    assert "ciphertext_commitment" in page
+    assert "encryption_context_commitment" in page
     assert "reconcileVerificationLevel(account, 1, base)" in page
 
 

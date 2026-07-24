@@ -304,12 +304,13 @@ def test_tier2_lifecycle_reminders_reverification_and_expiry_fall_back_to_tier1(
 
     first_reminder = fields["expires_at_height"] - TIER2_REMINDER_OFFSETS[0]
     out = process_tier2_lifecycle(state, next_height=first_reminder)
-    assert out == {"reminders": 1, "reverification_opened": 1, "expired": 0}
+    assert out == {"reminders": 1, "reverification_opened": 1, "expired": 0, "safe_withdrawals": 0}
     # Idempotent if leader/replay scheduler phases call it again at the same height.
     assert process_tier2_lifecycle(state, next_height=first_reminder) == {
         "reminders": 0,
         "reverification_opened": 0,
         "expired": 0,
+        "safe_withdrawals": 0,
     }
 
     expires = verified + TIER2_VALIDITY_BLOCKS
@@ -326,7 +327,7 @@ def test_tier2_lifecycle_reminders_reverification_and_expiry_fall_back_to_tier1(
         for receipt in state["poh"]["tier2_lifecycle"]["receipts"]
     )
 
-def test_locked_account_can_cancel_recovery_but_cannot_submit_ordinary_actions(monkeypatch) -> None:
+def test_locked_account_cannot_cancel_or_submit_ordinary_actions(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     ledger = LedgerView(
@@ -356,7 +357,8 @@ def test_locked_account_can_cancel_recovery_but_cannot_submit_ordinary_actions(m
         canon,
         context="mempool",
     )
-    assert cancel.ok is True
+    assert cancel.ok is False
+    assert cancel.reason == "locked"
 
     ordinary = admit_tx(
         {
@@ -373,3 +375,39 @@ def test_locked_account_can_cancel_recovery_but_cannot_submit_ordinary_actions(m
     )
     assert ordinary.ok is False
     assert ordinary.reason == "locked"
+
+    reviewer_vote = admit_tx(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_APPROVE",
+            "signer": "@alice",
+            "nonce": 6,
+            "payload": {"request_id": "recovery-1", "decision": "approve"},
+            "sig": "dev",
+            "chain_id": "weall-m2-test",
+        },
+        ledger,
+        canon,
+        context="mempool",
+    )
+    assert reviewer_vote.ok is False
+    assert reviewer_vote.reason == "locked"
+
+    evidence_bind = admit_tx(
+        {
+            "tx_type": "ACCOUNT_RECOVERY_APPROVE",
+            "signer": "@alice",
+            "nonce": 6,
+            "payload": {
+                "request_id": "recovery-1",
+                "decision": "evidence_bind",
+                "evidence_id": "evidence-1",
+                "key_envelope_commitments": {"@alice": {"envelope_commitment": "sha256:" + "1" * 64}},
+            },
+            "sig": "dev",
+            "chain_id": "weall-m2-test",
+        },
+        ledger,
+        canon,
+        context="mempool",
+    )
+    assert evidence_bind.ok is True

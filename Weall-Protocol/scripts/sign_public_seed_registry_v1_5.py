@@ -77,6 +77,11 @@ def _signature_alg_label(profile: str, domain: str) -> str:
 def sign_registry(data: Json, *, private_key: str, public_key: str, sig_profile: str) -> Json:
     profile = normalize_signature_profile_id(sig_profile) or PQ_MLDSA_V1
     out = _strip_registry_signature(data)
+    # A successful signing ceremony clears the fail-closed rotation marker.
+    out.pop("seed_registry_rotation_required", None)
+    out.pop("seed_registry_rotation_reason", None)
+    out.pop("seed_registry_rotation_commitment", None)
+    out["pq_resign_required_before_public_testnet"] = False
     out["seed_registry_signer"] = public_key
     out["seed_registry_sig_profile"] = profile
     out["seed_registry_signature_alg"] = _signature_alg_label(profile, "weall.public_seed_registry.v1")

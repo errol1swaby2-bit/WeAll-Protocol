@@ -77,40 +77,55 @@ def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_un
 
 
 def _case_has_evidence(case: Json) -> bool:
-    # Assignment locks evidence.  A declaration proves the applicant committed
-    # something, but the reviewer set must not be assigned until the evidence is
-    # explicitly bound to the case.  Otherwise the scheduler can assign jurors
-    # in the block after POH_ASYNC_EVIDENCE_DECLARE and make the subsequent
-    # POH_ASYNC_EVIDENCE_BIND fail with async_evidence_locked.  Therefore
-    # assignment waits until POH_ASYNC_EVIDENCE_BIND has succeeded.
+    """Return true only after POH_ASYNC_EVIDENCE_BIND has succeeded.
+
+    The subject first seals the declared evidence into the case with a signed
+    bind. Deterministic reviewer assignment may then occur. A later bind can
+    add reviewer-specific key envelopes once the assigned juror set is known.
+    """
+
     binds = case.get("evidence_binds")
-    if isinstance(binds, dict) and any(_as_str(k).strip() for k in binds.keys()):
-        return True
-    public_ids = case.get("public_evidence_ids")
-    if isinstance(public_ids, list) and any(_as_str(item).strip() for item in public_ids):
-        return True
-    return False
+    if not isinstance(binds, dict) or not binds:
+        return False
+    current_round = _as_int(case.get("followup_round") or 0, 0)
+    return any(
+        _as_int((record if isinstance(record, dict) else {}).get("followup_round") or 0, 0)
+        == current_round
+        for record in binds.values()
+    )
+
+
+def _active_assigned(case: Json) -> list[str]:
+    declined = {_as_str(value).strip() for value in case.get("declined_jurors", [])}
+    out: list[str] = []
+    for value in case.get("assigned_jurors", []):
+        juror = _as_str(value).strip()
+        if juror and juror not in declined and juror not in out:
+            out.append(juror)
+    return out
 
 
 def _case_needs_assign(case: Json) -> bool:
     status = _as_str(case.get("status") or "").strip().lower()
-    if status not in ("open", "evidence_submitted"):
+    if status not in ("open", "evidence_submitted", "evidence_bound", "followup_evidence_submitted", "assigned", "under_review", "needs_followup"):
         return False
     if not _case_has_evidence(case):
         return False
-    assigned = case.get("assigned_jurors")
-    return not isinstance(assigned, list) or len([j for j in assigned if _as_str(j).strip()]) == 0
+    needed = max(1, _as_int(case.get("assigned_juror_count") or DEFAULT_ASYNC_N_JURORS, DEFAULT_ASYNC_N_JURORS))
+    return len(_active_assigned(case)) < needed
 
 
 def _review_counts(case: Json) -> tuple[int, int, int, bool]:
-    reviews = case.get("reviews")
-    reviews = reviews if isinstance(reviews, dict) else {}
+    reviews = case.get("reviews") if isinstance(case.get("reviews"), dict) else {}
+    current_round = _as_int(case.get("followup_round") or 0, 0)
     approvals = 0
     rejections = 0
     counted = 0
     needs_followup = False
     for rec_any in reviews.values():
         rec = _as_dict(rec_any)
+        if _as_int(rec.get("followup_round") or 0, 0) != current_round:
+            continue
         verdict = _as_str(rec.get("verdict") or "").strip().lower()
         if verdict == "approve":
             approvals += 1
@@ -126,6 +141,8 @@ def _review_counts(case: Json) -> tuple[int, int, int, bool]:
 def _case_ready_to_finalize(case: Json, *, height: int) -> bool:
     status = _as_str(case.get("status") or "").strip().lower()
     if status in ("approved", "rejected", "expired", "finalized"):
+        return False
+    if not isinstance(case.get("evidence_binds"), dict) or not case.get("evidence_binds"):
         return False
     approvals, rejections, counted, needs_followup = _review_counts(case)
     if needs_followup:
@@ -189,15 +206,27 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
             try:
                 from weall.runtime.poh.juror_select import pick_async_jurors  # type: ignore
 
-                jurors = pick_async_jurors(
-                    state=state,
-                    case_id=case_id,
-                    target_account=account_id,
-                    n_jurors=int(n_jurors),
-                    min_rep_units=int(min_rep_units),
-                    allow_partial=bool(bootstrap_quorum_allowed),
-                    allow_roleless_bootstrap=bool(bootstrap_quorum_allowed),
-                )
+                retained = _active_assigned(case)
+                excluded = {
+                    _as_str(value).strip()
+                    for value in case.get("declined_jurors", [])
+                    if _as_str(value).strip()
+                }
+                excluded.update(retained)
+                missing = max(0, int(n_jurors) - len(retained))
+                replacements = []
+                if missing:
+                    replacements = pick_async_jurors(
+                        state=state,
+                        case_id=f"{case_id}:replacement:{len(excluded)}",
+                        target_account=account_id,
+                        n_jurors=int(missing),
+                        min_rep_units=int(min_rep_units),
+                        allow_partial=bool(bootstrap_quorum_allowed),
+                        allow_roleless_bootstrap=bool(bootstrap_quorum_allowed),
+                        excluded_accounts=excluded,
+                    )
+                jurors = retained + replacements
             except Exception:
                 jurors = []
             if isinstance(jurors, list) and len(jurors) == int(n_jurors):

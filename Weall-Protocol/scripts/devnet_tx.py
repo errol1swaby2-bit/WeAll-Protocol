@@ -231,7 +231,9 @@ def _wait_tx(api: str, tx_id: str, *, timeout_s: float, poll_s: float) -> Json:
 
 def cmd_ensure_keyfile(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
-    account, _priv, pub, data = _key_material(keyfile, account=args.account)
+    account, _priv, pub, data = _key_material(
+        keyfile, account=args.account, fresh=bool(args.fresh)
+    )
     if args.print_private:
         out: Json = dict(data)
     else:
@@ -245,11 +247,18 @@ def cmd_create_account(args: argparse.Namespace) -> int:
     account, priv, pub, keydata = _key_material(keyfile, account=args.account, fresh=bool(args.fresh))
     chain_id = _chain_id(args.api)
 
+    recovery_pub = str(keydata.get("recovery_public_key_hex") or "").strip()
+    evidence_kem_pub = str(keydata.get("evidence_kem_public_key_b64") or "").strip()
+    register_request: Json = {"account_id": account, "pubkey": pub, "parent": args.parent}
+    if recovery_pub:
+        register_request.update({"recovery_pubkey": recovery_pub, "recovery_sig_profile": "pq-mldsa-v1"})
+    if evidence_kem_pub:
+        register_request.update({"evidence_kem_pubkey": evidence_kem_pub, "evidence_kem_algorithm": "ml-kem-768"})
     skeleton = _http_json(
         "POST",
         args.api,
         "/v1/accounts/tx/register",
-        {"account_id": account, "pubkey": pub, "parent": args.parent},
+        register_request,
     )
     tx_skel = skeleton.get("tx") if isinstance(skeleton, dict) else None
     if not isinstance(tx_skel, dict):
@@ -847,6 +856,11 @@ def build_parser() -> argparse.ArgumentParser:
     k = sub.add_parser("ensure-keyfile", help="Generate/load a devnet mldsa keyfile without submitting txs")
     k.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
     k.add_argument("--keyfile", required=True)
+    k.add_argument(
+        "--fresh",
+        action="store_true",
+        help="replace the active devnet keypair before any auxiliary authorities are generated",
+    )
     k.add_argument("--print-private", action="store_true")
     k.set_defaults(func=cmd_ensure_keyfile)
 

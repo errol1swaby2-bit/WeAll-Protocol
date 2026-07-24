@@ -10,6 +10,8 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 
 
 
+from weall.crypto.signature_profiles import PQ_MLDSA_V1
+
 from weall.runtime.executor import (
     CLOCK_SKEW_WARN_MS,
     ExecutorError,
@@ -92,10 +94,16 @@ def _initial_state(self) -> Json:
         max(1, _env_int("WEALL_POH_BOOTSTRAP_MAX_HEIGHT", 50)) if bootstrap_open_enabled else 0
     )
 
+    # Registration hard requirements are consensus policy for the pinned v2
+    # production/testnet identities.  Ad-hoc local chains and historical test
+    # fixtures remain migration-compatible unless they explicitly opt in.
+    strict_identity_registration = self.chain_id in {"weall-prod", "weall-testnet-v1"}
     params: Json = {
         "poh_bootstrap_open": bootstrap_open_enabled,
         # v2 chains retain guardian records only for historical replay.
         "guardian_recovery_new_admission": False,
+        "require_recovery_key_at_account_register": bool(strict_identity_registration),
+        "require_evidence_kem_at_account_register": bool(strict_identity_registration),
     }
     if bootstrap_open_enabled:
         params["poh_bootstrap_mode"] = "open"
@@ -310,12 +318,19 @@ def _apply_genesis_bootstrap_live(self, state: Json) -> None:
     kid = self._mk_key_id(pk)
     rec = by_id.get(kid)
     if not isinstance(rec, dict):
-        by_id[kid] = {"pubkey": pk, "key_type": "main", "revoked": False, "revoked_at": None}
-    else:
-        rec.setdefault("pubkey", pk)
-        rec.setdefault("key_type", "main")
-        rec.setdefault("revoked", False)
-        rec.setdefault("revoked_at", None)
+        rec = {}
+        by_id[kid] = rec
+    # Genesis creates a current profile-aware account key record.  Keep the
+    # legacy top-level pubkey for historical readers, while making the active
+    # ML-DSA authority explicit for transaction admission and browser restore.
+    rec["pubkey"] = pk
+    rec["pubkeys"] = {"mldsa": pk}
+    rec["sig_profile"] = PQ_MLDSA_V1
+    rec["key_type"] = "main"
+    rec["active"] = True
+    rec["revoked"] = False
+    rec["revoked_at"] = None
+    rec.setdefault("created_height", 0)
 
     a["poh_tier"] = 2
     cur_rep_units = account_reputation_units(a, default=0)

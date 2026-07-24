@@ -28605,6 +28605,1077 @@
       "kind": "vector",
       "stable_id": "VEC-W1-FAIL-CLOSED",
       "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:active_recovery_request_exists",
+      "kind": "failure",
+      "stable_id": "FAIL-7607BF386A30280E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:guardian_recovery_retired",
+      "kind": "failure",
+      "stable_id": "FAIL-7A38AC2CBBE4ECD5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:independent_recovery_not_cancellable",
+      "kind": "failure",
+      "stable_id": "FAIL-2A6F17E79B6B5A06",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:recovery_failed_attempt_limit",
+      "kind": "failure",
+      "stable_id": "FAIL-30D3B3549798091D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:recovery_not_authorized",
+      "kind": "failure",
+      "stable_id": "FAIL-45CB529B91DB5046",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:recovery_request_cooldown",
+      "kind": "failure",
+      "stable_id": "FAIL-084ED85219EF3916",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:recovery_reversal_already_open",
+      "kind": "failure",
+      "stable_id": "FAIL-620CE0B5AD3BCA52",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:recovery_reversal_window_closed",
+      "kind": "failure",
+      "stable_id": "FAIL-3288A97A5A4AC0E8",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:recovery_rotation_requires_offline_key",
+      "kind": "failure",
+      "stable_id": "FAIL-8DEC63639DB6C975",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:recovery_target_must_sign",
+      "kind": "failure",
+      "stable_id": "FAIL-8404B1DDA7A7C80D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:reviewer_not_assigned",
+      "kind": "failure",
+      "stable_id": "FAIL-38DE2E915BC4A0A3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:stale_recovery_generation",
+      "kind": "failure",
+      "stable_id": "FAIL-9A0B7F7A9B77B3FB",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:invalid_public_lobby_target",
+      "kind": "failure",
+      "stable_id": "FAIL-B49DBCC169E19B7A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:public_lobby_comment_too_large",
+      "kind": "failure",
+      "stable_id": "FAIL-9F8DE24A15C8C71E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:public_lobby_links_forbidden",
+      "kind": "failure",
+      "stable_id": "FAIL-D629A771BEBA8273",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:missing_current_recovery_key",
+      "kind": "failure",
+      "stable_id": "FAIL-D84F5E111BE34869",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:offline_recovery_not_configured",
+      "kind": "failure",
+      "stable_id": "FAIL-D9AA0E4561E28895",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:recovery_not_dict",
+      "kind": "failure",
+      "stable_id": "FAIL-32EB6B0EA75A471F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:recovery_requests_not_dict",
+      "kind": "failure",
+      "stable_id": "FAIL-654E3C8057613E9B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:recovery_reviews_not_dict",
+      "kind": "failure",
+      "stable_id": "FAIL-0F52DE4314292575",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:async_evidence_bind_required_before_acceptance",
+      "kind": "failure",
+      "stable_id": "FAIL-32AB7FC674E5DE1C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:async_evidence_bind_required_before_assignment",
+      "kind": "failure",
+      "stable_id": "FAIL-F4BD1408CB5EA943",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:async_reviewer_key_envelope_required",
+      "kind": "failure",
+      "stable_id": "FAIL-E8FE5E6987F20466",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:challenged_recovery_not_finalized",
+      "kind": "failure",
+      "stable_id": "FAIL-7CBD915DB76BD6BD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:encrypted_poh_evidence_required",
+      "kind": "failure",
+      "stable_id": "FAIL-D2F105CEF37D7288",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:evidence_already_declared",
+      "kind": "failure",
+      "stable_id": "FAIL-6A0B2243D18ACA15",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:evidence_kem_key_required_at_account_register",
+      "kind": "failure",
+      "stable_id": "FAIL-B23B67AABD90F467",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:followup_round_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-C0664D0EF4E7E3C8",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:insufficient_continuity_evidence_classes",
+      "kind": "failure",
+      "stable_id": "FAIL-F73AC345F80A634F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:invalid_encrypted_blob_cid",
+      "kind": "failure",
+      "stable_id": "FAIL-9FDC67EE52B971C5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:invalid_guardian_configuration",
+      "kind": "failure",
+      "stable_id": "FAIL-D6A5C66EE34D882B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:invalid_recovery_review_decision",
+      "kind": "failure",
+      "stable_id": "FAIL-A8892A0D807D8286",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:key_envelopes_for_commitment_only_evidence",
+      "kind": "failure",
+      "stable_id": "FAIL-BA93C8B83300EE86",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:missing_encrypted_evidence_location",
+      "kind": "failure",
+      "stable_id": "FAIL-FEDB43CECFEBB515",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:missing_evidence_id",
+      "kind": "failure",
+      "stable_id": "FAIL-FD859E8BEC1C1561",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:missing_new_pubkey",
+      "kind": "failure",
+      "stable_id": "FAIL-2039C2896F40E5F7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:missing_recovery_evidence_bind_fields",
+      "kind": "failure",
+      "stable_id": "FAIL-AE95B59BA38D347A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:missing_replacement_authority",
+      "kind": "failure",
+      "stable_id": "FAIL-A2C8A6AEC0ECFA50",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:offline_recovery_not_configured",
+      "kind": "failure",
+      "stable_id": "FAIL-40D07F672CA3E4A9",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:plaintext_poh_evidence_forbidden",
+      "kind": "failure",
+      "stable_id": "FAIL-04577E834AC3996C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovered_authority_key_must_be_fresh",
+      "kind": "failure",
+      "stable_id": "FAIL-A7529E3BEB03A627",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_evidence_bind_not_applicable",
+      "kind": "failure",
+      "stable_id": "FAIL-35251979BD52D718",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_evidence_bind_required",
+      "kind": "failure",
+      "stable_id": "FAIL-6884767FE88D20F4",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_evidence_not_declared",
+      "kind": "failure",
+      "stable_id": "FAIL-EC81E1641E38E30C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_generation_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-AD29D976D44BB6CE",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_key_envelopes_required",
+      "kind": "failure",
+      "stable_id": "FAIL-90E113BAF9F11DD6",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_key_must_be_independent",
+      "kind": "failure",
+      "stable_id": "FAIL-4AB2911E7085FCE0",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_key_required_at_account_register",
+      "kind": "failure",
+      "stable_id": "FAIL-1FF3234CF0EC0878",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_review_already_submitted",
+      "kind": "failure",
+      "stable_id": "FAIL-5D3AEAA36CC3C7D7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_review_not_assigned",
+      "kind": "failure",
+      "stable_id": "FAIL-B6AB9713E6421B3A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_review_not_open",
+      "kind": "failure",
+      "stable_id": "FAIL-2716351025CC40B2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_reviewer_key_envelope_required",
+      "kind": "failure",
+      "stable_id": "FAIL-37FB398374064753",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:recovery_reviewers_not_assigned",
+      "kind": "failure",
+      "stable_id": "FAIL-E2922903EBBD54F1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:runtime_apply_failure",
+      "kind": "failure",
+      "stable_id": "FAIL-3FBE9E4D77B78210",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:unknown_challenged_recovery",
+      "kind": "failure",
+      "stable_id": "FAIL-6F6B71F58DF4F2B1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:unsupported_evidence_kem_algorithm",
+      "kind": "failure",
+      "stable_id": "FAIL-5F765D22FCB8B6BA",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/account_recovery_scheduler.py:_enqueue_receipt",
+      "kind": "scheduler",
+      "stable_id": "SCHED-FE662F43093CDE4E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/account_recovery_scheduler.py:schedule_account_recovery_system_txs",
+      "kind": "scheduler",
+      "stable_id": "SCHED-C298622F5EDA55A7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Content:surface",
+      "kind": "state",
+      "stable_id": "STATE-F454132CA247C64B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:<update:dynamic>",
+      "kind": "state",
+      "stable_id": "STATE-6B6D4F856735593D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:account_recovery_incidents",
+      "kind": "state",
+      "stable_id": "STATE-3E1B36F4143FA0B3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:account_recovery_receipts",
+      "kind": "state",
+      "stable_id": "STATE-8B397A00D4A097BD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:active_reversal_request_id",
+      "kind": "state",
+      "stable_id": "STATE-980E093D0E07B211",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:approval_count",
+      "kind": "state",
+      "stable_id": "STATE-B47A03B7A89F2EB1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:assigned_reviewers",
+      "kind": "state",
+      "stable_id": "STATE-BA9F4C0DD565F7A0",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:authority_generation",
+      "kind": "state",
+      "stable_id": "STATE-F932F54B6D1AC52F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:authorization",
+      "kind": "state",
+      "stable_id": "STATE-DCA116EA0C779CB8",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:challenged_request_id",
+      "kind": "state",
+      "stable_id": "STATE-BD0D1C3299CFC514",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:current_recovery_generation",
+      "kind": "state",
+      "stable_id": "STATE-71586CC2DD2DAB25",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:decision",
+      "kind": "state",
+      "stable_id": "STATE-3805274BDE79C876",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:evidence_access_ready",
+      "kind": "state",
+      "stable_id": "STATE-DBDAAD1665561737",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:evidence_bound_ids",
+      "kind": "state",
+      "stable_id": "STATE-B5B4AC79D2AD8170",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:evidence_encryption",
+      "kind": "state",
+      "stable_id": "STATE-217F61D9FC7BEBE0",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:evidence_id",
+      "kind": "state",
+      "stable_id": "STATE-A3CD98ED457E759D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:evidence_ids",
+      "kind": "state",
+      "stable_id": "STATE-01A65B217C2D63E2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:evidence_kem_algorithm",
+      "kind": "state",
+      "stable_id": "STATE-A17E359CFE415DD4",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:evidence_kem_pubkey",
+      "kind": "state",
+      "stable_id": "STATE-8E8B3EC10E4A8D74",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:evidence_policy_version",
+      "kind": "state",
+      "stable_id": "STATE-42C9AE5B045B1F67",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:excluded_reviewers",
+      "kind": "state",
+      "stable_id": "STATE-55285A955AAB6692",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:failed_attempt_heights",
+      "kind": "state",
+      "stable_id": "STATE-870DDBADD8232643",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:failed_attempts",
+      "kind": "state",
+      "stable_id": "STATE-F7F3412C2A7522E2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:generation",
+      "kind": "state",
+      "stable_id": "STATE-D0204CAE1C5A2DF4",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:history",
+      "kind": "state",
+      "stable_id": "STATE-137668039F42D330",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:key_envelope_commitments",
+      "kind": "state",
+      "stable_id": "STATE-732D68F5B111E017",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:last_finalized_height",
+      "kind": "state",
+      "stable_id": "STATE-41C23D953E0920C2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:last_request_opened_height",
+      "kind": "state",
+      "stable_id": "STATE-F887BA05289B6840",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:method",
+      "kind": "state",
+      "stable_id": "STATE-03E61A79D53AA48F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:mode",
+      "kind": "state",
+      "stable_id": "STATE-C7F4E010E2F74C20",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:new_pubkey",
+      "kind": "state",
+      "stable_id": "STATE-A08ECABF203AD333",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:new_recovery_key_commitment",
+      "kind": "state",
+      "stable_id": "STATE-C4E6F8B05BBEDE7E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:new_recovery_pubkey",
+      "kind": "state",
+      "stable_id": "STATE-94D9493EB874F92B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:new_recovery_sig_profile",
+      "kind": "state",
+      "stable_id": "STATE-9ADF79F677DE2095",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:new_sig_profile",
+      "kind": "state",
+      "stable_id": "STATE-70A9180879C6DBFA",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:offline_key",
+      "kind": "state",
+      "stable_id": "STATE-413CC2F5F1C57D4F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:panel_commitment",
+      "kind": "state",
+      "stable_id": "STATE-13422E875F1C030D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:params",
+      "kind": "state",
+      "stable_id": "STATE-7805603028AFB38B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:prior_offline_keys",
+      "kind": "state",
+      "stable_id": "STATE-118DD31FF82E9172",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:reason_code",
+      "kind": "state",
+      "stable_id": "STATE-D51BF7C556793AA5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:recovery_generation",
+      "kind": "state",
+      "stable_id": "STATE-D46636D4CDE91817",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:recovery_key_commitment",
+      "kind": "state",
+      "stable_id": "STATE-BD2691C782F3812B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:recovery_pubkey",
+      "kind": "state",
+      "stable_id": "STATE-D5E2205F6AD37315",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:recovery_sig_profile",
+      "kind": "state",
+      "stable_id": "STATE-5A5669CF2FB82D6F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:rejection_count",
+      "kind": "state",
+      "stable_id": "STATE-21DCF85DC446DA89",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:require_evidence_kem_at_account_register",
+      "kind": "state",
+      "stable_id": "STATE-CCAE07684B0684D3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:require_recovery_key_at_account_register",
+      "kind": "state",
+      "stable_id": "STATE-566E63D9AD27E28A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:restriction_until_height",
+      "kind": "state",
+      "stable_id": "STATE-476F90727ACA0E4B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:retired_height",
+      "kind": "state",
+      "stable_id": "STATE-B8CD784A7461E77C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:retired_reason",
+      "kind": "state",
+      "stable_id": "STATE-52E994F67C81E52D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:review_commitment",
+      "kind": "state",
+      "stable_id": "STATE-B10B42DF4207F105",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:reviews",
+      "kind": "state",
+      "stable_id": "STATE-0E940C626F5D7BE0",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:sig_profile",
+      "kind": "state",
+      "stable_id": "STATE-4866ED248CC82370",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:social_attestation_commitments",
+      "kind": "state",
+      "stable_id": "STATE-A9CAF165CFDC20AA",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:submitted_review_count",
+      "kind": "state",
+      "stable_id": "STATE-A6BF8E523E26ED90",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:superseded_by",
+      "kind": "state",
+      "stable_id": "STATE-406664D6BF43572D",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:attestation_commitment",
+      "kind": "state",
+      "stable_id": "STATE-C6D73D61C0A0A95A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:ciphertext_cid",
+      "kind": "state",
+      "stable_id": "STATE-5BF74FB8053AD877",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:ciphertext_commitment",
+      "kind": "state",
+      "stable_id": "STATE-BA5B6B81C4AF612F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:ciphertext_size",
+      "kind": "state",
+      "stable_id": "STATE-E86E55D80C1E8966",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:encrypted",
+      "kind": "state",
+      "stable_id": "STATE-D13AFA48C4A5BFDD",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:encrypted_blob_commitment",
+      "kind": "state",
+      "stable_id": "STATE-59D84E3AA6229A20",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:encrypted_blob_size",
+      "kind": "state",
+      "stable_id": "STATE-B666CF16336B01BF",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:encryption_algorithm",
+      "kind": "state",
+      "stable_id": "STATE-B7779181F7D39EBE",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:encryption_context_commitment",
+      "kind": "state",
+      "stable_id": "STATE-1AAE820C00161E92",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:evidence_deletion_attestations",
+      "kind": "state",
+      "stable_id": "STATE-E84847B8144A1397",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:evidence_root_commitment",
+      "kind": "state",
+      "stable_id": "STATE-5FBFEDBC8FCD5ED8",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:followup_requested_height",
+      "kind": "state",
+      "stable_id": "STATE-A8C26A3775DD041B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:followup_round",
+      "kind": "state",
+      "stable_id": "STATE-CD95618EF01D3D81",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:key_envelope_commitments",
+      "kind": "state",
+      "stable_id": "STATE-C7685DDBC14F1AED",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:key_erasure_commitment",
+      "kind": "state",
+      "stable_id": "STATE-97D0587301D10EFE",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:migration_receipts",
+      "kind": "state",
+      "stable_id": "STATE-884909A5A5A404E3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:provider_ids",
+      "kind": "state",
+      "stable_id": "STATE-5878BC24C3BDD942",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:storage_commitment",
+      "kind": "state",
+      "stable_id": "STATE-1B0A73598C373995",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "PoH:storage_mode",
+      "kind": "state",
+      "stable_id": "STATE-B2A2BA122A542B28",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:social_continuity_attestor_requires_tier2",
+      "kind": "failure",
+      "stable_id": "FAILURE-1602DCAEFA3D3F0F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:social_continuity_self_attestation_forbidden",
+      "kind": "failure",
+      "stable_id": "FAILURE-42DDE34F8681032F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:social_continuity_attestations_not_dict",
+      "kind": "failure",
+      "stable_id": "FAILURE-6E5B3923E6709375",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:duplicate_social_continuity_attestation_commitment",
+      "kind": "failure",
+      "stable_id": "FAILURE-CA841F626C8C7979",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:duplicate_social_continuity_attestor",
+      "kind": "failure",
+      "stable_id": "FAILURE-25C2B1787C036032",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:duplicate_social_continuity_independence_commitment",
+      "kind": "failure",
+      "stable_id": "FAILURE-A334D330930A9652",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:social_continuity_attestation_window_not_open",
+      "kind": "failure",
+      "stable_id": "FAILURE-2896578BD140501C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:social_continuity_commitments_required",
+      "kind": "failure",
+      "stable_id": "FAILURE-503B8E5FEB19FF3F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:social_continuity_households_not_distinct",
+      "kind": "failure",
+      "stable_id": "FAILURE-AD4411AF14696F01",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:social_continuity_independence_declaration_required",
+      "kind": "failure",
+      "stable_id": "FAILURE-8185BEF902AA4210",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:social_continuity_not_required",
+      "kind": "failure",
+      "stable_id": "FAILURE-19714FA2A01A05A9",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:attestation_commitment",
+      "kind": "state",
+      "stable_id": "STATE-6BCD9F22AE9E9796",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:class_id",
+      "kind": "state",
+      "stable_id": "STATE-FC6DAC2C41EDA8E6",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:household_commitment",
+      "kind": "state",
+      "stable_id": "STATE-1EE7E36CD41BD54E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:independence_commitment",
+      "kind": "state",
+      "stable_id": "STATE-FAD967B6C08C6C10",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:social_attestation_count",
+      "kind": "state",
+      "stable_id": "STATE-8E4ED75F8F052100",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:social_attestation_minimum",
+      "kind": "state",
+      "stable_id": "STATE-F1A85390550715F3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:social_attestation_required",
+      "kind": "state",
+      "stable_id": "STATE-771940DA859000A7",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:social_attestations",
+      "kind": "state",
+      "stable_id": "STATE-0BE0E8BC615AF0B4",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Identity:social_attestations_satisfied_height",
+      "kind": "state",
+      "stable_id": "STATE-696121C2A5EEDACB",
+      "status": "active"
     }
   ],
   "reuse_forbidden": true,

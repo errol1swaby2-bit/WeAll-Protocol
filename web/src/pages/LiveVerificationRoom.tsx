@@ -790,7 +790,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
   const title = statusOnlyMode && !isSubject && !myJuror ? "Live verification status" : cardTitleForRole(isSubject, myJuror);
 
   return (
-    <main className="pageStack liveRoomPage">
+    <main className="pageStack liveRoomPage" data-testid="live-verification-room">
       <section className="card liveRoomHero">
         <div className="cardBody formStack">
           <div className="sectionHead">
@@ -859,7 +859,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                 <div className="videoPlaceholder">
                   <strong>Case-scoped live media room</strong>
                   <p>Browser media uses case-scoped signaling. Relays/ICE servers are transport fallback only and cannot grant verification.</p>
-                  <small>Status: {p2pStatus}</small>
+                  <small data-testid="live-p2p-status">Status: {p2pStatus}</small>
                   <small>Optional STUN/TURN relay discovery: {iceServers.length ? `${iceServers.length} configured relay set(s)` : "direct browser media first"}</small>
                   <small>Expected participants: {p2pParticipantAccounts.length ? p2pParticipantAccounts.join(", ") : "waiting for chain assignment"}</small>
                   <small>Remote feeds: {remoteStreamEntries.length}/{p2pRemoteAccounts.length} · waiting {missingRemoteAccounts.length} · signals sent {p2pSignalsSent} · received {p2pSignalsReceived} · ICE {iceDiag.count} server(s) {iceDiag.hasTurn ? "with TURN" : "no TURN"}</small>
@@ -868,7 +868,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                 </div>
                 <div className="p2pVideoGrid">
                   <div className="p2pVideoTile">
-                    <video ref={localVideoRef} autoPlay playsInline muted />
+                    <video ref={localVideoRef} autoPlay playsInline muted data-testid="live-local-video" />
                     <span>{account || "Local participant"}</span>
                   </div>
                   {remoteStreamEntries.map(([peer, stream]) => (
@@ -907,7 +907,7 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <label><input type="checkbox" checked={micEnabled} onChange={(e) => setMicEnabled(e.currentTarget.checked)} /> Mic on</label>
                 </div>
                 <div className="buttonRow">
-                  <button className="btn btnPrimary" disabled={!canJoinReview || !!busy || (!!myJuror && myJuror.attended === true && p2pRunning)} onClick={checkIntoRoom}>{myJuror ? (myJuror.attended ? (p2pRunning ? "Live room ready" : "Re-enter live room") : (myJuror.accepted ? "Check in and enter live room" : "Accept review, check in, and enter live room")) : "Enter live room"}</button>
+                  <button data-testid="live-room-join" className="btn btnPrimary" disabled={!canJoinReview || !!busy || (!!myJuror && myJuror.attended === true && p2pRunning)} onClick={checkIntoRoom}>{myJuror ? (myJuror.attended ? (p2pRunning ? "Live room ready" : "Re-enter live room") : (myJuror.accepted ? "Check in and enter live room" : "Accept review, check in, and enter live room")) : "Enter live room"}</button>
                   {canAcceptDecline ? <button className="btn" disabled={!!busy} onClick={declineCase}>Decline review</button> : null}
                   {!roomUrl && !p2pRunning && p2pError ? <button className="btn" disabled={!canPresenceCheckIn || !!busy} onClick={startP2PRoom}>Retry live media</button> : null}
                   <button className="btn" disabled={!p2pRunning || !!busy} onClick={() => runAction("Polling live-media signals…", pollWebRTCSignals)}>Poll live media</button>
@@ -940,8 +940,8 @@ export default function LiveVerificationRoom({ caseId }: { caseId: string }): JS
                   <p className="helpText">Use the single live-room control above to accept the assignment, record chain attendance, and enter the room lobby. Media starts when peer connection and browser permissions are ready. Verdict controls appear here only after that chain-recorded check-in is visible.</p>
                   {canVote ? (
                     <div className="buttonRow">
-                      <button className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
-                      <button className="btn" disabled={!!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
+                      <button data-testid="live-review-approve" className="btn btnPrimary" disabled={!!busy} onClick={() => submitVerdict("pass")}>Approve live verification</button>
+                      <button data-testid="live-review-reject" className="btn" disabled={!!busy} onClick={() => submitVerdict("fail")}>Reject live verification</button>
                     </div>
                   ) : null}
                   {!canVote && !isFinal ? <p className="helpText">Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain for an assigned interacting reviewer.</p> : null}

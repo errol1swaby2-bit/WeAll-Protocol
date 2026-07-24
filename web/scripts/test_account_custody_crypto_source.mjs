@@ -7,6 +7,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8");
 const keys = read("src/auth/keys.ts");
 const recovery = read("src/auth/recoveryFile.ts");
 const session = read("src/auth/session.ts");
+const evidenceCrypto = read("src/auth/evidenceCrypto.ts");
 const login = read("src/pages/LoginPage.tsx");
 const e2e = read("tests/e2e/account_custody_registration_restore.spec.ts");
 const pkg = JSON.parse(read("package.json"));
@@ -34,6 +35,13 @@ rejectText(keys, 'MLDSA_BROWSER_SIGNING_AVAILABLE = false', "keys");
 requireText(recovery, 'version: 2', "recovery");
 requireText(recovery, 'sigProfile: "pq-mldsa-v1"', "recovery");
 requireText(recovery, 'secretKeyFormat: "mldsa65-seed-b64"', "recovery");
+requireText(recovery, 'recoveryAuthoritySecretKeyB64', "recovery");
+requireText(recovery, 'evidenceKemSecretKeyB64', "recovery");
+requireText(recovery, 'validateAuxiliaryRecoveryMaterial', "recovery");
+requireText(evidenceCrypto, '@noble/post-quantum/ml-kem.js', "evidence crypto");
+requireText(evidenceCrypto, 'validateEvidenceKemKeypair', "evidence crypto");
+requireText(evidenceCrypto, 'sessionStorage.setItem(kemSecretStorageKey(account)', "evidence crypto");
+rejectText(evidenceCrypto, 'localStorage.setItem(kemSecretStorageKey(account)', "evidence crypto");
 requireText(session, 'derivePublicKeyFromSecretKey(secretKeyB64)', "session");
 rejectText(session, 'secretBytes.length !== 64', "session");
 requireText(login, 'data-testid="restore-recovery-file"', "login");
@@ -48,6 +56,10 @@ for (const marker of [
   'restore-recovery-file',
   'Upload your recovery file or paste your recovery key.',
   'Submit public profile update',
+  'recoveryAuthorityPublicKeyB64',
+  'evidenceKemPublicKeyB64',
+  'recoverySecretInLocal',
+  'evidenceSecretInLocal',
 ]) requireText(e2e, marker, "e2e");
 
 if (pkg.dependencies?.["@noble/post-quantum"] !== "0.6.1") {

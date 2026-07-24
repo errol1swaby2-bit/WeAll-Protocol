@@ -8,6 +8,7 @@ const login = read('web/src/pages/LoginPage.tsx');
 const recovery = read('web/src/auth/recoveryFile.ts');
 const session = read('web/src/auth/session.ts');
 const keys = read('web/src/auth/keys.ts');
+const evidenceCrypto = read('web/src/auth/evidenceCrypto.ts');
 
 const checks = [
   [login.includes('recoveryDownloaded'), 'create flow must track recovery download/copy separately from verification'],
@@ -21,7 +22,12 @@ const checks = [
   [recovery.includes('export function verifyRecoveryKeyFileForAccount'), 'recovery module must expose verification helper'],
   [recovery.includes('recovery_secret_key_mismatch'), 'recovery verification must check secret-key continuity'],
   [recovery.includes('recovery_public_key_mismatch'), 'recovery verification must check public-key continuity'],
+  [recovery.includes('validateAuxiliaryRecoveryMaterial'), 'recovery verification must validate offline recovery and evidence-encryption keypairs'],
   [keys.includes('sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64)'), 'raw account secret should be session-scoped after creation'],
+  [keys.includes('sessionStorage.setItem(recoveryAuthoritySecretKey(normalized), pair.secretKeyB64)'), 'offline recovery secret should be session-scoped after creation'],
+  [!keys.includes('localStorage.setItem(recoveryAuthoritySecretKey(normalized), pair.secretKeyB64)'), 'offline recovery secret must not enter localStorage'],
+  [evidenceCrypto.includes('sessionStorage.setItem(kemSecretStorageKey(account), pair.secretKeyB64)'), 'evidence decapsulation secret should be session-scoped after creation'],
+  [!evidenceCrypto.includes('localStorage.setItem(kemSecretStorageKey(account), pair.secretKeyB64)'), 'evidence decapsulation secret must not enter localStorage'],
   [keys.includes('localStorage.setItem(keyStorageKey(normalized), JSON.stringify(secureMeta))'), 'localStorage should persist public key metadata only'],
   [keys.includes('hasSecret: false'), 'localStorage key metadata should mark secret absence'],
   [session.includes('missing_local_signer'), 'session health must detect missing local signer'],
