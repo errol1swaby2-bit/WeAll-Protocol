@@ -28,8 +28,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from weall.runtime.account_recovery_policy import (
+    recovery_restriction_allows_tx,
+    recovery_restriction_until_height,
+)
 from weall.runtime.poh.state import effective_poh_tier
-from weall.runtime.account_recovery_policy import recovery_restriction_allows_tx, recovery_restriction_until_height
 
 Json = dict[str, Any]
 
@@ -435,7 +438,6 @@ def _global_emissary_active(roles: Json, signer: str) -> bool:
     return _record_active(rec)
 
 
-
 def _case_scoped_juror_without_role_allowed(ledger: Json) -> bool:
     """Return True only when chain state explicitly enables bootstrap/demo compatibility.
 
@@ -452,6 +454,7 @@ def _case_scoped_juror_without_role_allowed(ledger: Json) -> bool:
         "bootstrap_allow_case_scoped_juror_" + "without_role",
     )
     return any(_truthy(params.get(key)) for key in keys)
+
 
 def _active_by_id(mapping: Json, signer: str) -> bool:
     return _record_active(_record_for_identity(mapping, signer))
@@ -587,10 +590,7 @@ def _poh_juror_assignment_match(ledger: Json, signer: str, payload: Json) -> boo
             for item in jurors:
                 if isinstance(item, dict):
                     juror_id = str(
-                        item.get("juror_id")
-                        or item.get("account_id")
-                        or item.get("juror")
-                        or ""
+                        item.get("juror_id") or item.get("account_id") or item.get("juror") or ""
                     ).strip()
                     status = str(item.get("status") or "").strip().lower()
                     if status in {"declined", "replaced", "removed"}:
@@ -613,6 +613,7 @@ def _seeded_demo_review_fallback_allowed(ledger: Json) -> bool:
     params = _as_dict(ledger.get("params"))
     return _truthy(params.get("seeded_demo_review_fallback"))
 
+
 def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
     """Return True for active Juror authority.
 
@@ -625,7 +626,9 @@ def _is_juror(ledger: Json, signer: str, payload: Json) -> bool:
 
     has_dispute_scope = bool(_payload_dispute_id(payload))
     has_poh_scope = bool(_payload_case_id(payload))
-    dispute_assigned = _dispute_assignment_match(ledger, signer, payload) if has_dispute_scope else False
+    dispute_assigned = (
+        _dispute_assignment_match(ledger, signer, payload) if has_dispute_scope else False
+    )
     poh_assigned = _poh_juror_assignment_match(ledger, signer, payload) if has_poh_scope else False
 
     tier2 = _account_has_tier(ledger, signer, 2)
@@ -780,7 +783,12 @@ def _is_emissary(ledger: Json, signer: str, payload: Json) -> bool:
             return False
         # A blocked global emissary record overrides group-level seating.
         global_rec = _authority_record_for_identity(
-            _as_dict(roles.get("emissaries")), signer, "by_id", "emissaries_by_id", "records", "status_by_id"
+            _as_dict(roles.get("emissaries")),
+            signer,
+            "by_id",
+            "emissaries_by_id",
+            "records",
+            "status_by_id",
         )
         return not (global_rec and _record_blocked(global_rec))
 

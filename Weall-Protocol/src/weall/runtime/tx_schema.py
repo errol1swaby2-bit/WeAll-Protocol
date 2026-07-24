@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
+
 
 def _validate_public_cid_value(value: str | None, field_name: str) -> str | None:
     if value is None:
@@ -236,8 +237,6 @@ class PohChallengeResolvePayload(_StrictModel):
     ts_ms: int | None = Field(default=None, ge=0)
 
 
-
-
 class PohAsyncRequestOpenPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     case_id: str | None = None
@@ -325,6 +324,7 @@ class PohAsyncReceiptPayload(_StrictModel):
     tier_awarded: int | None = Field(default=None, ge=0, le=2)
     ts_ms: int | None = Field(default=None, ge=0)
 
+
 class PohTier2RequestOpenPayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     target_tier: int = Field(..., ge=0)
@@ -405,7 +405,7 @@ class PohLiveJurorAssignPayload(_StrictModel):
     live_quorum: Any | None = None
 
     @model_validator(mode="after")
-    def _check_jurors(self) -> "PohLiveJurorAssignPayload":
+    def _check_jurors(self) -> PohLiveJurorAssignPayload:
         if not (1 <= len(self.jurors) <= 10):
             raise ValueError("jurors must contain 1..10 entries")
         if len(set(self.jurors)) != len(self.jurors):
@@ -464,13 +464,9 @@ class PohBootstrapTier2GrantPayload(_StrictModel):
     note: str | None = None
 
 
-
-
 class PohTierRevokePayload(_StrictModel):
     account_id: str = Field(..., min_length=1)
     reason: str | None = None
-
-
 
 
 # ============================================================
@@ -541,7 +537,7 @@ class ContentMediaDeclarePayload(_StrictModel):
     digest_sha256: str | None = None
 
     @model_validator(mode="after")
-    def _validate_public_cid_aliases(self) -> "ContentMediaDeclarePayload":
+    def _validate_public_cid_aliases(self) -> ContentMediaDeclarePayload:
         values = _normalized_public_cid_values(
             ("cid", self.cid),
             ("ipfs_cid", self.ipfs_cid),
@@ -551,7 +547,9 @@ class ContentMediaDeclarePayload(_StrictModel):
         )
         distinct = {cid for _, cid in values}
         if len(distinct) > 1:
-            raise ValueError("content media CID aliases must refer to the same public content-addressed object")
+            raise ValueError(
+                "content media CID aliases must refer to the same public content-addressed object"
+            )
         return self
 
 
@@ -577,7 +575,10 @@ class ProfileUpdatePayload(_StrictModel):
 
 
 class _EdgeTargetPayload(_StrictModel):
-    target: str = Field(..., min_length=1, )
+    target: str = Field(
+        ...,
+        min_length=1,
+    )
     active: bool | None = None
 
 
@@ -600,10 +601,12 @@ class ContentShareCreatePayload(_StrictModel):
 
 
 class _TopicPayloadBase(_StrictModel):
-    topic: str | list[str] = Field(..., )
+    topic: str | list[str] = Field(
+        ...,
+    )
 
     @model_validator(mode="after")
-    def _normalize_topic_presence(self) -> "_TopicPayloadBase":
+    def _normalize_topic_presence(self) -> _TopicPayloadBase:
         raw = self.topic
         if isinstance(raw, str):
             if not raw.strip():
@@ -625,8 +628,6 @@ class NotificationUnsubscribePayload(_TopicPayloadBase):
     pass
 
 
-
-
 # ============================================================
 # Networking / Storage batch 2
 # ============================================================
@@ -642,16 +643,16 @@ class PeerAdvertisePayload(_StrictModel):
     endpoint: str = Field(
         ...,
         min_length=1,
-        )
+    )
     peer_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     device_id: str | None = Field(default=None, min_length=1)
     node_pubkey: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
 
 
 class PeerRendezvousTicketCreatePayload(_StrictModel):
@@ -659,32 +660,32 @@ class PeerRendezvousTicketCreatePayload(_StrictModel):
     ticket_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
 
 
 class PeerRendezvousTicketRevokePayload(_StrictModel):
     ticket_id: str = Field(
         ...,
         min_length=1,
-        )
+    )
 
 
 class PeerRequestConnectPayload(_StrictModel):
     peer_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     ticket_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     endpoint: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
 
     @model_validator(mode="after")
-    def _require_peer_ticket_or_endpoint(self) -> "PeerRequestConnectPayload":
+    def _require_peer_ticket_or_endpoint(self) -> PeerRequestConnectPayload:
         if not (self.peer_id or self.ticket_id or self.endpoint):
             raise ValueError("peer_id, ticket_id, or endpoint is required")
         return self
@@ -694,7 +695,7 @@ class PeerBanSetPayload(_StrictModel):
     peer_id: str = Field(
         ...,
         min_length=1,
-        )
+    )
     banned: bool | None = None
     reason: str | None = None
 
@@ -703,7 +704,7 @@ class PeerReputationSignalPayload(_StrictModel):
     peer_id: str = Field(
         ...,
         min_length=1,
-        )
+    )
     score: int | None = None
     reason: str | None = None
 
@@ -712,23 +713,23 @@ class StorageOfferCreatePayload(_OptionalCidPayload):
     offer_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     operator_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     cid: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     capacity_bytes: int | None = Field(
         default=None,
         ge=0,
-        )
+    )
     price: Json | int | str | None = None
 
     @model_validator(mode="after")
-    def _validate_cid(self) -> "StorageOfferCreatePayload":
+    def _validate_cid(self) -> StorageOfferCreatePayload:
         self._validate_cid_value(self.cid, "cid")
         return self
 
@@ -737,7 +738,7 @@ class StorageOfferWithdrawPayload(_StrictModel):
     offer_id: str = Field(
         ...,
         min_length=1,
-        )
+    )
 
 
 class StorageLeaseCreatePayload(_StrictModel):
@@ -745,29 +746,29 @@ class StorageLeaseCreatePayload(_StrictModel):
     lease_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     duration_blocks: int | None = Field(
         default=None,
         ge=0,
-        )
+    )
 
 
 class StorageLeaseRenewPayload(_StrictModel):
     lease_id: str = Field(
         ...,
         min_length=1,
-        )
+    )
     add_blocks: int | None = Field(
         default=None,
         ge=0,
-        )
+    )
 
 
 class StorageLeaseRevokePayload(_StrictModel):
     lease_id: str = Field(
         ...,
         min_length=1,
-        )
+    )
 
 
 class StorageProofSubmitPayload(_OptionalCidPayload):
@@ -775,10 +776,10 @@ class StorageProofSubmitPayload(_OptionalCidPayload):
     proof_cid: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
 
     @model_validator(mode="after")
-    def _validate_proof_cid(self) -> "StorageProofSubmitPayload":
+    def _validate_proof_cid(self) -> StorageProofSubmitPayload:
         self._validate_cid_value(self.proof_cid, "proof_cid")
         return self
 
@@ -788,32 +789,61 @@ class StorageChallengeIssuePayload(_StrictModel):
     challenge_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     operator_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     account_id: str | None = Field(
         default=None,
         min_length=1,
-        )
-    proof_scope: str | None = Field(default=None, min_length=1, )
-    node_pubkey: str | None = Field(default=None, min_length=1, )
-    challenge_seed_commitment: str | None = Field(default=None, min_length=1, )
-    challenge_count: int | None = Field(default=None, ge=0, )
-    sample_size_bytes: int | None = Field(default=None, ge=0, )
-    challenged_capacity_bytes: int | None = Field(default=None, ge=0, )
-    expires_height: int | None = Field(default=None, ge=0, )
-    reserved_capacity_bytes: int | None = Field(default=None, ge=0, )
+    )
+    proof_scope: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    node_pubkey: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    challenge_seed_commitment: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    challenge_count: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    sample_size_bytes: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    challenged_capacity_bytes: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    expires_height: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    reserved_capacity_bytes: int | None = Field(
+        default=None,
+        ge=0,
+    )
     probe_offsets: list[int] | None = None
-    challenge_seed: str | None = Field(default=None, min_length=1, )
+    challenge_seed: str | None = Field(
+        default=None,
+        min_length=1,
+    )
 
     @model_validator(mode="after")
-    def _validate_scope_fields(self) -> "StorageChallengeIssuePayload":
+    def _validate_scope_fields(self) -> StorageChallengeIssuePayload:
         scope = str(self.proof_scope or "lease").strip().lower()
         if scope in ("capacity", "storage_capacity", "capacity_probe", "storage_capacity_probe"):
             if not self.account_id and not self.operator_id:
-                raise ValueError("account_id or operator_id is required for capacity probe challenges")
+                raise ValueError(
+                    "account_id or operator_id is required for capacity probe challenges"
+                )
             if not self.challenge_count or int(self.challenge_count) <= 0:
                 raise ValueError("challenge_count is required for capacity probe challenges")
             if not self.sample_size_bytes or int(self.sample_size_bytes) <= 0:
@@ -830,30 +860,56 @@ class StorageChallengeRespondPayload(_StrictModel):
     challenge_id: str = Field(
         ...,
         min_length=1,
-        )
-    proof_scope: str | None = Field(default=None, min_length=1, )
-    response_commitment: str | None = Field(default=None, min_length=1, )
-    sample_response_commitments: list[str] | None = Field(default=None, )
-    measured_capacity_bytes: int | None = Field(default=None, ge=0, )
-    verification_status: str | None = Field(default=None, min_length=1, )
-    verified_capacity_bytes: int | None = Field(default=None, ge=0, )
+    )
+    proof_scope: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    response_commitment: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    sample_response_commitments: list[str] | None = Field(
+        default=None,
+    )
+    measured_capacity_bytes: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    verification_status: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    verified_capacity_bytes: int | None = Field(
+        default=None,
+        ge=0,
+    )
     response_cid: str | None = Field(default=None, min_length=1)
     probe_responses: list[Json] | None = None
-    verifier_id: str | None = Field(default=None, min_length=1, )
+    verifier_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     verification_method: str | None = None
-    verification_receipt_hash: str | None = Field(default=None, min_length=1, )
-    proof_ttl_blocks: int | None = Field(default=None, ge=0, )
+    verification_receipt_hash: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    proof_ttl_blocks: int | None = Field(
+        default=None,
+        ge=0,
+    )
 
 
 class StoragePayoutExecutePayload(_StrictModel):
     payout_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     operator_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     amount: int | float | str | None = None
 
 
@@ -861,14 +917,14 @@ class StorageReportAnchorPayload(_OptionalCidPayload):
     report_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     report_cid: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
 
     @model_validator(mode="after")
-    def _validate_report_cid(self) -> "StorageReportAnchorPayload":
+    def _validate_report_cid(self) -> StorageReportAnchorPayload:
         self._validate_cid_value(self.report_cid, "report_cid")
         return self
 
@@ -877,18 +933,18 @@ class IpfsPinRequestPayload(_OptionalCidPayload):
     cid: str = Field(
         ...,
         min_length=1,
-        )
+    )
     pin_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     size_bytes: int | None = Field(
         default=None,
         ge=0,
-        )
+    )
 
     @model_validator(mode="after")
-    def _validate_required_cid(self) -> "IpfsPinRequestPayload":
+    def _validate_required_cid(self) -> IpfsPinRequestPayload:
         self._validate_cid_value(self.cid, "cid")
         return self
 
@@ -897,19 +953,19 @@ class IpfsPinConfirmPayload(_OptionalCidPayload):
     pin_id: str = Field(
         ...,
         min_length=1,
-        )
+    )
     cid: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     operator_id: str | None = Field(
         default=None,
         min_length=1,
-        )
+    )
     ok: bool | int | None = None
 
     @model_validator(mode="after")
-    def _validate_optional_cid(self) -> "IpfsPinConfirmPayload":
+    def _validate_optional_cid(self) -> IpfsPinConfirmPayload:
         self._validate_cid_value(self.cid, "cid")
         return self
 
@@ -920,28 +976,49 @@ class IpfsPinConfirmPayload(_OptionalCidPayload):
 
 
 class TreasuryCreatePayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, )
+    treasury_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class TreasurySignersSetPayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, )
+    treasury_id: str = Field(
+        ...,
+        min_length=1,
+    )
     signers: list[str] = Field(..., min_length=1)
     threshold: int | None = Field(default=None, ge=1)
 
 
 class TreasuryWalletCreatePayload(_StrictModel):
-    wallet_id: str = Field(..., min_length=1, )
+    wallet_id: str = Field(
+        ...,
+        min_length=1,
+    )
     meta: Json | None = None
 
 
 class TreasurySignerAddPayload(_StrictModel):
-    wallet_id: str = Field(..., min_length=1, )
-    signer: str = Field(..., min_length=1, )
+    wallet_id: str = Field(
+        ...,
+        min_length=1,
+    )
+    signer: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class TreasurySignerRemovePayload(_StrictModel):
-    wallet_id: str = Field(..., min_length=1, )
-    signer: str = Field(..., min_length=1, )
+    wallet_id: str = Field(
+        ...,
+        min_length=1,
+    )
+    signer: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class TreasuryPolicySetPayload(_StrictModel):
@@ -949,7 +1026,10 @@ class TreasuryPolicySetPayload(_StrictModel):
 
 
 class TreasurySpendProposePayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, )
+    treasury_id: str = Field(
+        ...,
+        min_length=1,
+    )
     spend_id: str = Field(..., min_length=1)
     to: str = Field(..., min_length=1)
     amount: int = Field(..., ge=0)
@@ -957,12 +1037,18 @@ class TreasurySpendProposePayload(_StrictModel):
 
 
 class TreasurySpendSignPayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, )
+    treasury_id: str = Field(
+        ...,
+        min_length=1,
+    )
     spend_id: str = Field(..., min_length=1)
 
 
 class TreasurySpendCancelPayload(_StrictModel):
-    treasury_id: str = Field(..., min_length=1, )
+    treasury_id: str = Field(
+        ...,
+        min_length=1,
+    )
     spend_id: str = Field(..., min_length=1)
 
 
@@ -975,18 +1061,27 @@ class TreasurySpendExecutePayload(_StrictModel):
 
 
 class TreasuryProgramCreatePayload(_StrictModel):
-    program_id: str = Field(..., min_length=1, )
+    program_id: str = Field(
+        ...,
+        min_length=1,
+    )
     config: Json | None = None
 
 
 class TreasuryProgramUpdatePayload(_StrictModel):
-    program_id: str = Field(..., min_length=1, )
+    program_id: str = Field(
+        ...,
+        min_length=1,
+    )
     patch: Json | None = None
     config: Json | None = None
 
 
 class TreasuryProgramClosePayload(_StrictModel):
-    program_id: str = Field(..., min_length=1, )
+    program_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class TreasuryAuditAnchorSetPayload(_StrictModel):
@@ -1202,7 +1297,10 @@ class GovExecutionReceiptPayload(_StrictModel):
 
 
 class ProtocolUpgradeDeclarePayload(_StrictModel):
-    upgrade_id: str | None = Field(default=None, min_length=1, )
+    upgrade_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     version: str | None = None
     target_version: str | None = None
     rule_target: str | None = None
@@ -1211,7 +1309,10 @@ class ProtocolUpgradeDeclarePayload(_StrictModel):
 
 
 class ProtocolUpgradeActivatePayload(_StrictModel):
-    upgrade_id: str | None = Field(default=None, min_length=1, )
+    upgrade_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     version: str | None = None
     target_version: str | None = None
     hash: str | None = None
@@ -1272,7 +1373,6 @@ class GovProposalReceiptPayload(_StrictModel):
 # ============================================================
 
 
-
 class DisputeOpenPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
     target_type: str = Field(..., min_length=1)
@@ -1287,7 +1387,10 @@ class DisputeStageSetPayload(_StrictModel):
 
 class DisputeJurorAssignPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
-    juror_id: str = Field(..., min_length=1, )
+    juror_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class DisputeJurorAcceptPayload(_StrictModel):
@@ -1305,7 +1408,10 @@ class DisputeJurorWithdrawPayload(_StrictModel):
 
 class DisputeJurorTimeoutPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
-    juror_id: str = Field(..., min_length=1, )
+    juror_id: str = Field(
+        ...,
+        min_length=1,
+    )
     deadline_height: int | None = Field(default=None, ge=0)
 
 
@@ -1322,7 +1428,7 @@ class DisputeEvidenceDeclarePayload(_StrictModel):
     meta: Json | None = None
 
     @model_validator(mode="after")
-    def _validate_public_evidence_cid(self) -> "DisputeEvidenceDeclarePayload":
+    def _validate_public_evidence_cid(self) -> DisputeEvidenceDeclarePayload:
         _validate_public_cid_value(self.cid, "cid")
         return self
 
@@ -1340,7 +1446,7 @@ class DisputeVoteSubmitPayload(_StrictModel):
     resolution: Json | None = None
 
     @model_validator(mode="after")
-    def _validate_vote_or_verdict(self) -> "DisputeVoteSubmitPayload":
+    def _validate_vote_or_verdict(self) -> DisputeVoteSubmitPayload:
         if not (self.vote or self.verdict):
             raise ValueError("either vote or verdict is required")
         return self
@@ -1362,28 +1468,43 @@ class DisputeAppealPayload(_StrictModel):
 
 
 class DisputeFinalReceiptPayload(_StrictModel):
-    receipt_id: str | None = Field(default=None, min_length=1, )
+    receipt_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     dispute_id: str | None = None
     resolution: Json | None = None
     parent_ref: str | None = Field(default=None, alias="_parent_ref")
 
 
 class CaseTypeRegisterPayload(_StrictModel):
-    case_type: str = Field(..., min_length=1, )
+    case_type: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class CaseBindToDisputePayload(_StrictModel):
-    case_id: str | None = Field(default=None, min_length=1, )
+    case_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     dispute_id: str = Field(..., min_length=1)
 
 
 class CaseOutcomeReceiptPayload(_StrictModel):
-    case_id: str | None = Field(default=None, min_length=1, )
+    case_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     outcome: Json | str | None = None
 
 
 class ModActionReceiptPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1, )
+    target_id: str = Field(
+        ...,
+        min_length=1,
+    )
     action: str | None = None
     visibility: str | None = None
     locked: bool | int | None = None
@@ -1395,27 +1516,37 @@ class FlagEscalationReceiptPayload(_StrictModel):
     dispute_id: str = Field(..., min_length=1)
 
 
-
-
 # ============================================================
 # Batch 5 remaining canon coverage
 # ============================================================
 
 
 class AccountBanPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     reason: str | None = None
 
 
 class AccountReinstatePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     reason: str | None = None
 
 
 class BalanceTransferPayload(_StrictModel):
-    to_account_id: str = Field(..., min_length=1, )
+    to_account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     amount: int = Field(..., ge=1)
-    from_account_id: str | None = Field(default=None, min_length=1, )
+    from_account_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     memo: str | None = None
 
 
@@ -1423,8 +1554,14 @@ class FeePayPayload(_StrictModel):
     tx_id: str | None = Field(default=None, min_length=1)
     tx_type: str | None = Field(default=None, min_length=1)
     amount: int | None = Field(default=None, ge=0)
-    from_account_id: str | None = Field(default=None, min_length=1, )
-    to_account_id: str | None = Field(default=None, min_length=1, )
+    from_account_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    to_account_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     note: str | None = None
 
 
@@ -1446,7 +1583,10 @@ class RateLimitPolicySetPayload(_StrictModel):
 
 
 class RateLimitStrikeApplyPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     reason: str | None = None
 
 
@@ -1464,7 +1604,10 @@ class RewardPoolOptInSetPayload(_StrictModel):
 class BlockRewardMintPayload(_StrictModel):
     # Legacy tx name retained for compatibility; payload now represents one
     # v1.5 issuance epoch, not a per-block mint.
-    block_id: str = Field(..., min_length=1, )
+    block_id: str = Field(
+        ...,
+        min_length=1,
+    )
     amount: int | None = Field(default=None, ge=0)
     height: int | None = Field(default=None, ge=0)
     issuance_epoch: int | None = Field(default=None, ge=0)
@@ -1477,7 +1620,10 @@ class BlockRewardMintPayload(_StrictModel):
 class BlockRewardDistributePayload(_StrictModel):
     # Legacy tx name retained for compatibility; payload now distributes one
     # v1.5 issuance epoch, not a per-block reward.
-    block_id: str = Field(..., min_length=1, )
+    block_id: str = Field(
+        ...,
+        min_length=1,
+    )
     height: int | None = Field(default=None, ge=0)
     issuance_epoch: int | None = Field(default=None, ge=0)
     epoch_id: str | None = Field(default=None, min_length=1)
@@ -1490,60 +1636,102 @@ class BlockRewardDistributePayload(_StrictModel):
 
 
 class CreatorRewardAllocatePayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, )
-    alloc_id: str | None = Field(default=None, min_length=1, )
+    block_id: str = Field(
+        ...,
+        min_length=1,
+    )
+    alloc_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     transfers: list[Json] | None = None
     debits: list[Json] | None = None
 
 
 class TreasuryRewardAllocatePayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, )
-    alloc_id: str | None = Field(default=None, min_length=1, )
+    block_id: str = Field(
+        ...,
+        min_length=1,
+    )
+    alloc_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     transfers: list[Json] | None = None
     debits: list[Json] | None = None
 
 
 class ForfeitureApplyPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     amount: int | None = Field(default=None, ge=0)
-    forfeit_id: str | None = Field(default=None, min_length=1, )
+    forfeit_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
 
 
 class SubjectPerformanceReportPayload(_StrictModel):
-    subject: str = Field(..., min_length=1, )
-    report_id: str | None = Field(default=None, min_length=1, )
+    subject: str = Field(
+        ...,
+        min_length=1,
+    )
+    report_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     metrics: Json | None = None
     ts_ms: int | None = Field(default=None, ge=0)
 
 
 class PerformanceReceiptPayload(_StrictModel):
-    subject: str | None = Field(default=None, min_length=1, )
-    report_id: str | None = Field(default=None, min_length=1, )
+    subject: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    report_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     metrics: Json | None = None
     score: int | float | None = None
 
 
 class ContentLabelSetPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1, )
+    target_id: str = Field(
+        ...,
+        min_length=1,
+    )
     labels: list[str] = Field(..., min_length=1)
 
 
 class ContentVisibilitySetPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1, )
+    target_id: str = Field(
+        ...,
+        min_length=1,
+    )
     visibility: str = Field(..., min_length=1)
 
 
 class ContentThreadLockSetPayload(_StrictModel):
-    target_id: str = Field(..., min_length=1, )
+    target_id: str = Field(
+        ...,
+        min_length=1,
+    )
     locked: bool = Field(...)
 
 
 class ContentMediaReplacePayload(_StrictModel):
     media_id: str = Field(..., min_length=1)
-    new_cid: str = Field(..., min_length=1, )
+    new_cid: str = Field(
+        ...,
+        min_length=1,
+    )
 
     @model_validator(mode="after")
-    def _validate_cid(self) -> "ContentMediaReplacePayload":
+    def _validate_cid(self) -> ContentMediaReplacePayload:
         _validate_public_cid_value(self.new_cid, "new_cid")
         return self
 
@@ -1568,84 +1756,135 @@ class NotificationEmitReceiptPayload(_StrictModel):
 
 
 class IndexAnchorSetPayload(_StrictModel):
-    anchor_id: str = Field(..., min_length=1, )
+    anchor_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class StateSnapshotDeclarePayload(_StrictModel):
-    snapshot_id: str = Field(..., min_length=1, )
+    snapshot_id: str = Field(
+        ...,
+        min_length=1,
+    )
     hash: str | None = None
     meta: Json | None = None
 
 
 class StateSnapshotAcceptPayload(_StrictModel):
-    snapshot_id: str = Field(..., min_length=1, )
+    snapshot_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class ColdSyncRequestPayload(_StrictModel):
     snapshot_id: str = Field(..., min_length=1)
-    request_id: str | None = Field(default=None, min_length=1, )
+    request_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
 
 
 class ColdSyncCompletePayload(_StrictModel):
-    request_id: str = Field(..., min_length=1, )
+    request_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class IndexTopicRegisterPayload(_StrictModel):
-    topic: str = Field(..., min_length=1, )
+    topic: str = Field(
+        ...,
+        min_length=1,
+    )
     config: Json | None = None
 
 
 class IndexTopicAnchorSetPayload(_StrictModel):
     topic: str = Field(..., min_length=1)
-    anchor_id: str = Field(..., min_length=1, )
+    anchor_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class TxReceiptEmitPayload(_StrictModel):
-    receipt_id: str | None = Field(default=None, min_length=1, )
-    tx_id: str | None = Field(default=None, min_length=1, )
+    receipt_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
+    tx_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     tx_type: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
-    def _validate_receipt_or_tx(self) -> "TxReceiptEmitPayload":
+    def _validate_receipt_or_tx(self) -> TxReceiptEmitPayload:
         if not self.receipt_id and not (self.tx_id and self.tx_type):
             raise ValueError("either receipt_id or tx_id+tx_type is required")
         return self
 
 
 class RoleEligibilitySetPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     role: str = Field(..., min_length=1)
 
 
 class RoleEligibilityRevokePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     role: str = Field(..., min_length=1)
 
 
 class RoleEmissaryNominatePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class RoleEmissaryVotePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class RoleEmissarySeatPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class RoleEmissaryRemovePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     reason: str | None = None
 
 
 class RoleGovExecutorSetPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     note: str | None = None
 
 
 class AccountScopedRolePayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     # Optional responsibility scaffold fields. These are currently used by
     # explicit NODE_OPERATOR_* responsibility transaction types to let an already-active baseline Node Operator
     # opt into validator/storage responsibility with clear production semantics.
@@ -1659,25 +1898,40 @@ class AccountScopedRolePayload(_StrictModel):
     chain_id: str | None = None
     schema_version: str | None = None
     protocol_version: str | None = None
-    bft_pubkey: str | None = Field(default=None, )
+    bft_pubkey: str | None = Field(
+        default=None,
+    )
     readiness_checks: Json | None = None
     readiness_expires_height: int | None = Field(default=None, ge=0)
     verification_status: str | None = None
     reputation_required_milli: int | None = Field(default=None, ge=0)
     storage_opt_in: bool | None = None
-    declared_capacity_bytes: int | None = Field(default=None, ge=0, )
+    declared_capacity_bytes: int | None = Field(
+        default=None,
+        ge=0,
+    )
     storage_endpoint_commitment: str | None = None
-    node_pubkey: str | None = Field(default=None, )
+    node_pubkey: str | None = Field(
+        default=None,
+    )
     responsibilities: Json | None = None
-    lane: str | None = Field(default=None, )
+    lane: str | None = Field(
+        default=None,
+    )
     reviewer_lanes: list[str] | None = None
 
 
 class ReputationDeltaApplyPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
     delta: int | float | None = None
     delta_milli: int | None = None
-    delta_id: str | None = Field(default=None, min_length=1, )
+    delta_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     reason: str | None = None
     # The apply path has long consumed these optional provenance fields when
     # present. Include them in the strict schema so a committed deterministic
@@ -1694,17 +1948,26 @@ class ReputationDeltaApplyPayload(_StrictModel):
     reversal_of_optional: str | None = None
 
     @model_validator(mode="after")
-    def _validate_delta(self) -> "ReputationDeltaApplyPayload":
+    def _validate_delta(self) -> ReputationDeltaApplyPayload:
         if self.delta is None and self.delta_milli is None:
             raise ValueError("either delta or delta_milli is required")
         return self
 
 
 class ReputationThresholdCrossPayload(_StrictModel):
-    account_id: str = Field(..., min_length=1, )
-    threshold: str = Field(..., min_length=1, )
+    account_id: str = Field(
+        ...,
+        min_length=1,
+    )
+    threshold: str = Field(
+        ...,
+        min_length=1,
+    )
     direction: str | None = None
-    cross_id: str | None = Field(default=None, min_length=1, )
+    cross_id: str | None = Field(
+        default=None,
+        min_length=1,
+    )
 
 
 class ValidatorRegisterPayload(_StrictModel):
@@ -1722,7 +1985,7 @@ class ValidatorCandidateRegisterPayload(_StrictModel):
     metadata_hash: str | None = None
 
     @model_validator(mode="after")
-    def _validate_endpoint_source(self) -> "ValidatorCandidateRegisterPayload":
+    def _validate_endpoint_source(self) -> ValidatorCandidateRegisterPayload:
         if not self.endpoint and not self.endpoints:
             raise ValueError("either endpoint or endpoints is required")
         return self
@@ -1769,12 +2032,18 @@ class ValidatorPerformanceReportPayload(_StrictModel):
 
 
 class BlockProposePayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, )
+    block_id: str = Field(
+        ...,
+        min_length=1,
+    )
     height: int = Field(..., ge=1)
 
 
 class BlockAttestPayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, )
+    block_id: str = Field(
+        ...,
+        min_length=1,
+    )
     validator: str | None = None
     attestation: str | None = None
     vote: str | None = None
@@ -1783,7 +2052,10 @@ class BlockAttestPayload(_StrictModel):
 
 
 class BlockFinalizePayload(_StrictModel):
-    block_id: str = Field(..., min_length=1, )
+    block_id: str = Field(
+        ...,
+        min_length=1,
+    )
     height: int = Field(..., ge=1)
 
 
@@ -1792,8 +2064,14 @@ class EpochTransitionPayload(_StrictModel):
 
 
 class SlashProposePayload(_StrictModel):
-    slash_id: str = Field(..., min_length=1, )
-    subject: str | None = Field(default=None, min_length=1, )
+    slash_id: str = Field(
+        ...,
+        min_length=1,
+    )
+    subject: str | None = Field(
+        default=None,
+        min_length=1,
+    )
     reason: str | None = None
     evidence: Json | None = None
 
@@ -2272,6 +2550,7 @@ TX_PAYLOADS: dict[str, Any] = {
 
 # Backwards-compatible alias used by tests and audit tooling.
 PAYLOAD_MODELS = TX_PAYLOADS
+
 
 def model_for_tx_type(tx_type: str) -> Any | None:
     return TX_PAYLOADS.get((tx_type or "").upper())

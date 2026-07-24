@@ -14,12 +14,19 @@ from weall.api.routes_public_parts.common import (
     _snapshot,
     _str_param,
 )
+from weall.api.routes_public_parts.content import (
+    _content_target_hidden_by_review,
+    _with_media_summaries,
+)
 from weall.api.security import require_account_session
-from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
 from weall.ledger.state import LedgerView
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 from weall.runtime.poh.state import effective_poh_tier, poh_tier_label
-from weall.runtime.reviewer_responsibilities import REVIEWER_LANES, reviewer_lane_active, reviewer_lane_record
+from weall.runtime.reviewer_responsibilities import (
+    REVIEWER_LANES,
+    reviewer_lane_active,
+    reviewer_lane_record,
+)
 
 router = APIRouter()
 
@@ -53,7 +60,9 @@ def _iter_posts_by_author(st: dict[str, Any], *, author: str) -> list[dict[str, 
     return out
 
 
-def _content_post_hidden_by_moderation(st: dict[str, Any], post: dict[str, Any], post_id: str = "") -> bool:
+def _content_post_hidden_by_moderation(
+    st: dict[str, Any], post: dict[str, Any], post_id: str = ""
+) -> bool:
     """Return True when moderation/dispute outcome removes a post from normal reads."""
 
     pid = _str_param(post_id or post.get("post_id") or post.get("id") or "").strip()
@@ -203,7 +212,11 @@ def _profile_activity_summary(st: dict[str, Any], account: str) -> dict[str, Any
         if not isinstance(obj, dict):
             continue
         post_id = _clean_str(obj.get("post_id") or obj.get("id") or pid, max_len=256)
-        if obj.get("author") == account and not obj.get("deleted") and not _content_post_hidden_by_moderation(st, obj, post_id):
+        if (
+            obj.get("author") == account
+            and not obj.get("deleted")
+            and not _content_post_hidden_by_moderation(st, obj, post_id)
+        ):
             visible_posts += 1
 
     for obj in comments.values():
@@ -266,8 +279,26 @@ def v1_account_tx_register(req: AccountRegisterTxRequest) -> dict[str, Any]:
             "parent": parent,
             "payload": {
                 "pubkey": pubkey,
-                **({"recovery_pubkey": str(req.recovery_pubkey).strip(), "recovery_sig_profile": str(req.recovery_sig_profile or "pq-mldsa-v1").strip()} if req.recovery_pubkey else {}),
-                **({"evidence_kem_pubkey": str(req.evidence_kem_pubkey).strip(), "evidence_kem_algorithm": str(req.evidence_kem_algorithm or "ml-kem-768").strip()} if req.evidence_kem_pubkey else {}),
+                **(
+                    {
+                        "recovery_pubkey": str(req.recovery_pubkey).strip(),
+                        "recovery_sig_profile": str(
+                            req.recovery_sig_profile or "pq-mldsa-v1"
+                        ).strip(),
+                    }
+                    if req.recovery_pubkey
+                    else {}
+                ),
+                **(
+                    {
+                        "evidence_kem_pubkey": str(req.evidence_kem_pubkey).strip(),
+                        "evidence_kem_algorithm": str(
+                            req.evidence_kem_algorithm or "ml-kem-768"
+                        ).strip(),
+                    }
+                    if req.evidence_kem_pubkey
+                    else {}
+                ),
             },
         },
     }
@@ -394,10 +425,6 @@ def v1_account_registered(account: str, request: Request):
     return {"ok": True, "account": account, "registered": registered}
 
 
-
-
-
-
 @router.get("/accounts/{account}/reviewer-status")
 def v1_account_reviewer_status(account: str, request: Request):
     """Return backend-derived reviewer lane responsibility status.
@@ -504,7 +531,15 @@ def v1_account_feed(account: str, request: Request):
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     visibility = _str_param(qp.get("visibility"), "public").strip().lower()
 
-    if visibility in {"pri" + "vate", "direct", "owner", "members", "member" + "s_only", "member_only", "scoped"}:
+    if visibility in {
+        "pri" + "vate",
+        "direct",
+        "owner",
+        "members",
+        "member" + "s_only",
+        "member_only",
+        "scoped",
+    }:
         raise ApiError.bad_request(
             "PUBLIC_READ_VISIBILITY_REQUIRED",
             "Protocol-native account content is public-only; restricted read visibility is unsupported.",
@@ -520,7 +555,9 @@ def v1_account_feed(account: str, request: Request):
 
         vis = _str_param(obj.get("visibility"), "public").strip().lower() or "public"
 
-        publicly_readable = vis in {"public", ""} or (bool(_str_param(obj.get("group_id") or "").strip()) and vis == "group")
+        publicly_readable = vis in {"public", ""} or (
+            bool(_str_param(obj.get("group_id") or "").strip()) and vis == "group"
+        )
         if visibility in {"public", "all"}:
             if not publicly_readable:
                 continue

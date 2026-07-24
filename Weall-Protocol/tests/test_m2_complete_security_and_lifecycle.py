@@ -124,7 +124,16 @@ def _account(pubkey: str, *, tier: int = 0, recovery_pubkey: str | None = None) 
     }
 
 
-def _apply(state: dict, tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False, parent: str | None = None) -> dict:
+def _apply(
+    state: dict,
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> dict:
     tx = {
         "tx_type": tx_type,
         "signer": signer,
@@ -139,7 +148,9 @@ def _apply(state: dict, tx_type: str, signer: str, nonce: int, payload: dict, *,
     return apply_tx_atomic(copy.deepcopy(state), tx)
 
 
-def _continuity_payload(request_id: str, *, method: str = "continuity", challenged: str | None = None, suffix: str = "a") -> dict:
+def _continuity_payload(
+    request_id: str, *, method: str = "continuity", challenged: str | None = None, suffix: str = "a"
+) -> dict:
     payload = {
         "request_id": request_id,
         "target": "@alice",
@@ -251,7 +262,13 @@ def test_v2_registration_requires_independent_recovery_and_evidence_kem_keys() -
     state["params"]["require_evidence_kem_at_account_register"] = True
 
     with pytest.raises(ApplyError) as missing:
-        _apply(state, "ACCOUNT_REGISTER", "@alice", 1, {"pubkey": "main-key", "sig_profile": "pq-mldsa-v1"})
+        _apply(
+            state,
+            "ACCOUNT_REGISTER",
+            "@alice",
+            1,
+            {"pubkey": "main-key", "sig_profile": "pq-mldsa-v1"},
+        )
     assert missing.value.reason == "recovery_key_required_at_account_register"
 
     kem_pubkey = base64.b64encode(b"k" * 1184).decode("ascii")
@@ -405,7 +422,10 @@ def test_social_continuity_requires_signed_tier2_independent_households_before_a
 
     with pytest.raises(ApplyError) as dependency_not_disclaimed:
         _social_attest(state, "social-valid", 1, reason_code="financial_dependency_present")
-    assert dependency_not_disclaimed.value.reason == "social_continuity_independence_declaration_required"
+    assert (
+        dependency_not_disclaimed.value.reason
+        == "social_continuity_independence_declaration_required"
+    )
 
     state = _social_attest(state, "social-valid", 1)
     with pytest.raises(ApplyError) as same_household:
@@ -424,7 +444,9 @@ def test_social_continuity_requires_signed_tier2_independent_households_before_a
     assert request["status"] == "awaiting_assignment"
     assert request["social_attestation_count"] == 5
     assert len(request["social_attestation_commitments"]) == 5
-    assert len({item["household_commitment"] for item in request["social_attestations"].values()}) == 5
+    assert (
+        len({item["household_commitment"] for item in request["social_attestations"].values()}) == 5
+    )
     assert all(
         "financial_dependency" not in item and "institutional_dependency" not in item
         for item in request["social_attestations"].values()
@@ -482,9 +504,12 @@ def test_recovery_reversal_window_includes_final_restricted_height() -> None:
             suffix="before-boundary",
         ),
     )
-    assert accepted_before["accounts"]["@alice"]["recovery"]["requests"][
-        "reversal-before-boundary"
-    ]["status"] == "awaiting_assignment"
+    assert (
+        accepted_before["accounts"]["@alice"]["recovery"]["requests"]["reversal-before-boundary"][
+            "status"
+        ]
+        == "awaiting_assignment"
+    )
 
     at_boundary = prepared(500, 500)
     accepted = _apply(
@@ -499,9 +524,9 @@ def test_recovery_reversal_window_includes_final_restricted_height() -> None:
             suffix="boundary",
         ),
     )
-    assert accepted["accounts"]["@alice"]["recovery"]["requests"]["reversal-at-boundary"]["status"] == (
-        "awaiting_assignment"
-    )
+    assert accepted["accounts"]["@alice"]["recovery"]["requests"]["reversal-at-boundary"][
+        "status"
+    ] == ("awaiting_assignment")
 
     after_boundary = prepared(501, 500)
     with pytest.raises(ApplyError) as closed:
@@ -524,7 +549,13 @@ def test_continuity_recovery_and_fresh_panel_reversal_complete_atomically() -> N
     state = _state(reviewer_count=45)
     state["accounts"]["@alice"] = _account("old-main")
 
-    state = _apply(state, "ACCOUNT_RECOVERY_REQUEST", "@alice", 1, _continuity_payload("continuity-1", suffix="continuity"))
+    state = _apply(
+        state,
+        "ACCOUNT_RECOVERY_REQUEST",
+        "@alice",
+        1,
+        _continuity_payload("continuity-1", suffix="continuity"),
+    )
     assert state["accounts"]["@alice"]["locked"] is True
     assert schedule_account_recovery_system_txs(state, next_height=101) == 0
     continuity = state["accounts"]["@alice"]["recovery"]["requests"]["continuity-1"]
@@ -534,7 +565,9 @@ def test_continuity_recovery_and_fresh_panel_reversal_complete_atomically() -> N
 
     state = _approve_recovery_panel(state, "continuity-1", CONTINUITY_APPROVAL_THRESHOLD)
     assert schedule_account_recovery_system_txs(state, next_height=102) == 1
-    assert state["accounts"]["@alice"]["recovery"]["requests"]["continuity-1"]["status"] == "approved"
+    assert (
+        state["accounts"]["@alice"]["recovery"]["requests"]["continuity-1"]["status"] == "approved"
+    )
     state = _apply(
         state,
         "ACCOUNT_RECOVERY_FINALIZE",
@@ -555,7 +588,10 @@ def test_continuity_recovery_and_fresh_panel_reversal_complete_atomically() -> N
     )
     account = state["accounts"]["@alice"]
     assert account["active_keys"] == ["new-authority-continuity"]
-    assert account["recovery"]["restriction_until_height"] == state["height"] + RECOVERY_RESTRICTION_BLOCKS
+    assert (
+        account["recovery"]["restriction_until_height"]
+        == state["height"] + RECOVERY_RESTRICTION_BLOCKS
+    )
     assert account["recovery"]["history"][-1]["reviewer_ids"] == sorted(continuity_panel)
     for evidence_id in continuity["evidence_ids"]:
         record = evidence_record(state, evidence_id)
@@ -676,7 +712,10 @@ def test_failed_recovery_attempts_are_canonical_and_rate_limited() -> None:
 
     recovery = state["accounts"]["@alice"]["recovery"]
     assert len(recovery["failed_attempt_heights"]) == 3
-    assert all(state["height"] - h <= RECOVERY_FAILED_WINDOW_BLOCKS for h in recovery["failed_attempt_heights"])
+    assert all(
+        state["height"] - h <= RECOVERY_FAILED_WINDOW_BLOCKS
+        for h in recovery["failed_attempt_heights"]
+    )
     state["height"] += RECOVERY_REQUEST_COOLDOWN_BLOCKS
     with pytest.raises(ApplyError) as blocked:
         _apply(
@@ -762,7 +801,6 @@ def test_encrypted_evidence_closes_revokes_access_retries_and_erases() -> None:
     assert set(receipt["provider_attestations"]) == {"@provider1", "@provider2"}
 
 
-
 def test_evidence_deletion_deadline_miss_is_public_and_retries_continue() -> None:
     state = _state(height=1)
     register_encrypted_evidence(
@@ -799,6 +837,7 @@ def test_evidence_deletion_deadline_miss_is_public_and_retries_continue() -> Non
     assert rec["state"] == "deletion_due"
     assert rec["next_retry_height"] == deadline + EVIDENCE_DELETE_RETRY_BLOCKS
 
+
 def test_plaintext_poh_evidence_is_rejected_and_async_decline_is_replaced() -> None:
     state = _state(reviewer_count=4)
     state["accounts"]["@alice"] = _account("alice-main")
@@ -812,7 +851,11 @@ def test_plaintext_poh_evidence_is_rejected_and_async_decline_is_replaced() -> N
         )
     # The case lookup may fail first for a fabricated case, so exercise the
     # generic evidence path as the explicit plaintext bypass guard.
-    assert plaintext.value.reason in {"unknown_async_case", "async_case_not_found", "plaintext_poh_evidence_forbidden"}
+    assert plaintext.value.reason in {
+        "unknown_async_case",
+        "async_case_not_found",
+        "plaintext_poh_evidence_forbidden",
+    }
     with pytest.raises(ApplyError) as generic_plaintext:
         _apply(
             state,
@@ -856,7 +899,9 @@ def test_plaintext_poh_evidence_is_rejected_and_async_decline_is_replaced() -> N
         },
     )
     assert schedule_poh_async_system_txs(state, next_height=101) == 1
-    assignment = next(item for item in state["system_queue"] if item["tx_type"] == "POH_ASYNC_JUROR_ASSIGN")
+    assignment = next(
+        item for item in state["system_queue"] if item["tx_type"] == "POH_ASYNC_JUROR_ASSIGN"
+    )
     state = _apply(
         state,
         "POH_ASYNC_JUROR_ASSIGN",
@@ -884,7 +929,9 @@ def test_plaintext_poh_evidence_is_rejected_and_async_decline_is_replaced() -> N
     state = _apply(state, "POH_ASYNC_JUROR_DECLINE", declined, 1, {"case_id": "case:async:replace"})
     state["system_queue"] = []
     assert schedule_poh_async_system_txs(state, next_height=102) == 1
-    replacement_assignment = next(item for item in state["system_queue"] if item["tx_type"] == "POH_ASYNC_JUROR_ASSIGN")
+    replacement_assignment = next(
+        item for item in state["system_queue"] if item["tx_type"] == "POH_ASYNC_JUROR_ASSIGN"
+    )
     state = _apply(
         state,
         "POH_ASYNC_JUROR_ASSIGN",
@@ -914,7 +961,9 @@ def test_plaintext_poh_evidence_is_rejected_and_async_decline_is_replaced() -> N
             "key_envelope_commitments": _envelopes(["@alice", *current]),
         },
     )
-    state = _apply(state, "POH_ASYNC_JUROR_ACCEPT", replacement, 1, {"case_id": "case:async:replace"})
+    state = _apply(
+        state, "POH_ASYNC_JUROR_ACCEPT", replacement, 1, {"case_id": "case:async:replace"}
+    )
     assert replacement in state["poh"]["async_cases"]["case:async:replace"]["accepted_jurors"]
 
 
@@ -927,9 +976,7 @@ def test_tier2_reverification_case_and_responsibility_transition_are_canonical()
             "status": "active",
             "active": True,
             "responsibilities": {
-                "reviewer": {
-                    "poh_async_review": {"opted_in": True, "active": True}
-                }
+                "reviewer": {"poh_async_review": {"opted_in": True, "active": True}}
             },
         }
     }
@@ -957,7 +1004,10 @@ def test_tier2_reverification_case_and_responsibility_transition_are_canonical()
     role = state["roles"]["jurors"]["by_id"]["@alice"]
     assert role["status"] == "replacement_required"
     assert role["no_new_assignments"] is True
-    assert role["safe_withdrawal_until_height"] == fields["expires_at_height"] + 1 + SAFE_WITHDRAWAL_BLOCKS
+    assert (
+        role["safe_withdrawal_until_height"]
+        == fields["expires_at_height"] + 1 + SAFE_WITHDRAWAL_BLOCKS
+    )
     elapsed = process_tier2_lifecycle(
         state,
         next_height=role["safe_withdrawal_until_height"] + 1,

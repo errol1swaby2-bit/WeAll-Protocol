@@ -3,13 +3,10 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
-import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO_ROOT / "scripts"
@@ -27,7 +24,9 @@ def _run(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProce
 
 
 def _load_contract() -> object:
-    spec = importlib.util.spec_from_file_location("m2_evidence_contract_test", SCRIPTS / "m2_evidence_contract.py")
+    spec = importlib.util.spec_from_file_location(
+        "m2_evidence_contract_test", SCRIPTS / "m2_evidence_contract.py"
+    )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -87,7 +86,9 @@ def _prepare_evidence_repo(tmp_path: Path) -> tuple[Path, str]:
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         if rel in contract.STATE_SUMMARY_PATHS.values():
-            path.write_text(json.dumps(_state_summary(), sort_keys=True, indent=2) + "\n", encoding="utf-8")
+            path.write_text(
+                json.dumps(_state_summary(), sort_keys=True, indent=2) + "\n", encoding="utf-8"
+            )
         else:
             rule = success_by_path.get(rel)
             path.write_text(_marker_text(rule) if rule else "closure artifact\n", encoding="utf-8")
@@ -210,10 +211,15 @@ def test_evidence_manifest_checker_rejects_hash_tampering(tmp_path: Path) -> Non
         check=False,
     )
     assert result.returncode != 0
-    assert "m2_evidence_size_mismatch" in result.stdout or "m2_evidence_sha256_mismatch" in result.stdout
+    assert (
+        "m2_evidence_size_mismatch" in result.stdout
+        or "m2_evidence_sha256_mismatch" in result.stdout
+    )
 
 
-def test_evidence_manifest_checker_rejects_private_material_even_with_matching_hash(tmp_path: Path) -> None:
+def test_evidence_manifest_checker_rejects_private_material_even_with_matching_hash(
+    tmp_path: Path,
+) -> None:
     root, freeze = _prepare_evidence_repo(tmp_path)
     target_rel = "artifacts/m2-closure/backend/pytest.txt"
     target = root / target_rel
@@ -224,7 +230,9 @@ def test_evidence_manifest_checker_rejects_private_material_even_with_matching_h
     entry = next(item for item in manifest["files"] if item["path"] == target_rel)
     entry["size_bytes"] = len(private_bytes)
     entry["sha256"] = hashlib.sha256(private_bytes).hexdigest()
-    manifest_path.write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+    )
     _run(root, "git", "add", "artifacts/m2-closure")
     result = _run(
         root,
@@ -246,7 +254,9 @@ def test_evidence_manifest_checker_rejects_manifest_path_omission(tmp_path: Path
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["files"] = manifest["files"][1:]
     manifest["artifact_count"] = len(manifest["files"])
-    manifest_path.write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+    )
     _run(root, "git", "add", "artifacts/m2-closure")
     result = _run(
         root,

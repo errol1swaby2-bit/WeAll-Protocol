@@ -5,7 +5,6 @@ from typing import Any
 
 from weall.crypto.sig import (
     canonical_tx_message,
-    strict_tx_sig_domain_enabled,
     verify_signature_for_profile,
 )
 from weall.crypto.signature_profiles import (
@@ -136,7 +135,9 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
     if not sig_profile:
         return False
 
-    chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+    chain_config = (
+        state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+    )
     ok_profile, _reason_profile = profile_allowed_for_context(
         sig_profile,
         chain_config=chain_config,
@@ -230,7 +231,10 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
         # Initial enrollment for legacy accounts may use the active key exactly
         # once. Subsequent rotations are handled above and cannot fall through.
 
-    if tx_type == "ACCOUNT_RECOVERY_APPROVE" and str(payload.get("decision") or "").strip().lower() == "evidence_bind":
+    if (
+        tx_type == "ACCOUNT_RECOVERY_APPROVE"
+        and str(payload.get("decision") or "").strip().lower() == "evidence_bind"
+    ):
         request_id = str(payload.get("request_id") or "").strip()
         requests = recovery.get("requests") if isinstance(recovery.get("requests"), dict) else {}
         request = requests.get(request_id) if isinstance(requests, dict) else None
@@ -282,13 +286,17 @@ def verify_tx_signature(state: Json, tx: Json) -> bool:
             pk = payload.get("pubkey")
             if isinstance(pk, str) and pk.strip():
                 for msg in msg_candidates:
-                    if verify_signature_for_profile(sig_profile=sig_profile, message=msg, sig=sig, pubkey=pk):
+                    if verify_signature_for_profile(
+                        sig_profile=sig_profile, message=msg, sig=sig, pubkey=pk
+                    ):
                         return True
         return _unsafe_dev_allows_unsigned()
 
     for pk in active_keys:
         for msg in msg_candidates:
-            if verify_signature_for_profile(sig_profile=sig_profile, message=msg, sig=sig, pubkey=pk):
+            if verify_signature_for_profile(
+                sig_profile=sig_profile, message=msg, sig=sig, pubkey=pk
+            ):
                 return True
 
     return False

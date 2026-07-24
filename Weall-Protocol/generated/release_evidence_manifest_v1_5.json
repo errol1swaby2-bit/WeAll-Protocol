@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "9860a62d82148126e725a9c2d7f616c43860b6eafc639c8535f85ce513047973",
+  "artifact_digest": "a1af3a18806af669cb4e30b4699427e83e3a5a04f5417250eda1961b51c44036",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -147,7 +147,7 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "efcaa5a6eb11246a651e5e01b218c617df2b5ede910e236b9634b9e319352015",
+      "file_sha256": "dd10d4de113a264a638ce16562002e3a891cc0708518db700eed4023878fc003",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -163,7 +163,7 @@
       "schema": "weall.v1_5.api_response_vectors"
     },
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
-      "file_sha256": "85cd2909bc8bb65a32ecfa34126c43176b5241d478dc17c2a477d68e21f85193",
+      "file_sha256": "665768810e43d042c089fefbb8ce3e2abce737eabb4856edaba06a4dc63cba11",
       "ok": true,
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "present": true,
@@ -195,7 +195,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "9113e269a57a7f382c2bb950498ccb8208f93fe0669dbb6b9f22efbe36aa6bf7",
+      "file_sha256": "683e6141503da38010d7ee4d9184cf656b330786627d1f6baae02175b68083f9",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 import os
@@ -8,130 +7,53 @@ import tempfile
 import threading
 import time
 from collections import OrderedDict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
-from weall.runtime.runtime_env import (
-    _bounded_put,
-    _compact_error_text,
-    _consensus_fail_closed,
-    _env_bool,
-    _env_int,
-    _format_commit_failure,
-    _mode,
-    _safe_int,
-)
-from weall.runtime.runtime_time import _now_ms
-
-from weall.ledger.roles_schema import ensure_roles_schema
 from weall.ledger.state import LedgerView
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
 from weall.net.state_sync import StateSyncService, StateSyncVerifyError, build_snapshot_anchor
 from weall.runtime.attestation_pool import PersistentAttestationPool
 from weall.runtime.bft_hotstuff import (
-    BFT_MIN_VALIDATORS,
-    CONSENSUS_PHASE_BFT_ACTIVE,
-    BftTimeout,
-    BftVote,
     HotStuffBFT,
     QuorumCert,
-    canonical_proposal_message,
-    canonical_timeout_message,
-    canonical_vote_message,
-    is_descendant,
-    leader_for_view,
-    normalize_consensus_phase,
-    normalize_validators,
-    qc_from_json,
-    validator_set_hash,
-    verify_proposal_json,
-    verify_qc,
 )
 from weall.runtime.bft_journal import BftJournal
-from weall.runtime.block_admission import admit_bft_block, admit_bft_commit_block, admit_block_txs
-from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
-from weall.runtime.block_hash import RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT, compute_block_hash, compute_helper_execution_root, compute_receipts_root, compute_recent_block_anchor, ensure_block_hash, make_block_header, recent_block_ids_from_state, recent_block_anchor_required_for_height
-from weall.runtime.block_id import compute_block_id
-from weall.runtime.chain_config import load_chain_config
-from weall.runtime.chain_manifest import load_chain_manifest
-from weall.runtime.constitutional_clock import (
-    commit_clock_policy_to_state,
-    expected_block_time_ms,
-    is_too_early,
-    policy_from_manifest,
-    policy_to_json,
-    procedure_height as constitutional_procedure_height,
+from weall.runtime.block_admission import admit_bft_block, admit_bft_commit_block
+from weall.runtime.block_hash import (
+    RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT,
+    ensure_block_hash,
 )
-from weall.runtime.gov_engine import tick_governance_lifecycle
-from weall.runtime.dispute_engine import tick_dispute_lifecycle
-from weall.runtime.domain_apply import ApplyError, apply_tx_atomic_meta
+from weall.runtime.chain_config import load_chain_config
 from weall.runtime.executor_boot import prepare_executor_init_paths
-from weall.runtime.failpoints import maybe_trigger_failpoint
-from weall.runtime.mempool import PersistentMempool, compute_tx_id
-from weall.runtime.node_lifecycle import evaluate_node_lifecycle_status
-from weall.runtime.node_runtime_config import PRODUCTION_SERVICE
-from weall.runtime.runtime_authority import effective_bft_enabled
-from weall.runtime.account_recovery_scheduler import schedule_account_recovery_system_txs
-from weall.runtime.poh.async_scheduler import schedule_poh_async_system_txs
-from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
-from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs
-from weall.runtime.reputation_accrual import schedule_reputation_accrual_system_txs
-from weall.runtime.node_operator_scheduler import schedule_node_operator_system_txs
+from weall.runtime.helper_certificates import HelperExecutionCertificate
+from weall.runtime.helper_dispatch import HelperDispatchContext
+from weall.runtime.mempool import PersistentMempool
 from weall.runtime.protocol_profile import (
-    GENESIS_CREATED_MS,
     PRODUCTION_CONSENSUS_PROFILE,
     PROTOCOL_VERSION,
     runtime_clock_skew_warn_ms,
     runtime_max_block_future_drift_ms,
-    runtime_mode,
     runtime_startup_clock_hard_fail_ms,
-    runtime_vrf_required,
     validate_runtime_consensus_profile,
-)
-from weall.runtime.helper_dispatch import HelperCertificateStore, HelperDispatchContext
-from weall.runtime.helper_lane_journal import HelperLaneJournal
-from weall.runtime.parallel_execution import (
-    canonical_lane_plan_fingerprint,
-    merge_helper_lane_results,
-    plan_parallel_execution,
-    verify_block_helper_plan_metadata,
-)
-from weall.runtime.helper_certificates import HelperExecutionCertificate
-from weall.runtime.helper_assignment import summarize_assignment_counts
-from weall.runtime.helper_capabilities import summarize_helper_capabilities
-from weall.runtime.helper_capacity import summarize_helper_capacity_usage
-from weall.runtime.helper_audit import (
-    build_lane_audit_plan,
-    evaluate_lane_audit_plan,
-    summarize_lane_audit_results,
-)
-from weall.runtime.helper_reputation import (
-    apply_helper_quarantine_to_lane_plans,
-    summarize_helper_reputation_state,
-    update_helper_reputation_state,
-)
-from weall.runtime.validator_execution_model import (
-    build_validator_execution_manifest,
-    sign_validator_execution_manifest,
-    validator_execution_summary,
 )
 from weall.runtime.reputation_units import (
     REPUTATION_SCALE,
-    account_reputation_units,
-    sync_account_reputation,
-    threshold_to_units,
-    units_to_reputation,
-    units_to_reputation_text,
 )
+from weall.runtime.runtime_authority import effective_bft_enabled
+from weall.runtime.runtime_env import (
+    _env_bool,
+    _env_int,
+    _mode,
+    _safe_int,
+)
+from weall.runtime.runtime_time import _now_ms
 from weall.runtime.sqlite_db import SqliteDB, SqliteLedgerStore, _canon_json
-from weall.runtime.state_hash import compute_state_root
 
 # SqliteLedgerStore is defined in weall.runtime.sqlite_db in this repo layout
-from weall.runtime.system_tx_engine import prune_emitted_system_queue, system_tx_emitter, validate_system_tx_queue_binding
 from weall.runtime.tx_admission import admit_tx
-from weall.runtime.tx_admission_types import TxEnvelope
-from weall.runtime.vrf_sig import make_vrf_record, verify_vrf_record
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
@@ -211,13 +133,19 @@ def _sanitize_mempool_selection_marker(
     base = marker if isinstance(marker, dict) else {}
     selected_tx_ids = base.get("selected_tx_ids") if isinstance(base, dict) else []
     return {
-        "policy": _normalize_mempool_selection_policy(base.get("policy") if isinstance(base, dict) else default_policy),
-        "requested_limit": int((base.get("requested_limit") if isinstance(base, dict) else default_limit) or 0),
+        "policy": _normalize_mempool_selection_policy(
+            base.get("policy") if isinstance(base, dict) else default_policy
+        ),
+        "requested_limit": int(
+            (base.get("requested_limit") if isinstance(base, dict) else default_limit) or 0
+        ),
         "fetched_count": int((base.get("fetched_count") if isinstance(base, dict) else 0) or 0),
         "selected_count": int((base.get("selected_count") if isinstance(base, dict) else 0) or 0),
         "invalid_count": int((base.get("invalid_count") if isinstance(base, dict) else 0) or 0),
         "rejected_count": int((base.get("rejected_count") if isinstance(base, dict) else 0) or 0),
-        "selected_tx_ids": [str(x) for x in list(selected_tx_ids or [])[:64]] if isinstance(selected_tx_ids, list) else [],
+        "selected_tx_ids": [str(x) for x in list(selected_tx_ids or [])[:64]]
+        if isinstance(selected_tx_ids, list)
+        else [],
     }
 
 
@@ -225,7 +153,9 @@ def _normalize_helper_timeout_ms(raw: Any, default: int = 5000) -> int:
     return max(1, _safe_int(raw, default))
 
 
-def _helper_execution_profile(*, helper_mode_enabled: bool, helper_fast_path_enabled: bool, helper_timeout_ms: int) -> Json:
+def _helper_execution_profile(
+    *, helper_mode_enabled: bool, helper_fast_path_enabled: bool, helper_timeout_ms: int
+) -> Json:
     return {
         "helper_mode_enabled": bool(helper_mode_enabled),
         "helper_fast_path_enabled": bool(helper_fast_path_enabled),
@@ -245,7 +175,9 @@ def _sanitize_helper_execution_profile(marker: Any) -> Json:
         "helper_fast_path_enabled": bool(base.get("helper_fast_path_enabled", False)),
         "helper_timeout_ms": int(_normalize_helper_timeout_ms(base.get("helper_timeout_ms"), 5000)),
         "enforce_helper_signature": bool(base.get("enforce_helper_signature", True)),
-        "enforce_helper_certificate_consistency": bool(base.get("enforce_helper_certificate_consistency", True)),
+        "enforce_helper_certificate_consistency": bool(
+            base.get("enforce_helper_certificate_consistency", True)
+        ),
         "enforce_helper_tx_order_hash": bool(base.get("enforce_helper_tx_order_hash", True)),
         "enforce_helper_namespace_hash": bool(base.get("enforce_helper_namespace_hash", True)),
         "enforce_helper_receipts_root": bool(base.get("enforce_helper_receipts_root", True)),
@@ -264,7 +196,9 @@ def _state_meta_view(state: Mapping[str, Any] | Any) -> Mapping[str, Any]:
 
 def _pinned_mempool_selection_policy(state: Mapping[str, Any] | Any, fallback: str) -> str:
     meta = _state_meta_view(state)
-    return _normalize_mempool_selection_policy(meta.get("mempool_selection_policy") or fallback or "canonical")
+    return _normalize_mempool_selection_policy(
+        meta.get("mempool_selection_policy") or fallback or "canonical"
+    )
 
 
 def _genesis_bootstrap_profile_hash(profile: Mapping[str, Any] | Any) -> str:
@@ -273,7 +207,9 @@ def _genesis_bootstrap_profile_hash(profile: Mapping[str, Any] | Any) -> str:
     return hashlib.sha256(canon.encode("utf-8")).hexdigest()
 
 
-def _pinned_helper_execution_profile(state: Mapping[str, Any] | Any, fallback: Mapping[str, Any] | Any) -> Json:
+def _pinned_helper_execution_profile(
+    state: Mapping[str, Any] | Any, fallback: Mapping[str, Any] | Any
+) -> Json:
     meta = _state_meta_view(state)
     marker = meta.get("helper_execution_profile") if isinstance(meta, Mapping) else {}
     if isinstance(marker, Mapping) and marker:
@@ -326,25 +262,9 @@ def _summarize_transition_guardrail_receipts(
     }
 
 
-
-
 def _ensure_parent(path: str) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def _block_hash_from_any(block: Json) -> str:
@@ -373,8 +293,6 @@ class ExecutorMeta:
 
 class ExecutorError(RuntimeError):
     pass
-
-
 
 
 def _resolve_repo_relative_path(raw: str) -> Path:
@@ -419,9 +337,7 @@ def _load_production_genesis_ledger_or_none(*, chain_id: str) -> Json | None:
         raise ExecutorError("production_genesis_ledger_height_not_zero")
 
     manifest_path = str(
-        os.environ.get("WEALL_CHAIN_MANIFEST_PATH")
-        or os.environ.get("WEALL_CHAIN_MANIFEST")
-        or ""
+        os.environ.get("WEALL_CHAIN_MANIFEST_PATH") or os.environ.get("WEALL_CHAIN_MANIFEST") or ""
     ).strip()
     if manifest_path:
         mpath = _resolve_repo_relative_path(manifest_path)
@@ -452,6 +368,7 @@ def _load_production_genesis_ledger_or_none(*, chain_id: str) -> Json | None:
         obj["meta"].setdefault("production_genesis_ledger_path", str(path))
         obj["meta"].setdefault("production_genesis_ledger_loaded", True)
     return obj
+
 
 class WeAllExecutor:
     """WeAll executor using SQLite for persistence (ledger + queues)."""
@@ -555,19 +472,27 @@ class WeAllExecutor:
         st_helper_execution_profile = _sanitize_helper_execution_profile(
             meta.get("helper_execution_profile") or {}
         )
-        st_helper_execution_profile_hash = str(meta.get("helper_execution_profile_hash") or "").strip()
-        st_genesis_bootstrap_profile = meta.get("genesis_bootstrap_profile") if isinstance(meta.get("genesis_bootstrap_profile"), dict) else {}
-        st_recent_block_anchor_activation = _safe_int(meta.get("recent_block_anchor_activation_height"), 0)
-        st_genesis_bootstrap_profile_hash = str(meta.get("genesis_bootstrap_profile_hash") or "").strip()
+        st_helper_execution_profile_hash = str(
+            meta.get("helper_execution_profile_hash") or ""
+        ).strip()
+        st_genesis_bootstrap_profile = (
+            meta.get("genesis_bootstrap_profile")
+            if isinstance(meta.get("genesis_bootstrap_profile"), dict)
+            else {}
+        )
+        st_recent_block_anchor_activation = _safe_int(
+            meta.get("recent_block_anchor_activation_height"), 0
+        )
+        st_genesis_bootstrap_profile_hash = str(
+            meta.get("genesis_bootstrap_profile_hash") or ""
+        ).strip()
         runtime_mempool_selection_policy = _normalize_mempool_selection_policy(
             getattr(self._mempool, "selection_policy", lambda: "canonical")()
         )
         mempool_selection_policy_env_raw = os.environ.get("WEALL_MEMPOOL_SELECTION_POLICY")
         current_mempool_selection_policy = runtime_mempool_selection_policy
         legacy_unpinned_policy_snapshot = (
-            not st_profile_hash
-            and not st_schema_version
-            and not st_tx_index_hash
+            not st_profile_hash and not st_schema_version and not st_tx_index_hash
         )
         legacy_mempool_policy_upgrade = False
         if (
@@ -600,12 +525,16 @@ class WeAllExecutor:
         # compatibility and deterministic replay diagnostics.
         current_helper_execution_profile = self._requested_helper_execution_profile()
         current_genesis_bootstrap_profile = self._current_genesis_bootstrap_profile()
-        current_genesis_bootstrap_profile_hash = _genesis_bootstrap_profile_hash(current_genesis_bootstrap_profile)
+        current_genesis_bootstrap_profile_hash = _genesis_bootstrap_profile_hash(
+            current_genesis_bootstrap_profile
+        )
         if _mode() == "prod" and current_mempool_selection_policy != "canonical":
             raise ExecutorError(
                 f"mempool_selection_policy mismatch: runtime={current_mempool_selection_policy!r} required='canonical'. Refuse to start."
             )
-        current_helper_execution_profile_hash = _helper_execution_profile_hash(current_helper_execution_profile)
+        current_helper_execution_profile_hash = _helper_execution_profile_hash(
+            current_helper_execution_profile
+        )
         expected_profile_hash = PRODUCTION_CONSENSUS_PROFILE.profile_hash()
         if st_protocol_version and st_protocol_version != PROTOCOL_VERSION:
             raise ExecutorError(
@@ -631,27 +560,42 @@ class WeAllExecutor:
             raise ExecutorError(
                 f"max_block_future_drift_ms mismatch: db={st_future_drift_ms!r} binary={MAX_BLOCK_FUTURE_DRIFT_MS!r}. Refuse to start."
             )
-        if st_mempool_selection_policy and st_mempool_selection_policy != current_mempool_selection_policy:
+        if (
+            st_mempool_selection_policy
+            and st_mempool_selection_policy != current_mempool_selection_policy
+        ):
             raise ExecutorError(
                 "mempool_selection_policy mismatch: "
                 f"db={st_mempool_selection_policy!r} executor={current_mempool_selection_policy!r}. Refuse to start."
             )
-        if st_helper_execution_profile_hash and st_helper_execution_profile_hash != current_helper_execution_profile_hash:
+        if (
+            st_helper_execution_profile_hash
+            and st_helper_execution_profile_hash != current_helper_execution_profile_hash
+        ):
             raise ExecutorError(
                 "helper_execution_profile mismatch: "
                 f"db={st_helper_execution_profile_hash!r} executor={current_helper_execution_profile_hash!r}. Refuse to start."
             )
-        if st_helper_execution_profile and st_helper_execution_profile != current_helper_execution_profile:
+        if (
+            st_helper_execution_profile
+            and st_helper_execution_profile != current_helper_execution_profile
+        ):
             raise ExecutorError(
                 "helper_execution_profile mismatch: "
                 f"db={st_helper_execution_profile!r} executor={current_helper_execution_profile!r}. Refuse to start."
             )
-        if st_genesis_bootstrap_profile_hash and st_genesis_bootstrap_profile_hash != current_genesis_bootstrap_profile_hash:
+        if (
+            st_genesis_bootstrap_profile_hash
+            and st_genesis_bootstrap_profile_hash != current_genesis_bootstrap_profile_hash
+        ):
             raise ExecutorError(
                 "genesis_bootstrap_profile mismatch: "
                 f"db={st_genesis_bootstrap_profile_hash!r} executor={current_genesis_bootstrap_profile_hash!r}. Refuse to start."
             )
-        if st_genesis_bootstrap_profile and st_genesis_bootstrap_profile != current_genesis_bootstrap_profile:
+        if (
+            st_genesis_bootstrap_profile
+            and st_genesis_bootstrap_profile != current_genesis_bootstrap_profile
+        ):
             raise ExecutorError(
                 "genesis_bootstrap_profile mismatch: "
                 f"db={st_genesis_bootstrap_profile!r} executor={current_genesis_bootstrap_profile!r}. Refuse to start."
@@ -684,7 +628,9 @@ class WeAllExecutor:
         meta.setdefault("helper_execution_profile_hash", current_helper_execution_profile_hash)
         meta.setdefault("genesis_bootstrap_profile", current_genesis_bootstrap_profile)
         meta.setdefault("genesis_bootstrap_profile_hash", current_genesis_bootstrap_profile_hash)
-        meta.setdefault("recent_block_anchor_activation_height", int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT))
+        meta.setdefault(
+            "recent_block_anchor_activation_height", int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT)
+        )
         meta["startup_clock_sanity_required"] = bool(
             PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
         )
@@ -707,7 +653,9 @@ class WeAllExecutor:
             meta["helper_execution_profile_hash"] = current_helper_execution_profile_hash
             meta["genesis_bootstrap_profile"] = current_genesis_bootstrap_profile
             meta["genesis_bootstrap_profile_hash"] = current_genesis_bootstrap_profile_hash
-            meta.setdefault("recent_block_anchor_activation_height", int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT))
+            meta.setdefault(
+                "recent_block_anchor_activation_height", int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT)
+            )
             self._ledger_store.write(self.state)
 
         wall_now_ms = _now_ms()
@@ -768,9 +716,7 @@ class WeAllExecutor:
             self._helper_lane_journal_dir = helper_lane_dir
         else:
             aux_path = Path(self.aux_db_path)
-            self._helper_lane_journal_dir = str(
-                aux_path.parent / f"{aux_path.stem}_helper_lanes"
-            )
+            self._helper_lane_journal_dir = str(aux_path.parent / f"{aux_path.stem}_helper_lanes")
         Path(self._helper_lane_journal_dir).mkdir(parents=True, exist_ok=True)
         self._restore_bft_restart_hints()
 
@@ -842,7 +788,9 @@ class WeAllExecutor:
         }
         meta_root = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
         persisted_selection_diag = (
-            meta_root.get("mempool_selection_last") if isinstance(meta_root.get("mempool_selection_last"), dict) else None
+            meta_root.get("mempool_selection_last")
+            if isinstance(meta_root.get("mempool_selection_last"), dict)
+            else None
         )
         if isinstance(persisted_selection_diag, dict):
             restored_diag = _sanitize_mempool_selection_marker(
@@ -970,59 +918,72 @@ class WeAllExecutor:
 
     def _runtime_meta(self) -> Json:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._runtime_meta(self)
 
     def _persist_runtime_meta(self) -> None:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._persist_runtime_meta(self)
 
     def _evaluate_node_lifecycle_status(self):
         from weall.runtime import runtime_posture as _impl
-        return _impl._evaluate_node_lifecycle_status(self)
 
+        return _impl._evaluate_node_lifecycle_status(self)
 
     def _apply_node_lifecycle_runtime_overrides(self) -> None:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._apply_node_lifecycle_runtime_overrides(self)
 
     def _helper_mode_enabled_runtime(self) -> bool:
         from weall.runtime import helper_execution_runtime as _impl
+
         return _impl._helper_mode_enabled_runtime(self)
 
     def _requested_helper_execution_profile(self) -> Json:
         from weall.runtime import helper_execution_runtime as _impl
+
         return _impl._requested_helper_execution_profile(self)
 
     def _effective_helper_execution_profile(self) -> Json:
         from weall.runtime import helper_execution_runtime as _impl
+
         return _impl._effective_helper_execution_profile(self)
 
     def _persist_node_lifecycle_meta(self) -> None:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._persist_node_lifecycle_meta(self)
 
     def _enforce_node_lifecycle_startup(self) -> None:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._enforce_node_lifecycle_startup(self)
 
     def _init_validator_runtime_posture(self) -> None:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._init_validator_runtime_posture(self)
 
     def mark_clean_shutdown(self) -> None:
         from weall.runtime import runtime_posture as _impl
+
         return _impl.mark_clean_shutdown(self)
 
     def _pytest_local_prod_status_compat_allows_requested_signing(self) -> bool:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._pytest_local_prod_status_compat_allows_requested_signing(self)
 
     def _effective_validator_signing_state(self) -> tuple[bool, str]:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._effective_validator_signing_state(self)
 
     def node_lifecycle_status(self) -> Json:
         from weall.runtime import runtime_posture as _impl
+
         return _impl.node_lifecycle_status(self)
 
     def validator_signing_enabled(self) -> bool:
@@ -1034,74 +995,94 @@ class WeAllExecutor:
         # _validator_signing_permitted(), which has the narrow pytest-local
         # compatibility override below.
         from weall.runtime import runtime_posture as _impl
+
         return _impl.validator_signing_enabled(self)
 
     def _effective_signing_block_reason(self) -> str:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._effective_signing_block_reason(self)
 
     def _pytest_local_missing_vrf_allowed(self) -> bool:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._pytest_local_missing_vrf_allowed(self)
 
     def _explicit_validator_signing_override(self) -> bool:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._explicit_validator_signing_override(self)
 
     def _validator_signing_permitted(self) -> bool:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._validator_signing_permitted(self)
 
     def observer_mode(self) -> bool:
         from weall.runtime import runtime_posture as _impl
+
         return _impl.observer_mode(self)
 
     def _prod_observer_block_production_reason(self) -> str:
         from weall.runtime import runtime_posture as _impl
+
         return _impl._prod_observer_block_production_reason(self)
 
     def _restore_bft_restart_hints(self) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._restore_bft_restart_hints(self)
 
     def _bft_record_event(self, event: str, **payload: Any) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_record_event(self, event, **payload)
 
     def _persist_pending_bft_artifact(self, *, kind: str, block_id: str, payload: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
-        return _impl._persist_pending_bft_artifact(self, kind=kind, block_id=block_id, payload=payload)
+
+        return _impl._persist_pending_bft_artifact(
+            self, kind=kind, block_id=block_id, payload=payload
+        )
 
     def _delete_pending_bft_artifact(self, *, kind: str, block_id: str) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._delete_pending_bft_artifact(self, kind=kind, block_id=block_id)
 
     def _restore_pending_bft_frontier(self) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._restore_pending_bft_frontier(self)
 
     def _bft_outbound_key(self, kind: str, payload: Json) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_outbound_key(self, kind, payload)
 
     def _bft_enqueue_outbound(self, kind: str, payload: Json) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_enqueue_outbound(self, kind, payload)
 
     def bft_mark_outbound_sent(self, kind: str, payload: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_mark_outbound_sent(self, kind, payload)
 
     def bft_pending_outbound_messages(self) -> list[Json]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_pending_outbound_messages(self)
 
     def _current_genesis_bootstrap_profile(self) -> Json:
         from weall.runtime import genesis_bootstrap as _impl
+
         return _impl._current_genesis_bootstrap_profile(self)
 
     def _initial_state(self) -> Json:
         from weall.runtime import genesis_bootstrap as _impl
+
         return _impl._initial_state(self)
 
     # ----------------------------
@@ -1111,10 +1092,12 @@ class WeAllExecutor:
     @staticmethod
     def _mk_key_id(pubkey: str) -> str:
         from weall.runtime import genesis_bootstrap as _impl
+
         return _impl._mk_key_id(pubkey)
 
     def _apply_genesis_bootstrap_live(self, state: Json) -> None:
         from weall.runtime import genesis_bootstrap as _impl
+
         return _impl._apply_genesis_bootstrap_live(self, state)
 
     # ----------------------------
@@ -1176,35 +1159,43 @@ class WeAllExecutor:
     @property
     def mempool(self) -> PersistentMempool:
         from weall.runtime import diagnostics as _impl
+
         return _impl.mempool(self)
 
     @property
     def attestation_pool(self) -> PersistentAttestationPool:
         from weall.runtime import diagnostics as _impl
+
         return _impl.attestation_pool(self)
 
     def read_mempool(self, *, limit: int = 10_000) -> list[Json]:
         from weall.runtime import diagnostics as _impl
+
         return _impl.read_mempool(self, limit=limit)
 
     def mempool_selection_diagnostics(self, *, preview_limit: int = 10) -> Json:
         from weall.runtime import diagnostics as _impl
+
         return _impl.mempool_selection_diagnostics(self, preview_limit=preview_limit)
 
     def helper_execution_diagnostics(self) -> Json:
         from weall.runtime import diagnostics as _impl
+
         return _impl.helper_execution_diagnostics(self)
 
     def transition_guardrail_diagnostics(self) -> Json:
         from weall.runtime import diagnostics as _impl
+
         return _impl.transition_guardrail_diagnostics(self)
 
     def get_tx_status(self, tx_id: str) -> dict[str, object]:
         from weall.runtime import diagnostics as _impl
+
         return _impl.get_tx_status(self, tx_id)
 
     def read_state(self) -> Json:
         from weall.runtime import diagnostics as _impl
+
         return _impl.read_state(self)
 
     # ----------------------------
@@ -1213,6 +1204,7 @@ class WeAllExecutor:
 
     def tx_index_hash(self) -> str:
         from weall.runtime import diagnostics as _impl
+
         return _impl.tx_index_hash(self)
 
     # ----------------------------
@@ -1221,6 +1213,7 @@ class WeAllExecutor:
 
     def sqlite_maintenance_tick(self) -> None:
         from weall.runtime import diagnostics as _impl
+
         return _impl.sqlite_maintenance_tick(self)
 
     def _ledger_with_pending_nonce_cursor(self, *, signer: str, pending_nonce: int) -> LedgerView:
@@ -1247,7 +1240,11 @@ class WeAllExecutor:
 
     def _submit_context_for_ingress(self, ingress: str = "local_fixture") -> str:
         ingress_mode = str(ingress or "local_fixture").strip().lower()
-        context = "mempool" if ingress_mode in {"", "local", "local_fixture", "fixture", "test_fixture"} else ingress_mode
+        context = (
+            "mempool"
+            if ingress_mode in {"", "local", "local_fixture", "fixture", "test_fixture"}
+            else ingress_mode
+        )
         if context not in {"mempool", "http", "gossip", "peer", "operator"}:
             context = "operator"
         if context == "peer":
@@ -1329,7 +1326,9 @@ class WeAllExecutor:
                 start = time.perf_counter_ns()
                 if signer not in chain_nonces:
                     acct = (ledger.accounts or {}).get(signer)
-                    chain_nonces[signer] = int(acct.get("nonce") or 0) if isinstance(acct, dict) else 0
+                    chain_nonces[signer] = (
+                        int(acct.get("nonce") or 0) if isinstance(acct, dict) else 0
+                    )
                 chain_nonce = int(chain_nonces.get(signer, 0))
                 if signer not in pending_cursors:
                     pending_cursors[signer] = self._pending_nonce_cursor_for_submit(
@@ -1341,14 +1340,23 @@ class WeAllExecutor:
                 if timings is not None:
                     self._add_submit_batch_timing(timings, "tx_nonce_check_wall_ms", start)
 
-            verdict = admit_tx(tx=env, ledger=admission_ledger, canon=self.tx_index, context=context)
-            if not verdict.ok and verdict.code == "bad_nonce" and context in {"mempool", "http", "gossip", "operator"} and signer:
+            verdict = admit_tx(
+                tx=env, ledger=admission_ledger, canon=self.tx_index, context=context
+            )
+            if (
+                not verdict.ok
+                and verdict.code == "bad_nonce"
+                and context in {"mempool", "http", "gossip", "operator"}
+                and signer
+            ):
                 start = time.perf_counter_ns()
                 chain_nonce = int(chain_nonces.get(signer, 0))
                 pending_cursor = int(pending_cursors.get(signer, chain_nonce))
                 if pending_cursor > chain_nonce and wanted_nonce == pending_cursor + 1:
                     pending_ledger = ledger.with_account_nonce(signer, pending_cursor)
-                    verdict = admit_tx(tx=env, ledger=pending_ledger, canon=self.tx_index, context=context)
+                    verdict = admit_tx(
+                        tx=env, ledger=pending_ledger, canon=self.tx_index, context=context
+                    )
                 if timings is not None:
                     self._add_submit_batch_timing(timings, "tx_nonce_check_wall_ms", start)
 
@@ -1371,7 +1379,9 @@ class WeAllExecutor:
             admitted_envs.append(env)
             if signer and wanted_nonce > 0:
                 chain_nonce = int(chain_nonces.get(signer, 0))
-                pending_cursors[signer] = max(int(pending_cursors.get(signer, chain_nonce)), int(wanted_nonce))
+                pending_cursors[signer] = max(
+                    int(pending_cursors.get(signer, chain_nonce)), int(wanted_nonce)
+                )
 
         if admitted_envs:
             add_many = getattr(self._mempool, "add_many", None)
@@ -1386,9 +1396,15 @@ class WeAllExecutor:
                     self._mempool.add(env, current_height=current_height) for env in admitted_envs
                 ]
             mempool_timings: dict[str, Any] | None = None
-            for result_index, mempool_result in zip(admitted_result_indexes, mempool_results):
+            for result_index, mempool_result in zip(
+                admitted_result_indexes, mempool_results, strict=True
+            ):
                 results[result_index] = dict(mempool_result)
-                if mempool_timings is None and isinstance(mempool_result, dict) and isinstance(mempool_result.get("timings_ms"), dict):
+                if (
+                    mempool_timings is None
+                    and isinstance(mempool_result, dict)
+                    and isinstance(mempool_result.get("timings_ms"), dict)
+                ):
                     mempool_timings = mempool_result.get("timings_ms")
             if timings is not None and isinstance(mempool_timings, dict):
                 for key in timings:
@@ -1396,13 +1412,17 @@ class WeAllExecutor:
                         continue
                     current = timings.get(key, 0.0)
                     incoming = mempool_timings.get(key, 0.0)
-                    if not isinstance(current, (int, float)) or not isinstance(incoming, (int, float)):
+                    if not isinstance(current, (int, float)) or not isinstance(
+                        incoming, (int, float)
+                    ):
                         continue
                     timings[key] = round(current + incoming, 3)
 
         if timings is not None:
             timings["tx_submit_total_wall_ms"] = self._batch_timing_ms(total_start)
-            timings = {k: round(v, 3) if isinstance(v, (int, float)) else v for k, v in timings.items()}
+            timings = {
+                k: round(v, 3) if isinstance(v, (int, float)) else v for k, v in timings.items()
+            }
             for result in results:
                 result["timings_ms"] = dict(timings)
         return results
@@ -1422,7 +1442,11 @@ class WeAllExecutor:
         state = self.read_state()
         ledger = LedgerView.from_ledger(state)
         verdict = admit_tx(tx=env, ledger=ledger, canon=self.tx_index, context=context)
-        if not verdict.ok and verdict.code == "bad_nonce" and context in {"mempool", "http", "gossip", "operator"}:
+        if (
+            not verdict.ok
+            and verdict.code == "bad_nonce"
+            and context in {"mempool", "http", "gossip", "operator"}
+        ):
             signer = str(env.get("signer") or "").strip()
             try:
                 wanted_nonce = int(env.get("nonce") or 0)
@@ -1430,12 +1454,16 @@ class WeAllExecutor:
                 wanted_nonce = 0
             acct = (ledger.accounts or {}).get(signer) if signer else None
             chain_nonce = int(acct.get("nonce") or 0) if isinstance(acct, dict) else 0
-            pending_cursor = self._pending_nonce_cursor_for_submit(signer=signer, chain_nonce=chain_nonce)
+            pending_cursor = self._pending_nonce_cursor_for_submit(
+                signer=signer, chain_nonce=chain_nonce
+            )
             if pending_cursor > chain_nonce and wanted_nonce == pending_cursor + 1:
                 pending_ledger = self._ledger_with_pending_nonce_cursor(
                     signer=signer, pending_nonce=pending_cursor
                 )
-                verdict = admit_tx(tx=env, ledger=pending_ledger, canon=self.tx_index, context=context)
+                verdict = admit_tx(
+                    tx=env, ledger=pending_ledger, canon=self.tx_index, context=context
+                )
 
         if not verdict.ok:
             return {
@@ -1463,7 +1491,11 @@ class WeAllExecutor:
 
         tx_type = str(env.get("tx_type") or "").strip().upper()
         if tx_type != "BLOCK_ATTEST":
-            return {"ok": False, "error": "invalid_tx_type", "reason": "attestation_requires_block_attest"}
+            return {
+                "ok": False,
+                "error": "invalid_tx_type",
+                "reason": "attestation_requires_block_attest",
+            }
 
         signer = str(env.get("signer") or "").strip()
         payload = env.get("payload") if isinstance(env.get("payload"), dict) else {}
@@ -1491,10 +1523,12 @@ class WeAllExecutor:
 
     def _helper_fast_path_enabled(self) -> bool:
         from weall.runtime import helper_execution_runtime as _impl
+
         return _impl._helper_fast_path_enabled(self)
 
     def _helper_lane_journal_path(self, *, block_height: int) -> str:
         from weall.runtime import helper_execution_runtime as _impl
+
         return _impl._helper_lane_journal_path(self, block_height=block_height)
 
     def _helper_dispatch_context(
@@ -1513,7 +1547,21 @@ class WeAllExecutor:
         plan_id: str = "",
     ) -> HelperDispatchContext:
         from weall.runtime import helper_execution_runtime as _impl
-        return _impl._helper_dispatch_context(self, block_height=block_height, manifest_hash=manifest_hash, coordinator_pubkey=coordinator_pubkey, manifest_signature=manifest_signature, manifest_signed=manifest_signed, manifest_signature_required=manifest_signature_required, manifest_payload=manifest_payload, strict_helper_certificate_consistency=strict_helper_certificate_consistency, strict_helper_receipts_root=strict_helper_receipts_root, strict_helper_state_delta_hash=strict_helper_state_delta_hash, plan_id=plan_id)
+
+        return _impl._helper_dispatch_context(
+            self,
+            block_height=block_height,
+            manifest_hash=manifest_hash,
+            coordinator_pubkey=coordinator_pubkey,
+            manifest_signature=manifest_signature,
+            manifest_signed=manifest_signed,
+            manifest_signature_required=manifest_signature_required,
+            manifest_payload=manifest_payload,
+            strict_helper_certificate_consistency=strict_helper_certificate_consistency,
+            strict_helper_receipts_root=strict_helper_receipts_root,
+            strict_helper_state_delta_hash=strict_helper_state_delta_hash,
+            plan_id=plan_id,
+        )
 
     def _build_helper_execution_metadata(
         self,
@@ -1527,7 +1575,17 @@ class WeAllExecutor:
         helper_state_deltas_by_lane: dict[str, list[Json]] | None = None,
     ) -> Json:
         from weall.runtime import helper_execution_runtime as _impl
-        return _impl._build_helper_execution_metadata(self, applied_envs=applied_envs, receipts=receipts, block_height=block_height, started_ms=started_ms, helper_certificates=helper_certificates, helper_receipts_by_lane=helper_receipts_by_lane, helper_state_deltas_by_lane=helper_state_deltas_by_lane)
+
+        return _impl._build_helper_execution_metadata(
+            self,
+            applied_envs=applied_envs,
+            receipts=receipts,
+            block_height=block_height,
+            started_ms=started_ms,
+            helper_certificates=helper_certificates,
+            helper_receipts_by_lane=helper_receipts_by_lane,
+            helper_state_deltas_by_lane=helper_state_deltas_by_lane,
+        )
 
     def produce_block(
         self,
@@ -1536,6 +1594,7 @@ class WeAllExecutor:
         allow_empty: bool | None = None,
     ) -> ExecutorMeta:
         from weall.runtime import block_builder as _impl
+
         return _impl.produce_block(self, max_txs=max_txs, allow_empty=allow_empty)
 
     # ----------------------------
@@ -1552,7 +1611,15 @@ class WeAllExecutor:
         helper_receipts_by_lane: dict[str, list[Json]] | None = None,
     ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
         from weall.runtime import block_builder as _impl
-        return _impl.build_block_candidate(self, max_txs=max_txs, allow_empty=allow_empty, force_ts_ms=force_ts_ms, helper_certificates=helper_certificates, helper_receipts_by_lane=helper_receipts_by_lane)
+
+        return _impl.build_block_candidate(
+            self,
+            max_txs=max_txs,
+            allow_empty=allow_empty,
+            force_ts_ms=force_ts_ms,
+            helper_certificates=helper_certificates,
+            helper_receipts_by_lane=helper_receipts_by_lane,
+        )
 
     # ----------------------------
     # Commit candidate
@@ -1567,7 +1634,10 @@ class WeAllExecutor:
         invalid_ids: list[str],
     ) -> ExecutorMeta:
         from weall.runtime import block_commit as _impl
-        return _impl.commit_block_candidate(self, block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids)
+
+        return _impl.commit_block_candidate(
+            self, block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids
+        )
 
     # ----------------------------
     # Apply a received block (network / sync)
@@ -1575,6 +1645,7 @@ class WeAllExecutor:
 
     def apply_block(self, block: Json) -> ExecutorMeta:
         from weall.runtime import block_replay as _impl
+
         return _impl.apply_block(self, block)
 
     # ----------------------------
@@ -1583,106 +1654,132 @@ class WeAllExecutor:
 
     def _votecheck_cache_get(self, block_hash: str) -> bool | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._votecheck_cache_get(self, block_hash)
 
     def _votecheck_cache_put(self, block_hash: str, ok: bool) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._votecheck_cache_put(self, block_hash, ok)
 
     def _proposal_votecheck_budget_ok(self, peer_id: str) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._proposal_votecheck_budget_ok(self, peer_id)
 
     def _spec_exec_paths_for_slot(self, slot: str) -> tuple[str, str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._spec_exec_paths_for_slot(self, slot)
 
     def _make_spec_exec_slot(self) -> tuple[str, str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._make_spec_exec_slot(self)
 
     def _acquire_spec_exec_slot(self) -> tuple[str, str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._acquire_spec_exec_slot(self)
 
     def _release_spec_exec_slot(self, slot: tuple[str, str]) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._release_spec_exec_slot(self, slot)
 
     def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._reset_spec_exec_slot(self, slot)
 
     def _proposal_votecheck_static_ok(self, block: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._proposal_votecheck_static_ok(self, block)
 
     def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._validate_remote_proposal_for_vote(self, block)
 
     def _ensure_recent_bft_artifact_caches(self) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._ensure_recent_bft_artifact_caches(self)
 
     def _bft_sender_budget_key(self, artifact: Json) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_sender_budget_key(self, artifact)
 
     def _consume_bft_sender_budget(self, artifact: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._consume_bft_sender_budget(self, artifact)
 
     def _remember_recent_bft_proposal(self, proposal: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._remember_recent_bft_proposal(self, proposal)
 
     def _recent_bft_qc_key(self, qcj: Json) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._recent_bft_qc_key(self, qcj)
 
     def _has_recent_bft_qc(self, qcj: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._has_recent_bft_qc(self, qcj)
 
     def _record_recent_bft_qc(self, qcj: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._record_recent_bft_qc(self, qcj)
 
     def _remember_recent_bft_qc(self, qcj: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._remember_recent_bft_qc(self, qcj)
 
     def _remember_recent_bft_vote(self, votej: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._remember_recent_bft_vote(self, votej)
 
     def _remember_recent_bft_timeout(self, timeoutj: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._remember_recent_bft_timeout(self, timeoutj)
 
     def _bft_artifact_shape_fast_fail(self, kind: str, payload: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_artifact_shape_fast_fail(self, kind, payload)
 
     def bft_on_proposal(self, proposal: Json) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_on_proposal(self, proposal)
 
     def bft_on_vote(self, vote: Json) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_on_vote(self, vote)
 
     def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_on_qc(self, qcj)
 
     def bft_on_timeout(self, timeoutj: Json) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_on_timeout(self, timeoutj)
 
     def bft_drive_timeouts(self, now_ms: int) -> list[Json]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_drive_timeouts(self, now_ms)
 
     # ----------------------------
@@ -1691,22 +1788,27 @@ class WeAllExecutor:
 
     def _active_validators(self) -> list[str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._active_validators(self)
 
     def _validator_pubkeys(self) -> dict[str, str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._validator_pubkeys(self)
 
     def _current_validator_epoch(self) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._current_validator_epoch(self)
 
     def _current_validator_set_hash(self) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._current_validator_set_hash(self)
 
     def _current_consensus_phase(self) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._current_consensus_phase(self)
 
     def _bft_phase_allows_artifact_processing(self) -> bool:
@@ -1714,30 +1816,37 @@ class WeAllExecutor:
         # explicit committed bootstrap phases in production suppress vote/timeout/QC
         # processing. Non-production modes retain their historical behavior.
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_phase_allows_artifact_processing(self)
 
     def _pending_consensus_phase(self) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._pending_consensus_phase(self)
 
     def _bft_payload_phase_matches_current_security_model(self, payload: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_payload_phase_matches_current_security_model(self, payload)
 
     def _bft_payload_phase_is_cache_compatible(self, payload: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_payload_phase_is_cache_compatible(self, payload)
 
     def _validator_epoch(self) -> tuple[int, str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._validator_epoch(self)
 
     def _bft_strict_epoch_binding_enabled(self) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_strict_epoch_binding_enabled(self)
 
     def _bft_epoch_binding_matches(self, payload: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_epoch_binding_matches(self, payload)
 
     def _prune_pending_bft_artifacts_on_local_validator_transition(
@@ -1747,53 +1856,74 @@ class WeAllExecutor:
         previous_set_hash: str,
     ) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
-        return _impl._prune_pending_bft_artifacts_on_local_validator_transition(self, previous_epoch=previous_epoch, previous_set_hash=previous_set_hash)
+
+        return _impl._prune_pending_bft_artifacts_on_local_validator_transition(
+            self, previous_epoch=previous_epoch, previous_set_hash=previous_set_hash
+        )
 
     def _local_validator_account(self) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._local_validator_account(self)
 
     def _local_validator_identity(self) -> tuple[str, str, str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._local_validator_identity(self)
 
     def _cache_known_block_hash(self, block_id: str, block_hash: str) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._cache_known_block_hash(self, block_id, block_hash)
 
     def _lookup_committed_block_hash_index(self, block_id: str) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._lookup_committed_block_hash_index(self, block_id)
 
     def _lookup_committed_block_id_by_hash(self, block_hash: str) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._lookup_committed_block_id_by_hash(self, block_hash)
 
     def _known_block_hash_for_id(self, block_id: str, *, include_qc_cache: bool = False) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._known_block_hash_for_id(self, block_id, include_qc_cache=include_qc_cache)
 
     def _known_block_id_for_hash(self, block_hash: str) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._known_block_id_for_hash(self, block_hash)
 
     def _is_conflicted_block_id(self, block_id: str) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._is_conflicted_block_id(self, block_id)
 
     def _is_conflicted_block_hash(self, block_hash: str) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._is_conflicted_block_hash(self, block_hash)
 
     def _drop_pending_candidate_artifacts(self, block_id: str) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._drop_pending_candidate_artifacts(self, block_id)
 
     def _mark_block_id_conflict(
         self, *, block_id: str, known_hash: str, new_hash: str, source: str, parent_id: str = ""
     ) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
-        return _impl._mark_block_id_conflict(self, block_id=block_id, known_hash=known_hash, new_hash=new_hash, source=source, parent_id=parent_id)
+
+        return _impl._mark_block_id_conflict(
+            self,
+            block_id=block_id,
+            known_hash=known_hash,
+            new_hash=new_hash,
+            source=source,
+            parent_id=parent_id,
+        )
 
     def _mark_block_hash_conflict(
         self,
@@ -1805,258 +1935,328 @@ class WeAllExecutor:
         parent_id: str = "",
     ) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
-        return _impl._mark_block_hash_conflict(self, block_hash=block_hash, known_block_id=known_block_id, new_block_id=new_block_id, source=source, parent_id=parent_id)
+
+        return _impl._mark_block_hash_conflict(
+            self,
+            block_hash=block_hash,
+            known_block_id=known_block_id,
+            new_block_id=new_block_id,
+            source=source,
+            parent_id=parent_id,
+        )
 
     def _qc_identity_conflicts(self, qcj: Json, *, source: str = "qc") -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._qc_identity_conflicts(self, qcj, source=source)
 
     def _block_identity_conflicts(self, block: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._block_identity_conflicts(self, block)
 
     def _block_height_hint(self, block: Json) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._block_height_hint(self, block)
 
     def _has_local_block(self, block_id: str) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._has_local_block(self, block_id)
 
     def _index_pending_remote_block(self, block: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._index_pending_remote_block(self, block)
 
     def _index_quarantined_remote_block(self, block: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._index_quarantined_remote_block(self, block)
 
     def _quarantine_remote_block(self, block: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._quarantine_remote_block(self, block)
 
     def _drop_quarantined_remote_artifacts(self, block_id: str) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._drop_quarantined_remote_artifacts(self, block_id)
 
     def _put_pending_remote_block(self, *, block_id: str, block: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._put_pending_remote_block(self, block_id=block_id, block=block)
 
     def _promote_quarantined_remote_block(
         self, block_id: str, *, block: Json | None = None
     ) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._promote_quarantined_remote_block(self, block_id, block=block)
 
     def _index_pending_candidate(self, block: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._index_pending_candidate(self, block)
 
     def _index_pending_missing_qc(self, qcj: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._index_pending_missing_qc(self, qcj)
 
     def _put_pending_missing_qc(self, qcj: Json) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._put_pending_missing_qc(self, qcj)
 
     def _drop_pending_missing_qc_aliases(
         self, *, block_id: str = "", qcj: Json | None = None
     ) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._drop_pending_missing_qc_aliases(self, block_id=block_id, qcj=qcj)
 
     def _remove_pending_missing_qc(self, *, block_id: str) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._remove_pending_missing_qc(self, block_id=block_id)
 
     def _pending_missing_qc_json(self, *, block_id: str = "", block_hash: str = "") -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._pending_missing_qc_json(self, block_id=block_id, block_hash=block_hash)
 
     def _pending_missing_qc_entries(self) -> OrderedDict[str, Json]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._pending_missing_qc_entries(self)
 
     def _drop_pending_hash_aliases(self, *, block_id: str, block: Json | None = None) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._drop_pending_hash_aliases(self, block_id=block_id, block=block)
 
     def _pending_block_identity_tuple(self, block_id: str) -> tuple[int, str, str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._pending_block_identity_tuple(self, block_id)
 
     def _ordered_pending_block_ids(self) -> list[str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._ordered_pending_block_ids(self)
 
     def _drop_pending_remote_artifacts(self, block_id: str) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._drop_pending_remote_artifacts(self, block_id)
 
     def _bft_speculative_blocks_map(self) -> dict[str, Json]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_speculative_blocks_map(self)
 
     def _bft_pending_block_json(self, block_id: str) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_pending_block_json(self, block_id)
 
     def _bft_pending_block_json_by_hash(self, block_hash: str) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_pending_block_json_by_hash(self, block_hash)
 
     def _resolve_pending_block_identity(
         self, *, block_id: str = "", block_hash: str = ""
     ) -> tuple[str, Json | None]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._resolve_pending_block_identity(self, block_id=block_id, block_hash=block_hash)
 
     def _bft_pending_artifact_matches_current_epoch(self, payload: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_pending_artifact_matches_current_epoch(self, payload)
 
     def _prune_pending_bft_artifacts(self) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._prune_pending_bft_artifacts(self)
 
     def _bft_block_is_applyable_finalized_descendant(
         self, block: Json, finalized_block_id: str
     ) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_block_is_applyable_finalized_descendant(self, block, finalized_block_id)
 
     def _bft_parent_ready_for_apply(self, block: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_parent_ready_for_apply(self, block)
 
     def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_try_apply_pending_remote_blocks(self)
 
     def _bft_try_apply_pending_remote_blocks_followup(
         self, *, max_extra: int
     ) -> list[ExecutorMeta]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_try_apply_pending_remote_blocks_followup(self, max_extra=max_extra)
 
     def _committed_chain_recent_timestamps_ms(self, *, limit: int = 11) -> list[int]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._committed_chain_recent_timestamps_ms(self, limit=limit)
 
     def committed_chain_median_time_past_ms(self, *, limit: int = 11) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.committed_chain_median_time_past_ms(self, limit=limit)
 
     def chain_time_floor_ms(self) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.chain_time_floor_ms(self)
 
     def bft_diagnostics(self) -> Json:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_diagnostics(self)
 
     def bft_cache_remote_block(self, block_json: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_cache_remote_block(self, block_json)
 
     def _ensure_pending_fetch_budgets(self) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._ensure_pending_fetch_budgets(self)
 
     def _bounded_fetch_request_descriptors(self, descriptors: list[Json]) -> list[Json]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bounded_fetch_request_descriptors(self, descriptors)
 
     def bft_pending_fetch_request_descriptors(self) -> list[Json]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_pending_fetch_request_descriptors(self)
 
     def _resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._resolve_fetch_request_descriptor(self, desc)
 
     def bft_resolved_pending_fetch_request_descriptors(self) -> list[Json]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_resolved_pending_fetch_request_descriptors(self)
 
     def bft_pending_fetch_requests(self) -> list[str]:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_pending_fetch_requests(self)
 
     def bft_resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_resolve_fetch_request_descriptor(self, desc)
 
     def bft_recent_rejection_summary(self, *, limit: int = 25) -> Json:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_recent_rejection_summary(self, limit=limit)
 
     def bft_current_view(self) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_current_view(self)
 
     def bft_current_validator_epoch(self) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_current_validator_epoch(self)
 
     def bft_current_validator_set_hash(self) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_current_validator_set_hash(self)
 
     def bft_set_view(self, view: int) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_set_view(self, view)
 
     def _prune_bft_liveness_caches_for_current_epoch(self) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._prune_bft_liveness_caches_for_current_epoch(self)
 
     def _persist_bft_state(self) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._persist_bft_state(self)
 
     def bft_verify_qc_json(self, qcj: Json) -> QuorumCert | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_verify_qc_json(self, qcj)
 
     def bft_handle_qc(self, qcj: Json) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_handle_qc(self, qcj)
 
     def _bft_best_justify_qc_json(self) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl._bft_best_justify_qc_json(self)
 
     def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_leader_propose(self, max_txs=max_txs)
 
     def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_handle_vote(self, vote_json)
 
     def bft_commit_if_ready(self, qc: QuorumCert) -> ExecutorMeta | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_commit_if_ready(self, qc)
 
     def bft_make_vote_for_block(
         self, *, view: int, block_id: str, block_hash: str, parent_id: str
     ) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
-        return _impl.bft_make_vote_for_block(self, view=view, block_id=block_id, block_hash=block_hash, parent_id=parent_id)
+
+        return _impl.bft_make_vote_for_block(
+            self, view=view, block_id=block_id, block_hash=block_hash, parent_id=parent_id
+        )
 
     def bft_make_timeout(self, *, view: int) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_make_timeout(self, view=view)
 
     def bft_handle_timeout(self, timeout_json: Json) -> int | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_handle_timeout(self, timeout_json)
 
     def bft_timeout_check(self) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
+
         return _impl.bft_timeout_check(self)
 
     # ----------------------------
@@ -2447,3 +2647,132 @@ class WeAllExecutor:
         )
 
 
+# Compatibility facade for lazily imported executor split modules. Ruff cannot
+# see these dynamic dependencies and previously removed the corresponding
+# re-export-only imports. Resolve them on demand while keeping reviewed executor
+# implementation line locations stable.
+_EXECUTOR_COMPATIBILITY_GROUPS: dict[str, tuple[str, ...]] = {
+    "weall.ledger.roles_schema": ("ensure_roles_schema",),
+    "weall.runtime.bft_hotstuff": (
+        "BFT_MIN_VALIDATORS",
+        "BftTimeout",
+        "BftVote",
+        "CONSENSUS_PHASE_BFT_ACTIVE",
+        "canonical_proposal_message",
+        "canonical_timeout_message",
+        "canonical_vote_message",
+        "is_descendant",
+        "leader_for_view",
+        "normalize_consensus_phase",
+        "normalize_validators",
+        "qc_from_json",
+        "verify_proposal_json",
+        "verify_qc",
+    ),
+    "weall.runtime.block_admission": ("admit_block_txs",),
+    "weall.runtime.block_hash": (
+        "compute_block_hash",
+        "compute_helper_execution_root",
+        "compute_receipts_root",
+        "compute_recent_block_anchor",
+        "make_block_header",
+        "recent_block_anchor_required_for_height",
+        "recent_block_ids_from_state",
+    ),
+    "weall.runtime.block_id": ("compute_block_id",),
+    "weall.runtime.bootstrap_audit": ("record_bootstrap_tier2_grant",),
+    "weall.runtime.chain_manifest": ("load_chain_manifest",),
+    "weall.runtime.constitutional_clock": (
+        "commit_clock_policy_to_state",
+        "expected_block_time_ms",
+        "is_too_early",
+        "policy_from_manifest",
+        "policy_to_json",
+    ),
+    "weall.runtime.domain_apply": ("ApplyError", "apply_tx_atomic_meta"),
+    "weall.runtime.failpoints": ("maybe_trigger_failpoint",),
+    "weall.runtime.helper_assignment": ("summarize_assignment_counts",),
+    "weall.runtime.helper_audit": (
+        "build_lane_audit_plan",
+        "evaluate_lane_audit_plan",
+        "summarize_lane_audit_results",
+    ),
+    "weall.runtime.helper_capabilities": ("summarize_helper_capabilities",),
+    "weall.runtime.helper_capacity": ("summarize_helper_capacity_usage",),
+    "weall.runtime.helper_dispatch": ("HelperCertificateStore",),
+    "weall.runtime.helper_lane_journal": ("HelperLaneJournal",),
+    "weall.runtime.helper_reputation": (
+        "apply_helper_quarantine_to_lane_plans",
+        "summarize_helper_reputation_state",
+        "update_helper_reputation_state",
+    ),
+    "weall.runtime.mempool": ("compute_tx_id",),
+    "weall.runtime.node_lifecycle": ("evaluate_node_lifecycle_status",),
+    "weall.runtime.node_runtime_config": ("PRODUCTION_SERVICE",),
+    "weall.runtime.poh.tier2_scheduler": ("schedule_poh_tier2_system_txs",),
+    "weall.runtime.parallel_execution": (
+        "canonical_lane_plan_fingerprint",
+        "merge_helper_lane_results",
+        "plan_parallel_execution",
+        "verify_block_helper_plan_metadata",
+    ),
+    "weall.runtime.protocol_profile": (
+        "GENESIS_CREATED_MS",
+        "runtime_mode",
+        "runtime_vrf_required",
+    ),
+    "weall.runtime.reputation_units": (
+        "account_reputation_units",
+        "sync_account_reputation",
+        "threshold_to_units",
+        "units_to_reputation_text",
+    ),
+    "weall.runtime.runtime_env": (
+        "_bounded_put",
+        "_consensus_fail_closed",
+        "_format_commit_failure",
+    ),
+    "weall.runtime.state_hash": ("compute_state_root",),
+    "weall.runtime.system_tx_engine": (
+        "prune_emitted_system_queue",
+        "system_tx_emitter",
+        "validate_system_tx_queue_binding",
+    ),
+    "weall.runtime.tx_admission_types": ("TxEnvelope",),
+    "weall.runtime.validator_execution_model": (
+        "build_validator_execution_manifest",
+        "sign_validator_execution_manifest",
+        "validator_execution_summary",
+    ),
+    "weall.runtime.vrf_sig": (
+        "make_vrf_record",
+        "verify_vrf_record",
+    ),
+}
+
+_EXECUTOR_COMPATIBILITY_TARGETS: dict[str, tuple[str, str | None]] = {
+    name: (module_name, name)
+    for module_name, names in _EXECUTOR_COMPATIBILITY_GROUPS.items()
+    for name in names
+}
+_EXECUTOR_COMPATIBILITY_TARGETS.update(
+    {
+        "constitutional_procedure_height": (
+            "weall.runtime.constitutional_clock",
+            "procedure_height",
+        ),
+        "copy": ("copy", None),
+    }
+)
+
+
+def __getattr__(name: str) -> Any:
+    target = _EXECUTOR_COMPATIBILITY_TARGETS.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    module_name, attribute_name = target
+    module = __import__(module_name, fromlist=["*"])
+    value = module if attribute_name is None else getattr(module, attribute_name)
+    globals()[name] = value
+    return value

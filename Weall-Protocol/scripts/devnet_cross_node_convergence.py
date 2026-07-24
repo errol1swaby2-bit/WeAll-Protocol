@@ -121,9 +121,13 @@ def _http_json(api: str, path: str, *, timeout: float = 15.0, node: str = "") ->
     return json.loads(raw) if raw.strip() else {"ok": True}
 
 
-def _http_post_json(api: str, path: str, body: Any, *, timeout: float = 15.0, node: str = "") -> Json:
+def _http_post_json(
+    api: str, path: str, body: Any, *, timeout: float = 15.0, node: str = ""
+) -> Json:
     url = str(api).rstrip("/") + path
-    data = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    data = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
     req = urllib.request.Request(
         url=url,
         data=data,
@@ -150,7 +154,9 @@ def _http_post_json(api: str, path: str, body: Any, *, timeout: float = 15.0, no
     return json.loads(raw) if raw.strip() else {"ok": True}
 
 
-def wait_tx_status(api: str, tx_id: str, *, timeout_s: float, poll_s: float, node: str = "") -> Json:
+def wait_tx_status(
+    api: str, tx_id: str, *, timeout_s: float, poll_s: float, node: str = ""
+) -> Json:
     deadline = time.time() + float(timeout_s)
     last: Json = {"ok": False, "status": "not_checked", "tx_id": tx_id}
     while time.time() <= deadline:
@@ -175,15 +181,21 @@ def relay_signed_tx_to_canonical_producer(
     if not path.exists():
         return {"ok": False, "failure": "signed_tx_file_missing", "tx_path": str(path)}
     tx = json.loads(path.read_text(encoding="utf-8"))
-    submitted = _http_post_json(producer_api, "/v1/tx/submit", tx, timeout=http_timeout, node="node1")
+    submitted = _http_post_json(
+        producer_api, "/v1/tx/submit", tx, timeout=http_timeout, node="node1"
+    )
     observed_tx_id = str(submitted.get("tx_id") or tx_id or "").strip()
-    status = wait_tx_status(
-        producer_api,
-        observed_tx_id,
-        timeout_s=timeout_s,
-        poll_s=poll_s,
-        node="node1",
-    ) if observed_tx_id else {"ok": False, "status": "missing_tx_id"}
+    status = (
+        wait_tx_status(
+            producer_api,
+            observed_tx_id,
+            timeout_s=timeout_s,
+            poll_s=poll_s,
+            node="node1",
+        )
+        if observed_tx_id
+        else {"ok": False, "status": "missing_tx_id"}
+    )
     ok = str(status.get("status") or "").strip().lower() in {"confirmed", "committed", "applied"}
     return {
         "ok": ok,
@@ -194,8 +206,6 @@ def relay_signed_tx_to_canonical_producer(
         "submit": submitted,
         "tx_status": status,
     }
-
-
 
 
 def _account_state(api: str, account: str, *, timeout: float = 15.0, node: str = "") -> Json:
@@ -210,7 +220,13 @@ def _tx_status(api: str, tx_id: str, *, timeout: float = 15.0, node: str = "") -
     return _http_json(api, f"/v1/tx/status/{quoted}", timeout=timeout, node=node)
 
 
-def _run(cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None, timeout: float = 120.0) -> subprocess.CompletedProcess[str]:
+def _run(
+    cmd: list[str],
+    *,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    timeout: float = 120.0,
+) -> subprocess.CompletedProcess[str]:
     merged = dict(os.environ)
     if env:
         merged.update({k: str(v) for k, v in env.items()})
@@ -243,7 +259,9 @@ def _run_json(cmd: list[str], *, env: dict[str, str] | None = None, timeout: flo
         ) from exc
 
 
-def _sync(source_api: str, target_api: str, *, join_anchor_path: str = "", timeout: float = 180.0) -> Json:
+def _sync(
+    source_api: str, target_api: str, *, join_anchor_path: str = "", timeout: float = 180.0
+) -> Json:
     env: dict[str, str] = {}
     if join_anchor_path:
         env["WEALL_JOIN_ANCHOR_PATH"] = join_anchor_path
@@ -305,11 +323,18 @@ def chain_manifest_failures(identity: Json, *, node: str) -> list[Json]:
     return failures
 
 
-def classify_tx_visibility(*, status: Json, expected_status: str = "confirmed") -> tuple[bool, Json]:
+def classify_tx_visibility(
+    *, status: Json, expected_status: str = "confirmed"
+) -> tuple[bool, Json]:
     actual = str(status.get("status") or "").strip().lower()
     expected = str(expected_status or "confirmed").strip().lower()
     ok = actual == expected
-    detail: Json = {"ok": ok, "expected_status": expected, "actual_status": actual, "status": status}
+    detail: Json = {
+        "ok": ok,
+        "expected_status": expected,
+        "actual_status": actual,
+        "status": status,
+    }
     if not ok:
         detail["failure"] = "tx_not_visible_with_expected_status"
     return ok, detail
@@ -346,11 +371,29 @@ def _plan(args: argparse.Namespace) -> Json:
         "scenarios": SCENARIOS,
         "steps": [
             {"step": "read_node_identities", "apis": [args.node1_api, args.node2_api]},
-            {"step": "create_account", "api": "node1", "tx_type": "ACCOUNT_REGISTER", "uses": "scripts/devnet_tx.py create-account"},
-            {"step": "sync", "direction": "node1_to_node2", "uses": "scripts/devnet_sync_from_peer.sh"},
+            {
+                "step": "create_account",
+                "api": "node1",
+                "tx_type": "ACCOUNT_REGISTER",
+                "uses": "scripts/devnet_tx.py create-account",
+            },
+            {
+                "step": "sync",
+                "direction": "node1_to_node2",
+                "uses": "scripts/devnet_sync_from_peer.sh",
+            },
             {"step": "assert_account_visible", "api": "node2"},
-            {"step": "submit_profile_update", "api": "node2", "tx_type": "PROFILE_UPDATE", "uses": "scripts/devnet_tx.py submit-tx"},
-            {"step": "converge_node2_tx", "mode": "node2_producer_or_edge_relay_to_node1", "uses": "scripts/devnet_sync_from_peer.sh or exact signed tx relay"},
+            {
+                "step": "submit_profile_update",
+                "api": "node2",
+                "tx_type": "PROFILE_UPDATE",
+                "uses": "scripts/devnet_tx.py submit-tx",
+            },
+            {
+                "step": "converge_node2_tx",
+                "mode": "node2_producer_or_edge_relay_to_node1",
+                "uses": "scripts/devnet_sync_from_peer.sh or exact signed tx relay",
+            },
             {"step": "compare_state_roots", "uses": "scripts/devnet_compare_state_roots.sh"},
         ],
     }
@@ -366,16 +409,25 @@ def run_probe(args: argparse.Namespace) -> Json:
     result: Json = {**plan, "dry_run": False, "events": []}
 
     try:
-        node1_identity_before = _http_json(args.node1_api, "/v1/chain/identity", timeout=args.http_timeout, node="node1")
-        node2_identity_before = _http_json(args.node2_api, "/v1/chain/identity", timeout=args.http_timeout, node="node2")
+        node1_identity_before = _http_json(
+            args.node1_api, "/v1/chain/identity", timeout=args.http_timeout, node="node1"
+        )
+        node2_identity_before = _http_json(
+            args.node2_api, "/v1/chain/identity", timeout=args.http_timeout, node="node2"
+        )
     except NodeUnavailable as exc:
         return node_unavailable_result(plan, exc)
-    result["events"].append({"step": "identity_before", "node1": node1_identity_before, "node2": node2_identity_before})
+    result["events"].append(
+        {"step": "identity_before", "node1": node1_identity_before, "node2": node2_identity_before}
+    )
     manifest_failures_before = [
         *chain_manifest_failures(node1_identity_before, node="node1"),
         *chain_manifest_failures(node2_identity_before, node="node2"),
     ]
-    result["chain_manifest_before"] = {"ok": not manifest_failures_before, "failures": manifest_failures_before}
+    result["chain_manifest_before"] = {
+        "ok": not manifest_failures_before,
+        "failures": manifest_failures_before,
+    }
     if manifest_failures_before:
         result["ok"] = False
         result["failure"] = "chain_manifest_invalid_before_probe"
@@ -406,7 +458,12 @@ def run_probe(args: argparse.Namespace) -> Json:
     if not create_tx:
         raise SystemExit("ACCOUNT_REGISTER did not return tx_id")
 
-    sync_12 = _sync(args.node1_api, args.node2_api, join_anchor_path=args.join_anchor_path, timeout=args.command_timeout)
+    sync_12 = _sync(
+        args.node1_api,
+        args.node2_api,
+        join_anchor_path=args.join_anchor_path,
+        timeout=args.command_timeout,
+    )
     result["events"].append({"step": "sync_node1_to_node2", "result": sync_12})
     if not sync_12["ok"]:
         result["ok"] = False
@@ -458,9 +515,18 @@ def run_probe(args: argparse.Namespace) -> Json:
         return result
 
     node2_submit_status = str((submit.get("tx_status") or {}).get("status") or "").strip().lower()
-    result["node2_profile_update_confirmation_mode"] = "node2_local_producer" if node2_submit_status in {"confirmed", "committed", "applied"} else "edge_relay_to_node1"
+    result["node2_profile_update_confirmation_mode"] = (
+        "node2_local_producer"
+        if node2_submit_status in {"confirmed", "committed", "applied"}
+        else "edge_relay_to_node1"
+    )
     if node2_submit_status in {"confirmed", "committed", "applied"}:
-        sync_21 = _sync(args.node2_api, args.node1_api, join_anchor_path=args.join_anchor_path, timeout=args.command_timeout)
+        sync_21 = _sync(
+            args.node2_api,
+            args.node1_api,
+            join_anchor_path=args.join_anchor_path,
+            timeout=args.command_timeout,
+        )
         result["events"].append({"step": "sync_node2_to_node1", "result": sync_21})
         if not sync_21["ok"]:
             result["ok"] = False
@@ -487,16 +553,27 @@ def run_probe(args: argparse.Namespace) -> Json:
             result["ok"] = False
             result["failure"] = "relay_node2_tx_to_node1_failed"
             return result
-        sync_12_after_relay = _sync(args.node1_api, args.node2_api, join_anchor_path=args.join_anchor_path, timeout=args.command_timeout)
-        result["events"].append({"step": "sync_node1_to_node2_after_relay", "result": sync_12_after_relay})
+        sync_12_after_relay = _sync(
+            args.node1_api,
+            args.node2_api,
+            join_anchor_path=args.join_anchor_path,
+            timeout=args.command_timeout,
+        )
+        result["events"].append(
+            {"step": "sync_node1_to_node2_after_relay", "result": sync_12_after_relay}
+        )
         if not sync_12_after_relay["ok"]:
             result["ok"] = False
             result["failure"] = "sync_node1_to_node2_after_relay_failed"
             return result
 
     try:
-        node1_identity_after = _http_json(args.node1_api, "/v1/chain/identity", timeout=args.http_timeout, node="node1")
-        node2_identity_after = _http_json(args.node2_api, "/v1/chain/identity", timeout=args.http_timeout, node="node2")
+        node1_identity_after = _http_json(
+            args.node1_api, "/v1/chain/identity", timeout=args.http_timeout, node="node1"
+        )
+        node2_identity_after = _http_json(
+            args.node2_api, "/v1/chain/identity", timeout=args.http_timeout, node="node2"
+        )
     except NodeUnavailable as exc:
         return node_unavailable_result(plan, exc)
     mismatches = compare_identities(node1_identity_after, node2_identity_after)
@@ -556,13 +633,30 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Controlled-devnet cross-node convergence probe")
     p.add_argument("--node1-api", default=os.environ.get("NODE1_API", "http://127.0.0.1:8001"))
     p.add_argument("--node2-api", default=os.environ.get("NODE2_API", "http://127.0.0.1:8002"))
-    p.add_argument("--workspace", default=os.environ.get("WEALL_DEVNET_CROSS_NODE_DIR", str(REPO_ROOT / ".weall-devnet" / "cross-node")))
+    p.add_argument(
+        "--workspace",
+        default=os.environ.get(
+            "WEALL_DEVNET_CROSS_NODE_DIR", str(REPO_ROOT / ".weall-devnet" / "cross-node")
+        ),
+    )
     p.add_argument("--account", default=os.environ.get("WEALL_CROSS_NODE_ACCOUNT", ""))
     p.add_argument("--join-anchor-path", default=os.environ.get("WEALL_JOIN_ANCHOR_PATH", ""))
-    p.add_argument("--tx-timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
-    p.add_argument("--tx-poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
-    p.add_argument("--command-timeout", type=float, default=float(os.environ.get("WEALL_CROSS_NODE_COMMAND_TIMEOUT", "180")))
-    p.add_argument("--http-timeout", type=float, default=float(os.environ.get("WEALL_CROSS_NODE_HTTP_TIMEOUT", "5")))
+    p.add_argument(
+        "--tx-timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
+    p.add_argument(
+        "--tx-poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
+    )
+    p.add_argument(
+        "--command-timeout",
+        type=float,
+        default=float(os.environ.get("WEALL_CROSS_NODE_COMMAND_TIMEOUT", "180")),
+    )
+    p.add_argument(
+        "--http-timeout",
+        type=float,
+        default=float(os.environ.get("WEALL_CROSS_NODE_HTTP_TIMEOUT", "5")),
+    )
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--list-scenarios", action="store_true")
     return p

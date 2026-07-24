@@ -123,12 +123,15 @@ def select_recovery_reviewers(
     excluded = set(excluded_reviewers or set())
     pool: list[str] = []
     for reviewer_id in eligible_reviewer_ids(state, POH_ASYNC_REVIEW_LANE):
-        if recovery_conflict_reason(
-            state,
-            reviewer_id=reviewer_id,
-            target_id=target_id,
-            excluded_reviewers=excluded,
-        ) is None:
+        if (
+            recovery_conflict_reason(
+                state,
+                reviewer_id=reviewer_id,
+                target_id=target_id,
+                excluded_reviewers=excluded,
+            )
+            is None
+        ):
             pool.append(reviewer_id)
     if len(pool) < panel_size:
         return []
@@ -136,7 +139,7 @@ def select_recovery_reviewers(
     scored = []
     for reviewer_id in pool:
         digest = hashlib.sha256(
-            f"{chain_id}|RECOVERY_REVIEW|{request_id}|{target_id}|{reviewer_id}".encode("utf-8")
+            f"{chain_id}|RECOVERY_REVIEW|{request_id}|{target_id}|{reviewer_id}".encode()
         ).hexdigest()
         scored.append((digest, reviewer_id))
     scored.sort()

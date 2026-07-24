@@ -14,7 +14,9 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _mk_executor(tmp_path: Path, name: str, *, chain_id: str = "prod-blocker-batch1") -> WeAllExecutor:
+def _mk_executor(
+    tmp_path: Path, name: str, *, chain_id: str = "prod-blocker-batch1"
+) -> WeAllExecutor:
     return WeAllExecutor(
         db_path=str(tmp_path / f"{name}.db"),
         node_id=name,
@@ -45,7 +47,9 @@ def _submit_signed_register(ex: WeAllExecutor, signer: str = "@freshuser") -> No
     assert sub["ok"] is True
 
 
-def test_prod_local_block_replays_on_fresh_node_byte_for_byte(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_local_block_replays_on_fresh_node_byte_for_byte(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     leader = _mk_executor(tmp_path, "leader")
     follower = _mk_executor(tmp_path, "follower")
@@ -136,12 +140,16 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
     assert isinstance(blk_b, dict)
     assert isinstance(st_a, dict)
     assert isinstance(st_b, dict)
-    assert st_a.get("poh") == st_b.get("poh") == {
-        "tier2_cases": {},
-        "live_cases": {},
-        "async_cases": {},
-        "account_status": {},
-        "tier2_lifecycle": {"by_account": {}, "receipts": []},
-        "evidence_lifecycle": {"by_evidence": {}, "receipts": []},
-    }
+    assert (
+        st_a.get("poh")
+        == st_b.get("poh")
+        == {
+            "tier2_cases": {},
+            "live_cases": {},
+            "async_cases": {},
+            "account_status": {},
+            "tier2_lifecycle": {"by_account": {}, "receipts": []},
+            "evidence_lifecycle": {"by_evidence": {}, "receipts": []},
+        }
+    )
     assert blk_a == blk_b

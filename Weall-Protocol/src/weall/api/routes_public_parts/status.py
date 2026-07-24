@@ -1,18 +1,31 @@
 from __future__ import annotations
 
-import math
 import os
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from fastapi import APIRouter, Request
 
+from weall.crypto.pq_mldsa import mldsa_backend_status
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    PQ_MLKEM_V1,
+    signature_profile_registry_json,
+)
+from weall.net.state_sync import build_snapshot_anchor
 from weall.runtime.apply.poh import poh_bootstrap_policy_summary
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report
 from weall.runtime.chain_manifest import chain_manifest_status, load_chain_manifest
 from weall.runtime.constitution import active_constitution_commitment
-from weall.runtime.constitutional_clock import policy_from_manifest, policy_from_state, policy_to_json, procedure_height as constitutional_procedure_height
-from weall.runtime.state_hash import compute_state_root
-from weall.net.state_sync import build_snapshot_anchor
+from weall.runtime.constitutional_clock import (
+    policy_from_manifest,
+    policy_from_state,
+    policy_to_json,
+)
+from weall.runtime.constitutional_clock import (
+    procedure_height as constitutional_procedure_height,
+)
+from weall.runtime.econ_phase import econ_allowed_from_state, is_econ_unlocked
 from weall.runtime.helper_operator_diagnostics import build_helper_operator_diagnostic
 from weall.runtime.helper_startup_integration import (
     HelperStartupConfig,
@@ -22,20 +35,19 @@ from weall.runtime.helper_status_route_adapter import build_api_status_response_
 from weall.runtime.helper_status_surface import build_helper_status_surface
 from weall.runtime.launch_matrix import launch_matrix_from_state, launch_matrix_payload
 from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
-from weall.crypto.pq_mldsa import mldsa_backend_status
-from weall.crypto.signature_profiles import PQ_MLDSA_V1, PQ_MLKEM_V1, signature_profile_registry_json
-from weall.runtime.testnet_capabilities import build_testnet_capability_surface
+from weall.runtime.protocol_profile import (
+    effective_runtime_consensus_posture,
+    runtime_protocol_profile_hash,
+    runtime_startup_fingerprint,
+)
 from weall.runtime.protocol_time import protocol_time_height
 from weall.runtime.runtime_authority import (
     authority_contract_from_lifecycle,
     startup_authority_contract_from_app_state,
     strict_runtime_authority_mode,
 )
-from weall.runtime.protocol_profile import (
-    effective_runtime_consensus_posture,
-    runtime_protocol_profile_hash,
-    runtime_startup_fingerprint,
-)
+from weall.runtime.state_hash import compute_state_root
+from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
 router = APIRouter()
 
@@ -108,8 +120,6 @@ def _safe_bool(v: Any, default: bool = False) -> bool:
         return bool(default)
 
 
-
-
 def _try_read_state(ex: Any) -> dict[str, Any] | None:
     if ex is None:
         return None
@@ -148,8 +158,6 @@ def _schema_version(ex: Any, state: Mapping[str, Any]) -> str:
     return _safe_str(cached, "")
 
 
-
-
 def _node_lifecycle(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     if ex is None:
@@ -176,6 +184,7 @@ def _authority_contract(request: Request) -> tuple[dict[str, Any], str]:
     runtime_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
     return runtime_contract, str(runtime_contract.get("contract_source") or "runtime")
 
+
 def _helper_release_gate_report(app_state: Any):
     try:
         return getattr(app_state, "helper_release_gate_report", None)
@@ -185,16 +194,27 @@ def _helper_release_gate_report(app_state: Any):
 
 def _helper_surface(request: Request, chain_id: str):
     authority_contract, _contract_source = _authority_contract(request)
-    helper_requested = bool(authority_contract.get("helper_requested", resolve_node_runtime_config_from_env().helper_enabled_requested))
+    helper_requested = bool(
+        authority_contract.get(
+            "helper_requested", resolve_node_runtime_config_from_env().helper_enabled_requested
+        )
+    )
     helper_authority_known = any(
         authority_contract.get(key)
-        for key in ("effective_state", "startup_action", "promotion_failure_reasons", "effective_roles")
+        for key in (
+            "effective_state",
+            "startup_action",
+            "promotion_failure_reasons",
+            "effective_roles",
+        )
     )
     helper_effective = bool(authority_contract.get("helper_effective", False))
     status = evaluate_helper_startup(
         config=HelperStartupConfig(
             helper_mode_requested=helper_requested,
-            helper_authority_ok=(not helper_requested) or (not helper_authority_known) or helper_effective,
+            helper_authority_ok=(not helper_requested)
+            or (not helper_authority_known)
+            or helper_effective,
             chain_id_ok=bool(chain_id),
             protocol_profile_ok=True,
             validator_set_ok=True,
@@ -217,14 +237,18 @@ def _operator_incident_timeline(payload: Mapping[str, Any]) -> list[dict[str, An
     """
     rows: list[dict[str, Any]] = []
 
-    def add(event: str, status: str, message: str, *, severity: str = "info", details: Any = None) -> None:
+    def add(
+        event: str, status: str, message: str, *, severity: str = "info", details: Any = None
+    ) -> None:
         rows.append(
             {
                 "event": event,
                 "status": status,
                 "severity": severity,
                 "message": message,
-                "details": details if isinstance(details, (dict, list, str, int, float, bool)) or details is None else _safe_str(details),
+                "details": details
+                if isinstance(details, (dict, list, str, int, float, bool)) or details is None
+                else _safe_str(details),
             }
         )
 
@@ -238,22 +262,40 @@ def _operator_incident_timeline(payload: Mapping[str, Any]) -> list[dict[str, An
         add(
             "block_loop",
             "unhealthy" if unhealthy else ("running" if running else "stopped"),
-            _safe_str(block_loop.get("last_error"), "Block loop running" if running else "Block loop stopped"),
+            _safe_str(
+                block_loop.get("last_error"),
+                "Block loop running" if running else "Block loop stopped",
+            ),
             severity="error" if unhealthy else ("ok" if running else "warn"),
             details={"consecutive_failures": _safe_int(block_loop.get("consecutive_failures"), 0)},
         )
 
     mempool_size = _safe_int(payload.get("mempool_size"), 0)
-    add("mempool", "queued" if mempool_size else "empty", f"Mempool size: {mempool_size}", severity="warn" if mempool_size else "ok")
+    add(
+        "mempool",
+        "queued" if mempool_size else "empty",
+        f"Mempool size: {mempool_size}",
+        severity="warn" if mempool_size else "ok",
+    )
 
     net = payload.get("net") if isinstance(payload.get("net"), dict) else {}
     peer_counts = net.get("peer_counts") if isinstance(net.get("peer_counts"), dict) else {}
-    peer_total = sum(_safe_int(v, 0) for v in peer_counts.values()) if peer_counts else len(net.get("peers") or []) if isinstance(net.get("peers"), list) else 0
+    peer_total = (
+        sum(_safe_int(v, 0) for v in peer_counts.values())
+        if peer_counts
+        else len(net.get("peers") or [])
+        if isinstance(net.get("peers"), list)
+        else 0
+    )
     add(
         "peer_sync",
-        "connected" if peer_total else ("enabled_no_peers" if _safe_bool(net.get("enabled"), False) else "disabled"),
+        "connected"
+        if peer_total
+        else ("enabled_no_peers" if _safe_bool(net.get("enabled"), False) else "disabled"),
         f"Peer connections observed: {peer_total}",
-        severity="ok" if peer_total else ("warn" if _safe_bool(net.get("enabled"), False) else "info"),
+        severity="ok"
+        if peer_total
+        else ("warn" if _safe_bool(net.get("enabled"), False) else "info"),
         details={"peer_counts": peer_counts},
     )
 
@@ -272,9 +314,13 @@ def _operator_incident_timeline(payload: Mapping[str, Any]) -> list[dict[str, An
     if operator:
         add(
             "validator_signing",
-            "allowed" if _safe_bool(operator.get("signing_allowed_by_consensus_state"), False) else "blocked",
+            "allowed"
+            if _safe_bool(operator.get("signing_allowed_by_consensus_state"), False)
+            else "blocked",
             _safe_str(operator.get("signing_block_reason"), "Validator signing status reported"),
-            severity="ok" if _safe_bool(operator.get("signing_allowed_by_consensus_state"), False) else "warn",
+            severity="ok"
+            if _safe_bool(operator.get("signing_allowed_by_consensus_state"), False)
+            else "warn",
         )
         add(
             "helper",
@@ -422,13 +468,14 @@ def _transition_guardrail_diagnostics(ex: Any) -> dict[str, Any]:
     return {}
 
 
-
-
-
 def _mempool_selection_last_diagnostics(ex: Any) -> dict[str, Any]:
     state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    persisted = meta.get("mempool_selection_last") if isinstance(meta.get("mempool_selection_last"), dict) else None
+    persisted = (
+        meta.get("mempool_selection_last")
+        if isinstance(meta.get("mempool_selection_last"), dict)
+        else None
+    )
     if isinstance(persisted, dict):
         return dict(persisted)
     fn = getattr(ex, "mempool_selection_diagnostics", None)
@@ -436,7 +483,11 @@ def _mempool_selection_last_diagnostics(ex: Any) -> dict[str, Any]:
         try:
             out = fn(preview_limit=0)
             if isinstance(out, dict):
-                last = out.get("last_candidate") if isinstance(out.get("last_candidate"), dict) else None
+                last = (
+                    out.get("last_candidate")
+                    if isinstance(out.get("last_candidate"), dict)
+                    else None
+                )
                 if isinstance(last, dict):
                     return dict(last)
         except Exception:
@@ -457,11 +508,12 @@ def _node_lifecycle_diagnostics(ex: Any) -> dict[str, Any]:
             pass
     state = _try_read_state(ex) or {}
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    node_lifecycle = meta.get("node_lifecycle") if isinstance(meta.get("node_lifecycle"), dict) else None
+    node_lifecycle = (
+        meta.get("node_lifecycle") if isinstance(meta.get("node_lifecycle"), dict) else None
+    )
     if isinstance(node_lifecycle, dict):
         return dict(node_lifecycle)
     return {}
-
 
 
 def _app_startup_authority_contract(app_state: Any) -> dict[str, Any]:
@@ -469,14 +521,28 @@ def _app_startup_authority_contract(app_state: Any) -> dict[str, Any]:
     return dict(contract) if isinstance(contract, dict) else {}
 
 
-def _authority_contract_diagnostics(ex: Any, state: Mapping[str, Any], app_state: Any = None) -> dict[str, Any]:
+def _authority_contract_diagnostics(
+    ex: Any, state: Mapping[str, Any], app_state: Any = None
+) -> dict[str, Any]:
     lifecycle = _node_lifecycle_diagnostics(ex)
     runtime_cfg = resolve_node_runtime_config_from_env()
-    requested_roles = list(lifecycle.get("service_roles_requested", [])) if isinstance(lifecycle.get("service_roles_requested"), list) else list(runtime_cfg.requested_roles)
-    effective_roles = list(lifecycle.get("service_roles_effective", [])) if isinstance(lifecycle.get("service_roles_effective"), list) else []
-    helper_requested = _safe_bool(lifecycle.get("helper_enabled_requested"), runtime_cfg.helper_enabled_requested)
+    requested_roles = (
+        list(lifecycle.get("service_roles_requested", []))
+        if isinstance(lifecycle.get("service_roles_requested"), list)
+        else list(runtime_cfg.requested_roles)
+    )
+    effective_roles = (
+        list(lifecycle.get("service_roles_effective", []))
+        if isinstance(lifecycle.get("service_roles_effective"), list)
+        else []
+    )
+    helper_requested = _safe_bool(
+        lifecycle.get("helper_enabled_requested"), runtime_cfg.helper_enabled_requested
+    )
     helper_effective = _safe_bool(lifecycle.get("helper_enabled_effective"), False)
-    bft_requested = _safe_bool(lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested)
+    bft_requested = _safe_bool(
+        lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested
+    )
     bft_effective = _safe_bool(lifecycle.get("bft_enabled_effective"), False)
     validator_requested = bool("validator" in requested_roles or bft_requested)
     validator_effective = bool("validator" in effective_roles and bft_effective)
@@ -493,8 +559,12 @@ def _authority_contract_diagnostics(ex: Any, state: Mapping[str, Any], app_state
         "bft_requested": bft_requested,
         "bft_effective": bft_effective,
         "startup_action": _safe_str(lifecycle.get("startup_action"), "allow"),
-        "promotion_preflight_passed": _safe_bool(lifecycle.get("promotion_preflight_passed"), False),
-        "promotion_failure_reasons": list(lifecycle.get("promotion_failure_reasons", [])) if isinstance(lifecycle.get("promotion_failure_reasons"), list) else [],
+        "promotion_preflight_passed": _safe_bool(
+            lifecycle.get("promotion_preflight_passed"), False
+        ),
+        "promotion_failure_reasons": list(lifecycle.get("promotion_failure_reasons", []))
+        if isinstance(lifecycle.get("promotion_failure_reasons"), list)
+        else [],
         "contract_source": "runtime",
     }
     startup_contract = _app_startup_authority_contract(app_state)
@@ -506,17 +576,35 @@ def _authority_contract_diagnostics(ex: Any, state: Mapping[str, Any], app_state
     return contract
 
 
-def _profile_compatibility_diagnostics(ex: Any, state: Mapping[str, Any], app_state: Any = None) -> dict[str, Any]:
+def _profile_compatibility_diagnostics(
+    ex: Any, state: Mapping[str, Any], app_state: Any = None
+) -> dict[str, Any]:
     lifecycle = _node_lifecycle_diagnostics(ex)
     runtime_cfg = resolve_node_runtime_config_from_env()
     effective_state = _safe_str(lifecycle.get("effective_state"), "")
     requested_state = _safe_str(lifecycle.get("requested_state"), runtime_cfg.requested_state)
-    reasons = list(lifecycle.get("promotion_failure_reasons", [])) if isinstance(lifecycle.get("promotion_failure_reasons"), list) else []
-    requested_roles = list(lifecycle.get("service_roles_requested", [])) if isinstance(lifecycle.get("service_roles_requested"), list) else list(runtime_cfg.requested_roles)
-    effective_roles = list(lifecycle.get("service_roles_effective", [])) if isinstance(lifecycle.get("service_roles_effective"), list) else []
-    helper_requested = _safe_bool(lifecycle.get("helper_enabled_requested"), runtime_cfg.helper_enabled_requested)
+    reasons = (
+        list(lifecycle.get("promotion_failure_reasons", []))
+        if isinstance(lifecycle.get("promotion_failure_reasons"), list)
+        else []
+    )
+    requested_roles = (
+        list(lifecycle.get("service_roles_requested", []))
+        if isinstance(lifecycle.get("service_roles_requested"), list)
+        else list(runtime_cfg.requested_roles)
+    )
+    effective_roles = (
+        list(lifecycle.get("service_roles_effective", []))
+        if isinstance(lifecycle.get("service_roles_effective"), list)
+        else []
+    )
+    helper_requested = _safe_bool(
+        lifecycle.get("helper_enabled_requested"), runtime_cfg.helper_enabled_requested
+    )
     helper_effective = _safe_bool(lifecycle.get("helper_enabled_effective"), False)
-    bft_requested = _safe_bool(lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested)
+    bft_requested = _safe_bool(
+        lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested
+    )
     bft_effective = _safe_bool(lifecycle.get("bft_enabled_effective"), False)
     chain_id = _safe_str(state.get("chain_id"), "")
     authority_contract = _authority_contract_diagnostics(ex, state, app_state)
@@ -524,9 +612,13 @@ def _profile_compatibility_diagnostics(ex: Any, state: Mapping[str, Any], app_st
     return {
         "requested_state": requested_state,
         "effective_state": effective_state,
-        "peer_profile_enforcement": _safe_str(lifecycle.get("peer_profile_enforcement"), runtime_cfg.peer_profile_enforcement),
+        "peer_profile_enforcement": _safe_str(
+            lifecycle.get("peer_profile_enforcement"), runtime_cfg.peer_profile_enforcement
+        ),
         "profile_commitment": _safe_str(lifecycle.get("profile_commitment"), ""),
-        "runtime_profile_hash": _safe_str(lifecycle.get("runtime_profile_hash"), runtime_protocol_profile_hash()),
+        "runtime_profile_hash": _safe_str(
+            lifecycle.get("runtime_profile_hash"), runtime_protocol_profile_hash()
+        ),
         "schema_version": _safe_str(lifecycle.get("schema_version"), _schema_version(ex, state)),
         "tx_index_hash": _safe_str(lifecycle.get("tx_index_hash"), _tx_index_hash(ex, state)),
         "chain_id": chain_id,
@@ -542,15 +634,28 @@ def _profile_compatibility_diagnostics(ex: Any, state: Mapping[str, Any], app_st
         "bft_requested": bft_requested,
         "bft_effective": bft_effective,
         "authority_ready": bool(effective_state == "production_service" and not reasons),
-        "compatibility_ready": bool(chain_id and _safe_str(lifecycle.get("runtime_profile_hash"), "") and _safe_str(lifecycle.get("tx_index_hash"), "")),
-        "strict_runtime_authority_mode": bool(authority_contract.get("strict_runtime_authority_mode", False)),
+        "compatibility_ready": bool(
+            chain_id
+            and _safe_str(lifecycle.get("runtime_profile_hash"), "")
+            and _safe_str(lifecycle.get("tx_index_hash"), "")
+        ),
+        "strict_runtime_authority_mode": bool(
+            authority_contract.get("strict_runtime_authority_mode", False)
+        ),
         "failure_reasons": reasons,
-        "config_source_summary": dict(lifecycle.get("config_source_summary", {})) if isinstance(lifecycle.get("config_source_summary"), dict) else runtime_cfg.config_source_summary(),
+        "config_source_summary": dict(lifecycle.get("config_source_summary", {}))
+        if isinstance(lifecycle.get("config_source_summary"), dict)
+        else runtime_cfg.config_source_summary(),
     }
+
 
 def _genesis_bootstrap_diagnostics(state: Mapping[str, Any]) -> dict[str, Any]:
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    profile = meta.get("genesis_bootstrap_profile") if isinstance(meta.get("genesis_bootstrap_profile"), dict) else {}
+    profile = (
+        meta.get("genesis_bootstrap_profile")
+        if isinstance(meta.get("genesis_bootstrap_profile"), dict)
+        else {}
+    )
     profile_hash = _safe_str(meta.get("genesis_bootstrap_profile_hash"), "")
     enabled = _safe_bool(profile.get("enabled"), False)
     return {
@@ -579,14 +684,21 @@ def _startup_posture_diagnostics(ex: Any, app_state: Any = None) -> dict[str, An
         "last_shutdown_clean": last_shutdown_clean,
         "runtime_open": runtime_open,
         "recovery_mode_active": bool(
-            runtime_open and (not last_shutdown_clean) and observer_mode and signing_block_reason == "unclean_shutdown"
+            runtime_open
+            and (not last_shutdown_clean)
+            and observer_mode
+            and signing_block_reason == "unclean_shutdown"
         ),
         "last_clean_shutdown_ms": _safe_int(meta.get("last_clean_shutdown_ms"), 0),
         "validator_signing_enabled": _safe_bool(meta.get("validator_signing_enabled"), False),
         "observer_mode": observer_mode,
         "signing_block_reason": signing_block_reason,
-        "production_consensus_profile_hash": _safe_str(meta.get("production_consensus_profile_hash"), ""),
-        "startup_clock_sanity_required": _safe_bool(meta.get("startup_clock_sanity_required"), False),
+        "production_consensus_profile_hash": _safe_str(
+            meta.get("production_consensus_profile_hash"), ""
+        ),
+        "startup_clock_sanity_required": _safe_bool(
+            meta.get("startup_clock_sanity_required"), False
+        ),
         "startup_clock_hard_fail_ms": _safe_int(meta.get("startup_clock_hard_fail_ms"), 0),
         "clock_warning": dict(warning) if isinstance(warning, dict) else {},
         "genesis_bootstrap_profile": genesis_bootstrap["profile"],
@@ -596,9 +708,14 @@ def _startup_posture_diagnostics(ex: Any, app_state: Any = None) -> dict[str, An
         "authority_contract": authority_contract,
     }
 
+
 def _helper_reputation_diagnostics(ex: Any) -> dict[str, Any]:
     helper_exec = _helper_execution_diagnostics(ex)
-    nested = helper_exec.get("helper_reputation") if isinstance(helper_exec.get("helper_reputation"), dict) else None
+    nested = (
+        helper_exec.get("helper_reputation")
+        if isinstance(helper_exec.get("helper_reputation"), dict)
+        else None
+    )
     if isinstance(nested, dict):
         state = nested.get("state") if isinstance(nested.get("state"), dict) else None
         if isinstance(state, dict):
@@ -631,7 +748,9 @@ def _local_validator_lifecycle(state: Mapping[str, Any], validator_account: str)
     current_epoch = _safe_int(epochs.get("current", validator_set.get("epoch", 0)), 0)
     current_set_hash = _safe_str(validator_set.get("set_hash"), "")
     active_validators = _active_validators(state)
-    pending_active_set = pending.get("active_set") if isinstance(pending.get("active_set"), list) else []
+    pending_active_set = (
+        pending.get("active_set") if isinstance(pending.get("active_set"), list) else []
+    )
     pending_activate_at_epoch = _safe_int(pending.get("activate_at_epoch"), 0)
 
     if validator_account and not rec:
@@ -645,15 +764,26 @@ def _local_validator_lifecycle(state: Mapping[str, Any], validator_account: str)
             lifecycle_state = "active"
 
     pending_activation_epoch = _safe_int(
-        rec.get("effective_epoch", rec.get("approved_activation_epoch", rec.get("requested_activation_epoch", 0))),
+        rec.get(
+            "effective_epoch",
+            rec.get("approved_activation_epoch", rec.get("requested_activation_epoch", 0)),
+        ),
         0,
     )
-    if validator_account and validator_account in pending_active_set and pending_activate_at_epoch > 0:
+    if (
+        validator_account
+        and validator_account in pending_active_set
+        and pending_activate_at_epoch > 0
+    ):
         pending_activation_epoch = pending_activate_at_epoch
         if lifecycle_state in {"candidate", "observer"}:
             lifecycle_state = "pending_activation"
 
-    local_is_active = bool(validator_account and validator_account in active_validators and lifecycle_state not in {"removed", "suspended"})
+    local_is_active = bool(
+        validator_account
+        and validator_account in active_validators
+        and lifecycle_state not in {"removed", "suspended"}
+    )
     local_is_pending = bool(
         lifecycle_state == "pending_activation"
         or (
@@ -671,14 +801,18 @@ def _local_validator_lifecycle(state: Mapping[str, Any], validator_account: str)
     return {
         "validator_lifecycle_state": lifecycle_state,
         "local_validator_account": _safe_str(validator_account, ""),
-        "local_validator_record_found": bool(validator_account and isinstance(rec, dict) and bool(rec)),
+        "local_validator_record_found": bool(
+            validator_account and isinstance(rec, dict) and bool(rec)
+        ),
         "local_validator_pubkey": _safe_str(rec.get("pubkey"), ""),
         "local_validator_node_id": _safe_str(rec.get("node_id"), ""),
         "local_validator_is_active": local_is_active,
         "local_validator_is_pending": local_is_pending,
         "local_validator_is_suspended": lifecycle_state == "suspended",
         "local_validator_is_removed": lifecycle_state == "removed",
-        "pending_activation_epoch": int(pending_activation_epoch) if pending_activation_epoch > 0 else None,
+        "pending_activation_epoch": int(pending_activation_epoch)
+        if pending_activation_epoch > 0
+        else None,
         "current_validator_epoch": current_epoch,
         "current_validator_set_hash": current_set_hash,
         "requested_activation_epoch": _safe_int(rec.get("requested_activation_epoch"), 0) or None,
@@ -687,12 +821,19 @@ def _local_validator_lifecycle(state: Mapping[str, Any], validator_account: str)
         "validator_metadata_hash": _safe_str(rec.get("metadata_hash"), ""),
     }
 
+
 def _runtime_profile_payload(diag: Mapping[str, Any]) -> dict[str, Any]:
     posture = effective_runtime_consensus_posture()
     return {
-        "protocol_profile_hash": _safe_str(diag.get("protocol_profile_hash"), runtime_protocol_profile_hash()),
-        "reputation_scale": _safe_int(diag.get("reputation_scale"), _safe_int(posture.get("reputation_scale"), 0)),
-        "timestamp_rule": _safe_str(diag.get("timestamp_rule"), _safe_str(posture.get("timestamp_rule"), "")),
+        "protocol_profile_hash": _safe_str(
+            diag.get("protocol_profile_hash"), runtime_protocol_profile_hash()
+        ),
+        "reputation_scale": _safe_int(
+            diag.get("reputation_scale"), _safe_int(posture.get("reputation_scale"), 0)
+        ),
+        "timestamp_rule": _safe_str(
+            diag.get("timestamp_rule"), _safe_str(posture.get("timestamp_rule"), "")
+        ),
         "max_block_future_drift_ms": _safe_int(
             diag.get("max_block_future_drift_ms"),
             _safe_int(posture.get("max_block_future_drift_ms"), 0),
@@ -708,9 +849,10 @@ def _runtime_profile_payload(diag: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _startup_fingerprint(ex: Any, state: Mapping[str, Any], validator_account: str) -> dict[str, Any]:
+def _startup_fingerprint(
+    ex: Any, state: Mapping[str, Any], validator_account: str
+) -> dict[str, Any]:
     runtime_cfg = resolve_node_runtime_config_from_env()
-    validators = _active_validators(state)
     current_epoch_fn = getattr(ex, "_current_validator_epoch", None)
     current_set_hash_fn = getattr(ex, "_current_validator_set_hash", None)
     try:
@@ -718,7 +860,9 @@ def _startup_fingerprint(ex: Any, state: Mapping[str, Any], validator_account: s
     except Exception:
         validator_epoch = 0
     try:
-        validator_set_hash = _safe_str(current_set_hash_fn(), "") if callable(current_set_hash_fn) else ""
+        validator_set_hash = (
+            _safe_str(current_set_hash_fn(), "") if callable(current_set_hash_fn) else ""
+        )
     except Exception:
         validator_set_hash = ""
     return runtime_startup_fingerprint(
@@ -738,18 +882,34 @@ def _status_mode_label(ex: Any, state: Mapping[str, Any]) -> str:
     runtime_cfg = resolve_node_runtime_config_from_env()
     requested_state = _safe_str(lifecycle.get("requested_state"), runtime_cfg.requested_state)
     effective_state = _safe_str(lifecycle.get("effective_state"), "")
-    requested_roles = list(lifecycle.get("service_roles_requested", [])) if isinstance(lifecycle.get("service_roles_requested"), list) else list(runtime_cfg.requested_roles)
-    effective_roles = list(lifecycle.get("service_roles_effective", [])) if isinstance(lifecycle.get("service_roles_effective"), list) else []
+    requested_roles = (
+        list(lifecycle.get("service_roles_requested", []))
+        if isinstance(lifecycle.get("service_roles_requested"), list)
+        else list(runtime_cfg.requested_roles)
+    )
+    effective_roles = (
+        list(lifecycle.get("service_roles_effective", []))
+        if isinstance(lifecycle.get("service_roles_effective"), list)
+        else []
+    )
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
     observer_mode = _safe_bool(meta.get("observer_mode"), _env_bool("WEALL_OBSERVER_MODE", False))
-    bft_requested = _safe_bool(lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested)
+    bft_requested = _safe_bool(
+        lifecycle.get("bft_enabled_requested"), runtime_cfg.bft_enabled_requested
+    )
     bft_effective = _safe_bool(lifecycle.get("bft_enabled_effective"), False)
 
-    if observer_mode or requested_state == "observer_onboarding" or effective_state == "observer_onboarding":
+    if (
+        observer_mode
+        or requested_state == "observer_onboarding"
+        or effective_state == "observer_onboarding"
+    ):
         return "observer"
     if effective_state == "refused_startup" or requested_state == "refused_startup":
         return "refused_startup"
-    if "validator" in effective_roles or ("validator" in requested_roles and (bft_requested or bft_effective)):
+    if "validator" in effective_roles or (
+        "validator" in requested_roles and (bft_requested or bft_effective)
+    ):
         return "validator"
     if "node_operator" in effective_roles or "node_operator" in requested_roles:
         return "operator"
@@ -771,9 +931,9 @@ def _local_validator_signing_requested(state: Mapping[str, Any]) -> bool:
     observer_mode = _safe_bool(meta.get("observer_mode"), _env_bool("WEALL_OBSERVER_MODE", False))
     if observer_mode:
         return False
-    return _env_bool("WEALL_VALIDATOR_SIGNING_ENABLED", False) or _env_bool("WEALL_BFT_ENABLED", False)
-
-
+    return _env_bool("WEALL_VALIDATOR_SIGNING_ENABLED", False) or _env_bool(
+        "WEALL_BFT_ENABLED", False
+    )
 
 
 def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
@@ -797,8 +957,20 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
     except Exception as exc:
         poh_policy = {"valid": False, "mode": "invalid", "mode_error": str(exc)}
 
-    governance_mode = _safe_str(params.get("governance_mode") or gov.get("mode") or os.environ.get("WEALL_GOVERNANCE_TESTNET_MODE") or "limited_testnet", "limited_testnet")
-    dispute_mode = _safe_str(params.get("dispute_mode") or disputes.get("mode") or os.environ.get("WEALL_DISPUTE_TESTNET_MODE") or "limited_testnet", "limited_testnet")
+    governance_mode = _safe_str(
+        params.get("governance_mode")
+        or gov.get("mode")
+        or os.environ.get("WEALL_GOVERNANCE_TESTNET_MODE")
+        or "limited_testnet",
+        "limited_testnet",
+    )
+    dispute_mode = _safe_str(
+        params.get("dispute_mode")
+        or disputes.get("mode")
+        or os.environ.get("WEALL_DISPUTE_TESTNET_MODE")
+        or "limited_testnet",
+        "limited_testnet",
+    )
 
     return {
         "external_observer_stage": "trusted_external_observer",
@@ -838,7 +1010,9 @@ def _testnet_readiness_payload(state: Mapping[str, Any]) -> dict[str, Any]:
             "claim": "WeAll consensus-visible civic, social, governance, moderation, dispute, group, reputation, and operator activity is publicly inspectable; notices derive from public protocol events.",
         },
         "poh": poh_policy,
-        "launch_matrix_capabilities": build_testnet_capability_surface(state if isinstance(state, dict) else {}),
+        "launch_matrix_capabilities": build_testnet_capability_surface(
+            state if isinstance(state, dict) else {}
+        ),
     }
 
 
@@ -849,8 +1023,14 @@ def _crypto_profile_payload(state: Mapping[str, Any]) -> dict[str, Any]:
     authoritative and does not claim completed production cryptographic review.
     """
 
-    chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), Mapping) else {}
-    crypto = chain_config.get("crypto") if isinstance(chain_config, Mapping) and isinstance(chain_config.get("crypto"), Mapping) else {}
+    chain_config = (
+        state.get("chain_config") if isinstance(state.get("chain_config"), Mapping) else {}
+    )
+    crypto = (
+        chain_config.get("crypto")
+        if isinstance(chain_config, Mapping) and isinstance(chain_config.get("crypto"), Mapping)
+        else {}
+    )
     active_profile = _safe_str(
         crypto.get("active_signature_profile")
         or state.get("active_signature_profile")
@@ -858,10 +1038,14 @@ def _crypto_profile_payload(state: Mapping[str, Any]) -> dict[str, Any]:
         or PQ_MLDSA_V1,
         PQ_MLDSA_V1,
     )
-    allowed_profiles = crypto.get("allowed_signature_profiles") if isinstance(crypto, Mapping) else None
+    allowed_profiles = (
+        crypto.get("allowed_signature_profiles") if isinstance(crypto, Mapping) else None
+    )
     if not isinstance(allowed_profiles, list):
         allowed_profiles = [PQ_MLDSA_V1]
-    allowed_profiles = [_safe_str(x, "").strip() for x in allowed_profiles if _safe_str(x, "").strip()]
+    allowed_profiles = [
+        _safe_str(x, "").strip() for x in allowed_profiles if _safe_str(x, "").strip()
+    ]
     backend = mldsa_backend_status()
     return {
         "schema": "weall.crypto_profile.status.v1_5",
@@ -884,6 +1068,7 @@ def _crypto_profile_payload(state: Mapping[str, Any]) -> dict[str, Any]:
         "claim": "Controlled-testnet signing uses profile-aware pq-mldsa-v1 on active protocol authority surfaces, while external cryptographic review remains required before any durable public-network or mainnet claim.",
     }
 
+
 def _base_status_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or {}
@@ -895,13 +1080,18 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
     )
     constitution = active_constitution_commitment()
     try:
-        manifest_for_clock = load_chain_manifest(required=False, mode=str(os.environ.get("WEALL_MODE", "") or ""))
+        manifest_for_clock = load_chain_manifest(
+            required=False, mode=str(os.environ.get("WEALL_MODE", "") or "")
+        )
     except Exception:
         manifest_for_clock = None
     clock_policy = policy_from_manifest(manifest_for_clock)
     if not clock_policy.enabled:
         clock_policy = policy_from_state(state if isinstance(state, dict) else {})
-    constitutional_clock = policy_to_json(clock_policy, current_height=constitutional_procedure_height(state if isinstance(state, dict) else {}))
+    constitutional_clock = policy_to_json(
+        clock_policy,
+        current_height=constitutional_procedure_height(state if isinstance(state, dict) else {}),
+    )
     testnet_readiness = _testnet_readiness_payload(state if isinstance(state, dict) else {})
     return {
         "ok": True,
@@ -912,7 +1102,12 @@ def _base_status_payload(request: Request) -> dict[str, Any]:
         "node_id": node_id or None,
         "mode": _status_mode_label(ex, state),
         "height": _safe_int(state.get("height"), 0),
-        "finalized_height": _safe_int((state.get("finalized") or {}).get("height") if isinstance(state.get("finalized"), dict) else 0, 0),
+        "finalized_height": _safe_int(
+            (state.get("finalized") or {}).get("height")
+            if isinstance(state.get("finalized"), dict)
+            else 0,
+            0,
+        ),
         "tip": _safe_str(state.get("tip"), ""),
         "schema_version": _schema_version(ex, state if isinstance(state, dict) else {}),
         "tx_index_hash": _tx_index_hash(ex, state if isinstance(state, dict) else {}),
@@ -940,7 +1135,15 @@ def status(request: Request) -> dict[str, Any]:
     payload = shape["status_payload"]
     # Keep normal-user node compatibility fields on /v1/status so the frontend
     # can fail closed without relying on operator-only endpoints.
-    for key in ("schema_version", "tx_index_hash", "protocol_profile_hash", "crypto_profile", "constitution", "constitutional_clock", "testnet_readiness"):
+    for key in (
+        "schema_version",
+        "tx_index_hash",
+        "protocol_profile_hash",
+        "crypto_profile",
+        "constitution",
+        "constitutional_clock",
+        "testnet_readiness",
+    ):
         if key in base:
             payload[key] = base[key]
     return payload
@@ -985,7 +1188,11 @@ def status_testnet_capabilities(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or {}
     payload = build_testnet_capability_surface(state if isinstance(state, dict) else {})
-    return {"ok": True, **payload, "protocol_time": protocol_time_height(state if isinstance(state, dict) else {})}
+    return {
+        "ok": True,
+        **payload,
+        "protocol_time": protocol_time_height(state if isinstance(state, dict) else {}),
+    }
 
 
 @router.get("/status/operator")
@@ -995,7 +1202,6 @@ def status_operator(request: Request) -> dict[str, Any]:
 
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or {}
-    validators = _active_validators(state)
     diag = _consensus_diagnostics(ex)
     helper_exec = _helper_execution_diagnostics(ex)
     helper_reputation = _helper_reputation_diagnostics(ex)
@@ -1016,8 +1222,12 @@ def status_operator(request: Request) -> dict[str, Any]:
     ).to_json()
     payload = dict(shape["status_payload"])
     payload["db_path"] = _safe_str(os.environ.get("WEALL_DB_PATH"), "")
-    payload["mempool_size"] = _safe_int(getattr(getattr(ex, "mempool", None), "size", lambda: 0)(), 0)
-    payload["attestation_pool_size"] = _safe_int(getattr(getattr(ex, "attestation_pool", None), "size", lambda: 0)(), 0)
+    payload["mempool_size"] = _safe_int(
+        getattr(getattr(ex, "mempool", None), "size", lambda: 0)(), 0
+    )
+    payload["attestation_pool_size"] = _safe_int(
+        getattr(getattr(ex, "attestation_pool", None), "size", lambda: 0)(), 0
+    )
     payload["block_loop"] = {
         "running": _safe_bool(getattr(ex, "block_loop_running", None), False),
         "unhealthy": _safe_bool(getattr(ex, "block_loop_unhealthy", None), False),
@@ -1026,25 +1236,44 @@ def status_operator(request: Request) -> dict[str, Any]:
     }
     payload["net"] = {
         "enabled": _env_bool("WEALL_NET_ENABLED", False),
-        "peer_counts": dict(peer_debug.get("counts", {})) if isinstance(peer_debug.get("counts"), dict) else {},
-        "peers": list(peer_debug.get("peers", [])) if isinstance(peer_debug.get("peers"), list) else [],
+        "peer_counts": dict(peer_debug.get("counts", {}))
+        if isinstance(peer_debug.get("counts"), dict)
+        else {},
+        "peers": list(peer_debug.get("peers", []))
+        if isinstance(peer_debug.get("peers"), list)
+        else [],
     }
     payload["consensus"] = {
         "bft_enabled": bool(resolve_node_runtime_config_from_env().bft_enabled_requested),
         "validator_account": _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), ""),
-        "profile_enforced": bool(effective_runtime_consensus_posture().get("profile_enforced", False)),
-        "qc_less_blocks_allowed": bool(effective_runtime_consensus_posture().get("qc_less_blocks_allowed", False)),
-        "unsafe_autocommit": bool(effective_runtime_consensus_posture().get("unsafe_autocommit_allowed", False)),
-        "sigverify_required": bool(effective_runtime_consensus_posture().get("sigverify_required", False)),
-        "trusted_anchor_required": bool(effective_runtime_consensus_posture().get("trusted_anchor_required", False)),
+        "profile_enforced": bool(
+            effective_runtime_consensus_posture().get("profile_enforced", False)
+        ),
+        "qc_less_blocks_allowed": bool(
+            effective_runtime_consensus_posture().get("qc_less_blocks_allowed", False)
+        ),
+        "unsafe_autocommit": bool(
+            effective_runtime_consensus_posture().get("unsafe_autocommit_allowed", False)
+        ),
+        "sigverify_required": bool(
+            effective_runtime_consensus_posture().get("sigverify_required", False)
+        ),
+        "trusted_anchor_required": bool(
+            effective_runtime_consensus_posture().get("trusted_anchor_required", False)
+        ),
         "effective_posture": effective_runtime_consensus_posture(),
         "stalled": bool(diag.get("stalled", False)),
         "stall_reason": _safe_str(diag.get("stall_reason"), ""),
-        "timestamp_rule": _safe_str(diag.get("timestamp_rule"), _safe_str(effective_runtime_consensus_posture().get("timestamp_rule"), "")),
+        "timestamp_rule": _safe_str(
+            diag.get("timestamp_rule"),
+            _safe_str(effective_runtime_consensus_posture().get("timestamp_rule"), ""),
+        ),
         "uses_wall_clock_future_guard": _safe_bool(diag.get("uses_wall_clock_future_guard"), False),
     }
     payload["runtime_profile"] = _runtime_profile_payload(diag)
-    payload["profile_compatibility"] = _profile_compatibility_diagnostics(ex, state, request.app.state)
+    payload["profile_compatibility"] = _profile_compatibility_diagnostics(
+        ex, state, request.app.state
+    )
     payload["startup_fingerprint"] = _startup_fingerprint(
         ex,
         state,
@@ -1071,10 +1300,16 @@ def status_operator(request: Request) -> dict[str, Any]:
         "mempool_selection_last": _mempool_selection_last_diagnostics(ex),
         "transition_guardrails": transition_guardrails,
         "startup_posture": startup_posture,
-        **_local_validator_lifecycle(state, _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), "")),
+        **_local_validator_lifecycle(
+            state, _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), "")
+        ),
         "signing_enabled_locally": _local_validator_signing_requested(state),
-        "signing_allowed_by_consensus_state": bool(getattr(ex, "validator_signing_enabled", lambda: False)()),
-        "signing_block_reason": _safe_str(getattr(ex, "_effective_signing_block_reason", lambda: "")(), ""),
+        "signing_allowed_by_consensus_state": bool(
+            getattr(ex, "validator_signing_enabled", lambda: False)()
+        ),
+        "signing_block_reason": _safe_str(
+            getattr(ex, "_effective_signing_block_reason", lambda: "")(), ""
+        ),
     }
     payload["operator"]["incident_timeline"] = _operator_incident_timeline(payload)
     payload["operator"]["incident_timeline_policy"] = "derived_status_only_no_readiness_claim"
@@ -1092,7 +1327,10 @@ def status_consensus(request: Request) -> dict[str, Any]:
     transition_guardrails = _transition_guardrail_diagnostics(ex)
     startup_posture = _startup_posture_diagnostics(ex, request.app.state)
     peer_debug = _peer_debug(request.app.state)
-    view = _safe_int(diag.get("view"), _safe_int(state.get("bft", {}).get("view") if isinstance(state.get("bft"), dict) else 0, 0))
+    view = _safe_int(
+        diag.get("view"),
+        _safe_int(state.get("bft", {}).get("view") if isinstance(state.get("bft"), dict) else 0, 0),
+    )
     high_qc = state.get("bft", {}).get("high_qc") if isinstance(state.get("bft"), dict) else {}
     locked_qc = state.get("bft", {}).get("locked_qc") if isinstance(state.get("bft"), dict) else {}
     validator_account = _safe_str(os.environ.get("WEALL_VALIDATOR_ACCOUNT"), "")
@@ -1106,25 +1344,42 @@ def status_consensus(request: Request) -> dict[str, Any]:
         "node_id": _safe_str(getattr(ex, "node_id", None), validator_account),
         "height": _safe_int(state.get("height"), 0),
         "tip": _safe_str(state.get("tip"), ""),
-        "finalized_height": _safe_int((state.get("finalized") or {}).get("height") if isinstance(state.get("finalized"), dict) else 0, 0),
+        "finalized_height": _safe_int(
+            (state.get("finalized") or {}).get("height")
+            if isinstance(state.get("finalized"), dict)
+            else 0,
+            0,
+        ),
         "active_validator_count": len(validators),
         "quorum_threshold": _quorum_threshold(len(validators)),
         "validator_set_hash": _safe_str(startup.get("validator_set_hash"), ""),
         "view": view,
         "current_leader": current,
         "next_leader": nxt,
-        "local_is_active_validator": validator_account in validators if validator_account else False,
+        "local_is_active_validator": validator_account in validators
+        if validator_account
+        else False,
         "local_is_expected_leader": bool(validator_account and validator_account == current),
         **_local_validator_lifecycle(state, validator_account),
         "high_qc": {
-            "block_id": _safe_str((high_qc or {}).get("block_id"), _safe_str(diag.get("high_qc_id"), "")),
-            "vote_count": len((high_qc or {}).get("votes", [])) if isinstance((high_qc or {}).get("votes"), list) else 0,
+            "block_id": _safe_str(
+                (high_qc or {}).get("block_id"), _safe_str(diag.get("high_qc_id"), "")
+            ),
+            "vote_count": len((high_qc or {}).get("votes", []))
+            if isinstance((high_qc or {}).get("votes"), list)
+            else 0,
         },
         "locked_qc": {
-            "block_id": _safe_str((locked_qc or {}).get("block_id"), _safe_str(diag.get("locked_qc_id"), "")),
-            "vote_count": len((locked_qc or {}).get("votes", [])) if isinstance((locked_qc or {}).get("votes"), list) else 0,
+            "block_id": _safe_str(
+                (locked_qc or {}).get("block_id"), _safe_str(diag.get("locked_qc_id"), "")
+            ),
+            "vote_count": len((locked_qc or {}).get("votes", []))
+            if isinstance((locked_qc or {}).get("votes"), list)
+            else 0,
         },
-        "peer_counts": dict(peer_debug.get("counts", {})) if isinstance(peer_debug.get("counts"), dict) else {},
+        "peer_counts": dict(peer_debug.get("counts", {}))
+        if isinstance(peer_debug.get("counts"), dict)
+        else {},
         "tx_index_hash": _tx_index_hash(ex, state),
         "startup_fingerprint": startup,
         "diagnostics": diag,
@@ -1167,10 +1422,18 @@ def status_consensus_forensics(request: Request) -> dict[str, Any]:
         "startup_posture": startup_posture,
         "node_lifecycle": _node_lifecycle_diagnostics(ex),
         "profile_compatibility": _profile_compatibility_diagnostics(ex, state, request.app.state),
-        "recent_rejection_summary": dict(diag.get("recent_rejection_summary", {})) if isinstance(diag.get("recent_rejection_summary"), dict) else {},
-        "pending_fetch_request_descriptors": list(diag.get("pending_fetch_request_descriptors", [])) if isinstance(diag.get("pending_fetch_request_descriptors"), list) else [],
-        "pending_outbound_messages": list(diag.get("pending_outbound_messages", [])) if isinstance(diag.get("pending_outbound_messages"), list) else [],
-        "journal_tail": list(diag.get("journal_tail", [])) if isinstance(diag.get("journal_tail"), list) else [],
+        "recent_rejection_summary": dict(diag.get("recent_rejection_summary", {}))
+        if isinstance(diag.get("recent_rejection_summary"), dict)
+        else {},
+        "pending_fetch_request_descriptors": list(diag.get("pending_fetch_request_descriptors", []))
+        if isinstance(diag.get("pending_fetch_request_descriptors"), list)
+        else [],
+        "pending_outbound_messages": list(diag.get("pending_outbound_messages", []))
+        if isinstance(diag.get("pending_outbound_messages"), list)
+        else [],
+        "journal_tail": list(diag.get("journal_tail", []))
+        if isinstance(diag.get("journal_tail"), list)
+        else [],
     }
 
 
@@ -1217,8 +1480,6 @@ def status_attestations(request: Request) -> dict[str, Any]:
     }
 
 
-
-
 def _chain_identity_payload(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or {}
@@ -1241,7 +1502,10 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
     clock_policy = policy_from_manifest(chain_manifest)
     if not clock_policy.enabled:
         clock_policy = policy_from_state(state if isinstance(state, dict) else {})
-    constitutional_clock = policy_to_json(clock_policy, current_height=constitutional_procedure_height(state if isinstance(state, dict) else {}))
+    constitutional_clock = policy_to_json(
+        clock_policy,
+        current_height=constitutional_procedure_height(state if isinstance(state, dict) else {}),
+    )
     # The current state root is not necessarily the manifest's genesis-state
     # commitment. In particular, a joining controlled-devnet node begins with a
     # provisional height-zero local state and adopts the canonical state through
@@ -1277,7 +1541,9 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
 
     consensus = state.get("consensus") if isinstance(state.get("consensus"), dict) else {}
     epochs = consensus.get("epochs") if isinstance(consensus.get("epochs"), dict) else {}
-    validator_set = consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
+    validator_set = (
+        consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
+    )
     genesis_bootstrap = _genesis_bootstrap_diagnostics(state if isinstance(state, dict) else {})
 
     return {
@@ -1297,7 +1563,9 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
         "chain_manifest": chain_manifest_report,
         "constitution": constitution,
         "constitutional_clock": constitutional_clock,
-        "production_consensus_profile_hash": _safe_str(meta.get("production_consensus_profile_hash"), ""),
+        "production_consensus_profile_hash": _safe_str(
+            meta.get("production_consensus_profile_hash"), ""
+        ),
         "protocol_version": _safe_str(meta.get("protocol_version"), ""),
         "protocol_profile_hash": runtime_protocol_profile_hash(),
         "genesis_bootstrap": {
@@ -1322,8 +1590,6 @@ def chain_identity(request: Request) -> dict[str, Any]:
     return _chain_identity_payload(request)
 
 
-
-
 def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
     """Read-only compatibility contract for the first external observer gate.
 
@@ -1336,14 +1602,22 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
     ident = _chain_identity_payload(request)
     ex = getattr(request.app.state, "executor", None)
     state = _try_read_state(ex) or {}
-    mode = _safe_str(os.environ.get("WEALL_MODE") or ident.get("chain_manifest", {}).get("mode"), "prod")
+    mode = _safe_str(
+        os.environ.get("WEALL_MODE") or ident.get("chain_manifest", {}).get("mode"), "prod"
+    )
     manifest = ident.get("chain_manifest") if isinstance(ident.get("chain_manifest"), dict) else {}
     constitution = ident.get("constitution") if isinstance(ident.get("constitution"), dict) else {}
-    readiness = ident.get("testnet_readiness") if isinstance(ident.get("testnet_readiness"), dict) else _testnet_readiness_payload(state if isinstance(state, dict) else {})
+    readiness = (
+        ident.get("testnet_readiness")
+        if isinstance(ident.get("testnet_readiness"), dict)
+        else _testnet_readiness_payload(state if isinstance(state, dict) else {})
+    )
     chain_id = _safe_str(ident.get("chain_id"), "")
     tx_index_hash = _safe_str(ident.get("tx_index_hash"), "")
     protocol_profile_hash = _safe_str(ident.get("protocol_profile_hash"), "")
-    manifest_issues = list(manifest.get("issues", [])) if isinstance(manifest.get("issues"), list) else []
+    manifest_issues = (
+        list(manifest.get("issues", [])) if isinstance(manifest.get("issues"), list) else []
+    )
 
     # This endpoint is an explicit remote contract for first-observer rehearsal.
     # It must remain read-only, and it must never grant validator, helper, BFT,
@@ -1360,7 +1634,9 @@ def _genesis_observer_readiness_payload(request: Request) -> dict[str, Any]:
             "schema_version": _safe_str(ident.get("schema_version"), ""),
             "tx_index_hash": tx_index_hash,
             "protocol_profile_hash": protocol_profile_hash,
-            "constitution_hash": _safe_str(constitution.get("sha256") or constitution.get("hash"), ""),
+            "constitution_hash": _safe_str(
+                constitution.get("sha256") or constitution.get("hash"), ""
+            ),
             "manifest_enabled": bool(manifest.get("enabled", False)),
             "manifest_ok": bool(manifest.get("enabled", False)) and not bool(manifest_issues),
             "manifest_issues": manifest_issues,
@@ -1473,6 +1749,7 @@ def chain_genesis(request: Request) -> dict[str, Any]:
         "genesis_bootstrap": ident["genesis_bootstrap"],
         "trusted_anchor": ident["snapshot_anchor"],
     }
+
 
 @router.get("/chain/manifest")
 def chain_manifest(request: Request) -> dict[str, Any]:

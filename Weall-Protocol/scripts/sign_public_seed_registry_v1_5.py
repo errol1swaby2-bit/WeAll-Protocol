@@ -29,7 +29,10 @@ from weall.api.public_seed_registry import (  # noqa: E402
 )
 from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed  # noqa: E402
 from weall.crypto.sig import sign_signature_for_profile  # noqa: E402
-from weall.crypto.signature_profiles import PQ_MLDSA_V1, normalize_signature_profile_id  # noqa: E402
+from weall.crypto.signature_profiles import (  # noqa: E402
+    PQ_MLDSA_V1,
+    normalize_signature_profile_id,
+)
 
 Json = dict[str, Any]
 
@@ -84,7 +87,9 @@ def sign_registry(data: Json, *, private_key: str, public_key: str, sig_profile:
     out["pq_resign_required_before_public_testnet"] = False
     out["seed_registry_signer"] = public_key
     out["seed_registry_sig_profile"] = profile
-    out["seed_registry_signature_alg"] = _signature_alg_label(profile, "weall.public_seed_registry.v1")
+    out["seed_registry_signature_alg"] = _signature_alg_label(
+        profile, "weall.public_seed_registry.v1"
+    )
     out["seed_registry_signature"] = sign_signature_for_profile(
         sig_profile=profile,
         message=registry_signature_payload(out),
@@ -104,18 +109,37 @@ def sign_validator_endpoints(data: Json, *, endpoint_key_map: Json) -> Json:
             signed.append(endpoint)
             continue
         account = str(endpoint.get("account_id") or endpoint.get("validator") or "").strip()
-        node_pubkey = str(endpoint.get("node_pubkey") or endpoint.get("node_public_key") or endpoint.get("signer") or "").strip()
+        node_pubkey = str(
+            endpoint.get("node_pubkey")
+            or endpoint.get("node_public_key")
+            or endpoint.get("signer")
+            or ""
+        ).strip()
         key_record = endpoint_key_map.get(node_pubkey) or endpoint_key_map.get(account)
         if not key_record:
             signed.append(endpoint)
             continue
-        private_key = str(key_record.get("private_key") if isinstance(key_record, dict) else key_record).strip()
-        profile = normalize_signature_profile_id(key_record.get("sig_profile") if isinstance(key_record, dict) else "") or PQ_MLDSA_V1
-        signer = str(key_record.get("public_key") if isinstance(key_record, dict) else node_pubkey).strip() or node_pubkey
+        private_key = str(
+            key_record.get("private_key") if isinstance(key_record, dict) else key_record
+        ).strip()
+        profile = (
+            normalize_signature_profile_id(
+                key_record.get("sig_profile") if isinstance(key_record, dict) else ""
+            )
+            or PQ_MLDSA_V1
+        )
+        signer = (
+            str(
+                key_record.get("public_key") if isinstance(key_record, dict) else node_pubkey
+            ).strip()
+            or node_pubkey
+        )
         if profile == PQ_MLDSA_V1 and not signer:
             signer = mldsa65_public_key_from_seed(privkey=private_key)
         if not private_key or not signer:
-            raise SystemExit(f"endpoint key map entry for {account or node_pubkey} is missing private/public key")
+            raise SystemExit(
+                f"endpoint key map entry for {account or node_pubkey} is missing private/public key"
+            )
         out = dict(endpoint)
         out["signer"] = signer
         out.setdefault("node_pubkey", signer)
@@ -136,14 +160,34 @@ def sign_validator_endpoints(data: Json, *, endpoint_key_map: Json) -> Json:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sign a WeAll v1.5 public seed registry.")
-    parser.add_argument("--input", required=True, help="unsigned or previously signed registry JSON")
+    parser.add_argument(
+        "--input", required=True, help="unsigned or previously signed registry JSON"
+    )
     parser.add_argument("--output", required=True, help="signed registry output path")
-    parser.add_argument("--registry-private-key-env", default="WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY")
-    parser.add_argument("--registry-public-key", default=os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", ""))
-    parser.add_argument("--signature-profile", default=os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_SIG_PROFILE", PQ_MLDSA_V1), help="signature profile for registry and endpoint signatures; default pq-mldsa-v1")
-    parser.add_argument("--endpoint-key-map", help="optional local JSON map for signing validator endpoint advertisements; do not commit it")
-    parser.add_argument("--allow-local", action="store_true", help="allow localhost/http endpoints for rehearsal signing validation")
-    parser.add_argument("--check", action="store_true", help="verify the output would match the existing output")
+    parser.add_argument(
+        "--registry-private-key-env", default="WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PRIVKEY"
+    )
+    parser.add_argument(
+        "--registry-public-key",
+        default=os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", ""),
+    )
+    parser.add_argument(
+        "--signature-profile",
+        default=os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_SIG_PROFILE", PQ_MLDSA_V1),
+        help="signature profile for registry and endpoint signatures; default pq-mldsa-v1",
+    )
+    parser.add_argument(
+        "--endpoint-key-map",
+        help="optional local JSON map for signing validator endpoint advertisements; do not commit it",
+    )
+    parser.add_argument(
+        "--allow-local",
+        action="store_true",
+        help="allow localhost/http endpoints for rehearsal signing validation",
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="verify the output would match the existing output"
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input).resolve()
@@ -161,8 +205,12 @@ def main() -> int:
     if not public_key and profile == PQ_MLDSA_V1:
         public_key = mldsa65_public_key_from_seed(privkey=private_key)
     if not public_key:
-        raise SystemExit("missing registry public key: pass --registry-public-key or WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY")
-    signed = sign_registry(data, private_key=private_key, public_key=public_key, sig_profile=profile)
+        raise SystemExit(
+            "missing registry public key: pass --registry-public-key or WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY"
+        )
+    signed = sign_registry(
+        data, private_key=private_key, public_key=public_key, sig_profile=profile
+    )
 
     # Validate as a public-testnet launch registry even when the caller did not
     # pre-export every node runtime variable.  This makes the signing command a

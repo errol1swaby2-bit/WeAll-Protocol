@@ -22,12 +22,20 @@ def _matches_account(value: Any, account_id: str) -> bool:
     return bool(base and base == target)
 
 
-def _mark_mapping_records(mapping: Json, *, account_id: str, height: int, path: str, out: list[Json]) -> None:
+def _mark_mapping_records(
+    mapping: Json, *, account_id: str, height: int, path: str, out: list[Json]
+) -> None:
     for key, record_any in sorted(mapping.items(), key=lambda item: str(item[0])):
         record = record_any if isinstance(record_any, dict) else None
         if record is None:
             continue
-        identity = record.get("account_id") or record.get("member_id") or record.get("juror_id") or record.get("node_id") or key
+        identity = (
+            record.get("account_id")
+            or record.get("member_id")
+            or record.get("juror_id")
+            or record.get("node_id")
+            or key
+        )
         if not _matches_account(identity, account_id):
             continue
         status = _as_str(record.get("status")).lower()
@@ -39,17 +47,21 @@ def _mark_mapping_records(mapping: Json, *, account_id: str, height: int, path: 
         record["safe_withdrawal_until_height"] = int(height) + SAFE_WITHDRAWAL_BLOCKS
         record["status_before_tier2_expiry"] = status or None
         record["status"] = "replacement_required"
-        out.append({
-            "account_id": account_id,
-            "path": path,
-            "record_id": str(key),
-            "replacement_required_height": int(height),
-            "safe_withdrawal_until_height": int(height) + SAFE_WITHDRAWAL_BLOCKS,
-            "status": "replacement_required",
-        })
+        out.append(
+            {
+                "account_id": account_id,
+                "path": path,
+                "record_id": str(key),
+                "replacement_required_height": int(height),
+                "safe_withdrawal_until_height": int(height) + SAFE_WITHDRAWAL_BLOCKS,
+                "status": "replacement_required",
+            }
+        )
 
 
-def mark_tier2_responsibilities_for_replacement(state: Json, *, account_id: str, height: int) -> list[Json]:
+def mark_tier2_responsibilities_for_replacement(
+    state: Json, *, account_id: str, height: int
+) -> list[Json]:
     transitions_root = state.setdefault("tier2_responsibility_transitions", {})
     by_account = transitions_root.setdefault("by_account", {})
     existing = by_account.get(account_id)
@@ -74,7 +86,9 @@ def mark_tier2_responsibilities_for_replacement(state: Json, *, account_id: str,
                         out=out,
                     )
             active_set = role_root.get("active_set")
-            if isinstance(active_set, list) and any(_matches_account(value, account_id) for value in active_set):
+            if isinstance(active_set, list) and any(
+                _matches_account(value, account_id) for value in active_set
+            ):
                 replacement = role_root.setdefault("replacement_required_set", [])
                 if account_id not in replacement:
                     replacement.append(account_id)
@@ -117,11 +131,15 @@ def process_safe_withdrawals(state: Json, *, next_height: int) -> int:
     if not isinstance(by_account, dict):
         return 0
     changed = 0
-    for account_id, item_any in sorted(by_account.items()):
+    for _account_id, item_any in sorted(by_account.items()):
         item = item_any if isinstance(item_any, dict) else None
         if item is None or _as_str(item.get("status")) != "replacement_or_safe_withdrawal":
             continue
-        deadlines = [int(rec.get("safe_withdrawal_until_height") or 0) for rec in item.get("responsibilities", []) if isinstance(rec, dict)]
+        deadlines = [
+            int(rec.get("safe_withdrawal_until_height") or 0)
+            for rec in item.get("responsibilities", [])
+            if isinstance(rec, dict)
+        ]
         deadline = max(deadlines, default=0)
         if deadline and int(next_height) > deadline:
             item["status"] = "safe_withdrawal_elapsed"
@@ -130,4 +148,8 @@ def process_safe_withdrawals(state: Json, *, next_height: int) -> int:
     return changed
 
 
-__all__ = ["SAFE_WITHDRAWAL_BLOCKS", "mark_tier2_responsibilities_for_replacement", "process_safe_withdrawals"]
+__all__ = [
+    "SAFE_WITHDRAWAL_BLOCKS",
+    "mark_tier2_responsibilities_for_replacement",
+    "process_safe_withdrawals",
+]

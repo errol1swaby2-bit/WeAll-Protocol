@@ -180,7 +180,7 @@ def record_provider_deletion_attestation(
 
 def _receipt_id(evidence_id: str, status: str, height: int, failure_count: int) -> str:
     digest = hashlib.sha256(
-        f"POH_EVIDENCE_DELETION_V1|{evidence_id}|{status}|{height}|{failure_count}".encode("utf-8")
+        f"POH_EVIDENCE_DELETION_V1|{evidence_id}|{status}|{height}|{failure_count}".encode()
     ).hexdigest()
     return f"poh-evidence-deletion:{digest[:32]}"
 
@@ -188,7 +188,9 @@ def _receipt_id(evidence_id: str, status: str, height: int, failure_count: int) 
 def _append_deletion_receipt(lifecycle: Json, rec: Json, *, evidence_id: str, height: int) -> str:
     receipts = lifecycle["receipts"]
     existing = _as_str(rec.get("deletion_receipt_id"))
-    if existing and any(isinstance(item, dict) and item.get("receipt_id") == existing for item in receipts):
+    if existing and any(
+        isinstance(item, dict) and item.get("receipt_id") == existing for item in receipts
+    ):
         rec.setdefault("deletion_receipt_height", int(height))
         return existing
     rid = existing or _receipt_id(
@@ -213,7 +215,9 @@ def _append_deletion_receipt(lifecycle: Json, rec: Json, *, evidence_id: str, he
                 },
                 "failure_count": _as_int(rec.get("failure_count"), 0),
                 "deletion_due_height": rec.get("deletion_due_height"),
-                "deletion_completion_deadline_height": rec.get("deletion_completion_deadline_height"),
+                "deletion_completion_deadline_height": rec.get(
+                    "deletion_completion_deadline_height"
+                ),
                 "deletion_deadline_missed_height": rec.get("deletion_deadline_missed_height"),
             }
         )
@@ -257,13 +261,18 @@ def process_evidence_lifecycle(state: Json, *, next_height: int) -> int:
         # Deterministic migration of the pre-POH-301 name.
         if status == "erasure_pending":
             rec["state"] = EVIDENCE_STATE_DELETION_DUE
-            rec.setdefault("deletion_due_reached_height", _as_int(rec.get("erasure_pending_height"), int(next_height)))
+            rec.setdefault(
+                "deletion_due_reached_height",
+                _as_int(rec.get("erasure_pending_height"), int(next_height)),
+            )
             rec.setdefault("next_retry_height", max(due, int(next_height)))
             transitions += 1
             continue
 
         if status == EVIDENCE_STATE_ERASED:
-            _append_deletion_receipt(lifecycle, rec, evidence_id=evidence_id, height=int(next_height))
+            _append_deletion_receipt(
+                lifecycle, rec, evidence_id=evidence_id, height=int(next_height)
+            )
             rec["state"] = EVIDENCE_STATE_DELETION_RECEIPT
             transitions += 1
             continue
@@ -282,7 +291,11 @@ def process_evidence_lifecycle(state: Json, *, next_height: int) -> int:
 
         missing = sorted(providers.difference(attestations.keys()))
         deadline = _as_int(rec.get("deletion_completion_deadline_height"), 0)
-        if deadline and int(next_height) >= deadline and not rec.get("deletion_deadline_missed_height"):
+        if (
+            deadline
+            and int(next_height) >= deadline
+            and not rec.get("deletion_deadline_missed_height")
+        ):
             rec["deletion_deadline_missed_height"] = int(next_height)
             rid = _receipt_id(
                 evidence_id,
@@ -328,7 +341,6 @@ def process_evidence_lifecycle(state: Json, *, next_height: int) -> int:
         )
         transitions += 1
     return transitions
-
 
 
 __all__ = [

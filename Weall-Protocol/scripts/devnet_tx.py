@@ -5,6 +5,7 @@ This helper intentionally uses normal public API routes only. It does not call
 seeded-demo endpoints, does not mutate local databases, and does not bypass
 signature, nonce, mempool, consensus, execution, or receipt paths.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,7 +25,10 @@ SRC = REPO_ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from weall.crypto.pq_mldsa import generate_mldsa65_keypair, mldsa65_public_key_from_seed  # noqa: E402
+from weall.crypto.pq_mldsa import (  # noqa: E402
+    generate_mldsa65_keypair,
+    mldsa65_public_key_from_seed,
+)
 from weall.crypto.sig import sign_tx_envelope_dict  # noqa: E402
 
 Json = dict[str, Any]
@@ -33,12 +37,14 @@ Json = dict[str, Any]
 def _json_dumps(obj: Any) -> str:
     return json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False)
 
+
 def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
 def _sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
 
 def _normalize_account(value: str | None, *, fallback_pubkey: str = "", existing: str = "") -> str:
     explicit = str(value or "").strip()
@@ -61,7 +67,9 @@ def _new_keypair() -> tuple[str, str]:
     return kp["privkey"], kp["pubkey"]
 
 
-def _key_material(keyfile: Path, *, account: str = "", fresh: bool = False) -> tuple[str, str, str, Json]:
+def _key_material(
+    keyfile: Path, *, account: str = "", fresh: bool = False
+) -> tuple[str, str, str, Json]:
     """Load or create controlled-devnet ML-DSA key material.
 
     The helper is intentionally file-backed so shell harnesses can share one
@@ -133,7 +141,9 @@ def _load_json_arg(value: str) -> Json:
     return parsed
 
 
-def _http_json(method: str, api: str, path: str, body: Json | None = None, *, timeout: float = 20.0) -> Json:
+def _http_json(
+    method: str, api: str, path: str, body: Json | None = None, *, timeout: float = 20.0
+) -> Json:
     base = str(api or "").strip().rstrip("/")
     if not base:
         raise SystemExit("missing API base URL")
@@ -148,7 +158,9 @@ def _http_json(method: str, api: str, path: str, body: Json | None = None, *, ti
         data = json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
         headers["Content-Type"] = "application/json"
 
-    req = urllib.request.Request(url, data=data, method=str(method or "GET").upper(), headers=headers)
+    req = urllib.request.Request(
+        url, data=data, method=str(method or "GET").upper(), headers=headers
+    )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - controlled local/devnet helper
             raw = resp.read().decode("utf-8")
@@ -218,7 +230,9 @@ def _wait_tx(api: str, tx_id: str, *, timeout_s: float, poll_s: float) -> Json:
     deadline = time.time() + max(0.0, float(timeout_s))
     last: Json = {"ok": False, "tx_id": str(tx_id or ""), "status": "unknown"}
     while True:
-        last = _http_json("GET", api, f"/v1/tx/status/{urllib.parse.quote(str(tx_id or ''), safe='')}")
+        last = _http_json(
+            "GET", api, f"/v1/tx/status/{urllib.parse.quote(str(tx_id or ''), safe='')}"
+        )
         status = str(last.get("status") or "").strip().lower()
         if status == "confirmed":
             return last
@@ -231,9 +245,7 @@ def _wait_tx(api: str, tx_id: str, *, timeout_s: float, poll_s: float) -> Json:
 
 def cmd_ensure_keyfile(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
-    account, _priv, pub, data = _key_material(
-        keyfile, account=args.account, fresh=bool(args.fresh)
-    )
+    account, _priv, pub, data = _key_material(keyfile, account=args.account, fresh=bool(args.fresh))
     if args.print_private:
         out: Json = dict(data)
     else:
@@ -244,16 +256,22 @@ def cmd_ensure_keyfile(args: argparse.Namespace) -> int:
 
 def cmd_create_account(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
-    account, priv, pub, keydata = _key_material(keyfile, account=args.account, fresh=bool(args.fresh))
+    account, priv, pub, keydata = _key_material(
+        keyfile, account=args.account, fresh=bool(args.fresh)
+    )
     chain_id = _chain_id(args.api)
 
     recovery_pub = str(keydata.get("recovery_public_key_hex") or "").strip()
     evidence_kem_pub = str(keydata.get("evidence_kem_public_key_b64") or "").strip()
     register_request: Json = {"account_id": account, "pubkey": pub, "parent": args.parent}
     if recovery_pub:
-        register_request.update({"recovery_pubkey": recovery_pub, "recovery_sig_profile": "pq-mldsa-v1"})
+        register_request.update(
+            {"recovery_pubkey": recovery_pub, "recovery_sig_profile": "pq-mldsa-v1"}
+        )
     if evidence_kem_pub:
-        register_request.update({"evidence_kem_pubkey": evidence_kem_pub, "evidence_kem_algorithm": "ml-kem-768"})
+        register_request.update(
+            {"evidence_kem_pubkey": evidence_kem_pub, "evidence_kem_algorithm": "ml-kem-768"}
+        )
     skeleton = _http_json(
         "POST",
         args.api,
@@ -270,7 +288,9 @@ def cmd_create_account(args: argparse.Namespace) -> int:
         tx_type="ACCOUNT_REGISTER",
         signer=account,
         nonce=nonce,
-        payload=tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else {"pubkey": pub},
+        payload=tx_skel.get("payload")
+        if isinstance(tx_skel.get("payload"), dict)
+        else {"pubkey": pub},
         parent=args.parent,
         privkey=priv,
     )
@@ -335,7 +355,6 @@ def cmd_submit_tx(args: argparse.Namespace) -> int:
     return 0
 
 
-
 def _tier2_case(api: str, case_id: str) -> Json:
     return _http_json("GET", api, f"/v1/poh/tier2/case/{urllib.parse.quote(case_id, safe='')}")
 
@@ -371,7 +390,9 @@ def _live_session_payload(api: str, session_id: str) -> Json:
 
 
 def _live_session_participants(api: str, session_id: str) -> Json:
-    return _http_json("GET", api, f"/v1/poh/live/session/{urllib.parse.quote(session_id, safe='')}/participants")
+    return _http_json(
+        "GET", api, f"/v1/poh/live/session/{urllib.parse.quote(session_id, safe='')}/participants"
+    )
 
 
 def _live_case_id(*, account: str, nonce: int) -> str:
@@ -418,7 +439,9 @@ def cmd_tier2_request(args: argparse.Namespace) -> int:
         tx_type="POH_TIER2_REQUEST_OPEN",
         signer=account,
         nonce=nonce,
-        payload=tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else {"account_id": account, "target_tier": 2, "video_commitment": commitment},
+        payload=tx_skel.get("payload")
+        if isinstance(tx_skel.get("payload"), dict)
+        else {"account_id": account, "target_tier": 2, "video_commitment": commitment},
         parent=args.parent,
         privkey=priv,
     )
@@ -468,7 +491,9 @@ def _sign_and_submit_skeleton_tx(
         raise SystemExit(f"Unexpected skeleton response from {route}: {_json_dumps(skeleton)}")
     nonce = _next_nonce(api, account)
     tx_type = str(tx_skel.get("tx_type") or fallback_tx_type).strip() or fallback_tx_type
-    payload = tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else fallback_payload
+    payload = (
+        tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else fallback_payload
+    )
     tx = _sign_tx(
         chain_id=chain_id,
         tx_type=tx_type,
@@ -516,7 +541,9 @@ def cmd_live_request(args: argparse.Namespace) -> int:
     if not isinstance(tx_skel, dict):
         raise SystemExit(f"Unexpected live request skeleton response: {_json_dumps(skeleton)}")
     payload = tx_skel.get("payload") if isinstance(tx_skel.get("payload"), dict) else body
-    tx_type = str(tx_skel.get("tx_type") or "POH_LIVE_REQUEST_OPEN").strip() or "POH_LIVE_REQUEST_OPEN"
+    tx_type = (
+        str(tx_skel.get("tx_type") or "POH_LIVE_REQUEST_OPEN").strip() or "POH_LIVE_REQUEST_OPEN"
+    )
 
     tx = _sign_tx(
         chain_id=chain_id,
@@ -555,14 +582,22 @@ def cmd_tier2_review(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
     juror, priv, _pub, keydata = _key_material(keyfile, account=args.account)
     chain_id = _chain_id(args.api)
-    case_id = str(args.case_id or "").strip() or str(keydata.get("last_poh_tier2_case_id") or "").strip()
+    case_id = (
+        str(args.case_id or "").strip() or str(keydata.get("last_poh_tier2_case_id") or "").strip()
+    )
     if not case_id:
         raise SystemExit("missing --case-id")
     verdict = str(args.verdict or "").strip().lower()
     if verdict not in {"pass", "fail"}:
         raise SystemExit("--verdict must be pass or fail")
 
-    result: Json = {"ok": True, "api": args.api, "chain_id": chain_id, "juror": juror, "case_id": case_id}
+    result: Json = {
+        "ok": True,
+        "api": args.api,
+        "chain_id": chain_id,
+        "juror": juror,
+        "case_id": case_id,
+    }
     if args.accept:
         accept = _sign_and_submit_skeleton_tx(
             api=args.api,
@@ -622,7 +657,9 @@ def cmd_live_review(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
     juror, priv, _pub, keydata = _key_material(keyfile, account=args.account)
     chain_id = _chain_id(args.api)
-    case_id = str(args.case_id or "").strip() or str(keydata.get("last_poh_live_case_id") or "").strip()
+    case_id = (
+        str(args.case_id or "").strip() or str(keydata.get("last_poh_live_case_id") or "").strip()
+    )
     if not case_id:
         raise SystemExit("missing --case-id")
 
@@ -709,11 +746,18 @@ def cmd_live_review(args: argparse.Namespace) -> int:
     except SystemExit:
         result["session"] = {}
     try:
-        result["participants"] = _live_session_participants(args.api, session_id).get("participants", [])
+        result["participants"] = _live_session_participants(args.api, session_id).get(
+            "participants", []
+        )
     except SystemExit:
         result["participants"] = []
 
-    keydata["last_poh_live_review_tx_id"] = str(((result.get("verdict") or {}) if isinstance(result.get("verdict"), dict) else {}).get("tx_id") or "")
+    keydata["last_poh_live_review_tx_id"] = str(
+        ((result.get("verdict") or {}) if isinstance(result.get("verdict"), dict) else {}).get(
+            "tx_id"
+        )
+        or ""
+    )
     keydata["last_poh_live_case_id"] = case_id
     keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
     print(_json_dumps(result))
@@ -794,12 +838,20 @@ def cmd_tick(args: argparse.Namespace) -> int:
     )
     submitted = _http_json("POST", args.api, "/v1/tx/submit", tx)
     tx_id = str(submitted.get("tx_id") or "").strip()
-    result: Json = {"ok": bool(submitted.get("ok", False)), "api": args.api, "chain_id": chain_id, "account": account, "tx_id": tx_id, "submit": submitted}
+    result: Json = {
+        "ok": bool(submitted.get("ok", False)),
+        "api": args.api,
+        "chain_id": chain_id,
+        "account": account,
+        "tx_id": tx_id,
+        "submit": submitted,
+    }
     if args.wait and tx_id:
         result["tx_status"] = _wait_tx(args.api, tx_id, timeout_s=args.timeout, poll_s=args.poll)
         result["account_state"] = _account_state(args.api, account)
     print(_json_dumps(result))
     return 0
+
 
 def cmd_wait_tx(args: argparse.Namespace) -> int:
     print(_json_dumps(_wait_tx(args.api, args.tx_id, timeout_s=args.timeout, poll_s=args.poll)))
@@ -807,18 +859,36 @@ def cmd_wait_tx(args: argparse.Namespace) -> int:
 
 
 def cmd_account(args: argparse.Namespace) -> int:
-    print(_json_dumps({"ok": True, "api": args.api, "account": args.account, "state": _account_state(args.api, args.account)}))
+    print(
+        _json_dumps(
+            {
+                "ok": True,
+                "api": args.api,
+                "account": args.account,
+                "state": _account_state(args.api, args.account),
+            }
+        )
+    )
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Controlled-devnet transaction helper")
-    p.add_argument("--api", default=os.environ.get("WEALL_API", "http://127.0.0.1:8001"), help="Node API base URL")
+    p.add_argument(
+        "--api",
+        default=os.environ.get("WEALL_API", "http://127.0.0.1:8001"),
+        help="Node API base URL",
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     c = sub.add_parser("create-account", help="Generate/load a keypair and submit ACCOUNT_REGISTER")
     c.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
-    c.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
+    c.add_argument(
+        "--keyfile",
+        default=os.environ.get(
+            "WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")
+        ),
+    )
     c.add_argument("--nonce", type=int, default=None)
     c.add_argument("--parent", default=None)
     c.add_argument(
@@ -836,24 +906,39 @@ def build_parser() -> argparse.ArgumentParser:
     )
     c.add_argument("--wait", action="store_true", default=True)
     c.add_argument("--no-wait", dest="wait", action="store_false")
-    c.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
+    c.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
     c.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
     c.set_defaults(func=cmd_create_account)
 
     s = sub.add_parser("submit-tx", help="Sign and submit an arbitrary user tx")
     s.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
-    s.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
+    s.add_argument(
+        "--keyfile",
+        default=os.environ.get(
+            "WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")
+        ),
+    )
     s.add_argument("--tx-type", required=True)
     s.add_argument("--payload-json", required=True, help="JSON object string or @path")
     s.add_argument("--nonce", type=int, default=None)
     s.add_argument("--parent", default=None)
-    s.add_argument("--tx-out", default="", help="optional path to write the signed tx envelope before submission")
+    s.add_argument(
+        "--tx-out",
+        default="",
+        help="optional path to write the signed tx envelope before submission",
+    )
     s.add_argument("--wait", action="store_true")
-    s.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
+    s.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
     s.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
     s.set_defaults(func=cmd_submit_tx)
 
-    k = sub.add_parser("ensure-keyfile", help="Generate/load a devnet mldsa keyfile without submitting txs")
+    k = sub.add_parser(
+        "ensure-keyfile", help="Generate/load a devnet mldsa keyfile without submitting txs"
+    )
     k.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
     k.add_argument("--keyfile", required=True)
     k.add_argument(
@@ -864,30 +949,61 @@ def build_parser() -> argparse.ArgumentParser:
     k.add_argument("--print-private", action="store_true")
     k.set_defaults(func=cmd_ensure_keyfile)
 
-
-
     t2 = sub.add_parser("tier2-request", help="Submit a POH_TIER2_REQUEST_OPEN tx")
     t2.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
-    t2.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
-    t2.add_argument("--video-commitment", default=os.environ.get("WEALL_POH_TIER2_VIDEO_COMMITMENT", ""))
+    t2.add_argument(
+        "--keyfile",
+        default=os.environ.get(
+            "WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")
+        ),
+    )
+    t2.add_argument(
+        "--video-commitment", default=os.environ.get("WEALL_POH_TIER2_VIDEO_COMMITMENT", "")
+    )
     t2.add_argument("--nonce", type=int, default=None)
     t2.add_argument("--parent", default=None)
     t2.add_argument("--wait", action="store_true", default=True)
     t2.add_argument("--no-wait", dest="wait", action="store_false")
-    t2.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
-    t2.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    t2.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
+    t2.add_argument(
+        "--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
+    )
     t2.set_defaults(func=cmd_tier2_request)
 
     r2 = sub.add_parser("tier2-review", help="Accept and submit a Tier-2 juror review")
-    r2.add_argument("--account", default=os.environ.get("WEALL_TIER2_JUROR_ACCOUNT", os.environ.get("WEALL_BOOTSTRAP_OPERATOR_ACCOUNT", os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", "@devnet-genesis"))))
-    r2.add_argument("--keyfile", default=os.environ.get("WEALL_TIER2_JUROR_KEYFILE", os.environ.get("WEALL_GENESIS_OPERATOR_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "genesis-operator.json"))))
+    r2.add_argument(
+        "--account",
+        default=os.environ.get(
+            "WEALL_TIER2_JUROR_ACCOUNT",
+            os.environ.get(
+                "WEALL_BOOTSTRAP_OPERATOR_ACCOUNT",
+                os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", "@devnet-genesis"),
+            ),
+        ),
+    )
+    r2.add_argument(
+        "--keyfile",
+        default=os.environ.get(
+            "WEALL_TIER2_JUROR_KEYFILE",
+            os.environ.get(
+                "WEALL_GENESIS_OPERATOR_KEYFILE",
+                str(REPO_ROOT / ".weall-devnet" / "genesis-operator.json"),
+            ),
+        ),
+    )
     r2.add_argument("--case-id", default=os.environ.get("WEALL_TIER2_CASE_ID", ""))
     r2.add_argument("--verdict", default=os.environ.get("WEALL_TIER2_VERDICT", "pass"))
     r2.add_argument("--accept", action="store_true", default=True)
     r2.add_argument("--no-accept", dest="accept", action="store_false")
     r2.add_argument("--parent", default=None)
-    r2.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
-    r2.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    r2.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
+    r2.add_argument(
+        "--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
+    )
     r2.set_defaults(func=cmd_tier2_review)
 
     c2 = sub.add_parser("tier2-case", help="Read a Tier-2 PoH case")
@@ -896,33 +1012,60 @@ def build_parser() -> argparse.ArgumentParser:
 
     b3 = sub.add_parser("bootstrap-live", help="Submit bounded devnet POH_BOOTSTRAP_TIER2_GRANT")
     b3.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
-    b3.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
+    b3.add_argument(
+        "--keyfile",
+        default=os.environ.get(
+            "WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")
+        ),
+    )
     b3.add_argument("--nonce", type=int, default=None)
     b3.add_argument("--parent", default=None)
     b3.add_argument("--wait", action="store_true", default=True)
     b3.add_argument("--no-wait", dest="wait", action="store_false")
-    b3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
-    b3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    b3.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
+    b3.add_argument(
+        "--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
+    )
     b3.set_defaults(func=cmd_bootstrap_live)
 
     t3 = sub.add_parser("live-request", help="Submit a dedicated POH_LIVE_REQUEST_OPEN tx")
     t3.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
-    t3.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
-    t3.add_argument("--session-commitment", default=os.environ.get("WEALL_POH_LIVE_SESSION_COMMITMENT", ""))
-    t3.add_argument("--room-commitment", default=os.environ.get("WEALL_POH_LIVE_ROOM_COMMITMENT", ""))
-    t3.add_argument("--prompt-commitment", default=os.environ.get("WEALL_POH_LIVE_PROMPT_COMMITMENT", ""))
-    t3.add_argument("--device-pairing-commitment", default=os.environ.get("WEALL_POH_LIVE_DEVICE_PAIRING_COMMITMENT", ""))
+    t3.add_argument(
+        "--keyfile",
+        default=os.environ.get(
+            "WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")
+        ),
+    )
+    t3.add_argument(
+        "--session-commitment", default=os.environ.get("WEALL_POH_LIVE_SESSION_COMMITMENT", "")
+    )
+    t3.add_argument(
+        "--room-commitment", default=os.environ.get("WEALL_POH_LIVE_ROOM_COMMITMENT", "")
+    )
+    t3.add_argument(
+        "--prompt-commitment", default=os.environ.get("WEALL_POH_LIVE_PROMPT_COMMITMENT", "")
+    )
+    t3.add_argument(
+        "--device-pairing-commitment",
+        default=os.environ.get("WEALL_POH_LIVE_DEVICE_PAIRING_COMMITMENT", ""),
+    )
     t3.add_argument("--nonce", type=int, default=None)
     t3.add_argument("--parent", default=None)
     t3.add_argument("--wait", action="store_true", default=True)
     t3.add_argument("--no-wait", dest="wait", action="store_false")
-    t3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
-    t3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    t3.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
+    t3.add_argument(
+        "--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
+    )
     t3.set_defaults(func=cmd_live_request)
 
     c3 = sub.add_parser("live-case", help="Read a Live PoH case")
     c3.add_argument("case_id")
-    c3.set_defaults(func=lambda args: (print(_json_dumps(_live_case(args.api, args.case_id))) or 0))
+    c3.set_defaults(func=lambda args: print(_json_dumps(_live_case(args.api, args.case_id))) or 0)
 
     s3 = sub.add_parser("live-session", help="Read a Live live session")
     s3.add_argument("session_id")
@@ -933,8 +1076,19 @@ def build_parser() -> argparse.ArgumentParser:
     p3.set_defaults(func=cmd_live_participants)
 
     r3 = sub.add_parser("live-review", help="Accept, attend, and optionally verdict a Live case")
-    r3.add_argument("--account", default=os.environ.get("WEALL_LIVE_JUROR_ACCOUNT", os.environ.get("WEALL_ACCOUNT", "")))
-    r3.add_argument("--keyfile", default=os.environ.get("WEALL_LIVE_JUROR_KEYFILE", os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "live-juror.json"))))
+    r3.add_argument(
+        "--account",
+        default=os.environ.get("WEALL_LIVE_JUROR_ACCOUNT", os.environ.get("WEALL_ACCOUNT", "")),
+    )
+    r3.add_argument(
+        "--keyfile",
+        default=os.environ.get(
+            "WEALL_LIVE_JUROR_KEYFILE",
+            os.environ.get(
+                "WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "live-juror.json")
+            ),
+        ),
+    )
     r3.add_argument("--case-id", default=os.environ.get("WEALL_LIVE_CASE_ID", ""))
     r3.add_argument("--verdict", default=os.environ.get("WEALL_LIVE_VERDICT", "pass"))
     r3.add_argument("--accept", action="store_true", default=True)
@@ -944,23 +1098,40 @@ def build_parser() -> argparse.ArgumentParser:
     r3.add_argument("--submit-verdict", action="store_true", default=True)
     r3.add_argument("--no-verdict", dest="submit_verdict", action="store_false")
     r3.add_argument("--parent", default=None)
-    r3.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
-    r3.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    r3.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
+    r3.add_argument(
+        "--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
+    )
     r3.set_defaults(func=cmd_live_review)
 
-    tick = sub.add_parser("tick", help="Submit a harmless PROFILE_UPDATE to advance block/system queues")
+    tick = sub.add_parser(
+        "tick", help="Submit a harmless PROFILE_UPDATE to advance block/system queues"
+    )
     tick.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
-    tick.add_argument("--keyfile", default=os.environ.get("WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")))
+    tick.add_argument(
+        "--keyfile",
+        default=os.environ.get(
+            "WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")
+        ),
+    )
     tick.add_argument("--label", default=os.environ.get("WEALL_DEVNET_TICK_LABEL", "tick"))
     tick.add_argument("--wait", action="store_true", default=True)
     tick.add_argument("--no-wait", dest="wait", action="store_false")
-    tick.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
-    tick.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
+    tick.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
+    tick.add_argument(
+        "--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
+    )
     tick.set_defaults(func=cmd_tick)
 
     w = sub.add_parser("wait-tx", help="Poll /v1/tx/status/{tx_id}")
     w.add_argument("tx_id")
-    w.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
+    w.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
     w.add_argument("--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5")))
     w.set_defaults(func=cmd_wait_tx)
 

@@ -50,4 +50,6 @@ def test_live_launcher_exports_media_timeout_to_playwright() -> None:
     text = LAUNCHER.read_text(encoding="utf-8")
     assert 'WEALL_M2_LOCAL_MEDIA_TIMEOUT_MS="${WEALL_M2_LOCAL_MEDIA_TIMEOUT_MS:-120000}"' in text
     assert "npm run test:m2-live-independent-browsers" in text
-    assert text.index("WEALL_M2_LOCAL_MEDIA_TIMEOUT_MS") < text.index("npm run test:m2-live-independent-browsers")
+    assert text.index("WEALL_M2_LOCAL_MEDIA_TIMEOUT_MS") < text.index(
+        "npm run test:m2-live-independent-browsers"
+    )

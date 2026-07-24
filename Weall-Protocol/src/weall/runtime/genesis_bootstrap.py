@@ -9,18 +9,16 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
-
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
-
 from weall.runtime.executor import (
     CLOCK_SKEW_WARN_MS,
-    ExecutorError,
     GENESIS_CREATED_MS,
-    Json,
     MAX_BLOCK_FUTURE_DRIFT_MS,
     PRODUCTION_CONSENSUS_PROFILE,
     PROTOCOL_VERSION,
     REPUTATION_SCALE,
+    ExecutorError,
+    Json,
     _env_bool,
     _env_int,
     _genesis_bootstrap_profile_hash,
@@ -37,6 +35,7 @@ from weall.runtime.executor import (
     units_to_reputation_text,
 )
 
+
 def _current_genesis_bootstrap_profile(self) -> Json:
     explicit_enabled = _env_bool("WEALL_GENESIS_BOOTSTRAP_ENABLE", False)
     genesis_mode_enabled = _env_bool("WEALL_GENESIS_MODE", False)
@@ -45,12 +44,15 @@ def _current_genesis_bootstrap_profile(self) -> Json:
     mode = "disabled"
     if genesis_mode_enabled:
         mode = "genesis_mode"
-        acct = acct or str(
-            os.environ.get("WEALL_VALIDATOR_ACCOUNT")
-            or self.node_id
-            or os.environ.get("WEALL_NODE_ID")
-            or ""
-        ).strip()
+        acct = (
+            acct
+            or str(
+                os.environ.get("WEALL_VALIDATOR_ACCOUNT")
+                or self.node_id
+                or os.environ.get("WEALL_NODE_ID")
+                or ""
+            ).strip()
+        )
         pk = pk or str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
     elif explicit_enabled:
         mode = "explicit"
@@ -79,6 +81,7 @@ def _current_genesis_bootstrap_profile(self) -> Json:
         "reputation_milli": int(bootstrap_rep_units),
         "storage_capacity_bytes": int(storage_capacity),
     }
+
 
 def _initial_state(self) -> Json:
     genesis_bootstrap_profile = self._current_genesis_bootstrap_profile()
@@ -142,9 +145,7 @@ def _initial_state(self) -> Json:
         try:
             poh_params[_param_key] = max(0, int(str(_raw).strip()))
         except Exception:
-            raise ExecutorError(
-                f"genesis_config_error: {_env_key} must be an integer when set"
-            )
+            raise ExecutorError(f"genesis_config_error: {_env_key} must be an integer when set")
     _live_partial_raw = os.environ.get("WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED")
     if _live_partial_raw is not None and str(_live_partial_raw).strip() != "":
         _live_partial_text = str(_live_partial_raw).strip().lower()
@@ -196,10 +197,12 @@ def _initial_state(self) -> Json:
         "finalized": {"height": 0, "block_id": ""},
     }
 
+
 def _mk_key_id(pubkey: str) -> str:
     """Stable deterministic key id for accounts[acct]["keys"]["by_id"]."""
     h = hashlib.sha256(str(pubkey).encode("utf-8")).hexdigest()
     return f"k:{h[:16]}"
+
 
 def _apply_genesis_bootstrap_live(self, state: Json) -> None:
     """Genesis bootstrap for the founder/operator account.
@@ -236,8 +239,12 @@ def _apply_genesis_bootstrap_live(self, state: Json) -> None:
         return
 
     profile = self._current_genesis_bootstrap_profile()
-    explicit_enabled = bool(profile.get("enabled", False)) and str(profile.get("mode") or "") == "explicit"
-    genesis_mode_enabled = bool(profile.get("enabled", False)) and str(profile.get("mode") or "") == "genesis_mode"
+    explicit_enabled = (
+        bool(profile.get("enabled", False)) and str(profile.get("mode") or "") == "explicit"
+    )
+    genesis_mode_enabled = (
+        bool(profile.get("enabled", False)) and str(profile.get("mode") or "") == "genesis_mode"
+    )
     if not explicit_enabled and not genesis_mode_enabled:
         return
 
@@ -472,9 +479,7 @@ def _apply_genesis_bootstrap_live(self, state: Json) -> None:
     op_rec = op_rec_any if isinstance(op_rec_any, dict) else {"account_id": acct}
     op_rec["enabled"] = True
     op_rec.setdefault("used_bytes", 0)
-    op_rec["capacity_bytes"] = max(
-        int(op_rec.get("capacity_bytes") or 0), int(storage_capacity)
-    )
+    op_rec["capacity_bytes"] = max(int(op_rec.get("capacity_bytes") or 0), int(storage_capacity))
     op_rec.setdefault("updated_at_nonce", 0)
     op_rec.setdefault("source", "genesis_bootstrap")
     storage["operators"][acct] = op_rec
@@ -493,4 +498,3 @@ def _apply_genesis_bootstrap_live(self, state: Json) -> None:
         expires_height=None,
         pubkey=pk,
     )
-

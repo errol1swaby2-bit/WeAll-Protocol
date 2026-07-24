@@ -11,9 +11,9 @@ stable.
 
 from typing import Any
 
-from weall.runtime.runtime_context import SchedulerSet
-from weall.runtime.poh.state import process_tier2_lifecycle
 from weall.runtime.poh.evidence_lifecycle import process_evidence_lifecycle
+from weall.runtime.poh.state import process_tier2_lifecycle
+from weall.runtime.runtime_context import SchedulerSet
 
 Json = dict[str, Any]
 
@@ -22,7 +22,9 @@ def _scheduler_set(scheduler_set: SchedulerSet | None = None) -> SchedulerSet:
     return scheduler_set if isinstance(scheduler_set, SchedulerSet) else SchedulerSet.defaults()
 
 
-def run_core_schedulers(state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None) -> None:
+def run_core_schedulers(
+    state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None
+) -> None:
     schedulers = _scheduler_set(scheduler_set)
     process_tier2_lifecycle(state, next_height=next_height)
     process_evidence_lifecycle(state, next_height=next_height)
@@ -34,24 +36,32 @@ def run_core_schedulers(state: Json, *, next_height: int, scheduler_set: Schedul
     schedulers.schedule_reputation_accrual_system_txs(state, next_height=next_height)
 
 
-def run_leader_pre_schedulers(state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None) -> None:
+def run_leader_pre_schedulers(
+    state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None
+) -> None:
     schedulers = _scheduler_set(scheduler_set)
     run_core_schedulers(state, next_height=next_height, scheduler_set=schedulers)
     schedulers.tick_governance_lifecycle(state, next_height=next_height)
     schedulers.tick_dispute_lifecycle(state, next_height=next_height)
 
 
-def run_leader_post_schedulers(state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None) -> None:
+def run_leader_post_schedulers(
+    state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None
+) -> None:
     run_core_schedulers(state, next_height=next_height, scheduler_set=scheduler_set)
 
 
-def run_replay_pre_schedulers(state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None) -> None:
+def run_replay_pre_schedulers(
+    state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None
+) -> None:
     # Preserve existing replay behavior. Do not add governance/dispute here until
     # replay/root regression tests intentionally approve the semantic change.
     run_core_schedulers(state, next_height=next_height, scheduler_set=scheduler_set)
 
 
-def run_replay_post_schedulers(state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None) -> None:
+def run_replay_post_schedulers(
+    state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None
+) -> None:
     run_core_schedulers(state, next_height=next_height, scheduler_set=scheduler_set)
 
 

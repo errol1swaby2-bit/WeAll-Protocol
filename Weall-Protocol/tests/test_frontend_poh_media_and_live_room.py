@@ -24,7 +24,9 @@ def test_frontend_has_decentralized_p2p_live_room_transport_only_copy() -> None:
 def test_frontend_async_evidence_payload_includes_reviewable_video_reference() -> None:
     account_page = (OUTER / "web/src/pages/AccountVerificationPage.tsx").read_text(encoding="utf-8")
     juror_page = (OUTER / "web/src/pages/JurorDashboard.tsx").read_text(encoding="utf-8")
-    encrypted_viewer = (OUTER / "web/src/components/EncryptedEvidenceViewer.tsx").read_text(encoding="utf-8")
+    encrypted_viewer = (OUTER / "web/src/components/EncryptedEvidenceViewer.tsx").read_text(
+        encoding="utf-8"
+    )
     evidence_crypto = (OUTER / "web/src/auth/evidenceCrypto.ts").read_text(encoding="utf-8")
     api = (OUTER / "web/src/api/weall.ts").read_text(encoding="utf-8")
 
@@ -40,9 +42,12 @@ def test_frontend_async_evidence_payload_includes_reviewable_video_reference() -
     assert "reviewable_evidence" in juror_page
     assert "evidence_commitments" in juror_page
     assert "ciphertext_cid" in juror_page
-    assert 'item.ciphertext_cid || item.encrypted_blob_cid' in juror_page
-    assert 'item.ciphertext_commitment || item.encrypted_blob_commitment || item.evidence_commitment' in juror_page
-    assert 'item?.ciphertext_cid || item?.encrypted_blob_cid' in juror_page
+    assert "item.ciphertext_cid || item.encrypted_blob_cid" in juror_page
+    assert (
+        "item.ciphertext_commitment || item.encrypted_blob_commitment || item.evidence_commitment"
+        in juror_page
+    )
+    assert "item?.ciphertext_cid || item?.encrypted_blob_cid" in juror_page
     assert "EncryptedEvidenceViewer" in juror_page
     for marker in (
         "unwrapEvidenceKeyForRecipient",

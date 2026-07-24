@@ -19,6 +19,7 @@ NON_PUBLIC_GROUP_UNSUPPORTED = "NON_PUBLIC_GROUP_UNSUPPORTED"
 OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED = "OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED"
 PUBLIC_READ_VISIBILITY_REQUIRED = "PUBLIC_READ_VISIBILITY_REQUIRED"
 
+
 # These keys are forbidden anywhere inside protocol tx payloads. Network TLS,
 # validator signatures, and local signing keys are outside tx payloads and are
 # not affected by this policy.
@@ -245,8 +246,7 @@ def _scan_public_protocol_payload(
         child_parts = (*path_parts, key)
 
         restricted_identity_evidence_field = (
-            tx_type in RESTRICTED_IDENTITY_EVIDENCE_TXS
-            and nk in SAFE_RESTRICTED_EVIDENCE_KEYS
+            tx_type in RESTRICTED_IDENTITY_EVIDENCE_TXS and nk in SAFE_RESTRICTED_EVIDENCE_KEYS
         )
         restricted_identity_envelope_field = (
             tx_type in RESTRICTED_IDENTITY_EVIDENCE_ENVELOPE_TXS
@@ -281,20 +281,38 @@ def _scan_public_protocol_payload(
                 return PublicProtocolPolicyViolation(
                     PUBLIC_READ_VISIBILITY_REQUIRED,
                     "protocol_read_visibility_must_be_public",
-                    {"tx_type": tx_type, "field": nk, "value": nv, "path": _format_path(child_parts)},
+                    {
+                        "tx_type": tx_type,
+                        "field": nk,
+                        "value": nv,
+                        "path": _format_path(child_parts),
+                    },
                 )
 
-        if nk in {"visibility", "read_visibility", _legacy_token("group", "_", "vis", "ibility"), "access", "audience"}:
+        if nk in {
+            "visibility",
+            "read_visibility",
+            _legacy_token("group", "_", "vis", "ibility"),
+            "access",
+            "audience",
+        }:
             if nv in NON_PUBLIC_VISIBILITY_VALUES:
                 return PublicProtocolPolicyViolation(
                     PUBLIC_READ_VISIBILITY_REQUIRED,
                     "protocol_read_visibility_must_be_public",
-                    {"tx_type": tx_type, "field": nk, "value": nv, "path": _format_path(child_parts)},
+                    {
+                        "tx_type": tx_type,
+                        "field": nk,
+                        "value": nv,
+                        "path": _format_path(child_parts),
+                    },
                 )
 
         if isinstance(child, str):
             lowered = child.strip().lower()
-            if "-----begin pgp message-----" in lowered or lowered.startswith("age-encryption.org/v1"):
+            if "-----begin pgp message-----" in lowered or lowered.startswith(
+                "age-encryption.org/v1"
+            ):
                 return PublicProtocolPolicyViolation(
                     OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
                     "armored_non_inspectable_protocol_payloads_are_unsupported",
@@ -318,6 +336,7 @@ def public_protocol_policy_violation(env: Any) -> PublicProtocolPolicyViolation 
     t = _tx_type(env)
     p = _payload(env)
     return _scan_public_protocol_payload(p, tx_type=t)
+
 
 def assert_public_protocol_tx(env: Any) -> None:
     violation = public_protocol_policy_violation(env)

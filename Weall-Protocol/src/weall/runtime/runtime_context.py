@@ -12,11 +12,12 @@ existing fail-closed regression tests keep exercising the same surface while the
 runtime moves toward explicit dependency injection.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
-from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.account_recovery_scheduler import schedule_account_recovery_system_txs
+from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.domain_apply import apply_tx_atomic_meta
 from weall.runtime.gov_engine import tick_governance_lifecycle
 from weall.runtime.node_operator_scheduler import schedule_node_operator_system_txs
@@ -41,18 +42,20 @@ class SchedulerSet:
     schedule_poh_tier2_system_txs: Callable[..., Any] = schedule_poh_tier2_system_txs
     schedule_poh_live_system_txs: Callable[..., Any] = schedule_poh_live_system_txs
     schedule_node_operator_system_txs: Callable[..., Any] = schedule_node_operator_system_txs
-    schedule_reputation_accrual_system_txs: Callable[..., Any] = schedule_reputation_accrual_system_txs
+    schedule_reputation_accrual_system_txs: Callable[..., Any] = (
+        schedule_reputation_accrual_system_txs
+    )
     tick_governance_lifecycle: Callable[..., Any] = tick_governance_lifecycle
     tick_dispute_lifecycle: Callable[..., Any] = tick_dispute_lifecycle
     system_tx_emitter: Callable[..., Any] = system_tx_emitter
     prune_emitted_system_queue: Callable[..., Any] = prune_emitted_system_queue
 
     @classmethod
-    def defaults(cls) -> "SchedulerSet":
+    def defaults(cls) -> SchedulerSet:
         return cls()
 
     @classmethod
-    def from_executor_module(cls) -> "SchedulerSet":
+    def from_executor_module(cls) -> SchedulerSet:
         """Mirror patched public executor symbols at the facade boundary.
 
         Several existing tests monkeypatch ``weall.runtime.executor`` because the
@@ -67,7 +70,9 @@ class SchedulerSet:
 
         return cls(
             schedule_account_recovery_system_txs=getattr(
-                executor_mod, "schedule_account_recovery_system_txs", schedule_account_recovery_system_txs
+                executor_mod,
+                "schedule_account_recovery_system_txs",
+                schedule_account_recovery_system_txs,
             ),
             schedule_poh_async_system_txs=getattr(
                 executor_mod, "schedule_poh_async_system_txs", schedule_poh_async_system_txs
@@ -106,19 +111,17 @@ class TxExecutionSet:
     apply_tx_atomic_meta: Callable[..., Any] = apply_tx_atomic_meta
 
     @classmethod
-    def defaults(cls) -> "TxExecutionSet":
+    def defaults(cls) -> TxExecutionSet:
         return cls()
 
     @classmethod
-    def from_executor_module(cls) -> "TxExecutionSet":
+    def from_executor_module(cls) -> TxExecutionSet:
         try:
             from weall.runtime import executor as executor_mod
         except Exception:
             return cls.defaults()
         return cls(
-            apply_tx_atomic_meta=getattr(
-                executor_mod, "apply_tx_atomic_meta", apply_tx_atomic_meta
-            )
+            apply_tx_atomic_meta=getattr(executor_mod, "apply_tx_atomic_meta", apply_tx_atomic_meta)
         )
 
 
@@ -131,7 +134,7 @@ class RuntimeContext:
     tx_execution_set: TxExecutionSet
 
     @classmethod
-    def from_executor(cls, executor: Any) -> "RuntimeContext":
+    def from_executor(cls, executor: Any) -> RuntimeContext:
         return cls(
             executor=executor,
             scheduler_set=SchedulerSet.from_executor_module(),

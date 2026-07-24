@@ -7,7 +7,9 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False) -> TxEnvelope:
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -48,7 +50,11 @@ def _open_async(st: dict) -> str:
             "POH_ASYNC_REQUEST_OPEN",
             "@alice",
             1,
-            {"account_id": "@alice", "challenge_commitment": "a" * 64, "response_commitment": "b" * 64},
+            {
+                "account_id": "@alice",
+                "challenge_commitment": "a" * 64,
+                "response_commitment": "b" * 64,
+            },
         ),
     )
     return str(result["case_id"])
@@ -94,7 +100,10 @@ def test_async_restricted_evidence_option_b_public_state_redacts_uri() -> None:
         ("POH_ASYNC_JUROR_ASSIGN", {"case_id": "case-1", "jurors": ["@juror"]}),
         ("POH_ASYNC_FINALIZE", {"case_id": "case-1"}),
         ("POH_ASYNC_RECEIPT", {"case_id": "case-1"}),
-        ("POH_LIVE_SESSION_INIT", {"case_id": "case-1", "account_id": "@alice", "session_commitment": "a" * 64}),
+        (
+            "POH_LIVE_SESSION_INIT",
+            {"case_id": "case-1", "account_id": "@alice", "session_commitment": "a" * 64},
+        ),
         ("POH_LIVE_FINALIZE", {"case_id": "case-1"}),
         ("POH_LIVE_RECEIPT", {"case_id": "case-1"}),
     ],

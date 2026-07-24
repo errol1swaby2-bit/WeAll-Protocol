@@ -50,7 +50,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Regenerate the pinned controlled-devnet chain manifest commitments."
     )
-    parser.add_argument("--check", action="store_true", help="Fail when the checked-in manifest is stale.")
+    parser.add_argument(
+        "--check", action="store_true", help="Fail when the checked-in manifest is stale."
+    )
     args = parser.parse_args()
 
     expected = _render(build_manifest())

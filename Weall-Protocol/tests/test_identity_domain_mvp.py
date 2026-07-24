@@ -155,7 +155,6 @@ def test_guardian_recovery_flow_threshold_2() -> None:
         pass
 
 
-
 def test_identity_canon_guardian_and_security_policy_txs_are_claimed() -> None:
     st = _empty_state()
     st = _apply_ok(

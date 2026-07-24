@@ -6,6 +6,7 @@ import pytest
 
 from weall.crypto.pq_mldsa import generate_mldsa65_keypair, mldsa_backend_status
 from weall.crypto.sig import sign_tx_envelope_dict
+from weall.ledger.state import LedgerView
 from weall.runtime.account_recovery_policy import RECOVERY_RESTRICTION_BLOCKS
 from weall.runtime.account_recovery_scheduler import schedule_account_recovery_system_txs
 from weall.runtime.domain_apply import ApplyError, apply_tx_atomic
@@ -22,7 +23,6 @@ from weall.runtime.poh.state import (
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_contracts import load_default_tx_index
-from weall.ledger.state import LedgerView
 
 
 def _state(*, guardian_admission: bool | None = None, height: int = 100) -> dict:
@@ -120,9 +120,7 @@ def test_offline_recovery_signature_is_purpose_limited_to_recovery_request() -> 
         "sig_profile": "pq-mldsa-v1",
         "payload": {"session_ttl_s": 300},
     }
-    ordinary_signed_by_recovery = sign_tx_envelope_dict(
-        tx=ordinary_tx, privkey=recovery["privkey"]
-    )
+    ordinary_signed_by_recovery = sign_tx_envelope_dict(tx=ordinary_tx, privkey=recovery["privkey"])
     assert verify_tx_signature(state, ordinary_signed_by_recovery) is False
 
 
@@ -186,13 +184,15 @@ def test_offline_recovery_atomically_replaces_authority_devices_and_sessions() -
         },
     )
     assert state["accounts"]["@alice"]["locked"] is True
-    assert state["accounts"]["@alice"]["recovery"]["requests"]["recovery-atomic"]["status"] == "approved"
+    assert (
+        state["accounts"]["@alice"]["recovery"]["requests"]["recovery-atomic"]["status"]
+        == "approved"
+    )
 
     queued = schedule_account_recovery_system_txs(state, next_height=101)
     assert queued == 1
     assert any(
-        item.get("tx_type") == "ACCOUNT_RECOVERY_FINALIZE"
-        for item in state.get("system_queue", [])
+        item.get("tx_type") == "ACCOUNT_RECOVERY_FINALIZE" for item in state.get("system_queue", [])
     )
 
     state = _apply(
@@ -224,7 +224,9 @@ def test_offline_recovery_atomically_replaces_authority_devices_and_sessions() -
     recovery_state = account["recovery"]
     assert recovery_state["authority_generation"] == 2
     assert recovery_state["offline_key"]["pubkey"] == replacement_recovery["pubkey"]
-    assert recovery_state["restriction_until_height"] == state["height"] + RECOVERY_RESTRICTION_BLOCKS
+    assert (
+        recovery_state["restriction_until_height"] == state["height"] + RECOVERY_RESTRICTION_BLOCKS
+    )
 
     with pytest.raises(ApplyError) as blocked:
         _apply(
@@ -327,6 +329,7 @@ def test_tier2_lifecycle_reminders_reverification_and_expiry_fall_back_to_tier1(
         for receipt in state["poh"]["tier2_lifecycle"]["receipts"]
     )
 
+
 def test_locked_account_cannot_cancel_or_submit_ordinary_actions(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
@@ -401,7 +404,9 @@ def test_locked_account_cannot_cancel_or_submit_ordinary_actions(monkeypatch) ->
                 "request_id": "recovery-1",
                 "decision": "evidence_bind",
                 "evidence_id": "evidence-1",
-                "key_envelope_commitments": {"@alice": {"envelope_commitment": "sha256:" + "1" * 64}},
+                "key_envelope_commitments": {
+                    "@alice": {"envelope_commitment": "sha256:" + "1" * 64}
+                },
             },
             "sig": "dev",
             "chain_id": "weall-m2-test",

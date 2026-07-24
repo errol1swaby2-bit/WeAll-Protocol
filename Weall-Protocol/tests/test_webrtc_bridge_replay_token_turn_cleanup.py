@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import hmac
 import hashlib
+import hmac
 import json
 import time
 from pathlib import Path
@@ -33,8 +33,20 @@ def _state() -> dict:
         "height": 7,
         "time": 10,
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "session_keys": {"sk-alice": _session()}},
-            "@j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "session_keys": {"sk-j1": _session()}},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "session_keys": {"sk-alice": _session()},
+            },
+            "@j1": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "session_keys": {"sk-j1": _session()},
+            },
         },
         "poh": {
             "live_cases": {
@@ -77,14 +89,16 @@ def test_bridge_import_rejects_stale_signed_replay_window(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_P2P_SIGNAL_TTL_MS", "10000")
     monkeypatch.setenv(
         "WEALL_WEBRTC_SIGNAL_PEERS_JSON",
-        json.dumps([
-            {
-                "node_id": "observer",
-                "url": "http://127.0.0.1:8002",
-                "chain_id": "weall-controlled-devnet",
-                "bridge_secret": "bridge-hmac-secret",
-            }
-        ]),
+        json.dumps(
+            [
+                {
+                    "node_id": "observer",
+                    "url": "http://127.0.0.1:8002",
+                    "chain_id": "weall-controlled-devnet",
+                    "bridge_secret": "bridge-hmac-secret",
+                }
+            ]
+        ),
     )
     c = _client()
     session_id = "session:live:alice:1"
@@ -97,7 +111,11 @@ def test_bridge_import_rejects_stale_signed_replay_window(monkeypatch) -> None:
         "sdp": "v=0\no=- 1 1 IN IP4 127.0.0.1",
         "ts_ms": _now_ms() - 60_000,
     }
-    payload = {"source_node": "observer", "source_chain_id": "weall-controlled-devnet", "signal": signal}
+    payload = {
+        "source_node": "observer",
+        "source_chain_id": "weall-controlled-devnet",
+        "signal": signal,
+    }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     sig = hmac.new(b"bridge-hmac-secret", canonical, hashlib.sha256).hexdigest()
 
@@ -139,7 +157,9 @@ def test_bridge_import_requires_present_fresh_source_timestamp(monkeypatch) -> N
 
 
 def test_tx_queue_rows_do_not_persist_peer_bridge_token() -> None:
-    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(
+        encoding="utf-8"
+    )
 
     assert '"peer_bridge_token"' not in src
     assert "_bridge_peer_token(spec or {})" in src
@@ -148,18 +168,28 @@ def test_tx_queue_rows_do_not_persist_peer_bridge_token() -> None:
 
 
 def test_json_turn_ice_credentials_are_short_lived_in_prod() -> None:
-    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "def _validate_webrtc_turn_credential_expiry" in src
     assert "credential_expires_ms" in src
-    assert "row.get(\"credential_expires_ms\")" in src
+    assert 'row.get("credential_expires_ms")' in src
     assert "prod_webrtc_turn_credentials_must_be_short_lived" in src
-    assert "_validate_webrtc_turn_credential_expiry(expires_ms, has_credential=bool(credential), urls=url_list)" in src
+    compact = "".join(src.split())
+    assert (
+        "_validate_webrtc_turn_credential_expiry(expires_ms,has_credential=bool(credential),urls=url_list)"
+        in compact
+    )
 
 
 def test_stale_tx_queue_pruning_increments_diagnostics() -> None:
-    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "poh.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "stale_tx_queue_pruned += 1" in src
-    assert 'diag["stale_tx_queue_pruned"] = int(diag.get("stale_tx_queue_pruned") or 0) + stale_tx_queue_pruned' in src
+    compact = "".join(src.split())
+    assert 'diag["stale_tx_queue_pruned"]=' in compact
+    assert 'int(diag.get("stale_tx_queue_pruned")or0)+stale_tx_queue_pruned' in compact
     assert "overflow_pruned" in src

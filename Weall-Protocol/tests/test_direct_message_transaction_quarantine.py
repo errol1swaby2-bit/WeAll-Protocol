@@ -40,7 +40,11 @@ def test_direct_message_tx_types_absent_from_public_testnet_tx_index() -> None:
 
     assert "DIRECT_MESSAGE_SEND" not in names
     assert "DIRECT_MESSAGE_REDACT" not in names
-    assert not [name for name in names if "DIRECT_MESSAGE" in name or "PRIVATE_MESSAGE" in name or "P2P_CHAT" in name]
+    assert not [
+        name
+        for name in names
+        if "DIRECT_MESSAGE" in name or "PRIVATE_MESSAGE" in name or "P2P_CHAT" in name
+    ]
 
 
 def test_tx_canon_source_does_not_regenerate_private_message_types() -> None:
@@ -50,7 +54,9 @@ def test_tx_canon_source_does_not_regenerate_private_message_types() -> None:
 
     combined = "\n".join([canon, schema, generated])
     for term in PRIVATE_TERMS:
-        assert term not in combined, f"private/direct message tx term must stay absent from canon/schema/generated artifacts: {term}"
+        assert term not in combined, (
+            f"private/direct message tx term must stay absent from canon/schema/generated artifacts: {term}"
+        )
 
 
 def test_reviewer_docs_quarantine_private_message_language_instead_of_claiming_it() -> None:
@@ -58,7 +64,10 @@ def test_reviewer_docs_quarantine_private_message_language_instead_of_claiming_i
         OUTER_ROOT / "README.md",
         ROOT / "docs" / "reviewer" / "DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md",
         ROOT / "docs" / "PUBLIC_ONLY_PROTOCOL.md",
-        ROOT / "docs" / "ARCHITECTURE_DECISIONS" / "0002-remove-protocol-native-private-messaging.md",
+        ROOT
+        / "docs"
+        / "ARCHITECTURE_DECISIONS"
+        / "0002-remove-protocol-native-private-messaging.md",
     ]
     combined = "\n".join(_read(path) for path in docs).lower()
 
@@ -72,7 +81,9 @@ def test_reviewer_docs_quarantine_private_message_language_instead_of_claiming_i
         assert required in combined
 
     for pattern in ACTIVE_CLAIM_PATTERNS:
-        assert re.search(pattern, combined, flags=re.I) is None, f"active private messaging/group claim found: {pattern}"
+        assert re.search(pattern, combined, flags=re.I) is None, (
+            f"active private messaging/group claim found: {pattern}"
+        )
 
 
 def test_group_public_only_contract_keeps_private_group_read_support_false() -> None:
