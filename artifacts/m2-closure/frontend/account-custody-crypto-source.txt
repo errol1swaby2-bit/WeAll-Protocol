@@ -1,0 +1,5 @@
+
+> weall-web@0.1.0 test:account-custody-crypto-source
+> node scripts/test_account_custody_crypto_source.mjs
+
+account custody cryptographic source gate passed

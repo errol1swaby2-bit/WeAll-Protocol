@@ -1,0 +1,377 @@
+{
+  "artifact_count": 44,
+  "artifact_root": "artifacts/m2-closure",
+  "commands": [
+    {
+      "command": "cd Weall-Protocol && PYTHONPATH=src:scripts WEALL_API_BOOT_RUNTIME=0 python3 -m pytest -q",
+      "evidence": "artifacts/m2-closure/backend/pytest.txt",
+      "id": "backend-full-pytest"
+    },
+    {
+      "command": "cd Weall-Protocol && python3 -S scripts/check_tx_canon_artifacts.py",
+      "evidence": "artifacts/m2-closure/backend/tx-canon.txt",
+      "id": "tx-canon"
+    },
+    {
+      "command": "cd Weall-Protocol && PYTHONPATH=src python3 scripts/assert_production_genesis_artifacts.py",
+      "evidence": "artifacts/m2-closure/backend/production-genesis.txt",
+      "id": "production-genesis"
+    },
+    {
+      "command": "cd Weall-Protocol && PYTHONPATH=src python3 scripts/gen_public_testnet_v1_chain_identity.py --check",
+      "evidence": "artifacts/m2-closure/backend/testnet-chain-identity.txt",
+      "id": "public-testnet-chain-identity"
+    },
+    {
+      "command": "cd Weall-Protocol && PYTHONPATH=src python3 scripts/check_public_testnet_seed_registry_rotation.py",
+      "evidence": "artifacts/m2-closure/backend/seed-registry-rotation.txt",
+      "id": "seed-registry-rotation"
+    },
+    {
+      "command": "cd Weall-Protocol && python3 scripts/check_m2_requirement_traceability.py",
+      "evidence": "artifacts/m2-closure/backend/traceability.txt",
+      "id": "m2-traceability"
+    },
+    {
+      "command": "cd web && npm run typecheck",
+      "evidence": "artifacts/m2-closure/frontend/typecheck.txt",
+      "id": "frontend-typecheck"
+    },
+    {
+      "command": "cd web && npm run build",
+      "evidence": "artifacts/m2-closure/frontend/build.txt",
+      "id": "frontend-build"
+    },
+    {
+      "command": "bash scripts/run_frontend_contract_check_real_stack.sh",
+      "evidence": "artifacts/m2-closure/frontend/contract-check/contract-check.txt",
+      "id": "frontend-contract-real-stack"
+    },
+    {
+      "command": "cd web && npm run production-safety-check",
+      "evidence": "artifacts/m2-closure/frontend/production-safety.txt",
+      "id": "frontend-production-safety"
+    },
+    {
+      "command": "cd web && npm run test:account-custody-source",
+      "evidence": "artifacts/m2-closure/frontend/account-custody-source.txt",
+      "id": "account-custody-source"
+    },
+    {
+      "command": "cd web && npm run test:account-custody-crypto-source",
+      "evidence": "artifacts/m2-closure/frontend/account-custody-crypto-source.txt",
+      "id": "account-custody-crypto-source"
+    },
+    {
+      "command": "bash scripts/run_account_custody_real_stack_e2e.sh",
+      "evidence": "artifacts/m2-closure/browser/account-custody/runner.txt",
+      "id": "account-custody-browser"
+    },
+    {
+      "command": "bash scripts/run_m2_async_browser_e2e.sh",
+      "evidence": "artifacts/m2-closure/browser/async/playwright.txt",
+      "id": "async-tier1-browser"
+    },
+    {
+      "command": "bash scripts/run_m2_live_browser_e2e.sh",
+      "evidence": "artifacts/m2-closure/browser/live/playwright.txt",
+      "id": "live-tier2-browser"
+    },
+    {
+      "command": "bash scripts/run_m2_media_rehearsal.sh",
+      "evidence": "artifacts/m2-closure/media/media-interruption-replacement.txt",
+      "id": "media-interruption-replacement"
+    },
+    {
+      "command": "bash scripts/run_m2_restart_replay_gate.sh",
+      "evidence": "artifacts/m2-closure/restart-replay/restart-replay.txt",
+      "id": "restart-replay"
+    },
+    {
+      "command": "bash scripts/run_m2_two_node_state_root_gate.sh",
+      "evidence": "artifacts/m2-closure/two-node/two-node-state-root.txt",
+      "id": "two-node-state-root"
+    },
+    {
+      "command": "bash scripts/run_m2_observer_catchup_gate.sh",
+      "evidence": "artifacts/m2-closure/observer/observer-catchup.txt",
+      "id": "observer-catchup"
+    }
+  ],
+  "evidence_commit_parent_required": "4d2007ee47b42ea13c5c4a45b21b779549f0d6b4",
+  "files": [
+    {
+      "path": "artifacts/m2-closure/backend/production-genesis.txt",
+      "sha256": "9e4f2bb7a1a2ef87f28d01b99771f5a2883e8505304f23c3bea1b3332c4669f1",
+      "size_bytes": 731
+    },
+    {
+      "path": "artifacts/m2-closure/backend/pytest.txt",
+      "sha256": "45e49e36951ef40d0c82eb377888293ba563f7d464236e96dc03ebaac51940f3",
+      "size_bytes": 5384
+    },
+    {
+      "path": "artifacts/m2-closure/backend/seed-registry-rotation.txt",
+      "sha256": "e88737186fe4fc393926ad765cd282e40e12f9dc7cdf2248fa81f3dffbde8692",
+      "size_bytes": 78
+    },
+    {
+      "path": "artifacts/m2-closure/backend/testnet-chain-identity.txt",
+      "sha256": "8605fbd3cfece7dce05b4022393f78ada68d25ab0c69b1029005d43685127b6d",
+      "size_bytes": 794
+    },
+    {
+      "path": "artifacts/m2-closure/backend/traceability.txt",
+      "sha256": "06d07d1ba880d67702f50c5e80a395e6a9feee7e7a7581d329d7c80d64c63efc",
+      "size_bytes": 112
+    },
+    {
+      "path": "artifacts/m2-closure/backend/tx-canon.txt",
+      "sha256": "dfdb72aa61656a0d4cd72d8810bdc557f2c429d7d0b33df45c78875f11647c79",
+      "size_bytes": 71
+    },
+    {
+      "path": "artifacts/m2-closure/browser/account-custody/runner.txt",
+      "sha256": "7ceee46b64eb8566c081fa28952c054aafcaedb0b8dc3c096acee7dfc531f3e6",
+      "size_bytes": 742
+    },
+    {
+      "path": "artifacts/m2-closure/browser/async/actor-manifest.sanitized.json",
+      "sha256": "352c428b507f9e100740310bfc2aeb4391813c03083a17e9785e07a7b349e1c6",
+      "size_bytes": 228
+    },
+    {
+      "path": "artifacts/m2-closure/browser/async/playwright-report/index.html",
+      "sha256": "34d95bf190e2aa0e5edd489191cedeb6cbc39988be4d7fd4ed61d050404938a2",
+      "size_bytes": 528812
+    },
+    {
+      "path": "artifacts/m2-closure/browser/async/playwright.txt",
+      "sha256": "ed77479c37db43b2fa58909cddec8bc3595591a7daf36ef623c6029e61be2486",
+      "size_bytes": 467
+    },
+    {
+      "path": "artifacts/m2-closure/browser/async/prepare.log",
+      "sha256": "e0999555abf4deb11ca1abb2769aaf7a65ffc9c6d12d1f153cc96dbacc1f4665",
+      "size_bytes": 61495
+    },
+    {
+      "path": "artifacts/m2-closure/browser/async/test-results/.last-run.json",
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903",
+      "size_bytes": 45
+    },
+    {
+      "path": "artifacts/m2-closure/browser/live/actor-manifest.sanitized.json",
+      "sha256": "f35379ae959bf648c4e098e146c20d5e204eac639f744b99e624d8cb4b61434a",
+      "size_bytes": 269
+    },
+    {
+      "path": "artifacts/m2-closure/browser/live/playwright-report/index.html",
+      "sha256": "1dbc10721737a4e395c9c5d908b91585b19e28135586d0ebcb13ce61e3f92157",
+      "size_bytes": 530696
+    },
+    {
+      "path": "artifacts/m2-closure/browser/live/playwright.txt",
+      "sha256": "f6631b179595bb45d69bcea826c8938f623cb9e5ed2ca6271ea8554a3366c7bd",
+      "size_bytes": 491
+    },
+    {
+      "path": "artifacts/m2-closure/browser/live/prepare.log",
+      "sha256": "c63da56692fb8d5b13d7d464544b2cd15041c16e9117ac4781a3debcba602244",
+      "size_bytes": 129681
+    },
+    {
+      "path": "artifacts/m2-closure/browser/live/test-results/.last-run.json",
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903",
+      "size_bytes": 45
+    },
+    {
+      "path": "artifacts/m2-closure/frontend/account-custody-crypto-source.txt",
+      "sha256": "a796d300f7a9b996affb2b31d9979c1557a7c1a70f19b9f88878c4b8fad99dd6",
+      "size_bytes": 158
+    },
+    {
+      "path": "artifacts/m2-closure/frontend/account-custody-source.txt",
+      "sha256": "074ba6cc9f66cf90200e914a3bac4b7ac187e47a4681317ff35b216a9f1113a7",
+      "size_bytes": 141
+    },
+    {
+      "path": "artifacts/m2-closure/frontend/build.txt",
+      "sha256": "079f8e4a81c7603f1e33192669375b2f6f035776bc33dcbcdfdbdb95c2f1eda5",
+      "size_bytes": 4276
+    },
+    {
+      "path": "artifacts/m2-closure/frontend/contract-check/backend.log",
+      "sha256": "542a21f02ae2d7ace274cbba0aa8eca73052ad0ae5486478f49a4668ab9e1c6f",
+      "size_bytes": 1833
+    },
+    {
+      "path": "artifacts/m2-closure/frontend/contract-check/contract-check.txt",
+      "sha256": "d7a4c80efc710e2abb81d416bbed81b54f780ac6b7511929678acdbddf8a0acd",
+      "size_bytes": 1655
+    },
+    {
+      "path": "artifacts/m2-closure/frontend/production-safety.txt",
+      "sha256": "4b7706b917e43c1e7c08103962c373a9d2ee2f994fe7bf3ec6a704bb063e478c",
+      "size_bytes": 137
+    },
+    {
+      "path": "artifacts/m2-closure/frontend/typecheck.txt",
+      "sha256": "593738de66abe0433d289a738148b39482436f28b96099be8250eb8fbd62c852",
+      "size_bytes": 54
+    },
+    {
+      "path": "artifacts/m2-closure/media/media-interruption-replacement.txt",
+      "sha256": "3a35f7ed7d0f662d71a54666632a9a9019c66a55484a81524debef23553c8592",
+      "size_bytes": 99
+    },
+    {
+      "path": "artifacts/m2-closure/observer/final-state.json",
+      "sha256": "78cda7445539031fc9ce2ad33dbc5dceebffab7bf8aa94cb9057e60401c7ebed",
+      "size_bytes": 565
+    },
+    {
+      "path": "artifacts/m2-closure/observer/observer-catchup.txt",
+      "sha256": "05a9d8ec59567c8ccef0a30a6c8944c017f72d8b60a0f17589a66d4e1b1c0a26",
+      "size_bytes": 167469
+    },
+    {
+      "path": "artifacts/m2-closure/observer/runtime-logs/node1-restart-catchup-live.log",
+      "sha256": "df1d1cd6d6102dd90bde66fadaef4b111a859fe8cec192eb22ba43b8cc4ed121",
+      "size_bytes": 12630
+    },
+    {
+      "path": "artifacts/m2-closure/observer/runtime-logs/node2-restart-catchup-live.log",
+      "sha256": "065b8801d332f9eb3bc353ce1c630956140d698e6a8e07dd87678c6ccbd7f446",
+      "size_bytes": 19183
+    },
+    {
+      "path": "artifacts/m2-closure/observer/runtime-logs/restart-catchup-compare-live.log",
+      "sha256": "2648edf3d9d60a6fb319cc10124eef7cdf5c9f1e4a69f03745c2eb929b72c1ee",
+      "size_bytes": 4378
+    },
+    {
+      "path": "artifacts/m2-closure/observer/runtime-logs/restart-catchup-convergence-live.log",
+      "sha256": "7abce8688494e0ee71b1b6a768d82acf2bf1c05209f86358f8a8d89ebe5454bd",
+      "size_bytes": 160022
+    },
+    {
+      "path": "artifacts/m2-closure/observer/runtime-logs/restart-catchup-sync-live.log",
+      "sha256": "cd2e5d215ba0c136ce5e0ddc4adab9fef12f5378b555b00c4f2db880df3cc7c3",
+      "size_bytes": 822
+    },
+    {
+      "path": "artifacts/m2-closure/restart-replay/final-state.json",
+      "sha256": "53e034ed5249d0ec079b10444ed1f74aca233a3e8925c234f4afec9b7d7e1ce6",
+      "size_bytes": 569
+    },
+    {
+      "path": "artifacts/m2-closure/restart-replay/restart-replay.txt",
+      "sha256": "ba3281a30dbe3e0985b53e3620a97294eab58c8cc640365d156196ce6dab18ec",
+      "size_bytes": 165758
+    },
+    {
+      "path": "artifacts/m2-closure/restart-replay/runtime-logs/node1-restart-catchup-live.log",
+      "sha256": "221c51a3eb2b81db71bb53650242885c694e87fd8c3d03776cd909b4543bdf89",
+      "size_bytes": 12554
+    },
+    {
+      "path": "artifacts/m2-closure/restart-replay/runtime-logs/node2-restart-catchup-live.log",
+      "sha256": "fc92b0c81a6612c958db8c2a56f6cf77da72e1eba3433537ffcef98432056e2a",
+      "size_bytes": 19107
+    },
+    {
+      "path": "artifacts/m2-closure/restart-replay/runtime-logs/restart-catchup-compare-live.log",
+      "sha256": "4d72f329b477425756c74ec35387a4bedb89b406915d2726ec69d5be9b5125f7",
+      "size_bytes": 2970
+    },
+    {
+      "path": "artifacts/m2-closure/restart-replay/runtime-logs/restart-catchup-convergence-live.log",
+      "sha256": "c9fc270e481a63c8669d6877ac8b12ac35c2f10fdd142ce7286c9d36de40a63c",
+      "size_bytes": 160022
+    },
+    {
+      "path": "artifacts/m2-closure/restart-replay/runtime-logs/restart-catchup-sync-live.log",
+      "sha256": "fd7e37964755be6d44d3eaa05d97ceaffa508beeb4695b23cf6d5ea6e2b60bfd",
+      "size_bytes": 645
+    },
+    {
+      "path": "artifacts/m2-closure/two-node/final-state.json",
+      "sha256": "c4dedbbf449412e1a2517bf08beabde95e26c5a2614a3f682017baedf2c10682",
+      "size_bytes": 568
+    },
+    {
+      "path": "artifacts/m2-closure/two-node/runtime-logs/cross-node-convergence-live.log",
+      "sha256": "ffa3c74c2f5ee20498139ba4e84e6a2302ffa15103c3a713982c3e58f1fe3a6e",
+      "size_bytes": 160022
+    },
+    {
+      "path": "artifacts/m2-closure/two-node/runtime-logs/node1-cross-node-live.log",
+      "sha256": "4e8a49c071c6d77152ad5ea4b1233612b313884c67d607df2018d4bf1a77993b",
+      "size_bytes": 10055
+    },
+    {
+      "path": "artifacts/m2-closure/two-node/runtime-logs/node2-cross-node-live.log",
+      "sha256": "e77e007512db2c76e950a7cb1c595bf3019b3f3d5babebb14bf2b82ac6f25958",
+      "size_bytes": 13440
+    },
+    {
+      "path": "artifacts/m2-closure/two-node/two-node-state-root.txt",
+      "sha256": "e8966e218fb1c45b7c7181c8f27a16bb30797e29a4867144a2d861ca40abef4f",
+      "size_bytes": 162041
+    }
+  ],
+  "final_state_roots": {
+    "observer": {
+      "chain_id": "weall-controlled-devnet",
+      "height": 5,
+      "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "schema_version": "1",
+      "state_root": "0a163430386d9686ca3478c214fb1895a737ee096baeb337c16842902b017f91",
+      "tip_hash": "81123c5975114449fedd2634896424625787263d66cb6b98cde9b8ede064ed1a",
+      "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+    },
+    "restart_replay": {
+      "chain_id": "weall-controlled-devnet",
+      "height": 5,
+      "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "schema_version": "1",
+      "state_root": "39f31c8820d47be73b1ffb246bf455317a67211fa055b28c47e79119ff7369bd",
+      "tip_hash": "c37de629f7dfba3aec26b7896d556883657b809b3e77a7a1ff9857da79d2c124",
+      "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+    },
+    "two_node": {
+      "chain_id": "weall-controlled-devnet",
+      "height": 4,
+      "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+      "schema_version": "1",
+      "state_root": "b596c2f00a0e17dd4283431daa167481a6dc215c90d257427c40b7eaae2b69ca",
+      "tip_hash": "9b906cac59d2a804dc4d39d5ecc65df9474d5121ec7a150a454356bd9dc88f77",
+      "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+    }
+  },
+  "implementation_freeze_commit": "4d2007ee47b42ea13c5c4a45b21b779549f0d6b4",
+  "implementation_tree": "9bd99ce64f43c3a9b23ed0367e889b5c7a134933",
+  "milestone": "M2",
+  "schema_version": 2,
+  "transcript_hashes": {
+    "artifacts/m2-closure/browser/account-custody/runner.txt": "7ceee46b64eb8566c081fa28952c054aafcaedb0b8dc3c096acee7dfc531f3e6",
+    "artifacts/m2-closure/browser/async/playwright.txt": "ed77479c37db43b2fa58909cddec8bc3595591a7daf36ef623c6029e61be2486",
+    "artifacts/m2-closure/browser/live/playwright.txt": "f6631b179595bb45d69bcea826c8938f623cb9e5ed2ca6271ea8554a3366c7bd",
+    "artifacts/m2-closure/media/media-interruption-replacement.txt": "3a35f7ed7d0f662d71a54666632a9a9019c66a55484a81524debef23553c8592",
+    "artifacts/m2-closure/observer/final-state.json": "78cda7445539031fc9ce2ad33dbc5dceebffab7bf8aa94cb9057e60401c7ebed",
+    "artifacts/m2-closure/observer/observer-catchup.txt": "05a9d8ec59567c8ccef0a30a6c8944c017f72d8b60a0f17589a66d4e1b1c0a26",
+    "artifacts/m2-closure/restart-replay/final-state.json": "53e034ed5249d0ec079b10444ed1f74aca233a3e8925c234f4afec9b7d7e1ce6",
+    "artifacts/m2-closure/restart-replay/restart-replay.txt": "ba3281a30dbe3e0985b53e3620a97294eab58c8cc640365d156196ce6dab18ec",
+    "artifacts/m2-closure/two-node/final-state.json": "c4dedbbf449412e1a2517bf08beabde95e26c5a2614a3f682017baedf2c10682",
+    "artifacts/m2-closure/two-node/two-node-state-root.txt": "e8966e218fb1c45b7c7181c8f27a16bb30797e29a4867144a2d861ca40abef4f"
+  },
+  "truth_boundary": {
+    "claim": "local deterministic and controlled-devnet Milestone 2 closure evidence",
+    "does_not_claim": [
+      "independent third-party security audit",
+      "public multi-validator mainnet readiness",
+      "erasure from storage providers outside the attested provider set"
+    ]
+  }
+}
