@@ -25,9 +25,12 @@ def _script_checks() -> Json:
     return {
         "loads_checked_in_registry": "public_testnet_seed_registry.json" in text,
         "loads_trust_roots": "public_testnet_trust_roots.json" in text,
-        "refuses_observer_validator_signing": "WEALL_VALIDATOR_SIGNING_ENABLED" in text and "public observer boot refuses" in text,
-        "enables_direct_p2p_mesh_loop": "WEALL_NET_ENABLED" in text and "WEALL_NET_LOOP_AUTOSTART" in text,
-        "initializes_local_node_identity_only": "init_prod_node_identity.sh --emit-shell-env" in text,
+        "refuses_observer_validator_signing": "WEALL_VALIDATOR_SIGNING_ENABLED" in text
+        and "public observer boot refuses" in text,
+        "enables_direct_p2p_mesh_loop": "WEALL_NET_ENABLED" in text
+        and "WEALL_NET_LOOP_AUTOSTART" in text,
+        "initializes_local_node_identity_only": "init_prod_node_identity.sh --emit-shell-env"
+        in text,
         "runs_production_node_entrypoint": "exec bash scripts/run_node.sh" in text,
     }
 
@@ -65,11 +68,15 @@ def build() -> Json:
                 os.environ[k] = v
 
     checks = _script_checks()
-    static_ready = not errors and all(bool(v) for v in checks.values()) and bool(registry.get("seed_p2p_urls"))
+    static_ready = (
+        not errors and all(bool(v) for v in checks.values()) and bool(registry.get("seed_p2p_urls"))
+    )
     return {
         "schema": "weall.v1_5.genesis_testnet_launch_readiness",
         "version": "2026-06-public-genesis-launch",
-        "static_readiness_verdict": "ready_for_live_endpoint_rehearsal" if static_ready else "blocked",
+        "static_readiness_verdict": "ready_for_live_endpoint_rehearsal"
+        if static_ready
+        else "blocked",
         "overall_launch_verdict": "partial_until_live_genesis_reachability_and_rehearsal_pass",
         "checked_in_registry_baseline": True,
         "named_provider_dependency": False,
@@ -104,7 +111,9 @@ def build() -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check public genesis testnet launch readiness artifact.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check public genesis testnet launch readiness artifact."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()

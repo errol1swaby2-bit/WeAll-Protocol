@@ -4,7 +4,6 @@ from pathlib import Path
 
 from weall.runtime.tx_schema import validate_tx_envelope
 
-
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web" / "src"
 BACKEND = ROOT / "Weall-Protocol" / "src"
@@ -44,11 +43,11 @@ def test_async_evidence_declare_schema_accepts_encrypted_video_metadata() -> Non
 
     assert envelope.tx_type == "POH_ASYNC_EVIDENCE_DECLARE"
     assert payload is not None
-    assert getattr(payload, "encrypted") is True
-    assert getattr(payload, "encryption_algorithm") == "aes-256-gcm"
-    assert getattr(payload, "ciphertext_cid") == "bafyvideo"
-    assert getattr(payload, "ciphertext_commitment") == "a" * 64
-    assert getattr(payload, "provider_ids") == ["@provider"]
+    assert payload.encrypted is True
+    assert payload.encryption_algorithm == "aes-256-gcm"
+    assert payload.ciphertext_cid == "bafyvideo"
+    assert payload.ciphertext_commitment == "a" * 64
+    assert payload.provider_ids == ["@provider"]
 
 
 def test_account_verification_submits_native_async_tx_sequence() -> None:

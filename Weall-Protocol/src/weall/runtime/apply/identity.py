@@ -4,16 +4,28 @@ import base64
 import hashlib
 from typing import Any
 
-from ..errors import ApplyError
-from ..tx_admission_types import TxEnvelope
-from ..session_keys import revoke_session_record, store_session_record
-from ..public_protocol_policy import public_protocol_policy_violation
+from weall.crypto.account_keys import (
+    account_key_pubkey,
+    account_key_record_from_payload,
+    validate_account_key_record,
+)
+from weall.crypto.signature_profiles import default_signature_profile_for_mode
+
 from ..account_recovery_policy import (
     RECOVERY_FAILED_WINDOW_BLOCKS,
     RECOVERY_MAX_FAILED_ATTEMPTS,
     RECOVERY_REQUEST_COOLDOWN_BLOCKS,
     RECOVERY_RESTRICTION_BLOCKS,
 )
+from ..errors import ApplyError
+from ..poh.evidence_lifecycle import (
+    close_case_evidence,
+    evidence_record,
+    mark_reviewer_accessible,
+    register_encrypted_evidence,
+)
+from ..poh.state import effective_poh_tier
+from ..public_protocol_policy import public_protocol_policy_violation
 from ..recovery_review import (
     CONTINUITY_APPROVAL_THRESHOLD,
     CONTINUITY_PANEL_SIZE,
@@ -21,22 +33,12 @@ from ..recovery_review import (
     REVERSAL_APPROVAL_THRESHOLD,
     REVERSAL_PANEL_SIZE,
     recovery_conflict_reason,
+)
+from ..recovery_review import (
     review_counts as recovery_review_counts,
 )
-from ..reviewer_responsibilities import POH_ASYNC_REVIEW_LANE, reviewer_lane_active
-from ..poh.state import effective_poh_tier
-from ..poh.evidence_lifecycle import (
-    close_case_evidence,
-    evidence_record,
-    mark_reviewer_accessible,
-    register_encrypted_evidence,
-)
-from weall.crypto.account_keys import (
-    account_key_pubkey,
-    account_key_record_from_payload,
-    validate_account_key_record,
-)
-from weall.crypto.signature_profiles import default_signature_profile_for_mode
+from ..session_keys import revoke_session_record, store_session_record
+from ..tx_admission_types import TxEnvelope
 
 Json = dict[str, Any]
 
@@ -180,13 +182,13 @@ def _key_record_from_payload_or_raise(state: Json, payload: Json, *, key_type: s
         default_profile=default_signature_profile_for_mode(),
         key_type=key_type,
     )
-    chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+    chain_config = (
+        state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+    )
     ok, reason = validate_account_key_record(rec, chain_config=chain_config, require_verifier=False)
     if not ok:
         raise ApplyError("invalid_tx", reason, {"sig_profile": rec.get("sig_profile")})
     return rec
-
-
 
 
 def _validate_evidence_kem_pubkey(value: Any, *, required: bool = False) -> str | None:
@@ -208,6 +210,7 @@ def _validate_evidence_kem_pubkey(value: Any, *, required: bool = False) -> str 
             {"expected": 1184, "actual": len(decoded)},
         )
     return raw
+
 
 def _mk_device_id_hash(device_id: str) -> str:
     h = hashlib.sha256(device_id.encode("utf-8")).hexdigest()
@@ -334,7 +337,11 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
     evidence_kem_pubkey = _validate_evidence_kem_pubkey(p.get("evidence_kem_pubkey"))
     evidence_kem_algorithm = _as_str(p.get("evidence_kem_algorithm") or "ml-kem-768").lower()
     if evidence_kem_pubkey and evidence_kem_algorithm != "ml-kem-768":
-        raise ApplyError("invalid_tx", "unsupported_evidence_kem_algorithm", {"algorithm": evidence_kem_algorithm})
+        raise ApplyError(
+            "invalid_tx",
+            "unsupported_evidence_kem_algorithm",
+            {"algorithm": evidence_kem_algorithm},
+        )
     params = state.get("params") if isinstance(state.get("params"), dict) else {}
     if bool(params.get("require_recovery_key_at_account_register")) and recovery_key is None:
         raise ApplyError("invalid_tx", "recovery_key_required_at_account_register", {})
@@ -351,8 +358,7 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         offline_key = {
             "pubkey": account_key_pubkey(recovery_key),
             "sig_profile": recovery_key.get("sig_profile"),
-            "key_id": recovery_key.get("key_id")
-            or _mk_key_id(account_key_pubkey(recovery_key)),
+            "key_id": recovery_key.get("key_id") or _mk_key_id(account_key_pubkey(recovery_key)),
             "commitment": _as_str(p.get("recovery_key_commitment") or "").strip() or None,
             "generation": generation,
             "registered_height": _current_height(state),
@@ -366,11 +372,7 @@ def _apply_account_register(state: Json, env: TxEnvelope) -> Json:
         "banned": False,
         "locked": False,
         "reputation": "0",
-        "keys": {
-            "by_id": {
-                str(key_record.get("key_id") or _mk_key_id(pubkey)): key_record
-            }
-        },
+        "keys": {"by_id": {str(key_record.get("key_id") or _mk_key_id(pubkey)): key_record}},
         "devices": {"by_id": {}},
         "recovery": {
             "mode": "offline_key" if offline_key else None,
@@ -723,8 +725,6 @@ def _apply_account_unban(state: Json, env: TxEnvelope) -> Json:
     return state
 
 
-
-
 def _normalized_guardians(a: Json) -> tuple[Json, list[str], int]:
     recovery = a.get("recovery")
     if not isinstance(recovery, dict):
@@ -796,11 +796,15 @@ def _apply_account_security_policy_set(state: Json, env: TxEnvelope) -> Json:
             policy[key] = bool(p.get(key))
     if p.get("session_ttl_s") is not None:
         policy["session_ttl_s"] = _as_int(p.get("session_ttl_s"), 0)
-    evidence_kem_pubkey = _validate_evidence_kem_pubkey(p.get("evidence_kem_pubkey"), required=False)
+    evidence_kem_pubkey = _validate_evidence_kem_pubkey(
+        p.get("evidence_kem_pubkey"), required=False
+    )
     if evidence_kem_pubkey:
         algorithm = _as_str(p.get("evidence_kem_algorithm") or "ml-kem-768").strip().lower()
         if algorithm != "ml-kem-768":
-            raise ApplyError("invalid_tx", "unsupported_evidence_kem_algorithm", {"algorithm": algorithm})
+            raise ApplyError(
+                "invalid_tx", "unsupported_evidence_kem_algorithm", {"algorithm": algorithm}
+            )
         a["evidence_encryption"] = {
             "algorithm": algorithm,
             "public_key": evidence_kem_pubkey,
@@ -857,7 +861,6 @@ def _apply_account_guardian_remove(state: Json, env: TxEnvelope) -> Json:
 
     a["nonce"] = exp
     return state
-
 
 
 def _all_account_pubkeys(account: Json) -> set[str]:
@@ -938,7 +941,9 @@ def _require_fresh_recovered_authority(account: Json, pubkey: str) -> None:
         raise ApplyError("invalid_tx", "recovered_authority_key_must_be_fresh", {})
 
 
-def _append_failed_recovery_attempt(recovery: Json, *, height: int, request_id: str, reason: str) -> None:
+def _append_failed_recovery_attempt(
+    recovery: Json, *, height: int, request_id: str, reason: str
+) -> None:
     window_start = int(height) - RECOVERY_FAILED_WINDOW_BLOCKS
     failed = []
     for raw in recovery.get("failed_attempts", []):
@@ -983,7 +988,9 @@ def _recovery_evidence_summary(payload: Json) -> tuple[list[Json], str, bool]:
                 {"class_id": class_id},
             )
         if class_id in seen:
-            raise ApplyError("invalid_tx", "duplicate_continuity_evidence_class", {"class_id": class_id})
+            raise ApplyError(
+                "invalid_tx", "duplicate_continuity_evidence_class", {"class_id": class_id}
+            )
         seen.add(class_id)
         classes.append({"class_id": class_id, "commitment": commitment})
         social_required = social_required or class_id == "social_continuity_attestations"
@@ -1023,15 +1030,27 @@ def _register_recovery_encrypted_evidence(
         context_commitment = _as_str(raw.get("encryption_context_commitment") or "").strip()
         providers = raw.get("provider_ids")
         if not evidence_id or not class_id or not ciphertext_cid:
-            raise ApplyError("invalid_tx", "invalid_recovery_evidence_item", {"evidence_id": evidence_id})
+            raise ApplyError(
+                "invalid_tx", "invalid_recovery_evidence_item", {"evidence_id": evidence_id}
+            )
         if evidence_id in evidence_ids:
-            raise ApplyError("invalid_tx", "duplicate_recovery_evidence_id", {"evidence_id": evidence_id})
+            raise ApplyError(
+                "invalid_tx", "duplicate_recovery_evidence_id", {"evidence_id": evidence_id}
+            )
         if not ciphertext_commitment or not context_commitment:
-            raise ApplyError("invalid_tx", "recovery_evidence_commitments_required", {"evidence_id": evidence_id})
-        if not isinstance(providers, list) or not [value for value in providers if _as_str(value).strip()]:
-            raise ApplyError("invalid_tx", "recovery_evidence_providers_required", {"evidence_id": evidence_id})
+            raise ApplyError(
+                "invalid_tx", "recovery_evidence_commitments_required", {"evidence_id": evidence_id}
+            )
+        if not isinstance(providers, list) or not [
+            value for value in providers if _as_str(value).strip()
+        ]:
+            raise ApplyError(
+                "invalid_tx", "recovery_evidence_providers_required", {"evidence_id": evidence_id}
+            )
         if raw.get("cid") or raw.get("uri") or raw.get("video_cid"):
-            raise ApplyError("invalid_tx", "plaintext_poh_evidence_forbidden", {"evidence_id": evidence_id})
+            raise ApplyError(
+                "invalid_tx", "plaintext_poh_evidence_forbidden", {"evidence_id": evidence_id}
+            )
         try:
             register_encrypted_evidence(
                 state,
@@ -1041,7 +1060,9 @@ def _register_recovery_encrypted_evidence(
                 ciphertext_cid=ciphertext_cid,
                 ciphertext_commitment=ciphertext_commitment,
                 encryption_context_commitment=context_commitment,
-                provider_ids=[_as_str(value).strip() for value in providers if _as_str(value).strip()],
+                provider_ids=[
+                    _as_str(value).strip() for value in providers if _as_str(value).strip()
+                ],
                 declared_height=height,
             )
         except ValueError as exc:
@@ -1074,7 +1095,9 @@ def _prior_recovery_reviewer_ids(recovery: Json) -> set[str]:
     return out
 
 
-def _revoke_account_authority(account: Json, *, height: int, reason: str) -> tuple[list[str], list[str], int]:
+def _revoke_account_authority(
+    account: Json, *, height: int, reason: str
+) -> tuple[list[str], list[str], int]:
     keys = account.get("keys")
     if not isinstance(keys, dict):
         keys = {}
@@ -1172,12 +1195,14 @@ def _install_recovered_authority(
     recovery["offline_key"] = {
         "pubkey": account_key_pubkey(new_recovery_key),
         "sig_profile": new_recovery_key.get("sig_profile"),
-        "key_id": new_recovery_key.get("key_id") or _mk_key_id(account_key_pubkey(new_recovery_key)),
+        "key_id": new_recovery_key.get("key_id")
+        or _mk_key_id(account_key_pubkey(new_recovery_key)),
         "commitment": request.get("new_recovery_key_commitment"),
         "generation": next_generation,
         "registered_height": int(height),
     }
     return next_generation, new_key_id, revoked_key_ids, revoked_devices, revoked_sessions
+
 
 def _apply_account_recovery_config_set(state: Json, env: TxEnvelope) -> Json:
     account = _require_not_banned_or_locked(state, env.signer)
@@ -1263,6 +1288,7 @@ def _apply_account_recovery_config_set(state: Json, env: TxEnvelope) -> Json:
     account["nonce"] = expected_nonce
     return state
 
+
 def _apply_account_recovery_propose(state: Json, env: TxEnvelope) -> Json:
     a = _require_not_banned_or_locked(state, env.signer)
     exp = _expect_nonce(a, env)
@@ -1311,10 +1337,20 @@ def _apply_account_recovery_evidence_bind(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("invalid_tx", "recovery_evidence_bind_not_applicable", {"method": method})
     if _as_str(request.get("status") or "").strip().lower() not in {"assigned", "under_review"}:
         raise ApplyError("invalid_tx", "recovery_review_not_assigned", {"request_id": request_id})
-    evidence_ids = {_as_str(value).strip() for value in request.get("evidence_ids", []) if _as_str(value).strip()}
+    evidence_ids = {
+        _as_str(value).strip()
+        for value in request.get("evidence_ids", [])
+        if _as_str(value).strip()
+    }
     if evidence_id not in evidence_ids:
-        raise ApplyError("invalid_tx", "recovery_evidence_not_declared", {"evidence_id": evidence_id})
-    reviewers = {_as_str(value).strip() for value in request.get("assigned_reviewers", []) if _as_str(value).strip()}
+        raise ApplyError(
+            "invalid_tx", "recovery_evidence_not_declared", {"evidence_id": evidence_id}
+        )
+    reviewers = {
+        _as_str(value).strip()
+        for value in request.get("assigned_reviewers", [])
+        if _as_str(value).strip()
+    }
     if not reviewers:
         raise ApplyError("invalid_tx", "recovery_reviewers_not_assigned", {})
     envelopes = payload.get("key_envelope_commitments")
@@ -1330,7 +1366,11 @@ def _apply_account_recovery_evidence_bind(state: Json, env: TxEnvelope) -> Json:
         )
     except ValueError as exc:
         raise ApplyError("invalid_tx", str(exc), {"evidence_id": evidence_id}) from exc
-    bound = [_as_str(value).strip() for value in request.get("evidence_bound_ids", []) if _as_str(value).strip()]
+    bound = [
+        _as_str(value).strip()
+        for value in request.get("evidence_bound_ids", [])
+        if _as_str(value).strip()
+    ]
     if evidence_id not in bound:
         bound.append(evidence_id)
     request["evidence_bound_ids"] = sorted(bound)
@@ -1377,7 +1417,9 @@ def _apply_account_recovery_social_attestation(state: Json, env: TxEnvelope) -> 
     if not isinstance(attestations, dict):
         raise ApplyError("invalid_state", "social_continuity_attestations_not_dict", {})
     if attestor_id in attestations:
-        raise ApplyError("invalid_tx", "duplicate_social_continuity_attestor", {"attestor_id": attestor_id})
+        raise ApplyError(
+            "invalid_tx", "duplicate_social_continuity_attestor", {"attestor_id": attestor_id}
+        )
     for existing in attestations.values():
         if not isinstance(existing, dict):
             continue
@@ -1390,7 +1432,9 @@ def _apply_account_recovery_social_attestation(state: Json, env: TxEnvelope) -> 
         if _as_str(existing.get("attestation_commitment")) == attestation_commitment:
             raise ApplyError("invalid_tx", "duplicate_social_continuity_attestation_commitment", {})
         if _as_str(existing.get("independence_commitment")) == independence_commitment:
-            raise ApplyError("invalid_tx", "duplicate_social_continuity_independence_commitment", {})
+            raise ApplyError(
+                "invalid_tx", "duplicate_social_continuity_independence_commitment", {}
+            )
 
     attestations[attestor_id] = {
         "attestation_commitment": attestation_commitment,
@@ -1438,7 +1482,9 @@ def _apply_account_recovery_approve(state: Json, env: TxEnvelope) -> Json:
         if reviewer_id not in assigned:
             raise ApplyError("forbidden", "reviewer_not_assigned", {"request_id": request_id})
         if request.get("evidence_access_ready") is not True:
-            raise ApplyError("invalid_tx", "recovery_evidence_bind_required", {"request_id": request_id})
+            raise ApplyError(
+                "invalid_tx", "recovery_evidence_bind_required", {"request_id": request_id}
+            )
         for evidence_id in request.get("evidence_ids", []):
             rec = evidence_record(state, _as_str(evidence_id).strip())
             envelopes = rec.get("key_envelope_commitments") if isinstance(rec, dict) else None
@@ -1446,7 +1492,11 @@ def _apply_account_recovery_approve(state: Json, env: TxEnvelope) -> Json:
                 raise ApplyError(
                     "invalid_tx",
                     "recovery_reviewer_key_envelope_required",
-                    {"request_id": request_id, "evidence_id": evidence_id, "reviewer_id": reviewer_id},
+                    {
+                        "request_id": request_id,
+                        "evidence_id": evidence_id,
+                        "reviewer_id": reviewer_id,
+                    },
                 )
         reason = recovery_conflict_reason(
             state,
@@ -1462,7 +1512,9 @@ def _apply_account_recovery_approve(state: Json, env: TxEnvelope) -> Json:
         elif decision in {"no", "fail"}:
             decision = "reject"
         if decision not in {"approve", "reject"}:
-            raise ApplyError("invalid_tx", "invalid_recovery_review_decision", {"decision": decision})
+            raise ApplyError(
+                "invalid_tx", "invalid_recovery_review_decision", {"decision": decision}
+            )
         reviews = request.setdefault("reviews", {})
         if not isinstance(reviews, dict):
             raise ApplyError("invalid_state", "recovery_reviews_not_dict", {})
@@ -1490,7 +1542,9 @@ def _apply_account_recovery_approve(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("forbidden", "not_a_guardian", {"guardian": guardian_id})
     status = _as_str(request.get("status") or "open").strip().lower()
     if status not in {"open", "approved"}:
-        raise ApplyError("invalid_tx", "request_not_open", {"request_id": request_id, "status": status})
+        raise ApplyError(
+            "invalid_tx", "request_not_open", {"request_id": request_id, "status": status}
+        )
     approvals = request.setdefault("approvals", [])
     if guardian_id in approvals:
         raise ApplyError("invalid_tx", "already_approved", {"guardian": guardian_id})
@@ -1500,6 +1554,7 @@ def _apply_account_recovery_approve(state: Json, env: TxEnvelope) -> Json:
     request["status"] = "approved" if len(approvals) >= max(1, threshold) else "open"
     guardian["nonce"] = expected_nonce
     return state
+
 
 def _apply_account_recovery_execute(state: Json, env: TxEnvelope) -> Json:
     # Execute if approvals >= threshold; adds new key.
@@ -1555,7 +1610,9 @@ def _apply_account_recovery_execute(state: Json, env: TxEnvelope) -> Json:
 
     recovery_payload = dict(prop)
     recovery_payload.setdefault("pubkey", new_pubkey)
-    recovery_payload.setdefault("sig_profile", prop.get("sig_profile") or default_signature_profile_for_mode())
+    recovery_payload.setdefault(
+        "sig_profile", prop.get("sig_profile") or default_signature_profile_for_mode()
+    )
     key_record = _key_record_from_payload_or_raise(state, recovery_payload, key_type="recovered")
     key_record["key_id"] = str(key_record.get("key_id") or kid)
     by_id[kid] = key_record
@@ -1587,14 +1644,25 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
         raise ApplyError("invalid_tx", "request_exists", {"request_id": request_id})
     for existing_id, existing in requests.items():
         if isinstance(existing, dict) and _as_str(existing.get("status")).lower() in {
-            "open", "awaiting_social_attestations", "awaiting_assignment", "assigned",
-            "under_review", "approved", "finalized"
+            "open",
+            "awaiting_social_attestations",
+            "awaiting_assignment",
+            "assigned",
+            "under_review",
+            "approved",
+            "finalized",
         }:
-            raise ApplyError("forbidden", "active_recovery_request_exists", {"request_id": str(existing_id)})
+            raise ApplyError(
+                "forbidden", "active_recovery_request_exists", {"request_id": str(existing_id)}
+            )
 
     height = _current_height(state)
-    last_opened = _as_int(recovery.get("last_request_opened_height"), -RECOVERY_REQUEST_COOLDOWN_BLOCKS)
-    method = _as_str(payload.get("method") or recovery.get("mode") or "legacy_guardian").strip().lower()
+    last_opened = _as_int(
+        recovery.get("last_request_opened_height"), -RECOVERY_REQUEST_COOLDOWN_BLOCKS
+    )
+    method = (
+        _as_str(payload.get("method") or recovery.get("mode") or "legacy_guardian").strip().lower()
+    )
     if method != "reversal" and height - last_opened < RECOVERY_REQUEST_COOLDOWN_BLOCKS:
         raise ApplyError(
             "forbidden",
@@ -1608,7 +1676,9 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
     ]
     recovery["failed_attempt_heights"] = failed_heights
     if len(failed_heights) >= RECOVERY_MAX_FAILED_ATTEMPTS:
-        raise ApplyError("forbidden", "recovery_failed_attempt_limit", {"have": len(failed_heights)})
+        raise ApplyError(
+            "forbidden", "recovery_failed_attempt_limit", {"have": len(failed_heights)}
+        )
 
     if method in {"offline_key", "continuity", "reversal"}:
         if _as_str(env.signer).strip() != target:
@@ -1623,7 +1693,9 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
         new_recovery_pubkey = _as_str(payload.get("new_recovery_pubkey") or "").strip()
         if not new_pubkey or not new_recovery_pubkey:
             raise ApplyError("invalid_tx", "missing_replacement_authority", {})
-        new_sig_profile = _as_str(payload.get("new_sig_profile") or default_signature_profile_for_mode()).strip()
+        new_sig_profile = _as_str(
+            payload.get("new_sig_profile") or default_signature_profile_for_mode()
+        ).strip()
         new_recovery_sig_profile = _as_str(
             payload.get("new_recovery_sig_profile") or default_signature_profile_for_mode()
         ).strip()
@@ -1648,7 +1720,10 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
             "new_sig_profile": new_sig_profile,
             "new_recovery_pubkey": new_recovery_pubkey,
             "new_recovery_sig_profile": new_recovery_sig_profile,
-            "new_recovery_key_commitment": _as_str(payload.get("new_recovery_key_commitment") or "").strip() or None,
+            "new_recovery_key_commitment": _as_str(
+                payload.get("new_recovery_key_commitment") or ""
+            ).strip()
+            or None,
             "authorization": _as_str(payload.get("authorization") or method).strip().lower(),
         }
         if method == "offline_key":
@@ -1659,7 +1734,9 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
             expected_generation = _as_int(offline_key.get("generation"), 0)
             if generation != expected_generation:
                 raise ApplyError(
-                    "invalid_tx", "recovery_generation_mismatch", {"want": expected_generation, "got": generation}
+                    "invalid_tx",
+                    "recovery_generation_mismatch",
+                    {"want": expected_generation, "got": generation},
                 )
             base.update({"status": "approved", "recovery_generation": generation})
         else:
@@ -1678,14 +1755,19 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
                 challenged = requests.get(challenged_id)
                 if not challenged_id or not isinstance(challenged, dict):
                     raise ApplyError("invalid_tx", "unknown_challenged_recovery", {})
-                if _as_str(challenged.get("status")).lower() not in {"finalized", "receipt_recorded"}:
+                if _as_str(challenged.get("status")).lower() not in {
+                    "finalized",
+                    "receipt_recorded",
+                }:
                     raise ApplyError("invalid_tx", "challenged_recovery_not_finalized", {})
                 restriction_until = _as_int(recovery.get("restriction_until_height"), 0)
                 if height > restriction_until:
                     raise ApplyError("forbidden", "recovery_reversal_window_closed", {})
                 if recovery.get("active_reversal_request_id"):
                     raise ApplyError("forbidden", "recovery_reversal_already_open", {})
-                excluded.update({_as_str(v).strip() for v in challenged.get("assigned_reviewers", [])})
+                excluded.update(
+                    {_as_str(v).strip() for v in challenged.get("assigned_reviewers", [])}
+                )
                 recovery["active_reversal_request_id"] = request_id
                 recovery["restriction_until_height"] = max(
                     restriction_until, height + RECOVERY_REVIEW_WINDOW_BLOCKS
@@ -1704,12 +1786,18 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
                     ),
                     "social_attestations": {},
                     "social_attestation_commitments": [],
-                    "evidence_policy_version": _as_str(payload.get("evidence_policy_version") or "m2-v1"),
+                    "evidence_policy_version": _as_str(
+                        payload.get("evidence_policy_version") or "m2-v1"
+                    ),
                     "evidence_ids": recovery_evidence_ids,
                     "evidence_bound_ids": [],
                     "evidence_access_ready": False,
-                    "panel_size": REVERSAL_PANEL_SIZE if method == "reversal" else CONTINUITY_PANEL_SIZE,
-                    "approval_threshold": REVERSAL_APPROVAL_THRESHOLD if method == "reversal" else CONTINUITY_APPROVAL_THRESHOLD,
+                    "panel_size": REVERSAL_PANEL_SIZE
+                    if method == "reversal"
+                    else CONTINUITY_PANEL_SIZE,
+                    "approval_threshold": REVERSAL_APPROVAL_THRESHOLD
+                    if method == "reversal"
+                    else CONTINUITY_APPROVAL_THRESHOLD,
                     "review_deadline_height": height + RECOVERY_REVIEW_WINDOW_BLOCKS,
                     "assigned_reviewers": [],
                     "excluded_reviewers": sorted(value for value in excluded if value),
@@ -1739,6 +1827,7 @@ def _apply_account_recovery_request(state: Json, env: TxEnvelope) -> Json:
     nonce_actor["nonce"] = expected_nonce
     return state
 
+
 def _apply_account_recovery_cancel(state: Json, env: TxEnvelope) -> Json:
     actor = _require_known_not_banned_allow_locked(state, env.signer)
     expected_nonce = _expect_nonce(actor, env)
@@ -1750,20 +1839,25 @@ def _apply_account_recovery_cancel(state: Json, env: TxEnvelope) -> Json:
     if method != "legacy_guardian":
         # An ordinary or displaced active key cannot cancel, delay, or veto an
         # independently authorized recovery. Reversal is the only challenge path.
-        raise ApplyError("forbidden", "independent_recovery_not_cancellable", {"request_id": request_id})
+        raise ApplyError(
+            "forbidden", "independent_recovery_not_cancellable", {"request_id": request_id}
+        )
     _require_guardian_recovery_admission(state)
     requester = _as_str(request.get("requester") or "").strip()
     if _as_str(env.signer).strip() not in {requester, account_id}:
         raise ApplyError("forbidden", "not_request_owner", {"request_id": request_id})
     status = _as_str(request.get("status") or "open").strip().lower()
     if status in {"cancelled", "finalized", "receipt_recorded"}:
-        raise ApplyError("invalid_tx", "request_not_cancellable", {"request_id": request_id, "status": status})
+        raise ApplyError(
+            "invalid_tx", "request_not_cancellable", {"request_id": request_id, "status": status}
+        )
     request["status"] = "cancelled"
     request["cancelled_by"] = _as_str(env.signer).strip()
     request["cancelled_at"] = _current_height(state)
     account["locked"] = False
     actor["nonce"] = expected_nonce
     return state
+
 
 def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
     request_id = _as_str(_payload(env).get("request_id") or "").strip()
@@ -1772,7 +1866,9 @@ def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
     account_id, account, recovery, request = _find_recovery_request(state, request_id)
     status = _as_str(request.get("status") or "").strip().lower()
     if status != "approved":
-        raise ApplyError("forbidden", "recovery_not_authorized", {"request_id": request_id, "status": status})
+        raise ApplyError(
+            "forbidden", "recovery_not_authorized", {"request_id": request_id, "status": status}
+        )
     method = _as_str(request.get("method") or "legacy_guardian").strip().lower()
     height = _current_height(state)
 
@@ -1783,9 +1879,11 @@ def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
                 raise ApplyError("invalid_state", "offline_recovery_not_configured", {})
             generation = _as_int(request.get("recovery_generation"), -1)
             if generation != _as_int(current_offline.get("generation"), 0):
-                raise ApplyError("forbidden", "stale_recovery_generation", {"request_id": request_id})
-        next_generation, new_key_id, revoked_keys, revoked_devices, revoked_sessions = _install_recovered_authority(
-            state, account, recovery, request, height=height
+                raise ApplyError(
+                    "forbidden", "stale_recovery_generation", {"request_id": request_id}
+                )
+        next_generation, new_key_id, revoked_keys, revoked_devices, revoked_sessions = (
+            _install_recovered_authority(state, account, recovery, request, height=height)
         )
         restriction_until = height + RECOVERY_RESTRICTION_BLOCKS
         if method == "reversal":
@@ -1796,7 +1894,11 @@ def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
             recovery["active_reversal_request_id"] = None
         recovery["restriction_until_height"] = restriction_until
         recovery["last_finalized_height"] = height
-        reviewer_ids = sorted(_as_str(value).strip() for value in request.get("assigned_reviewers", []) if _as_str(value).strip())
+        reviewer_ids = sorted(
+            _as_str(value).strip()
+            for value in request.get("assigned_reviewers", [])
+            if _as_str(value).strip()
+        )
         history = recovery.setdefault("history", [])
         history.append(
             {
@@ -1825,9 +1927,12 @@ def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
                 }
             )
         for other_id, other in recovery.get("requests", {}).items():
-            if other_id != request_id and isinstance(other, dict) and _as_str(other.get("status")).lower() in {
-                "open", "awaiting_assignment", "assigned", "under_review", "approved"
-            }:
+            if (
+                other_id != request_id
+                and isinstance(other, dict)
+                and _as_str(other.get("status")).lower()
+                in {"open", "awaiting_assignment", "assigned", "under_review", "approved"}
+            ):
                 other["status"] = "superseded"
                 other["superseded_by"] = request_id
         _sync_account_key_views(account)
@@ -1836,7 +1941,11 @@ def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
         approvals = request.get("approvals") if isinstance(request.get("approvals"), list) else []
         threshold = _as_int(request.get("guardian_threshold"), 0)
         if len(approvals) < max(1, threshold):
-            raise ApplyError("forbidden", "threshold_not_met", {"have": len(approvals), "need": max(1, threshold)})
+            raise ApplyError(
+                "forbidden",
+                "threshold_not_met",
+                {"have": len(approvals), "need": max(1, threshold)},
+            )
 
     if method in {"continuity", "reversal"}:
         close_case_evidence(
@@ -1848,6 +1957,7 @@ def _apply_account_recovery_finalize(state: Json, env: TxEnvelope) -> Json:
     account["locked"] = False
     return state
 
+
 def _apply_account_recovery_receipt(state: Json, env: TxEnvelope) -> Json:
     payload = _payload(env)
     request_id = _as_str(payload.get("request_id") or "").strip()
@@ -1856,7 +1966,9 @@ def _apply_account_recovery_receipt(state: Json, env: TxEnvelope) -> Json:
     account_id, account, recovery, request = _find_recovery_request(state, request_id)
     status = _as_str(payload.get("status") or request.get("status") or "finalized").strip().lower()
     if status in {"rejected", "expired", "assignment_unavailable"}:
-        _append_failed_recovery_attempt(recovery, height=_current_height(state), request_id=request_id, reason=status)
+        _append_failed_recovery_attempt(
+            recovery, height=_current_height(state), request_id=request_id, reason=status
+        )
         close_case_evidence(
             state, case_id=f"account-recovery:{request_id}", finalized_height=_current_height(state)
         )
@@ -1884,6 +1996,7 @@ def _apply_account_recovery_receipt(state: Json, env: TxEnvelope) -> Json:
         }
     )
     return state
+
 
 def _apply_account_recovery_vote(state: Json, env: TxEnvelope) -> Json:
     """Cast a vote on a recovery request (minimal MVP)."""
@@ -1975,14 +2088,11 @@ def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
     if tx == "ACCOUNT_BAN":
         return _apply_account_ban(state, env)
 
-
     if tx == "ACCOUNT_RECOVERY_CONFIG_SET":
         return _apply_account_recovery_config_set(state, env)
 
-
     if tx == "ACCOUNT_RECOVERY_APPROVE":
         return _apply_account_recovery_approve(state, env)
-
 
     if tx == "ACCOUNT_RECOVERY_REQUEST":
         return _apply_account_recovery_request(state, env)
@@ -1995,7 +2105,6 @@ def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
 
     if tx == "ACCOUNT_RECOVERY_RECEIPT":
         return _apply_account_recovery_receipt(state, env)
-
 
     # Not an identity-domain tx; allow other domain appliers to claim it.
     return None

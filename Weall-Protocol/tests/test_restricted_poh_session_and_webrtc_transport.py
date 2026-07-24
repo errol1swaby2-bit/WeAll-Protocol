@@ -25,9 +25,27 @@ def _state() -> dict:
         "height": 7,
         "time": 10,
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "session_keys": {"sk-alice": _session()}},
-            "@j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "session_keys": {"sk-j1": _session()}},
-            "@mallory": {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "session_keys": {"sk-mallory": _session()}},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "session_keys": {"sk-alice": _session()},
+            },
+            "@j1": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "session_keys": {"sk-j1": _session()},
+            },
+            "@mallory": {
+                "nonce": 0,
+                "poh_tier": 0,
+                "banned": False,
+                "locked": False,
+                "session_keys": {"sk-mallory": _session()},
+            },
         },
         "poh": {
             "async_cases": {
@@ -120,7 +138,9 @@ def test_private_async_evidence_requires_authenticated_session_in_prod(monkeypat
     assert restricted["encrypted"] is True
     assert restricted["ciphertext_cid"] == "bafyciphertext"
     assert "uri" not in restricted
-    private_envelope = authenticated_case["evidence_binds"]["ev1"]["key_envelope_commitments"]["@j1"]
+    private_envelope = authenticated_case["evidence_binds"]["ev1"]["key_envelope_commitments"][
+        "@j1"
+    ]
     assert private_envelope["kem_ciphertext_b64"] == "secret-kem-ciphertext"
     assert private_envelope["wrapped_key_b64"] == "secret-wrapped-key"
 
@@ -181,7 +201,9 @@ def test_restricted_async_case_joins_case_scoped_lifecycle_envelopes(monkeypatch
     assert public.status_code == 200, public.text
     public_bind = public.json()["case"]["evidence_binds"]["bind:ev1"]
     assert public_bind["evidence_id"] == "ev1"
-    assert "kem_ciphertext_b64" not in public_bind.get("key_envelope_commitments", {}).get("@j1", {})
+    assert "kem_ciphertext_b64" not in public_bind.get("key_envelope_commitments", {}).get(
+        "@j1", {}
+    )
     assert "wrapped_key_b64" not in public_bind.get("key_envelope_commitments", {}).get("@j1", {})
 
     reviewer = client.get(
@@ -190,8 +212,14 @@ def test_restricted_async_case_joins_case_scoped_lifecycle_envelopes(monkeypatch
     )
     assert reviewer.status_code == 200, reviewer.text
     reviewer_bind = reviewer.json()["case"]["evidence_binds"]["bind:ev1"]
-    assert reviewer_bind["key_envelope_commitments"]["@j1"]["kem_ciphertext_b64"] == "reviewer-private-kem"
-    assert reviewer_bind["key_envelope_commitments"]["@j1"]["wrapped_key_b64"] == "reviewer-private-wrapped"
+    assert (
+        reviewer_bind["key_envelope_commitments"]["@j1"]["kem_ciphertext_b64"]
+        == "reviewer-private-kem"
+    )
+    assert (
+        reviewer_bind["key_envelope_commitments"]["@j1"]["wrapped_key_b64"]
+        == "reviewer-private-wrapped"
+    )
 
     subject = client.get(
         "/v1/poh/async/my-cases?account=@alice",
@@ -199,7 +227,10 @@ def test_restricted_async_case_joins_case_scoped_lifecycle_envelopes(monkeypatch
     )
     assert subject.status_code == 200, subject.text
     subject_bind = subject.json()["cases"][0]["evidence_binds"]["bind:ev1"]
-    assert subject_bind["key_envelope_commitments"]["@alice"]["kem_ciphertext_b64"] == "alice-private-kem"
+    assert (
+        subject_bind["key_envelope_commitments"]["@alice"]["kem_ciphertext_b64"]
+        == "alice-private-kem"
+    )
 
     closed_state = _state()
     closed_case = closed_state["poh"]["async_cases"]["async:alice:1"]
@@ -213,9 +244,10 @@ def test_restricted_async_case_joins_case_scoped_lifecycle_envelopes(monkeypatch
     )
     assert closed.status_code == 200, closed.text
     closed_bind = closed.json()["case"]["evidence_binds"]["bind:ev1"]
-    assert "kem_ciphertext_b64" not in closed_bind.get("key_envelope_commitments", {}).get("@j1", {})
+    assert "kem_ciphertext_b64" not in closed_bind.get("key_envelope_commitments", {}).get(
+        "@j1", {}
+    )
     assert "wrapped_key_b64" not in closed_bind.get("key_envelope_commitments", {}).get("@j1", {})
-
 
 
 def test_async_case_read_and_review_skeleton_preserve_followup_round(monkeypatch) -> None:
@@ -244,6 +276,7 @@ def test_async_case_read_and_review_skeleton_preserve_followup_round(monkeypatch
     assert payload["followup_round"] == 1
     assert payload["reason_code"] == "reviewed_followup"
 
+
 def test_webrtc_signaling_is_session_bound_case_scoped_and_ephemeral(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     c = _client()
@@ -255,12 +288,21 @@ def test_webrtc_signaling_is_session_bound_case_scoped_and_ephemeral(monkeypatch
         json={"account_id": "@alice", "type": "hello", "ts_ms": 1},
     )
     assert missing_session.status_code == 403
-    assert missing_session.json()["error"]["message"] == "authenticated session required for WebRTC live-room signaling"
+    assert (
+        missing_session.json()["error"]["message"]
+        == "authenticated session required for WebRTC live-room signaling"
+    )
 
     sent = c.post(
         f"/v1/poh/live/session/{session_id}/webrtc/signals",
         headers={"x-weall-account": "@alice", "x-weall-session-key": "sk-alice"},
-        json={"account_id": "@alice", "type": "offer", "to_account": "@j1", "sdp": "v=0\no=- 1 1 IN IP4 127.0.0.1", "ts_ms": 2},
+        json={
+            "account_id": "@alice",
+            "type": "offer",
+            "to_account": "@j1",
+            "sdp": "v=0\no=- 1 1 IN IP4 127.0.0.1",
+            "ts_ms": 2,
+        },
     )
     assert sent.status_code == 200, sent.text
     body = sent.json()
@@ -301,11 +343,15 @@ def test_webrtc_signal_rejects_nonparticipant_target_and_oversized_candidate(mon
     bad_candidate = c.post(
         f"/v1/poh/live/session/{session_id}/webrtc/signals",
         headers={"x-weall-account": "@alice", "x-weall-session-key": "sk-alice"},
-        json={"account_id": "@alice", "type": "ice", "to_account": "@j1", "candidate": {"candidate": "x" * (9 * 1024)}},
+        json={
+            "account_id": "@alice",
+            "type": "ice",
+            "to_account": "@j1",
+            "candidate": {"candidate": "x" * (9 * 1024)},
+        },
     )
     assert bad_candidate.status_code == 400
     assert bad_candidate.json()["error"]["message"] == "webrtc_candidate_too_large"
-
 
 
 def test_cors_allows_encrypted_poh_upload_commitment_headers(monkeypatch) -> None:
@@ -332,10 +378,17 @@ def test_cors_allows_encrypted_poh_upload_commitment_headers(monkeypatch) -> Non
     for header in requested_headers:
         assert header in allowed
 
+
 def test_frontend_uses_real_webrtc_primitives_and_signaling() -> None:
-    live_room = (Path(__file__).resolve().parents[2] / "web" / "src" / "pages" / "LiveVerificationRoom.tsx").read_text(encoding="utf-8")
-    webrtc = (Path(__file__).resolve().parents[2] / "web" / "src" / "lib" / "webrtcLiveRoom.ts").read_text(encoding="utf-8")
-    api = (Path(__file__).resolve().parents[2] / "web" / "src" / "api" / "weall.ts").read_text(encoding="utf-8")
+    live_room = (
+        Path(__file__).resolve().parents[2] / "web" / "src" / "pages" / "LiveVerificationRoom.tsx"
+    ).read_text(encoding="utf-8")
+    webrtc = (
+        Path(__file__).resolve().parents[2] / "web" / "src" / "lib" / "webrtcLiveRoom.ts"
+    ).read_text(encoding="utf-8")
+    api = (Path(__file__).resolve().parents[2] / "web" / "src" / "api" / "weall.ts").read_text(
+        encoding="utf-8"
+    )
 
     assert "new RTCPeerConnection" in webrtc
     assert "navigator.mediaDevices.getUserMedia" in webrtc
@@ -346,7 +399,9 @@ def test_frontend_uses_real_webrtc_primitives_and_signaling() -> None:
     assert "/webrtc/signals" in api
 
 
-def test_encrypted_poh_upload_binds_exact_bytes_and_controlled_store_is_retrievable(monkeypatch, tmp_path) -> None:
+def test_encrypted_poh_upload_binds_exact_bytes_and_controlled_store_is_retrievable(
+    monkeypatch, tmp_path
+) -> None:
     import hashlib
 
     monkeypatch.setenv("WEALL_MODE", "dev")

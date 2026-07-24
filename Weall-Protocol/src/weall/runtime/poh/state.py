@@ -211,12 +211,16 @@ def set_account_poh_status(
     if status_norm not in VALID_POH_STATUSES:
         raise ValueError("invalid_poh_status")
 
-    height = _as_int(state.get("height"), 0) if last_updated_height is None else int(last_updated_height)
+    height = (
+        _as_int(state.get("height"), 0) if last_updated_height is None else int(last_updated_height)
+    )
     tier = require_valid_poh_tier(poh_tier)
     # ``issuer_oracle_id`` is accepted only as a read/write-call compatibility
     # alias for older callers.  New canonical records use provider-neutral
     # authority naming and never emit the legacy key.
-    issuer_authority_id = issuer_authority_id if issuer_authority_id is not None else issuer_oracle_id
+    issuer_authority_id = (
+        issuer_authority_id if issuer_authority_id is not None else issuer_oracle_id
+    )
     rec: Json = {
         "account_id": account_id,
         "poh_tier": tier,
@@ -268,6 +272,7 @@ def revoke_account_poh_status(
         accounts[account_id]["poh_tier"] = 0
         accounts[account_id]["poh_status"] = POH_STATUS_REVOKED
     return rec
+
 
 def tier2_lifecycle_fields(verified_at_height: int) -> Json:
     verified = int(verified_at_height)
@@ -365,20 +370,30 @@ def process_tier2_lifecycle(state: Json, *, next_height: int) -> Json:
                 }
                 receipts.append(reminder_receipt)
                 notifications = state.setdefault("notifications", {})
-                by_account_notifications = notifications.setdefault("by_account", {}) if isinstance(notifications, dict) else {}
-                account_notifications = by_account_notifications.setdefault(account_id, []) if isinstance(by_account_notifications, dict) else []
+                by_account_notifications = (
+                    notifications.setdefault("by_account", {})
+                    if isinstance(notifications, dict)
+                    else {}
+                )
+                account_notifications = (
+                    by_account_notifications.setdefault(account_id, [])
+                    if isinstance(by_account_notifications, dict)
+                    else []
+                )
                 notification_id = f"poh-tier2-reminder:{account_id}:{height}"
                 if isinstance(account_notifications, list) and not any(
                     isinstance(value, dict) and value.get("notification_id") == notification_id
                     for value in account_notifications
                 ):
-                    account_notifications.append({
-                        "notification_id": notification_id,
-                        "kind": "poh_tier2_expiry_reminder",
-                        "height": height,
-                        "expires_at_height": expires_at,
-                        "read": False,
-                    })
+                    account_notifications.append(
+                        {
+                            "notification_id": notification_id,
+                            "kind": "poh_tier2_expiry_reminder",
+                            "height": height,
+                            "expires_at_height": expires_at,
+                            "read": False,
+                        }
+                    )
                 reminders += 1
 
         open_height = int(item.get("reverification_open_height") or 0)
@@ -389,10 +404,21 @@ def process_tier2_lifecycle(state: Json, *, next_height: int) -> Json:
             case_id = f"poh_live:reverify:{account_id}:{expires_at}"
             live_cases = poh.setdefault("live_cases", {})
             if case_id not in live_cases:
-                def commitment(label: str) -> str:
+
+                def commitment(
+                    label: str,
+                    *,
+                    bound_case_id: str = case_id,
+                    bound_account_id: str = account_id,
+                    bound_open_height: int = open_height,
+                ) -> str:
                     return hashlib.sha256(
-                        f"{_as_str(state.get('chain_id'))}|{label}|{case_id}|{account_id}|{open_height}".encode("utf-8")
+                        (
+                            f"{_as_str(state.get('chain_id'))}|{label}|"
+                            f"{bound_case_id}|{bound_account_id}|{bound_open_height}"
+                        ).encode()
                     ).hexdigest()
+
                 request_commitment = commitment("POH_TIER2_REVERIFY_REQUEST")
                 live_cases[case_id] = {
                     "case_id": case_id,
@@ -428,7 +454,9 @@ def process_tier2_lifecycle(state: Json, *, next_height: int) -> Json:
                     "prompt_commitment": live_cases[case_id]["prompt_commitment"],
                     "device_pairing_commitment": live_cases[case_id]["device_pairing_commitment"],
                 }
-                poh.setdefault("live_session_participants", {}).setdefault(session_id, {})[account_id] = {
+                poh.setdefault("live_session_participants", {}).setdefault(session_id, {})[
+                    account_id
+                ] = {
                     "role": "subject",
                     "status": "requested",
                     "joined_ts_ms": None,

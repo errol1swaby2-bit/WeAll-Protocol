@@ -80,7 +80,7 @@ def _derive_founding_material(base_ledger: Json, base_manifest: Json) -> tuple[s
     if account:
         record = (base_ledger.get("accounts") or {}).get(account)
         if isinstance(record, dict):
-            keys = ((record.get("keys") or {}).get("by_id") or {})
+            keys = (record.get("keys") or {}).get("by_id") or {}
             if isinstance(keys, dict):
                 for item in keys.values():
                     if isinstance(item, dict) and str(item.get("pubkey") or "").strip():
@@ -93,7 +93,15 @@ def _derive_founding_material(base_ledger: Json, base_manifest: Json) -> tuple[s
         if isinstance(pubkeys, list) and pubkeys:
             pubkey = str(pubkeys[0] or "").strip().lower()
     authority_pubkeys = base_manifest.get("trusted_authority_pubkeys") or []
-    authority = str(authority_pubkeys[0] if isinstance(authority_pubkeys, list) and authority_pubkeys else pubkey).strip().lower()
+    authority = (
+        str(
+            authority_pubkeys[0]
+            if isinstance(authority_pubkeys, list) and authority_pubkeys
+            else pubkey
+        )
+        .strip()
+        .lower()
+    )
     if len(pubkey) != 64 or len(authority) != 64:
         raise SystemExit("missing_or_invalid_public_bootstrap_key")
     return account, pubkey, authority
@@ -274,8 +282,21 @@ def _build_testnet_genesis(*, chain_id: str, founding_account: str, founding_pub
     return genesis
 
 
-def _build_manifest(*, chain_id: str, base_manifest: Json, genesis_hash: str, genesis_state_root: str, tx_index_hash: str, protocol_profile_hash: str, authority_pubkey: str) -> Json:
-    clock = dict(base_manifest.get("constitutional_clock") if isinstance(base_manifest.get("constitutional_clock"), dict) else {})
+def _build_manifest(
+    *,
+    chain_id: str,
+    base_manifest: Json,
+    genesis_hash: str,
+    genesis_state_root: str,
+    tx_index_hash: str,
+    protocol_profile_hash: str,
+    authority_pubkey: str,
+) -> Json:
+    clock = dict(
+        base_manifest.get("constitutional_clock")
+        if isinstance(base_manifest.get("constitutional_clock"), dict)
+        else {}
+    )
     if not clock:
         clock = {
             "allowed_clock_skew_ms": 2000,
@@ -299,7 +320,9 @@ def _build_manifest(*, chain_id: str, base_manifest: Json, genesis_hash: str, ge
         "chain_id": chain_id,
         "constitution_document_path": str(base_manifest.get("constitution_document_path") or ""),
         "constitution_hash": str(base_manifest.get("constitution_hash") or ""),
-        "constitution_traceability_hash": str(base_manifest.get("constitution_traceability_hash") or ""),
+        "constitution_traceability_hash": str(
+            base_manifest.get("constitution_traceability_hash") or ""
+        ),
         "constitution_version": str(base_manifest.get("constitution_version") or ""),
         "constitutional_clock": clock,
         "genesis_hash": genesis_hash,
@@ -340,15 +363,29 @@ def _build_commitments(manifest: Json) -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate pinned WeAll public testnet-v1 chain identity artifacts.")
-    parser.add_argument("--check", action="store_true", help="fail if generated artifacts differ from checked-in files")
+    parser = argparse.ArgumentParser(
+        description="Generate pinned WeAll public testnet-v1 chain identity artifacts."
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="fail if generated artifacts differ from checked-in files",
+    )
     parser.add_argument("--chain-id", default=DEFAULT_CHAIN_ID)
-    parser.add_argument("--base-manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json"))
+    parser.add_argument(
+        "--base-manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json")
+    )
     parser.add_argument("--base-ledger", default=str(ROOT / "configs" / "genesis.ledger.prod.json"))
     parser.add_argument("--tx-index", default=str(ROOT / "generated" / "tx_index.json"))
-    parser.add_argument("--genesis-out", default=str(ROOT / "configs" / "genesis.ledger.testnet-v1.json"))
-    parser.add_argument("--manifest-out", default=str(ROOT / "configs" / "chains" / "weall-testnet-v1.json"))
-    parser.add_argument("--commitments-out", default=str(ROOT / "configs" / "public_testnet_chain_commitments.json"))
+    parser.add_argument(
+        "--genesis-out", default=str(ROOT / "configs" / "genesis.ledger.testnet-v1.json")
+    )
+    parser.add_argument(
+        "--manifest-out", default=str(ROOT / "configs" / "chains" / "weall-testnet-v1.json")
+    )
+    parser.add_argument(
+        "--commitments-out", default=str(ROOT / "configs" / "public_testnet_chain_commitments.json")
+    )
     args = parser.parse_args()
 
     chain_id = str(args.chain_id or "").strip()
@@ -360,8 +397,12 @@ def main() -> int:
     if not tx_index_path.is_file():
         raise SystemExit(f"tx_index_missing:{tx_index_path}")
 
-    founding_account, founding_pubkey, authority_pubkey = _derive_founding_material(base_ledger, base_manifest)
-    genesis = _build_testnet_genesis(chain_id=chain_id, founding_account=founding_account, founding_pubkey=founding_pubkey)
+    founding_account, founding_pubkey, authority_pubkey = _derive_founding_material(
+        base_ledger, base_manifest
+    )
+    genesis = _build_testnet_genesis(
+        chain_id=chain_id, founding_account=founding_account, founding_pubkey=founding_pubkey
+    )
     genesis_state_root = _compute_state_root(genesis)
     genesis_hash = _sha256(_canon(genesis))
     manifest = _build_manifest(
@@ -390,19 +431,23 @@ def main() -> int:
             path.write_text(text, encoding="utf-8")
     if stale:
         raise SystemExit("public_testnet_v1_identity_stale:" + ",".join(stale))
-    print(_pretty({
-        "ok": True,
-        "check": bool(args.check),
-        "network_id": DEFAULT_NETWORK_ID,
-        "chain_id": chain_id,
-        "genesis_hash": genesis_hash,
-        "genesis_state_root": genesis_state_root,
-        "tx_index_hash": manifest["tx_index_hash"],
-        "protocol_profile_hash": manifest["protocol_profile_hash"],
-        "manifest_out": str(Path(args.manifest_out).resolve()),
-        "genesis_out": str(Path(args.genesis_out).resolve()),
-        "commitments_out": str(Path(args.commitments_out).resolve()),
-    }))
+    print(
+        _pretty(
+            {
+                "ok": True,
+                "check": bool(args.check),
+                "network_id": DEFAULT_NETWORK_ID,
+                "chain_id": chain_id,
+                "genesis_hash": genesis_hash,
+                "genesis_state_root": genesis_state_root,
+                "tx_index_hash": manifest["tx_index_hash"],
+                "protocol_profile_hash": manifest["protocol_profile_hash"],
+                "manifest_out": str(Path(args.manifest_out).resolve()),
+                "genesis_out": str(Path(args.genesis_out).resolve()),
+                "commitments_out": str(Path(args.commitments_out).resolve()),
+            }
+        )
+    )
     return 0
 
 

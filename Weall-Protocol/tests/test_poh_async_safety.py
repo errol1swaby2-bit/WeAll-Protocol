@@ -5,7 +5,6 @@ import pytest
 from weall.runtime.domain_apply import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.poh.async_scheduler import schedule_poh_async_system_txs
-from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.tx_admission import TxEnvelope
 
 
@@ -61,7 +60,9 @@ def _state() -> dict:
     }
 
 
-def _encrypted_evidence_payload(*, case_id: str, evidence_id: str, seed: str, round_no: int = 0) -> dict:
+def _encrypted_evidence_payload(
+    *, case_id: str, evidence_id: str, seed: str, round_no: int = 0
+) -> dict:
     digit = (seed[:1] or "1").lower()
     if digit not in "0123456789abcdef":
         digit = "1"
@@ -81,7 +82,9 @@ def _encrypted_evidence_payload(*, case_id: str, evidence_id: str, seed: str, ro
     }
 
 
-def _bind_payload(*, case_id: str, evidence_id: str, principals: list[str], round_no: int = 0) -> dict:
+def _bind_payload(
+    *, case_id: str, evidence_id: str, principals: list[str], round_no: int = 0
+) -> dict:
     return {
         "case_id": case_id,
         "evidence_id": evidence_id,
@@ -157,14 +160,18 @@ def _assign_accept(st: dict, case_id: str) -> None:
         st,
         _env(
             "POH_ASYNC_EVIDENCE_BIND",
-            _bind_payload(case_id=case_id, evidence_id="evi:1", principals=["alice", "j1", "j2", "j3"]),
+            _bind_payload(
+                case_id=case_id, evidence_id="evi:1", principals=["alice", "j1", "j2", "j3"]
+            ),
             signer="alice",
             nonce=3,
         ),
     )
     assert bound and bound["applied"] == "POH_ASYNC_EVIDENCE_BIND"
     for nonce, juror in enumerate(("j1", "j2", "j3"), start=5):
-        accepted = apply_tx(st, _env("POH_ASYNC_JUROR_ACCEPT", {"case_id": case_id}, signer=juror, nonce=nonce))
+        accepted = apply_tx(
+            st, _env("POH_ASYNC_JUROR_ACCEPT", {"case_id": case_id}, signer=juror, nonce=nonce)
+        )
         assert accepted and accepted["applied"] == "POH_ASYNC_JUROR_ACCEPT"
 
 
@@ -174,11 +181,26 @@ def _approve_finalize(st: dict, case_id: str) -> None:
         (9, "j2", "approve"),
         (10, "j3", "reject"),
     ):
-        reviewed = apply_tx(st, _env("POH_ASYNC_REVIEW_SUBMIT", {"case_id": case_id, "verdict": verdict}, signer=juror, nonce=nonce))
+        reviewed = apply_tx(
+            st,
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": verdict},
+                signer=juror,
+                nonce=nonce,
+            ),
+        )
         assert reviewed and reviewed["applied"] == "POH_ASYNC_REVIEW_SUBMIT"
     finalized = apply_tx(
         st,
-        _env("POH_ASYNC_FINALIZE", {"case_id": case_id}, signer="SYSTEM", nonce=11, system=True, parent="POH_ASYNC_REVIEW_SUBMIT"),
+        _env(
+            "POH_ASYNC_FINALIZE",
+            {"case_id": case_id},
+            signer="SYSTEM",
+            nonce=11,
+            system=True,
+            parent="POH_ASYNC_REVIEW_SUBMIT",
+        ),
     )
     assert finalized and finalized["outcome"] == "approved"
 
@@ -221,12 +243,27 @@ def test_async_needs_followup_requires_new_sealed_round_before_finalization() ->
         (9, "j2", "approve"),
         (10, "j3", "needs_followup"),
     ):
-        apply_tx(st, _env("POH_ASYNC_REVIEW_SUBMIT", {"case_id": case_id, "verdict": verdict}, signer=juror, nonce=nonce))
+        apply_tx(
+            st,
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": verdict},
+                signer=juror,
+                nonce=nonce,
+            ),
+        )
 
     with pytest.raises(ApplyError) as premature:
         apply_tx(
             st,
-            _env("POH_ASYNC_FINALIZE", {"case_id": case_id}, signer="SYSTEM", nonce=11, system=True, parent="POH_ASYNC_REVIEW_SUBMIT"),
+            _env(
+                "POH_ASYNC_FINALIZE",
+                {"case_id": case_id},
+                signer="SYSTEM",
+                nonce=11,
+                system=True,
+                parent="POH_ASYNC_REVIEW_SUBMIT",
+            ),
         )
     assert premature.value.reason == "async_case_needs_followup"
     assert st["poh"]["async_cases"][case_id]["followup_round"] == 1
@@ -235,7 +272,9 @@ def test_async_needs_followup_requires_new_sealed_round_before_finalization() ->
         st,
         _env(
             "POH_ASYNC_EVIDENCE_DECLARE",
-            _encrypted_evidence_payload(case_id=case_id, evidence_id="evi:followup", seed="3", round_no=1),
+            _encrypted_evidence_payload(
+                case_id=case_id, evidence_id="evi:followup", seed="3", round_no=1
+            ),
             signer="alice",
             nonce=12,
         ),
@@ -245,7 +284,12 @@ def test_async_needs_followup_requires_new_sealed_round_before_finalization() ->
         st,
         _env(
             "POH_ASYNC_EVIDENCE_BIND",
-            _bind_payload(case_id=case_id, evidence_id="evi:followup", principals=["alice", "j1", "j2", "j3"], round_no=1),
+            _bind_payload(
+                case_id=case_id,
+                evidence_id="evi:followup",
+                principals=["alice", "j1", "j2", "j3"],
+                round_no=1,
+            ),
             signer="alice",
             nonce=13,
         ),
@@ -267,7 +311,14 @@ def test_async_needs_followup_requires_new_sealed_round_before_finalization() ->
         )
     finalized = apply_tx(
         st,
-        _env("POH_ASYNC_FINALIZE", {"case_id": case_id}, signer="SYSTEM", nonce=17, system=True, parent="POH_ASYNC_REVIEW_SUBMIT"),
+        _env(
+            "POH_ASYNC_FINALIZE",
+            {"case_id": case_id},
+            signer="SYSTEM",
+            nonce=17,
+            system=True,
+            parent="POH_ASYNC_REVIEW_SUBMIT",
+        ),
     )
     assert finalized and finalized["outcome"] == "approved"
 
@@ -308,7 +359,14 @@ def test_async_receipt_must_match_finalized_case_state() -> None:
 
     receipt = apply_tx(
         st,
-        _env("POH_ASYNC_RECEIPT", {"case_id": case_id}, signer="SYSTEM", nonce=14, system=True, parent="POH_ASYNC_FINALIZE"),
+        _env(
+            "POH_ASYNC_RECEIPT",
+            {"case_id": case_id},
+            signer="SYSTEM",
+            nonce=14,
+            system=True,
+            parent="POH_ASYNC_FINALIZE",
+        ),
     )
     assert receipt and receipt["applied"] == "POH_ASYNC_RECEIPT"
     stored = st["poh"]["async_cases"][case_id]["receipt"]
@@ -323,11 +381,27 @@ def test_async_scheduler_queues_assign_finalize_and_receipt() -> None:
     assert enqueued == 1
     queue = st.get("system_queue")
     assert isinstance(queue, list)
-    assert any(item.get("tx_type") == "POH_ASYNC_JUROR_ASSIGN" and item.get("payload", {}).get("case_id") == case_id for item in queue)
+    assert any(
+        item.get("tx_type") == "POH_ASYNC_JUROR_ASSIGN"
+        and item.get("payload", {}).get("case_id") == case_id
+        for item in queue
+    )
 
     # Apply the deterministic assignment selected by the scheduler, then review.
-    assign_payload = next(item["payload"] for item in queue if item.get("tx_type") == "POH_ASYNC_JUROR_ASSIGN")
-    assigned = apply_tx(st, _env("POH_ASYNC_JUROR_ASSIGN", dict(assign_payload), signer="SYSTEM", nonce=4, system=True, parent="POH_ASYNC_REQUEST_OPEN"))
+    assign_payload = next(
+        item["payload"] for item in queue if item.get("tx_type") == "POH_ASYNC_JUROR_ASSIGN"
+    )
+    assigned = apply_tx(
+        st,
+        _env(
+            "POH_ASYNC_JUROR_ASSIGN",
+            dict(assign_payload),
+            signer="SYSTEM",
+            nonce=4,
+            system=True,
+            parent="POH_ASYNC_REQUEST_OPEN",
+        ),
+    )
     assert assigned and assigned["applied"] == "POH_ASYNC_JUROR_ASSIGN"
     jurors = [str(j) for j in assigned["jurors"]]
     bound = apply_tx(
@@ -341,13 +415,23 @@ def test_async_scheduler_queues_assign_finalize_and_receipt() -> None:
     )
     assert bound and bound["applied"] == "POH_ASYNC_EVIDENCE_BIND"
     for nonce, juror in enumerate(jurors, start=5):
-        apply_tx(st, _env("POH_ASYNC_JUROR_ACCEPT", {"case_id": case_id}, signer=juror, nonce=nonce))
+        apply_tx(
+            st, _env("POH_ASYNC_JUROR_ACCEPT", {"case_id": case_id}, signer=juror, nonce=nonce)
+        )
     for nonce, juror, verdict in (
         (8, jurors[0], "approve"),
         (9, jurors[1], "approve"),
         (10, jurors[2], "reject"),
     ):
-        apply_tx(st, _env("POH_ASYNC_REVIEW_SUBMIT", {"case_id": case_id, "verdict": verdict}, signer=juror, nonce=nonce))
+        apply_tx(
+            st,
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": verdict},
+                signer=juror,
+                nonce=nonce,
+            ),
+        )
 
     enqueued_after_reviews = schedule_poh_async_system_txs(st, next_height=12)
     assert enqueued_after_reviews >= 2

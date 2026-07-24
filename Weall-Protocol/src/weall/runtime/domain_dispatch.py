@@ -8,6 +8,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from weall.runtime.account_recovery_policy import (
+    recovery_restriction_allows_tx,
+    recovery_restriction_until_height,
+)
+
 # Domain appliers (each returns Optional[Json]; returning None means "not claimed")
 from weall.runtime.apply.consensus import apply_consensus
 from weall.runtime.apply.content import apply_content
@@ -29,8 +34,10 @@ from weall.runtime.apply.storage import apply_storage
 from weall.runtime.apply.treasury import apply_treasury
 from weall.runtime.errors import ApplyError
 from weall.runtime.metrics import inc_counter
-from weall.runtime.public_protocol_policy import public_protocol_policy_checked, public_protocol_policy_violation
-from weall.runtime.account_recovery_policy import recovery_restriction_allows_tx, recovery_restriction_until_height
+from weall.runtime.public_protocol_policy import (
+    public_protocol_policy_checked,
+    public_protocol_policy_violation,
+)
 from weall.runtime.state_invariants import ensure_state
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_contracts import handler_name_for_tx_type, resolve_applier_for_tx_type

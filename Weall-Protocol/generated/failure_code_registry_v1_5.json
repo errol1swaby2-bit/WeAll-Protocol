@@ -202,7 +202,7 @@
       "http_status": 400,
       "sample_reason": "Protocol-native account content is public-only; restricted read visibility is unsupported.",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 508
+      "source_lineno": 543
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -220,7 +220,7 @@
       "http_status": null,
       "sample_reason": "protocol_read_visibility_must_be_public",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 277
+      "source_lineno": 302
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -391,7 +391,7 @@
       "http_status": 400,
       "sample_reason": "missing account_id",
       "source": "src/weall/api/routes_public_parts/accounts.py",
-      "source_lineno": 258
+      "source_lineno": 271
     },
     {
       "code": "bad_request",
@@ -445,7 +445,7 @@
       "http_status": 400,
       "sample_reason": "missing account",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 593
+      "source_lineno": 632
     },
     {
       "code": "bad_request",
@@ -607,7 +607,7 @@
       "http_status": null,
       "sample_reason": "exception",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 342
+      "source_lineno": 349
     },
     {
       "code": "duplicate",
@@ -616,7 +616,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1048
+      "source_lineno": 1174
     },
     {
       "code": "duplicate",
@@ -661,7 +661,7 @@
       "http_status": 403,
       "sample_reason": "live_room_participant_required",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1274
+      "source_lineno": 1365
     },
     {
       "code": "forbidden",
@@ -688,7 +688,7 @@
       "http_status": null,
       "sample_reason": "account_banned",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 125
+      "source_lineno": 127
     },
     {
       "code": "forbidden",
@@ -697,7 +697,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 60
+      "source_lineno": 59
     },
     {
       "code": "forbidden",
@@ -706,7 +706,7 @@
       "http_status": null,
       "sample_reason": "account_recovery_restriction_active",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 210
+      "source_lineno": 217
     },
     {
       "code": "forbidden",
@@ -733,7 +733,7 @@
       "http_status": null,
       "sample_reason": "group_post_authority_required",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 317
+      "source_lineno": 344
     },
     {
       "code": "forbidden",
@@ -742,7 +742,7 @@
       "http_status": null,
       "sample_reason": "unsupported_dispute_target_type",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 79
+      "source_lineno": 88
     },
     {
       "code": "forbidden",
@@ -859,7 +859,7 @@
       "http_status": null,
       "sample_reason": "bootstrap_founder_expired",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 183
+      "source_lineno": 190
     },
     {
       "code": "insufficient_poh_tier",
@@ -931,7 +931,7 @@
       "http_status": 400,
       "sample_reason": "client_side_aes_256_gcm_required",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 180
+      "source_lineno": 181
     },
     {
       "code": "invalid_payload",
@@ -976,7 +976,7 @@
       "http_status": null,
       "sample_reason": "invalid_public_cid",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 123
+      "source_lineno": 138
     },
     {
       "code": "invalid_payload",
@@ -1120,7 +1120,7 @@
       "http_status": null,
       "sample_reason": "accounts_not_dict",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 120
+      "source_lineno": 122
     },
     {
       "code": "invalid_state",
@@ -1129,7 +1129,7 @@
       "http_status": null,
       "sample_reason": "live_session_commitment_missing",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 375
+      "source_lineno": 398
     },
     {
       "code": "invalid_state",
@@ -1210,7 +1210,7 @@
       "http_status": null,
       "sample_reason": "bad_nonce",
       "source": "src/weall/runtime/apply/identity.py",
-      "source_lineno": 113
+      "source_lineno": 115
     },
     {
       "code": "invalid_tx",
@@ -1219,7 +1219,7 @@
       "http_status": null,
       "sample_reason": "bad_commitment_format",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 81
+      "source_lineno": 82
     },
     {
       "code": "invalid_tx",
@@ -1237,7 +1237,7 @@
       "http_status": null,
       "sample_reason": "noncanonical_tx_type",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 231
+      "source_lineno": 238
     },
     {
       "code": "invalid_tx",
@@ -1273,7 +1273,7 @@
       "http_status": 400,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 223
+      "source_lineno": 224
     },
     {
       "code": "issued_at_ms_required",
@@ -1327,7 +1327,7 @@
       "http_status": null,
       "sample_reason": "/v1/poh/live/juror-cases has been removed; use /v1/poh/live/assigned",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1049
+      "source_lineno": 1140
     },
     {
       "code": "locked",
@@ -1462,7 +1462,7 @@
       "http_status": 400,
       "sample_reason": "WEALL_OPERATOR_TOKEN must be set when operator endpoints are enabled",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2575
+      "source_lineno": 2823
     },
     {
       "code": "missing_live_session_commitment",
@@ -1471,7 +1471,7 @@
       "http_status": 400,
       "sample_reason": "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3020
+      "source_lineno": 3268
     },
     {
       "code": "missing_sig",
@@ -1543,7 +1543,7 @@
       "http_status": 404,
       "sample_reason": "endpoint_disabled",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 167
+      "source_lineno": 168
     },
     {
       "code": "not_found",
@@ -1561,7 +1561,7 @@
       "http_status": null,
       "sample_reason": "reviewer_collusion_suspicion_not_found",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 1333
+      "source_lineno": 1387
     },
     {
       "code": "not_found",
@@ -1570,7 +1570,7 @@
       "http_status": null,
       "sample_reason": "group_not_found",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 313
+      "source_lineno": 340
     },
     {
       "code": "not_found",
@@ -1579,7 +1579,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1016
+      "source_lineno": 1133
     },
     {
       "code": "not_found",
@@ -1795,7 +1795,7 @@
       "http_status": 403,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 521
+      "source_lineno": 549
     },
     {
       "code": "session_not_ready",
@@ -1804,7 +1804,7 @@
       "http_status": 400,
       "sample_reason": "Live session not initialized yet (missing session_commitment)",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3101
+      "source_lineno": 3349
     },
     {
       "code": "session_required",
@@ -1813,7 +1813,7 @@
       "http_status": 403,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 502
+      "source_lineno": 532
     },
     {
       "code": "sig_profile_required",
@@ -1885,7 +1885,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1993
+      "source_lineno": 2295
     },
     {
       "code": "validator_mismatch",

@@ -12,8 +12,7 @@ def test_genesis_testnet_launch_readiness_generator_static_verdict():
         [sys.executable, "scripts/gen_genesis_testnet_launch_readiness_v1_5.py", "--json"],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -28,4 +27,7 @@ def test_genesis_testnet_launch_readiness_generator_static_verdict():
     assert payload["observer_boot_script_checks"]["enables_direct_p2p_mesh_loop"] is True
     assert payload["observer_boot_script_checks"]["refuses_observer_validator_signing"] is True
     assert payload["named_provider_dependency"] is False
-    assert payload["overall_launch_verdict"] == "partial_until_live_genesis_reachability_and_rehearsal_pass"
+    assert (
+        payload["overall_launch_verdict"]
+        == "partial_until_live_genesis_reachability_and_rehearsal_pass"
+    )

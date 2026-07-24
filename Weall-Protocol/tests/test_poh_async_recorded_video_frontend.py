@@ -67,8 +67,12 @@ def test_tier1_async_video_upload_is_dedicated_and_fail_closed() -> None:
 def test_tier1_async_chain_state_avoids_raw_video_submission() -> None:
     page = _read(WEB / "src/pages/AccountVerificationPage.tsx")
 
-    open_payload_block = page.split('tx_type: "POH_ASYNC_REQUEST_OPEN"', 1)[1].split("parent:", 1)[0]
-    declare_payload_block = page.split('tx_type: "POH_ASYNC_EVIDENCE_DECLARE"', 1)[1].split("parent:", 1)[0]
+    open_payload_block = page.split('tx_type: "POH_ASYNC_REQUEST_OPEN"', 1)[1].split("parent:", 1)[
+        0
+    ]
+    declare_payload_block = page.split('tx_type: "POH_ASYNC_EVIDENCE_DECLARE"', 1)[1].split(
+        "parent:", 1
+    )[0]
 
     assert "video_cid" not in open_payload_block
     assert "gateway_url" not in open_payload_block

@@ -107,11 +107,22 @@ def _active_assigned(case: Json) -> list[str]:
 
 def _case_needs_assign(case: Json) -> bool:
     status = _as_str(case.get("status") or "").strip().lower()
-    if status not in ("open", "evidence_submitted", "evidence_bound", "followup_evidence_submitted", "assigned", "under_review", "needs_followup"):
+    if status not in (
+        "open",
+        "evidence_submitted",
+        "evidence_bound",
+        "followup_evidence_submitted",
+        "assigned",
+        "under_review",
+        "needs_followup",
+    ):
         return False
     if not _case_has_evidence(case):
         return False
-    needed = max(1, _as_int(case.get("assigned_juror_count") or DEFAULT_ASYNC_N_JURORS, DEFAULT_ASYNC_N_JURORS))
+    needed = max(
+        1,
+        _as_int(case.get("assigned_juror_count") or DEFAULT_ASYNC_N_JURORS, DEFAULT_ASYNC_N_JURORS),
+    )
     return len(_active_assigned(case)) < needed
 
 
@@ -147,9 +158,17 @@ def _case_ready_to_finalize(case: Json, *, height: int) -> bool:
     approvals, rejections, counted, needs_followup = _review_counts(case)
     if needs_followup:
         return False
-    minimum_reviews = _as_int(case.get("minimum_reviews") or DEFAULT_ASYNC_MIN_REVIEWS, DEFAULT_ASYNC_MIN_REVIEWS)
-    approval_threshold = _as_int(case.get("approval_threshold") or DEFAULT_ASYNC_APPROVAL_THRESHOLD, DEFAULT_ASYNC_APPROVAL_THRESHOLD)
-    rejection_threshold = _as_int(case.get("rejection_threshold") or DEFAULT_ASYNC_REJECTION_THRESHOLD, DEFAULT_ASYNC_REJECTION_THRESHOLD)
+    minimum_reviews = _as_int(
+        case.get("minimum_reviews") or DEFAULT_ASYNC_MIN_REVIEWS, DEFAULT_ASYNC_MIN_REVIEWS
+    )
+    approval_threshold = _as_int(
+        case.get("approval_threshold") or DEFAULT_ASYNC_APPROVAL_THRESHOLD,
+        DEFAULT_ASYNC_APPROVAL_THRESHOLD,
+    )
+    rejection_threshold = _as_int(
+        case.get("rejection_threshold") or DEFAULT_ASYNC_REJECTION_THRESHOLD,
+        DEFAULT_ASYNC_REJECTION_THRESHOLD,
+    )
     if counted >= minimum_reviews and approvals >= approval_threshold:
         return True
     if counted >= minimum_reviews and rejections >= rejection_threshold:
@@ -175,9 +194,15 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
     enq = 0
     cases = _async_cases(state)
     configured_n_jurors = max(1, _param_int(state, "async_n_jurors", DEFAULT_ASYNC_N_JURORS))
-    configured_min_reviews = max(1, _param_int(state, "async_min_reviews", DEFAULT_ASYNC_MIN_REVIEWS))
-    configured_approval_threshold = max(1, _param_int(state, "async_approval_threshold", DEFAULT_ASYNC_APPROVAL_THRESHOLD))
-    configured_rejection_threshold = max(1, _param_int(state, "async_rejection_threshold", DEFAULT_ASYNC_REJECTION_THRESHOLD))
+    configured_min_reviews = max(
+        1, _param_int(state, "async_min_reviews", DEFAULT_ASYNC_MIN_REVIEWS)
+    )
+    configured_approval_threshold = max(
+        1, _param_int(state, "async_approval_threshold", DEFAULT_ASYNC_APPROVAL_THRESHOLD)
+    )
+    configured_rejection_threshold = max(
+        1, _param_int(state, "async_rejection_threshold", DEFAULT_ASYNC_REJECTION_THRESHOLD)
+    )
     bootstrap_quorum_allowed = poh_bootstrap_quorum_allowed(state, height=int(next_height))
     min_rep_units = _param_rep_units(
         state,
@@ -188,7 +213,9 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
 
     for case_id_raw, case_any in list(cases.items()):
         case = _as_dict(case_any)
-        case_id = _as_str(case.get("case_id") or case_id_raw).strip() or _as_str(case_id_raw).strip()
+        case_id = (
+            _as_str(case.get("case_id") or case_id_raw).strip() or _as_str(case_id_raw).strip()
+        )
         if not case_id:
             continue
         account_id = _as_str(case.get("account_id") or "").strip()
@@ -196,10 +223,30 @@ def schedule_poh_async_system_txs(state: Json, *, next_height: int) -> int:
         if _case_needs_assign(case) and account_id:
             policy = adaptive_bootstrap_review_policy(
                 state,
-                configured_jurors=_as_int(case.get("configured_assigned_juror_count") or case.get("assigned_juror_count") or configured_n_jurors, configured_n_jurors),
-                configured_min_reviews=_as_int(case.get("configured_minimum_reviews") or case.get("minimum_reviews") or configured_min_reviews, configured_min_reviews),
-                configured_approval_threshold=_as_int(case.get("configured_approval_threshold") or case.get("approval_threshold") or configured_approval_threshold, configured_approval_threshold),
-                configured_rejection_threshold=_as_int(case.get("configured_rejection_threshold") or case.get("rejection_threshold") or configured_rejection_threshold, configured_rejection_threshold),
+                configured_jurors=_as_int(
+                    case.get("configured_assigned_juror_count")
+                    or case.get("assigned_juror_count")
+                    or configured_n_jurors,
+                    configured_n_jurors,
+                ),
+                configured_min_reviews=_as_int(
+                    case.get("configured_minimum_reviews")
+                    or case.get("minimum_reviews")
+                    or configured_min_reviews,
+                    configured_min_reviews,
+                ),
+                configured_approval_threshold=_as_int(
+                    case.get("configured_approval_threshold")
+                    or case.get("approval_threshold")
+                    or configured_approval_threshold,
+                    configured_approval_threshold,
+                ),
+                configured_rejection_threshold=_as_int(
+                    case.get("configured_rejection_threshold")
+                    or case.get("rejection_threshold")
+                    or configured_rejection_threshold,
+                    configured_rejection_threshold,
+                ),
                 height=int(next_height),
             )
             n_jurors = int(policy["assigned_jurors"])

@@ -25,17 +25,22 @@ def test_controlled_devnet_manifest_exists_for_external_observer_rehearsal() -> 
     assert manifest["authority"]["lan_http_allowed_for_rehearsal"] is True
     assert manifest["authority"]["authority_snapshot_required"] is False
     assert manifest["authority"]["signed_snapshot_required"] is False
-    assert manifest["tx_index_hash"] == hashlib.sha256(
-        (ROOT / "generated" / "tx_index.json").read_bytes()
-    ).hexdigest()
+    assert (
+        manifest["tx_index_hash"]
+        == hashlib.sha256((ROOT / "generated" / "tx_index.json").read_bytes()).hexdigest()
+    )
     assert manifest["protocol_profile_hash"]
     assert manifest["constitution_version"] == "draft-2"
-    assert manifest["constitution_hash"] == hashlib.sha256(
-        (ROOT / manifest["constitution_document_path"]).read_bytes()
-    ).hexdigest()
-    assert manifest["constitution_traceability_hash"] == hashlib.sha256(
-        (ROOT / "docs" / "constitution" / "CONSTITUTIONAL_TRACEABILITY.md").read_bytes()
-    ).hexdigest()
+    assert (
+        manifest["constitution_hash"]
+        == hashlib.sha256((ROOT / manifest["constitution_document_path"]).read_bytes()).hexdigest()
+    )
+    assert (
+        manifest["constitution_traceability_hash"]
+        == hashlib.sha256(
+            (ROOT / "docs" / "constitution" / "CONSTITUTIONAL_TRACEABILITY.md").read_bytes()
+        ).hexdigest()
+    )
 
 
 def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehearsal_flag(
@@ -57,8 +62,7 @@ def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehears
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert built.returncode == 0, built.stderr + built.stdout
@@ -74,26 +78,43 @@ def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehears
     env = os.environ.copy()
     env.pop("WEALL_ALLOW_LAN_GENESIS_API", None)
     denied = subprocess.run(
-        [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(CONTROLLED_MANIFEST), "--json"],
+        [
+            sys.executable,
+            str(VERIFY),
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(CONTROLLED_MANIFEST),
+            "--json",
+        ],
         cwd=str(ROOT),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert denied.returncode != 0
     denied_report = json.loads(denied.stdout)
-    assert "rehearsal_lan_authority_url_requires_WEALL_ALLOW_LAN_GENESIS_API=1" in denied_report["issues"]
+    assert (
+        "rehearsal_lan_authority_url_requires_WEALL_ALLOW_LAN_GENESIS_API=1"
+        in denied_report["issues"]
+    )
 
     env["WEALL_ALLOW_LAN_GENESIS_API"] = "1"
     allowed = subprocess.run(
-        [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(CONTROLLED_MANIFEST), "--json"],
+        [
+            sys.executable,
+            str(VERIFY),
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(CONTROLLED_MANIFEST),
+            "--json",
+        ],
         cwd=str(ROOT),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert allowed.returncode == 0, allowed.stderr + allowed.stdout
@@ -102,12 +123,19 @@ def test_controlled_devnet_bundle_allows_private_http_only_with_explicit_rehears
     assert allowed_report["issues"] == []
 
     shell = subprocess.run(
-        [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(CONTROLLED_MANIFEST), "--emit-shell-env"],
+        [
+            sys.executable,
+            str(VERIFY),
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(CONTROLLED_MANIFEST),
+            "--emit-shell-env",
+        ],
         cwd=str(ROOT),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert shell.returncode == 0, shell.stderr + shell.stdout
@@ -157,17 +185,23 @@ def test_production_bundle_still_rejects_plain_http_authority(tmp_path: Path) ->
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert built.returncode == 0, built.stderr + built.stdout
     result = subprocess.run(
-        [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(manifest), "--json"],
+        [
+            sys.executable,
+            str(VERIFY),
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(manifest),
+            "--json",
+        ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert result.returncode != 0
@@ -184,5 +218,6 @@ def test_observer_scripts_resolve_manifest_from_bundle_hint() -> None:
 
     smoke = SMOKE.read_text(encoding="utf-8")
     assert "prod_chain_manifest_check.sh" in smoke
-    assert "non-production observer rehearsal manifest is pinned and matches local tx index" in smoke
-
+    assert (
+        "non-production observer rehearsal manifest is pinned and matches local tx index" in smoke
+    )

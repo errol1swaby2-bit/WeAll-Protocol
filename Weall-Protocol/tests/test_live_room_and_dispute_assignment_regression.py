@@ -16,8 +16,8 @@ def test_local_rehearsal_provides_live_room_transport_config() -> None:
     assert 'LIVE_ROOM_TRANSPORT_MODE="${VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE:-p2p}"' in src
     assert 'LIVE_ROOM_BASE_URL="${VITE_WEALL_LIVE_ROOM_BASE_URL:-}"' in src
     assert src.count('export VITE_WEALL_LIVE_ROOM_BASE_URL="${LIVE_ROOM_BASE_URL}"') >= 2
-    assert 'live_room_transport=${LIVE_ROOM_TRANSPORT_MODE}' in src
-    assert 'live_room_base_url=${LIVE_ROOM_BASE_URL}' in src
+    assert "live_room_transport=${LIVE_ROOM_TRANSPORT_MODE}" in src
+    assert "live_room_base_url=${LIVE_ROOM_BASE_URL}" in src
 
 
 def test_vite_dev_csp_allows_local_p2p_room_frames() -> None:
@@ -35,8 +35,9 @@ def test_dispute_viewer_assignment_falls_back_to_eligible_juror_ids() -> None:
 
     assert 'eligible = obj.get("eligible_juror_ids")' in api
     assert '"source": "eligible_juror_ids"' in api
-    assert 'function listContainsAccount' in surface
-    assert 'src.eligible_juror_ids' in surface
-    assert 'function disputeJurorRecord' in surface
-    assert 'def _eligible_key_for_actor' in apply
-    assert 'jurors[juror_key] = {"status": "assigned"' in apply
+    assert "function listContainsAccount" in surface
+    assert "src.eligible_juror_ids" in surface
+    assert "function disputeJurorRecord" in surface
+    assert "def _eligible_key_for_actor" in apply
+    compact_apply = "".join(apply.split())
+    assert 'jurors[juror_key]={"status":"assigned"' in compact_apply

@@ -10,7 +10,12 @@ ROOT = Path(__file__).resolve().parents[1]
 TRACE = ROOT / "docs" / "production_readiness" / "M2_REQUIREMENT_TRACEABILITY.json"
 CROSSWALK = ROOT / "docs" / "production_readiness" / "M2_SCOPE_CROSSWALK.json"
 NORMATIVE_REQUIREMENTS = ROOT / "specs" / "v2" / "source" / "requirements.json"
-ALLOWED = {"implemented", "implemented_requires_operator_signature_rotation", "evidence_required", "rescoped"}
+ALLOWED = {
+    "implemented",
+    "implemented_requires_operator_signature_rotation",
+    "evidence_required",
+    "rescoped",
+}
 EXPECTED_DELIVERABLES = {
     "account-custody-e2e",
     "async-poh-e2e",
@@ -29,8 +34,7 @@ def _controlling_normative_ids() -> set[str]:
     ids = {
         str(row.get("id") or "").strip()
         for row in rows
-        if isinstance(row, dict)
-        and NORMATIVE_M2_ID.fullmatch(str(row.get("id") or "").strip())
+        if isinstance(row, dict) and NORMATIVE_M2_ID.fullmatch(str(row.get("id") or "").strip())
     }
     if not ids:
         raise SystemExit("m2_normative_requirement_scope_empty")
@@ -80,7 +84,7 @@ def main() -> int:
     )
     if seen != expected:
         raise SystemExit(
-            f"m2_traceability_coverage_mismatch:missing={sorted(expected-seen)}:extra={sorted(seen-expected)}"
+            f"m2_traceability_coverage_mismatch:missing={sorted(expected - seen)}:extra={sorted(seen - expected)}"
         )
 
     crosswalk = json.loads(CROSSWALK.read_text(encoding="utf-8"))
@@ -88,8 +92,8 @@ def main() -> int:
     deliverable_ids = {str(item.get("id") or "") for item in deliverables if isinstance(item, dict)}
     if deliverable_ids != EXPECTED_DELIVERABLES:
         raise SystemExit(
-            f"m2_crosswalk_deliverable_mismatch:missing={sorted(EXPECTED_DELIVERABLES-deliverable_ids)}:"
-            f"extra={sorted(deliverable_ids-EXPECTED_DELIVERABLES)}"
+            f"m2_crosswalk_deliverable_mismatch:missing={sorted(EXPECTED_DELIVERABLES - deliverable_ids)}:"
+            f"extra={sorted(deliverable_ids - EXPECTED_DELIVERABLES)}"
         )
 
     accounted_normative: set[str] = set()
@@ -97,24 +101,35 @@ def main() -> int:
         for item in _list(crosswalk.get(section), label=section):
             if not isinstance(item, dict):
                 raise SystemExit(f"m2_crosswalk_item_not_object:{section}")
-            row_ids = [str(value) for value in _list(item.get("requirement_rows") or [], label=f"{section}:rows")]
+            row_ids = [
+                str(value)
+                for value in _list(item.get("requirement_rows") or [], label=f"{section}:rows")
+            ]
             for row_id in row_ids:
                 if row_id not in by_id:
                     raise SystemExit(f"m2_crosswalk_unknown_requirement_row:{section}:{row_id}")
             if section != "scope_exclusions" and not row_ids:
-                raise SystemExit(f"m2_crosswalk_requirement_rows_missing:{section}:{item.get('id')}")
-            _validate_paths(item.get("implementation") or [], label=f"{section}:{item.get('id')}:implementation")
-            for requirement_id in _list(item.get("requirement_ids") or [], label=f"{section}:requirement_ids"):
+                raise SystemExit(
+                    f"m2_crosswalk_requirement_rows_missing:{section}:{item.get('id')}"
+                )
+            _validate_paths(
+                item.get("implementation") or [], label=f"{section}:{item.get('id')}:implementation"
+            )
+            for requirement_id in _list(
+                item.get("requirement_ids") or [], label=f"{section}:requirement_ids"
+            ):
                 requirement_id = str(requirement_id)
                 if requirement_id in accounted_normative:
-                    raise SystemExit(f"m2_crosswalk_duplicate_normative_requirement:{requirement_id}")
+                    raise SystemExit(
+                        f"m2_crosswalk_duplicate_normative_requirement:{requirement_id}"
+                    )
                 accounted_normative.add(requirement_id)
 
     expected_normative = _controlling_normative_ids()
     if accounted_normative != expected_normative:
         raise SystemExit(
-            f"m2_crosswalk_normative_coverage_mismatch:missing={sorted(expected_normative-accounted_normative)}:"
-            f"extra={sorted(accounted_normative-expected_normative)}"
+            f"m2_crosswalk_normative_coverage_mismatch:missing={sorted(expected_normative - accounted_normative)}:"
+            f"extra={sorted(accounted_normative - expected_normative)}"
         )
 
     account_custody = next(item for item in deliverables if item.get("id") == "account-custody-e2e")

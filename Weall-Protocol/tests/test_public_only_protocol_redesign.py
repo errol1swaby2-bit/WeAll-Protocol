@@ -10,9 +10,9 @@ from weall.api.app import create_app
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.public_protocol_policy import (
+    NON_PUBLIC_GROUP_UNSUPPORTED,
     OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
     PUBLIC_READ_VISIBILITY_REQUIRED,
-    NON_PUBLIC_GROUP_UNSUPPORTED,
     public_protocol_policy_violation,
 )
 from weall.runtime.tx_admission import admit_tx
@@ -35,7 +35,9 @@ def _auth(account: str = "@alice") -> dict[str, str]:
 
 
 def _ledger() -> dict:
-    return {"accounts": {"@alice": {"nonce": 0, "poh_tier": 2}, "@bob": {"nonce": 0, "poh_tier": 2}}}
+    return {
+        "accounts": {"@alice": {"nonce": 0, "poh_tier": 2}, "@bob": {"nonce": 0, "poh_tier": 2}}
+    }
 
 
 def _state() -> dict:
@@ -50,13 +52,23 @@ def _state() -> dict:
 
 
 def _tx(tx_type: str, signer: str = "@alice", nonce: int = 1, payload: dict | None = None) -> dict:
-    return {"tx_type": tx_type, "signer": signer, "nonce": nonce, "payload": payload or {}, "sig": ""}
+    return {
+        "tx_type": tx_type,
+        "signer": signer,
+        "nonce": nonce,
+        "payload": payload or {},
+        "sig": "",
+    }
 
 
 def _public_only_route_state() -> dict:
     return {
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 2, "session_keys": {"session-key": {"active": True}}},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "session_keys": {"session-key": {"active": True}},
+            },
             "@bob": {"nonce": 0, "poh_tier": 2, "session_keys": {"session-key": {"active": True}}},
         },
         "content": {
@@ -94,7 +106,12 @@ def _public_only_route_state() -> dict:
             "moderation": {"targets": {}},
         },
         "groups_by_id": {
-            "g-public": {"id": "g-public", "visibility": "public", "read_visibility": "public", "members": {"@alice": {}}}
+            "g-public": {
+                "id": "g-public",
+                "visibility": "public",
+                "read_visibility": "public",
+                "members": {"@alice": {}},
+            }
         },
     }
 
@@ -122,13 +139,24 @@ def test_removed_communication_tx_name_is_rejected_as_unknown() -> None:
 @pytest.mark.parametrize(
     "payload,code",
     [
-        ({"group_id": "g-private", "charter": "x", "is_private": True}, NON_PUBLIC_GROUP_UNSUPPORTED),
-        ({"group_id": "g-private", "charter": "x", "visibility": "private"}, PUBLIC_READ_VISIBILITY_REQUIRED),
-        ({"group_id": "g-private", "charter": "x", "read_visibility": "member" + "s_only"}, PUBLIC_READ_VISIBILITY_REQUIRED),
+        (
+            {"group_id": "g-private", "charter": "x", "is_private": True},
+            NON_PUBLIC_GROUP_UNSUPPORTED,
+        ),
+        (
+            {"group_id": "g-private", "charter": "x", "visibility": "private"},
+            PUBLIC_READ_VISIBILITY_REQUIRED,
+        ),
+        (
+            {"group_id": "g-private", "charter": "x", "read_visibility": "member" + "s_only"},
+            PUBLIC_READ_VISIBILITY_REQUIRED,
+        ),
     ],
 )
 def test_non_public_group_and_restricted_read_fields_are_rejected(payload: dict, code: str) -> None:
-    verdict = admit_tx(_tx("GROUP_CREATE", payload=payload), _ledger(), canon=None, context="mempool")
+    verdict = admit_tx(
+        _tx("GROUP_CREATE", payload=payload), _ledger(), canon=None, context="mempool"
+    )
     assert verdict.ok is False
     assert verdict.code == code
 
@@ -154,7 +182,12 @@ def test_public_group_content_is_stored_public_and_membership_gates_comments() -
         _tx(
             "CONTENT_POST_CREATE",
             nonce=2,
-            payload={"post_id": "p1", "group_id": "g-public", "visibility": "group", "body": "public group post"},
+            payload={
+                "post_id": "p1",
+                "group_id": "g-public",
+                "visibility": "group",
+                "body": "public group post",
+            },
         ),
     )
 
@@ -165,19 +198,48 @@ def test_public_group_content_is_stored_public_and_membership_gates_comments() -
     assert group["visibility"] == "public"
 
     with pytest.raises(ApplyError) as denied:
-        apply_tx(state, _tx("CONTENT_COMMENT_CREATE", signer="@bob", nonce=1, payload={"comment_id": "c1", "post_id": "p1", "body": "nonmember"}))
+        apply_tx(
+            state,
+            _tx(
+                "CONTENT_COMMENT_CREATE",
+                signer="@bob",
+                nonce=1,
+                payload={"comment_id": "c1", "post_id": "p1", "body": "nonmember"},
+            ),
+        )
     assert denied.value.code == "forbidden"
     assert denied.value.reason == "group_comment_authority_required"
 
-    apply_tx(state, _tx("GROUP_MEMBERSHIP_REQUEST", signer="@bob", nonce=2, payload={"group_id": "g-public"}))
-    apply_tx(state, _tx("CONTENT_COMMENT_CREATE", signer="@bob", nonce=3, payload={"comment_id": "c2", "post_id": "p1", "body": "member"}))
+    apply_tx(
+        state,
+        _tx("GROUP_MEMBERSHIP_REQUEST", signer="@bob", nonce=2, payload={"group_id": "g-public"}),
+    )
+    apply_tx(
+        state,
+        _tx(
+            "CONTENT_COMMENT_CREATE",
+            signer="@bob",
+            nonce=3,
+            payload={"comment_id": "c2", "post_id": "p1", "body": "member"},
+        ),
+    )
     assert state["content"]["comments"]["c2"]["body"] == "member"
 
 
 def test_group_moderation_actions_remain_public_state() -> None:
     state = _state()
-    apply_tx(state, _tx("GROUP_CREATE", nonce=1, payload={"group_id": "g-public", "charter": "Public Group"}))
-    apply_tx(state, _tx("GROUP_ROLE_GRANT", nonce=2, payload={"group_id": "g-public", "account": "@bob", "role": "moderators"}))
+    apply_tx(
+        state,
+        _tx("GROUP_CREATE", nonce=1, payload={"group_id": "g-public", "charter": "Public Group"}),
+    )
+    apply_tx(
+        state,
+        _tx(
+            "GROUP_ROLE_GRANT",
+            nonce=2,
+            payload={"group_id": "g-public", "account": "@bob", "role": "moderators"},
+        ),
+    )
     group = state["groups_by_id"]["g-public"]
     assert group["public_only"] is True
     assert "@bob" in group["roles"]["moderators"]
@@ -212,14 +274,14 @@ def test_frontend_routes_do_not_expose_removed_communication_surface() -> None:
 
 def test_api_contract_does_not_advertise_removed_communication_routes() -> None:
     api_src = (WEB / "src" / "api" / "weall.ts").read_text(encoding="utf-8")
-    contract = json.loads((ROOT / "generated" / "api_contract_map_v1_5.json").read_text(encoding="utf-8"))
+    contract = json.loads(
+        (ROOT / "generated" / "api_contract_map_v1_5.json").read_text(encoding="utf-8")
+    )
     route_keys = {f"{r['method']} {r['path']}" for r in contract["routes"]}
     assert "messageThreads(" not in api_src
     assert "messageThread(" not in api_src
     assert "GET /v1/" + "mess" + "ages/threads" not in route_keys
     assert "GET /v1/activity/notices" in route_keys
-
-
 
 
 def test_public_only_generator_scans_relative_paths_not_absolute_tmp_parts() -> None:
@@ -236,11 +298,16 @@ def test_public_only_generator_scans_relative_paths_not_absolute_tmp_parts() -> 
     assert "../web/src/api/weall.ts" in paths
     assert "src/weall/api/routes_public_parts/groups.py" in paths
 
+
 def test_generated_artifact_reflects_public_only_rule() -> None:
     artifact = ROOT / "generated" / "public_only_protocol_audit_v1_5.json"
     assert artifact.is_file()
     data = artifact.read_text(encoding="utf-8")
-    for code in [NON_PUBLIC_GROUP_UNSUPPORTED, OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED, PUBLIC_READ_VISIBILITY_REQUIRED]:
+    for code in [
+        NON_PUBLIC_GROUP_UNSUPPORTED,
+        OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
+        PUBLIC_READ_VISIBILITY_REQUIRED,
+    ]:
         assert code in data
     assert "_".join(["DIRECT", "MESSAGE", "SEND"]) not in data
     assert "public_protocol_events" in data
@@ -248,15 +315,20 @@ def test_generated_artifact_reflects_public_only_rule() -> None:
 
 def test_legacy_fixtures_cannot_reintroduce_non_public_or_encoded_payloads() -> None:
     for payload, code in [
-        ({"encrypted" + "_payload": {"cipher" + "text": "abc"}}, OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED),
+        (
+            {"encrypted" + "_payload": {"cipher" + "text": "abc"}},
+            OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
+        ),
         ({"metadata": {"sealed" + "_payload": "abc"}}, OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED),
-        ({"attachments": [{"cid": "bafy", "cipher" + "text": "hidden"}]}, OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED),
+        (
+            {"attachments": [{"cid": "bafy", "cipher" + "text": "hidden"}]},
+            OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED,
+        ),
         ({"group" + "_visibility": "member" + "s_only"}, PUBLIC_READ_VISIBILITY_REQUIRED),
     ]:
         violation = public_protocol_policy_violation(_tx("GOV_PROPOSAL_CREATE", payload=payload))
         assert violation is not None
         assert violation.code == code
-
 
 
 def test_restricted_identity_evidence_key_envelopes_are_narrowly_allowed() -> None:
@@ -303,9 +375,7 @@ def test_restricted_identity_evidence_key_envelopes_are_narrowly_allowed() -> No
             payload={
                 "case_id": "pohasync:@alice:1",
                 "evidence_id": "ev1",
-                "key_envelope_commitments": {
-                    "@alice": {"encrypted_payload": "opaque"}
-                },
+                "key_envelope_commitments": {"@alice": {"encrypted_payload": "opaque"}},
             },
         )
     )
@@ -318,49 +388,88 @@ def test_restricted_identity_evidence_key_envelopes_are_narrowly_allowed() -> No
             payload={
                 "case_id": "pohasync:@alice:1",
                 "evidence_id": "ev1",
-                "key_envelope_commitments": {
-                    "@alice": {"nested": {"kemCiphertextB64": "opaque"}}
-                },
+                "key_envelope_commitments": {"@alice": {"nested": {"kemCiphertextB64": "opaque"}}},
             },
         )
     )
     assert nested_opaque_envelope_field is not None
     assert nested_opaque_envelope_field.code == OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED
 
+
 def test_state_replay_rejects_non_inspectable_protocol_payload_deterministically() -> None:
     state = _state()
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(
             state,
-            _tx("GOV_PROPOSAL_CREATE", payload={"proposal_id": "p", "title": "x", "body": "y", "encrypted" + "_payload": "opaque"}),
+            _tx(
+                "GOV_PROPOSAL_CREATE",
+                payload={
+                    "proposal_id": "p",
+                    "title": "x",
+                    "body": "y",
+                    "encrypted" + "_payload": "opaque",
+                },
+            ),
         )
     assert excinfo.value.code == OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED
 
 
 def test_public_media_and_evidence_references_must_be_public_cids() -> None:
     state = _state()
-    bad_media = _tx("CONTENT_MEDIA_DECLARE", payload={"media_id": "m-private", "cid": "opaque-private-ref"})
+    bad_media = _tx(
+        "CONTENT_MEDIA_DECLARE", payload={"media_id": "m-private", "cid": "opaque-private-ref"}
+    )
     with pytest.raises(ApplyError) as media_exc:
         apply_tx(state, bad_media)
     assert media_exc.value.code == "invalid_payload"
     assert media_exc.value.reason == "invalid_public_cid"
 
     valid_cid = "bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
-    apply_tx(state, _tx("CONTENT_POST_CREATE", nonce=1, payload={"post_id": "post:missing", "body": "public post"}))
-    apply_tx(state, _tx("CONTENT_MEDIA_DECLARE", nonce=2, payload={"media_id": "m-public", "cid": valid_cid}))
+    apply_tx(
+        state,
+        _tx(
+            "CONTENT_POST_CREATE",
+            nonce=1,
+            payload={"post_id": "post:missing", "body": "public post"},
+        ),
+    )
+    apply_tx(
+        state,
+        _tx("CONTENT_MEDIA_DECLARE", nonce=2, payload={"media_id": "m-public", "cid": valid_cid}),
+    )
     assert state["content"]["media"]["m-public"]["cid"] == valid_cid
 
     apply_tx(
         state,
-        _tx("DISPUTE_OPEN", nonce=3, payload={"dispute_id": "d-public", "target_type": "content", "target_id": "post:missing", "reason": "audit"}),
+        _tx(
+            "DISPUTE_OPEN",
+            nonce=3,
+            payload={
+                "dispute_id": "d-public",
+                "target_type": "content",
+                "target_id": "post:missing",
+                "reason": "audit",
+            },
+        ),
     )
-    bad_evidence = _tx("DISPUTE_EVIDENCE_DECLARE", nonce=4, payload={"dispute_id": "d-public", "evidence_id": "e-bad", "cid": "opaque-private-ref"})
+    bad_evidence = _tx(
+        "DISPUTE_EVIDENCE_DECLARE",
+        nonce=4,
+        payload={"dispute_id": "d-public", "evidence_id": "e-bad", "cid": "opaque-private-ref"},
+    )
     with pytest.raises(ApplyError) as evidence_exc:
         apply_tx(state, bad_evidence)
     assert evidence_exc.value.code == "invalid_payload"
     assert evidence_exc.value.reason == "invalid_public_cid"
 
-    apply_tx(state, _tx("DISPUTE_EVIDENCE_DECLARE", nonce=5, payload={"dispute_id": "d-public", "evidence_id": "e-public", "cid": valid_cid}))
+    apply_tx(
+        state,
+        _tx(
+            "DISPUTE_EVIDENCE_DECLARE",
+            nonce=5,
+            payload={"dispute_id": "d-public", "evidence_id": "e-public", "cid": valid_cid},
+        ),
+    )
     evidence = state["disputes_by_id"]["d-public"]["evidence"]
     assert any(item.get("id") == "e-public" and item.get("cid") == valid_cid for item in evidence)
 
@@ -370,13 +479,17 @@ def test_legacy_restricted_account_feed_and_scoped_content_archives_are_not_read
     app.state.executor = _DummyExecutor(_public_only_route_state())
     client = TestClient(app)
 
-    private_filter = client.get("/v1/accounts/@alice/feed?visibility=private", headers=_auth("@alice"))
+    private_filter = client.get(
+        "/v1/accounts/@alice/feed?visibility=private", headers=_auth("@alice")
+    )
     assert private_filter.status_code == 400
     assert private_filter.json()["error"]["code"] == PUBLIC_READ_VISIBILITY_REQUIRED
 
     owner_all = client.get("/v1/accounts/@alice/feed?visibility=all", headers=_auth("@alice"))
     assert owner_all.status_code == 200, owner_all.text
-    returned_ids = {str(item.get("post_id") or item.get("id")) for item in owner_all.json()["items"]}
+    returned_ids = {
+        str(item.get("post_id") or item.get("id")) for item in owner_all.json()["items"]
+    }
     assert "p-public" in returned_ids
     assert "p-group" in returned_ids
     assert "p-private" not in returned_ids
@@ -391,7 +504,10 @@ def test_legacy_restricted_account_feed_and_scoped_content_archives_are_not_read
 
 def test_public_only_docs_and_scripts_do_not_preserve_removed_communication_claims() -> None:
     removed_doc_prefixes = [("P2P_" + "ENCRYPTED"), ("MESSAGING" + "_E")]
-    assert not any(any(path.name.startswith(prefix) for prefix in removed_doc_prefixes) for path in (ROOT / "docs").glob("*.md"))
+    assert not any(
+        any(path.name.startswith(prefix) for prefix in removed_doc_prefixes)
+        for path in (ROOT / "docs").glob("*.md")
+    )
     checked = [
         ROOT.parent / "README.md",
         ROOT / "docs" / "KNOWN_LIMITATIONS.md",
@@ -421,8 +537,12 @@ def test_frontend_styles_do_not_preserve_dead_private_messenger_classes() -> Non
 
 def test_runtime_and_tooling_do_not_preserve_removed_communication_implementation() -> None:
     assert not (ROOT / "src" / "weall" / "runtime" / "apply" / ("mess" + "aging.py")).exists()
-    domain_src = (ROOT / "src" / "weall" / "runtime" / "domain_dispatch.py").read_text(encoding="utf-8")
-    contracts_src = (ROOT / "src" / "weall" / "runtime" / "tx_contracts.py").read_text(encoding="utf-8")
+    domain_src = (ROOT / "src" / "weall" / "runtime" / "domain_dispatch.py").read_text(
+        encoding="utf-8"
+    )
+    contracts_src = (ROOT / "src" / "weall" / "runtime" / "tx_contracts.py").read_text(
+        encoding="utf-8"
+    )
     patch_src = (ROOT / "scripts" / "patch_domain_apply_remaining.py").read_text(encoding="utf-8")
     assert "apply_" + "mess" + "aging" not in domain_src
     assert "MESSAGING_TX_TYPES" not in contracts_src
@@ -437,7 +557,9 @@ def test_permission_probe_uses_public_share_gate_not_removed_communication_paylo
 
 
 def test_helper_contract_map_does_not_advertise_removed_communication_state_effects() -> None:
-    helper_contracts = json.loads((ROOT / "generated" / "helper_contract_map.json").read_text(encoding="utf-8"))
+    helper_contracts = json.loads(
+        (ROOT / "generated" / "helper_contract_map.json").read_text(encoding="utf-8")
+    )
     contracts = {str(item.get("tx_type")): item for item in helper_contracts.get("contracts", [])}
     assert "_".join(["DIRECT", "MESSAGE", "SEND"]) not in contracts
     assert "_".join(["DIRECT", "MESSAGE", "REDACT"]) not in contracts
@@ -454,7 +576,9 @@ def test_generated_api_response_vectors_do_not_advertise_removed_communication_r
 
 def test_public_completion_artifacts_use_activity_input_queue_not_removed_routes() -> None:
     b534 = (ROOT / "generated" / "b534_b538_completion_proof_v1_5.json").read_text(encoding="utf-8")
-    b587 = (ROOT / "generated" / "b587_b594_testnet_mechanism_completion_v1_5.json").read_text(encoding="utf-8")
+    b587 = (ROOT / "generated" / "b587_b594_testnet_mechanism_completion_v1_5.json").read_text(
+        encoding="utf-8"
+    )
     assert "GET /v1/" + "mess" + "ages/threads" not in b534
     assert "GET /v1/" + "mess" + "ages/threads" not in b587
     assert "GET /v1/activity/notices" in b534

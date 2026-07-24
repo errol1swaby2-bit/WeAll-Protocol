@@ -6,6 +6,7 @@ provide public keys explicitly and refuses placeholder values.  The outputs are
 safe to commit/share only after the operator has verified the public keys and
 kept private keys out of the repository.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -326,17 +327,29 @@ def _build_manifest(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build pinned WeAll production genesis and chain manifest files.")
+    parser = argparse.ArgumentParser(
+        description="Build pinned WeAll production genesis and chain manifest files."
+    )
     parser.add_argument("--chain-id", default="weall-prod")
     parser.add_argument("--founding-account", required=True)
-    parser.add_argument("--founding-pubkey", required=True, help="64 hex public key for founding account/node")
-    parser.add_argument("--authority-pubkey", required=True, help="64 hex public key for signed authority snapshots")
+    parser.add_argument(
+        "--founding-pubkey", required=True, help="64 hex public key for founding account/node"
+    )
+    parser.add_argument(
+        "--authority-pubkey", required=True, help="64 hex public key for signed authority snapshots"
+    )
     parser.add_argument("--tx-index", default=str(ROOT / "generated" / "tx_index.json"))
     parser.add_argument("--genesis-out", default=str(ROOT / "configs" / "genesis.ledger.prod.json"))
-    parser.add_argument("--manifest-out", default=str(ROOT / "configs" / "chains" / "weall-genesis.json"))
-    parser.add_argument("--genesis-time", type=int, default=0, help="Unix seconds. Defaults to current time.")
+    parser.add_argument(
+        "--manifest-out", default=str(ROOT / "configs" / "chains" / "weall-genesis.json")
+    )
+    parser.add_argument(
+        "--genesis-time", type=int, default=0, help="Unix seconds. Defaults to current time."
+    )
     parser.add_argument("--econ-unlock-days", type=int, default=DEFAULT_ECON_UNLOCK_DAYS)
-    parser.add_argument("--bootstrap-expires-height", type=int, default=DEFAULT_BOOTSTRAP_EXPIRES_HEIGHT)
+    parser.add_argument(
+        "--bootstrap-expires-height", type=int, default=DEFAULT_BOOTSTRAP_EXPIRES_HEIGHT
+    )
     args = parser.parse_args()
 
     chain_id = _nonempty(args.chain_id, "chain_id")
@@ -377,18 +390,22 @@ def main() -> int:
     manifest_out.parent.mkdir(parents=True, exist_ok=True)
     genesis_out.write_text(_pretty(genesis), encoding="utf-8")
     manifest_out.write_text(_pretty(manifest), encoding="utf-8")
-    print(_pretty({
-        "ok": True,
-        "chain_id": chain_id,
-        "genesis_out": str(genesis_out),
-        "manifest_out": str(manifest_out),
-        "genesis_hash": genesis_hash,
-        "genesis_state_root": state_root,
-        "tx_index_hash": manifest["tx_index_hash"],
-        "protocol_profile_hash": manifest["protocol_profile_hash"],
-        "economic_unlock_time": genesis["params"]["economic_unlock_time"],
-        "bootstrap_auto_lock_rule": genesis["params"]["poh_bootstrap_auto_lock_rule"],
-    }))
+    print(
+        _pretty(
+            {
+                "ok": True,
+                "chain_id": chain_id,
+                "genesis_out": str(genesis_out),
+                "manifest_out": str(manifest_out),
+                "genesis_hash": genesis_hash,
+                "genesis_state_root": state_root,
+                "tx_index_hash": manifest["tx_index_hash"],
+                "protocol_profile_hash": manifest["protocol_profile_hash"],
+                "economic_unlock_time": genesis["params"]["economic_unlock_time"],
+                "bootstrap_auto_lock_rule": genesis["params"]["poh_bootstrap_auto_lock_rule"],
+            }
+        )
+    )
     return 0
 
 

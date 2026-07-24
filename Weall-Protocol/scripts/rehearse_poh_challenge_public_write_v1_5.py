@@ -59,8 +59,30 @@ def run_harness() -> dict[str, Any]:
             client = TestClient(app)
 
             # Register both target and challenger through the public write path.
-            _post(client, "/v1/tx/submit", {"tx_type": "ACCOUNT_REGISTER", "signer": "@alice", "nonce": 1, "chain_id": "batch549-poh-challenge-api", "payload": {"pubkey": "k:alice"}, "sig": "sig"})
-            _post(client, "/v1/tx/submit", {"tx_type": "ACCOUNT_REGISTER", "signer": "@bob", "nonce": 1, "chain_id": "batch549-poh-challenge-api", "payload": {"pubkey": "k:bob"}, "sig": "sig"})
+            _post(
+                client,
+                "/v1/tx/submit",
+                {
+                    "tx_type": "ACCOUNT_REGISTER",
+                    "signer": "@alice",
+                    "nonce": 1,
+                    "chain_id": "batch549-poh-challenge-api",
+                    "payload": {"pubkey": "k:alice"},
+                    "sig": "sig",
+                },
+            )
+            _post(
+                client,
+                "/v1/tx/submit",
+                {
+                    "tx_type": "ACCOUNT_REGISTER",
+                    "signer": "@bob",
+                    "nonce": 1,
+                    "chain_id": "batch549-poh-challenge-api",
+                    "payload": {"pubkey": "k:bob"},
+                    "sig": "sig",
+                },
+            )
             _produce(ex, max_txs=2)
             st = ex.read_state()
             st.setdefault("accounts", {}).setdefault("@alice", {})["poh_tier"] = 1
@@ -71,9 +93,14 @@ def run_harness() -> dict[str, Any]:
                 "status": "approved",
                 "reviews": {"@reviewer": {"verdict": "approve"}},
             }
-            ex._ledger_store.write(st); ex.state = ex._ledger_store.read()
+            ex._ledger_store.write(st)
+            ex.state = ex._ledger_store.read()
 
-            skeleton = _post(client, "/v1/poh/challenge/tx/open", {"account_id": "@alice", "case_id": "case-a", "reason": "duplicate-human"})
+            skeleton = _post(
+                client,
+                "/v1/poh/challenge/tx/open",
+                {"account_id": "@alice", "case_id": "case-a", "reason": "duplicate-human"},
+            )
             tx = dict(skeleton["tx"])
             envelope = {
                 "tx_type": tx["tx_type"],
@@ -89,7 +116,9 @@ def run_harness() -> dict[str, Any]:
             challenge_id = "pohc:@alice:2"
             challenge = final_state.get("poh", {}).get("challenges", {}).get(challenge_id, {})
             return {
-                "ok": bool(skeleton.get("ok") and submit.get("ok") and challenge.get("status") == "open"),
+                "ok": bool(
+                    skeleton.get("ok") and submit.get("ok") and challenge.get("status") == "open"
+                ),
                 "batch": "549",
                 "skeleton_route": "POST /v1/poh/challenge/tx/open",
                 "submit_route": "POST /v1/tx/submit POH_CHALLENGE_OPEN",
@@ -100,11 +129,14 @@ def run_harness() -> dict[str, Any]:
                 "system_or_receipt_submission_required": False,
             }
     finally:
-        os.environ.clear(); os.environ.update(old)
+        os.environ.clear()
+        os.environ.update(old)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

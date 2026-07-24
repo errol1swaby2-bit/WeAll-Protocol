@@ -45,7 +45,11 @@ def test_devnet_cross_node_convergence_scripts_are_syntax_valid() -> None:
 
 
 def test_cross_node_convergence_cli_exposes_scenarios_and_dry_run() -> None:
-    for args in [["--help"], ["--list-scenarios"], ["--dry-run", "--account", "@dry_run_cross_node"]]:
+    for args in [
+        ["--help"],
+        ["--list-scenarios"],
+        ["--dry-run", "--account", "@dry_run_cross_node"],
+    ]:
         proc = subprocess.run(
             [sys.executable, "-S", str(HELPER_PATH), *args],
             cwd=REPO_ROOT,
@@ -110,8 +114,6 @@ def test_cross_node_convergence_compare_identity_detects_mismatch() -> None:
     right["tip_hash"] = "tip-b"
     mismatch_fields = {m["field"] for m in helper.compare_identities(left, right)}
     assert mismatch_fields == {"tip_hash", "state_root"}
-
-
 
 
 def test_cross_node_convergence_rejects_invalid_chain_manifest() -> None:

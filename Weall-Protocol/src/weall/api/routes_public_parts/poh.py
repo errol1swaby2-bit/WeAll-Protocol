@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import base64
 import hashlib
-import io
 import hmac
+import io
 import json
-import mimetypes
 import os
 import threading
 import time
@@ -70,10 +68,9 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return bool(default)
 
 
-
-
 def _now_ms() -> int:
     return int(time.time() * 1000)
+
 
 def _env_int(name: str, default: int) -> int:
     raw = os.getenv(name)
@@ -130,7 +127,11 @@ def _controlled_local_evidence_store_enabled() -> bool:
 def _store_encrypted_ciphertext_locally(data: bytes, cid: str) -> None:
     """Populate the observer media cache for controlled, non-production E2E."""
 
-    root = Path(str(os.environ.get("WEALL_MEDIA_CACHE_DIR") or ".weall-media-cache")).expanduser().resolve()
+    root = (
+        Path(str(os.environ.get("WEALL_MEDIA_CACHE_DIR") or ".weall-media-cache"))
+        .expanduser()
+        .resolve()
+    )
     digest = hashlib.sha256(cid.encode("utf-8")).hexdigest()
     path = root / digest[:2] / f"{digest}.bin"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -170,12 +171,12 @@ async def _upload_poh_video_evidence(
         request, st, purpose="encrypted PoH evidence upload"
     )
     algorithm = str(request.headers.get("x-weall-evidence-encryption") or "").strip().lower()
-    context_commitment = str(
-        request.headers.get("x-weall-evidence-context-commitment") or ""
-    ).strip().lower()
-    ciphertext_commitment = str(
-        request.headers.get("x-weall-evidence-ciphertext-commitment") or ""
-    ).strip().lower()
+    context_commitment = (
+        str(request.headers.get("x-weall-evidence-context-commitment") or "").strip().lower()
+    )
+    ciphertext_commitment = (
+        str(request.headers.get("x-weall-evidence-ciphertext-commitment") or "").strip().lower()
+    )
     if algorithm != "aes-256-gcm":
         raise ApiError.bad_request("invalid_payload", "client_side_aes_256_gcm_required")
     for name, value in (
@@ -226,9 +227,7 @@ async def _upload_poh_video_evidence(
         raise ApiError.bad_request("ipfs_error", f"invalid_cid_from_ipfs:{valid.reason}")
     final_size = int(ipfs_reported_size)
     provider_id = str(
-        os.getenv("WEALL_EVIDENCE_PROVIDER_ID")
-        or os.getenv("WEALL_NODE_ACCOUNT")
-        or ""
+        os.getenv("WEALL_EVIDENCE_PROVIDER_ID") or os.getenv("WEALL_NODE_ACCOUNT") or ""
     ).strip()
     if not provider_id:
         if _is_prod():
@@ -241,7 +240,11 @@ async def _upload_poh_video_evidence(
         name=upload_name,
         mime="application/octet-stream",
         uri=f"ipfs://{cid}",
-        gateway_url=(f"/v1/media/proxy/{cid}" if _controlled_local_evidence_store_enabled() else ipfs_gateway_url(cid)),
+        gateway_url=(
+            f"/v1/media/proxy/{cid}"
+            if _controlled_local_evidence_store_enabled()
+            else ipfs_gateway_url(cid)
+        ),
         video_commitment=ciphertext_commitment,
         provider_id=provider_id,
     )
@@ -290,8 +293,6 @@ async def poh_tier2_video_upload(
         pin_env="WEALL_POH_TIER2_VIDEO_PIN_ON_UPLOAD",
         default_name="poh_tier2_encrypted.bin",
     )
-
-
 
 
 def _async_cases_from_snapshot(st: Json) -> Json:
@@ -355,8 +356,12 @@ def _restricted_evidence_binds(st: Json, raw_case: Json) -> dict[str, object]:
         if isinstance(value, dict)
     }
     poh = st.get("poh") if isinstance(st.get("poh"), dict) else {}
-    lifecycle = poh.get("evidence_lifecycle") if isinstance(poh.get("evidence_lifecycle"), dict) else {}
-    by_evidence = lifecycle.get("by_evidence") if isinstance(lifecycle.get("by_evidence"), dict) else {}
+    lifecycle = (
+        poh.get("evidence_lifecycle") if isinstance(poh.get("evidence_lifecycle"), dict) else {}
+    )
+    by_evidence = (
+        lifecycle.get("by_evidence") if isinstance(lifecycle.get("by_evidence"), dict) else {}
+    )
     for bind_id, bind_any in list(out.items()):
         bind = bind_any if isinstance(bind_any, dict) else {}
         evidence_id = str(bind.get("evidence_id") or "").strip()
@@ -394,7 +399,10 @@ def _public_evidence_binds(value: Any) -> dict[str, object]:
         out[str(evidence_id)] = bind
     return out
 
-def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evidence: bool = False) -> PohAsyncCaseModel:
+
+def _as_async_case(
+    case_id: str, r: dict[str, object], *, include_restricted_evidence: bool = False
+) -> PohAsyncCaseModel:
     def _list(v: Any) -> list[object]:
         return list(v) if isinstance(v, list) else []
 
@@ -416,11 +424,19 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evi
         or _dict(r.get("receipt"))
         or _opt_int_value(r.get("finalized_height")) is not None
     )
-    evidence_declared = bool(evidence_commitments or public_evidence_ids or reviewable_evidence_raw or reviewer_restricted_raw or final_or_reviewed)
+    evidence_declared = bool(
+        evidence_commitments
+        or public_evidence_ids
+        or reviewable_evidence_raw
+        or reviewer_restricted_raw
+        or final_or_reviewed
+    )
     # Reviewability is a protocol truth boundary. Declared ciphertext does not
     # become reviewable until the subject has sealed a canonical bind and key
     # envelopes for the assigned reviewers.
-    evidence_bound = bool(evidence_binds or public_evidence_ids or reviewable_evidence_raw or final_or_reviewed)
+    evidence_bound = bool(
+        evidence_binds or public_evidence_ids or reviewable_evidence_raw or final_or_reviewed
+    )
     assigned = bool([j for j in assigned_jurors if str(j or "").strip()] or jurors)
     reviewable = bool(final_or_reviewed or (evidence_declared and evidence_bound and assigned))
     missing_steps: list[str] = []
@@ -457,10 +473,20 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evi
         jurors=jurors,
         reviews=_dict(r.get("reviews")),
         evidence_commitments=evidence_commitments,
-        evidence_binds=(evidence_binds if include_restricted_evidence else _public_evidence_binds(evidence_binds)),
+        evidence_binds=(
+            evidence_binds
+            if include_restricted_evidence
+            else _public_evidence_binds(evidence_binds)
+        ),
         public_evidence_ids=public_evidence_ids,
-        reviewable_evidence=_dict(r.get("reviewer_restricted_evidence") if include_restricted_evidence else r.get("reviewable_evidence")),
-        reviewer_restricted_evidence=_dict(r.get("reviewer_restricted_evidence") if include_restricted_evidence else {}),
+        reviewable_evidence=_dict(
+            r.get("reviewer_restricted_evidence")
+            if include_restricted_evidence
+            else r.get("reviewable_evidence")
+        ),
+        reviewer_restricted_evidence=_dict(
+            r.get("reviewer_restricted_evidence") if include_restricted_evidence else {}
+        ),
         receipt=_dict(r.get("receipt")),
         evidence_declared=evidence_declared,
         evidence_bound=evidence_bound,
@@ -469,6 +495,7 @@ def _as_async_case(case_id: str, r: dict[str, object], *, include_restricted_evi
         missing_steps=missing_steps,
         reviewer_queue_reason=reviewer_queue_reason,
     )
+
 
 def _request_account(request: Request) -> str:
     return str(request.headers.get("x-weall-account") or "").strip()
@@ -483,6 +510,7 @@ def _allow_header_scoped_restricted_poh_compat() -> bool:
 
     return False
 
+
 def _session_principal_for_restricted_poh(request: Request, st: Json) -> str:
     try:
         return str(require_account_session(request, st) or "").strip()
@@ -492,7 +520,9 @@ def _session_principal_for_restricted_poh(request: Request, st: Json) -> str:
         return ""
 
 
-def _require_session_principal_for_poh_identity_evidence(request: Request, st: Json, *, purpose: str) -> str:
+def _require_session_principal_for_poh_identity_evidence(
+    request: Request, st: Json, *, purpose: str
+) -> str:
     try:
         acct = str(require_account_session(request, st) or "").strip()
     except PermissionError as exc:
@@ -513,17 +543,20 @@ def _require_session_principal_for_poh_identity_evidence(request: Request, st: J
     return acct
 
 
-
-
 def _require_poh_session_matches(request: Request, st: Json, *, expected: str, purpose: str) -> str:
     principal = _require_session_principal_for_poh_identity_evidence(request, st, purpose=purpose)
     if str(principal or "").strip() != str(expected or "").strip():
         raise ApiError.forbidden(
             "session_mismatch",
             f"authenticated session does not match {purpose}",
-            {"expected": str(expected or "").strip(), "principal": str(principal or "").strip(), "purpose": purpose},
+            {
+                "expected": str(expected or "").strip(),
+                "principal": str(principal or "").strip(),
+                "purpose": purpose,
+            },
         )
     return principal
+
 
 def _async_case_allows_restricted_evidence(raw: dict[str, object], *, account: str) -> bool:
     if not account:
@@ -552,7 +585,11 @@ def _async_case_allows_restricted_evidence(raw: dict[str, object], *, account: s
         if isinstance(direct, dict) and direct.get("accepted") is True:
             return True
         for key, value in jurors.items():
-            if str(key or "").strip() == acct and isinstance(value, dict) and value.get("accepted") is True:
+            if (
+                str(key or "").strip() == acct
+                and isinstance(value, dict)
+                and value.get("accepted") is True
+            ):
                 return True
     return False
 
@@ -581,7 +618,9 @@ def poh_async_case(case_id: str, request: Request) -> PohAsyncCaseResponse:
     case_source = dict(raw)
     if include_private:
         case_source["evidence_binds"] = _restricted_evidence_binds(st, raw)
-    return PohAsyncCaseResponse(ok=True, case=_as_async_case(cid, case_source, include_restricted_evidence=include_private))
+    return PohAsyncCaseResponse(
+        ok=True, case=_as_async_case(cid, case_source, include_restricted_evidence=include_private)
+    )
 
 
 @router.get(
@@ -603,7 +642,9 @@ def poh_async_my_cases(account: str, request: Request) -> PohAsyncCaseListRespon
             case_source = dict(raw)
             if include_private:
                 case_source["evidence_binds"] = _restricted_evidence_binds(st, raw)
-            out.append(_as_async_case(str(cid), case_source, include_restricted_evidence=include_private))
+            out.append(
+                _as_async_case(str(cid), case_source, include_restricted_evidence=include_private)
+            )
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     return PohAsyncCaseListResponse(
         ok=True,
@@ -613,7 +654,9 @@ def poh_async_my_cases(account: str, request: Request) -> PohAsyncCaseListRespon
             "total_cases": len(out),
             "reviewable_cases": len([c for c in out if c.reviewable]),
             "assigned_cases": len([c for c in out if c.assigned]),
-            "opened_not_reviewable_cases": len([c for c in out if c.reviewer_queue_reason == "case_opened_not_reviewable"]),
+            "opened_not_reviewable_cases": len(
+                [c for c in out if c.reviewer_queue_reason == "case_opened_not_reviewable"]
+            ),
         },
     )
 
@@ -633,21 +676,33 @@ def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListRespo
             continue
         assigned = raw.get("assigned_jurors")
         jurors = raw.get("jurors")
-        if (isinstance(assigned, list) and j in assigned) or (isinstance(jurors, dict) and j in jurors):
-            if _async_case_finalized(raw) and not _query_truthy(request, "include_completed", False):
+        if (isinstance(assigned, list) and j in assigned) or (
+            isinstance(jurors, dict) and j in jurors
+        ):
+            if _async_case_finalized(raw) and not _query_truthy(
+                request, "include_completed", False
+            ):
                 continue
             principal = _session_principal_for_restricted_poh(request, st)
             include_private = principal == j
             case_source = dict(raw)
             if include_private:
                 case_source["evidence_binds"] = _restricted_evidence_binds(st, raw)
-            out.append(_as_async_case(str(cid), case_source, include_restricted_evidence=include_private))
+            out.append(
+                _as_async_case(str(cid), case_source, include_restricted_evidence=include_private)
+            )
     out.sort(key=lambda c: (c.opened_height or 0, c.case_id))
     roles = st.get("roles") if isinstance(st.get("roles"), dict) else {}
     juror_roles = roles.get("jurors") if isinstance(roles.get("jurors"), dict) else {}
-    active_set = juror_roles.get("active_set") if isinstance(juror_roles.get("active_set"), list) else []
+    active_set = (
+        juror_roles.get("active_set") if isinstance(juror_roles.get("active_set"), list) else []
+    )
     active_juror = j in [str(x) for x in active_set]
-    modeled_cases = [_as_async_case(str(cid), raw, include_restricted_evidence=False) for cid, raw in cases.items() if isinstance(raw, dict)]
+    modeled_cases = [
+        _as_async_case(str(cid), raw, include_restricted_evidence=False)
+        for cid, raw in cases.items()
+        if isinstance(raw, dict)
+    ]
     return PohAsyncCaseListResponse(
         ok=True,
         cases=out,
@@ -655,16 +710,32 @@ def poh_async_juror_cases(juror: str, request: Request) -> PohAsyncCaseListRespo
             "juror": j,
             "active_juror": active_juror,
             "assigned_cases": len(out),
-            "reviewable_unassigned_cases": len([c for c in modeled_cases if c.reviewable and not c.assigned]),
-            "opened_not_reviewable_cases": len([c for c in modeled_cases if c.reviewer_queue_reason == "case_opened_not_reviewable"]),
-            "empty_queue_reason": None if out else (
-                "juror_not_active" if not active_juror else
-                "cases_exist_but_not_reviewable" if any(c.reviewer_queue_reason == "case_opened_not_reviewable" for c in modeled_cases) else
-                "reviewable_cases_not_assigned" if any(c.reviewable and not c.assigned for c in modeled_cases) else
-                "no_async_cases"
+            "reviewable_unassigned_cases": len(
+                [c for c in modeled_cases if c.reviewable and not c.assigned]
+            ),
+            "opened_not_reviewable_cases": len(
+                [
+                    c
+                    for c in modeled_cases
+                    if c.reviewer_queue_reason == "case_opened_not_reviewable"
+                ]
+            ),
+            "empty_queue_reason": None
+            if out
+            else (
+                "juror_not_active"
+                if not active_juror
+                else "cases_exist_but_not_reviewable"
+                if any(
+                    c.reviewer_queue_reason == "case_opened_not_reviewable" for c in modeled_cases
+                )
+                else "reviewable_cases_not_assigned"
+                if any(c.reviewable and not c.assigned for c in modeled_cases)
+                else "no_async_cases"
             ),
         },
     )
+
 
 # ---------------------------------------------------------------------------
 # PoH Tier2: Read-only views (for product UI / juror dashboards)
@@ -767,7 +838,17 @@ def _async_case_finalized(raw: dict[str, object]) -> bool:
 def _tier2_case_finalized(raw: dict[str, object]) -> bool:
     status = str(raw.get("status") or "").strip().lower()
     return bool(
-        status in {"approved", "rejected", "finalized", "passed", "failed", "complete", "completed", "closed"}
+        status
+        in {
+            "approved",
+            "rejected",
+            "finalized",
+            "passed",
+            "failed",
+            "complete",
+            "completed",
+            "closed",
+        }
         or str(raw.get("outcome") or "").strip()
         or _opt_int_value(raw.get("finalized_height")) is not None
         or _opt_int_value(raw.get("finalized_ts_ms")) is not None
@@ -777,7 +858,17 @@ def _tier2_case_finalized(raw: dict[str, object]) -> bool:
 def _live_case_finalized(raw: dict[str, object]) -> bool:
     status = str(raw.get("status") or "").strip().lower()
     return bool(
-        status in {"approved", "rejected", "finalized", "passed", "failed", "complete", "completed", "closed"}
+        status
+        in {
+            "approved",
+            "rejected",
+            "finalized",
+            "passed",
+            "failed",
+            "complete",
+            "completed",
+            "closed",
+        }
         or str(raw.get("outcome") or "").strip()
         or _opt_int_value(raw.get("finalized_height")) is not None
         or _opt_int_value(raw.get("finalized_ts_ms")) is not None
@@ -889,7 +980,9 @@ def poh_tier2_juror_cases(juror: str, request: Request) -> PohTier2CaseListRespo
         if not isinstance(jm, dict):
             continue
         if j in jm:
-            if _tier2_case_finalized(raw) and not _query_truthy(request, "include_completed", False):
+            if _tier2_case_finalized(raw) and not _query_truthy(
+                request, "include_completed", False
+            ):
                 continue
             out.append(_as_tier2_case(str(cid), raw))
 
@@ -1012,9 +1105,7 @@ def poh_live_case(case_id: str, request: Request) -> PohLiveCaseResponse:
     return PohLiveCaseResponse(ok=True, case=_as_live_case(cid, raw))
 
 
-@router.get(
-    "/poh/live/assigned", response_model=PohLiveAssignedResponse, name="poh_live_assigned"
-)
+@router.get("/poh/live/assigned", response_model=PohLiveAssignedResponse, name="poh_live_assigned")
 def poh_live_assigned(juror: str, request: Request) -> PohLiveAssignedResponse:
     j = str(juror or "").strip()
     if not j:
@@ -1053,9 +1144,7 @@ def poh_live_juror_cases(juror: str, request: Request) -> PohLiveAssignedRespons
     )
 
 
-@router.get(
-    "/poh/live/my-cases", response_model=PohLiveAssignedResponse, name="poh_live_my_cases"
-)
+@router.get("/poh/live/my-cases", response_model=PohLiveAssignedResponse, name="poh_live_my_cases")
 def poh_live_my_cases(account: str, request: Request) -> PohLiveAssignedResponse:
     acct = str(account or "").strip()
     if not acct:
@@ -1215,8 +1304,6 @@ def poh_live_session_participants(
     return PohLiveSessionParticipantsResponse(ok=True, participants=out)
 
 
-
-
 # ---------------------------------------------------------------------------
 # PoH Live: Node-local room presence (transport only, non-authoritative)
 # ---------------------------------------------------------------------------
@@ -1248,11 +1335,15 @@ def _live_session_case_id(st: Json, session_id: str) -> str:
         raise ApiError.not_found("not_found", "live_session_not_found")
     cid = str(raw.get("case_id") or "").strip()
     if not cid:
-        raise ApiError.bad_request("bad_request", "live_session_missing_case_id", {"session_id": session_id})
+        raise ApiError.bad_request(
+            "bad_request", "live_session_missing_case_id", {"session_id": session_id}
+        )
     return cid
 
 
-def _require_live_room_participant(st: Json, *, session_id: str, account_id: str) -> tuple[str, str]:
+def _require_live_room_participant(
+    st: Json, *, session_id: str, account_id: str
+) -> tuple[str, str]:
     cid = _live_session_case_id(st, session_id)
     cases = _live_cases_from_snapshot(st)
     raw = cases.get(cid)
@@ -1328,7 +1419,9 @@ def _as_presence(session_id: str, account_id: str, raw: dict[str, object]) -> Po
         account_id=account_id,
         role=str(raw.get("role") or "participant").strip() or "participant",
         status=str(raw.get("status") or "unknown").strip() or "unknown",
-        camera_enabled=raw.get("camera_enabled") if isinstance(raw.get("camera_enabled"), bool) else None,
+        camera_enabled=raw.get("camera_enabled")
+        if isinstance(raw.get("camera_enabled"), bool)
+        else None,
         mic_enabled=raw.get("mic_enabled") if isinstance(raw.get("mic_enabled"), bool) else None,
         display_name=str(raw.get("display_name") or "").strip() or None,
         joined_ts_ms=_opt_int(raw.get("joined_ts_ms")),
@@ -1475,13 +1568,19 @@ def _validate_webrtc_bridge_signal_ts_ms(value: object, *, source_node: str) -> 
         ts_ms = int(value or 0)
     except Exception as exc:
         _record_webrtc_bridge_rejection("webrtc_bridge_signal_ts_invalid", source_node=source_node)
-        raise ApiError.bad_request("bad_request", "webrtc_bridge_signal_ts_invalid", {"source_node": source_node}) from exc
+        raise ApiError.bad_request(
+            "bad_request", "webrtc_bridge_signal_ts_invalid", {"source_node": source_node}
+        ) from exc
     ttl_ms = _webrtc_signal_ttl_ms()
     if ts_ms <= 0:
         _record_webrtc_bridge_rejection("webrtc_bridge_signal_ts_required", source_node=source_node)
-        raise ApiError.bad_request("bad_request", "webrtc_bridge_signal_ts_required", {"source_node": source_node})
+        raise ApiError.bad_request(
+            "bad_request", "webrtc_bridge_signal_ts_required", {"source_node": source_node}
+        )
     if now_ms - ts_ms > ttl_ms:
-        _record_webrtc_bridge_rejection("webrtc_bridge_signal_replay_window_expired", source_node=source_node)
+        _record_webrtc_bridge_rejection(
+            "webrtc_bridge_signal_replay_window_expired", source_node=source_node
+        )
         raise ApiError.forbidden(
             "forbidden",
             "webrtc_bridge_signal_replay_window_expired",
@@ -1567,8 +1666,6 @@ class PohLiveWebRTCSignalBridgeResponse(BaseModel):
     authority: str = "transport_only_bridge"
 
 
-
-
 def _split_csv_env(name: str) -> list[str]:
     raw = str(os.environ.get(name) or "").strip()
     if not raw:
@@ -1582,11 +1679,19 @@ def _valid_ice_url(url: str) -> bool:
 
 
 def _ice_urls_include_turn(urls: object) -> bool:
-    url_list = [str(urls)] if isinstance(urls, str) else [str(u) for u in urls] if isinstance(urls, list) else []
+    url_list = (
+        [str(urls)]
+        if isinstance(urls, str)
+        else [str(u) for u in urls]
+        if isinstance(urls, list)
+        else []
+    )
     return any(u.strip().lower().startswith(("turn:", "turns:")) for u in url_list)
 
 
-def _validate_webrtc_turn_credential_expiry(expires_ms: int, *, has_credential: bool, urls: object) -> None:
+def _validate_webrtc_turn_credential_expiry(
+    expires_ms: int, *, has_credential: bool, urls: object
+) -> None:
     if not (_is_prod() and has_credential and _ice_urls_include_turn(urls)):
         return
     now_ms = _now_ms()
@@ -1596,7 +1701,11 @@ def _validate_webrtc_turn_credential_expiry(expires_ms: int, *, has_credential: 
 
 
 def _webrtc_ice_servers_from_env() -> list[Json]:
-    raw_json = str(os.environ.get("WEALL_WEBRTC_ICE_SERVERS_JSON") or os.environ.get("WEALL_P2P_ICE_SERVERS_JSON") or "").strip()
+    raw_json = str(
+        os.environ.get("WEALL_WEBRTC_ICE_SERVERS_JSON")
+        or os.environ.get("WEALL_P2P_ICE_SERVERS_JSON")
+        or ""
+    ).strip()
     out: list[Json] = []
     if raw_json:
         try:
@@ -1610,7 +1719,13 @@ def _webrtc_ice_servers_from_env() -> list[Json]:
             if not isinstance(row, dict):
                 continue
             urls = row.get("urls")
-            url_list = [str(urls)] if isinstance(urls, str) else [str(u) for u in urls] if isinstance(urls, list) else []
+            url_list = (
+                [str(urls)]
+                if isinstance(urls, str)
+                else [str(u) for u in urls]
+                if isinstance(urls, list)
+                else []
+            )
             url_list = [u.strip() for u in url_list if _valid_ice_url(u)]
             if not url_list:
                 if _is_prod():
@@ -1625,7 +1740,9 @@ def _webrtc_ice_servers_from_env() -> list[Json]:
                 expires_ms = int(row.get("credential_expires_ms") or row.get("expires_ms") or 0)
             except Exception:
                 expires_ms = 0
-            _validate_webrtc_turn_credential_expiry(expires_ms, has_credential=bool(credential), urls=url_list)
+            _validate_webrtc_turn_credential_expiry(
+                expires_ms, has_credential=bool(credential), urls=url_list
+            )
             if credential:
                 rec["credential"] = credential
             if expires_ms > 0:
@@ -1642,7 +1759,6 @@ def _webrtc_ice_servers_from_env() -> list[Json]:
         if username:
             rec["username"] = username
         expires_ms = _env_int("WEALL_WEBRTC_TURN_CREDENTIAL_EXPIRES_MS", 0)
-        now_ms = _now_ms()
         if credential:
             _validate_webrtc_turn_credential_expiry(expires_ms, has_credential=True, urls=turn_urls)
             rec["credential"] = credential
@@ -1658,6 +1774,7 @@ def _webrtc_ice_servers_from_env() -> list[Json]:
             clean.append(rec)
             seen.add(key)
     return clean[: max(1, _env_int("WEALL_WEBRTC_MAX_ICE_SERVERS", 8))]
+
 
 def _live_webrtc_store(request: Request) -> Json:
     store = getattr(request.app.state, "poh_live_webrtc_signals", None)
@@ -1678,7 +1795,11 @@ def _live_webrtc_next_seq(request: Request) -> int:
 
 
 def _webrtc_chain_id() -> str:
-    return str(os.environ.get("WEALL_CHAIN_ID") or os.environ.get("WEALL_CHAIN") or "weall-controlled-devnet").strip()
+    return str(
+        os.environ.get("WEALL_CHAIN_ID")
+        or os.environ.get("WEALL_CHAIN")
+        or "weall-controlled-devnet"
+    ).strip()
 
 
 def _webrtc_bridge_diag() -> Json:
@@ -1708,7 +1829,9 @@ def _record_webrtc_bridge_rejection(reason: str, *, source_node: str = "", peer:
         row["updated_ms"] = _now_ms()
 
 
-def _canonical_webrtc_bridge_signing_payload(*, source_node: str, source_chain_id: str, signal: Json) -> bytes:
+def _canonical_webrtc_bridge_signing_payload(
+    *, source_node: str, source_chain_id: str, signal: Json
+) -> bytes:
     return json.dumps(
         {
             "source_node": str(source_node or ""),
@@ -1720,7 +1843,9 @@ def _canonical_webrtc_bridge_signing_payload(*, source_node: str, source_chain_i
     ).encode("utf-8")
 
 
-def _sign_webrtc_bridge_payload(*, secret: str, source_node: str, source_chain_id: str, signal: Json) -> str:
+def _sign_webrtc_bridge_payload(
+    *, secret: str, source_node: str, source_chain_id: str, signal: Json
+) -> str:
     payload = _canonical_webrtc_bridge_signing_payload(
         source_node=source_node, source_chain_id=source_chain_id, signal=signal
     )
@@ -1757,7 +1882,9 @@ def _require_webrtc_bridge_operator(request: Request) -> None:
         raise ApiError.forbidden(
             "forbidden",
             "webrtc_signal_bridge_token_required",
-            {"message": "WebRTC signal bridge import requires WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN or an operator token"},
+            {
+                "message": "WebRTC signal bridge import requires WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN or an operator token"
+            },
         )
     if _request_webrtc_bridge_token(request) != want:
         _record_webrtc_bridge_rejection("bad_webrtc_signal_bridge_token")
@@ -1772,17 +1899,32 @@ def _bridge_peer_secret(spec: Json) -> str:
     return str(spec.get("bridge_secret") or spec.get("secret") or "").strip()
 
 
-def _require_webrtc_bridge_import_auth(request: Request, req: "PohLiveWebRTCSignalBridgeRequest", raw: Json, spec: Json | None, *, source_node: str, source_chain_id: str) -> None:
+def _require_webrtc_bridge_import_auth(
+    request: Request,
+    req: PohLiveWebRTCSignalBridgeRequest,
+    raw: Json,
+    spec: Json | None,
+    *,
+    source_node: str,
+    source_chain_id: str,
+) -> None:
     spec = spec if isinstance(spec, dict) else {}
     peer_token = _bridge_peer_token(spec)
     peer_secret = _bridge_peer_secret(spec)
     if peer_token:
         if _request_webrtc_bridge_token(request) != peer_token:
             _record_webrtc_bridge_rejection("bad_webrtc_peer_bridge_token", source_node=source_node)
-            raise ApiError.forbidden("forbidden", "bad_webrtc_peer_bridge_token", {"source_node": source_node})
+            raise ApiError.forbidden(
+                "forbidden", "bad_webrtc_peer_bridge_token", {"source_node": source_node}
+            )
         return
     if peer_secret:
-        supplied = str(req.signature or raw.get("signature") or request.headers.get("x-weall-webrtc-signal-bridge-signature") or "").strip()
+        supplied = str(
+            req.signature
+            or raw.get("signature")
+            or request.headers.get("x-weall-webrtc-signal-bridge-signature")
+            or ""
+        ).strip()
         expected = _sign_webrtc_bridge_payload(
             secret=peer_secret,
             source_node=source_node,
@@ -1791,16 +1933,22 @@ def _require_webrtc_bridge_import_auth(request: Request, req: "PohLiveWebRTCSign
         )
         if not supplied or not hmac.compare_digest(supplied, expected):
             _record_webrtc_bridge_rejection("bad_webrtc_bridge_signature", source_node=source_node)
-            raise ApiError.forbidden("forbidden", "bad_webrtc_bridge_signature", {"source_node": source_node})
+            raise ApiError.forbidden(
+                "forbidden", "bad_webrtc_bridge_signature", {"source_node": source_node}
+            )
         return
     if _is_prod() and spec:
         _record_webrtc_bridge_rejection("webrtc_peer_bridge_auth_required", source_node=source_node)
-        raise ApiError.forbidden("forbidden", "webrtc_peer_bridge_auth_required", {"source_node": source_node})
+        raise ApiError.forbidden(
+            "forbidden", "webrtc_peer_bridge_auth_required", {"source_node": source_node}
+        )
     _require_webrtc_bridge_operator(request)
 
 
 def _webrtc_node_id() -> str:
-    return str(os.environ.get("WEALL_NODE_ID") or os.environ.get("WEALL_NODE_ACCOUNT") or "weall-node").strip()
+    return str(
+        os.environ.get("WEALL_NODE_ID") or os.environ.get("WEALL_NODE_ACCOUNT") or "weall-node"
+    ).strip()
 
 
 def _safe_webrtc_peer_url(url: str) -> str:
@@ -1879,14 +2027,22 @@ def _webrtc_signal_peer_specs() -> list[Json]:
     if _is_prod() and not _env_bool("WEALL_ALLOW_RAW_WEBRTC_SIGNAL_PEER_URLS", False):
         raise PohRouteConfigError("prod_webrtc_signal_peers_must_be_node_pinned")
 
-    node_ids = [p.strip() for p in str(os.environ.get("WEALL_WEBRTC_SIGNAL_PEER_NODE_IDS") or "").replace(";", ",").split(",") if p.strip()]
+    node_ids = [
+        p.strip()
+        for p in str(os.environ.get("WEALL_WEBRTC_SIGNAL_PEER_NODE_IDS") or "")
+        .replace(";", ",")
+        .split(",")
+        if p.strip()
+    ]
     for idx, part in enumerate(raw_urls.replace(";", ",").split(",")):
         url = _safe_webrtc_peer_url(part)
         if not url:
             continue
         node_id = node_ids[idx] if idx < len(node_ids) else f"dev-peer-{idx + 1}"
         rec = {"url": url, "node_id": node_id, "raw_url_compat": True}
-        chain_id = str(os.environ.get("WEALL_WEBRTC_SIGNAL_PEER_CHAIN_ID") or _webrtc_chain_id()).strip()
+        chain_id = str(
+            os.environ.get("WEALL_WEBRTC_SIGNAL_PEER_CHAIN_ID") or _webrtc_chain_id()
+        ).strip()
         if chain_id:
             rec["chain_id"] = chain_id
         bridge_token = str(os.environ.get("WEALL_WEBRTC_SIGNAL_BRIDGE_TOKEN") or "").strip()
@@ -1901,11 +2057,19 @@ def _webrtc_signal_peer_specs() -> list[Json]:
 
 def _normalized_webrtc_signal_peer_urls() -> list[str]:
     # Compatibility helper retained for older tests and diagnostics.
-    return [str(spec.get("url") or "") for spec in _webrtc_signal_peer_specs() if str(spec.get("url") or "")]
+    return [
+        str(spec.get("url") or "")
+        for spec in _webrtc_signal_peer_specs()
+        if str(spec.get("url") or "")
+    ]
 
 
 def _allowed_webrtc_bridge_source_nodes() -> set[str]:
-    allowed = {str(spec.get("node_id") or "").strip() for spec in _webrtc_signal_peer_specs() if str(spec.get("node_id") or "").strip()}
+    allowed = {
+        str(spec.get("node_id") or "").strip()
+        for spec in _webrtc_signal_peer_specs()
+        if str(spec.get("node_id") or "").strip()
+    }
     extra = str(os.environ.get("WEALL_WEBRTC_SIGNAL_ALLOWED_SOURCE_NODE_IDS") or "").strip()
     for part in extra.replace(";", ",").split(","):
         if part.strip():
@@ -1923,15 +2087,29 @@ def _webrtc_signal_peer_spec_for_source(source_node: str) -> Json | None:
     return None
 
 
-def _validate_webrtc_bridge_source_chain(*, source_node: str, source_chain_id: str, spec: Json | None) -> None:
+def _validate_webrtc_bridge_source_chain(
+    *, source_node: str, source_chain_id: str, spec: Json | None
+) -> None:
     expected_chain = str((spec or {}).get("chain_id") or _webrtc_chain_id()).strip()
     got_chain = str(source_chain_id or "").strip()
     if (_is_prod() or spec) and not got_chain:
-        _record_webrtc_bridge_rejection("webrtc_bridge_source_chain_id_required", source_node=source_node)
-        raise ApiError.forbidden("forbidden", "webrtc_bridge_source_chain_id_required", {"source_node": source_node})
+        _record_webrtc_bridge_rejection(
+            "webrtc_bridge_source_chain_id_required", source_node=source_node
+        )
+        raise ApiError.forbidden(
+            "forbidden", "webrtc_bridge_source_chain_id_required", {"source_node": source_node}
+        )
     if got_chain and expected_chain and got_chain != expected_chain:
         _record_webrtc_bridge_rejection("webrtc_bridge_chain_id_mismatch", source_node=source_node)
-        raise ApiError.forbidden("forbidden", "webrtc_bridge_chain_id_mismatch", {"source_node": source_node, "source_chain_id": got_chain, "expected_chain_id": expected_chain})
+        raise ApiError.forbidden(
+            "forbidden",
+            "webrtc_bridge_chain_id_mismatch",
+            {
+                "source_node": source_node,
+                "source_chain_id": got_chain,
+                "expected_chain_id": expected_chain,
+            },
+        )
 
 
 def _redact_webrtc_peer_url(url: str) -> str:
@@ -1960,7 +2138,11 @@ def _bridge_payload_for_signal(rec: Json, spec: Json | None = None) -> Json:
     }
     source_node = _webrtc_node_id()
     source_chain_id = _webrtc_chain_id()
-    payload: Json = {"signal": signal, "source_node": source_node, "source_chain_id": source_chain_id}
+    payload: Json = {
+        "signal": signal,
+        "source_node": source_node,
+        "source_chain_id": source_chain_id,
+    }
     secret = _bridge_peer_secret(spec or {})
     if secret:
         payload["signature"] = _sign_webrtc_bridge_payload(
@@ -1973,7 +2155,9 @@ def _webrtc_signal_queue_path() -> Path:
     raw = str(os.environ.get("WEALL_WEBRTC_SIGNAL_QUEUE_PATH") or "").strip()
     if raw:
         return Path(raw)
-    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_tx_queue.json"
+    return (
+        Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_tx_queue.json"
+    )
 
 
 def _webrtc_signal_queue_lock():
@@ -2018,14 +2202,18 @@ def _write_webrtc_signal_queue_unlocked(rows: list[Json]) -> None:
         if created and now - created > ttl_ms:
             stale_tx_queue_pruned += 1
             continue
-        key = str(row.get("tx_queue_id") or "").strip() or json.dumps(row, sort_keys=True, default=str)
+        key = str(row.get("tx_queue_id") or "").strip() or json.dumps(
+            row, sort_keys=True, default=str
+        )
         if key in seen:
             continue
         seen.add(key)
         clean.append(row)
     if stale_tx_queue_pruned:
         diag = _webrtc_bridge_diag()
-        diag["stale_tx_queue_pruned"] = int(diag.get("stale_tx_queue_pruned") or 0) + stale_tx_queue_pruned
+        diag["stale_tx_queue_pruned"] = (
+            int(diag.get("stale_tx_queue_pruned") or 0) + stale_tx_queue_pruned
+        )
     overflow_pruned = max(0, len(clean) - max_rows)
     if overflow_pruned:
         diag = _webrtc_bridge_diag()
@@ -2057,20 +2245,24 @@ def _enqueue_webrtc_signal_bridge(rec: Json) -> Json:
             if not url or not node_id:
                 continue
             payload = _bridge_payload_for_signal(rec, spec)
-            tx_queue_id = hashlib.sha256(json.dumps({"peer": node_id, "signal": payload}, sort_keys=True).encode("utf-8")).hexdigest()
+            tx_queue_id = hashlib.sha256(
+                json.dumps({"peer": node_id, "signal": payload}, sort_keys=True).encode("utf-8")
+            ).hexdigest()
             if any(isinstance(r, dict) and r.get("tx_queue_id") == tx_queue_id for r in rows):
                 continue
-            rows.append({
-                "tx_queue_id": tx_queue_id,
-                "peer_url": url,
-                "peer_node_id": node_id,
-                "peer_chain_id": str(spec.get("chain_id") or _webrtc_chain_id()),
-                "payload": payload,
-                "session_id": str(rec.get("session_id") or ""),
-                "created_ms": created,
-                "attempts": 0,
-                "last_error": "",
-            })
+            rows.append(
+                {
+                    "tx_queue_id": tx_queue_id,
+                    "peer_url": url,
+                    "peer_node_id": node_id,
+                    "peer_chain_id": str(spec.get("chain_id") or _webrtc_chain_id()),
+                    "payload": payload,
+                    "session_id": str(rec.get("session_id") or ""),
+                    "created_ms": created,
+                    "attempts": 0,
+                    "last_error": "",
+                }
+            )
             queued += 1
         _write_webrtc_signal_queue_unlocked(rows)
     return {"attempted": bool(specs), "queued": queued, "mode": "durable_tx_queue", "results": []}
@@ -2082,7 +2274,11 @@ def _post_webrtc_signal_queue_row(row: Json, *, timeout_s: int) -> Json:
     signal = payload.get("signal") if isinstance(payload.get("signal"), dict) else {}
     sid = str(signal.get("session_id") or row.get("session_id") or "").strip()
     if not url or not sid:
-        return {"ok": False, "error": "missing_peer_or_session", "peer": _redact_webrtc_peer_url(url)}
+        return {
+            "ok": False,
+            "error": "missing_peer_or_session",
+            "peer": _redact_webrtc_peer_url(url),
+        }
     body = json.dumps(payload, sort_keys=True).encode("utf-8")
     headers = {"content-type": "application/json"}
     peer_node_id = str(row.get("peer_node_id") or "").strip()
@@ -2105,11 +2301,26 @@ def _post_webrtc_signal_queue_row(row: Json, *, timeout_s: int) -> Json:
     try:
         with urllib.request.urlopen(req, timeout=max(1, int(timeout_s))) as resp:  # noqa: S310 - operator-pinned peer URL
             parsed = json.loads(resp.read().decode("utf-8") or "{}")
-            return {"ok": bool(isinstance(parsed, dict) and parsed.get("ok")), "peer": _redact_webrtc_peer_url(url), "peer_node_id": str(row.get("peer_node_id") or ""), "status": int(resp.status)}
+            return {
+                "ok": bool(isinstance(parsed, dict) and parsed.get("ok")),
+                "peer": _redact_webrtc_peer_url(url),
+                "peer_node_id": str(row.get("peer_node_id") or ""),
+                "status": int(resp.status),
+            }
     except urllib.error.HTTPError as exc:
-        return {"ok": False, "error": "peer_http_error", "status": int(exc.code), "peer": _redact_webrtc_peer_url(url)}
+        return {
+            "ok": False,
+            "error": "peer_http_error",
+            "status": int(exc.code),
+            "peer": _redact_webrtc_peer_url(url),
+        }
     except Exception as exc:
-        return {"ok": False, "error": type(exc).__name__, "detail": str(exc)[:160], "peer": _redact_webrtc_peer_url(url)}
+        return {
+            "ok": False,
+            "error": type(exc).__name__,
+            "detail": str(exc)[:160],
+            "peer": _redact_webrtc_peer_url(url),
+        }
 
 
 def _drain_webrtc_signal_queue(*, limit: int | None = None) -> Json:
@@ -2118,7 +2329,7 @@ def _drain_webrtc_signal_queue(*, limit: int | None = None) -> Json:
     results: list[Json] = []
     with _webrtc_signal_queue_lock():
         rows = _load_webrtc_signal_queue_unlocked()
-        rows = rows[-max(16, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ROWS", 1024)):]
+        rows = rows[-max(16, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ROWS", 1024)) :]
         keep: list[Json] = []
         selected = 0
         for row in rows:
@@ -2131,10 +2342,18 @@ def _drain_webrtc_signal_queue(*, limit: int | None = None) -> Json:
             if not bool(result.get("ok")):
                 row["attempts"] = int(row.get("attempts") or 0) + 1
                 row["last_error"] = str(result.get("error") or "peer_rejected")
-                if int(row.get("attempts") or 0) < max(1, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ATTEMPTS", 5)):
+                if int(row.get("attempts") or 0) < max(
+                    1, _env_int("WEALL_WEBRTC_SIGNAL_QUEUE_MAX_ATTEMPTS", 5)
+                ):
                     keep.append(row)
         _write_webrtc_signal_queue_unlocked(keep)
-    summary = {"ok": True, "attempted": bool(results), "accepted": any(bool(r.get("ok")) for r in results), "queued": len(_read_webrtc_signal_queue()), "results": results}
+    summary = {
+        "ok": True,
+        "attempted": bool(results),
+        "accepted": any(bool(r.get("ok")) for r in results),
+        "queued": len(_read_webrtc_signal_queue()),
+        "results": results,
+    }
     diag = _webrtc_bridge_diag()
     diag["last_drain_result"] = summary
     diag["last_drain_ms"] = _now_ms()
@@ -2187,7 +2406,9 @@ def stop_webrtc_signal_bridge_autodrain(_thread: threading.Thread | None = None)
 
 
 def _webrtc_signal_dedup_key(raw: Json) -> str:
-    origin = str(raw.get("origin_signal_id") or raw.get("source_signal_id") or raw.get("signal_id") or "").strip()
+    origin = str(
+        raw.get("origin_signal_id") or raw.get("source_signal_id") or raw.get("signal_id") or ""
+    ).strip()
     if origin:
         return origin
     candidate = raw.get("candidate") if isinstance(raw.get("candidate"), dict) else {}
@@ -2257,7 +2478,9 @@ def _validate_webrtc_target(case: Json, *, from_account: str, to_account: str) -
 def _validate_webrtc_signal(req: PohLiveWebRTCSignalRequest) -> tuple[str, str, str, Json | None]:
     signal_type = str(req.type or "").strip().lower()
     if signal_type not in _ALLOWED_WEBRTC_SIGNAL_TYPES:
-        raise ApiError.bad_request("bad_request", "invalid_webrtc_signal_type", {"type": signal_type})
+        raise ApiError.bad_request(
+            "bad_request", "invalid_webrtc_signal_type", {"type": signal_type}
+        )
 
     sdp = str(req.sdp or "")
     candidate = req.candidate if isinstance(req.candidate, dict) else None
@@ -2334,8 +2557,6 @@ def _prune_webrtc_session_records(records: list[Json]) -> list[Json]:
     return kept[-max_records:]
 
 
-
-
 @router.get(
     "/poh/live/webrtc/relay-config",
     response_model=PohLiveWebRTCRelayConfigResponse,
@@ -2358,14 +2579,16 @@ def poh_live_webrtc_signal_diagnostics(request: Request) -> Json:
     _require_webrtc_bridge_operator(request)
     diag = dict(_webrtc_bridge_diag())
     rows = _read_webrtc_signal_queue()
-    diag.update({
-        "ok": True,
-        "authority": "transport_only_operator_diagnostics",
-        "queue_depth": len(rows),
-        "peer_count": len(_webrtc_signal_peer_specs()),
-        "source_node": _webrtc_node_id(),
-        "chain_id": _webrtc_chain_id(),
-    })
+    diag.update(
+        {
+            "ok": True,
+            "authority": "transport_only_operator_diagnostics",
+            "queue_depth": len(rows),
+            "peer_count": len(_webrtc_signal_peer_specs()),
+            "source_node": _webrtc_node_id(),
+            "chain_id": _webrtc_chain_id(),
+        }
+    )
     return diag
 
 
@@ -2373,6 +2596,7 @@ def poh_live_webrtc_signal_diagnostics(request: Request) -> Json:
 def poh_live_webrtc_signal_queue_drain(request: Request, limit: int | None = None) -> Json:
     _require_webrtc_bridge_operator(request)
     return _drain_webrtc_signal_queue(limit=limit)
+
 
 @router.get(
     "/poh/live/session/{session_id}/webrtc/signals",
@@ -2445,23 +2669,43 @@ def poh_live_webrtc_signal_bridge_import(
     raw = dict(req.signal or {})
     raw_sid = str(raw.get("session_id") or sid).strip()
     if raw_sid != sid:
-        raise ApiError.bad_request("bad_request", "webrtc_session_mismatch", {"session_id": sid, "signal_session_id": raw_sid})
+        raise ApiError.bad_request(
+            "bad_request",
+            "webrtc_session_mismatch",
+            {"session_id": sid, "signal_session_id": raw_sid},
+        )
 
     st = _snapshot(request)
     case_id, case = _live_case_for_session(st, sid)
-    source_node = str(req.source_node or raw.get("source_node") or request.headers.get("x-weall-webrtc-signal-bridge-source-node") or "").strip()
-    source_chain_id = str(req.source_chain_id or raw.get("source_chain_id") or request.headers.get("x-weall-webrtc-signal-bridge-chain-id") or "").strip()
+    source_node = str(
+        req.source_node
+        or raw.get("source_node")
+        or request.headers.get("x-weall-webrtc-signal-bridge-source-node")
+        or ""
+    ).strip()
+    source_chain_id = str(
+        req.source_chain_id
+        or raw.get("source_chain_id")
+        or request.headers.get("x-weall-webrtc-signal-bridge-chain-id")
+        or ""
+    ).strip()
     allowed_sources = _allowed_webrtc_bridge_source_nodes()
     source_spec = _webrtc_signal_peer_spec_for_source(source_node)
     if (_is_prod() or allowed_sources) and source_node not in allowed_sources:
-        _record_webrtc_bridge_rejection("webrtc_bridge_source_node_not_allowed", source_node=source_node)
+        _record_webrtc_bridge_rejection(
+            "webrtc_bridge_source_node_not_allowed", source_node=source_node
+        )
         raise ApiError.forbidden(
             "forbidden",
             "webrtc_bridge_source_node_not_allowed",
             {"source_node": source_node, "allowed_source_nodes": sorted(allowed_sources)},
         )
-    _validate_webrtc_bridge_source_chain(source_node=source_node, source_chain_id=source_chain_id, spec=source_spec)
-    _require_webrtc_bridge_import_auth(request, req, raw, source_spec, source_node=source_node, source_chain_id=source_chain_id)
+    _validate_webrtc_bridge_source_chain(
+        source_node=source_node, source_chain_id=source_chain_id, spec=source_spec
+    )
+    _require_webrtc_bridge_import_auth(
+        request, req, raw, source_spec, source_node=source_node, source_chain_id=source_chain_id
+    )
     signal_type = str(raw.get("type") or "").strip().lower()
     bridge_req = PohLiveWebRTCSignalRequest(
         account_id=str(raw.get("from_account") or ""),
@@ -2474,10 +2718,14 @@ def poh_live_webrtc_signal_bridge_import(
     signal_type, to_account, sdp, candidate = _validate_webrtc_signal(bridge_req)
     from_account = str(bridge_req.account_id or "").strip()
     if from_account not in _live_case_participant_ids(case):
-        raise ApiError.forbidden("forbidden", "webrtc_source_must_be_case_participant", {"from_account": from_account})
+        raise ApiError.forbidden(
+            "forbidden", "webrtc_source_must_be_case_participant", {"from_account": from_account}
+        )
     _validate_webrtc_target(case, from_account=from_account, to_account=to_account)
 
-    ts_ms = _validate_webrtc_bridge_signal_ts_ms(bridge_req.ts_ms or raw.get("ts_ms"), source_node=source_node)
+    ts_ms = _validate_webrtc_bridge_signal_ts_ms(
+        bridge_req.ts_ms or raw.get("ts_ms"), source_node=source_node
+    )
     seq = _live_webrtc_next_seq(request)
     rec: Json = {
         "seq": seq,
@@ -2798,8 +3046,6 @@ class PohTier2ReviewSkeletonRequest(BaseModel):
     verdict: str = Field(..., min_length=1)
 
 
-
-
 class TxSkeletonAsync(BaseModel):
     tx_type: str
     signer_hint: str
@@ -2821,6 +3067,7 @@ class PohAsyncReviewSkeletonRequest(BaseModel):
     verdict: str = Field(..., min_length=1)
     reason_code: str | None = Field(default=None, max_length=128)
     followup_round: int | None = Field(default=None, ge=0)
+
 
 class PohChallengeOpenSkeletonRequest(BaseModel):
     account_id: str = Field(..., min_length=1)
@@ -2913,7 +3160,9 @@ def poh_async_tx_juror_decline(
 @router.post(
     "/poh/async/tx/review", response_model=TxSkeletonResponseAsync, name="poh_async_tx_review"
 )
-def poh_async_tx_review(req: PohAsyncReviewSkeletonRequest, request: Request) -> TxSkeletonResponseAsync:
+def poh_async_tx_review(
+    req: PohAsyncReviewSkeletonRequest, request: Request
+) -> TxSkeletonResponseAsync:
     cid = str(req.case_id or "").strip()
     verdict = str(req.verdict or "").strip().lower()
     if not cid:
@@ -2924,7 +3173,12 @@ def poh_async_tx_review(req: PohAsyncReviewSkeletonRequest, request: Request) ->
             "verdict must be approve, reject, needs_followup, invalid_evidence, or abstain",
             {"verdict": verdict},
         )
-    payload: Json = {"case_id": cid, "verdict": verdict, "ts_ms": 0, **({"followup_round": int(req.followup_round)} if req.followup_round is not None else {})}
+    payload: Json = {
+        "case_id": cid,
+        "verdict": verdict,
+        "ts_ms": 0,
+        **({"followup_round": int(req.followup_round)} if req.followup_round is not None else {}),
+    }
     reason_code = str(req.reason_code or "").strip()
     if reason_code:
         payload["reason_code"] = reason_code
@@ -2957,8 +3211,6 @@ def poh_tier2_tx_request(
     )
 
 
-
-
 class PohLiveJurorCaseSkeletonRequest(BaseModel):
     case_id: str = Field(..., min_length=1)
 
@@ -2986,12 +3238,8 @@ class TxSkeletonResponse(BaseModel):
     tx: TxSkeleton
 
 
-@router.post(
-    "/poh/live/tx/request", response_model=TxSkeletonResponse, name="poh_live_tx_request"
-)
-def poh_live_tx_request(
-    req: PohLiveRequestSkeletonRequest, request: Request
-) -> TxSkeletonResponse:
+@router.post("/poh/live/tx/request", response_model=TxSkeletonResponse, name="poh_live_tx_request")
+def poh_live_tx_request(req: PohLiveRequestSkeletonRequest, request: Request) -> TxSkeletonResponse:
     """Return a tx skeleton to request Live Verification.
 
     IMPORTANT:
@@ -3123,12 +3371,8 @@ def poh_live_tx_attendance(
     )
 
 
-@router.post(
-    "/poh/live/tx/verdict", response_model=TxSkeletonResponse, name="poh_live_tx_verdict"
-)
-def poh_live_tx_verdict(
-    req: PohLiveVerdictSkeletonRequest, request: Request
-) -> TxSkeletonResponse:
+@router.post("/poh/live/tx/verdict", response_model=TxSkeletonResponse, name="poh_live_tx_verdict")
+def poh_live_tx_verdict(req: PohLiveVerdictSkeletonRequest, request: Request) -> TxSkeletonResponse:
     cid = str(req.case_id or "").strip()
     verdict = str(req.verdict or "").strip().lower()
     if not cid:
@@ -3163,5 +3407,3 @@ def poh_live_tx_verdict(
             payload=payload,
         ),
     )
-
-

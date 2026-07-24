@@ -57,9 +57,19 @@ def _executor_node_lifecycle(executor: Any) -> dict[str, Any]:
 def _startup_authority_contract(executor: Any) -> dict[str, Any]:
     runtime_cfg = resolve_node_runtime_config_from_env()
     lifecycle = _executor_node_lifecycle(executor)
-    requested_roles = list(lifecycle.get("service_roles_requested", [])) if isinstance(lifecycle.get("service_roles_requested"), list) else list(runtime_cfg.requested_roles)
-    effective_roles = list(lifecycle.get("service_roles_effective", [])) if isinstance(lifecycle.get("service_roles_effective"), list) else []
-    helper_requested = bool(lifecycle.get("helper_enabled_requested", runtime_cfg.helper_enabled_requested))
+    requested_roles = (
+        list(lifecycle.get("service_roles_requested", []))
+        if isinstance(lifecycle.get("service_roles_requested"), list)
+        else list(runtime_cfg.requested_roles)
+    )
+    effective_roles = (
+        list(lifecycle.get("service_roles_effective", []))
+        if isinstance(lifecycle.get("service_roles_effective"), list)
+        else []
+    )
+    helper_requested = bool(
+        lifecycle.get("helper_enabled_requested", runtime_cfg.helper_enabled_requested)
+    )
     helper_effective = bool(lifecycle.get("helper_enabled_effective", False))
     bft_requested = bool(lifecycle.get("bft_enabled_requested", runtime_cfg.bft_enabled_requested))
     bft_effective = bool(lifecycle.get("bft_enabled_effective", False))
@@ -78,7 +88,9 @@ def _startup_authority_contract(executor: Any) -> dict[str, Any]:
         "bft_requested": bft_requested,
         "bft_effective": bft_effective,
         "startup_action": str(lifecycle.get("startup_action", "allow")),
-        "promotion_failure_reasons": list(lifecycle.get("promotion_failure_reasons", [])) if isinstance(lifecycle.get("promotion_failure_reasons"), list) else [],
+        "promotion_failure_reasons": list(lifecycle.get("promotion_failure_reasons", []))
+        if isinstance(lifecycle.get("promotion_failure_reasons"), list)
+        else [],
     }
 
 
@@ -97,10 +109,12 @@ def _enforce_executor_runtime_authority(executor: Any) -> None:
     bft_requested = bool(contract.get("bft_requested", False))
     validator_requested = bool(contract.get("validator_requested", False))
     validator_effective = bool(contract.get("validator_effective", False))
-    if (bft_requested or validator_requested) and _truthy_env("WEALL_BFT_ENABLED") and not validator_effective:
-        raise ApiRuntimeLifecycleError(
-            "api_runtime_authority_validator_not_effective"
-        )
+    if (
+        (bft_requested or validator_requested)
+        and _truthy_env("WEALL_BFT_ENABLED")
+        and not validator_effective
+    ):
+        raise ApiRuntimeLifecycleError("api_runtime_authority_validator_not_effective")
 
 
 def _parse_cors_origins() -> list[str]:
@@ -181,9 +195,7 @@ def _maybe_mount_web(app: FastAPI) -> None:
 
     index_path = dist_dir / "index.html"
     if not index_path.exists():
-        raise ApiRuntimeLifecycleError(
-            f"WEALL_SERVE_WEB=1 but index not found: {index_path}"
-        )
+        raise ApiRuntimeLifecycleError(f"WEALL_SERVE_WEB=1 but index not found: {index_path}")
 
     app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="web")
 
@@ -195,9 +207,7 @@ def _require_single_worker_for_prod_runtime() -> None:
     try:
         workers = int(workers_raw)
     except ValueError as exc:
-        raise ApiRuntimeLifecycleError(
-            "GUNICORN_WORKERS must be 1 in prod runtime mode."
-        ) from exc
+        raise ApiRuntimeLifecycleError("GUNICORN_WORKERS must be 1 in prod runtime mode.") from exc
     if workers != 1:
         raise ApiRuntimeLifecycleError("GUNICORN_WORKERS must be 1 in prod runtime mode.")
 
@@ -406,9 +416,7 @@ async def _lifespan(app: FastAPI):
             started = _start_net_loop(net_loop, net, executor)
             if not started:
                 if prod_mode:
-                    raise ApiRuntimeLifecycleError(
-                        "api_net_loop_start_failed:start_returned_false"
-                    )
+                    raise ApiRuntimeLifecycleError("api_net_loop_start_failed:start_returned_false")
                 _stop_net_loop(net_loop)
                 net_loop = None
                 net = None
@@ -478,9 +486,10 @@ def create_app(*, boot_runtime: bool) -> FastAPI:
 
     if boot_runtime:
         cfg = load_chain_config()
-        if str(os.environ.get("WEALL_MODE", "") or "").strip().lower() == "prod" or str(
-            cfg.mode or ""
-        ).strip().lower() == "prod":
+        if (
+            str(os.environ.get("WEALL_MODE", "") or "").strip().lower() == "prod"
+            or str(cfg.mode or "").strip().lower() == "prod"
+        ):
             validate_runtime_env()
         _enforce_prod_runtime_topology()
 

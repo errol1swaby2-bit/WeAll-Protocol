@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from public_seed_test_helpers import REGISTRY_PUBKEY, signed_registry
+
 from weall.api.public_seed_registry import PublicSeedRegistryError, load_public_seed_registry
 from weall.runtime.chain_manifest import load_chain_manifest
 from weall.runtime.state_hash import compute_state_root
@@ -60,9 +60,15 @@ def test_public_testnet_v1_chain_identity_generator_is_fresh() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_checked_in_registry_and_trust_roots_match_current_public_testnet_identity(monkeypatch) -> None:
-    manifest = json.loads((ROOT / "configs" / "chains" / "weall-testnet-v1.json").read_text(encoding="utf-8"))
-    commitments = json.loads((ROOT / "configs" / "public_testnet_chain_commitments.json").read_text(encoding="utf-8"))
+def test_checked_in_registry_and_trust_roots_match_current_public_testnet_identity(
+    monkeypatch,
+) -> None:
+    manifest = json.loads(
+        (ROOT / "configs" / "chains" / "weall-testnet-v1.json").read_text(encoding="utf-8")
+    )
+    commitments = json.loads(
+        (ROOT / "configs" / "public_testnet_chain_commitments.json").read_text(encoding="utf-8")
+    )
     trust_roots_path = ROOT / "configs" / "public_testnet_trust_roots.json"
     registry_path = ROOT / "configs" / "public_testnet_seed_registry.json"
     trust_roots = json.loads(trust_roots_path.read_text(encoding="utf-8"))
@@ -104,7 +110,9 @@ def test_checked_in_registry_and_trust_roots_match_current_public_testnet_identi
         assert loaded["provider_authority"] is False
 
 
-def test_public_registry_is_rejected_when_it_does_not_match_repo_trust_roots(tmp_path, monkeypatch) -> None:
+def test_public_registry_is_rejected_when_it_does_not_match_repo_trust_roots(
+    tmp_path, monkeypatch
+) -> None:
     trust_roots = tmp_path / "public_testnet_trust_roots.json"
     trust_roots.write_text(
         json.dumps(
@@ -154,7 +162,9 @@ def test_public_registry_is_rejected_when_it_does_not_match_repo_trust_roots(tmp
 
 
 def test_public_registry_matching_repo_trust_roots_is_accepted(tmp_path, monkeypatch) -> None:
-    manifest = json.loads((ROOT / "configs" / "chains" / "weall-testnet-v1.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (ROOT / "configs" / "chains" / "weall-testnet-v1.json").read_text(encoding="utf-8")
+    )
     trust_roots = tmp_path / "public_testnet_trust_roots.json"
     trust_roots.write_text(
         json.dumps(

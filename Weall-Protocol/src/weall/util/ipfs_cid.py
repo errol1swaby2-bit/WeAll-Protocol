@@ -21,7 +21,6 @@ import base64
 import hashlib
 import re
 from dataclasses import dataclass
-from typing import Any
 
 _CIDV0_RE = re.compile(r"^Qm[1-9A-HJ-NP-Za-km-z]{44}$")  # base58btc (no 0,O,I,l)
 _CIDV1_BASE32_RE = re.compile(r"^b[a-z2-7]{10,}$")  # base32 lowercase (bafy..., bagy...)
@@ -136,7 +135,9 @@ def parse_cid_multihash(cid: str) -> CidMultihashInfo:
             mh_len, pos = _decode_unsigned_varint(raw, pos)
             digest = raw[pos : pos + mh_len]
             if len(digest) != mh_len or pos + mh_len != len(raw):
-                return CidMultihashInfo(False, "bad_cidv0_multihash_length", c, 0, _DAG_PB_CODEC, mh_code, digest)
+                return CidMultihashInfo(
+                    False, "bad_cidv0_multihash_length", c, 0, _DAG_PB_CODEC, mh_code, digest
+                )
             return CidMultihashInfo(True, "ok", c, 0, _DAG_PB_CODEC, mh_code, digest)
 
         raw = _decode_cidv1_base32_payload(c)
@@ -146,15 +147,21 @@ def parse_cid_multihash(cid: str) -> CidMultihashInfo:
         mh_len, pos = _decode_unsigned_varint(raw, pos)
         digest = raw[pos : pos + mh_len]
         if version != 1:
-            return CidMultihashInfo(False, "unsupported_cid_version", c, version, codec, mh_code, digest)
+            return CidMultihashInfo(
+                False, "unsupported_cid_version", c, version, codec, mh_code, digest
+            )
         if len(digest) != mh_len or pos + mh_len != len(raw):
-            return CidMultihashInfo(False, "bad_cidv1_multihash_length", c, version, codec, mh_code, digest)
+            return CidMultihashInfo(
+                False, "bad_cidv1_multihash_length", c, version, codec, mh_code, digest
+            )
         return CidMultihashInfo(True, "ok", c, version, codec, mh_code, digest)
     except Exception as exc:  # noqa: BLE001 - dependency-free parser normalizes failures
         return CidMultihashInfo(False, str(exc) or "cid_parse_failed", c, -1, -1, -1, b"")
 
 
-def verify_cid_multihash_bytes(cid: str, data: bytes | bytearray | memoryview) -> CidByteVerification:
+def verify_cid_multihash_bytes(
+    cid: str, data: bytes | bytearray | memoryview
+) -> CidByteVerification:
     """Verify byte content against supported CID multihashes.
 
     ``supported`` means the CID/multihash pair is one this lightweight verifier
@@ -164,10 +171,30 @@ def verify_cid_multihash_bytes(cid: str, data: bytes | bytearray | memoryview) -
 
     info = parse_cid_multihash(cid)
     if not info.ok:
-        return CidByteVerification(False, False, info.reason, info.cid, info.version, info.codec, info.multihash_code, info.digest.hex(), "")
+        return CidByteVerification(
+            False,
+            False,
+            info.reason,
+            info.cid,
+            info.version,
+            info.codec,
+            info.multihash_code,
+            info.digest.hex(),
+            "",
+        )
 
     if info.multihash_code != _SHA2_256 or len(info.digest) != 32:
-        return CidByteVerification(False, False, "unsupported_multihash", info.cid, info.version, info.codec, info.multihash_code, info.digest.hex(), "")
+        return CidByteVerification(
+            False,
+            False,
+            "unsupported_multihash",
+            info.cid,
+            info.version,
+            info.codec,
+            info.multihash_code,
+            info.digest.hex(),
+            "",
+        )
 
     raw = bytes(data)
     actual = hashlib.sha256(raw).digest()
@@ -178,15 +205,56 @@ def verify_cid_multihash_bytes(cid: str, data: bytes | bytearray | memoryview) -
     # direct-byte verification, but callers may prefer committed sha256 for
     # gateway file bytes.
     if info.codec not in {_RAW_CODEC, _DAG_PB_CODEC}:
-        return CidByteVerification(False, False, "unsupported_codec", info.cid, info.version, info.codec, info.multihash_code, info.digest.hex(), actual.hex())
+        return CidByteVerification(
+            False,
+            False,
+            "unsupported_codec",
+            info.cid,
+            info.version,
+            info.codec,
+            info.multihash_code,
+            info.digest.hex(),
+            actual.hex(),
+        )
 
     if hmac_compare_digest(actual, info.digest):
-        reason = "cidv1_raw_sha2_256" if info.codec == _RAW_CODEC else "cidv0_dag_pb_sha2_256_direct"
-        return CidByteVerification(True, True, reason, info.cid, info.version, info.codec, info.multihash_code, info.digest.hex(), actual.hex())
+        reason = (
+            "cidv1_raw_sha2_256" if info.codec == _RAW_CODEC else "cidv0_dag_pb_sha2_256_direct"
+        )
+        return CidByteVerification(
+            True,
+            True,
+            reason,
+            info.cid,
+            info.version,
+            info.codec,
+            info.multihash_code,
+            info.digest.hex(),
+            actual.hex(),
+        )
     if info.codec == _DAG_PB_CODEC:
-        return CidByteVerification(False, False, "cidv0_dag_pb_direct_verification_unavailable", info.cid, info.version, info.codec, info.multihash_code, info.digest.hex(), actual.hex())
-    return CidByteVerification(False, True, "cid_multihash_mismatch", info.cid, info.version, info.codec, info.multihash_code, info.digest.hex(), actual.hex())
-
+        return CidByteVerification(
+            False,
+            False,
+            "cidv0_dag_pb_direct_verification_unavailable",
+            info.cid,
+            info.version,
+            info.codec,
+            info.multihash_code,
+            info.digest.hex(),
+            actual.hex(),
+        )
+    return CidByteVerification(
+        False,
+        True,
+        "cid_multihash_mismatch",
+        info.cid,
+        info.version,
+        info.codec,
+        info.multihash_code,
+        info.digest.hex(),
+        actual.hex(),
+    )
 
 
 def cidv1_raw_sha256(data: bytes | bytearray | memoryview) -> str:
@@ -197,12 +265,13 @@ def cidv1_raw_sha256(data: bytes | bytearray | memoryview) -> str:
     encoded = base64.b32encode(raw).decode("ascii").lower().rstrip("=")
     return "b" + encoded
 
+
 def hmac_compare_digest(a: bytes, b: bytes) -> bool:
     # Avoid importing hmac for older lightweight uses of this module while still
     # keeping a constant-time comparison for same-length digests.
     if len(a) != len(b):
         return False
     diff = 0
-    for x, y in zip(a, b):
+    for x, y in zip(a, b, strict=True):
         diff |= x ^ y
     return diff == 0

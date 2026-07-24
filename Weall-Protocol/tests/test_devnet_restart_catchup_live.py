@@ -72,7 +72,9 @@ def test_devnet_restart_catchup_live_auto_activates_repo_venv() -> None:
     text = RUNNER.read_text(encoding="utf-8")
     assert "activate_repo_venv" in text
     assert 'source "${activate_path}"' in text
-    assert text.index("activate_repo_venv") < text.index('NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"')
+    assert text.index("activate_repo_venv") < text.index(
+        'NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"'
+    )
 
 
 def test_devnet_restart_catchup_live_has_readiness_diagnostics() -> None:
@@ -80,5 +82,5 @@ def test_devnet_restart_catchup_live_has_readiness_diagnostics() -> None:
     assert "emit_log_tail_json" in text
     assert "node1 failed readiness" in text
     assert "node2 failed readiness" in text
-    assert "tail -80 \"${NODE1_LOG}\"" in text
-    assert "tail -80 \"${NODE2_LOG}\"" in text
+    assert 'tail -80 "${NODE1_LOG}"' in text
+    assert 'tail -80 "${NODE2_LOG}"' in text

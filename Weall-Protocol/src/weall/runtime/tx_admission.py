@@ -28,19 +28,19 @@ from weall.crypto.sig import strict_tx_sig_domain_enabled
 from weall.ledger.state import LedgerView
 from weall.runtime.account_id import is_valid_account_id, strict_account_ids_enabled
 from weall.runtime.gate_expr import eval_gate
+from weall.runtime.protocol_profile import (
+    runtime_tx_payload_limits,
+    validate_tx_payload_limit_profile,
+)
+from weall.runtime.public_protocol_policy import public_protocol_policy_violation
 from weall.runtime.reputation_units import (
     account_reputation_units,
     threshold_to_units,
     units_to_reputation,
 )
-from weall.runtime.protocol_profile import (
-    runtime_tx_payload_limits,
-    validate_tx_payload_limit_profile,
-)
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
-from weall.runtime.public_protocol_policy import public_protocol_policy_violation
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
@@ -142,8 +142,6 @@ def _walk_limits(
     return None
 
 
-
-
 def _lookup_canon_spec(canon: TxIndex, tx_type: str) -> Json | None:
     """Return the canon row for tx_type or None when absent.
 
@@ -222,7 +220,9 @@ def _payload_limits_ok(env: TxEnvelope, spec: Json) -> AdmissionVerdict | None:
     )
     max_dict_keys = max(16, max_dict_keys)
 
-    max_str_len = int(_payload_limit_int(spec, "max_payload_str_len", limits["max_payload_str_len"]))
+    max_str_len = int(
+        _payload_limit_int(spec, "max_payload_str_len", limits["max_payload_str_len"])
+    )
     max_str_len = max(256, max_str_len)
 
     max_nodes = int(_payload_limit_int(spec, "max_payload_nodes", limits["max_payload_nodes"]))
@@ -324,9 +324,16 @@ def _mvp_payload_checks(env: TxEnvelope) -> AdmissionVerdict | None:
         return _rej("invalid_payload", f"missing:{miss}", field=miss) if miss else None
 
     if t == "PEER_REQUEST_CONNECT":
-        if not p.get("peer_id") and not p.get("ticket_id") and not p.get("endpoint") and not p.get("url"):
+        if (
+            not p.get("peer_id")
+            and not p.get("ticket_id")
+            and not p.get("endpoint")
+            and not p.get("url")
+        ):
             return _rej(
-                "invalid_payload", "missing:peer_id_ticket_id_or_endpoint", field="peer_id_ticket_id_or_endpoint"
+                "invalid_payload",
+                "missing:peer_id_ticket_id_or_endpoint",
+                field="peer_id_ticket_id_or_endpoint",
             )
 
     if t == "PEER_BAN_SET":
@@ -687,7 +694,9 @@ def _sig_ok(env: TxEnvelope, *, context: str) -> AdmissionVerdict | None:
     return _rej("missing_sig", "sig_required")
 
 
-def _public_ingress_sig_verify_ok(env: TxEnvelope, ledger: LedgerView, *, context: str) -> AdmissionVerdict | None:
+def _public_ingress_sig_verify_ok(
+    env: TxEnvelope, ledger: LedgerView, *, context: str
+) -> AdmissionVerdict | None:
     """Cryptographically verify public-ingress signatures when sigverify is enabled.
 
     This closes the prod/public-ingress gap where malformed or forged txs could
@@ -780,7 +789,9 @@ def admit_tx(
     # Keep canonical system-origin traffic out of public ingress.
     if ctx in {"mempool", "gossip", "peer", "http", "operator"}:
         canonical_system_signers = _canonical_system_signers(lv)
-        if str(env.signer).strip() in canonical_system_signers or bool(getattr(env, "system", False)):
+        if str(env.signer).strip() in canonical_system_signers or bool(
+            getattr(env, "system", False)
+        ):
             return _rej(
                 "system_tx_forbidden",
                 "system_only_tx_not_allowed_in_public_ingress",
@@ -820,7 +831,9 @@ def admit_tx(
         signer_s = str(env.signer or "").strip()
         is_canonical_system_signer = signer_s in _canonical_system_signers(lv)
         is_block_system_envelope = ctx == "block" and bool(getattr(env, "system", False))
-        is_system_origin_tx = _system_origin_enforced(spec) or _bootstrap_open_gate_bypass(env, lv, spec)
+        is_system_origin_tx = _system_origin_enforced(spec) or _bootstrap_open_gate_bypass(
+            env, lv, spec
+        )
         if not (is_block_system_envelope and is_canonical_system_signer and is_system_origin_tx):
             return _rej("invalid_tx", "bad_signer_format", signer=str(env.signer))
 
@@ -876,7 +889,11 @@ def admit_tx(
     if ctx == "block":
         signer = str(env.signer or "").strip()
         canonical_system_signers = _canonical_system_signers(lv)
-        if bool(getattr(env, "system", False)) and signer.upper() == "SYSTEM" and signer not in canonical_system_signers:
+        if (
+            bool(getattr(env, "system", False))
+            and signer.upper() == "SYSTEM"
+            and signer not in canonical_system_signers
+        ):
             return _rej(
                 "system_tx_forbidden",
                 "system_signer_required",

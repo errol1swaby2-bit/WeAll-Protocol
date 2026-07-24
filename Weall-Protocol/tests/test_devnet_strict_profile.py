@@ -25,7 +25,10 @@ def test_controlled_devnet_requires_signature_and_strict_domain() -> None:
 
     env_no_domain = dict(env)
     env_no_domain["WEALL_STRICT_TX_SIG_DOMAIN"] = "0"
-    assert demo_mode_isolation_issue(env_no_domain) == "strict_tx_sig_domain_required_in_controlled_devnet"
+    assert (
+        demo_mode_isolation_issue(env_no_domain)
+        == "strict_tx_sig_domain_required_in_controlled_devnet"
+    )
 
 
 def test_controlled_devnet_forbids_demo_and_open_poh_bootstrap() -> None:
@@ -49,7 +52,9 @@ def test_controlled_devnet_forbids_demo_and_open_poh_bootstrap() -> None:
 
     env = dict(base)
     env["WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE"] = "1"
-    assert demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
+    assert (
+        demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
+    )
 
 
 def test_devnet_boot_scripts_default_to_controlled_profile() -> None:
@@ -62,7 +67,10 @@ def test_devnet_boot_scripts_default_to_controlled_profile() -> None:
         assert 'export WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-controlled_devnet}"' in text
         assert 'export WEALL_POH_BOOTSTRAP_OPEN="${WEALL_POH_BOOTSTRAP_OPEN:-0}"' in text
         assert 'export WEALL_ENABLE_DEMO_SEED_ROUTE="${WEALL_ENABLE_DEMO_SEED_ROUTE:-0}"' in text
-        assert 'export WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE="${WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE:-0}"' in text
+        assert (
+            'export WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE="${WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE:-0}"'
+            in text
+        )
         assert 'export WEALL_SIGVERIFY="${WEALL_SIGVERIFY:-1}"' in text
         assert 'export WEALL_STRICT_TX_SIG_DOMAIN="${WEALL_STRICT_TX_SIG_DOMAIN:-1}"' in text
 

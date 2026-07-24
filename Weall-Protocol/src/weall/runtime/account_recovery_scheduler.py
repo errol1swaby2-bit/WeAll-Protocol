@@ -31,7 +31,7 @@ def _as_int(value: Any, default: int = 0) -> int:
 
 
 def _panel_commitment(request_id: str, reviewers: list[str]) -> str:
-    material = f"RECOVERY_PANEL_V1|{request_id}|{'|'.join(reviewers)}".encode("utf-8")
+    material = f"RECOVERY_PANEL_V1|{request_id}|{'|'.join(reviewers)}".encode()
     return f"sha256:{hashlib.sha256(material).hexdigest()}"
 
 

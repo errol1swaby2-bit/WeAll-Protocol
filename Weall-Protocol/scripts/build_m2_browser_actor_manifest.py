@@ -48,8 +48,12 @@ def _actor(path: Path, *, role: str = "") -> Json:
         "warning": "Controlled M2 browser actor material. Delete after rehearsal.",
     }
     if data.get("recovery_public_key_hex") and data.get("recovery_private_key_hex"):
-        recovery["recoveryAuthorityPublicKeyB64"] = _b64_hex(str(data["recovery_public_key_hex"]), field="recovery_public_key_hex", path=path)
-        recovery["recoveryAuthoritySecretKeyB64"] = _b64_hex(str(data["recovery_private_key_hex"]), field="recovery_private_key_hex", path=path)
+        recovery["recoveryAuthorityPublicKeyB64"] = _b64_hex(
+            str(data["recovery_public_key_hex"]), field="recovery_public_key_hex", path=path
+        )
+        recovery["recoveryAuthoritySecretKeyB64"] = _b64_hex(
+            str(data["recovery_private_key_hex"]), field="recovery_private_key_hex", path=path
+        )
     if data.get("evidence_kem_public_key_b64") and data.get("evidence_kem_secret_key_b64"):
         recovery["evidenceKemPublicKeyB64"] = str(data["evidence_kem_public_key_b64"])
         recovery["evidenceKemSecretKeyB64"] = str(data["evidence_kem_secret_key_b64"])
@@ -60,12 +64,16 @@ def _actor(path: Path, *, role: str = "") -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a private local actor manifest for independent-browser M2 E2E.")
+    parser = argparse.ArgumentParser(
+        description="Build a private local actor manifest for independent-browser M2 E2E."
+    )
     parser.add_argument("--api-base", required=True)
     parser.add_argument("--kind", choices=("async", "live"), required=True)
     parser.add_argument("--case-id", required=True)
     parser.add_argument("--applicant-keyfile", required=True)
-    parser.add_argument("--reviewer", action="append", default=[], help="account|role|keyfile or account|keyfile")
+    parser.add_argument(
+        "--reviewer", action="append", default=[], help="account|role|keyfile or account|keyfile"
+    )
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
@@ -101,7 +109,18 @@ def main() -> int:
         path.chmod(0o600)
     except OSError:
         pass
-    print(json.dumps({"ok": True, "output": str(path), "kind": args.kind, "case_id": args.case_id, "reviewer_count": len(reviewers)}, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "output": str(path),
+                "kind": args.kind,
+                "case_id": args.case_id,
+                "reviewer_count": len(reviewers),
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 

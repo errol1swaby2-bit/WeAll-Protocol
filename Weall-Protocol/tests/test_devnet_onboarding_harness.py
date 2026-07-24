@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -80,10 +79,10 @@ def test_devnet_scripts_do_not_call_demo_seed() -> None:
 def test_devnet_account_creation_preserves_generated_recovery_and_kem_authorities() -> None:
     script = (REPO_ROOT / "scripts/devnet_create_account.sh").read_text(encoding="utf-8")
     ensure_idx = script.index('python3 scripts/devnet_tx.py "${ENSURE_ARGS[@]}"')
-    generate_idx = script.index('generate_m2_actor_keys.mjs')
+    generate_idx = script.index("generate_m2_actor_keys.mjs")
     register_idx = script.index('python3 scripts/devnet_tx.py "${ARGS[@]}"')
 
-    assert 'ENSURE_ARGS+=(--fresh)' in script
+    assert "ENSURE_ARGS+=(--fresh)" in script
     assert 'ARGS=(--api "${API}" create-account --keyfile "${KEYFILE}" --reuse-keyfile)' in script
     assert ensure_idx < generate_idx < register_idx
     assert "would discard\n# the newly generated authorities" in script
