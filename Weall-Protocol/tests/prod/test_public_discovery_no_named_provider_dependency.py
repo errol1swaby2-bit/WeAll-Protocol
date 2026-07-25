@@ -26,7 +26,7 @@ def _project_files() -> list[Path]:
     for path in ROOT.parent.rglob("*"):
         if not path.is_file():
             continue
-        if any(part in skipped_dirs for part in path.parts):
+        if any(part in skipped_dirs or part.startswith(".venv") for part in path.parts):
             continue
         if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".zip", ".sqlite", ".db"}:
             continue

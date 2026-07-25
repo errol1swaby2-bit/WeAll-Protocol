@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "89f0d3b7777384e2e265b16d3255956a29a811ae29eac35695d4cb1184362b56"
+    "source_tree_digest": "9cbcadeae20a0a8c25903d72bb8f432895badeb4440e8ac769c47d2cf43a7caa"
   },
   "required_fields": [
     "stable_id",
@@ -5965,7 +5965,7 @@
       "implementation_source": {
         "function": "apply_dispute",
         "handler": "dispute",
-        "line": 3019,
+        "line": 3045,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6012,7 +6012,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "08db9bc8627861119f062d157e3a8b420a8c2362ff3a52d8a0f7d59cecacf7d0",
+        "review_digest": "8fff8f824aebcf1968e0d5f912500975e0e279375103407506622fb687b49487",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -6260,7 +6260,7 @@
       "implementation_source": {
         "function": "_apply_dispute_stage_set",
         "handler": "dispute",
-        "line": 1675,
+        "line": 1701,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6286,7 +6286,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "d63f70760ec2006915de1d11ae00b888ee184ad8bfa2d404ee9f6b8aba20d86b",
+        "review_digest": "be28b21750edbd5af91cfb846342fdc5f9b8c1fbbcad6bad0f62b83b890b75b5",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -6346,7 +6346,7 @@
       "implementation_source": {
         "function": "_apply_dispute_evidence_declare",
         "handler": "dispute",
-        "line": 1691,
+        "line": 1717,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6372,7 +6372,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "271b42f3b2a61e2c34c3c5ddbbcd6448ce74f0759558b16c68fc29a22192e1f0",
+        "review_digest": "c8ae8c9109e818660e165319b3050de698c5d23a87ee3cb8d01e04c3ad14275d",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -6436,7 +6436,7 @@
       "implementation_source": {
         "function": "_apply_dispute_evidence_bind",
         "handler": "dispute",
-        "line": 1716,
+        "line": 1742,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6462,7 +6462,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "ea592e635b445807e1cbad01632352e4c4d0395a1c3710ba3ddd2b55db2bb577",
+        "review_digest": "d1aac2073da996032e7697f917c8bb7d7daf03518f5f50bcfc6946af4e570dac",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -6533,7 +6533,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_assign",
         "handler": "dispute",
-        "line": 1744,
+        "line": 1770,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6559,7 +6559,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "0b0721ed1f4c2049bf628eb882d82c5a8fe718086a3562114d35a730bf3964c1",
+        "review_digest": "81b9555690e8f98773849ad0f1c2ea625e44d4b80dce3b9bfb47be088676dcb3",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -6656,7 +6656,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_accept",
         "handler": "dispute",
-        "line": 1792,
+        "line": 1818,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6688,7 +6688,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "f2c861712d6ed1d313c64b10355fa07455889bc5e2d4b1ad1f65985e689cffa7",
+        "review_digest": "445bb7e0c07175756d8a6675c03f958f5ec51d39096c4c0e96fda64d7bee71e3",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -6785,7 +6785,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_decline",
         "handler": "dispute",
-        "line": 1897,
+        "line": 1923,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6810,7 +6810,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "7b5e637988fa8e4b50733cddc898757b4fb85fd6ce7431e7d423b09c6903ae7b",
+        "review_digest": "f56228ce9c3d298e7cb77f0a91deeb067c1df33fda67d0fb979052c7fcacd848",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -6877,7 +6877,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_attendance",
         "handler": "dispute",
-        "line": 2060,
+        "line": 2086,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -6903,7 +6903,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "4eaddda5866b55ccf43fc8729a8439b5a7311c070bcc15a2915477a0afd11b77",
+        "review_digest": "7d37c2bbc4c552e0c1f3c270cf6160a0345c73bc4ee9d4c4a048cb8d8a9ae12f",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7016,7 +7016,7 @@
       "implementation_source": {
         "function": "_apply_dispute_vote_submit",
         "handler": "dispute",
-        "line": 2087,
+        "line": 2113,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7038,7 +7038,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "0d6057a685fbd242300072a675a4927010c5517321cd997c6099958f28d6ab49",
+        "review_digest": "4e749a4a4bff85d49d0e1d738d82aee199a5abecfa6837f1a0ad9ebce5837880",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7150,7 +7150,7 @@
       "implementation_source": {
         "function": "_apply_dispute_resolve",
         "handler": "dispute",
-        "line": 2491,
+        "line": 2517,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7177,7 +7177,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "23e1f839e9798c7356fadc44fccb501de02ff9240b5ce30e1d856836cfe621ea",
+        "review_digest": "a10afca49fd1b63751949c6fbf4269561758e745128f650a3797582b51b84ba0",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7326,7 +7326,7 @@
       "implementation_source": {
         "function": "_apply_dispute_appeal",
         "handler": "dispute",
-        "line": 2627,
+        "line": 2653,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7353,7 +7353,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "8b9f697d89a3f19e09515b38c7407e4607156587f65147434bb27a014bdefa08",
+        "review_digest": "bf7890a08edccff4361b6f4bc1e0c10605331f1f02105f5d488258d1330830eb",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7449,7 +7449,7 @@
       "implementation_source": {
         "function": "_apply_dispute_final_receipt",
         "handler": "dispute",
-        "line": 2856,
+        "line": 2882,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7478,7 +7478,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "24f147ec60545eab22777ebadda70615e458706c467c1df1273d83af2c1e16f9",
+        "review_digest": "457fedbc596e85a8983b58661a8021bb840a0a01624f8da03a57667f74581704",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7639,7 +7639,7 @@
       "implementation_source": {
         "function": "_apply_post_create",
         "handler": "content",
-        "line": 803,
+        "line": 817,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7665,7 +7665,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "91dc523cf34bddd1ade0a0cf5bdc05e3f206b79af69a02ae20073b00a60d0a2a",
+        "review_digest": "b234f8e2caa17fd5432035b794476650e617e2147421a756e7a6b35b88d0a352",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7841,7 +7841,7 @@
       "implementation_source": {
         "function": "_apply_post_edit",
         "handler": "content",
-        "line": 862,
+        "line": 876,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -7866,7 +7866,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "d403b6e8eb6facb1d8bfb59bbcdbcaf1cc74cfc6b18dc61c4ee866518bdd60cb",
+        "review_digest": "92b67550bfb584233217036b97d4f8cb041721947a69028f182bd8c3e06fe8c1",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7986,7 +7986,7 @@
       "implementation_source": {
         "function": "_apply_post_delete",
         "handler": "content",
-        "line": 919,
+        "line": 933,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8011,7 +8011,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "f59abdffabca1ba9b4cd78911c4bee4806ed45a099e16fd61e7daca29ca65dfe",
+        "review_digest": "f8757cc8d694d541873f184def3eac79e54a84979f536f965ccf48c618425cbe",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -8145,7 +8145,7 @@
       "implementation_source": {
         "function": "_apply_comment_create",
         "handler": "content",
-        "line": 956,
+        "line": 970,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8172,7 +8172,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "5b45a25f0700c3491902021b66883bba20efbaee276c2a4514e6ae4d667ae4f4",
+        "review_digest": "a1371c28bf1e0064e0c8325b92f6bf65ccb156e23ddf82e4c57608ff8816a286",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -8285,7 +8285,7 @@
       "implementation_source": {
         "function": "_apply_comment_delete",
         "handler": "content",
-        "line": 1051,
+        "line": 1065,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8310,7 +8310,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "b03d9bb598240388797dc866f70c0e9bba885c0e38088c4ed94a7ebeb4784931",
+        "review_digest": "3cdc464bd36b95e49a41122df179e550ae531a812aa3610465e7e814ddd5ada6",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -8413,7 +8413,7 @@
       "implementation_source": {
         "function": "_apply_reaction_set",
         "handler": "content",
-        "line": 1088,
+        "line": 1102,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8439,7 +8439,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "f8afc14127f99af5baae4b21c42d5597e36f7687150104ce9331436adb7f17e7",
+        "review_digest": "a893de34afd45f2d452b6fa376b3d02ba696e92a3e4c2a4a368e5a8df43ca74e",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -8544,7 +8544,7 @@
       "implementation_source": {
         "function": "_apply_content_flag",
         "handler": "content",
-        "line": 1113,
+        "line": 1127,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8570,7 +8570,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "44df8d3b0c508ebe33fcb3dc61a52fd710b074156d706d1e2eb1e235f5eed310",
+        "review_digest": "fadf18d5ea680eabb46138b578e090d744be30fe62184bb1bcbb7a72ba293b0b",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -8667,7 +8667,7 @@
       "implementation_source": {
         "function": "_apply_content_label_set",
         "handler": "content",
-        "line": 1393,
+        "line": 1407,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8693,7 +8693,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "55d1ef7dd7f422eeb7bce03bfb3e6f5ffc542bbfd528186ed8715760fe85c6f0",
+        "review_digest": "cc4278c072bbbe0b6219f596f2f609d18b85c9f0e926ed826bd2b712f473498c",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -8801,7 +8801,7 @@
       "implementation_source": {
         "function": "_apply_content_visibility_set",
         "handler": "content",
-        "line": 1413,
+        "line": 1427,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8827,7 +8827,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "4028f82840a1435e2b56a7134991bf25e36d686b5e80a6c72c4c7fcc67c5c986",
+        "review_digest": "7e63e56f9c425835ec4dc522fec8718b456cd91db87e30dcd5d9bf80ff2a7774",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -8950,7 +8950,7 @@
       "implementation_source": {
         "function": "_apply_content_thread_lock_set",
         "handler": "content",
-        "line": 1434,
+        "line": 1448,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -8976,7 +8976,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "4204b76e95e6a4101b890fa19578b3ac71ef84e9e40c4c09222db2b3572f3342",
+        "review_digest": "f3700fc03c260ee14841491fb2fcb81524d7de2e369511f70711a70652dcd1c9",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -9066,7 +9066,7 @@
       "implementation_source": {
         "function": "_apply_content_escalate_to_dispute",
         "handler": "content",
-        "line": 1484,
+        "line": 1498,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9093,7 +9093,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "f288c1613d87370db56b1928d6ce4d360a1fdd1e5c5e2871be0634d5cab7e57a",
+        "review_digest": "6fb8a8e8c27611e80124b7e762976eb03ac16e01577e7c051ac17507115e7fc9",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -9253,7 +9253,7 @@
       "implementation_source": {
         "function": "_apply_content_media_declare",
         "handler": "content",
-        "line": 1205,
+        "line": 1219,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9279,7 +9279,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "393d61ffde209f9d82d3a93390a7242a8c704b2fb476973924fa2bdb4f9c2f1d",
+        "review_digest": "7d6af4719805ca48d387a7ffe02d2af5269269741107e793ffb5e71f6fcdf88a",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -9391,7 +9391,7 @@
       "implementation_source": {
         "function": "_apply_content_media_bind",
         "handler": "content",
-        "line": 1256,
+        "line": 1270,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9416,7 +9416,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "eb58939e67fbd9c5235abc9e5ee206a8dfa08c63e9b12569af65c09d800db5ff",
+        "review_digest": "a10125bca631004e127e95c7724216151bedd5840b5778b8420037636b87fd00",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -9526,7 +9526,7 @@
       "implementation_source": {
         "function": "_apply_content_media_replace",
         "handler": "content",
-        "line": 1361,
+        "line": 1375,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9552,7 +9552,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "d662fc36910bc34830d19f9aece23f969a0328d799c22992fb39d16217fbebdd",
+        "review_digest": "6233a10a050f5e1ec8ea256a695fb7ec65fbf939d32413510d2fa7f7259134af",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -9656,7 +9656,7 @@
       "implementation_source": {
         "function": "_apply_content_media_unbind",
         "handler": "content",
-        "line": 1313,
+        "line": 1327,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9681,7 +9681,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "5a3ca6a2df4d8839dd94b222995e31503bc739d3a93fa7f5964ac9980fdb4827",
+        "review_digest": "4acf063283f08c5ecc311c5ebb704d9fbfa5871d408c6883be2326602abfdc02",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -20549,7 +20549,7 @@
       "implementation_source": {
         "function": "_apply_mod_action_receipt",
         "handler": "content",
-        "line": 1707,
+        "line": 1721,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20576,7 +20576,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "8215b3714e1f2bc9045cb8683e3fd553fa03fab9fd4aa12373446d19e8056ee0",
+        "review_digest": "2dd603326ecfa129734409252a76d62a6351fe70b9c54f117c5d425382f3222e",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -20662,7 +20662,7 @@
       "implementation_source": {
         "function": "_apply_flag_escalation_receipt",
         "handler": "content",
-        "line": 1685,
+        "line": 1699,
         "path": "src/weall/runtime/apply/content.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20689,7 +20689,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "c4b93781175bfca1473563dfe505704162a8ce5b3cdbc649a8d11fc433886910",
+        "review_digest": "b513412e9f011b5c149c19a2b08390a8898fafaba4abd68a2f4125657afc0ca0",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -26376,7 +26376,7 @@
       "implementation_source": {
         "function": "_apply_case_receipt",
         "handler": "dispute",
-        "line": 2950,
+        "line": 2976,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -26404,7 +26404,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "e85f4d7759663da7a8189bf48a7db08c3ccb0f84d21d2baaa905d6b8a9828950",
+        "review_digest": "d959b89d8453c731f2d0bc42cab49040f3fc7cdb1cf2f40f340c01fdef33ead7",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -26485,7 +26485,7 @@
       "implementation_source": {
         "function": "_apply_case_receipt",
         "handler": "dispute",
-        "line": 2950,
+        "line": 2976,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -26513,7 +26513,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "91161752b62744b9c412f927b7fab98111d9ef1aa6e3eda18a46dd54c3942152",
+        "review_digest": "356f2e71f8080d0d37f179e92d9c39c02ae9f7f8288882aa5045a8489c55bcf2",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -26594,7 +26594,7 @@
       "implementation_source": {
         "function": "_apply_case_receipt",
         "handler": "dispute",
-        "line": 2950,
+        "line": 2976,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -26622,7 +26622,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "a48e168d20873b58903f98e692f1c69e52e79a54ff556bbdc061135ebec05f31",
+        "review_digest": "640ce5c0db44c31f0b497e79ca54611fd1d7b0f53b65415c4742adc8d918b7de",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -29814,7 +29814,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_withdraw",
         "handler": "dispute",
-        "line": 1916,
+        "line": 1942,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29843,7 +29843,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "e2981e14dd07d7960b8e2ec19326e004b0c0cbd6584a70a6af31c00cb5573ab2",
+        "review_digest": "fc7c83ba91284e96aa0c2cf1a2115d80fd2c7a5b5ebd4a2fc20418e0bd2e08c5",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -29938,7 +29938,7 @@
       "implementation_source": {
         "function": "_apply_dispute_juror_timeout",
         "handler": "dispute",
-        "line": 1976,
+        "line": 2002,
         "path": "src/weall/runtime/apply/dispute.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -29967,7 +29967,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "44d3d37515145e679b9b5fa526bd08232982990d032db7d936b9c1344e5d03d4",
+        "review_digest": "c3566ff19f6ff868d7867fad30c0b3573b528974e105e0f50b0820db0d5d6884",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-25T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"

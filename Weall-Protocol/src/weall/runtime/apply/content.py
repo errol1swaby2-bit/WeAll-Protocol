@@ -22,6 +22,7 @@ receipts as the authoritative record. Receipt-only does NOT mean "no state".
 For production correctness, a receipt MUST mutate canonical state deterministically.
 """
 
+import copy
 import hashlib
 import json
 from dataclasses import dataclass
@@ -546,11 +547,24 @@ def _ensure_root(state: Json) -> Json:
     return content
 
 
+def _immutable_json_snapshot(value: Any) -> Any:
+    """Materialize journal proxies into detached JSON-like containers."""
+
+    if isinstance(value, dict):
+        return {
+            str(key): _immutable_json_snapshot(item)
+            for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
+        }
+    if isinstance(value, list):
+        return [_immutable_json_snapshot(item) for item in value]
+    return copy.deepcopy(value)
+
+
 def _public_content_snapshot(record: Json) -> Json:
     """Return a deterministic immutable snapshot for edit/delete history."""
 
     return {
-        str(key): value
+        str(key): _immutable_json_snapshot(value)
         for key, value in sorted(record.items(), key=lambda item: str(item[0]))
         if str(key) not in {"reputation_accrual"}
     }

@@ -3,7 +3,7 @@
     "api": 102,
     "launch_readiness": 32,
     "runtime": 7,
-    "runtime_apply": 69
+    "runtime_apply": 70
   },
   "codes": [
     {
@@ -220,7 +220,7 @@
       "http_status": null,
       "sample_reason": "protocol_read_visibility_must_be_public",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 302
+      "source_lineno": 311
     },
     {
       "code": "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -364,7 +364,7 @@
       "http_status": null,
       "sample_reason": "group_exists",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 467
+      "source_lineno": 492
     },
     {
       "code": "bad_payload",
@@ -373,7 +373,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 744
+      "source_lineno": 769
     },
     {
       "code": "bad_payload",
@@ -382,7 +382,7 @@
       "http_status": null,
       "sample_reason": "threshold_exceeds_signers",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1648
+      "source_lineno": 1654
     },
     {
       "code": "bad_request",
@@ -544,7 +544,16 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 927
+      "source_lineno": 1354
+    },
+    {
+      "code": "conflict",
+      "domain": "runtime_apply",
+      "family": "DisputeApplyError",
+      "http_status": null,
+      "sample_reason": "dispute_ballot_already_final",
+      "source": "src/weall/runtime/apply/dispute.py",
+      "source_lineno": 2143
     },
     {
       "code": "conflict",
@@ -553,7 +562,7 @@
       "http_status": null,
       "sample_reason": "group_treasury_wallet_exists",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 837
+      "source_lineno": 862
     },
     {
       "code": "conflict",
@@ -616,7 +625,7 @@
       "http_status": null,
       "sample_reason": "dispute_id_exists",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1174
+      "source_lineno": 1598
     },
     {
       "code": "duplicate",
@@ -625,7 +634,7 @@
       "http_status": null,
       "sample_reason": "treasury_id_exists",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 1581
+      "source_lineno": 1587
     },
     {
       "code": "executor_missing",
@@ -677,9 +686,9 @@
       "domain": "runtime_apply",
       "family": "ApplyError",
       "http_status": null,
-      "sample_reason": "invalid_stage_transition",
+      "sample_reason": "BALLOT_PROFILE_INACTIVE",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 729
+      "source_lineno": 58
     },
     {
       "code": "forbidden",
@@ -733,16 +742,16 @@
       "http_status": null,
       "sample_reason": "group_post_authority_required",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 344
+      "source_lineno": 353
     },
     {
       "code": "forbidden",
       "domain": "runtime_apply",
       "family": "DisputeApplyError",
       "http_status": null,
-      "sample_reason": "unsupported_dispute_target_type",
+      "sample_reason": "ballot_profile_inactive",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 88
+      "source_lineno": 48
     },
     {
       "code": "forbidden",
@@ -760,7 +769,7 @@
       "http_status": null,
       "sample_reason": "group_emissary_election_open",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 757
+      "source_lineno": 782
     },
     {
       "code": "forbidden",
@@ -823,7 +832,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 220
+      "source_lineno": 226
     },
     {
       "code": "forbidden",
@@ -895,7 +904,7 @@
       "http_status": null,
       "sample_reason": "treasury_signer_sync_failed",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 787
+      "source_lineno": 812
     },
     {
       "code": "invalid_block",
@@ -949,7 +958,7 @@
       "http_status": null,
       "sample_reason": "proposal_options_require_at_least_two",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 117
+      "source_lineno": 263
     },
     {
       "code": "invalid_payload",
@@ -967,7 +976,7 @@
       "http_status": null,
       "sample_reason": "invalid_public_cid",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 84
+      "source_lineno": 93
     },
     {
       "code": "invalid_payload",
@@ -976,7 +985,7 @@
       "http_status": null,
       "sample_reason": "invalid_public_cid",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 138
+      "source_lineno": 269
     },
     {
       "code": "invalid_payload",
@@ -994,7 +1003,7 @@
       "http_status": null,
       "sample_reason": "missing_group_id",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 463
+      "source_lineno": 488
     },
     {
       "code": "invalid_payload",
@@ -1057,7 +1066,7 @@
       "http_status": null,
       "sample_reason": "declared_capacity_required",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 547
+      "source_lineno": 553
     },
     {
       "code": "invalid_payload",
@@ -1156,7 +1165,7 @@
       "http_status": null,
       "sample_reason": "state_param_not_integer",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 53
+      "source_lineno": 56
     },
     {
       "code": "invalid_state",
@@ -1507,7 +1516,7 @@
       "http_status": 404,
       "sample_reason": "Dispute not found",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 436
+      "source_lineno": 455
     },
     {
       "code": "not_found",
@@ -1516,7 +1525,7 @@
       "http_status": 404,
       "sample_reason": "Proposal not found",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 183
+      "source_lineno": 207
     },
     {
       "code": "not_found",
@@ -1552,7 +1561,7 @@
       "http_status": null,
       "sample_reason": "proposal_not_found",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 684
+      "source_lineno": 1111
     },
     {
       "code": "not_found",
@@ -1570,7 +1579,7 @@
       "http_status": null,
       "sample_reason": "group_not_found",
       "source": "src/weall/runtime/apply/content.py",
-      "source_lineno": 340
+      "source_lineno": 349
     },
     {
       "code": "not_found",
@@ -1579,7 +1588,7 @@
       "http_status": null,
       "sample_reason": "dispute_not_found",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 1133
+      "source_lineno": 1557
     },
     {
       "code": "not_found",
@@ -1597,7 +1606,7 @@
       "http_status": null,
       "sample_reason": "",
       "source": "src/weall/runtime/apply/groups.py",
-      "source_lineno": 129
+      "source_lineno": 132
     },
     {
       "code": "not_found",
@@ -1642,7 +1651,7 @@
       "http_status": null,
       "sample_reason": "account_not_found",
       "source": "src/weall/runtime/apply/roles.py",
-      "source_lineno": 242
+      "source_lineno": 248
     },
     {
       "code": "not_found",
@@ -1885,7 +1894,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 2295
+      "source_lineno": 3020
     },
     {
       "code": "validator_mismatch",
@@ -1897,7 +1906,7 @@
       "source_lineno": 133
     }
   ],
-  "entry_count": 210,
+  "entry_count": 211,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",

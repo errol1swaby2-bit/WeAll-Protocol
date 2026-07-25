@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "a1af3a18806af669cb4e30b4699427e83e3a5a04f5417250eda1961b51c44036",
+  "artifact_digest": "ac9439a9521818ea1fc76719adc16c8adcb9848cf78f9b585e47193cc7e2da5d",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -147,7 +147,7 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "dd10d4de113a264a638ce16562002e3a891cc0708518db700eed4023878fc003",
+      "file_sha256": "0490de0b41e0af94e9466dcb19cc84a1aaaf9a8372205cf4ae05481b2d6e5145",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -195,7 +195,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "683e6141503da38010d7ee4d9184cf656b330786627d1f6baae02175b68083f9",
+      "file_sha256": "296ea19b5718bd938b97ca170c202391c21360afe9f308229c2839788725b407",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,

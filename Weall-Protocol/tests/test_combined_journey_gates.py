@@ -52,6 +52,19 @@ def _governance_wallet_state() -> dict[str, Any]:
             "economics_enabled": False,
             "system_signer": "SYSTEM",
         },
+        "ballot_profile": {
+            "profile_id": "production-reviewed-batch337-v1",
+            "active": True,
+        },
+        "ballot_profile_activation_receipts": [
+            {
+                "profile_id": "production-reviewed-batch337-v1",
+                "status": "active",
+                "profile_hash": "a" * 64,
+                "allowed_modes": ["prod"],
+                "independent_review_complete": True,
+            }
+        ],
         "accounts": {
             "@validator1": {
                 "nonce": 0,

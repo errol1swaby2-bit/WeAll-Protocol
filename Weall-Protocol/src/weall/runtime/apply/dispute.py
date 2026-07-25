@@ -491,11 +491,19 @@ def select_dispute_panel(
     normalized = _normalized_str_list(
         [_resolve_account_identity(state, item) for item in candidates]
     )
-    conflicts = set(_dispute_conflict_account_ids(state, dispute))
+    strict = strict_civic_governance_enabled(state)
+    if strict:
+        conflicts = set(_dispute_conflict_account_ids(state, dispute))
+    else:
+        # Preserve the pre-M3 local/legacy assignment contract. Historical
+        # fixtures excluded the target owner but did not treat the reporter or
+        # opener as a constitutional conflict. Expanded party/material-conflict
+        # exclusions are enforced only by strict civic-governance profiles.
+        target_owner = _dispute_target_owner(state, dispute)
+        conflicts = {target_owner} if target_owner else set()
     excluded = set(_normalized_str_list(exclude_ids or [])) | conflicts
     eligible = [item for item in normalized if item not in excluded]
 
-    strict = strict_civic_governance_enabled(state)
     required_panel = _dispute_panel_size(dispute)
     substitute_count = int(math.ceil(required_panel * 0.20))
     seed = {
@@ -1631,43 +1639,61 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
         ),
         "public_ballot_disclosure": "aggregate_only",
     }
-    # Recompute after target owner/reporter metadata is present so conflict
-    # filtering cannot select a party or materially connected reviewer.
-    all_reviewers = eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE)
-    selection = select_dispute_panel(
-        state,
-        disputes[dispute_id],
-        all_reviewers,
-        round_no=1,
-    )
-    disputes[dispute_id]["panel_round"] = 1
-    disputes[dispute_id]["panel_status"] = selection["status"]
-    disputes[dispute_id]["panel_commitment"] = selection["panel_commitment"]
-    disputes[dispute_id]["panel_required_size"] = selection["required_panel_size"]
-    disputes[dispute_id]["substitute_required_count"] = selection["required_substitute_count"]
-    disputes[dispute_id]["substitute_juror_ids"] = list(selection["substitutes"])
-    disputes[dispute_id]["conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
-    eligible_jurors = list(selection["panel"])
-    disputes[dispute_id]["eligible_juror_ids"] = list(eligible_jurors)
-    disputes[dispute_id]["assigned_jurors"] = list(eligible_jurors)
-    disputes[dispute_id]["eligible_validator_count"] = int(len(eligible_jurors))
-    disputes[dispute_id]["required_votes"] = int(quorum_threshold(len(eligible_jurors))) if eligible_jurors else 0
-    if selection["status"] == "insufficient_reviewer_pool":
-        disputes[dispute_id]["stage"] = "unassigned"
-        disputes[dispute_id]["assignment_blocked_reason"] = "insufficient_constitutional_reviewer_pool"
-    elif eligible_jurors:
-        jurors = disputes[dispute_id].get("jurors")
-        if not isinstance(jurors, dict):
-            jurors = {}
-        for juror in eligible_jurors:
-            jurors[juror] = {
-                "status": "assigned",
-                "assigned_at_nonce": int(env.nonce),
-                "assigned_at_height": int(opened_h),
-                "panel_round": 1,
-            }
-        disputes[dispute_id]["jurors"] = jurors
-        disputes[dispute_id]["stage"] = "juror_review"
+    # Strict profiles immediately materialize the deterministic constitutional
+    # panel. Local/legacy profiles retain the historical eligibility snapshot
+    # and explicit DISPUTE_JUROR_ASSIGN workflow so existing rehearsals and
+    # operator tooling are not silently reinterpreted.
+    if strict_civic_governance_enabled(state):
+        all_reviewers = eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE)
+        selection = select_dispute_panel(
+            state,
+            disputes[dispute_id],
+            all_reviewers,
+            round_no=1,
+        )
+        disputes[dispute_id]["panel_round"] = 1
+        disputes[dispute_id]["panel_status"] = selection["status"]
+        disputes[dispute_id]["panel_commitment"] = selection["panel_commitment"]
+        disputes[dispute_id]["panel_required_size"] = selection["required_panel_size"]
+        disputes[dispute_id]["substitute_required_count"] = selection["required_substitute_count"]
+        disputes[dispute_id]["substitute_juror_ids"] = list(selection["substitutes"])
+        disputes[dispute_id]["conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
+        eligible_jurors = list(selection["panel"])
+        disputes[dispute_id]["eligible_juror_ids"] = list(eligible_jurors)
+        disputes[dispute_id]["assigned_jurors"] = list(eligible_jurors)
+        disputes[dispute_id]["eligible_validator_count"] = int(len(eligible_jurors))
+        disputes[dispute_id]["required_votes"] = (
+            int(quorum_threshold(len(eligible_jurors))) if eligible_jurors else 0
+        )
+        if selection["status"] == "insufficient_reviewer_pool":
+            disputes[dispute_id]["stage"] = "unassigned"
+            disputes[dispute_id]["assignment_blocked_reason"] = (
+                "insufficient_constitutional_reviewer_pool"
+            )
+        elif eligible_jurors:
+            jurors = disputes[dispute_id].get("jurors")
+            if not isinstance(jurors, dict):
+                jurors = {}
+            for juror in eligible_jurors:
+                jurors[juror] = {
+                    "status": "assigned",
+                    "assigned_at_nonce": int(env.nonce),
+                    "assigned_at_height": int(opened_h),
+                    "panel_round": 1,
+                }
+            disputes[dispute_id]["jurors"] = jurors
+            disputes[dispute_id]["stage"] = "juror_review"
+    else:
+        eligible_jurors = _dispute_eligible_juror_ids(
+            state,
+            disputes[dispute_id],
+            fallback_signer,
+        )
+        disputes[dispute_id]["eligible_juror_ids"] = list(eligible_jurors)
+        disputes[dispute_id]["eligible_validator_count"] = int(len(eligible_jurors))
+        disputes[dispute_id]["required_votes"] = (
+            int(quorum_threshold(len(eligible_jurors))) if eligible_jurors else 0
+        )
     _index_dispute_target(state, disputes[dispute_id])
     return {"applied": "DISPUTE_OPEN", "dispute_id": dispute_id}
 
