@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "9cbcadeae20a0a8c25903d72bb8f432895badeb4440e8ac769c47d2cf43a7caa"
+    "source_tree_digest": "29cad5d66a93766942346868dd0f066a587e52bdc114265df149cbb0b8f17f45"
   },
   "required_fields": [
     "stable_id",
@@ -1936,6 +1936,7 @@
       },
       "stable_id": "ROUTE-7C2D535C9DB21237",
       "tests": [
+        "tests/test_m3_closure_integrity.py",
         "tests/test_m3_closure_regressions.py"
       ],
       "vector_ids": [
@@ -3778,6 +3779,7 @@
         "tests/test_e2e_three_node_convergence_apply_blocks.py",
         "tests/test_e2e_two_node_convergence.py",
         "tests/test_local_rehearsal_account_register_state_fallback.py",
+        "tests/test_m3_closure_integrity.py",
         "tests/test_operator_helpers_fail_closed.py",
         "tests/test_priority1_cross_node_merge_consistency.py",
         "tests/test_priority1_deterministic_execution.py",
@@ -7367,8 +7369,10 @@
         "tests/test_m2_closure_integrity.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
         "tests/test_m2_live_browser_media_wait.py",
+        "tests/test_m3_closure_integrity.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_genesis_ballot_profile.py",
         "tests/test_m3_scope_contract.py",
         "tests/test_media_cache_peer_sync_safety.py",
         "tests/test_media_pin_and_async_case_visibility.py",
@@ -8228,8 +8232,10 @@
         "tests/test_m2_chain_manifest_closure_gates.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
         "tests/test_m2_live_browser_media_wait.py",
+        "tests/test_m3_closure_integrity.py",
         "tests/test_m3_closure_regressions.py",
         "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_genesis_ballot_profile.py",
         "tests/test_m3_scope_contract.py",
         "tests/test_media_cache_peer_sync_safety.py",
         "tests/test_media_range_streaming.py",

@@ -105,7 +105,10 @@
         "src/weall/runtime/ballot_policy.py",
         "src/weall/runtime/apply/groups.py",
         "src/weall/api/routes_public_parts/gov.py",
-        "tests/test_m3_closure_regressions.py"
+        "tests/test_m3_closure_regressions.py",
+        "src/weall/runtime/genesis_bootstrap.py",
+        "tests/test_m3_genesis_ballot_profile.py",
+        "../scripts/check_m3_live_ballot_profile.py"
       ],
       "evidence": [
         "artifacts/m3-closure/governance"
@@ -131,7 +134,11 @@
         "../scripts/run_m3_civic_real_stack_e2e.sh",
         "src/weall/runtime/apply/content.py",
         "src/weall/runtime/apply/groups.py",
-        "tests/test_m3_closure_regressions.py"
+        "tests/test_m3_closure_regressions.py",
+        "../scripts/validate_m3_actor_manifest.py",
+        "../scripts/build_m3_actor_manifest.py",
+        "docs/production_readiness/M3_ACTOR_AND_TRANSCRIPT_CONTRACT.md",
+        "../scripts/gen_m3_actor_contract_templates.py"
       ],
       "evidence": [
         "artifacts/m3-closure/browser/civic"
@@ -208,7 +215,10 @@
         "../scripts/run_m3_two_node_state_root_gate.sh",
         "../scripts/run_m3_observer_catchup_gate.sh",
         "../scripts/run_m3_complete_closure.sh",
-        "../scripts/gen_m3_closure_manifest.py"
+        "../scripts/gen_m3_closure_manifest.py",
+        "../scripts/extract_m3_state_root_summary.py",
+        "../scripts/m3_common.sh",
+        "../scripts/capture_m3_observer_authority.py"
       ],
       "evidence": [
         "artifacts/m3-closure/restart-replay",
@@ -235,7 +245,21 @@
         "../scripts/bootstrap_m3_environment.sh",
         "../scripts/run_m3_complete_closure.sh",
         "../scripts/gen_m3_closure_manifest.py",
-        "../scripts/check_m3_evidence_only_commit.py"
+        "../scripts/check_m3_evidence_only_commit.py",
+        "../scripts/m3_evidence_contract.py",
+        "../scripts/m3_common.sh",
+        "../scripts/check_m3_artifact_privacy.py",
+        "../scripts/run_m3_privacy_scan.sh",
+        "../scripts/run_m3_clean_checkout_reproduction.sh",
+        "tests/test_m3_closure_integrity.py",
+        "../scripts/validate_m3_actor_manifest.py",
+        "../scripts/build_m3_actor_manifest.py",
+        "docs/production_readiness/M3_ACTOR_AND_TRANSCRIPT_CONTRACT.md",
+        "../scripts/gen_m3_actor_contract_templates.py",
+        "docs/production_readiness/M3_FINAL_CLOSURE_RUNBOOK_WSL.md",
+        "../scripts/capture_m3_observer_authority.py",
+        "../scripts/check_m3_live_ballot_profile.py",
+        "tests/test_m3_genesis_ballot_profile.py"
       ],
       "evidence": [
         "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"

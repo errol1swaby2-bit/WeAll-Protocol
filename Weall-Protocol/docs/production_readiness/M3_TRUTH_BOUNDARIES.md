@@ -33,6 +33,14 @@ The M3 freeze candidate implements the previously blocking protocol corrections:
 
 These source-level corrections do not close M3 by themselves. The active round denominator never drifts in place, but the complete behavior must still be demonstrated through the non-skippable real stack, frontend build, restart/replay, two-node equality, observer catch-up, privacy scan, and evidence-only direct-child gates.
 
+The real-stack node must be created with the strict controlled-testnet ballot
+profile recorded in genesis state: `m3_civic_governance_strict=true`,
+`ballot_profile_id=controlled-testnet-aggregate-v1`, and
+`ballot_profile_active=true`. Closure tooling must reject legacy/local ballot
+behavior even when all later state reads appear correct.
+
+The real-stack proof must bind every positive transition to a confirmed canonical transaction ID and must submit the required negative attempts from independent browser custody states. Read-only inspection of a pre-seeded final state is not closure evidence. The strict low-severity review/appeal proof requires at least 18 independent reviewer candidates so both panels and both substitute sets can remain disjoint.
+
 ## Supported claims after closure
 
 After valid closure, the repository may claim that:

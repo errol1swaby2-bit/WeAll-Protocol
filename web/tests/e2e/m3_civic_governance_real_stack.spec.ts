@@ -1,20 +1,54 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { expect, test, type APIRequestContext, type Browser, type BrowserContext } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
 type PublicActor = {
   role: string;
   account: string;
-  recovery_file?: string;
   storage_state: string;
+};
+
+type M3Action = {
+  label: string;
+  role: string;
+  account: string;
+  tx_type: string;
+  tx_id: string;
+  subject_id: string;
+  status: "confirmed";
+};
+
+type M3NegativeAttempt = {
+  label: string;
+  role: string;
+  account: string;
+  tx_type: string;
+  payload: Record<string, unknown>;
+  subject_id: string;
+  precondition_tx_id?: string;
+  expected_error_code: string;
+};
+
+type M3TransactionTranscript = {
+  schema_version: number;
+  implementation_freeze_commit: string;
+  chain_id: string;
+  actions: M3Action[];
+  negative_attempts: M3NegativeAttempt[];
 };
 
 type M3Journey = {
   post_id: string;
   group_id: string;
+  group_post_id: string;
   dispute_id: string;
   proposal_id: string;
+  negative_post_id: string;
+  negative_group_id: string;
+  negative_dispute_id: string;
+  negative_proposal_id: string;
+  transaction_transcript: string;
   expected_dispute_stage?: string;
   expected_dispute_outcome?: string;
   expected_proposal_stage?: string;
@@ -23,30 +57,37 @@ type M3Journey = {
 
 type M3ActorManifest = {
   schema_version: number;
+  implementation_freeze_commit: string;
   backend_base_url: string;
+  frontend_base_url?: string;
   actors: PublicActor[];
   journey: M3Journey;
 };
 
-const REQUIRED_SINGLETON_ROLES = ["author_proposer", "member_reporter_voter"] as const;
+const REQUIRED_SINGLETON_ROLES = ["author_proposer", "member_reporter_voter", "nonmember_ineligible"] as const;
 const FRONTEND_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
+const TERMINAL_SUCCESS = new Set(["confirmed", "committed", "finalized"]);
 
 function absoluteExistingFile(value: string, label: string): string {
   const absolute = path.resolve(String(value || ""));
   expect(fs.existsSync(absolute), `${label} does not exist: ${absolute}`).toBe(true);
+  expect(fs.lstatSync(absolute).isSymbolicLink(), `${label} must not be a symlink: ${absolute}`).toBe(false);
   return absolute;
 }
 
-function loadActorManifest(): M3ActorManifest {
+function loadActorManifest(): { manifest: M3ActorManifest; transcript: M3TransactionTranscript } {
   const manifestPath = String(process.env.WEALL_M3_ACTOR_MANIFEST || "").trim();
   expect(
     manifestPath,
-    "M3 actor manifest is required. The closure journey must use independent real actor custody states.",
+    "M3 actor manifest is required. Closure must use independent custody states and a signed transaction transcript.",
   ).not.toBe("");
 
   const absolute = absoluteExistingFile(manifestPath, "M3 actor manifest");
   const manifest = JSON.parse(fs.readFileSync(absolute, "utf8")) as M3ActorManifest;
-  expect(manifest.schema_version).toBe(2);
+  expect(manifest.schema_version).toBe(3);
+  expect(manifest.implementation_freeze_commit).toBe(String(process.env.M3_IMPLEMENTATION_FREEZE_COMMIT || ""));
+  expect(JSON.stringify(manifest)).not.toContain("recovery_file");
+  expect(JSON.stringify(manifest)).not.toContain("private_key");
   expect(String(manifest.backend_base_url || "")).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
 
   const actors = manifest.actors || [];
@@ -54,11 +95,10 @@ function loadActorManifest(): M3ActorManifest {
   for (const role of REQUIRED_SINGLETON_ROLES) {
     expect(roles.has(role), `M3 actor role is missing: ${role}`).toBe(true);
   }
-  const reviewers = actors.filter((actor) => String(actor.role || "").startsWith("reviewer"));
-  expect(
-    reviewers.length,
-    "A low-severity original panel and a fresh disjoint appeal panel require at least fourteen independent reviewers.",
-  ).toBeGreaterThanOrEqual(14);
+  const originalReviewers = actors.filter((actor) => String(actor.role || "").startsWith("reviewer_original_"));
+  const appealReviewers = actors.filter((actor) => String(actor.role || "").startsWith("reviewer_appeal_"));
+  expect(originalReviewers.length, "Original panel pool requires seven jurors plus two substitutes.").toBeGreaterThanOrEqual(9);
+  expect(appealReviewers.length, "Fresh appeal panel pool requires seven jurors plus two substitutes.").toBeGreaterThanOrEqual(9);
 
   const accounts = actors.map((actor) => String(actor.account || "").trim());
   expect(accounts.every(Boolean), "Every M3 actor needs a public account identifier.").toBe(true);
@@ -71,12 +111,24 @@ function loadActorManifest(): M3ActorManifest {
   for (const [field, value] of Object.entries({
     post_id: journey.post_id,
     group_id: journey.group_id,
+    group_post_id: journey.group_post_id,
     dispute_id: journey.dispute_id,
     proposal_id: journey.proposal_id,
+    negative_post_id: journey.negative_post_id,
+    negative_group_id: journey.negative_group_id,
+    negative_dispute_id: journey.negative_dispute_id,
+    negative_proposal_id: journey.negative_proposal_id,
   })) {
     expect(String(value || "").trim(), `journey.${field} is required`).not.toBe("");
   }
-  return manifest;
+  const transcriptPath = absoluteExistingFile(journey.transaction_transcript, "M3 transaction transcript");
+  const transcript = JSON.parse(fs.readFileSync(transcriptPath, "utf8")) as M3TransactionTranscript;
+  expect(transcript.schema_version).toBe(1);
+  expect(transcript.implementation_freeze_commit).toBe(manifest.implementation_freeze_commit);
+  expect(String(transcript.chain_id || "")).not.toBe("");
+  expect(transcript.actions.length).toBeGreaterThan(0);
+  expect(transcript.negative_attempts.length).toBeGreaterThan(0);
+  return { manifest, transcript };
 }
 
 async function getJson(request: APIRequestContext, base: string, route: string): Promise<any> {
@@ -98,25 +150,22 @@ async function openActorContext(browser: Browser, actor: PublicActor): Promise<B
   });
 }
 
-async function assertActorSession(context: BrowserContext, actor: PublicActor, route: string): Promise<void> {
+async function assertActorSession(context: BrowserContext, actor: PublicActor, route: string): Promise<Page> {
   const page = await context.newPage();
-  try {
-    await page.goto(route);
-    await expect(page.locator("body")).toBeVisible();
-    const account = await page.evaluate(() => {
-      const raw = localStorage.getItem("weall_session_v1");
-      if (!raw) return "";
-      try {
-        const parsed = JSON.parse(raw) as Record<string, unknown>;
-        return String(parsed.account || parsed.account_id || parsed.handle || "");
-      } catch {
-        return "";
-      }
-    });
-    expect(account, `${actor.role} storage state must identify its independent account`).toBe(actor.account);
-  } finally {
-    await page.close();
-  }
+  await page.goto(route);
+  await expect(page.locator("body")).toBeVisible();
+  const account = await page.evaluate(() => {
+    const raw = localStorage.getItem("weall_session_v1");
+    if (!raw) return "";
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      return String(parsed.account || parsed.account_id || parsed.handle || "");
+    } catch {
+      return "";
+    }
+  });
+  expect(account, `${actor.role} storage state must identify its independent account`).toBe(actor.account);
+  return page;
 }
 
 function findMember(items: any[], account: string): boolean {
@@ -127,11 +176,60 @@ function findMember(items: any[], account: string): boolean {
   });
 }
 
+function errorCodeFrom(value: any): string {
+  const candidates = [
+    value?.code,
+    value?.payload?.error?.code,
+    value?.payload?.code,
+    value?.payload?.error?.details?.reason,
+    value?.payload?.error?.details?.code,
+    value?.body?.error?.code,
+    value?.body?.code,
+    value?.body?.error?.details?.reason,
+    value?.body?.error?.details?.code,
+  ];
+  return String(candidates.find((item) => String(item || "").trim()) || "").trim();
+}
+
+async function submitExpectedFailure(
+  page: Page,
+  backend: string,
+  attempt: M3NegativeAttempt,
+): Promise<{ ok: boolean; code: string; message: string }> {
+  return page.evaluate(async ({ backendValue, attemptValue }) => {
+    const sessionModule = await import("/src/auth/session.ts");
+    try {
+      await sessionModule.submitSignedTx({
+        account: attemptValue.account,
+        tx_type: attemptValue.tx_type,
+        payload: attemptValue.payload,
+        base: backendValue,
+        headers: sessionModule.getAuthHeaders(attemptValue.account),
+      });
+      return { ok: true, code: "", message: "unexpected_success" };
+    } catch (error: any) {
+      const candidates = [
+        error?.code,
+        error?.payload?.error?.code,
+        error?.payload?.code,
+        error?.payload?.error?.details?.reason,
+        error?.payload?.error?.details?.code,
+        error?.body?.error?.code,
+        error?.body?.code,
+        error?.body?.error?.details?.reason,
+        error?.body?.error?.details?.code,
+      ];
+      const code = String(candidates.find((item) => String(item || "").trim()) || "").trim();
+      return { ok: false, code, message: String(error?.message || error) };
+    }
+  }, { backendValue: backend, attemptValue: attempt });
+}
+
 test.describe.configure({ mode: "serial" });
 
 test("M3 independent actors complete the signed civic and governance journey", async ({ browser, request }) => {
-  test.setTimeout(180_000);
-  const manifest = loadActorManifest();
+  test.setTimeout(600_000);
+  const { manifest, transcript } = loadActorManifest();
   const backend = manifest.backend_base_url.replace(/\/$/, "");
   const journey = manifest.journey;
   const author = actorFor(manifest, "author_proposer");
@@ -139,11 +237,34 @@ test("M3 independent actors complete the signed civic and governance journey", a
   const reviewers = manifest.actors.filter((actor) => actor.role.startsWith("reviewer"));
 
   await getJson(request, backend, "/v1/status");
+  const ballotProfileResponse = await getJson(request, backend, "/v1/gov/ballot-profile");
+  expect(ballotProfileResponse.ballot_profile).toEqual({
+    profile_id: "controlled-testnet-aggregate-v1",
+    active: true,
+    strict: true,
+    mode: "controlled-testnet",
+    reason: "active_controlled_testnet_profile",
+  });
+
+  await test.step("signed transaction transcript is canonical", async () => {
+    const seen = new Set<string>();
+    for (const action of transcript.actions) {
+      expect(seen.has(action.tx_id), `duplicate transaction id in transcript: ${action.tx_id}`).toBe(false);
+      seen.add(action.tx_id);
+      const status = await getJson(request, backend, `/v1/tx/status/${encodeURIComponent(action.tx_id)}`);
+      expect(TERMINAL_SUCCESS.has(String(status.status || status.phase || "").toLowerCase()), JSON.stringify(status)).toBe(true);
+      expect(String(status.tx_type || "")).toBe(action.tx_type);
+      expect(String(status.signer || "")).toBe(action.account);
+      expect(String(action.subject_id || "").trim()).not.toBe("");
+      expect(action.status).toBe("confirmed");
+    }
+  });
 
   await test.step("signed public content", async () => {
     const authorContext = await openActorContext(browser, author);
     try {
-      await assertActorSession(authorContext, author, "/#/feed");
+      const page = await assertActorSession(authorContext, author, "/#/feed");
+      await page.close();
     } finally {
       await authorContext.close();
     }
@@ -157,7 +278,8 @@ test("M3 independent actors complete the signed civic and governance journey", a
   await test.step("canonical group membership", async () => {
     const memberContext = await openActorContext(browser, member);
     try {
-      await assertActorSession(memberContext, member, "/#/groups");
+      const page = await assertActorSession(memberContext, member, "/#/groups");
+      await page.close();
     } finally {
       await memberContext.close();
     }
@@ -165,13 +287,17 @@ test("M3 independent actors complete the signed civic and governance journey", a
     expect(String(group.group?.id || group.group?.group_id || "")).toBe(journey.group_id);
     const members = await getJson(request, backend, `/v1/groups/${encodeURIComponent(journey.group_id)}/members?limit=500`);
     expect(findMember(members.members || members.items || [], member.account)).toBe(true);
+    const groupPost = await getJson(request, backend, `/v1/content/${encodeURIComponent(journey.group_post_id)}`);
+    const record = groupPost.content || groupPost.post || groupPost.item || groupPost;
+    expect(String(record.author || record.created_by || "")).toBe(member.account);
   });
 
   await test.step("public report and independent review", async () => {
     for (const reviewer of reviewers.slice(0, 7)) {
       const context = await openActorContext(browser, reviewer);
       try {
-        await assertActorSession(context, reviewer, "/#/reviews");
+        const page = await assertActorSession(context, reviewer, "/#/reviews");
+        await page.close();
       } finally {
         await context.close();
       }
@@ -217,6 +343,60 @@ test("M3 independent actors complete the signed civic and governance journey", a
     expect(votes.votes_redacted).toBe(true);
     expect(votes).not.toHaveProperty("votes");
     expect(Number(votes.counts_total?.votes || 0)).toBeGreaterThanOrEqual(journey.minimum_final_ballots || 1);
+  });
+
+  await test.step("negative fixture subjects remain active", async () => {
+    const negativeGroup = await getJson(request, backend, `/v1/groups/${encodeURIComponent(journey.negative_group_id)}`);
+    expect(String(negativeGroup.group?.id || negativeGroup.group?.group_id || "")).toBe(journey.negative_group_id);
+
+    const negativeDisputeBody = await getJson(request, backend, `/v1/disputes/${encodeURIComponent(journey.negative_dispute_id)}`);
+    const negativeDispute = negativeDisputeBody.dispute || negativeDisputeBody;
+    expect(["juror_review", "review", "voting"]).toContain(String(negativeDispute.stage || "").toLowerCase());
+    expect(String(negativeDispute.target_id || "")).toBe(journey.negative_post_id);
+    expect(String(negativeDispute.target_owner || negativeDispute.target_author || "")).toBe(author.account);
+    const selected = new Set(
+      [
+        ...(negativeDispute.assigned_jurors || []),
+        ...(negativeDispute.panel || []),
+        ...(negativeDispute.substitutes || []),
+      ].map((value: unknown) => String(value || "")),
+    );
+    const nonselectedAttempt = transcript.negative_attempts.find((attempt) => attempt.label === "nonselected_reviewer_vote_rejected");
+    expect(nonselectedAttempt).toBeTruthy();
+    expect(selected.has(String(nonselectedAttempt?.account || "")), "nonselected reviewer fixture is actually selected").toBe(false);
+
+    const negativeProposalBody = await getJson(request, backend, `/v1/gov/proposals/${encodeURIComponent(journey.negative_proposal_id)}`);
+    const negativeProposal = negativeProposalBody.proposal || negativeProposalBody;
+    expect(["voting", "vote"]).toContain(String(negativeProposal.stage || "").toLowerCase());
+  });
+
+  await test.step("negative signed attempts fail closed", async () => {
+    const actionById = new Map(transcript.actions.map((action) => [action.tx_id, action]));
+    for (const attempt of transcript.negative_attempts) {
+      const actor = actorFor(manifest, attempt.role);
+      expect(actor.account).toBe(attempt.account);
+      expect(String(attempt.subject_id || "").trim()).not.toBe("");
+      if (attempt.precondition_tx_id) {
+        const prior = actionById.get(attempt.precondition_tx_id);
+        expect(prior, `${attempt.label} precondition transaction is absent`).toBeTruthy();
+        expect(prior?.account).toBe(attempt.account);
+        expect(prior?.subject_id).toBe(attempt.subject_id);
+        const priorStatus = await getJson(request, backend, `/v1/tx/status/${encodeURIComponent(attempt.precondition_tx_id)}`);
+        expect(TERMINAL_SUCCESS.has(String(priorStatus.status || priorStatus.phase || "").toLowerCase())).toBe(true);
+      }
+      const context = await openActorContext(browser, actor);
+      try {
+        const page = await assertActorSession(context, actor, "/#/transactions");
+        const result = await submitExpectedFailure(page, backend, attempt);
+        expect(result.ok, `${attempt.label} unexpectedly succeeded`).toBe(false);
+        const combined = `${result.code} ${result.message}`;
+        expect(combined, `${attempt.label} did not expose expected failure: ${JSON.stringify(result)}`).toContain(attempt.expected_error_code);
+        expect(errorCodeFrom(result) || result.code || result.message).not.toBe("");
+        await page.close();
+      } finally {
+        await context.close();
+      }
+    }
   });
 
   await test.step("block-height tally and finalization", async () => {

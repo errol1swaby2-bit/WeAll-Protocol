@@ -28,18 +28,21 @@
         "src/weall/runtime/gov_engine.py",
         "src/weall/runtime/poh/eligibility.py",
         "src/weall/runtime/ballot_policy.py",
-        "src/weall/runtime/apply/groups.py"
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/runtime/genesis_bootstrap.py"
       ],
       "tests": [
         "tests/test_governance_stale_state_safety.py",
         "tests/test_governance_system_queue_autoprogress.py",
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_m3_electorate_round_policy.py",
-        "tests/test_m3_closure_regressions.py"
+        "tests/test_m3_closure_regressions.py",
+        "tests/test_m3_genesis_ballot_profile.py"
       ],
       "acceptance": "Proposal state records electorate scope plus an append-only round record containing opening height, canonical eligible identities or commitment, denominator, threshold and round number before that round admits ballots.",
       "evidence": [
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/governance",
+        "artifacts/m3-closure/backend/live-ballot-profile.json"
       ]
     },
     {
@@ -59,11 +62,13 @@
       "tests": [
         "tests/p0/test_p0_governance_pipeline.py",
         "tests/test_governance_stale_state_safety.py",
-        "tests/test_m3_closure_regressions.py"
+        "tests/test_m3_closure_regressions.py",
+        "tests/test_m3_genesis_ballot_profile.py"
       ],
       "acceptance": "A second ballot, replacement ballot, or vote-revoke transaction from the same voter fails deterministically after the first valid ballot is admitted.",
       "evidence": [
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/governance",
+        "artifacts/m3-closure/backend/live-ballot-profile.json"
       ]
     },
     {

@@ -136,7 +136,12 @@ Weall-Protocol/.weall-devnet/
 
 # Local audit/runtime scratch
 .secrets/
-artifacts/
+# Local/generated artifact trees remain ignored, except for the canonical M3
+# evidence-only closure record.  That directory is validated separately and is
+# the only artifact family permitted in the direct-child closure commit.
+artifacts/*
+!artifacts/m3-closure/
+!artifacts/m3-closure/**
 
 # WeAll local media/cache artifacts generated during rehearsals
 Weall-Protocol/.weall-media-cache/

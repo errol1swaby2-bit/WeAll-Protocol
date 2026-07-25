@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1829,
+  "file_count": 1833,
   "files": [
     {
       "affected_registers": [
@@ -1733,10 +1733,36 @@
       "mappings": [
         "M-076"
       ],
+      "path": "docs/production_readiness/M3_ACTOR_AND_TRANSCRIPT_CONTRACT.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "9358a505d0702523c23fa252b122332efc5d5a2d823018d2e574c379a97501f9",
+      "source_id": "SRC-6CC2CA6940525A3C"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
       "path": "docs/production_readiness/M3_CLOSURE_PROCESS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "d8f73f20da1e715e54fc7d481dca519fa9782ed730804f13c0a9ab9c96c3a300",
+      "sha256": "1fb6e0a027eaddb42befb3316e3b83709e39d83fd5b20028d36b762ec1c03ab5",
       "source_id": "SRC-20841AF877A82D79"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/production_readiness/M3_FINAL_CLOSURE_RUNBOOK_WSL.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "85afa18f9cf74bf19a97587812ebca51d046167bb7ff1bc4a8cc71af30e4efaa",
+      "source_id": "SRC-42EE7A4261544C8A"
     },
     {
       "affected_registers": [
@@ -1748,7 +1774,7 @@
       ],
       "path": "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "e750f1cdaaff1c308c3ac1b627dedc2d8f47e3f7bcbb42ffb21683c20a354b4d",
+      "sha256": "776bfb1d34910e34d14148a7a6ff72962175e23418d63ff0aa5ef2384ae29e35",
       "source_id": "SRC-3FDC198445C13464"
     },
     {
@@ -1761,7 +1787,7 @@
       ],
       "path": "docs/production_readiness/M3_SCOPE_CROSSWALK.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "7bf464d9184fe5dfbe2fe6292631d199d48a67ddd84594398d25d4e86f4f8e40",
+      "sha256": "c4c3af77e8423db80daf9954fa00e9619a57ddc1d8d103a27ae816955194f77c",
       "source_id": "SRC-10DDED63FC2EA002"
     },
     {
@@ -1774,7 +1800,7 @@
       ],
       "path": "docs/production_readiness/M3_TRUTH_BOUNDARIES.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "5b3f5fb75342ed12beeb8a6786a0db426334cf852714de16105405e0bde39f62",
+      "sha256": "13c6599c342dec92f2af0aae6209d68c9c31efa2d7d2b4a80220e6976d9e10f6",
       "source_id": "SRC-6E0089665D7F4328"
     },
     {
@@ -10307,7 +10333,7 @@
       ],
       "path": "src/weall/runtime/genesis_bootstrap.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "c54a8e64ff2cb80b4f44946db0cfe201732ad485f571afc762ed0c5f97ba6704",
+      "sha256": "9984f3ef7847c0ea9a3cbaace6c1da36b182a8ae57d53cef0d92cffa9039c208",
       "source_id": "SRC-795ADF0884ACC9CB"
     },
     {
@@ -19274,6 +19300,26 @@
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32",
         "ROUTE-7C2D535C9DB21237",
+        "ROUTE-EE2EFB47FA6F30A2",
+        "TX-0208",
+        "TX-0404",
+        "TX-1200"
+      ],
+      "path": "tests/test_m3_closure_integrity.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "2103fd8c38e855884765a66cb35270226ecdc4f9730376a02cc6438ced48f8ce",
+      "source_id": "SRC-C5719DCEBD01CE0A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-7C2D535C9DB21237",
         "TX-0200",
         "TX-0205",
         "TX-0208",
@@ -19325,9 +19371,24 @@
         "ROUTE-137CB9FB31356917",
         "ROUTE-150316944D629C32"
       ],
+      "path": "tests/test_m3_genesis_ballot_profile.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "d1d6534ddb55cd017a91f2924ba135a4217b0724e7e9b499cb931ba0e5754e2c",
+      "source_id": "SRC-67174118E0B77511"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
       "path": "tests/test_m3_scope_contract.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "36777f299c975393f1b881c37ec383107b5994148943d7cec8a61895daa2b828",
+      "sha256": "888ee756929d158b186c963033c51202d0b68740105a79e284c13cc2b3a3ca6e",
       "source_id": "SRC-A0B3677940F16B0D"
     },
     {
@@ -29507,7 +29568,7 @@
       ],
       "path": "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "2c3f009ff5f7ebcd495e5d91b5c36e91700d8bed9934ef2e7f1297f6aabadb6d",
+      "sha256": "83a4d520eacce3bbdfdf3ca6ba4367d112436313b3d67b7a9a5bd7f3d8985b8b",
       "source_id": "SRC-808F7746F7D99296"
     },
     {

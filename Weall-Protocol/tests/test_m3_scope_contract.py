@@ -100,6 +100,9 @@ def test_m3_real_stack_journey_is_non_skippable_and_manifest_bound() -> None:
         "block-height tally and finalization",
         "WEALL_M3_ACTOR_MANIFEST",
         "storageState",
+        "transaction_transcript",
+        "negative signed attempts fail closed",
+        "submitSignedTx",
         "identity_choice_maps_exposed",
     ):
         assert marker in source
@@ -113,6 +116,7 @@ def test_m3_real_stack_journey_is_non_skippable_and_manifest_bound() -> None:
         "apply_content(",
         "apply_groups(",
         "M3_CLOSURE_NOT_IMPLEMENTED",
+        "recovery_file?:",
     )
     for marker in forbidden:
         assert marker not in source
@@ -124,12 +128,20 @@ def test_m3_complete_closure_runner_is_fail_closed_and_complete() -> None:
         "check_m3_dependencies.py",
         "check_m3_requirement_traceability.py",
         "gen_governance_execution_vectors_v1_5.py --check",
+        "check_v15_public_readiness_artifacts.py",
+        "compile_v2_spec.py --check",
+        "run_m3_clean_checkout_reproduction.sh",
         "test_m3_closure_regressions.py",
+        "test_m3_closure_integrity.py",
         "test_priority1_replay_schedule_consistency.py",
         "test_helper_multinode_divergence_guards.py",
         "npm run typecheck",
         "npm run build",
-        "test:m3-civic-governance-real-stack",
+        "run_m3_civic_real_stack_e2e.sh",
+        "run_m3_restart_replay_gate.sh",
+        "run_m3_two_node_state_root_gate.sh",
+        "run_m3_observer_catchup_gate.sh",
+        "run_m3_privacy_scan.sh",
         "M3_IMPLEMENTATION_FREEZE_COMMIT",
         "--evidence-only",
         "gen_m3_closure_manifest.py",
@@ -142,17 +154,25 @@ def test_m3_complete_closure_runner_is_fail_closed_and_complete() -> None:
 
 def test_m3_evidence_only_checker_binds_direct_child_and_all_gates() -> None:
     checker = (REPO_ROOT / "scripts/check_m3_evidence_only_commit.py").read_text(encoding="utf-8")
+    contract = (REPO_ROOT / "scripts/m3_evidence_contract.py").read_text(encoding="utf-8")
     wrapper = (REPO_ROOT / "scripts/check_m3_evidence_only_commit.sh").read_text(encoding="utf-8")
     for marker in (
         "m3_evidence_commit_not_direct_child",
         "m3_evidence_non_evidence_path",
         "m3_evidence_manifest_path_set_mismatch",
         "m3_evidence_gate_set_mismatch",
-        "M3_ACTOR_MANIFEST.json",
-        "M3_EXTERNAL_TWO_NODE_EVIDENCE.json",
         "all_gates_passed",
         "schema_version",
     ):
         assert marker in checker
+    for marker in (
+        "M3_ACTOR_MANIFEST.json",
+        "transaction-transcript.json",
+        "restart-replay/final-state.json",
+        "two-node/final-state.json",
+        "observer/final-state.json",
+        "private-material-scan.json",
+    ):
+        assert marker in contract
     assert "--cached" in wrapper
     assert "M3_IMPLEMENTATION_FREEZE_COMMIT" in wrapper

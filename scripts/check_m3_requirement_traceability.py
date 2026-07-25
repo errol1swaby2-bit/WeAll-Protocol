@@ -92,6 +92,37 @@ def _strings(value: Any, *, field: str, row_id: str) -> list[str]:
     return out
 
 
+def _resolve_repository_path(value: str) -> Path:
+    text = str(value or "").strip()
+    if text.startswith("../"):
+        return (BACKEND / text).resolve()
+    if text.startswith(("Weall-Protocol/", "web/", "artifacts/", ".github/")):
+        return (ROOT / text).resolve()
+    if text.startswith("scripts/"):
+        root_candidate = (ROOT / text).resolve()
+        backend_candidate = (BACKEND / text).resolve()
+        if root_candidate.exists():
+            return root_candidate
+        return backend_candidate
+    return (BACKEND / text).resolve()
+
+
+def _require_paths_exist(values: list[str], *, field: str, row_id: str) -> int:
+    checked = 0
+    for value in values:
+        path = _resolve_repository_path(value)
+        try:
+            path.relative_to(ROOT)
+        except ValueError as exc:
+            raise ContractError(f"m3_traceability_path_outside_repository:{row_id}:{field}:{value}") from exc
+        if not path.exists():
+            raise ContractError(f"m3_traceability_path_missing:{row_id}:{field}:{value}")
+        if path.is_symlink():
+            raise ContractError(f"m3_traceability_symlink_forbidden:{row_id}:{field}:{value}")
+        checked += 1
+    return checked
+
+
 def main() -> int:
     trace = _load(TRACE_PATH)
     crosswalk = _load(CROSSWALK_PATH)
@@ -118,6 +149,7 @@ def main() -> int:
 
     rows: dict[str, dict[str, Any]] = {}
     mechanism_union: set[str] = set()
+    checked_paths = 0
     for raw in raw_rows:
         if not isinstance(raw, dict):
             raise ContractError("m3_traceability_requirement_not_object")
@@ -150,8 +182,10 @@ def main() -> int:
             )
         mechanism_union.update(mechanisms)
 
-        _strings(raw.get("implementation"), field="implementation", row_id=row_id)
-        _strings(raw.get("tests"), field="tests", row_id=row_id)
+        implementation_paths = _strings(raw.get("implementation"), field="implementation", row_id=row_id)
+        test_paths = _strings(raw.get("tests"), field="tests", row_id=row_id)
+        checked_paths += _require_paths_exist(implementation_paths, field="implementation", row_id=row_id)
+        checked_paths += _require_paths_exist(test_paths, field="tests", row_id=row_id)
 
         if status in {
             "evidence_required",
@@ -240,6 +274,17 @@ def main() -> int:
             )
         )
 
+    for item in deliverables:
+        if not isinstance(item, dict):
+            raise ContractError("m3_crosswalk_deliverable_not_object")
+        deliverable_id = str(item.get("id") or "").strip()
+        implementation_paths = _strings(
+            item.get("implementation"), field="implementation", row_id=deliverable_id
+        )
+        checked_paths += _require_paths_exist(
+            implementation_paths, field="implementation", row_id=deliverable_id
+        )
+
     gaps = crosswalk.get("blocking_protocol_gaps")
     if not isinstance(gaps, list):
         raise ContractError("m3_crosswalk_blocking_gaps_not_list")
@@ -280,7 +325,8 @@ def main() -> int:
         "OK: M3 traceability validated "
         f"{len(rows)} requirements, "
         f"{len(cross_mechanisms)} mechanisms, "
-        f"{len(deliverable_ids)} deliverables, and "
+        f"{len(deliverable_ids)} deliverables, "
+        f"{checked_paths} repository paths, and "
         f"{len(gap_ids)} blocking protocol gaps"
     )
     return 0
