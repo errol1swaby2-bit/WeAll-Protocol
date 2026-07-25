@@ -20,14 +20,18 @@ M3 closes the controlled-testnet portions of:
 - `M-055`: appeal, juror withdrawal/timeout, replacement, and enforcement;
 - `M-056`: contextual reputation and eligibility outcomes without vote weighting.
 
-## Blocking protocol corrections
+## Implemented protocol corrections and remaining evidence boundary
 
-M3 cannot close while either of these conditions remains:
+The M3 freeze candidate implements the previously blocking protocol corrections:
 
-1. Governance uses configured validators as political principals instead of the correct frozen Tier-2 or group electorate.
-2. A voter can revoke or replace a ballot after the first ballot is admitted where the controlling specification requires first admitted final ballot finality.
+1. Protocol-wide rounds snapshot eligible Tier-2 humans, and group rounds snapshot eligible group members. Configured validators are not political principals unless independently present in that human electorate.
+2. The first admitted final ballot is immutable; duplicate, replacement, and revoke attempts fail deterministically in the controlled-testnet ballot profile.
+3. Each round freezes its denominator. A deterministic SYSTEM transition closes an unmet round without decision, opens a new versioned electorate round when permitted, and eventually expires with an explicit no-decision receipt.
+4. Governance, dispute, appeal, and group-election choice state is aggregate-only under the strict profile; participation nullifiers remain separate from choices.
+5. Review assignment uses deterministic severity-sized panels, substitutes, conflict exclusions, and a fresh appeal panel disjoint from the original panel.
+6. Accepted reports receive either a canonical dispute enqueue or a deterministic pending-escalation repair record, and public-content mutation appends an immutable receipt chain.
 
-Validators are not political principals. Threshold and quorum calculations must use a frozen denominator and exact integer arithmetic. Public receipts may prove ballot inclusion and aggregate outcomes, but they must not publish an identity-to-choice mapping where the controlling ballot contract forbids it.
+These source-level corrections do not close M3 by themselves. The active round denominator never drifts in place, but the complete behavior must still be demonstrated through the non-skippable real stack, frontend build, restart/replay, two-node equality, observer catch-up, privacy scan, and evidence-only direct-child gates.
 
 ## Supported claims after closure
 
@@ -38,7 +42,7 @@ After valid closure, the repository may claim that:
 - a signed report becomes a public, reviewable dispute record;
 - selected reviewers accept, attend, vote, withdraw or time out through canonical signed transactions;
 - appeals use fresh eligible reviewers where required and produce append-only public correction/finalization receipts;
-- proposal creation, discussion, frozen electorate capture, ballot admission, close, tally, and finalization are block-height controlled;
+- proposal creation, discussion, versioned electorate-round capture, bounded quorum refresh, ballot admission, close, tally, and finalization are block-height controlled;
 - ineligible voters are rejected and eligible voters have equal political weight;
 - the complete scoped journey reproduces across restart/replay, two nodes, and observer catch-up;
 - every closure artifact is hash-bound to the implementation freeze.

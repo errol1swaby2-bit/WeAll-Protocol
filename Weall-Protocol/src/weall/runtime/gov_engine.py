@@ -24,6 +24,13 @@ def _as_list(v: Any) -> list[Any]:
 
 
 def _count_votes(prop: Json) -> dict[str, int]:
+    aggregate = prop.get("vote_counts")
+    if isinstance(aggregate, dict):
+        return {
+            "yes": max(0, _as_int(aggregate.get("yes"), 0)),
+            "no": max(0, _as_int(aggregate.get("no"), 0)),
+            "abstain": max(0, _as_int(aggregate.get("abstain"), 0)),
+        }
     votes = prop.get("votes")
     if not isinstance(votes, dict):
         return {"yes": 0, "no": 0, "abstain": 0}
@@ -52,6 +59,15 @@ def _count_votes_direct_only(
     Civic voting power is intentionally non-delegable. A signer only counts when
     they cast a direct vote on the proposal itself.
     """
+
+    aggregate_key = "poll_vote_counts" if votes_key == "poll_votes" else "vote_counts"
+    aggregate = prop.get(aggregate_key)
+    if isinstance(aggregate, dict):
+        return {
+            "yes": max(0, _as_int(aggregate.get("yes"), 0)),
+            "no": max(0, _as_int(aggregate.get("no"), 0)),
+            "abstain": max(0, _as_int(aggregate.get("abstain"), 0)),
+        }
 
     votes = prop.get(votes_key)
     if not isinstance(votes, dict):
@@ -152,11 +168,24 @@ def _finalize_delay_blocks(prop: Json, *, default: int = 1) -> int:
 
 
 def _quorum_required(prop: Json) -> int:
+    recorded = _as_int(prop.get("required_votes"), 0)
+    if recorded > 0:
+        return recorded
     q = prop.get("quorum")
     if isinstance(q, int):
         return max(0, q)
     rules = _proposal_rules(prop)
     return max(0, _as_int(rules.get("quorum"), 0))
+
+
+def _max_voting_rounds(prop: Json, *, default: int = 1) -> int:
+    rules = _proposal_rules(prop)
+    return max(1, _as_int(rules.get("max_voting_rounds"), default))
+
+
+def _has_versioned_electorate(prop: Json) -> bool:
+    scope = str(prop.get("electorate_scope") or "").strip().lower()
+    return bool(scope and _as_int(prop.get("electorate_round"), 0) > 0)
 
 
 def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
@@ -313,6 +342,39 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
             close_h = int(vote_opened_h) + int(vote_period)
 
             if int(next_height) >= int(close_h):
+                tally = _count_votes_direct_only(
+                    pr, votes_key="votes"
+                )
+                yes = int(tally["yes"])
+                no = int(tally["no"])
+                abstain = int(tally["abstain"])
+                total = yes + no + abstain
+                quorum = _quorum_required(pr)
+                quorum_met = (total >= quorum) if quorum > 0 else True
+
+                if _has_versioned_electorate(pr) and not quorum_met:
+                    round_no = max(1, _as_int(pr.get("electorate_round"), 1))
+                    max_rounds = _max_voting_rounds(pr)
+                    if round_no < max_rounds:
+                        enqueue_system_tx(
+                            state,
+                            tx_type="GOV_STAGE_SET",
+                            payload={
+                                "proposal_id": pid,
+                                "stage": "voting",
+                                "electorate_refresh": True,
+                                "refresh_reason": "quorum_unmet",
+                                "_parent_ref": parent_ref,
+                            },
+                            due_height=int(next_height),
+                            signer="SYSTEM",
+                            once=True,
+                            parent=parent_ref,
+                            phase="pre",
+                        )
+                        enq += 1
+                        continue
+
                 enqueue_system_tx(
                     state,
                     tx_type="GOV_VOTING_CLOSE",
@@ -325,29 +387,29 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
                 )
                 enq += 1
 
-                tally = _count_votes_direct_only(
-                    pr, votes_key="votes"
-                )
-                yes = int(tally["yes"])
-                no = int(tally["no"])
-                abstain = int(tally["abstain"])
-                total = yes + no + abstain
-                quorum = _quorum_required(pr)
-                quorum_met = (total >= quorum) if quorum > 0 else True
                 passed = bool(quorum_met and (yes > no))
+                no_decision_reason = ""
+                if _has_versioned_electorate(pr) and not quorum_met:
+                    no_decision_reason = "max_voting_rounds_exhausted"
+
+                tally_payload = {
+                    "proposal_id": pid,
+                    "tally": tally,
+                    "total_votes": total,
+                    "quorum_required": quorum,
+                    "quorum_met": quorum_met,
+                    "passed": passed,
+                    "electorate_round": _as_int(pr.get("electorate_round"), 0),
+                    "_parent_ref": parent_ref,
+                }
+                if no_decision_reason:
+                    tally_payload["no_decision_reason"] = no_decision_reason
+                    tally_payload["finalize_without_execution"] = True
 
                 enqueue_system_tx(
                     state,
                     tx_type="GOV_TALLY_PUBLISH",
-                    payload={
-                        "proposal_id": pid,
-                        "tally": tally,
-                        "total_votes": total,
-                        "quorum_required": quorum,
-                        "quorum_met": quorum_met,
-                        "passed": passed,
-                        "_parent_ref": parent_ref,
-                    },
+                    payload=tally_payload,
                     due_height=int(next_height),
                     signer="SYSTEM",
                     once=True,

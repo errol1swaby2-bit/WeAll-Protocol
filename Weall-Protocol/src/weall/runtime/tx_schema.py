@@ -1271,6 +1271,8 @@ class GovStageSetPayload(_StrictModel):
     stage: str = Field(..., min_length=1)
     poll_tally: Json | None = None
     poll_total_votes: int | None = Field(default=None, ge=0)
+    electorate_refresh: bool | None = None
+    refresh_reason: str | None = None
     due_height: int | None = Field(default=None, ge=0, alias="_due_height")
 
 
@@ -1355,6 +1357,13 @@ class GovTallyPublishPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
     tally: Json | None = None
     total_votes: int | None = Field(default=None, ge=0)
+    quorum_required: int | None = Field(default=None, ge=0)
+    quorum_met: bool | None = None
+    passed: bool | None = None
+    electorate_round: int | None = Field(default=None, ge=0)
+    no_decision_reason: str | None = None
+    finalize_without_execution: bool | None = None
+    parent_ref: str | None = Field(default=None, alias="_parent_ref")
 
 
 class GovProposalFinalizePayload(_StrictModel):
@@ -1365,6 +1374,8 @@ class GovProposalFinalizePayload(_StrictModel):
 class GovProposalReceiptPayload(_StrictModel):
     proposal_id: str = Field(..., min_length=1)
     finalized: bool | int | None = None
+    outcome: str | None = None
+    reason: str | None = None
     parent_ref: str | None = Field(default=None, alias="_parent_ref")
 
 

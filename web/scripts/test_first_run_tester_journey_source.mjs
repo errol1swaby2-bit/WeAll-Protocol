@@ -111,7 +111,7 @@ for (const needle of [
   "WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh",
   "Home → Account → Verification → Feed → Groups → Decisions → Reports → Review Center → Activity → Transactions → Personal Node",
   "A transaction is only final when the backend reports inclusion/finalization or a specific rejected terminal state.",
-  "Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence gates.",
+  "Pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external evidence gates.",
 ]) {
   assertIncludes(first15, needle, "first 15 minutes doc");
 }

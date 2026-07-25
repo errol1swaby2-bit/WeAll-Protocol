@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
+from weall.runtime.ballot_policy import strict_civic_governance_enabled
 from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.reputation_units import account_reputation_units
 from weall.runtime.poh.state import effective_poh_tier
@@ -143,6 +144,11 @@ def _assign_unassigned_content_reviews_to_juror(ledger: Json, acct: str, *, nonc
     """
 
     if not acct:
+        return 0
+    # Strict M3 profiles require a complete deterministic constitutional panel.
+    # A single opt-in transaction must never assign its own signer directly.
+    # The shared scheduler repairs unassigned cases once the full pool exists.
+    if strict_civic_governance_enabled(ledger):
         return 0
     disputes = _as_dict(ledger.get("disputes_by_id"))
     if not disputes:

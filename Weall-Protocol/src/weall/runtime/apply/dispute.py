@@ -12,14 +12,19 @@ standalone and not import the legacy monolith. The router translates
 DisputeApplyError into ApplyError to preserve error codes and failure semantics.
 """
 
+import hashlib
+import json
+import math
 from dataclasses import dataclass
 from typing import Any
 
+from weall.runtime.ballot_policy import ballot_profile_status, strict_civic_governance_enabled
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.reputation_events import append_reputation_event
 from weall.runtime.reviewer_responsibilities import (
+    CONTENT_REVIEW_LANE,
     DISPUTE_REVIEW_LANE,
     eligible_reviewer_ids,
     reviewer_lane_active,
@@ -29,6 +34,132 @@ from weall.runtime.tx_admission import TxEnvelope
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
+
+
+def _canonical_hash(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _require_active_dispute_ballot_profile(state: Json, *, dispute_id: str, stage: str) -> Json:
+    status = ballot_profile_status(state)
+    if bool(status.get("strict")) and not bool(status.get("active")):
+        raise DisputeApplyError(
+            "forbidden",
+            "ballot_profile_inactive",
+            {
+                "dispute_id": dispute_id,
+                "stage": stage,
+                "profile_id": status.get("profile_id"),
+                "profile_reason": status.get("reason"),
+            },
+        )
+    return status
+
+
+def _dispute_ballot_receipts(state: Json) -> list[Json]:
+    receipts = state.get("dispute_ballot_admission_receipts")
+    if not isinstance(receipts, list):
+        receipts = []
+        state["dispute_ballot_admission_receipts"] = receipts
+    return receipts
+
+
+def _dispute_ballot_nullifier(
+    *, dispute_id: str, panel_round: int, juror: str, appeal: bool
+) -> str:
+    return _canonical_hash(
+        {
+            "domain": "weall.dispute.ballot-nullifier.v1",
+            "dispute_id": _as_str(dispute_id).strip(),
+            "panel_round": int(panel_round),
+            "ballot_class": "appeal" if appeal else "review",
+            "juror": _as_str(juror).strip(),
+        }
+    )
+
+
+def _aggregate_dispute_counts(dispute: Json, *, appeal: bool = False) -> dict[str, int]:
+    key = "appeal_vote_counts" if appeal else "vote_counts"
+    raw = dispute.get(key)
+    counts: dict[str, int] = {}
+    if isinstance(raw, dict):
+        for choice, count in raw.items():
+            choice_s = _as_str(choice).strip().lower()
+            if not choice_s:
+                continue
+            counts[choice_s] = max(0, _as_int(count, 0))
+    dispute[key] = counts
+    return counts
+
+
+def _dispute_ballot_nullifiers(dispute: Json, *, appeal: bool = False) -> dict[str, Json]:
+    key = "appeal_ballot_nullifiers" if appeal else "ballot_nullifiers"
+    raw = dispute.get(key)
+    nullifiers = raw if isinstance(raw, dict) else {}
+    dispute[key] = nullifiers
+    return nullifiers
+
+
+def _dispute_voted_juror_ids(dispute: Json, *, appeal: bool = False) -> list[str]:
+    key = "appeal_voted_juror_ids" if appeal else "voted_juror_ids"
+    raw = dispute.get(key)
+    values = sorted({_as_str(item).strip() for item in raw if _as_str(item).strip()}) if isinstance(raw, list) else []
+    dispute[key] = values
+    return values
+
+
+def _record_deattributed_resolution_option(
+    dispute: Json,
+    *,
+    choice: str,
+    resolution: Json | None,
+    summary: str = "",
+    appeal: bool = False,
+) -> None:
+    if not resolution and not summary:
+        return
+    key = "appeal_resolution_options" if appeal else "resolution_options"
+    raw = dispute.get(key)
+    options = raw if isinstance(raw, dict) else {}
+    normalized_resolution = dict(resolution) if isinstance(resolution, dict) else {}
+    option_payload = {
+        "choice": _as_str(choice).strip().lower(),
+        "resolution": normalized_resolution,
+        "summary": _as_str(summary).strip(),
+    }
+    commitment = _canonical_hash(
+        {"domain": "weall.dispute.deattributed-resolution-option.v1", **option_payload}
+    )
+    existing = options.get(commitment)
+    count = _as_int(existing.get("count"), 0) if isinstance(existing, dict) else 0
+    options[commitment] = {**option_payload, "count": int(count + 1)}
+    dispute[key] = options
+
+
+def _select_deattributed_resolution(dispute: Json, *, winning_choice: str, appeal: bool = False) -> Json:
+    key = "appeal_resolution_options" if appeal else "resolution_options"
+    options = dispute.get(key)
+    if not isinstance(options, dict):
+        return {}
+    matching: list[tuple[str, Json]] = []
+    for commitment, rec in options.items():
+        if not isinstance(rec, dict):
+            continue
+        if _as_str(rec.get("choice")).strip().lower() != _as_str(winning_choice).strip().lower():
+            continue
+        matching.append((_as_str(commitment), rec))
+    if not matching:
+        return {}
+    # Prefer the most frequently submitted option; break ties by commitment.
+    matching.sort(key=lambda item: (-_as_int(item[1].get("count"), 0), item[0]))
+    selected = matching[0][1]
+    out = dict(selected.get("resolution")) if isinstance(selected.get("resolution"), dict) else {}
+    summary = _as_str(selected.get("summary")).strip()
+    if summary:
+        out.setdefault("summary", summary)
+    return out
 
 
 @dataclass
@@ -276,6 +407,240 @@ def _filter_target_owner_from_jurors(state: Json, d: Json, jurors: list[str]) ->
     return filtered
 
 
+def _dispute_conflict_account_ids(state: Json, dispute: Json) -> list[str]:
+    conflicts: list[str] = []
+    for value in (
+        dispute.get("reported_by"),
+        dispute.get("flagged_by"),
+        dispute.get("reporter"),
+        dispute.get("opened_by"),
+        _dispute_target_owner(state, dispute),
+    ):
+        resolved = _resolve_account_identity(state, value)
+        if resolved and resolved.upper() != "SYSTEM":
+            conflicts.append(resolved)
+
+    for key in (
+        "party_ids",
+        "parties",
+        "beneficiary_ids",
+        "conflicted_account_ids",
+        "material_connection_ids",
+        "financial_connection_ids",
+    ):
+        raw = dispute.get(key)
+        if isinstance(raw, list):
+            conflicts.extend(_resolve_account_identity(state, item) for item in raw)
+
+    rules = _as_dict(dispute.get("rules"))
+    raw_rule_conflicts = rules.get("conflicted_account_ids")
+    if isinstance(raw_rule_conflicts, list):
+        conflicts.extend(_resolve_account_identity(state, item) for item in raw_rule_conflicts)
+
+    target_type = _as_str(dispute.get("target_type")).strip().lower()
+    group_id = _as_str(dispute.get("group_id") or (dispute.get("target_id") if target_type in {"group", "membership", "moderator"} else "")).strip()
+    if group_id:
+        roles = _as_dict(state.get("roles"))
+        groups = roles.get("groups_by_id") if isinstance(roles.get("groups_by_id"), dict) else state.get("groups_by_id")
+        group = groups.get(group_id) if isinstance(groups, dict) else None
+        if isinstance(group, dict):
+            for role_key in ("creator", "creators", "admin", "admins", "moderator", "moderators", "emissary", "emissaries", "signers"):
+                raw = group.get(role_key)
+                if isinstance(raw, list):
+                    conflicts.extend(_resolve_account_identity(state, item) for item in raw)
+                elif isinstance(raw, dict):
+                    conflicts.extend(_resolve_account_identity(state, item) for item in raw.keys())
+                elif raw:
+                    conflicts.append(_resolve_account_identity(state, raw))
+            role_map = group.get("roles")
+            if isinstance(role_map, dict):
+                for role_key in ("creator", "creators", "admin", "admins", "moderator", "moderators", "emissary", "emissaries"):
+                    raw = role_map.get(role_key)
+                    if isinstance(raw, list):
+                        conflicts.extend(_resolve_account_identity(state, item) for item in raw)
+                    elif isinstance(raw, dict):
+                        conflicts.extend(_resolve_account_identity(state, item) for item in raw.keys())
+
+    return _normalized_str_list([item for item in conflicts if item])
+
+
+def _dispute_panel_size(dispute: Json) -> int:
+    raw = _as_str(dispute.get("severity") or _as_dict(dispute.get("rules")).get("severity") or "low").strip().lower()
+    if raw in {"critical", "severe", "high", "major"}:
+        return 25
+    if raw in {"medium", "moderate", "elevated"}:
+        return 15
+    return 7
+
+
+def select_dispute_panel(
+    state: Json,
+    dispute: Json,
+    candidates: list[str],
+    *,
+    round_no: int = 1,
+    exclude_ids: list[str] | None = None,
+) -> Json:
+    """Select a deterministic constitutional review panel.
+
+    Strict M3 profiles require the complete 7/15/25 panel plus ceil(20%)
+    substitutes. Legacy/local fixtures keep their historical all-reviewer
+    behavior so unrelated development paths are not silently reinterpreted.
+    """
+
+    normalized = _normalized_str_list(
+        [_resolve_account_identity(state, item) for item in candidates]
+    )
+    conflicts = set(_dispute_conflict_account_ids(state, dispute))
+    excluded = set(_normalized_str_list(exclude_ids or [])) | conflicts
+    eligible = [item for item in normalized if item not in excluded]
+
+    strict = strict_civic_governance_enabled(state)
+    required_panel = _dispute_panel_size(dispute)
+    substitute_count = int(math.ceil(required_panel * 0.20))
+    seed = {
+        "domain": "weall.dispute.panel.v1",
+        "chain_id": _as_str(state.get("chain_id") or _as_dict(state.get("params")).get("chain_id")),
+        "dispute_id": _as_str(dispute.get("id") or dispute.get("dispute_id")),
+        "target_type": _as_str(dispute.get("target_type")),
+        "target_id": _as_str(dispute.get("target_id")),
+        "opened_at_height": _as_int(dispute.get("opened_at_height"), 0),
+        "round": int(round_no),
+        "candidate_commitment": _canonical_hash(sorted(eligible)),
+    }
+    ordered = sorted(
+        eligible,
+        key=lambda account: (_canonical_hash({**seed, "candidate": account}), account),
+    )
+
+    if not strict:
+        panel = ordered
+        substitutes: list[str] = []
+        status = "legacy_all_eligible_reviewers"
+    elif len(ordered) < required_panel + substitute_count:
+        panel = []
+        substitutes = []
+        status = "insufficient_reviewer_pool"
+    else:
+        panel = ordered[:required_panel]
+        substitutes = ordered[required_panel : required_panel + substitute_count]
+        status = "assigned"
+
+    commitment_payload = {
+        **seed,
+        "required_panel_size": int(required_panel),
+        "required_substitute_count": int(substitute_count),
+        "panel": panel,
+        "substitutes": substitutes,
+        "conflicts": sorted(conflicts),
+        "status": status,
+    }
+    return {
+        "round": int(round_no),
+        "strict": bool(strict),
+        "status": status,
+        "required_panel_size": int(required_panel),
+        "required_substitute_count": int(substitute_count),
+        "available_candidate_count": int(len(ordered)),
+        "panel": panel,
+        "substitutes": substitutes,
+        "conflicted_juror_ids": sorted(conflicts),
+        "excluded_juror_ids": sorted(excluded),
+        "candidate_commitment": seed["candidate_commitment"],
+        "panel_commitment": _canonical_hash(commitment_payload),
+    }
+
+
+def repair_unassigned_dispute_panels(state: Json, *, next_height: int) -> int:
+    """Assign complete strict-profile panels after the reviewer pool grows.
+
+    This is called from the shared leader/replay scheduler pipeline. It replaces
+    the legacy one-reviewer opt-in shortcut with a deterministic assignment that
+    every node can reproduce from canonical reviewer state.
+    """
+
+    if not strict_civic_governance_enabled(state):
+        return 0
+    disputes = state.get("disputes_by_id")
+    if not isinstance(disputes, dict):
+        return 0
+    receipts = state.get("dispute_panel_assignment_receipts")
+    if not isinstance(receipts, list):
+        receipts = []
+        state["dispute_panel_assignment_receipts"] = receipts
+
+    repaired = 0
+    for dispute_id in sorted(disputes):
+        dispute = disputes.get(dispute_id)
+        if not isinstance(dispute, dict):
+            continue
+        stage = _as_str(dispute.get("stage")).strip().lower()
+        if stage not in {"unassigned", "open", "juror_review"}:
+            continue
+        if _normalized_str_list(dispute.get("assigned_jurors")):
+            continue
+        target_type = _as_str(dispute.get("target_type")).strip().lower()
+        lane = (
+            CONTENT_REVIEW_LANE
+            if target_type in {"", "content", "post", "comment", "media"}
+            else DISPUTE_REVIEW_LANE
+        )
+        candidates = eligible_reviewer_ids(state, lane)
+        round_no = max(1, _as_int(dispute.get("panel_round"), 1))
+        selection = select_dispute_panel(
+            state,
+            dispute,
+            candidates,
+            round_no=round_no,
+        )
+        dispute["panel_status"] = selection["status"]
+        dispute["panel_commitment"] = selection["panel_commitment"]
+        dispute["panel_required_size"] = selection["required_panel_size"]
+        dispute["substitute_required_count"] = selection["required_substitute_count"]
+        dispute["substitute_juror_ids"] = list(selection["substitutes"])
+        dispute["conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
+        panel = list(selection["panel"])
+        if not panel:
+            dispute["stage"] = "unassigned"
+            dispute["assignment_blocked_reason"] = "insufficient_constitutional_reviewer_pool"
+            disputes[dispute_id] = dispute
+            continue
+
+        dispute["eligible_juror_ids"] = list(panel)
+        dispute["assigned_jurors"] = list(panel)
+        dispute["eligible_validator_count"] = int(len(panel))
+        dispute["required_votes"] = int(quorum_threshold(len(panel)))
+        dispute["stage"] = "juror_review"
+        dispute["stage_set_at_height"] = int(next_height)
+        dispute["assignment_blocked_reason"] = ""
+        jurors = dispute.get("jurors")
+        if not isinstance(jurors, dict):
+            jurors = {}
+        for juror in panel:
+            prior = jurors.get(juror) if isinstance(jurors.get(juror), dict) else {}
+            jurors[juror] = {
+                **prior,
+                "status": "assigned",
+                "assigned_at_height": int(next_height),
+                "panel_round": int(round_no),
+                "assignment_source": "deterministic_panel_repair",
+            }
+        dispute["jurors"] = jurors
+        receipt = {
+            "dispute_id": _as_str(dispute.get("id") or dispute_id),
+            "height": int(next_height),
+            "panel_round": int(round_no),
+            "panel_commitment": selection["panel_commitment"],
+            "panel": list(panel),
+            "substitutes": list(selection["substitutes"]),
+            "lane": lane,
+        }
+        receipts.append(receipt)
+        disputes[dispute_id] = dispute
+        repaired += 1
+    return repaired
+
+
 def _active_validator_ids(state: Json) -> list[str]:
     roles = _as_dict(state.get("roles"))
     validators = _as_dict(roles.get("validators"))
@@ -337,7 +702,13 @@ def _filter_active_dispute_reviewers(state: Json, jurors: list[str], dispute: Js
         for item in _normalized_str_list(jurors)
         if reviewer_lane_active(state, _resolve_account_identity(state, item), DISPUTE_REVIEW_LANE)
     ]
-    return _filter_target_owner_from_jurors(state, dispute, _normalized_str_list(active))
+    conflicts = set(_dispute_conflict_account_ids(state, dispute))
+    filtered = [item for item in _normalized_str_list(active) if item not in conflicts]
+    if conflicts:
+        existing = _normalized_str_list(dispute.get("conflicted_juror_ids"))
+        dispute["conflicted_juror_ids"] = _normalized_str_list(existing + sorted(conflicts))
+        dispute["conflict_policy"] = "constitutional_material_conflicts_excluded"
+    return filtered
 
 
 def _require_dispute_reviewer_lane(
@@ -365,6 +736,22 @@ def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str
     # Dispute review is a human-review responsibility. Validators, content
     # authors, reporters, or fallback signers never inherit this duty unless
     # they explicitly hold an active Juror/reviewer lane.
+    stage = _as_str(dispute.get("stage")).strip().lower()
+    if stage in {"appealed", "appeal_review"}:
+        appeal_snap = _filter_active_dispute_reviewers(
+            state,
+            [
+                _resolve_account_identity(state, item)
+                for item in _normalized_str_list(dispute.get("appeal_panel_juror_ids"))
+            ],
+            dispute,
+        )
+        if appeal_snap:
+            dispute["eligible_juror_ids"] = list(appeal_snap)
+            dispute["eligible_validator_count"] = int(len(appeal_snap))
+            dispute["required_votes"] = int(quorum_threshold(len(appeal_snap)))
+            return appeal_snap
+
     snap = _filter_active_dispute_reviewers(
         state,
         [
@@ -401,6 +788,13 @@ def _dispute_eligible_juror_ids(state: Json, dispute: Json, fallback_signer: str
         dispute["eligible_validator_count"] = int(len(active))
         dispute["required_votes"] = int(quorum_threshold(len(active))) if active else 0
         return active
+
+    if strict_civic_governance_enabled(state):
+        dispute["eligible_juror_ids"] = []
+        dispute["eligible_validator_count"] = 0
+        dispute["required_votes"] = 0
+        dispute["assignment_blocked_reason"] = "constitutional_panel_required"
+        return []
 
     raw_signer = fallback_signer or dispute.get("opened_by")
     signer = _resolve_account_identity(state, raw_signer)
@@ -754,22 +1148,32 @@ def _maybe_schedule_dispute_auto_resolution(
         return
 
     eligible_jurors = _dispute_eligible_juror_ids(state, dispute)
-    active_votes, eligible_count, required_votes = _active_validator_vote_snapshot(
-        state, dispute.get("votes"), eligible_jurors
-    )
-    total_votes = len(active_votes)
-    if required_votes <= 0:
-        fallback_votes = dispute.get("votes") if isinstance(dispute.get("votes"), dict) else {}
-        if not fallback_votes:
-            return
-        active_votes = {str(k): v for k, v in fallback_votes.items() if isinstance(v, dict)}
-        eligible_count = len(active_votes)
-        required_votes = len(active_votes)
+    strict_ballot = strict_civic_governance_enabled(state)
+    if strict_ballot:
+        tally = _aggregate_dispute_counts(dispute)
+        eligible_count = len(eligible_jurors)
+        required_votes = _as_int(dispute.get("required_votes"), 0)
+        if required_votes <= 0 and eligible_count > 0:
+            required_votes = int(quorum_threshold(eligible_count))
+        total_votes = int(sum(tally.values()))
+        active_votes: dict[str, dict[str, Any]] = {}
+    else:
+        active_votes, eligible_count, required_votes = _active_validator_vote_snapshot(
+            state, dispute.get("votes"), eligible_jurors
+        )
         total_votes = len(active_votes)
+        if required_votes <= 0:
+            fallback_votes = dispute.get("votes") if isinstance(dispute.get("votes"), dict) else {}
+            if not fallback_votes:
+                return
+            active_votes = {str(k): v for k, v in fallback_votes.items() if isinstance(v, dict)}
+            eligible_count = len(active_votes)
+            required_votes = len(active_votes)
+            total_votes = len(active_votes)
+        tally = _vote_choice_tally(active_votes)
     if required_votes <= 0 or total_votes < required_votes:
         return
 
-    tally = _vote_choice_tally(active_votes)
     yes = int(tally.get("yes", 0) or 0)
     no = int(tally.get("no", 0) or 0)
     report_upheld = yes > no
@@ -779,7 +1183,14 @@ def _maybe_schedule_dispute_auto_resolution(
     # client-supplied action list from removing content when the report was not
     # upheld, and guarantees that an upheld content report receives the canonical
     # visibility enforcement action.
-    selected_resolution = _select_resolution_from_votes(active_votes)
+    selected_resolution = (
+        _select_deattributed_resolution(
+            dispute,
+            winning_choice="yes" if report_upheld else "no",
+        )
+        if strict_ballot
+        else _select_resolution_from_votes(active_votes)
+    )
     resolution = dict(selected_resolution) if isinstance(selected_resolution, dict) else {}
     resolution["tally"] = dict(tally)
     resolution["eligible_validator_count"] = int(eligible_count)
@@ -906,8 +1317,13 @@ def _ensure_juror_deadlines(
 
 
 def _juror_has_vote(dispute: Json, juror: str) -> bool:
-    votes = _as_dict(dispute.get("votes"))
     variants = set(_identity_variants(juror))
+    voted = dispute.get("voted_juror_ids")
+    if isinstance(voted, list):
+        for voter in voted:
+            if variants.intersection(_identity_variants(voter)):
+                return True
+    votes = _as_dict(dispute.get("votes"))
     return any(_as_str(voter).strip() in variants for voter in votes.keys())
 
 
@@ -1208,15 +1624,50 @@ def dispute_open(state: Json, env: TxEnvelope) -> Json:
         "resolved": False,
         "resolution": None,
         "appeals": [],
+        "ballot_finality_policy": (
+            "first_admitted_final_ballot"
+            if strict_civic_governance_enabled(state)
+            else "legacy_mutable_compat"
+        ),
+        "public_ballot_disclosure": "aggregate_only",
     }
     # Recompute after target owner/reporter metadata is present so conflict
-    # filtering cannot select the disputed content's author as reviewer.
-    eligible_jurors = _dispute_eligible_juror_ids(state, disputes[dispute_id], fallback_signer)
-    disputes[dispute_id]["eligible_juror_ids"] = list(eligible_jurors)
-    disputes[dispute_id]["eligible_validator_count"] = int(len(eligible_jurors))
-    disputes[dispute_id]["required_votes"] = (
-        int(quorum_threshold(len(eligible_jurors))) if eligible_jurors else 0
+    # filtering cannot select a party or materially connected reviewer.
+    all_reviewers = eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE)
+    selection = select_dispute_panel(
+        state,
+        disputes[dispute_id],
+        all_reviewers,
+        round_no=1,
     )
+    disputes[dispute_id]["panel_round"] = 1
+    disputes[dispute_id]["panel_status"] = selection["status"]
+    disputes[dispute_id]["panel_commitment"] = selection["panel_commitment"]
+    disputes[dispute_id]["panel_required_size"] = selection["required_panel_size"]
+    disputes[dispute_id]["substitute_required_count"] = selection["required_substitute_count"]
+    disputes[dispute_id]["substitute_juror_ids"] = list(selection["substitutes"])
+    disputes[dispute_id]["conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
+    eligible_jurors = list(selection["panel"])
+    disputes[dispute_id]["eligible_juror_ids"] = list(eligible_jurors)
+    disputes[dispute_id]["assigned_jurors"] = list(eligible_jurors)
+    disputes[dispute_id]["eligible_validator_count"] = int(len(eligible_jurors))
+    disputes[dispute_id]["required_votes"] = int(quorum_threshold(len(eligible_jurors))) if eligible_jurors else 0
+    if selection["status"] == "insufficient_reviewer_pool":
+        disputes[dispute_id]["stage"] = "unassigned"
+        disputes[dispute_id]["assignment_blocked_reason"] = "insufficient_constitutional_reviewer_pool"
+    elif eligible_jurors:
+        jurors = disputes[dispute_id].get("jurors")
+        if not isinstance(jurors, dict):
+            jurors = {}
+        for juror in eligible_jurors:
+            jurors[juror] = {
+                "status": "assigned",
+                "assigned_at_nonce": int(env.nonce),
+                "assigned_at_height": int(opened_h),
+                "panel_round": 1,
+            }
+        disputes[dispute_id]["jurors"] = jurors
+        disputes[dispute_id]["stage"] = "juror_review"
     _index_dispute_target(state, disputes[dispute_id])
     return {"applied": "DISPUTE_OPEN", "dispute_id": dispute_id}
 
@@ -1639,6 +2090,10 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     if not dispute_id:
         raise DisputeApplyError("invalid_payload", "missing_dispute_id", {"tx_type": env.tx_type})
     d = _get_dispute(state, dispute_id)
+    stage = _as_str(d.get("stage") or "").strip().lower()
+    profile = _require_active_dispute_ballot_profile(
+        state, dispute_id=dispute_id, stage=stage or "juror_review"
+    )
     _require_dispute_reviewer_lane(state, env.signer, d)
     if _is_dispute_target_owner(state, d, env.signer):
         raise DisputeApplyError(
@@ -1652,6 +2107,26 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
         )
     _dispute_eligible_juror_ids(state, d, env.signer)
     juror_key = _juror_key_for_actor(d, env.signer)
+    is_appeal_vote = stage in {"appealed", "appeal_review"}
+    if bool(profile.get("strict")):
+        prior_voters = _dispute_voted_juror_ids(d, appeal=is_appeal_vote)
+        if any(
+            set(_identity_variants(juror_key)).intersection(_identity_variants(voter))
+            for voter in prior_voters
+        ):
+            raise DisputeApplyError(
+                "conflict",
+                "dispute_ballot_already_final",
+                {"dispute_id": dispute_id, "juror": env.signer, "stage": stage},
+            )
+    else:
+        prior_votes = _as_dict(d.get("appeal_panel_votes" if is_appeal_vote else "votes"))
+        if any(alias in prior_votes for alias in _identity_variants(env.signer)):
+            raise DisputeApplyError(
+                "conflict",
+                "dispute_ballot_already_final",
+                {"dispute_id": dispute_id, "juror": env.signer, "stage": stage},
+            )
     j = _require_juror_status(d, env.signer, {"assigned", "accepted", "present", "attended"})
     status = _as_str(j.get("status")).strip().lower()
     if status in {"", "assigned"}:
@@ -1703,18 +2178,114 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
                 "deadline_height": int(deadline),
             },
         )
-    votes = d.get("votes")
+    votes_key = "appeal_panel_votes" if is_appeal_vote else "votes"
+    votes = d.get(votes_key)
     if not isinstance(votes, dict):
         votes = {}
+    strict_ballot = bool(profile.get("strict"))
+    panel_round = int(d.get("appeal_panel_round") or d.get("panel_round") or 1)
+    ballot_nullifier = _dispute_ballot_nullifier(
+        dispute_id=dispute_id,
+        panel_round=panel_round,
+        juror=juror_key,
+        appeal=is_appeal_vote,
+    )
+    nullifiers = _dispute_ballot_nullifiers(d, appeal=is_appeal_vote)
+    voted_jurors = _dispute_voted_juror_ids(d, appeal=is_appeal_vote)
+
+    if strict_ballot:
+        # Migrate any attributable local/dev ballot state once, then erase it.
+        if votes:
+            counts = _aggregate_dispute_counts(d, appeal=is_appeal_vote)
+            for legacy_juror, record in sorted(votes.items(), key=lambda item: str(item[0])):
+                if not isinstance(record, dict):
+                    continue
+                choice = _as_str(
+                    record.get("decision") if is_appeal_vote else record.get("vote") or record.get("choice")
+                ).strip().lower()
+                if choice:
+                    counts[choice] = int(counts.get(choice, 0)) + 1
+                canonical_legacy = _as_str(legacy_juror).strip()
+                if canonical_legacy:
+                    voted_jurors.append(canonical_legacy)
+                    legacy_nullifier = _dispute_ballot_nullifier(
+                        dispute_id=dispute_id,
+                        panel_round=panel_round,
+                        juror=canonical_legacy,
+                        appeal=is_appeal_vote,
+                    )
+                    nullifiers.setdefault(
+                        legacy_nullifier,
+                        {"height": int(_as_int(record.get("height"), 0)), "migrated_from_attributable_state": True},
+                    )
+                legacy_resolution = record.get("resolution") if isinstance(record.get("resolution"), dict) else None
+                _record_deattributed_resolution_option(
+                    d,
+                    choice=choice,
+                    resolution=legacy_resolution,
+                    summary=_as_str(record.get("summary")),
+                    appeal=is_appeal_vote,
+                )
+            voted_jurors[:] = sorted(set(voted_jurors))
+            votes.clear()
+            d[votes_key] = {}
+        if ballot_nullifier in nullifiers or juror_key in set(voted_jurors):
+            raise DisputeApplyError(
+                "conflict",
+                "dispute_ballot_already_final",
+                {"dispute_id": dispute_id, "juror": env.signer, "stage": stage},
+            )
+    else:
+        for alias in _identity_variants(env.signer):
+            if alias in votes:
+                raise DisputeApplyError(
+                    "conflict",
+                    "dispute_ballot_already_final",
+                    {"dispute_id": dispute_id, "juror": env.signer, "stage": stage},
+                )
+
     resolution = payload.get("resolution") if isinstance(payload.get("resolution"), dict) else None
-    vote_entry: Json = {"vote": payload.get("vote"), "at_nonce": int(env.nonce)}
-    if isinstance(resolution, dict) and resolution:
-        vote_entry["resolution"] = dict(resolution)
-    for alias in _identity_variants(env.signer):
-        if alias != juror_key:
-            votes.pop(alias, None)
-    votes[juror_key] = vote_entry
-    d["votes"] = votes
+    vote_choice = _as_str(payload.get("vote")).strip().lower()
+    if not is_appeal_vote and vote_choice not in {"yes", "no", "abstain"}:
+        raise DisputeApplyError(
+            "invalid_payload",
+            "invalid_dispute_vote_choice",
+            {"dispute_id": dispute_id, "vote": vote_choice, "allowed": ["abstain", "no", "yes"]},
+        )
+
+    if strict_ballot:
+        if not is_appeal_vote:
+            counts = _aggregate_dispute_counts(d)
+            counts[vote_choice] = int(counts.get(vote_choice, 0)) + 1
+            _record_deattributed_resolution_option(
+                d,
+                choice=vote_choice,
+                resolution=resolution,
+            )
+        voted_jurors.append(juror_key)
+        voted_jurors[:] = sorted(set(voted_jurors))
+        nullifiers[ballot_nullifier] = {
+            "height": int(_current_height(state)),
+            "panel_round": panel_round,
+            "ballot_profile_id": _as_str(profile.get("profile_id")),
+            "final": True,
+        }
+        d[votes_key] = {}
+    elif not is_appeal_vote:
+        vote_entry: Json = {
+            "vote": vote_choice,
+            "at_nonce": int(env.nonce),
+            "height": int(_current_height(state)),
+            "ballot_profile_id": _as_str(profile.get("profile_id")),
+            "final": True,
+        }
+        if isinstance(resolution, dict) and resolution:
+            vote_entry["resolution"] = dict(resolution)
+        for alias in _identity_variants(env.signer):
+            if alias != juror_key:
+                votes.pop(alias, None)
+        votes[juror_key] = vote_entry
+        d["votes"] = votes
     now_h = _current_height(state)
     vote_event = _record_dispute_juror_reputation_event(
         state,
@@ -1737,6 +2308,25 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
     d["jurors"] = jurors
 
     appeal_panel_result = _maybe_record_appeal_panel_vote(state, d, env, payload, juror_key)
+    voter_commitment = _canonical_hash(
+        {
+            "domain": "weall.dispute.ballot-admission.v1",
+            "dispute_id": dispute_id,
+            "panel_round": int(d.get("appeal_panel_round") or d.get("panel_round") or 1),
+            "juror": juror_key,
+        }
+    )
+    _dispute_ballot_receipts(state).append(
+        {
+            "dispute_id": dispute_id,
+            "panel_round": int(d.get("appeal_panel_round") or d.get("panel_round") or 1),
+            "stage": stage,
+            "voter_commitment": voter_commitment,
+            "ballot_profile_id": _as_str(profile.get("profile_id")),
+            "height": int(now_h),
+            "final": True,
+        }
+    )
 
     parent_ref = (
         env.parent
@@ -1765,14 +2355,7 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
 def _maybe_record_appeal_panel_vote(
     state: Json, d: Json, env: TxEnvelope, payload: Json, juror_key: str
 ) -> Json | None:
-    """Record deterministic appeal-panel votes using existing DISPUTE_VOTE_SUBMIT.
-
-    Batch 508 avoids adding a new transaction type.  During appeal review, the
-    same assigned/accepted juror path can submit an appeal decision.  Once the
-    configured dispute quorum is reached, a canonical panel result is derived and
-    later consumed by DISPUTE_FINAL_RECEIPT if no explicit system
-    appeal_resolution is supplied.
-    """
+    """Record an appeal decision without publishing juror-to-choice mappings."""
 
     stage = _as_str(d.get("stage") or "").strip().lower()
     appeal_resolution = (
@@ -1794,70 +2377,114 @@ def _maybe_record_appeal_panel_vote(
     if stage not in {"appealed", "appeal_review"} and not raw_decision:
         return None
     if raw_decision not in {"uphold", "reverse", "modify"}:
-        return None
+        raise DisputeApplyError(
+            "invalid_payload",
+            "invalid_appeal_vote_choice",
+            {
+                "dispute_id": _as_str(d.get("id")),
+                "decision": raw_decision,
+                "allowed": ["modify", "reverse", "uphold"],
+            },
+        )
 
-    panel_votes = d.get("appeal_panel_votes")
-    if not isinstance(panel_votes, dict):
-        panel_votes = {}
-    vote_entry: Json = {
-        "decision": raw_decision,
-        "at_nonce": int(env.nonce),
-        "height": int(state.get("height", 0) or 0),
-    }
-    if isinstance(appeal_resolution, dict):
-        vote_entry["resolution"] = dict(appeal_resolution)
+    strict_ballot = strict_civic_governance_enabled(state)
     summary = _as_str(
         payload.get("summary") or (appeal_resolution or {}).get("summary") or ""
     ).strip()
-    if summary:
-        vote_entry["summary"] = summary
-    panel_votes[juror_key] = vote_entry
-    d["appeal_panel_votes"] = panel_votes
-    d["stage"] = "appeal_review"
 
+    if strict_ballot:
+        counts = _aggregate_dispute_counts(d, appeal=True)
+        counts[raw_decision] = int(counts.get(raw_decision, 0)) + 1
+        _record_deattributed_resolution_option(
+            d,
+            choice=raw_decision,
+            resolution=appeal_resolution,
+            summary=summary,
+            appeal=True,
+        )
+        d["appeal_panel_votes"] = {}
+        total_votes = int(sum(counts.values()))
+    else:
+        panel_votes = d.get("appeal_panel_votes")
+        if not isinstance(panel_votes, dict):
+            panel_votes = {}
+        for alias in _identity_variants(env.signer):
+            if alias in panel_votes:
+                raise DisputeApplyError(
+                    "conflict",
+                    "dispute_ballot_already_final",
+                    {
+                        "dispute_id": _as_str(d.get("id")),
+                        "juror": env.signer,
+                        "stage": stage,
+                    },
+                )
+        vote_entry: Json = {
+            "decision": raw_decision,
+            "at_nonce": int(env.nonce),
+            "height": int(state.get("height", 0) or 0),
+        }
+        if isinstance(appeal_resolution, dict):
+            vote_entry["resolution"] = dict(appeal_resolution)
+        if summary:
+            vote_entry["summary"] = summary
+        panel_votes[juror_key] = vote_entry
+        d["appeal_panel_votes"] = panel_votes
+        counts = {"uphold": 0, "reverse": 0, "modify": 0}
+        for vote in panel_votes.values():
+            if isinstance(vote, dict):
+                decision = _as_str(vote.get("decision") or "").strip().lower()
+                if decision in counts:
+                    counts[decision] += 1
+        total_votes = len(panel_votes)
+
+    d["stage"] = "appeal_review"
     eligible = _dispute_eligible_juror_ids(state, d, str(env.signer))
     required = int(d.get("required_votes") or 0)
     if required <= 0:
         required = int(quorum_threshold(len(eligible))) if eligible else 1
-    counts: dict[str, int] = {"uphold": 0, "reverse": 0, "modify": 0}
-    for vote in panel_votes.values():
-        if isinstance(vote, dict):
-            decision = _as_str(vote.get("decision") or "").strip().lower()
-            if decision in counts:
-                counts[decision] += 1
+
     decision = ""
     for candidate in ("reverse", "modify", "uphold"):
-        if counts.get(candidate, 0) >= required:
+        if int(counts.get(candidate, 0)) >= required:
             decision = candidate
             break
     result: Json = {
-        "votes": len(panel_votes),
+        "votes": int(total_votes),
         "required_votes": int(required),
-        "counts": counts,
+        "counts": {
+            "uphold": int(counts.get("uphold", 0)),
+            "reverse": int(counts.get("reverse", 0)),
+            "modify": int(counts.get("modify", 0)),
+        },
         "reached": bool(decision),
     }
     if decision:
         resolution: Json = {"decision": decision}
-        # Deterministic tie-break for supplemental resolution details: use the
-        # lexicographically first juror key that voted for the winning decision.
-        for key in sorted(panel_votes):
-            vote = panel_votes.get(key)
-            if (
-                not isinstance(vote, dict)
-                or _as_str(vote.get("decision") or "").strip().lower() != decision
-            ):
-                continue
-            if isinstance(vote.get("resolution"), dict):
-                resolution.update(dict(vote["resolution"]))
-                resolution["decision"] = decision
-            if _as_str(vote.get("summary") or "").strip():
-                resolution.setdefault("summary", _as_str(vote.get("summary")).strip())
-            break
+        if strict_ballot:
+            selected = _select_deattributed_resolution(
+                d, winning_choice=decision, appeal=True
+            )
+            resolution.update(selected)
+            resolution["decision"] = decision
+        else:
+            panel_votes = _as_dict(d.get("appeal_panel_votes"))
+            for key in sorted(panel_votes):
+                vote = panel_votes.get(key)
+                if (
+                    not isinstance(vote, dict)
+                    or _as_str(vote.get("decision") or "").strip().lower() != decision
+                ):
+                    continue
+                if isinstance(vote.get("resolution"), dict):
+                    resolution.update(dict(vote["resolution"]))
+                    resolution["decision"] = decision
+                if _as_str(vote.get("summary") or "").strip():
+                    resolution.setdefault("summary", _as_str(vote.get("summary")).strip())
+                break
         result["decision"] = decision
         result["resolution"] = resolution
-        d["appeal_panel_result"] = result
-    else:
-        d["appeal_panel_result"] = result
+    d["appeal_panel_result"] = result
     return result
 
 
@@ -2021,6 +2648,16 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
     appeals = d.get("appeals")
     if not isinstance(appeals, list):
         appeals = []
+    for existing in appeals:
+        if isinstance(existing, dict) and set(_identity_variants(existing.get("by"))).intersection(
+            _identity_variants(env.signer)
+        ):
+            raise DisputeApplyError(
+                "conflict",
+                "appeal_already_filed",
+                {"dispute_id": dispute_id, "appellant": env.signer},
+            )
+
     appeals.append(
         {
             "by": env.signer,
@@ -2030,14 +2667,76 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
         }
     )
     d["appeals"] = appeals
-    d["stage"] = "appealed"
-    return {"applied": "DISPUTE_APPEAL", "dispute_id": dispute_id}
+
+    original_panel = _normalized_str_list(d.get("assigned_jurors"))
+    original_substitutes = _normalized_str_list(d.get("substitute_juror_ids"))
+    appeal_round = int(d.get("appeal_panel_round") or 1)
+    candidates = eligible_reviewer_ids(state, DISPUTE_REVIEW_LANE)
+    selection = select_dispute_panel(
+        state,
+        d,
+        candidates,
+        round_no=appeal_round + 1,
+        exclude_ids=original_panel + original_substitutes,
+    )
+    appeal_panel = list(selection["panel"])
+    if bool(selection.get("strict")) and selection.get("status") != "assigned":
+        raise DisputeApplyError(
+            "forbidden",
+            "insufficient_fresh_appeal_panel",
+            {
+                "dispute_id": dispute_id,
+                "required_panel_size": selection.get("required_panel_size"),
+                "required_substitute_count": selection.get("required_substitute_count"),
+                "available_candidate_count": selection.get("available_candidate_count"),
+            },
+        )
+
+    now_h = int(state.get("height", 0) or 0)
+    d["original_panel_juror_ids"] = list(original_panel)
+    d["original_substitute_juror_ids"] = list(original_substitutes)
+    d["appeal_panel_round"] = int(appeal_round + 1)
+    d["appeal_panel_status"] = selection["status"]
+    d["appeal_panel_commitment"] = selection["panel_commitment"]
+    d["appeal_panel_juror_ids"] = list(appeal_panel)
+    d["appeal_substitute_juror_ids"] = list(selection["substitutes"])
+    d["appeal_conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
+    d["eligible_juror_ids"] = list(appeal_panel)
+    d["eligible_validator_count"] = int(len(appeal_panel))
+    d["required_votes"] = int(quorum_threshold(len(appeal_panel))) if appeal_panel else 0
+    d["appeal_panel_votes"] = {}
+    d["appeal_vote_counts"] = {}
+    d["appeal_ballot_nullifiers"] = {}
+    d["appeal_voted_juror_ids"] = []
+    d["appeal_resolution_options"] = {}
+    d["jurors"] = {
+        juror: {
+            "status": "assigned",
+            "assigned_at_nonce": int(env.nonce),
+            "assigned_at_height": now_h,
+            "panel_round": int(appeal_round + 1),
+            "panel_kind": "appeal",
+        }
+        for juror in appeal_panel
+    }
+    d["assigned_jurors"] = list(appeal_panel)
+    d["stage"] = "appeal_review" if appeal_panel else "appealed"
+    d["stage_set_at_height"] = now_h
+    return {
+        "applied": "DISPUTE_APPEAL",
+        "dispute_id": dispute_id,
+        "appeal_panel_status": selection["status"],
+        "appeal_panel_commitment": selection["panel_commitment"],
+    }
 
 
 def _record_dispute_juror_accountability(state: Json, dispute: Json, *, dispute_id: str) -> Json:
     assigned = _normalized_str_list(dispute.get("assigned_jurors"))
     votes = _as_dict(dispute.get("votes"))
     voted: set[str] = set()
+    for voter in _normalized_str_list(dispute.get("voted_juror_ids")):
+        for variant in _identity_variants(voter):
+            voted.add(variant)
     for voter in votes.keys():
         for variant in _identity_variants(voter):
             voted.add(variant)

@@ -61,7 +61,7 @@ REQUIRED_DELIVERABLES = {
 }
 
 REQUIRED_EXCLUSIONS = {"M-045", "M-052", "M-053", "M-058"}
-REQUIRED_BLOCKING_GAPS = {"M3-GAP-GOV-001", "M3-GAP-GOV-002"}
+REQUIRED_BLOCKING_GAPS: set[str] = set()
 
 
 class ContractError(RuntimeError):
@@ -187,8 +187,8 @@ def main() -> int:
             )
         )
 
-    # The planning scaffold must remain honest about the two blocking governance gaps.
-    expected_gap_rows = {
+    # Protocol corrections are implemented, but closure remains evidence-gated.
+    corrected_rows = {
         "M3-P0-01",
         "M3-P0-02",
         "M3-P0-03",
@@ -196,9 +196,9 @@ def main() -> int:
         "M3-P0-05",
         "M3-P1-09",
     }
-    for row_id in expected_gap_rows:
-        if rows[row_id]["status"] != "open_protocol_gap":
-            raise ContractError(f"m3_traceability_gap_prematurely_closed:{row_id}")
+    for row_id in corrected_rows:
+        if rows[row_id]["status"] != "implemented_requires_integrated_evidence":
+            raise ContractError(f"m3_traceability_correction_status_invalid:{row_id}")
 
     mechanism_rows = crosswalk.get("mechanism_scope")
     if not isinstance(mechanism_rows, list):
@@ -277,7 +277,7 @@ def main() -> int:
         raise ContractError("m3_crosswalk_scoped_mechanism_excluded")
 
     print(
-        "OK: M3 traceability scaffold validated "
+        "OK: M3 traceability validated "
         f"{len(rows)} requirements, "
         f"{len(cross_mechanisms)} mechanisms, "
         f"{len(deliverable_ids)} deliverables, and "

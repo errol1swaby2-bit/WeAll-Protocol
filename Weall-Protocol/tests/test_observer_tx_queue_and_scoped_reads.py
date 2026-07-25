@@ -240,7 +240,7 @@ def test_content_detail_hides_non_public_content() -> None:
         assert client.get("/v1/content/comment:private").status_code == 404
 
 
-def test_group_members_and_vote_maps_are_paginated() -> None:
+def test_group_members_are_paginated_and_ballot_choices_are_redacted() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         members = client.get("/v1/groups/g1/members?limit=2")
         assert members.status_code == 200, members.text
@@ -249,15 +249,17 @@ def test_group_members_and_vote_maps_are_paginated() -> None:
 
         proposal_votes = client.get("/v1/gov/proposals/p1/votes?limit=2")
         assert proposal_votes.status_code == 200, proposal_votes.text
-        assert len(proposal_votes.json()["votes"]) == 2
+        assert "votes" not in proposal_votes.json()
+        assert proposal_votes.json()["votes_redacted"] is True
+        assert proposal_votes.json()["identity_choice_maps_exposed"] is False
         assert proposal_votes.json()["counts_total"]["votes"] == 5
-        assert proposal_votes.json()["next_cursor"]
 
         dispute_votes = client.get("/v1/disputes/d1/votes?limit=2")
         assert dispute_votes.status_code == 200, dispute_votes.text
-        assert len(dispute_votes.json()["votes"]) == 2
+        assert "votes" not in dispute_votes.json()
+        assert dispute_votes.json()["votes_redacted"] is True
+        assert dispute_votes.json()["identity_choice_maps_exposed"] is False
         assert dispute_votes.json()["counts_total"]["votes"] == 5
-        assert dispute_votes.json()["next_cursor"]
 
 
 def test_removed_message_thread_routes_are_unmounted() -> None:

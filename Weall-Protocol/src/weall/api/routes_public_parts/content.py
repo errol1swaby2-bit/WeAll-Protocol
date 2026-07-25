@@ -163,25 +163,27 @@ def _dispute_vote_tally_hides_target(raw: Json) -> bool:
     routes remain the place to inspect or challenge the outcome.
     """
 
-    votes = _as_dict(raw.get("votes"))
-    if not votes:
-        return False
+    aggregate = _as_dict(raw.get("vote_counts"))
+    yes = _safe_int(aggregate.get("yes"), 0)
+    no = _safe_int(aggregate.get("no"), 0)
+    active_votes = sum(max(0, _safe_int(value, 0)) for value in aggregate.values())
 
-    yes = 0
-    no = 0
-    active_votes = 0
-    for rec in votes.values():
-        if not isinstance(rec, dict):
-            continue
-        choice = _vote_choice_from_record(rec)
-        if choice in {"yes", "remove", "removed", "uphold", "upheld", "report_upheld"}:
-            yes += 1
-            active_votes += 1
-        elif choice in {"no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"}:
-            no += 1
-            active_votes += 1
-        elif choice in {"abstain", "need_more_review", "need-more-review", "more_review"}:
-            active_votes += 1
+    if not aggregate:
+        votes = _as_dict(raw.get("votes"))
+        if not votes:
+            return False
+        for rec in votes.values():
+            if not isinstance(rec, dict):
+                continue
+            choice = _vote_choice_from_record(rec)
+            if choice in {"yes", "remove", "removed", "uphold", "upheld", "report_upheld"}:
+                yes += 1
+                active_votes += 1
+            elif choice in {"no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"}:
+                no += 1
+                active_votes += 1
+            elif choice in {"abstain", "need_more_review", "need-more-review", "more_review"}:
+                active_votes += 1
 
     try:
         required = int(raw.get("required_votes") or 0)
@@ -864,6 +866,57 @@ def feed(request: Request) -> dict[str, object]:
             "uses_anti_brigading_caps": rank_mode == "production",
             "uses_author_diversity_dampening": rank_mode == "production",
         },
+    }
+
+
+@router.get("/content/{content_id}/history")
+def content_history_get(request: Request, content_id: str) -> dict[str, object]:
+    """Return a bounded append-only public mutation receipt chain."""
+
+    st = _snapshot(request)
+    pid = str(content_id or "").strip()
+    if not pid:
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "content history not found"}
+        )
+
+    history = _as_dict(_content_root(st).get("history"))
+    post_chain = _as_dict(history.get("posts")).get(pid)
+    comment_chain = _as_dict(history.get("comments")).get(pid)
+    if isinstance(post_chain, list):
+        content_type = "post"
+        chain = post_chain
+    elif isinstance(comment_chain, list):
+        content_type = "comment"
+        chain = comment_chain
+    else:
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "content history not found"}
+        )
+
+    limit = max(1, min(200, _int_param(request.query_params.get("limit"), 50)))
+    before_version = _int_param(request.query_params.get("before_version"), len(chain) + 1)
+    rows = [
+        dict(item)
+        for item in chain
+        if isinstance(item, dict) and _safe_int(item.get("version"), 0) < before_version
+    ]
+    rows.sort(key=lambda item: _safe_int(item.get("version"), 0), reverse=True)
+    page = rows[:limit]
+    next_before_version = None
+    if len(rows) > limit and page:
+        next_before_version = _safe_int(page[-1].get("version"), 0)
+
+    return {
+        "ok": True,
+        "content_id": pid,
+        "type": content_type,
+        "items": page,
+        "next_before_version": next_before_version,
+        "append_only": True,
+        "latest_receipt_commitment": str(chain[-1].get("receipt_commitment") or "")
+        if chain and isinstance(chain[-1], dict)
+        else "",
     }
 
 

@@ -16,14 +16,14 @@
     {
       "id": "M-039",
       "title": "Posts, comments, reactions, shares, and media",
-      "repository_status": "current_partial",
+      "repository_status": "implemented_requires_integrated_evidence",
       "m3_treatment": "integrate canonical signed real-stack and replay evidence"
     },
     {
       "id": "M-040",
       "title": "Moderation flags, public receipts, and dispute escalation",
-      "repository_status": "current_partial",
-      "m3_treatment": "prove report-to-review-to-appeal public procedure"
+      "repository_status": "implemented_requires_integrated_evidence",
+      "m3_treatment": "verify deterministic report-to-case liveness, retry receipts, immutable content history, review, and appeal procedure"
     },
     {
       "id": "M-041",
@@ -34,56 +34,56 @@
     {
       "id": "M-042",
       "title": "Groups, memberships, roles, moderators, and signers",
-      "repository_status": "current_partial",
+      "repository_status": "implemented_requires_integrated_evidence",
       "m3_treatment": "prove canonical group create and membership lifecycle"
     },
     {
       "id": "M-043",
       "title": "Group-scoped posting and participation",
-      "repository_status": "current_partial",
+      "repository_status": "implemented_requires_integrated_evidence",
       "m3_treatment": "prove member-gated write and public read"
     },
     {
       "id": "M-049",
       "title": "Proposal create, edit, comment, withdraw, and stage",
-      "repository_status": "current_partial",
+      "repository_status": "implemented_requires_integrated_evidence",
       "m3_treatment": "prove signed proposal and block-height lifecycle"
     },
     {
       "id": "M-050",
       "title": "Ballot admission, close, tally, finalization, and receipts",
-      "repository_status": "implementation_divergence",
-      "m3_treatment": "replace revocable attributable voting with the scoped first-admitted final ballot contract and frozen-denominator receipts"
+      "repository_status": "implemented_requires_integrated_evidence",
+      "m3_treatment": "verify first-admitted final ballots, aggregate-only canonical choice state, launch-profile gating, tally receipts, and append-only round history"
     },
     {
       "id": "M-051",
       "title": "Human and group electorate snapshots",
-      "repository_status": "normative_target_high_priority_divergence",
-      "m3_treatment": "implement scope-correct Tier-2/group electorate snapshots; validators are not political principals"
+      "repository_status": "implemented_requires_integrated_evidence",
+      "m3_treatment": "verify scope-correct Tier-2/group electorate rounds with immutable snapshots and deterministic denominator refresh/reopen; validators remain separate from political eligibility"
     },
     {
       "id": "M-054",
       "title": "Dispute open, evidence, assignment, vote, and resolve",
-      "repository_status": "current_partial",
-      "m3_treatment": "prove independent reviewer workflow and public outcome"
+      "repository_status": "implemented_requires_integrated_evidence",
+      "m3_treatment": "verify deterministic constitutional panels, substitutes, conflict exclusions, aggregate ballots, and public outcome"
     },
     {
       "id": "M-055",
       "title": "Appeal, reviewer timeout/replacement, and enforcement",
-      "repository_status": "current_partial",
-      "m3_treatment": "prove fresh appeal path and append-only correction"
+      "repository_status": "implemented_requires_integrated_evidence",
+      "m3_treatment": "verify disjoint fresh appeal panels, aggregate appeal ballots, timeout repair, and append-only correction"
     },
     {
       "id": "M-056",
       "title": "Contextual reputation and eligibility",
-      "repository_status": "aligned_current_partial",
+      "repository_status": "implemented_requires_integrated_evidence",
       "m3_treatment": "prove eligibility effects without vote weighting or intrinsic-worth claims"
     }
   ],
   "deliverables": [
     {
       "id": "m3-governance-corrections",
-      "title": "Frozen human/group electorates and first-admitted final ballots",
+      "title": "Versioned human/group electorate rounds and first-admitted final ballots",
       "requirement_rows": [
         "M3-P0-01",
         "M3-P0-02",
@@ -100,11 +100,17 @@
         "src/weall/runtime/apply/governance.py",
         "src/weall/runtime/gov_engine.py",
         "src/weall/runtime/poh/eligibility.py",
-        "src/weall/runtime/tx_schema.py"
+        "src/weall/runtime/tx_schema.py",
+        "tests/test_m3_electorate_round_policy.py",
+        "src/weall/runtime/ballot_policy.py",
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/api/routes_public_parts/gov.py",
+        "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
         "artifacts/m3-closure/governance"
-      ]
+      ],
+      "status": "implemented_requires_integrated_evidence"
     },
     {
       "id": "m3-content-group-e2e",
@@ -122,11 +128,15 @@
       ],
       "implementation": [
         "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
-        "../scripts/run_m3_civic_real_stack_e2e.sh"
+        "../scripts/run_m3_civic_real_stack_e2e.sh",
+        "src/weall/runtime/apply/content.py",
+        "src/weall/runtime/apply/groups.py",
+        "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
         "artifacts/m3-closure/browser/civic"
-      ]
+      ],
+      "status": "implemented_requires_integrated_evidence"
     },
     {
       "id": "m3-dispute-appeal-e2e",
@@ -146,11 +156,17 @@
       "implementation": [
         "src/weall/runtime/apply/dispute.py",
         "src/weall/runtime/dispute_engine.py",
-        "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts"
+        "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
+        "src/weall/runtime/ballot_policy.py",
+        "src/weall/runtime/apply/roles.py",
+        "src/weall/runtime/scheduler_pipeline.py",
+        "src/weall/api/routes_public_parts/disputes.py",
+        "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
         "artifacts/m3-closure/browser/dispute"
-      ]
+      ],
+      "status": "implemented_requires_integrated_evidence"
     },
     {
       "id": "m3-proposal-finalization-e2e",
@@ -168,11 +184,16 @@
       "implementation": [
         "src/weall/runtime/apply/governance.py",
         "src/weall/runtime/gov_engine.py",
-        "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts"
+        "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
+        "src/weall/runtime/ballot_policy.py",
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/api/routes_public_parts/gov.py",
+        "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
         "artifacts/m3-closure/browser/governance"
-      ]
+      ],
+      "status": "implemented_requires_integrated_evidence"
     },
     {
       "id": "m3-determinism",
@@ -185,13 +206,16 @@
       "implementation": [
         "../scripts/run_m3_restart_replay_gate.sh",
         "../scripts/run_m3_two_node_state_root_gate.sh",
-        "../scripts/run_m3_observer_catchup_gate.sh"
+        "../scripts/run_m3_observer_catchup_gate.sh",
+        "../scripts/run_m3_complete_closure.sh",
+        "../scripts/gen_m3_closure_manifest.py"
       ],
       "evidence": [
         "artifacts/m3-closure/restart-replay",
         "artifacts/m3-closure/two-node",
         "artifacts/m3-closure/observer"
-      ]
+      ],
+      "status": "implemented_requires_integrated_evidence"
     },
     {
       "id": "m3-closure-integrity",
@@ -206,27 +230,20 @@
         "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json",
         "../scripts/check_m3_requirement_traceability.py",
         "../scripts/build_m3_evidence_manifest.py",
-        "../scripts/check_m3_evidence_only_commit.sh"
+        "../scripts/check_m3_evidence_only_commit.sh",
+        "../scripts/check_m3_dependencies.py",
+        "../scripts/bootstrap_m3_environment.sh",
+        "../scripts/run_m3_complete_closure.sh",
+        "../scripts/gen_m3_closure_manifest.py",
+        "../scripts/check_m3_evidence_only_commit.py"
       ],
       "evidence": [
         "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
-      ]
+      ],
+      "status": "implemented_requires_integrated_evidence"
     }
   ],
-  "blocking_protocol_gaps": [
-    {
-      "id": "M3-GAP-GOV-001",
-      "mechanism_id": "M-050",
-      "description": "Current governance supports attributable vote revocation, conflicting with the scoped first-admitted final ballot contract.",
-      "closure_condition": "First valid admitted ballot is immutable; duplicate, replacement, and revoke attempts fail deterministically."
-    },
-    {
-      "id": "M3-GAP-GOV-002",
-      "mechanism_id": "M-051",
-      "description": "Some governance authorization surfaces use configured validators instead of scope-correct Tier-2 or group electorates.",
-      "closure_condition": "Electorate membership and denominator freeze at the correct block height; validators have no political weight unless independently eligible as humans."
-    }
-  ],
+  "blocking_protocol_gaps": [],
   "scope_exclusions": [
     {
       "mechanism_id": "M-045",
@@ -255,6 +272,27 @@
     {
       "track": "R-M5",
       "reason": "Public validator and multi-validator BFT readiness are separate."
+    }
+  ],
+  "implemented_protocol_corrections": [
+    {
+      "id": "M3-CORRECTION-GOV-001",
+      "mechanism_id": "M-050",
+      "description": "First admitted ballots are final in the controlled-testnet profile; replacement and revoke attempts fail deterministically, and canonical public choice state is aggregate-only.",
+      "verification": [
+        "tests/test_m3_closure_regressions.py",
+        "artifacts/m3-closure/governance"
+      ]
+    },
+    {
+      "id": "M3-CORRECTION-GOV-002",
+      "mechanism_id": "M-051",
+      "description": "Protocol and group rounds freeze scope-correct electorates and denominators; quorum refresh is versioned and validators receive no political authority unless separately eligible.",
+      "verification": [
+        "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_closure_regressions.py",
+        "artifacts/m3-closure/governance"
+      ]
     }
   ]
 }

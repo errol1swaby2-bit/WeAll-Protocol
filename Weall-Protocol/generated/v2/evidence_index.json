@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "39f7a181779ff3cd5ca979b3826cf4865422252760d621fa58fd6cc17939a32e"
+    "source_tree_digest": "89f0d3b7777384e2e265b16d3255956a29a811ae29eac35695d4cb1184362b56"
   },
   "rows": [
     {
@@ -1175,7 +1175,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": false,
       "reviewer": "automated CI and maintainer review",
-      "sha256": "8875892f1154491ef92722f6f649d2d695434b7d2b83c61654819771f3ab9678",
+      "sha256": "32930a4cb4b6f82da9c4893309c8e4fa300d4ec8a2df7557e2062afc28fbb212",
       "stable_id": "EVD-W1-COMPILER-TESTS",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."

@@ -234,11 +234,16 @@ def _failure_vectors(canon: Any) -> list[Json]:
         "state_hash_after": _canonical_hash(state),
     })
 
-    # Production executable governance cannot fall back to creator-only electorate.
+    # Production executable governance cannot proceed without any eligible
+    # Tier-2 human electorate. Validators are not political principals and a
+    # creator-only fallback is forbidden.
     state = _base_state()
     state["roles"] = {}
     state["consensus"] = {}
     state["params"]["chain_mode"] = "production"
+    for account in state.get("accounts", {}).values():
+        if isinstance(account, dict):
+            account["poh_tier"] = 1
     no_electorate_payload = {
         "proposal_id": "v15-no-explicit-electorate",
         "title": "no explicit electorate",

@@ -29,10 +29,10 @@ def test_m3_traceability_checker_passes() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stdout
-    assert "OK: M3 traceability scaffold validated" in result.stdout
+    assert "OK: M3 traceability validated" in result.stdout
 
 
-def test_m3_scaffold_records_governance_divergences_as_blockers() -> None:
+def test_m3_traceability_records_protocol_corrections_as_evidence_gated() -> None:
     trace = _json(TRACE_PATH)
     rows = {
         str(row["id"]): row
@@ -46,14 +46,15 @@ def test_m3_scaffold_records_governance_divergences_as_blockers() -> None:
         "M3-P0-05",
         "M3-P1-09",
     ):
-        assert rows[row_id]["status"] == "open_protocol_gap"
+        assert rows[row_id]["status"] == "implemented_requires_integrated_evidence"
 
     crosswalk = _json(CROSSWALK_PATH)
-    gaps = {
+    assert crosswalk["blocking_protocol_gaps"] == []
+    corrections = {
         str(row["mechanism_id"])
-        for row in crosswalk["blocking_protocol_gaps"]  # type: ignore[index]
+        for row in crosswalk["implemented_protocol_corrections"]  # type: ignore[index]
     }
-    assert gaps == {"M-050", "M-051"}
+    assert corrections == {"M-050", "M-051"}
 
 
 def test_m3_docs_preserve_bounded_claim_language() -> None:
@@ -65,7 +66,9 @@ def test_m3_docs_preserve_bounded_claim_language() -> None:
         "implementation-freeze commit",
         "evidence-only direct child",
         "first admitted final ballot",
-        "frozen denominator",
+        "versioned electorate round",
+        "active round denominator never drifts in place",
+        "expires with an explicit no-decision receipt",
         "validators are not political principals",
         "public beta",
         "mainnet",
@@ -78,7 +81,7 @@ def test_m3_docs_preserve_bounded_claim_language() -> None:
     assert "production constitutional governance is complete" not in combined
 
 
-def test_m3_real_stack_skeleton_is_red_and_non_skippable() -> None:
+def test_m3_real_stack_journey_is_non_skippable_and_manifest_bound() -> None:
     source = E2E_PATH.read_text(encoding="utf-8")
     package = _json(PACKAGE_PATH)
     scripts = package["scripts"]  # type: ignore[index]
@@ -92,10 +95,12 @@ def test_m3_real_stack_skeleton_is_red_and_non_skippable() -> None:
         "canonical group membership",
         "public report and independent review",
         "appeal and final receipt",
-        "frozen electorate",
+        "versioned electorate round",
         "first admitted final ballot",
         "block-height tally and finalization",
-        "M3_CLOSURE_NOT_IMPLEMENTED",
+        "WEALL_M3_ACTOR_MANIFEST",
+        "storageState",
+        "identity_choice_maps_exposed",
     ):
         assert marker in source
 
@@ -107,6 +112,47 @@ def test_m3_real_stack_skeleton_is_red_and_non_skippable() -> None:
         "apply_dispute(",
         "apply_content(",
         "apply_groups(",
+        "M3_CLOSURE_NOT_IMPLEMENTED",
     )
     for marker in forbidden:
         assert marker not in source
+
+
+def test_m3_complete_closure_runner_is_fail_closed_and_complete() -> None:
+    runner = (REPO_ROOT / "scripts/run_m3_complete_closure.sh").read_text(encoding="utf-8")
+    for marker in (
+        "check_m3_dependencies.py",
+        "check_m3_requirement_traceability.py",
+        "gen_governance_execution_vectors_v1_5.py --check",
+        "test_m3_closure_regressions.py",
+        "test_priority1_replay_schedule_consistency.py",
+        "test_helper_multinode_divergence_guards.py",
+        "npm run typecheck",
+        "npm run build",
+        "test:m3-civic-governance-real-stack",
+        "M3_IMPLEMENTATION_FREEZE_COMMIT",
+        "--evidence-only",
+        "gen_m3_closure_manifest.py",
+    ):
+        assert marker in runner
+
+    assert "set -uo pipefail" in runner
+    assert "|| true" not in runner
+
+
+def test_m3_evidence_only_checker_binds_direct_child_and_all_gates() -> None:
+    checker = (REPO_ROOT / "scripts/check_m3_evidence_only_commit.py").read_text(encoding="utf-8")
+    wrapper = (REPO_ROOT / "scripts/check_m3_evidence_only_commit.sh").read_text(encoding="utf-8")
+    for marker in (
+        "m3_evidence_commit_not_direct_child",
+        "m3_evidence_non_evidence_path",
+        "m3_evidence_manifest_path_set_mismatch",
+        "m3_evidence_gate_set_mismatch",
+        "M3_ACTOR_MANIFEST.json",
+        "M3_EXTERNAL_TWO_NODE_EVIDENCE.json",
+        "all_gates_passed",
+        "schema_version",
+    ):
+        assert marker in checker
+    assert "--cached" in wrapper
+    assert "M3_IMPLEMENTATION_FREEZE_COMMIT" in wrapper

@@ -33,8 +33,11 @@ def _identity_variants(value: Any) -> set[str]:
 
 
 def _juror_has_vote(dispute: Json, juror: str) -> bool:
-    votes = _d(dispute.get("votes"))
     variants = _identity_variants(juror)
+    for voter in dispute.get("voted_juror_ids") or []:
+        if variants.intersection(_identity_variants(voter)):
+            return True
+    votes = _d(dispute.get("votes"))
     return any(str(voter or "").strip() in variants for voter in votes.keys())
 
 

@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "39f7a181779ff3cd5ca979b3826cf4865422252760d621fa58fd6cc17939a32e"
+    "source_tree_digest": "89f0d3b7777384e2e265b16d3255956a29a811ae29eac35695d4cb1184362b56"
   },
   "rows": [
     {
@@ -718,6 +718,8 @@
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
         "appeal_finalization",
+        "appeal_panel_commitment",
+        "appeal_panel_status",
         "applied",
         "canonical_reputation_event_id",
         "case_id",
@@ -938,6 +940,8 @@
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
+        "appeal_panel_commitment",
+        "appeal_panel_status",
         "applied",
         "dispute_id"
       ],
@@ -1099,6 +1103,7 @@
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
         "applied",
+        "escalation_status",
         "flag_id"
       ],
       "kind": "user_transaction_apply_result",
@@ -3595,6 +3600,7 @@
         "n_ranked",
         "n_signers",
         "n_voters",
+        "public_ballot_disclosure",
         "read_visibility",
         "role",
         "seats",
@@ -3652,6 +3658,7 @@
         "deduped",
         "election_id",
         "n_ranked",
+        "public_ballot_disclosure",
         "voter"
       ],
       "kind": "user_transaction_apply_result",
