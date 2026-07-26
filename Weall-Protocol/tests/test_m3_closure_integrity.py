@@ -76,6 +76,18 @@ def test_generated_actor_template_uses_canonical_account_ids(tmp_path: Path) -> 
         assert all(char.islower() or char.isdigit() or char == "_" for char in account[1:])
         assert "signer_state" in actor
 
+    role_to_account = {actor["role"]: actor["account"] for actor in actors}
+    transcript = json.loads(
+        (tmp_path / "m3-transaction-transcript.template.json").read_text(encoding="utf-8")
+    )
+    for item in [*transcript["actions"], *transcript["negative_attempts"]]:
+        role = item["role"]
+        account = item["account"]
+        if role == "system_scheduler":
+            assert account == "SYSTEM"
+        else:
+            assert role_to_account[role] == account
+
 def test_closure_runner_requires_observer_privacy_and_freshness_gates() -> None:
     source = _read("scripts/run_m3_complete_closure.sh")
     for marker in (

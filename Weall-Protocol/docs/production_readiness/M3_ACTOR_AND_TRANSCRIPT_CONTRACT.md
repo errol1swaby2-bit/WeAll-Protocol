@@ -18,6 +18,8 @@ The manifest must contain:
 
 Recovery files, private keys, secret keys, mnemonics, browser state contents, cookies, and session material are forbidden in the manifest itself.
 
+Before the signed journey, the author, member, and all 18 reviewers must reach Tier 2 through normal controlled-devnet Tier-1 and Tier-2 transactions; the outsider remains Tier 0. Open PoH bootstrap is not part of the M3 closure path. Each reviewer must explicitly opt into both `content_review` and `dispute_review`. The first lane supplies content-report panel candidates, while the second authorizes dispute acceptance, attendance, and ballots.
+
 Build the manifest from a local actor list:
 
 ```bash

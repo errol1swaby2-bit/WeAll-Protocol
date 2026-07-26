@@ -142,9 +142,9 @@ def main() -> int:
         ("content_report", "member_reporter_voter", "@m3_member", "CONTENT_FLAG", journey["negative_post_id"], "negative-report"),
         ("proposal_create", "author_proposer", "@m3_author", "GOV_PROPOSAL_CREATE", journey["negative_proposal_id"], "negative-proposal"),
         ("eligible_ballots", "member_reporter_voter", "@m3_member", "GOV_VOTE_CAST", journey["negative_proposal_id"], "negative-governance-vote"),
-        ("original_panel_acceptance", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3-original-01", "DISPUTE_JUROR_ACCEPT", journey["negative_dispute_id"], "negative-dispute-accept"),
-        ("original_panel_attendance", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3-original-01", "DISPUTE_JUROR_ATTENDANCE", journey["negative_dispute_id"], "negative-dispute-attendance"),
-        ("original_panel_ballots", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3-original-01", "DISPUTE_VOTE_SUBMIT", journey["negative_dispute_id"], "negative-dispute-vote"),
+        ("original_panel_acceptance", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3_original_01", "DISPUTE_JUROR_ACCEPT", journey["negative_dispute_id"], "negative-dispute-accept"),
+        ("original_panel_attendance", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3_original_01", "DISPUTE_JUROR_ATTENDANCE", journey["negative_dispute_id"], "negative-dispute-attendance"),
+        ("original_panel_ballots", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3_original_01", "DISPUTE_VOTE_SUBMIT", journey["negative_dispute_id"], "negative-dispute-vote"),
     ]
     for label, role, account, tx_type, subject, suffix in extras:
         actions.append(
@@ -184,7 +184,7 @@ def main() -> int:
         negative(
             "nonselected_reviewer_vote_rejected",
             f"{APPEAL_REVIEWER_ROLE_PREFIX}01",
-            "@m3-appeal-01",
+            "@m3_appeal_01",
             journey["negative_dispute_id"],
             {"dispute_id": journey["negative_dispute_id"], "vote": "yes"},
         ),
@@ -219,7 +219,7 @@ def main() -> int:
             negative(
                 label,
                 f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01",
-                "@m3-original-01",
+                "@m3_original_01",
                 journey["negative_dispute_id"],
                 {"dispute_id": journey["negative_dispute_id"], **({} if "revoke" in label else {"vote": "no"})},
                 "REPLACE_CONFIRMED_NEGATIVE_DISPUTE_VOTE",

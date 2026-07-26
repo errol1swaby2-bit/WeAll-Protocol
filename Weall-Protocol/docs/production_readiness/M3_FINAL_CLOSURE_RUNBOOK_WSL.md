@@ -121,10 +121,17 @@ not preserve session storage, so the signer-state companion is required to
 perform the signed negative attempts without persisting the seed in browser
 local storage.
 
+The author, member, and all 18 reviewer candidates must reach Tier 2 through
+normal controlled-devnet Tier-1 and Tier-2 verification transactions. Keep the
+outsider at Tier 0 for the ineligible-voter fixture. Controlled-devnet deliberately
+keeps open PoH bootstrap closed, so do not enable or use
+`POH_BOOTSTRAP_TIER2_GRANT`.
+
 The original reviewer and appeal reviewer pools must each contain at least nine
-separate Tier-2 humans. Enroll and opt them into the content-review lane through
-real signed transactions. The appeal pool must be disjoint from the original
-panel.
+separate Tier-2 humans. Every reviewer must opt into both `content_review`
+(content-report panel selection) and `dispute_review` (acceptance, attendance,
+and ballot authority) through real signed `REVIEWER_LANE_OPT_IN` transactions.
+The appeal pool must be disjoint from the original panel.
 
 Never put recovery files, private keys, mnemonics, cookies, bearer tokens, or
 browser storage-state contents under `artifacts/m3-closure/`.

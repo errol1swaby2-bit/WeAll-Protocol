@@ -1735,7 +1735,7 @@
       ],
       "path": "docs/production_readiness/M3_ACTOR_AND_TRANSCRIPT_CONTRACT.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "437d113fb9e373397321e39b7a85e897f3fc0d422f3c7109a29174bc96429ef1",
+      "sha256": "632d4e45f0d0ed48fa79252ca307fdcb912e2ad9240ccc64a3b72dbf4218de28",
       "source_id": "SRC-6CC2CA6940525A3C"
     },
     {
@@ -1761,7 +1761,7 @@
       ],
       "path": "docs/production_readiness/M3_FINAL_CLOSURE_RUNBOOK_WSL.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "f53d3758faedb2b0f3b589edb89fc74101276b370c733bf22d50552f6d97809b",
+      "sha256": "e913ab1720a39d27f6d584cbdc2a27c48771c9978b1ef104d41b7a8198d2d04d",
       "source_id": "SRC-42EE7A4261544C8A"
     },
     {
@@ -19307,7 +19307,7 @@
       ],
       "path": "tests/test_m3_closure_integrity.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "421a7e51af0cd6dfe1fc994844ab9706435b546b90ab5f3dca101e0ad16790d0",
+      "sha256": "e3bbe3ddaf39a3164ee1d686471a59d0dcc8a3823b2c387bcf5a88f4d7c3174b",
       "source_id": "SRC-C5719DCEBD01CE0A"
     },
     {
