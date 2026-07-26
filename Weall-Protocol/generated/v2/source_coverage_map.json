@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1833,
+  "file_count": 1834,
   "files": [
     {
       "affected_registers": [
@@ -6400,7 +6400,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "b7a531b0ea11adb12c28c328cf874dcb69de0668693969b920178a0566ff41dd",
+      "sha256": "75f102c94c8661c7d0602fa7295cd03531c01f1f0aaba489e3073ffab7e48547",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -7084,7 +7084,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/poh.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "02cbb84c14967e955e97eba4cdc77aaa65264e8eed3912bf2438e60cac089740",
+      "sha256": "9e8bb5dc0a3eec8f2a4e7ab6acd64d150a517754d5e56843cd794bb0dd92ccc1",
       "source_id": "SRC-F65A78E0416B9DB6"
     },
     {
@@ -21393,6 +21393,21 @@
       "primary_mechanism_id": "M-076",
       "sha256": "5a9b2adc6ecc0cbd399af508edccf305a32d0ee61c2f979bf94c2df7cbbf0c21",
       "source_id": "SRC-ED019EE25BE8D965"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_poh_live_case_receipt_route_model.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "80b0bf4fe48fa9ac8c9d5f04cc6b25ea70bf5275df9da43cf4c3b16f3d06c6ec",
+      "source_id": "SRC-1D6F021E51805985"
     },
     {
       "affected_registers": [

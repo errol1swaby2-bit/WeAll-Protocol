@@ -3968,7 +3968,7 @@
         "line": 2795,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "a44477cf3369640b4bcce576b2e1a25d702a9c9a82b6e098151db39130439606",
+      "review_digest": "8eca83d5c2d3c297a4c7b9ec3dc3af205e5289eb43633b898e51b1dcc2075f90",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -3984,7 +3984,7 @@
         "line": 2817,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "f48156d9263dbc942f70576070d5aa32b173adc2038a5b24d59610c7ed86397e",
+      "review_digest": "e430705284bea7cc42db77ec9a6df1eb4da39790d4d8bea4b00274779a77cea8",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4000,7 +4000,7 @@
         "line": 2837,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "89df41cd4d5633a662e93fdaf81b578b2f48cf6a26616ce075417b5b95d5ebca",
+      "review_digest": "144b8dc5b13e63512a7d2d0042186761ca334193bea9fdb83aa2803753a86d32",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4016,7 +4016,7 @@
         "line": 2757,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "93f17e78b56e590e48260cb316029140f0c6f5ca59679e14f0bda3287dcc05ca",
+      "review_digest": "c0b82ff9f0937b696f35bc3dcce531651e03d3023f5e22524d15c0e743637f24",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4032,7 +4032,7 @@
         "line": 939,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "501741f159d56581dcd310f2de7dd0f58951b00311f4a53e0d35a261d14e2c93",
+      "review_digest": "5996556d27ae5afb9a1548a883894896a99bdde1156742b2ced9de21f44c0404",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4048,7 +4048,7 @@
         "line": 926,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "aae4da7929cf0626be867f6366d6823789b782820b55e88d6ba74e03849846cf",
+      "review_digest": "96af62f01848f64655cb2f362ac1692bfe9ae681d8b6d7910b0437b0f71ad047",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4064,7 +4064,7 @@
         "line": 965,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "639c6117259be60e313d3640bb550042c38bed1e589197df4b31262c3e7489fb",
+      "review_digest": "7c162c2f79824e3d328b11d31e9f889292956f4652c76e3ad0b6c7b5aa03f6f6",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4080,7 +4080,7 @@
         "line": 980,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "24a86f9aa41d566207412d2fe2220f17817790804296dddd6a45d276e7ae7413",
+      "review_digest": "2a30ff0f79474b60224fb36cffa47fcbab95e7713678b077c2f54cb3974b7084",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4096,7 +4096,7 @@
         "line": 1055,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "487c70a8b6bd157513203a1ba3a42a5b29edf5eef72e74e8f692b21ecc420b59",
+      "review_digest": "d2ddd747a159c2d615ae445074cd11c6d158014cc84c63a81f452c3b1d3e5fdc",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4112,7 +4112,7 @@
         "line": 1120,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "67c9f8ae5c5333e109cc9b8f0935a7603ae5f1474e4bcd4ad824fadd10b3f565",
+      "review_digest": "157ba25d8451efffe3caedfb4b396906094f337a2dc16156695c9cbf630b78ef",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4128,7 +4128,7 @@
         "line": 1266,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "abf22c91f45d22db100a0472bc61ffbda0a58f4e52cc780f16a2bef7e176bca6",
+      "review_digest": "bf7c0b6828d6386160392c30a0b757f984ce05f02cfb2ab3bc99069092630557",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4144,7 +4144,7 @@
         "line": 1290,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "922d63a8beee066230bb29460bbb73c52deb2d0d8c6bab04e31f54c8585084fd",
+      "review_digest": "2374877894e3e9b657c21229a53f7ee9179a486f061a147bb6f9aef2ec6c8796",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4160,7 +4160,7 @@
         "line": 2303,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "d3233e39181e20683f1d43b4282c08d8b84430f8746d474415a89963e468e46b",
+      "review_digest": "84e38b8aa9c67171e66b0c2f32edd259ba5d1c8e1f632a2959f4887a6da77a99",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4176,7 +4176,7 @@
         "line": 2432,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "75e73e0fc02a12c08a020e86358702d9db62d0f200a8ee640725dc93f6c6ae12",
+      "review_digest": "66732fd7112ff528cab7a40ea6821282c540863169ca17628ba6b61e0e1abb6d",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4192,7 +4192,7 @@
         "line": 2360,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "803acb91abe7d46e0a54966c1b0beb87f081dbe1269df8b4fe5a9ce9860369f3",
+      "review_digest": "73df73f2b88447de8f1573c3094815c3a26978c3deeaf2a5d47e005c5037ab76",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4208,7 +4208,7 @@
         "line": 1068,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "cc230b3745956be13f88ee4ea9d56f7b00cf51ee36f79b8d0c354e865b3e3746",
+      "review_digest": "1610f81f5430629b87dcf57aedf2835c38648f07ca4e25edf1287d3c95c565da",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4224,7 +4224,7 @@
         "line": 3008,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "e26a4128aa72d2f2be03af75765520d67db6d29c7a20d5a6c4bfded0c97669bc",
+      "review_digest": "107efb72665691a98b256a7ad369067e7a32077ba484b622af3e6414cd2f943e",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4240,7 +4240,7 @@
         "line": 2963,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "126ce57889335aad5c3cb8129fbbe77f9540f80b96c0194894064a147ba76231",
+      "review_digest": "5ebd698c386952a3d2e49368969565620769f68a1f2a7ee96606d9fc230579e6",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4256,7 +4256,7 @@
         "line": 2987,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "3e065afe68bf2601fc49fab6ca7d2a7622410536d77b2e62b63ca39ee000ae3b",
+      "review_digest": "e9b5f8604f2d3b586a7da2993939c98a54f719d0288f9f11eb62ec12533850f9",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4272,7 +4272,7 @@
         "line": 2913,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "5c4cdca15044e37e5189525567ee3d4fdaf08b8836fb0120c9e9c76b93ede4e9",
+      "review_digest": "01a66ce4e314b670131d9e722ccc12944a04bf4b77cdd11330b7a52fd086ebc8",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4288,7 +4288,7 @@
         "line": 3050,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "ae4e57a41ab61efbd03e53136fae2da7e8d74ed4763c261c8bbc7498e7c83620",
+      "review_digest": "2bd766cf5afb1998bd314729da120a360495f59cf3655f70a202b08e7986ff5a",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4304,7 +4304,7 @@
         "line": 2265,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "01490e817608d5ab9649252a2127471d8cb9d302a45767265d805890e5b1a185",
+      "review_digest": "1b195cf3f78287d38cfcd12e7d647c39cb3be92e256ad2b0fd8df1ee9198be95",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4320,7 +4320,7 @@
         "line": 2278,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "9657133baa25a7866d6ede4bb4773ba79bbe23e60977f747a3806330731a750d",
+      "review_digest": "f14220bfd71cc4af824e018aadf406fd85c0fd90bb5def2b13277349fda01bef",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4336,7 +4336,7 @@
         "line": 2294,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "6be29396e0f1ad5b48be414972bacf1db685817e01613eecbe6b7437399f16d6",
+      "review_digest": "b97f76b6384241e796f332fa9ddc0979e05022273d2caed1eeba0c8305ea5ae4",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4352,7 +4352,7 @@
         "line": 2652,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "7b96fdf12a382445f12a075046b95164e88f25d4b64264173d68fa2a5ca4a336",
+      "review_digest": "515f1d6577e8a1c7e343faa320804661fa311d972025d45838b673171031a30a",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4368,7 +4368,7 @@
         "line": 2596,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "380fb216ea958e4223edff5b87f82071a72ce2a28f23047ef1fb34d4add8d5a9",
+      "review_digest": "e219b85797e0f0862e653ccce08202ce0c892e2dc386bcf16c3e9eaea75bd04f",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4384,7 +4384,7 @@
         "line": 2548,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "4a32799948b49138b7c11744495020ca82a91615d13d5e7729536f20f4cd9af0",
+      "review_digest": "750783b069ff78d52a61804012902bd2490c8a6e9291ba7f00e438f6fe760a23",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
@@ -4448,7 +4448,7 @@
         "line": 2866,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
-      "review_digest": "bd57cecbbefaadb128d3acffafab9aada566744e10c99c895d63a2851bbdc503",
+      "review_digest": "6b2056112ee9d5208923782d34a7f68b89f52900ecf1320fa8ce98d959e7f385",
       "disposition": "accepted_current_semantic_contract",
       "reviewed_at": "2026-07-24T20:20:06Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",

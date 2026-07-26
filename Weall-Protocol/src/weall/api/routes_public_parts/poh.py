@@ -1020,6 +1020,8 @@ class PohLiveCaseModel(BaseModel):
     outcome: str | None = None
     tier_awarded: int | None = None
     poh_nft_token_id: str | None = None
+    live_receipt_emitted: bool = False
+    live_receipt_id: str | None = None
     jurors: list[PohLiveJurorModel] = Field(default_factory=list)
 
 
@@ -1080,6 +1082,8 @@ def _as_live_case(case_id: str, r: dict[str, object]) -> PohLiveCaseModel:
         outcome=str(r.get("outcome") or "").strip() or None,
         tier_awarded=_opt_int(r.get("tier_awarded")),
         poh_nft_token_id=str(r.get("poh_nft_token_id") or "").strip() or None,
+        live_receipt_emitted=bool(r.get("live_receipt_emitted", False)),
+        live_receipt_id=str(r.get("live_receipt_id") or "").strip() or None,
         jurors=jurors,
     )
 
