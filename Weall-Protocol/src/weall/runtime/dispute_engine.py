@@ -96,6 +96,30 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
         stage = str(dispute.get("stage") or "").strip().lower()
         if stage not in {"appeal_window", "appealed", "appeal_review", "appeal_resolved"}:
             continue
+        if stage == "appeal_resolved":
+            panel_result = _d(dispute.get("appeal_panel_result"))
+            resolution = _d(panel_result.get("resolution"))
+            if not bool(panel_result.get("reached")) or not resolution:
+                continue
+            appeal_round = _i(dispute.get("appeal_panel_round"), 1)
+            parent_ref = f"dispute:{did}:appeal-panel-finalize:{appeal_round}"
+            enqueue_system_tx(
+                state,
+                tx_type="DISPUTE_FINAL_RECEIPT",
+                payload={
+                    "dispute_id": str(did),
+                    "appeal_resolution": dict(resolution),
+                    "_parent_ref": parent_ref,
+                },
+                due_height=int(next_height),
+                signer="SYSTEM",
+                once=True,
+                parent=parent_ref,
+                phase="pre",
+            )
+            dispute["stage"] = "finalizing"
+            enq += 1
+            continue
         deadline = _i(dispute.get("appeal_deadline_height"), 0)
         if deadline <= 0:
             verdict_h = _i(dispute.get("verdict_at_height") or dispute.get("resolved_at_height"), next_height)

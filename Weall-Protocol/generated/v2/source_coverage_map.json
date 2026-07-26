@@ -6400,7 +6400,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "75f102c94c8661c7d0602fa7295cd03531c01f1f0aaba489e3073ffab7e48547",
+      "sha256": "ee32e53e446f40fd46b3efea7962b5c248a7e0f66022f8de09f6e0c4a8ec1a32",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -8338,7 +8338,7 @@
       ],
       "path": "src/weall/runtime/apply/dispute.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "c7b7bcb36de95057c4046dcca40118c0f8c5e861d1584ce2d7150ed1ba240463",
+      "sha256": "fe073f14c5e4f3e4c7ffd956c94888ab3502ed9651ec10b06363e854263a3138",
       "source_id": "SRC-2E76D23317EE6BDB"
     },
     {
@@ -10114,7 +10114,7 @@
       ],
       "path": "src/weall/runtime/dispute_engine.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "7ff1381b3ef268d70cfeea5d2670b0c8a23d19d18a10720640f09b1cb47d9fc5",
+      "sha256": "0fbf681e7e6440289510c593eadcbe49183e0b401c0c66cd5f0b9ae84ce85fee",
       "source_id": "SRC-54BD7334E96CF0CA"
     },
     {
@@ -11762,7 +11762,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "de7c0f748d33de837ecb14a65bdb97e2ef0b3987dbcef97dbf44b775a04ae312",
+      "sha256": "0caac56e87366b21574fa1a9d78062f3bda132f329840016a19244e25d218f7c",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -19325,6 +19325,7 @@
         "TX-0205",
         "TX-0208",
         "TX-0210",
+        "TX-0211",
         "TX-0300",
         "TX-0301",
         "TX-0302",
@@ -19339,7 +19340,7 @@
       ],
       "path": "tests/test_m3_closure_regressions.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "9e878461b67111e7348125b1f1b618dd7a7e4fae66c0b0f278e0aae5fc2326df",
+      "sha256": "fa77498f27884650f0755f55d3a44c53caaab95c7e89124d83acd2761b4472f1",
       "source_id": "SRC-ED01B39F2BA825F5"
     },
     {
@@ -26088,7 +26089,7 @@
       ],
       "path": "tests/test_tx_schema_governance_dispute_receipts.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "713db9a62a2065bdd2e2411274619d692844b29bfbf5a8dcfa6522780e564b96",
+      "sha256": "624d592d66ed44b39b09b37c37a418a3dbc617a1b97345d50fcd920b409037e5",
       "source_id": "SRC-6671B6C9C3B68A07"
     },
     {

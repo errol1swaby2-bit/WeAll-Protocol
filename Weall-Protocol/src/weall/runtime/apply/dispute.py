@@ -2387,12 +2387,19 @@ def _maybe_record_appeal_panel_vote(
     appeal_resolution = (
         payload.get("appeal_resolution")
         if isinstance(payload.get("appeal_resolution"), dict)
-        else None
+        else (
+            payload.get("resolution")
+            if stage in {"appealed", "appeal_review"}
+            and isinstance(payload.get("resolution"), dict)
+            else None
+        )
     )
     raw_decision = (
         _as_str(
             payload.get("appeal_decision")
             or payload.get("appeal_vote")
+            or payload.get("verdict")
+            or (payload.get("vote") if stage in {"appealed", "appeal_review"} else "")
             or (appeal_resolution or {}).get("decision")
             or (appeal_resolution or {}).get("outcome")
             or ""
@@ -2511,6 +2518,8 @@ def _maybe_record_appeal_panel_vote(
         result["decision"] = decision
         result["resolution"] = resolution
     d["appeal_panel_result"] = result
+    if decision:
+        d["stage"] = "appeal_resolved"
     return result
 
 
@@ -2758,9 +2767,14 @@ def _apply_dispute_appeal(state: Json, env: TxEnvelope) -> Json:
 
 def _record_dispute_juror_accountability(state: Json, dispute: Json, *, dispute_id: str) -> Json:
     assigned = _normalized_str_list(dispute.get("assigned_jurors"))
-    votes = _as_dict(dispute.get("votes"))
+    appeal_panel = _normalized_str_list(dispute.get("appeal_panel_juror_ids"))
+    appeal_active = bool(dispute.get("appeals")) and assigned == appeal_panel
+    votes = _as_dict(
+        dispute.get("appeal_panel_votes" if appeal_active else "votes")
+    )
     voted: set[str] = set()
-    for voter in _normalized_str_list(dispute.get("voted_juror_ids")):
+    voted_key = "appeal_voted_juror_ids" if appeal_active else "voted_juror_ids"
+    for voter in _normalized_str_list(dispute.get(voted_key)):
         for variant in _identity_variants(voter):
             voted.add(variant)
     for voter in votes.keys():

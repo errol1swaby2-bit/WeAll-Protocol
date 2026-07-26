@@ -12,6 +12,7 @@ from weall.runtime.apply.dispute import (
 from weall.runtime.apply.governance import apply_governance
 from weall.runtime.apply.groups import GroupsApplyError, apply_groups
 from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE
+from weall.runtime.dispute_engine import tick_dispute_lifecycle
 from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
 
@@ -429,6 +430,134 @@ def test_strict_appeal_ballot_state_is_aggregate_only_and_final() -> None:
             ),
         )
     assert duplicate.value.reason == "dispute_ballot_already_final"
+
+
+def test_strict_appeal_quorum_queues_deterministic_final_receipt() -> None:
+    state = _strict_dispute_state()
+    state["meta"] = {
+        "constitutional_clock": {
+            "enabled": True,
+            "target_block_interval_ms": 20_000,
+            "empty_blocks_enabled": True,
+        }
+    }
+    apply_dispute(
+        state,
+        _env(
+            "DISPUTE_OPEN",
+            "@reporter",
+            1,
+            {
+                "dispute_id": "d:m3-appeal-final",
+                "target_type": "content",
+                "target_id": "post:@owner:1",
+                "reported_by": "@reporter",
+                "severity": "low",
+            },
+        ),
+    )
+    dispute = state["disputes_by_id"]["d:m3-appeal-final"]
+    dispute["resolution"] = {
+        "outcome": "report_not_upheld",
+        "summary": "content remains public",
+        "actions": [],
+    }
+    dispute["resolved"] = True
+    dispute["stage"] = "appeal_window"
+    dispute["appeal_allowed_accounts"] = ["@owner"]
+    dispute["appeal_deadline_height"] = 150
+
+    apply_dispute(
+        state,
+        _env(
+            "DISPUTE_APPEAL",
+            "@owner",
+            2,
+            {"dispute_id": "d:m3-appeal-final", "reason": "review"},
+        ),
+    )
+
+    panel = list(dispute["appeal_panel_juror_ids"])
+    required = int(dispute["required_votes"])
+    assert len(panel) == 7
+    assert required == 5
+
+    for index, juror in enumerate(panel, start=1):
+        apply_dispute(
+            state,
+            _env(
+                "DISPUTE_JUROR_ACCEPT",
+                juror,
+                10 + index,
+                {"dispute_id": "d:m3-appeal-final"},
+            ),
+        )
+
+    for index, juror in enumerate(panel[:required], start=1):
+        result = apply_dispute(
+            state,
+            _env(
+                "DISPUTE_VOTE_SUBMIT",
+                juror,
+                30 + index,
+                {
+                    "dispute_id": "d:m3-appeal-final",
+                    "appeal_decision": "uphold",
+                    "appeal_resolution": {
+                        "decision": "uphold",
+                        "summary": "appeal panel affirms the original result",
+                        "actions": [],
+                    },
+                },
+            ),
+        )
+        assert result["appeal_panel_result"]["reached"] is (index == required)
+
+    assert dispute["stage"] == "appeal_resolved"
+    assert dispute["appeal_panel_result"]["decision"] == "uphold"
+    assert dispute["appeal_vote_counts"] == {"uphold": 5}
+    assert len(dispute["appeal_voted_juror_ids"]) == 5
+    assert len(dispute["appeal_ballot_nullifiers"]) == 5
+    assert dispute["appeal_panel_votes"] == {}
+
+    queued = tick_dispute_lifecycle(state, next_height=101)
+    assert queued == 1
+    assert dispute["stage"] == "finalizing"
+
+    receipts = [
+        item
+        for item in state.get("system_queue", [])
+        if item.get("tx_type") == "DISPUTE_FINAL_RECEIPT"
+    ]
+    assert len(receipts) == 1
+    receipt = receipts[0]
+    assert receipt["due_height"] == 101
+    assert receipt["phase"] == "pre"
+    assert receipt["payload"]["dispute_id"] == "d:m3-appeal-final"
+    assert receipt["payload"]["appeal_resolution"]["decision"] == "uphold"
+
+    # The once-bound scheduler is idempotent after the case enters finalizing.
+    assert tick_dispute_lifecycle(state, next_height=101) == 0
+
+    final = apply_dispute(
+        state,
+        _env(
+            "DISPUTE_FINAL_RECEIPT",
+            "SYSTEM",
+            99,
+            dict(receipt["payload"]),
+            system=True,
+            parent=receipt["parent"],
+        ),
+    )
+    assert final["appeal_finalization"]["decision"] == "uphold"
+    assert dispute["stage"] == "finalized"
+    accountability = dispute["juror_accountability"]
+    assert set(accountability["jurors"]) == set(panel[required:])
+    assert not set(accountability["jurors"]).intersection(panel[:required])
+    post = state["content"]["posts"]["post:@owner:1"]
+    assert post["visibility"] == "public"
+    assert post["deleted"] is False
 
 
 def test_unassigned_dispute_panel_repairs_only_when_full_panel_and_substitutes_exist() -> None:

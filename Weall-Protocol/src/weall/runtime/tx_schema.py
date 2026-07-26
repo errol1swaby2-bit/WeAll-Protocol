@@ -1455,11 +1455,32 @@ class DisputeVoteSubmitPayload(_StrictModel):
     vote: str | None = None
     verdict: str | None = None
     resolution: Json | None = None
+    appeal_decision: str | None = None
+    appeal_vote: str | None = None
+    appeal_resolution: Json | None = None
 
     @model_validator(mode="after")
     def _validate_vote_or_verdict(self) -> DisputeVoteSubmitPayload:
-        if not (self.vote or self.verdict):
-            raise ValueError("either vote or verdict is required")
+        appeal_resolution_decision = (
+            str(
+                (self.appeal_resolution or {}).get("decision")
+                or (self.appeal_resolution or {}).get("outcome")
+                or ""
+            ).strip()
+            if isinstance(self.appeal_resolution, dict)
+            else ""
+        )
+        if not (
+            self.vote
+            or self.verdict
+            or self.appeal_decision
+            or self.appeal_vote
+            or appeal_resolution_decision
+        ):
+            raise ValueError(
+                "either vote, verdict, appeal_decision, appeal_vote, "
+                "or appeal_resolution decision is required"
+            )
         return self
 
 
@@ -1485,6 +1506,9 @@ class DisputeFinalReceiptPayload(_StrictModel):
     )
     dispute_id: str | None = None
     resolution: Json | None = None
+    appeal_resolution: Json | None = None
+    appeal_window_closed: bool | None = None
+    appeal_deadline_height: int | None = Field(default=None, ge=0)
     parent_ref: str | None = Field(default=None, alias="_parent_ref")
 
 
