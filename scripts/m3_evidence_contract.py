@@ -191,12 +191,12 @@ ACTION_TX_TYPES = {
     "group_post_create": {"CONTENT_POST_CREATE"},
     "content_report": {"CONTENT_FLAG"},
     "original_panel_acceptance": {"DISPUTE_JUROR_ACCEPT"},
-    "original_panel_attendance": {"DISPUTE_JUROR_ATTENDANCE"},
+    "original_panel_attendance": {"DISPUTE_JUROR_ACCEPT"},
     "original_panel_ballots": {"DISPUTE_VOTE_SUBMIT"},
     "dispute_resolution": {"DISPUTE_RESOLVE"},
     "appeal_open": {"DISPUTE_APPEAL"},
     "appeal_panel_acceptance": {"DISPUTE_JUROR_ACCEPT"},
-    "appeal_panel_attendance": {"DISPUTE_JUROR_ATTENDANCE"},
+    "appeal_panel_attendance": {"DISPUTE_JUROR_ACCEPT"},
     "appeal_panel_ballots": {"DISPUTE_VOTE_SUBMIT"},
     "appeal_final_receipt": {"DISPUTE_FINAL_RECEIPT"},
     "proposal_create": {"GOV_PROPOSAL_CREATE"},
@@ -217,6 +217,13 @@ ACTION_MIN_COUNTS = {
     "appeal_panel_ballots": 7,
     "eligible_ballots": 2,
 }
+
+EMBEDDED_ATTENDANCE_EVIDENCE_KIND = "acceptance_embedded_attendance"
+ATTENDANCE_ACCEPTANCE_LABEL = {
+    "original_panel_attendance": "original_panel_acceptance",
+    "appeal_panel_attendance": "appeal_panel_acceptance",
+}
+EMBEDDED_ATTENDANCE_LABELS = frozenset(ATTENDANCE_ACCEPTANCE_LABEL)
 
 SYSTEM_ACTION_LABELS = {
     "dispute_resolution",
@@ -328,6 +335,66 @@ def role_allowed_for_negative(label: str, role: str) -> bool:
     return False
 
 
+def validate_embedded_attendance_pairs(actions: list[dict]) -> None:
+    """Validate that attendance evidence is the committed effect of juror acceptance.
+
+    ``DISPUTE_JUROR_ACCEPT`` writes ``attendance.present=true`` in the same
+    deterministic apply. ``DISPUTE_JUROR_ATTENDANCE`` is a SYSTEM/block-only
+    receipt type and cannot be submitted by a reviewer through public ingress.
+    The transcript therefore records one acceptance transaction twice: once for
+    the acceptance action and once for its embedded attendance effect.
+    """
+
+    by_tx_id: dict[str, list[dict]] = {}
+    for raw in actions:
+        tx_id = str(raw.get("tx_id") or "").strip()
+        if tx_id:
+            by_tx_id.setdefault(tx_id, []).append(raw)
+
+    for tx_id, records in by_tx_id.items():
+        if len(records) == 1:
+            if str(records[0].get("label") or "") in EMBEDDED_ATTENDANCE_LABELS:
+                raise ValueError(f"transaction_attendance_acceptance_pair_missing:{tx_id}")
+            continue
+
+        if len(records) != 2:
+            raise ValueError(f"transaction_action_tx_id_duplicate:{tx_id}")
+
+        by_label = {str(item.get("label") or ""): item for item in records}
+        if len(by_label) != 2:
+            raise ValueError(f"transaction_action_tx_id_duplicate:{tx_id}")
+
+        attendance_labels = EMBEDDED_ATTENDANCE_LABELS.intersection(by_label)
+        if len(attendance_labels) != 1:
+            raise ValueError(f"transaction_action_tx_id_duplicate:{tx_id}")
+
+        attendance_label = next(iter(attendance_labels))
+        acceptance_label = ATTENDANCE_ACCEPTANCE_LABEL[attendance_label]
+        if acceptance_label not in by_label:
+            raise ValueError(f"transaction_attendance_acceptance_pair_invalid:{tx_id}")
+
+        attendance = by_label[attendance_label]
+        acceptance = by_label[acceptance_label]
+
+        for field in ("role", "account", "subject_id", "status"):
+            if attendance.get(field) != acceptance.get(field):
+                raise ValueError(
+                    f"transaction_attendance_acceptance_pair_invalid:{tx_id}:{field}"
+                )
+
+        if (
+            attendance.get("tx_type") != "DISPUTE_JUROR_ACCEPT"
+            or acceptance.get("tx_type") != "DISPUTE_JUROR_ACCEPT"
+        ):
+            raise ValueError(f"transaction_attendance_acceptance_pair_invalid:{tx_id}:tx_type")
+
+        if (
+            attendance.get("evidence_kind")
+            != EMBEDDED_ATTENDANCE_EVIDENCE_KIND
+        ):
+            raise ValueError(f"transaction_attendance_evidence_kind_invalid:{tx_id}")
+
+
 def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, freeze: str) -> dict:
     if actor_manifest.get("schema_version") != 3:
         raise ValueError("actor_manifest_schema_mismatch")
@@ -384,7 +451,6 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
 
     action_counts: dict[str, int] = {}
     main_action_counts: dict[str, int] = {}
-    tx_ids: set[str] = set()
     action_by_tx_id: dict[str, dict] = {}
     for raw in actions:
         if not isinstance(raw, dict):
@@ -397,10 +463,9 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
         subject_id = str(raw.get("subject_id") or "").strip()
         if label not in REQUIRED_ACTION_LABELS:
             raise ValueError(f"transaction_action_label_unknown:{label}")
-        if not tx_id or tx_id.startswith("REPLACE_") or tx_id in tx_ids or not subject_id:
+        if not tx_id or tx_id.startswith("REPLACE_") or not subject_id:
             raise ValueError(f"transaction_action_tx_id_or_subject_invalid:{tx_id}:{subject_id}")
-        tx_ids.add(tx_id)
-        action_by_tx_id[tx_id] = raw
+        action_by_tx_id.setdefault(tx_id, raw)
         if tx_type not in ACTION_TX_TYPES[label]:
             raise ValueError(f"transaction_action_tx_type_invalid:{label}:{tx_type}")
         if raw.get("status") != "confirmed":
@@ -420,6 +485,12 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
         expected_main_subject = str(journey.get(MAIN_ACTION_SUBJECT_FIELD[label]) or "")
         if subject_id == expected_main_subject:
             main_action_counts[label] = main_action_counts.get(label, 0) + 1
+        if (
+            label in EMBEDDED_ATTENDANCE_LABELS
+            and raw.get("evidence_kind") != EMBEDDED_ATTENDANCE_EVIDENCE_KIND
+        ):
+            raise ValueError(f"transaction_attendance_evidence_kind_invalid:{tx_id}")
+    validate_embedded_attendance_pairs(actions)
     for label, minimum in ACTION_MIN_COUNTS.items():
         if main_action_counts.get(label, 0) < minimum:
             raise ValueError(

@@ -10,6 +10,9 @@ from m3_evidence_contract import (
     ACTION_MIN_COUNTS,
     ACTION_TX_TYPES,
     APPEAL_REVIEWER_ROLE_PREFIX,
+    EMBEDDED_ATTENDANCE_EVIDENCE_KIND,
+    EMBEDDED_ATTENDANCE_LABELS,
+    ATTENDANCE_ACCEPTANCE_LABEL,
     EXPECTED_NEGATIVE_ERROR_CODES,
     MAIN_ACTION_SUBJECT_FIELD,
     NEGATIVE_TX_TYPES,
@@ -158,6 +161,27 @@ def main() -> int:
                 "status": "confirmed",
             }
         )
+
+    for attendance in actions:
+        attendance_label = str(attendance.get("label") or "")
+        if attendance_label not in EMBEDDED_ATTENDANCE_LABELS:
+            continue
+        acceptance_label = ATTENDANCE_ACCEPTANCE_LABEL[attendance_label]
+        matches = [
+            item
+            for item in actions
+            if item.get("label") == acceptance_label
+            and item.get("role") == attendance.get("role")
+            and item.get("account") == attendance.get("account")
+            and item.get("subject_id") == attendance.get("subject_id")
+        ]
+        if len(matches) != 1:
+            raise SystemExit(
+                f"m3_template_attendance_acceptance_pair_invalid:{attendance_label}"
+            )
+        attendance["tx_type"] = "DISPUTE_JUROR_ACCEPT"
+        attendance["tx_id"] = matches[0]["tx_id"]
+        attendance["evidence_kind"] = EMBEDDED_ATTENDANCE_EVIDENCE_KIND
 
     def negative(label: str, role: str, account: str, subject: str, payload: dict, prior: str = "") -> dict:
         value = {

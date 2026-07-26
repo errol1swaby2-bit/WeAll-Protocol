@@ -19301,13 +19301,14 @@
         "ROUTE-150316944D629C32",
         "ROUTE-7C2D535C9DB21237",
         "ROUTE-EE2EFB47FA6F30A2",
+        "TX-0205",
         "TX-0208",
         "TX-0404",
         "TX-1200"
       ],
       "path": "tests/test_m3_closure_integrity.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2444a1e48eab966ff97f51f06b1c712e3b976143f5be5828e2c4e815ce3e39b7",
+      "sha256": "0024871835c0dc942bf002b1487d519c2501791389381353a77285ed536e1719",
       "source_id": "SRC-C5719DCEBD01CE0A"
     },
     {

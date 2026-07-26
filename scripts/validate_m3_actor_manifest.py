@@ -10,6 +10,8 @@ from typing import Any
 from m3_evidence_contract import (
     ACTION_MIN_COUNTS,
     ACTION_TX_TYPES,
+    EMBEDDED_ATTENDANCE_EVIDENCE_KIND,
+    EMBEDDED_ATTENDANCE_LABELS,
     APPEAL_REVIEWER_ROLE_PREFIX,
     action_requires_manifest_actor_binding,
     EXPECTED_NEGATIVE_ERROR_CODES,
@@ -22,6 +24,7 @@ from m3_evidence_contract import (
     SYSTEM_ACTION_LABELS,
     role_allowed_for_action,
     role_allowed_for_negative,
+    validate_embedded_attendance_pairs,
     validate_public_actor_transcript,
 )
 
@@ -154,7 +157,6 @@ def main() -> int:
     if not isinstance(actions, list) or not actions:
         raise SystemExit("m3_actor_transcript_actions_missing")
     action_counts: dict[str, int] = {}
-    tx_ids: set[str] = set()
     for index, raw in enumerate(actions):
         if not isinstance(raw, dict):
             raise SystemExit(f"m3_actor_transcript_action_invalid:{index}")
@@ -165,9 +167,11 @@ def main() -> int:
         tx_type = _required_text(raw.get("tx_type"), f"actions[{index}].tx_type")
         account = _required_text(raw.get("account"), f"actions[{index}].account")
         role = _required_text(raw.get("role"), f"actions[{index}].role")
-        if tx_id in tx_ids:
-            raise SystemExit(f"m3_actor_transcript_tx_id_duplicate:{tx_id}")
-        tx_ids.add(tx_id)
+        if (
+            label in EMBEDDED_ATTENDANCE_LABELS
+            and raw.get("evidence_kind") != EMBEDDED_ATTENDANCE_EVIDENCE_KIND
+        ):
+            raise SystemExit(f"m3_actor_transcript_attendance_evidence_kind_invalid:{tx_id}")
         if tx_type not in ACTION_TX_TYPES[label]:
             raise SystemExit(f"m3_actor_transcript_action_tx_type_invalid:{label}:{tx_type}")
         if raw.get("status") != "confirmed":
@@ -184,6 +188,10 @@ def main() -> int:
             ):
                 raise SystemExit(f"m3_actor_transcript_action_actor_unknown:{label}")
         action_counts[label] = action_counts.get(label, 0) + 1
+    try:
+        validate_embedded_attendance_pairs(actions)
+    except ValueError as exc:
+        raise SystemExit(f"m3_actor_transcript_{exc}") from exc
     for label, minimum in ACTION_MIN_COUNTS.items():
         if action_counts.get(label, 0) < minimum:
             raise SystemExit(f"m3_actor_transcript_action_count_low:{label}:{action_counts.get(label, 0)}:required={minimum}")

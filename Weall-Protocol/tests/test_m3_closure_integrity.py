@@ -276,6 +276,24 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
                     "status": "confirmed",
                 }
             )
+    for attendance in actions:
+        attendance_label = str(attendance.get("label") or "")
+        if attendance_label not in contract.EMBEDDED_ATTENDANCE_LABELS:
+            continue
+        acceptance_label = contract.ATTENDANCE_ACCEPTANCE_LABEL[attendance_label]
+        matches = [
+            item
+            for item in actions
+            if item.get("label") == acceptance_label
+            and item.get("role") == attendance.get("role")
+            and item.get("account") == attendance.get("account")
+            and item.get("subject_id") == attendance.get("subject_id")
+        ]
+        assert len(matches) == 1
+        attendance["tx_type"] = "DISPUTE_JUROR_ACCEPT"
+        attendance["tx_id"] = matches[0]["tx_id"]
+        attendance["evidence_kind"] = contract.EMBEDDED_ATTENDANCE_EVIDENCE_KIND
+
     actions.extend(
         [
             {
@@ -407,9 +425,44 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
         "@not-devnet-genesis",
     )
 
+    original_acceptance = next(
+        item
+        for item in transcript["actions"]
+        if item["label"] == "original_panel_acceptance"
+        and item["subject_id"] == journey["dispute_id"]
+    )
+    original_attendance = next(
+        item
+        for item in transcript["actions"]
+        if item["label"] == "original_panel_attendance"
+        and item["role"] == original_acceptance["role"]
+        and item["subject_id"] == journey["dispute_id"]
+    )
+    assert original_attendance["tx_id"] == original_acceptance["tx_id"]
+    assert original_attendance["tx_type"] == "DISPUTE_JUROR_ACCEPT"
+    assert (
+        original_attendance["evidence_kind"]
+        == contract.EMBEDDED_ATTENDANCE_EVIDENCE_KIND
+    )
+
+    broken_attendance = json.loads(json.dumps(transcript))
+    target = next(
+        item
+        for item in broken_attendance["actions"]
+        if item["label"] == "original_panel_attendance"
+        and item["subject_id"] == journey["dispute_id"]
+    )
+    target["tx_id"] = "tx-impossible-separate-attendance"
+    import pytest
+    with pytest.raises(ValueError, match="attendance_acceptance_pair_missing"):
+        contract.validate_public_actor_transcript(
+            manifest,
+            broken_attendance,
+            freeze=freeze,
+        )
+
     broken = json.loads(json.dumps(transcript))
     broken["actions"][0]["tx_type"] = "PROFILE_UPDATE"
-    import pytest
     with pytest.raises(ValueError, match="tx_type_invalid"):
         contract.validate_public_actor_transcript(manifest, broken, freeze=freeze)
 
