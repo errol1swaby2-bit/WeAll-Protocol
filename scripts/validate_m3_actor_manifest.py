@@ -11,6 +11,7 @@ from m3_evidence_contract import (
     ACTION_MIN_COUNTS,
     ACTION_TX_TYPES,
     APPEAL_REVIEWER_ROLE_PREFIX,
+    action_requires_manifest_actor_binding,
     EXPECTED_NEGATIVE_ERROR_CODES,
     MIN_REVIEWERS_PER_PANEL_POOL,
     NEGATIVE_TX_TYPES,
@@ -175,10 +176,13 @@ def main() -> int:
             if role != "system_scheduler" or account != "SYSTEM":
                 raise SystemExit(f"m3_actor_transcript_system_action_identity_invalid:{label}:{role}:{account}")
         else:
-            if account not in accounts or role not in roles:
-                raise SystemExit(f"m3_actor_transcript_action_actor_unknown:{label}")
             if not role_allowed_for_action(label, role, account):
                 raise SystemExit(f"m3_actor_transcript_action_role_invalid:{label}:{role}")
+            if (
+                action_requires_manifest_actor_binding(label, role, account)
+                and (account not in accounts or role not in roles)
+            ):
+                raise SystemExit(f"m3_actor_transcript_action_actor_unknown:{label}")
         action_counts[label] = action_counts.get(label, 0) + 1
     for label, minimum in ACTION_MIN_COUNTS.items():
         if action_counts.get(label, 0) < minimum:

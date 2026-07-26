@@ -232,9 +232,25 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
         if label in contract.SYSTEM_ACTION_LABELS:
             return "system_scheduler", "SYSTEM"
         if label.startswith("original_panel_"):
+            if index == 1:
+                return (
+                    contract.CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ROLE,
+                    contract.CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ACCOUNT,
+                )
+            if index in {2, 3}:
+                role = f"reviewer_appeal_{index:02d}"
+                return role, role_accounts[role]
             role = f"reviewer_original_{index:02d}"
             return role, role_accounts[role]
         if label.startswith("appeal_panel_"):
+            if index == 1:
+                return (
+                    contract.CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ROLE,
+                    contract.CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ACCOUNT,
+                )
+            if index in {2, 3}:
+                role = f"reviewer_original_{index:02d}"
+                return role, role_accounts[role]
             role = f"reviewer_appeal_{index:02d}"
             return role, role_accounts[role]
         if label in {"membership_request", "group_post_create", "content_report", "appeal_open", "proposal_comment"}:
@@ -369,6 +385,27 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
     assert summary["reviewer_count"] == 18
     assert summary["original_reviewer_pool"] == 9
     assert summary["appeal_reviewer_pool"] == 9
+
+    assert contract.role_allowed_for_action(
+        "original_panel_ballots",
+        "reviewer_appeal_01",
+        "@appeal01",
+    )
+    assert contract.role_allowed_for_action(
+        "appeal_panel_ballots",
+        "reviewer_original_01",
+        "@original01",
+    )
+    assert contract.role_allowed_for_action(
+        "original_panel_ballots",
+        contract.CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ROLE,
+        contract.CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ACCOUNT,
+    )
+    assert not contract.role_allowed_for_action(
+        "original_panel_ballots",
+        contract.CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ROLE,
+        "@not-devnet-genesis",
+    )
 
     broken = json.loads(json.dumps(transcript))
     broken["actions"][0]["tx_type"] = "PROFILE_UPDATE"

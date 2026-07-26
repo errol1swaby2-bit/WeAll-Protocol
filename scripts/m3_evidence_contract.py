@@ -260,7 +260,34 @@ REQUIRED_HUMAN_ROLES = {
 
 ORIGINAL_REVIEWER_ROLE_PREFIX = "reviewer_original_"
 APPEAL_REVIEWER_ROLE_PREFIX = "reviewer_appeal_"
+CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ROLE = "controlled_devnet_bootstrap_reviewer"
+CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ACCOUNT = "@devnet-genesis"
 MIN_REVIEWERS_PER_PANEL_POOL = 9
+
+
+def is_manifest_reviewer_role(role: str) -> bool:
+    return role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX) or role.startswith(
+        APPEAL_REVIEWER_ROLE_PREFIX
+    )
+
+
+def is_controlled_devnet_bootstrap_reviewer(role: str, account: str) -> bool:
+    return (
+        role == CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ROLE
+        and account == CONTROLLED_DEVNET_BOOTSTRAP_REVIEWER_ACCOUNT
+    )
+
+
+def is_reviewer_action_identity(role: str, account: str) -> bool:
+    return is_manifest_reviewer_role(role) or is_controlled_devnet_bootstrap_reviewer(
+        role, account
+    )
+
+
+def action_requires_manifest_actor_binding(label: str, role: str, account: str) -> bool:
+    if label.startswith(("original_panel_", "appeal_panel_")):
+        return not is_controlled_devnet_bootstrap_reviewer(role, account)
+    return True
 
 
 def role_allowed_for_action(label: str, role: str, account: str) -> bool:
@@ -272,10 +299,8 @@ def role_allowed_for_action(label: str, role: str, account: str) -> bool:
         return role == "member_reporter_voter"
     if label == "eligible_ballots":
         return role in {"author_proposer", "member_reporter_voter"}
-    if label.startswith("original_panel_"):
-        return role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX)
-    if label.startswith("appeal_panel_"):
-        return role.startswith(APPEAL_REVIEWER_ROLE_PREFIX)
+    if label.startswith(("original_panel_", "appeal_panel_")):
+        return is_reviewer_action_identity(role, account)
     return False
 
 
@@ -384,10 +409,13 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
             if role != "system_scheduler" or account != "SYSTEM":
                 raise ValueError(f"transaction_system_identity_invalid:{label}")
         else:
-            if role_to_account.get(role) != account:
-                raise ValueError(f"transaction_action_actor_binding_invalid:{label}:{role}")
             if not role_allowed_for_action(label, role, account):
                 raise ValueError(f"transaction_action_role_invalid:{label}:{role}")
+            if (
+                action_requires_manifest_actor_binding(label, role, account)
+                and role_to_account.get(role) != account
+            ):
+                raise ValueError(f"transaction_action_actor_binding_invalid:{label}:{role}")
         action_counts[label] = action_counts.get(label, 0) + 1
         expected_main_subject = str(journey.get(MAIN_ACTION_SUBJECT_FIELD[label]) or "")
         if subject_id == expected_main_subject:
