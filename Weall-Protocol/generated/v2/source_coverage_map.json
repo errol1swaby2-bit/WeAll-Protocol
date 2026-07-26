@@ -11188,7 +11188,7 @@
       ],
       "path": "src/weall/runtime/poh/live_scheduler.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "5f608f82310115ed7f7efbb3ee0aad85a48fe7bc42ba47dc0eca6bd32e8ab29d",
+      "sha256": "38be71bdb8d3f574a94e5f7dc766735bb0ed422ed717b501353638ac4adb615b",
       "source_id": "SRC-966ED2AC6AA9E3AB"
     },
     {
@@ -21386,11 +21386,12 @@
         "TX-0122",
         "TX-0124",
         "TX-0125",
-        "TX-0126"
+        "TX-0126",
+        "TX-0127"
       ],
       "path": "tests/test_poh_live_adaptive_quorum.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ff24fed44d40891ad5ba40a79752ec974cc6e47576dfab749215fbd072811b40",
+      "sha256": "5a9b2adc6ecc0cbd399af508edccf305a32d0ee61c2f979bf94c2df7cbbf0c21",
       "source_id": "SRC-ED019EE25BE8D965"
     },
     {
