@@ -403,6 +403,14 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
     assert summary["reviewer_count"] == 18
     assert summary["original_reviewer_pool"] == 9
     assert summary["appeal_reviewer_pool"] == 9
+    assert contract.M3_DISPUTE_PANEL_SIZE == 7
+    assert contract.M3_DISPUTE_QUORUM_VOTES == 5
+    assert contract.ACTION_MIN_COUNTS["original_panel_acceptance"] == 7
+    assert contract.ACTION_MIN_COUNTS["original_panel_attendance"] == 7
+    assert contract.ACTION_MIN_COUNTS["original_panel_ballots"] == 5
+    assert contract.ACTION_MIN_COUNTS["appeal_panel_acceptance"] == 7
+    assert contract.ACTION_MIN_COUNTS["appeal_panel_attendance"] == 7
+    assert contract.ACTION_MIN_COUNTS["appeal_panel_ballots"] == 5
 
     assert contract.role_allowed_for_action(
         "original_panel_ballots",
@@ -458,6 +466,27 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
         contract.validate_public_actor_transcript(
             manifest,
             broken_attendance,
+            freeze=freeze,
+        )
+
+    under_quorum = json.loads(json.dumps(transcript))
+    removed = False
+    filtered_actions = []
+    for item in under_quorum["actions"]:
+        if (
+            not removed
+            and item["label"] == "original_panel_ballots"
+            and item["subject_id"] == journey["dispute_id"]
+        ):
+            removed = True
+            continue
+        filtered_actions.append(item)
+    under_quorum["actions"] = filtered_actions
+    assert removed is True
+    with pytest.raises(ValueError, match="transaction_main_action_count_low:original_panel_ballots:4:5"):
+        contract.validate_public_actor_transcript(
+            manifest,
+            under_quorum,
             freeze=freeze,
         )
 

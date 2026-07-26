@@ -19308,7 +19308,7 @@
       ],
       "path": "tests/test_m3_closure_integrity.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "0024871835c0dc942bf002b1487d519c2501791389381353a77285ed536e1719",
+      "sha256": "415fa8350de7d9fec64a453264df782ef3ce0191cab908b9c146cdc43148212c",
       "source_id": "SRC-C5719DCEBD01CE0A"
     },
     {

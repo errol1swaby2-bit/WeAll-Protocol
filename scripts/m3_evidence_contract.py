@@ -207,14 +207,17 @@ ACTION_TX_TYPES = {
     "proposal_finalization": {"GOV_PROPOSAL_FINALIZE"},
 }
 
+M3_DISPUTE_PANEL_SIZE = 7
+M3_DISPUTE_QUORUM_VOTES = 5
+
 ACTION_MIN_COUNTS = {
     **{label: 1 for label in REQUIRED_ACTION_LABELS},
-    "original_panel_acceptance": 7,
-    "original_panel_attendance": 7,
-    "original_panel_ballots": 7,
-    "appeal_panel_acceptance": 7,
-    "appeal_panel_attendance": 7,
-    "appeal_panel_ballots": 7,
+    "original_panel_acceptance": M3_DISPUTE_PANEL_SIZE,
+    "original_panel_attendance": M3_DISPUTE_PANEL_SIZE,
+    "original_panel_ballots": M3_DISPUTE_QUORUM_VOTES,
+    "appeal_panel_acceptance": M3_DISPUTE_PANEL_SIZE,
+    "appeal_panel_attendance": M3_DISPUTE_PANEL_SIZE,
+    "appeal_panel_ballots": M3_DISPUTE_QUORUM_VOTES,
     "eligible_ballots": 2,
 }
 
