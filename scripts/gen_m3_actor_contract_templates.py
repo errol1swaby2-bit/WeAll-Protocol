@@ -38,7 +38,9 @@ def _actor_for(label: str, index: int) -> tuple[str, str]:
     if label.startswith("appeal_panel_"):
         role = f"{APPEAL_REVIEWER_ROLE_PREFIX}{index:02d}"
         return role, f"@m3_appeal_{index:02d}"
-    if label in {"membership_request", "group_post_create", "content_report", "appeal_open", "proposal_comment"}:
+    if label == "appeal_open":
+        return "author_proposer", "@m3_author"
+    if label in {"membership_request", "group_post_create", "content_report", "proposal_comment"}:
         return "member_reporter_voter", "@m3_member"
     if label == "eligible_ballots" and index == 2:
         return "member_reporter_voter", "@m3_member"
@@ -225,6 +227,17 @@ def main() -> int:
             "@m3_outsider",
             journey["negative_proposal_id"],
             {"proposal_id": journey["negative_proposal_id"], "vote": "yes"},
+        ),
+        negative(
+            "nonowner_appeal_rejected",
+            "member_reporter_voter",
+            "@m3_member",
+            journey["dispute_id"],
+            {
+                "dispute_id": journey["dispute_id"],
+                "reason": "The reporter is not the affected target owner.",
+                "note": "M3 controlled-testnet negative appeal-authority attempt.",
+            },
         ),
     ]
     for label in ("duplicate_governance_vote_rejected", "replacement_governance_vote_rejected", "governance_revoke_rejected"):

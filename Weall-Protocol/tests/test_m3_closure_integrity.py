@@ -253,7 +253,9 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
                 return role, role_accounts[role]
             role = f"reviewer_appeal_{index:02d}"
             return role, role_accounts[role]
-        if label in {"membership_request", "group_post_create", "content_report", "appeal_open", "proposal_comment"}:
+        if label == "appeal_open":
+            return "author_proposer", "@author"
+        if label in {"membership_request", "group_post_create", "content_report", "proposal_comment"}:
             return "member_reporter_voter", "@member"
         if label == "eligible_ballots" and index == 2:
             return "member_reporter_voter", "@member"
@@ -360,6 +362,17 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
             journey["negative_proposal_id"],
             {"proposal_id": journey["negative_proposal_id"], "vote": "yes"},
         ),
+        negative(
+            "nonowner_appeal_rejected",
+            "member_reporter_voter",
+            "@member",
+            journey["dispute_id"],
+            {
+                "dispute_id": journey["dispute_id"],
+                "reason": "The reporter is not the affected target owner.",
+                "note": "M3 controlled-testnet negative appeal-authority attempt.",
+            },
+        ),
     ]
     for label in (
         "duplicate_governance_vote_rejected",
@@ -411,6 +424,26 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
     assert contract.ACTION_MIN_COUNTS["appeal_panel_acceptance"] == 7
     assert contract.ACTION_MIN_COUNTS["appeal_panel_attendance"] == 7
     assert contract.ACTION_MIN_COUNTS["appeal_panel_ballots"] == 5
+    assert contract.role_allowed_for_action(
+        "appeal_open",
+        "author_proposer",
+        "@author",
+    )
+    assert not contract.role_allowed_for_action(
+        "appeal_open",
+        "member_reporter_voter",
+        "@member",
+    )
+    assert contract.role_allowed_for_negative(
+        "nonowner_appeal_rejected",
+        "member_reporter_voter",
+    )
+    assert (
+        contract.EXPECTED_NEGATIVE_ERROR_CODES[
+            "nonowner_appeal_rejected"
+        ]
+        == "appeal_not_target_owner"
+    )
 
     assert contract.role_allowed_for_action(
         "original_panel_ballots",

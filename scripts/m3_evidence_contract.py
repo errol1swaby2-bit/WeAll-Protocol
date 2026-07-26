@@ -180,6 +180,7 @@ REQUIRED_NEGATIVE_LABELS = {
     "duplicate_dispute_ballot_rejected",
     "replacement_dispute_ballot_rejected",
     "dispute_revoke_rejected",
+    "nonowner_appeal_rejected",
 }
 
 
@@ -247,6 +248,7 @@ NEGATIVE_TX_TYPES = {
     "duplicate_dispute_ballot_rejected": {"DISPUTE_VOTE_SUBMIT"},
     "replacement_dispute_ballot_rejected": {"DISPUTE_VOTE_SUBMIT"},
     "dispute_revoke_rejected": {"DISPUTE_VOTE_REVOKE"},
+    "nonowner_appeal_rejected": {"DISPUTE_APPEAL"},
 }
 
 EXPECTED_NEGATIVE_ERROR_CODES = {
@@ -260,6 +262,7 @@ EXPECTED_NEGATIVE_ERROR_CODES = {
     "duplicate_dispute_ballot_rejected": "dispute_ballot_already_final",
     "replacement_dispute_ballot_rejected": "dispute_ballot_already_final",
     "dispute_revoke_rejected": "unknown_tx_type",
+    "nonowner_appeal_rejected": "appeal_not_target_owner",
 }
 
 REQUIRED_HUMAN_ROLES = {
@@ -305,7 +308,9 @@ def role_allowed_for_action(label: str, role: str, account: str) -> bool:
         return role == "system_scheduler" and account == "SYSTEM"
     if label in {"post_create", "group_create", "membership_accept", "proposal_create"}:
         return role == "author_proposer"
-    if label in {"membership_request", "group_post_create", "content_report", "appeal_open", "proposal_comment"}:
+    if label == "appeal_open":
+        return role == "author_proposer"
+    if label in {"membership_request", "group_post_create", "content_report", "proposal_comment"}:
         return role == "member_reporter_voter"
     if label == "eligible_ballots":
         return role in {"author_proposer", "member_reporter_voter"}
@@ -321,6 +326,8 @@ def role_allowed_for_negative(label: str, role: str) -> bool:
         return role in {"author_proposer", "member_reporter_voter"}
     if label == "ineligible_governance_vote_rejected":
         return role == "nonmember_ineligible"
+    if label == "nonowner_appeal_rejected":
+        return role == "member_reporter_voter"
     if label in {
         "duplicate_governance_vote_rejected",
         "replacement_governance_vote_rejected",
@@ -600,6 +607,7 @@ NEGATIVE_SUBJECT_FIELD = {
     "duplicate_dispute_ballot_rejected": "negative_dispute_id",
     "replacement_dispute_ballot_rejected": "negative_dispute_id",
     "dispute_revoke_rejected": "negative_dispute_id",
+    "nonowner_appeal_rejected": "dispute_id",
 }
 
 PRECONDITION_REQUIRED_NEGATIVES = {
