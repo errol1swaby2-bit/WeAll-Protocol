@@ -11160,7 +11160,7 @@
       ],
       "path": "src/weall/runtime/poh/juror_select.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "4b70ffd66247ebc3dd54d69291e58efa2fede5485dfc437c5c93605ef46f5b11",
+      "sha256": "58b6b0c2b68c9ab746b53f8ff48a76f07674b0a86134387e53c43f9f0e92aa0b",
       "source_id": "SRC-BBDC152DDA3A2FB0"
     },
     {
@@ -21549,7 +21549,7 @@
       ],
       "path": "tests/test_poh_scheduler_filters_active_juror_role.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "61341444ed59132312dc315c5b6b7e177cb1c79034c1267278b116d89ce9ab33",
+      "sha256": "0dc57e2414d1148b61059467c98bd5ee00c187aa2ef7f55c2790cad81b2916b4",
       "source_id": "SRC-FFC94EA4F75305DD"
     },
     {
