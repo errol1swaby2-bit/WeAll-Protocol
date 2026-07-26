@@ -49,6 +49,33 @@ def test_canonical_m3_runners_and_contract_exist() -> None:
         assert not path.is_symlink(), rel
 
 
+
+def test_generated_actor_template_uses_canonical_account_ids(tmp_path: Path) -> None:
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "scripts/gen_m3_actor_contract_templates.py",
+            "--out-dir",
+            str(tmp_path),
+            "--implementation-freeze",
+            "HEAD",
+        ],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout
+    actors = json.loads((tmp_path / "m3-actors.template.json").read_text(encoding="utf-8"))
+    assert len(actors) == 21
+    for actor in actors:
+        account = actor["account"]
+        assert account.startswith("@")
+        assert 1 <= len(account[1:]) <= 32
+        assert all(char.islower() or char.isdigit() or char == "_" for char in account[1:])
+        assert "signer_state" in actor
+
 def test_closure_runner_requires_observer_privacy_and_freshness_gates() -> None:
     source = _read("scripts/run_m3_complete_closure.sh")
     for marker in (
@@ -103,6 +130,9 @@ def test_real_stack_spec_executes_negative_signed_attempts_and_requires_eighteen
         "reviewer_appeal_",
         "toBeGreaterThanOrEqual(9)",
         "submitSignedTx",
+        "signer_state",
+        "context.addInitScript",
+        "weall_secret::",
         "negative signed attempts fail closed",
         "/v1/tx/status/",
         "expected_error_code",

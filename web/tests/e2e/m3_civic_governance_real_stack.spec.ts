@@ -7,6 +7,13 @@ type PublicActor = {
   role: string;
   account: string;
   storage_state: string;
+  signer_state: string;
+};
+
+type PrivateSignerState = {
+  schema_version: 1;
+  account: string;
+  secretKeyB64: string;
 };
 
 type M3Action = {
@@ -105,6 +112,7 @@ function loadActorManifest(): { manifest: M3ActorManifest; transcript: M3Transac
   expect(new Set(accounts).size, "M3 actors must use independent account identities.").toBe(accounts.length);
   for (const actor of actors) {
     absoluteExistingFile(actor.storage_state, `storage state for ${actor.role}`);
+    absoluteExistingFile(actor.signer_state, `private signer state for ${actor.role}`);
   }
 
   const journey = manifest.journey || ({} as M3Journey);
@@ -143,11 +151,25 @@ function actorFor(manifest: M3ActorManifest, role: string): PublicActor {
   return actor!;
 }
 
+function loadPrivateSignerState(actor: PublicActor): PrivateSignerState {
+  const signerPath = absoluteExistingFile(actor.signer_state, `private signer state for ${actor.role}`);
+  const value = JSON.parse(fs.readFileSync(signerPath, "utf8")) as PrivateSignerState;
+  expect(value.schema_version, `${actor.role} signer state schema mismatch`).toBe(1);
+  expect(value.account, `${actor.role} signer state account mismatch`).toBe(actor.account);
+  expect(String(value.secretKeyB64 || "").trim(), `${actor.role} signer seed is missing`).not.toBe("");
+  return value;
+}
+
 async function openActorContext(browser: Browser, actor: PublicActor): Promise<BrowserContext> {
-  return browser.newContext({
+  const signer = loadPrivateSignerState(actor);
+  const context = await browser.newContext({
     baseURL: FRONTEND_BASE_URL,
     storageState: absoluteExistingFile(actor.storage_state, `storage state for ${actor.role}`),
   });
+  await context.addInitScript(({ account, secretKeyB64 }) => {
+    sessionStorage.setItem(`weall_secret::${account}`, secretKeyB64);
+  }, { account: actor.account, secretKeyB64: signer.secretKeyB64 });
+  return context;
 }
 
 async function assertActorSession(context: BrowserContext, actor: PublicActor, route: string): Promise<Page> {

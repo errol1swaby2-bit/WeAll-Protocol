@@ -93,7 +93,9 @@ bash scripts/devnet_boot_genesis_node.sh
 ```bash
 # Terminal B — frontend
 cd ~/WeAll-Protocol/web
-VITE_API_BASE=http://127.0.0.1:18401 npm run dev -- --host 127.0.0.1 --port 5173
+VITE_WEALL_DEV_PROXY_TARGET=http://127.0.0.1:18401 \
+VITE_WEALL_API_BASE=/ \
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
 Before continuing:
@@ -113,8 +115,11 @@ python ~/WeAll-Protocol/scripts/check_m3_live_ballot_profile.py \
 
 Create or restore all 21 independent accounts through the real account-custody
 flow. Save each Playwright storage-state file under the private directory and
-update `m3-actors.template.json` with the exact public account and private
-storage-state path.
+update `m3-actors.template.json` with the exact public account, private
+storage-state path, and private signer-state path. Playwright storage state does
+not preserve session storage, so the signer-state companion is required to
+perform the signed negative attempts without persisting the seed in browser
+local storage.
 
 The original reviewer and appeal reviewer pools must each contain at least nine
 separate Tier-2 humans. Enroll and opt them into the content-review lane through

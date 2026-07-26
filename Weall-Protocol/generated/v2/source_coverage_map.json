@@ -1735,7 +1735,7 @@
       ],
       "path": "docs/production_readiness/M3_ACTOR_AND_TRANSCRIPT_CONTRACT.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "9358a505d0702523c23fa252b122332efc5d5a2d823018d2e574c379a97501f9",
+      "sha256": "437d113fb9e373397321e39b7a85e897f3fc0d422f3c7109a29174bc96429ef1",
       "source_id": "SRC-6CC2CA6940525A3C"
     },
     {
@@ -1761,7 +1761,7 @@
       ],
       "path": "docs/production_readiness/M3_FINAL_CLOSURE_RUNBOOK_WSL.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "85afa18f9cf74bf19a97587812ebca51d046167bb7ff1bc4a8cc71af30e4efaa",
+      "sha256": "f53d3758faedb2b0f3b589edb89fc74101276b370c733bf22d50552f6d97809b",
       "source_id": "SRC-42EE7A4261544C8A"
     },
     {
@@ -19307,7 +19307,7 @@
       ],
       "path": "tests/test_m3_closure_integrity.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "2103fd8c38e855884765a66cb35270226ecdc4f9730376a02cc6438ced48f8ce",
+      "sha256": "421a7e51af0cd6dfe1fc994844ab9706435b546b90ab5f3dca101e0ad16790d0",
       "source_id": "SRC-C5719DCEBD01CE0A"
     },
     {
@@ -29568,7 +29568,7 @@
       ],
       "path": "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "83a4d520eacce3bbdfdf3ca6ba4367d112436313b3d67b7a9a5bd7f3d8985b8b",
+      "sha256": "1494a9e5e37fb7fadbaf09dd8d0c3037220dd80960a3f4c63cdfcc75345ba6a4",
       "source_id": "SRC-808F7746F7D99296"
     },
     {

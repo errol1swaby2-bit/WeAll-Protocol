@@ -26,7 +26,7 @@ from m3_evidence_contract import (
 
 ROOT = Path(__file__).resolve().parents[1]
 ROLE_RE = re.compile(r"^[a-z][a-z0-9_-]{2,63}$")
-ACCOUNT_RE = re.compile(r"^@[A-Za-z0-9._:-]{2,127}$")
+ACCOUNT_RE = re.compile(r"^@[a-z0-9_]{1,32}$")
 
 
 def _load(path: Path, label: str) -> dict[str, Any]:
@@ -83,6 +83,7 @@ def main() -> int:
         role = _required_text(raw.get("role"), f"actors[{index}].role")
         account = _required_text(raw.get("account"), f"actors[{index}].account")
         storage = Path(_required_text(raw.get("storage_state"), f"actors[{index}].storage_state")).expanduser().resolve()
+        signer = Path(_required_text(raw.get("signer_state"), f"actors[{index}].signer_state")).expanduser().resolve()
         if not ROLE_RE.fullmatch(role):
             raise SystemExit(f"m3_actor_invalid_role:{role}")
         if not ACCOUNT_RE.fullmatch(account):
@@ -91,6 +92,17 @@ def main() -> int:
             raise SystemExit(f"m3_actor_duplicate_identity:{role}:{account}")
         if not storage.is_file() or storage.is_symlink():
             raise SystemExit(f"m3_actor_storage_state_missing_or_symlink:{storage}")
+        if not signer.is_file() or signer.is_symlink():
+            raise SystemExit(f"m3_actor_signer_state_missing_or_symlink:{signer}")
+        try:
+            signer_payload = json.loads(signer.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise SystemExit(f"m3_actor_signer_state_invalid_json:{signer}") from exc
+        if not isinstance(signer_payload, dict) or signer_payload.get("schema_version") != 1:
+            raise SystemExit(f"m3_actor_signer_state_schema_invalid:{signer}")
+        if _required_text(signer_payload.get("account"), f"actors[{index}].signer_state.account") != account:
+            raise SystemExit(f"m3_actor_signer_state_account_mismatch:{signer}")
+        _required_text(signer_payload.get("secretKeyB64"), f"actors[{index}].signer_state.secretKeyB64")
         roles.add(role)
         accounts.add(account)
         if role.startswith("reviewer"):

@@ -31,15 +31,15 @@ def _actor_for(label: str, index: int) -> tuple[str, str]:
         return "system_scheduler", "SYSTEM"
     if label.startswith("original_panel_"):
         role = f"{ORIGINAL_REVIEWER_ROLE_PREFIX}{index:02d}"
-        return role, f"@m3-original-{index:02d}"
+        return role, f"@m3_original_{index:02d}"
     if label.startswith("appeal_panel_"):
         role = f"{APPEAL_REVIEWER_ROLE_PREFIX}{index:02d}"
-        return role, f"@m3-appeal-{index:02d}"
+        return role, f"@m3_appeal_{index:02d}"
     if label in {"membership_request", "group_post_create", "content_report", "appeal_open", "proposal_comment"}:
-        return "member_reporter_voter", "@m3-member"
+        return "member_reporter_voter", "@m3_member"
     if label == "eligible_ballots" and index == 2:
-        return "member_reporter_voter", "@m3-member"
-    return "author_proposer", "@m3-author"
+        return "member_reporter_voter", "@m3_member"
+    return "author_proposer", "@m3_author"
 
 
 def main() -> int:
@@ -80,23 +80,40 @@ def main() -> int:
     }
 
     actors = [
-        {"role": "author_proposer", "account": "@m3-author", "storage_state": "/secure/runtime/m3-storage/author.json"},
-        {"role": "member_reporter_voter", "account": "@m3-member", "storage_state": "/secure/runtime/m3-storage/member.json"},
-        {"role": "nonmember_ineligible", "account": "@m3-outsider", "storage_state": "/secure/runtime/m3-storage/outsider.json"},
+        {
+            "role": "author_proposer",
+            "account": "@m3_author",
+            "storage_state": str(out_dir / "storage" / "author.json"),
+            "signer_state": str(out_dir / "signers" / "author.signer.json"),
+        },
+        {
+            "role": "member_reporter_voter",
+            "account": "@m3_member",
+            "storage_state": str(out_dir / "storage" / "member.json"),
+            "signer_state": str(out_dir / "signers" / "member.signer.json"),
+        },
+        {
+            "role": "nonmember_ineligible",
+            "account": "@m3_outsider",
+            "storage_state": str(out_dir / "storage" / "outsider.json"),
+            "signer_state": str(out_dir / "signers" / "outsider.signer.json"),
+        },
     ]
     actors.extend(
         {
             "role": f"{ORIGINAL_REVIEWER_ROLE_PREFIX}{index:02d}",
-            "account": f"@m3-original-{index:02d}",
-            "storage_state": f"/secure/runtime/m3-storage/original-{index:02d}.json",
+            "account": f"@m3_original_{index:02d}",
+            "storage_state": str(out_dir / "storage" / f"original-{index:02d}.json"),
+            "signer_state": str(out_dir / "signers" / f"original-{index:02d}.signer.json"),
         }
         for index in range(1, 10)
     )
     actors.extend(
         {
             "role": f"{APPEAL_REVIEWER_ROLE_PREFIX}{index:02d}",
-            "account": f"@m3-appeal-{index:02d}",
-            "storage_state": f"/secure/runtime/m3-storage/appeal-{index:02d}.json",
+            "account": f"@m3_appeal_{index:02d}",
+            "storage_state": str(out_dir / "storage" / f"appeal-{index:02d}.json"),
+            "signer_state": str(out_dir / "signers" / f"appeal-{index:02d}.signer.json"),
         }
         for index in range(1, 10)
     )
@@ -120,11 +137,11 @@ def main() -> int:
             )
 
     extras = [
-        ("post_create", "author_proposer", "@m3-author", "CONTENT_POST_CREATE", journey["negative_post_id"], "negative-post"),
-        ("group_create", "author_proposer", "@m3-author", "GROUP_CREATE", journey["negative_group_id"], "negative-group"),
-        ("content_report", "member_reporter_voter", "@m3-member", "CONTENT_FLAG", journey["negative_post_id"], "negative-report"),
-        ("proposal_create", "author_proposer", "@m3-author", "GOV_PROPOSAL_CREATE", journey["negative_proposal_id"], "negative-proposal"),
-        ("eligible_ballots", "member_reporter_voter", "@m3-member", "GOV_VOTE_CAST", journey["negative_proposal_id"], "negative-governance-vote"),
+        ("post_create", "author_proposer", "@m3_author", "CONTENT_POST_CREATE", journey["negative_post_id"], "negative-post"),
+        ("group_create", "author_proposer", "@m3_author", "GROUP_CREATE", journey["negative_group_id"], "negative-group"),
+        ("content_report", "member_reporter_voter", "@m3_member", "CONTENT_FLAG", journey["negative_post_id"], "negative-report"),
+        ("proposal_create", "author_proposer", "@m3_author", "GOV_PROPOSAL_CREATE", journey["negative_proposal_id"], "negative-proposal"),
+        ("eligible_ballots", "member_reporter_voter", "@m3_member", "GOV_VOTE_CAST", journey["negative_proposal_id"], "negative-governance-vote"),
         ("original_panel_acceptance", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3-original-01", "DISPUTE_JUROR_ACCEPT", journey["negative_dispute_id"], "negative-dispute-accept"),
         ("original_panel_attendance", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3-original-01", "DISPUTE_JUROR_ATTENDANCE", journey["negative_dispute_id"], "negative-dispute-attendance"),
         ("original_panel_ballots", f"{ORIGINAL_REVIEWER_ROLE_PREFIX}01", "@m3-original-01", "DISPUTE_VOTE_SUBMIT", journey["negative_dispute_id"], "negative-dispute-vote"),
@@ -160,7 +177,7 @@ def main() -> int:
         negative(
             "nonmember_group_write_rejected",
             "nonmember_ineligible",
-            "@m3-outsider",
+            "@m3_outsider",
             journey["negative_group_id"],
             {"post_id": "post:m3:forbidden", "body": "must fail", "group_id": journey["negative_group_id"]},
         ),
@@ -174,14 +191,14 @@ def main() -> int:
         negative(
             "conflicted_reviewer_vote_rejected",
             "author_proposer",
-            "@m3-author",
+            "@m3_author",
             journey["negative_dispute_id"],
             {"dispute_id": journey["negative_dispute_id"], "vote": "yes"},
         ),
         negative(
             "ineligible_governance_vote_rejected",
             "nonmember_ineligible",
-            "@m3-outsider",
+            "@m3_outsider",
             journey["negative_proposal_id"],
             {"proposal_id": journey["negative_proposal_id"], "vote": "yes"},
         ),
@@ -191,7 +208,7 @@ def main() -> int:
             negative(
                 label,
                 "member_reporter_voter",
-                "@m3-member",
+                "@m3_member",
                 journey["negative_proposal_id"],
                 {"proposal_id": journey["negative_proposal_id"], **({} if "revoke" in label else {"vote": "no"})},
                 "REPLACE_CONFIRMED_NEGATIVE_GOVERNANCE_VOTE",
@@ -230,7 +247,7 @@ def main() -> int:
             "expected_proposal_stage": "finalized",
             "minimum_final_ballots": 2,
         },
-        "template_notice": "Update actor accounts and storage_state paths, then build the final manifest with build_m3_actor_manifest.py.",
+        "template_notice": "Create each actor through the real custody flow, then populate storage_state and private signer_state paths before building the final manifest.",
     }
 
     _write(out_dir / "m3-actors.template.json", actors)

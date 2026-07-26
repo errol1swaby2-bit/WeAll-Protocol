@@ -8,7 +8,7 @@ The manifest must contain:
 
 - the exact full implementation-freeze commit;
 - loopback backend and frontend URLs;
-- unique actors with `role`, public `account`, and local `storage_state` paths;
+- unique actors with `role`, public `account`, and local `storage_state` and private `signer_state` paths;
 - `author_proposer`, `member_reporter_voter`, and `nonmember_ineligible` roles;
 - at least nine roles prefixed `reviewer_original_` for the seven-person original panel plus two substitutes;
 - at least nine disjoint roles prefixed `reviewer_appeal_` for the seven-person fresh appeal panel plus two substitutes;
@@ -80,3 +80,7 @@ The fixed negative contract proves:
 - dispute duplicate, replacement, and nonexistent revoke attempts are rejected.
 
 The transcript is public evidence and must contain no private keys, recovery material, session tokens, cookies, authorization headers, or browser storage-state contents.
+
+## Private signer-state companion
+
+Playwright storage-state files preserve cookies and local storage, but browser account signing seeds are intentionally held in session storage. Each private actor record therefore includes a `signer_state` path outside the repository. The file schema is `{"schema_version": 1, "account": "@...", "secretKeyB64": "..."}`. The real-stack runner injects that seed into session storage before opening a page. Signer-state files are never copied into `artifacts/m3-closure/` or the public actor manifest.

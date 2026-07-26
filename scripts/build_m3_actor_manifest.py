@@ -22,7 +22,7 @@ def main() -> int:
     parser.add_argument("--implementation-freeze", required=True)
     parser.add_argument("--backend-base-url", required=True)
     parser.add_argument("--frontend-base-url", default="http://127.0.0.1:5173")
-    parser.add_argument("--actors-file", required=True, help="JSON list of {role, account, storage_state}; private key material is forbidden")
+    parser.add_argument("--actors-file", required=True, help="JSON list of {role, account, storage_state, signer_state}; signer files remain private and outside the repository")
     parser.add_argument("--transaction-transcript", required=True)
     parser.add_argument("--post-id", required=True)
     parser.add_argument("--group-id", required=True)
@@ -57,12 +57,16 @@ def main() -> int:
     for index, actor in enumerate(actors):
         if not isinstance(actor, dict):
             raise SystemExit(f"m3_actor_builder_actor_not_object:{index}")
-        if set(actor) != {"role", "account", "storage_state"}:
+        if set(actor) != {"role", "account", "storage_state", "signer_state"}:
             raise SystemExit(f"m3_actor_builder_actor_keys_invalid:{index}")
         storage = Path(str(actor["storage_state"])).expanduser().resolve()
+        signer = Path(str(actor["signer_state"])).expanduser().resolve()
         if not storage.is_file() or storage.is_symlink():
             raise SystemExit(f"m3_actor_builder_storage_missing:{storage}")
+        if not signer.is_file() or signer.is_symlink():
+            raise SystemExit(f"m3_actor_builder_signer_state_missing:{signer}")
         actor["storage_state"] = str(storage)
+        actor["signer_state"] = str(signer)
     transcript = _load(transcript_path, "transcript")
     if not isinstance(transcript, dict) or transcript.get("schema_version") != 1:
         raise SystemExit("m3_actor_builder_transcript_schema_invalid")
