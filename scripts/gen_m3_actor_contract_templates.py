@@ -14,6 +14,8 @@ from m3_evidence_contract import (
     EMBEDDED_ATTENDANCE_LABELS,
     ATTENDANCE_ACCEPTANCE_LABEL,
     EXPECTED_NEGATIVE_ERROR_CODES,
+    EXPECTED_NEGATIVE_ERROR_REASONS,
+    EXPECTED_NEGATIVE_REJECTION_LAYERS,
     MAIN_ACTION_SUBJECT_FIELD,
     NEGATIVE_TX_TYPES,
     ORIGINAL_REVIEWER_ROLE_PREFIX,
@@ -195,6 +197,12 @@ def main() -> int:
             "subject_id": subject,
             "expected_error_code": EXPECTED_NEGATIVE_ERROR_CODES[label],
         }
+        expected_reason = EXPECTED_NEGATIVE_ERROR_REASONS.get(label)
+        if expected_reason is not None:
+            value["expected_error_reason"] = expected_reason
+        expected_layer = EXPECTED_NEGATIVE_REJECTION_LAYERS.get(label)
+        if expected_layer is not None:
+            value["expected_rejection_layer"] = expected_layer
         if prior:
             value["precondition_tx_id"] = prior
         return value

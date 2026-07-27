@@ -255,7 +255,12 @@ EXPECTED_NEGATIVE_ERROR_CODES = {
     "nonmember_group_write_rejected": "group_post_authority_required",
     "nonselected_reviewer_vote_rejected": "juror_not_assigned",
     "conflicted_reviewer_vote_rejected": "juror_conflict_target_owner",
-    "ineligible_governance_vote_rejected": "governance_vote_requires_active_round_member",
+    # Public signed ingress enforces the GOV_VOTE_CAST Tier2+ subject gate
+    # before a transaction can enter consensus. The deeper apply-time
+    # governance_vote_requires_active_round_member guard remains defense in
+    # depth and is covered by runtime tests, but it is not the public-path
+    # rejection surfaced by the controlled-testnet signed journey.
+    "ineligible_governance_vote_rejected": "gate_denied",
     "duplicate_governance_vote_rejected": "ballot_already_final",
     "replacement_governance_vote_rejected": "ballot_already_final",
     "governance_revoke_rejected": "ballot_revocation_forbidden",
@@ -263,6 +268,14 @@ EXPECTED_NEGATIVE_ERROR_CODES = {
     "replacement_dispute_ballot_rejected": "dispute_ballot_already_final",
     "dispute_revoke_rejected": "unknown_tx_type",
     "nonowner_appeal_rejected": "appeal_not_target_owner",
+}
+
+EXPECTED_NEGATIVE_ERROR_REASONS = {
+    "ineligible_governance_vote_rejected": "gate:Tier2+",
+}
+
+EXPECTED_NEGATIVE_REJECTION_LAYERS = {
+    "ineligible_governance_vote_rejected": "admission",
 }
 
 REQUIRED_HUMAN_ROLES = {
@@ -528,6 +541,20 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
             raise ValueError(f"transaction_negative_tx_type_invalid:{label}:{tx_type}")
         if error_code != EXPECTED_NEGATIVE_ERROR_CODES[label]:
             raise ValueError(f"transaction_negative_error_invalid:{label}:{error_code}")
+        expected_reason = EXPECTED_NEGATIVE_ERROR_REASONS.get(label)
+        if expected_reason is not None:
+            actual_reason = str(raw.get("expected_error_reason") or "").strip()
+            if actual_reason != expected_reason:
+                raise ValueError(
+                    f"transaction_negative_error_reason_invalid:{label}:{actual_reason}"
+                )
+        expected_layer = EXPECTED_NEGATIVE_REJECTION_LAYERS.get(label)
+        if expected_layer is not None:
+            actual_layer = str(raw.get("expected_rejection_layer") or "").strip()
+            if actual_layer != expected_layer:
+                raise ValueError(
+                    f"transaction_negative_rejection_layer_invalid:{label}:{actual_layer}"
+                )
         if role_to_account.get(role) != account:
             raise ValueError(f"transaction_negative_actor_binding_invalid:{label}:{role}")
         if not role_allowed_for_negative(label, role):

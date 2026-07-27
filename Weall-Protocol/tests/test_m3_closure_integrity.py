@@ -329,6 +329,12 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
             "subject_id": subject,
             "expected_error_code": contract.EXPECTED_NEGATIVE_ERROR_CODES[label],
         }
+        expected_reason = contract.EXPECTED_NEGATIVE_ERROR_REASONS.get(label)
+        if expected_reason is not None:
+            item["expected_error_reason"] = expected_reason
+        expected_layer = contract.EXPECTED_NEGATIVE_REJECTION_LAYERS.get(label)
+        if expected_layer is not None:
+            item["expected_rejection_layer"] = expected_layer
         if prior:
             item["precondition_tx_id"] = prior
         return item
@@ -721,3 +727,70 @@ def test_transaction_contract_rejects_uncompleted_templates() -> None:
     import pytest
     with pytest.raises(ValueError, match="transaction_transcript_template_not_completed"):
         contract.validate_public_actor_transcript(manifest, transcript, freeze=freeze)
+
+
+def test_ineligible_governance_negative_contract_matches_public_tier2_ingress() -> None:
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import m3_evidence_contract as contract
+
+    label = "ineligible_governance_vote_rejected"
+    assert contract.EXPECTED_NEGATIVE_ERROR_CODES[label] == "gate_denied"
+    assert contract.EXPECTED_NEGATIVE_ERROR_REASONS[label] == "gate:Tier2+"
+    assert contract.EXPECTED_NEGATIVE_REJECTION_LAYERS[label] == "admission"
+
+
+def test_generated_template_marks_ineligible_governance_rejection_as_admission_layer(
+    tmp_path: Path,
+) -> None:
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "scripts/gen_m3_actor_contract_templates.py",
+            "--out-dir",
+            str(tmp_path),
+            "--implementation-freeze",
+            "HEAD",
+        ],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout
+
+    transcript = json.loads(
+        (tmp_path / "m3-transaction-transcript.template.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    matching = [
+        item
+        for item in transcript["negative_attempts"]
+        if item.get("label") == "ineligible_governance_vote_rejected"
+    ]
+    assert len(matching) == 1
+    item = matching[0]
+    assert item["expected_error_code"] == "gate_denied"
+    assert item["expected_error_reason"] == "gate:Tier2+"
+    assert item["expected_rejection_layer"] == "admission"
+
+
+def test_ineligible_governance_negative_contract_tracks_canonical_vote_subject_gate() -> None:
+    tx_index = json.loads(
+        (BACKEND / "generated" / "tx_index.json").read_text(encoding="utf-8")
+    )
+    vote_index = tx_index["by_name"]["GOV_VOTE_CAST"]
+    vote_contract = tx_index["tx_types"][vote_index]
+    assert vote_contract["subject_gate"] == "Tier2+"
+    assert vote_contract["gates"]["subject_gate"] == "Tier2+"
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import m3_evidence_contract as contract
+
+    label = "ineligible_governance_vote_rejected"
+    assert contract.EXPECTED_NEGATIVE_ERROR_CODES[label] == "gate_denied"
+    assert (
+        contract.EXPECTED_NEGATIVE_ERROR_REASONS[label]
+        == f"gate:{vote_contract['subject_gate']}"
+    )
