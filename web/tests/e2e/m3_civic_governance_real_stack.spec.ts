@@ -24,6 +24,7 @@ type M3Action = {
   tx_id: string;
   subject_id: string;
   status: "confirmed";
+  evidence_kind?: string;
 };
 
 type M3NegativeAttempt = {
@@ -74,6 +75,42 @@ type M3ActorManifest = {
 const REQUIRED_SINGLETON_ROLES = ["author_proposer", "member_reporter_voter", "nonmember_ineligible"] as const;
 const FRONTEND_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
 const TERMINAL_SUCCESS = new Set(["confirmed", "committed", "finalized"]);
+const EMBEDDED_ATTENDANCE_EVIDENCE_KIND = "acceptance_embedded_attendance";
+
+const ATTENDANCE_ACCEPTANCE_LABEL = new Map<string, string>([
+  ["original_panel_attendance", "original_panel_acceptance"],
+  ["appeal_panel_attendance", "appeal_panel_acceptance"],
+]);
+
+function isEmbeddedAttendancePair(first: M3Action, second: M3Action): boolean {
+  const firstAcceptanceLabel = ATTENDANCE_ACCEPTANCE_LABEL.get(first.label);
+  const secondAcceptanceLabel = ATTENDANCE_ACCEPTANCE_LABEL.get(second.label);
+
+  let attendance: M3Action;
+  let acceptance: M3Action;
+
+  if (firstAcceptanceLabel === second.label) {
+    attendance = first;
+    acceptance = second;
+  } else if (secondAcceptanceLabel === first.label) {
+    attendance = second;
+    acceptance = first;
+  } else {
+    return false;
+  }
+
+  return (
+    attendance.evidence_kind === EMBEDDED_ATTENDANCE_EVIDENCE_KIND
+    && attendance.tx_type === "DISPUTE_JUROR_ACCEPT"
+    && acceptance.tx_type === "DISPUTE_JUROR_ACCEPT"
+    && attendance.tx_id === acceptance.tx_id
+    && attendance.role === acceptance.role
+    && attendance.account === acceptance.account
+    && attendance.subject_id === acceptance.subject_id
+    && attendance.status === "confirmed"
+    && acceptance.status === "confirmed"
+  );
+}
 
 function absoluteExistingFile(value: string, label: string): string {
   const absolute = path.resolve(String(value || ""));
@@ -269,12 +306,39 @@ test("M3 independent actors complete the signed civic and governance journey", a
   });
 
   await test.step("signed transaction transcript is canonical", async () => {
-    const seen = new Set<string>();
+    const seen = new Map<string, M3Action[]>();
+
     for (const action of transcript.actions) {
-      expect(seen.has(action.tx_id), `duplicate transaction id in transcript: ${action.tx_id}`).toBe(false);
-      seen.add(action.tx_id);
-      const status = await getJson(request, backend, `/v1/tx/status/${encodeURIComponent(action.tx_id)}`);
-      expect(TERMINAL_SUCCESS.has(String(status.status || status.phase || "").toLowerCase()), JSON.stringify(status)).toBe(true);
+      const priorRecords = seen.get(action.tx_id) ?? [];
+
+      if (priorRecords.length > 0) {
+        expect(
+          priorRecords.length,
+          `transaction id appears more than twice: ${action.tx_id}`,
+        ).toBe(1);
+
+        expect(
+          isEmbeddedAttendancePair(priorRecords[0], action),
+          `duplicate transaction id is not a canonical acceptance/attendance pair: ${action.tx_id}`,
+        ).toBe(true);
+      }
+
+      priorRecords.push(action);
+      seen.set(action.tx_id, priorRecords);
+
+      const status = await getJson(
+        request,
+        backend,
+        `/v1/tx/status/${encodeURIComponent(action.tx_id)}`,
+      );
+
+      expect(
+        TERMINAL_SUCCESS.has(
+          String(status.status || status.phase || "").toLowerCase(),
+        ),
+        JSON.stringify(status),
+      ).toBe(true);
+
       expect(String(status.tx_type || "")).toBe(action.tx_type);
       expect(String(status.signer || "")).toBe(action.account);
       expect(String(action.subject_id || "").trim()).not.toBe("");

@@ -159,6 +159,7 @@ run_gate "frontend account profile source" "frontend/account-profile-source.log"
 run_gate "frontend first-run source" "frontend/first-run-source.log" run_web node scripts/test_first_run_tester_journey_source.mjs
 run_gate "frontend governance source" "frontend/governance-source.log" run_web node scripts/test_governance_rendered_journey_source.mjs
 run_gate "frontend dispute source" "frontend/dispute-source.log" run_web node scripts/test_dispute_review_rendered_journey_source.mjs
+run_gate "frontend M3 embedded attendance transcript source" "frontend/m3-embedded-attendance-source.log" run_web npm run test:m3-transcript-attendance-source
 run_gate "frontend contract check" "frontend/contract-check.log" run_web env API_BASE="${M3_PREFLIGHT_URLS[0]}" npm run contract-check
 run_gate "frontend production safety check" "frontend/production-safety.log" run_web npm run production-safety-check
 run_gate "frontend typecheck" "frontend/typecheck.log" run_web_package tsc npm run typecheck

@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1834,
+  "file_count": 1835,
   "files": [
     {
       "affected_registers": [
@@ -27467,6 +27467,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "../web/scripts/test_m3_transcript_attendance_source.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "5ed47b80411009ce54a4c005335b905bf8d2feb3c0852cdc5667ab01847c6ac0",
+      "source_id": "SRC-A61C9E0D544DF952"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
       "path": "../web/scripts/test_node_connection_manager_source.mjs",
       "primary_mechanism_id": "M-076",
       "sha256": "0d15e8833e65438af75c7ae0572d06a22754da7307062709d5fbb5210c5c801b",
@@ -29592,7 +29605,7 @@
       ],
       "path": "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
       "primary_mechanism_id": "M-076",
-      "sha256": "1494a9e5e37fb7fadbaf09dd8d0c3037220dd80960a3f4c63cdfcc75345ba6a4",
+      "sha256": "6a4d60a8818518f94ee529241d845fb14db1d86efb1062d10263f8dad3cc5b52",
       "source_id": "SRC-808F7746F7D99296"
     },
     {
