@@ -961,7 +961,14 @@ def _maybe_schedule_governance_auto_progress(state: Json, pr: dict[str, Any], pr
     # legacy direct domain-apply tests and local decision flows without an enclosing
     # post-phase SYSTEM tx emitter.
     actions = _l(pr.get("actions"))
-    should_direct_finalize = len(actions) == 0
+    # Legacy clock-disabled fixtures without a live SYSTEM emitter keep the
+    # direct no-action mirror. Strict controlled-testnet governance must still
+    # traverse the queued close -> tally -> execute -> finalize path so the
+    # electorate round closes and both execution/proposal receipts are emitted.
+    should_direct_finalize = (
+        len(actions) == 0
+        and not strict_civic_governance_enabled(state)
+    )
     h = int(current_height)
     if should_direct_finalize:
         pr["closed_at_height"] = int(pr.get("closed_at_height") or h)

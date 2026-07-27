@@ -123,6 +123,125 @@ def test_strict_governance_enforces_snapshot_first_ballot_finality_and_no_revoke
     assert "@alice" not in str(proposal["vote_counts"])
 
 
+def test_strict_no_action_governance_uses_system_finalization_and_receipts() -> None:
+    state = _strict_state()
+    proposal_id = "m3-strict-no-action-finalization"
+
+    result = apply_governance(
+        state,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            "@alice",
+            1,
+            {
+                "proposal_id": proposal_id,
+                "title": "M3 strict no-action finalization",
+                "rules": {
+                    "start_stage": "voting",
+                    "electorate_scope": "protocol_tier2",
+                    "quorum_bps": 5000,
+                    "voting_period_blocks": 20,
+                },
+                "actions": [],
+            },
+        ),
+    )
+    assert result and result["applied"] is True
+
+    proposal = state["gov_proposals_by_id"][proposal_id]
+    assert proposal["required_votes"] == 2
+    assert proposal["electorate_round"] == 1
+
+    apply_governance(
+        state,
+        _env(
+            "GOV_VOTE_CAST",
+            "@alice",
+            2,
+            {"proposal_id": proposal_id, "vote": "yes"},
+        ),
+    )
+    apply_governance(
+        state,
+        _env(
+            "GOV_VOTE_CAST",
+            "@bob",
+            1,
+            {"proposal_id": proposal_id, "vote": "yes"},
+        ),
+    )
+
+    # Strict live governance must not finalize inside the user ballot apply.
+    assert proposal["stage"] == "voting"
+    assert proposal["vote_counts"] == {"yes": 2}
+    assert proposal["votes"] == {}
+    assert len(proposal["ballot_nullifiers"]) == 2
+
+    queue = state["system_queue"]
+    queued_types = [
+        item.get("tx_type")
+        for item in queue
+        if isinstance(item, dict)
+        and (item.get("payload") or {}).get("proposal_id") == proposal_id
+    ]
+    assert queued_types[:4] == [
+        "GOV_VOTING_CLOSE",
+        "GOV_TALLY_PUBLISH",
+        "GOV_EXECUTE",
+        "GOV_PROPOSAL_FINALIZE",
+    ]
+
+    for index, tx_type in enumerate(
+        (
+            "GOV_VOTING_CLOSE",
+            "GOV_TALLY_PUBLISH",
+            "GOV_EXECUTE",
+            "GOV_PROPOSAL_FINALIZE",
+        ),
+        start=1,
+    ):
+        item = next(
+            row
+            for row in state["system_queue"]
+            if isinstance(row, dict)
+            and row.get("tx_type") == tx_type
+            and (row.get("payload") or {}).get("proposal_id") == proposal_id
+        )
+        apply_governance(
+            state,
+            _env(
+                tx_type,
+                "SYSTEM",
+                index,
+                dict(item["payload"]),
+                system=True,
+                parent=str(item.get("parent") or "gov:test"),
+            ),
+        )
+
+    assert proposal["stage"] == "finalized"
+    assert proposal["closed_at_height"] > 0
+    assert proposal["tallied_at_height"] > 0
+    assert proposal["executed_at_height"] > 0
+    assert proposal["finalized_at_height"] > 0
+    assert proposal["result"]["passed"] is True
+    assert proposal["result"]["quorum_met"] is True
+    assert proposal["result"]["yes"] == 2
+
+    current_round = proposal["electorate_rounds"][-1]
+    assert current_round["status"] == "closed"
+    assert current_round["ballot_count"] == 2
+
+    receipt_types = {
+        item.get("tx_type")
+        for item in state["system_queue"]
+        if isinstance(item, dict)
+        and (item.get("payload") or {}).get("proposal_id") == proposal_id
+    }
+    assert "GOV_EXECUTION_RECEIPT" in receipt_types
+    assert "GOV_PROPOSAL_RECEIPT" in receipt_types
+
+
 def test_strict_governance_fails_closed_without_active_ballot_profile() -> None:
     state = _strict_state()
     state["ballot_profile"] = {"profile_id": "UNASSIGNED_LAUNCH_GATED", "active": False}

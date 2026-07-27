@@ -6400,7 +6400,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "ee32e53e446f40fd46b3efea7962b5c248a7e0f66022f8de09f6e0c4a8ec1a32",
+      "sha256": "c192c93343857ab3f2f8010133b7e1633f213aca7a72b1df5c9150f12dd247c7",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -8477,7 +8477,7 @@
       ],
       "path": "src/weall/runtime/apply/governance.py",
       "primary_mechanism_id": "M-049",
-      "sha256": "245070d940cd792c3632fb0e01ac0b0ab1f5c5a3aff7473f8ab72258a3c5f1ff",
+      "sha256": "3512fe0b702090267ca46ffe8a8a6bba6c637e11045345072881730686028e51",
       "source_id": "SRC-A6C282C450952C4C"
     },
     {
@@ -19333,14 +19333,20 @@
         "TX-0310",
         "TX-0400",
         "TX-0404",
+        "TX-0408",
+        "TX-0409",
         "TX-1600",
+        "TX-1601",
+        "TX-1602",
+        "TX-1603",
+        "TX-1604",
         "TX-1700",
         "TX-1715",
         "TX-1716"
       ],
       "path": "tests/test_m3_closure_regressions.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "fa77498f27884650f0755f55d3a44c53caaab95c7e89124d83acd2761b4472f1",
+      "sha256": "9ae5147f8699a3db6e80fc603d447dc3e0309265ddcf1f8269efba1095c6476c",
       "source_id": "SRC-ED01B39F2BA825F5"
     },
     {
