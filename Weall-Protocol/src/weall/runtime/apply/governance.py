@@ -992,7 +992,15 @@ def _maybe_schedule_governance_auto_progress(state: Json, pr: dict[str, Any], pr
         pr["finalized_at_height"] = int(pr.get("finalized_at_height") or h)
         pr["updated_at_height"] = h
 
-    close_payload = {"proposal_id": proposal_id, **({"_parent_ref": parent_ref} if parent_ref else {})}
+    close_payload = {
+        "proposal_id": proposal_id,
+        "close_reason": (
+            "poll_threshold_reached"
+            if stage == "poll"
+            else "quorum_reached"
+        ),
+        **({"_parent_ref": parent_ref} if parent_ref else {}),
+    }
     enqueue_system_tx(
         state,
         tx_type="GOV_VOTING_CLOSE",

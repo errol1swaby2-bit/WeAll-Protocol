@@ -544,7 +544,7 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1354
+      "source_lineno": 1369
     },
     {
       "code": "conflict",
@@ -670,7 +670,7 @@
       "http_status": 403,
       "sample_reason": "live_room_participant_required",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1365
+      "source_lineno": 1369
     },
     {
       "code": "forbidden",
@@ -1336,7 +1336,7 @@
       "http_status": null,
       "sample_reason": "/v1/poh/live/juror-cases has been removed; use /v1/poh/live/assigned",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 1140
+      "source_lineno": 1144
     },
     {
       "code": "locked",
@@ -1471,7 +1471,7 @@
       "http_status": 400,
       "sample_reason": "WEALL_OPERATOR_TOKEN must be set when operator endpoints are enabled",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 2823
+      "source_lineno": 2827
     },
     {
       "code": "missing_live_session_commitment",
@@ -1480,7 +1480,7 @@
       "http_status": 400,
       "sample_reason": "Live Verification request requires session_commitment, room_commitment, and prompt_commitment",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3268
+      "source_lineno": 3272
     },
     {
       "code": "missing_sig",
@@ -1561,7 +1561,7 @@
       "http_status": null,
       "sample_reason": "proposal_not_found",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1111
+      "source_lineno": 1126
     },
     {
       "code": "not_found",
@@ -1813,7 +1813,7 @@
       "http_status": 400,
       "sample_reason": "Live session not initialized yet (missing session_commitment)",
       "source": "src/weall/api/routes_public_parts/poh.py",
-      "source_lineno": 3349
+      "source_lineno": 3353
     },
     {
       "code": "session_required",
@@ -1894,7 +1894,7 @@
       "http_status": null,
       "sample_reason": "case_tx_not_implemented",
       "source": "src/weall/runtime/apply/dispute.py",
-      "source_lineno": 3020
+      "source_lineno": 3034
     },
     {
       "code": "validator_mismatch",

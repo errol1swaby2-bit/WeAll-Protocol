@@ -2696,7 +2696,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0490de0b41e0af94e9466dcb19cc84a1aaaf9a8372205cf4ae05481b2d6e5145",
+      "sha256": "2d03496cdfa663bd3f4f7860e069a49536912421195f4314727270b9fd339f8e",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -2934,7 +2934,7 @@
       ],
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "665768810e43d042c089fefbb8ce3e2abce737eabb4856edaba06a4dc63cba11",
+      "sha256": "a2d31f80daf25266728ffa152d382745885290dacb62c4a5cb883328a757dae1",
       "source_id": "SRC-6A445811DBAE2762"
     },
     {
@@ -3004,7 +3004,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "296ea19b5718bd938b97ca170c202391c21360afe9f308229c2839788725b407",
+      "sha256": "7eec7e60ea3bc0240d591d14243170b523ffe7d2390e3a137fa5bfe5c476e54e",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3102,7 +3102,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "9664f1c7b36675bf0cd3d74de955d0cfde79e94b4c1db893121905cb5c9ef5b3",
+      "sha256": "c09f5b20881a6922acd454d98e4d3115718bd3690dec706956a3a7a2775e6bd8",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3284,7 +3284,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3f3e321b7bc01fa68d35068c03ad74c5fa63e581a21d0f38bc7ab8eb68f4244d",
+      "sha256": "5c4658c12d2db459c486b2266423f3653acf5e42a4264278dfba1b68c2e07594",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -6400,7 +6400,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c192c93343857ab3f2f8010133b7e1633f213aca7a72b1df5c9150f12dd247c7",
+      "sha256": "654fe992197185100b3b5d89e2aed7d053ac8c56692a54da7ebdbc6bacf3ffb6",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -8477,7 +8477,7 @@
       ],
       "path": "src/weall/runtime/apply/governance.py",
       "primary_mechanism_id": "M-049",
-      "sha256": "3512fe0b702090267ca46ffe8a8a6bba6c637e11045345072881730686028e51",
+      "sha256": "1af22342dbff144967842022af157e76f91671aeeb1d9abc4921301ad7a53804",
       "source_id": "SRC-A6C282C450952C4C"
     },
     {
@@ -19346,7 +19346,7 @@
       ],
       "path": "tests/test_m3_closure_regressions.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "9ae5147f8699a3db6e80fc603d447dc3e0309265ddcf1f8269efba1095c6476c",
+      "sha256": "b854dcb19cc1994c5e79ed440653a45216d5b5dca83717e1c079957f6cbfbfb3",
       "source_id": "SRC-ED01B39F2BA825F5"
     },
     {

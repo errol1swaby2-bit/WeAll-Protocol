@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "e0e91bdd7b61baef0f5347f5ce5c53dd57ceadfbfd7e5dfb6915715080efad20"
+    "source_tree_digest": "b001ce15c5de05372b000d57eda5562b5c79579c2d946631af79825420824a92"
   },
   "required_fields": [
     "stable_id",
@@ -9775,7 +9775,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9797,9 +9797,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "fca9b6f73e6fdd36b53b71cdb07edabd8de8c67a7386691b28937d778295d60d",
+        "review_digest": "2ee18fbc6d30c8dc55a6a00af5f80868b5f6f9eaa70ef42a421f80672b74423d",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
@@ -9892,7 +9892,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -9914,9 +9914,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "4d55d90a94afe762d9a73b9da4503245bb3d62c2418eb340862c001e4bc5a94e",
+        "review_digest": "6f09555dd5a9f8ed6f2a2394ecab1c95df18c37a66da60fbd53939967654f2bc",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
@@ -9982,7 +9982,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10004,9 +10004,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "495e32d8815fd66ee2ca100beac9519d39df5659603385dab89c7064c8603df1",
+        "review_digest": "426192ae8a8c67686355d6c11df8268abda0b6b8186d9495f7eedf4adecabbe3",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
@@ -10069,7 +10069,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10091,9 +10091,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "1b68fb790bb36a0d28b2328601c1db684b7ac0c1ed16218ae201f34d39f8c5d8",
+        "review_digest": "a7e5cba1a4bd993acfb8d20b57d2829866201ea6728ea0659fb15875a1e167bb",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
@@ -10165,7 +10165,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10187,9 +10187,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "ca4a6440638a9d9a694c810bd4f4e55e74ee0574d76b25e8f2752684075ae2d4",
+        "review_digest": "95c8e1c7d1f29bb68cb0216a3edf805021799555c3151ee4948cc6efa67f157c",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
@@ -10270,7 +10270,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10292,9 +10292,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "f38982b0e1c73984385a1afc7da695ae8fd54b4327c68e83c36cac4f719e0456",
+        "review_digest": "0e1d0168bf642dfca65d76d2a1260db282b0b4ad66e93b86e4409b5472b5ca72",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
@@ -10358,7 +10358,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10380,9 +10380,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "b23eb81c4b577d220af5e83279f50413291c216e075815df8cbd68e6c07c6c95",
+        "review_digest": "9b52527b25e858142441f8a45f76564b0168660ae1fcc3f09ccc51a805732858",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
@@ -10455,7 +10455,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10477,9 +10477,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "3786d365307d009c3e20bddca93acbb4123ef121153bc43c6c09343fdc2648e0",
+        "review_digest": "91859293b16e81b7a84045a36bf8e3006d87d7aee2f91146592de1feaf2b9f86",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
@@ -10545,7 +10545,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10567,9 +10567,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "c9e50b267bbd11c2aa7f6915dd636b564edf1b8bf9ea142d7362ac8d2c88c01f",
+        "review_digest": "bad24b5b6cf2ce7492adbd0ce84390851e2fff851bc959b38914916398888461",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
@@ -10688,7 +10688,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -10710,9 +10710,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "dd641e53602d8c2229ee6e1324408905104fd6599b4b02b2a1234b318dbe4f5b",
+        "review_digest": "2ce62fc3c91670ec9fef0a7635187ab8ba0f5ea3e9057cba4c6a58cc170f0b98",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
@@ -20788,7 +20788,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20810,9 +20810,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "60ae1e030c61cad16e1df61d3e4d6149653b24c07b572d6d1b171d39f85c979e",
+        "review_digest": "30cc1c7235ee1c8c4f60fad74d1e56249088ded42871a69b91275c6bbac98571",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "envelope_signer",
@@ -20876,7 +20876,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20898,9 +20898,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "af8430cc36b1532c14577d507fd235f37d5d108546abb051922073741a75f432",
+        "review_digest": "70719b29a47e1c79ea949fe64d66cbb6dc4c638db6750a6063ea117d6e246827",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
@@ -20970,7 +20970,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -20992,9 +20992,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "49a5927c830d53c5bfc40cb55ad437378a9c8f886deb8cb95544def6edf6ba68",
+        "review_digest": "3d07b981e6b1f5b56a00b7bf1bb2c2c30334a01554f52b8173b24c9b3a4e58fa",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
@@ -21065,7 +21065,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21087,9 +21087,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "3b77f3636f1816334ed01106d4ce43d060f7d5eb3f5c8e6cd3df90946811a409",
+        "review_digest": "12bc15647a49c235bf93c54bf85795de2715e32f7ce0e1295bfb8f62d582fd8c",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",
@@ -21157,7 +21157,7 @@
       "implementation_source": {
         "function": "apply_governance",
         "handler": "governance",
-        "line": 2412,
+        "line": 2420,
         "path": "src/weall/runtime/apply/governance.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -21179,9 +21179,9 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "76f211e4ad0b36169a136a72e5e29351d5f32e96409fd253101b1a57f918dd7c",
+        "review_digest": "2adbedd5af9cde269619171ca861783dfd4f974880ee001ec96c7bcf3703e005",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-26T00:00:00Z",
+        "reviewed_at": "2026-07-27T20:34:50Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
       },
       "signer": "SYSTEM",

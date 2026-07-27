@@ -231,6 +231,7 @@ def test_strict_no_action_governance_uses_system_finalization_and_receipts() -> 
     current_round = proposal["electorate_rounds"][-1]
     assert current_round["status"] == "closed"
     assert current_round["ballot_count"] == 2
+    assert current_round["close_reason"] == "quorum_reached"
 
     receipt_types = {
         item.get("tx_type")
