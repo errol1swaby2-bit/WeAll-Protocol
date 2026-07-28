@@ -76,6 +76,113 @@ def test_content_flag_excludes_original_poster_from_assignment_and_uses_unconfli
     assert dispute["assigned_jurors"] == ["@reviewer"]
 
 
+def test_later_system_content_escalation_uses_collision_safe_deterministic_id() -> None:
+    idx = _load_index()
+
+    def execute() -> tuple[str, dict]:
+        state = _base_state()
+
+        state["disputes_by_id"] = {
+            "dispute:SYSTEM:0": {
+                "id": "dispute:SYSTEM:0",
+                "stage": "finalized",
+                "target_type": "content",
+                "target_id": "post:historical",
+                "resolved": True,
+            }
+        }
+
+        apply_tx(
+            state,
+            _env(
+                "CONTENT_FLAG",
+                "@errol",
+                1,
+                {
+                    "flag_id": "flag:m3:negative",
+                    "target_id": "post:@genesis:1",
+                    "reason": "policy",
+                },
+            ),
+        )
+
+        emitted = system_tx_emitter(
+            state,
+            canon=idx,
+            next_height=1,
+            phase="post",
+        )
+
+        assert [
+            envelope.tx_type
+            for envelope in emitted
+        ] == [
+            "CONTENT_ESCALATE_TO_DISPUTE"
+        ]
+
+        result = apply_tx(
+            state,
+            emitted[0],
+        )
+
+        dispute_id = str(
+            result.get("dispute_id")
+            or ""
+        )
+
+        assert dispute_id.startswith(
+            "dispute:content:"
+        )
+
+        assert dispute_id != (
+            "dispute:SYSTEM:0"
+        )
+
+        assert (
+            "dispute:SYSTEM:0"
+            in state["disputes_by_id"]
+        )
+
+        assert (
+            dispute_id
+            in state["disputes_by_id"]
+        )
+
+        dispute = state[
+            "disputes_by_id"
+        ][dispute_id]
+
+        assert dispute["target_id"] == (
+            "post:@genesis:1"
+        )
+
+        target = state[
+            "content"
+        ]["moderation"]["targets"][
+            "post:@genesis:1"
+        ]
+
+        assert target["dispute_id"] == (
+            dispute_id
+        )
+
+        return dispute_id, state
+
+    first_id, first_state = execute()
+    second_id, second_state = execute()
+
+    assert first_id == second_id
+
+    assert (
+        first_state["disputes_by_id"][
+            first_id
+        ]["panel_commitment"]
+        == second_state[
+            "disputes_by_id"
+        ][second_id]["panel_commitment"]
+    )
+
+
 def test_original_poster_cannot_be_assigned_or_vote_on_own_content_report() -> None:
     st = _base_state()
     apply_tx(st, _env("DISPUTE_OPEN", "@errol", 1, {"dispute_id": "d-own", "target_type": "content", "target_id": "post:@genesis:1", "reason": "policy"}))

@@ -6400,7 +6400,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "654fe992197185100b3b5d89e2aed7d053ac8c56692a54da7ebdbc6bacf3ffb6",
+      "sha256": "274b69f3b2977780be7567951bc9e1523ce1c4e89be6d182d9c932a39efd7fa9",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -8141,7 +8141,7 @@
       ],
       "path": "src/weall/runtime/apply/content.py",
       "primary_mechanism_id": "M-039",
-      "sha256": "fbc59d47f9747256f23f6ece5a78f1ee5f5923cd41814f52f63e92e1c570f626",
+      "sha256": "2822256ec3659ca6dd8fd126e792c89d6903f7b749edac968888dbbb20cd3a02",
       "source_id": "SRC-8E7A46D33E345524"
     },
     {
@@ -14752,7 +14752,7 @@
       ],
       "path": "tests/test_content_review_conflict_enforcement.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "f0245473ebbc1a6137bc88ed0023b907123d20b2e0ab1d7eef334821028df672",
+      "sha256": "1b79c8d997f2596c478e621bd301a35def2044b3b9395d9dfe775b0780726d39",
       "source_id": "SRC-715211FA7BB042CB"
     },
     {

@@ -1495,6 +1495,63 @@ def _apply_content_thread_lock_set(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "CONTENT_THREAD_LOCK_SET", "target_id": target_id, "locked": locked}
 
 
+def _content_escalation_collision_dispute_id(
+    *,
+    env: TxEnvelope,
+    payload: Json,
+    target_type: str,
+    target_id: str,
+) -> str:
+    """Return a deterministic fallback ID when the legacy system ID is occupied.
+
+    System-queue envelopes intentionally use nonce zero. The first historical
+    content escalation therefore uses ``dispute:SYSTEM:0``. Later escalations
+    must derive a stable content-specific ID instead of colliding with that
+    existing dispute.
+    """
+
+    flag_id = _as_str(
+        payload.get("flag_id")
+        or ""
+    ).strip()
+
+    flagged_by = _as_str(
+        payload.get("flagged_by")
+        or payload.get("reported_by")
+        or ""
+    ).strip()
+
+    queue_id = _as_str(
+        payload.get("_system_queue_id")
+        or ""
+    ).strip()
+
+    parent_ref = _as_str(
+        getattr(env, "parent", "")
+        or ""
+    ).strip()
+
+    commitment = _canonical_hash(
+        {
+            "domain": (
+                "weall.content-escalation."
+                "dispute-id.v1"
+            ),
+            "flag_id": flag_id,
+            "flagged_by": flagged_by,
+            "parent_ref": parent_ref,
+            "queue_id": queue_id,
+            "target_id": target_id,
+            "target_type": target_type,
+        }
+    )
+
+    return (
+        "dispute:content:"
+        f"{commitment}"
+    )
+
+
 def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     """Escalate a content target to the dispute system.
 
@@ -1537,6 +1594,33 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
             "dispute_id": did,
             "deduped": True,
         }
+
+    # Preserve the historical first system-generated dispute ID. System queue
+    # envelopes use nonce zero, so a later escalation would otherwise attempt
+    # to recreate ``dispute:SYSTEM:0``. When that default is already occupied,
+    # derive a deterministic content-specific ID from the canonical escalation
+    # evidence.
+    if not dispute_id:
+        default_dispute_id = (
+            f"dispute:{env.signer}:"
+            f"{int(env.nonce)}"
+        )
+
+        disputes_root = _as_dict(
+            state.get(
+                "disputes_by_id"
+            )
+        )
+
+        if default_dispute_id in disputes_root:
+            dispute_id = (
+                _content_escalation_collision_dispute_id(
+                    env=env,
+                    payload=payload,
+                    target_type=target_type,
+                    target_id=target_id,
+                )
+            )
 
     # Open dispute (uses same TxEnvelope shape)
     d_env = TxEnvelope(
