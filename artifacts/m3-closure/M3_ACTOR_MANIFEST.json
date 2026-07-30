@@ -1,0 +1,104 @@
+{
+  "actors": [
+    {
+      "account": "@m3_author",
+      "role": "author_proposer"
+    },
+    {
+      "account": "@m3_member",
+      "role": "member_reporter_voter"
+    },
+    {
+      "account": "@m3_outsider",
+      "role": "nonmember_ineligible"
+    },
+    {
+      "account": "@m3_appeal_01",
+      "role": "reviewer_appeal_01"
+    },
+    {
+      "account": "@m3_appeal_02",
+      "role": "reviewer_appeal_02"
+    },
+    {
+      "account": "@m3_appeal_03",
+      "role": "reviewer_appeal_03"
+    },
+    {
+      "account": "@m3_appeal_04",
+      "role": "reviewer_appeal_04"
+    },
+    {
+      "account": "@m3_appeal_05",
+      "role": "reviewer_appeal_05"
+    },
+    {
+      "account": "@m3_appeal_06",
+      "role": "reviewer_appeal_06"
+    },
+    {
+      "account": "@m3_appeal_07",
+      "role": "reviewer_appeal_07"
+    },
+    {
+      "account": "@m3_appeal_08",
+      "role": "reviewer_appeal_08"
+    },
+    {
+      "account": "@m3_appeal_09",
+      "role": "reviewer_appeal_09"
+    },
+    {
+      "account": "@m3_original_01",
+      "role": "reviewer_original_01"
+    },
+    {
+      "account": "@m3_original_02",
+      "role": "reviewer_original_02"
+    },
+    {
+      "account": "@m3_original_03",
+      "role": "reviewer_original_03"
+    },
+    {
+      "account": "@m3_original_04",
+      "role": "reviewer_original_04"
+    },
+    {
+      "account": "@m3_original_05",
+      "role": "reviewer_original_05"
+    },
+    {
+      "account": "@m3_original_06",
+      "role": "reviewer_original_06"
+    },
+    {
+      "account": "@m3_original_07",
+      "role": "reviewer_original_07"
+    },
+    {
+      "account": "@m3_original_08",
+      "role": "reviewer_original_08"
+    },
+    {
+      "account": "@m3_original_09",
+      "role": "reviewer_original_09"
+    }
+  ],
+  "backend_base_url": "http://127.0.0.1:18401",
+  "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+  "journey": {
+    "dispute_id": "dispute:SYSTEM:0",
+    "group_id": "group:m3:main",
+    "group_post_id": "post:m3:group-main",
+    "negative_dispute_id": "dispute:content:9c6b1bc76b2b3c6985196fa4620df47f8bba53c32ab1a45d1d75a82e56ed2aad",
+    "negative_group_id": "group:m3:negative",
+    "negative_post_id": "post:m3:negative",
+    "negative_proposal_id": "proposal:m3:negative",
+    "post_id": "post:m3:main",
+    "proposal_id": "proposal:m3:main"
+  },
+  "reviewer_count": 18,
+  "schema_version": 3,
+  "truth_boundary": "Public actor identities and journey identifiers only. Private custody, recovery, session, and storage-state material are intentionally excluded."
+}
