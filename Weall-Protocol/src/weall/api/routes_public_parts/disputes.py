@@ -6,7 +6,13 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
-from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _read_json_limited, _snapshot
+from weall.api.routes_public_parts.common import (
+    _cursor_pack,
+    _cursor_unpack,
+    _int_param,
+    _read_json_limited,
+    _snapshot,
+)
 from weall.api.security import require_account_session
 
 router = APIRouter()
@@ -39,9 +45,6 @@ def _disputes_by_id(st: dict[str, Any]) -> dict[str, Any]:
 
 def _as_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
-
-
-
 
 
 def _identity_variants(value: Any) -> list[str]:
@@ -95,7 +98,9 @@ def _resolved_target_owner(st: dict[str, Any], obj: dict[str, Any]) -> str:
     )
 
 
-def _content_target_snapshot(st: dict[str, Any], *, target_type: str, target_id: str) -> dict[str, Any]:
+def _content_target_snapshot(
+    st: dict[str, Any], *, target_type: str, target_id: str
+) -> dict[str, Any]:
     """Return a bounded snapshot of disputed content for due-process views.
 
     Feed/content routes may hide a target during the appeal window, but the
@@ -118,9 +123,17 @@ def _content_target_snapshot(st: dict[str, Any], *, target_type: str, target_id:
         return {
             "type": kind,
             "id": str(rec.get("id") or rec.get("post_id") or rec.get("comment_id") or tid),
-            "post_id": str(rec.get("post_id") or tid) if kind == "post" else str(rec.get("post_id") or rec.get("thread_id") or ""),
+            "post_id": str(rec.get("post_id") or tid)
+            if kind == "post"
+            else str(rec.get("post_id") or rec.get("thread_id") or ""),
             "comment_id": str(rec.get("comment_id") or tid) if kind == "comment" else "",
-            "author": str(rec.get("author") or rec.get("owner") or rec.get("account_id") or rec.get("created_by") or ""),
+            "author": str(
+                rec.get("author")
+                or rec.get("owner")
+                or rec.get("account_id")
+                or rec.get("created_by")
+                or ""
+            ),
             "body": str(rec.get("body") or rec.get("text") or ""),
             "visibility": str(rec.get("visibility") or "public"),
             "deleted": bool(rec.get("deleted", False)),
@@ -135,7 +148,9 @@ def _content_target_snapshot(st: dict[str, Any], *, target_type: str, target_id:
     return {}
 
 
-def _viewer_can_see_appeal_snapshot(st: dict[str, Any], obj: dict[str, Any], *, viewer: str) -> bool:
+def _viewer_can_see_appeal_snapshot(
+    st: dict[str, Any], obj: dict[str, Any], *, viewer: str
+) -> bool:
     if not viewer:
         return False
     allowed = _appeal_allowed_accounts(st, obj)
@@ -173,7 +188,9 @@ def _appeal_eligibility(st: dict[str, Any], obj: dict[str, Any], *, viewer: str)
     return {
         "viewer": viewer or None,
         "can_file": bool(can_window and can_actor),
-        "reason": "eligible_target_owner" if can_window and can_actor else ("not_target_owner" if can_window and allowed else "appeal_window_not_open"),
+        "reason": "eligible_target_owner"
+        if can_window and can_actor
+        else ("not_target_owner" if can_window and allowed else "appeal_window_not_open"),
         "allowed_accounts": allowed,
         "target_owner": allowed[0] if allowed else None,
     }
@@ -215,9 +232,13 @@ def _viewer_juror_record(obj: dict[str, Any], viewer: str) -> dict[str, Any]:
         for candidate in eligible:
             c = str(candidate or "").strip()
             if c and any(c == v for v in variants):
-                return {"account": c, "juror": c, "status": "assigned", "source": "eligible_juror_ids"}
+                return {
+                    "account": c,
+                    "juror": c,
+                    "status": "assigned",
+                    "source": "eligible_juror_ids",
+                }
     return {"account": viewer, "juror": viewer, "status": "unassigned"}
-
 
 
 def _viewer_vote_record(obj: dict[str, Any], viewer: str) -> dict[str, Any]:
@@ -249,19 +270,26 @@ def _viewer_vote_record(obj: dict[str, Any], viewer: str) -> dict[str, Any]:
 
 
 def _vote_choice_from_record(record: dict[str, Any]) -> str:
-    choice = str(
-        record.get("vote")
-        or record.get("choice")
-        or record.get("decision")
-        or record.get("outcome")
-        or ""
-    ).strip().lower()
+    choice = (
+        str(
+            record.get("vote")
+            or record.get("choice")
+            or record.get("decision")
+            or record.get("outcome")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
     if choice:
         return choice
     resolution = _as_dict(record.get("resolution"))
     return str(resolution.get("outcome") or resolution.get("action") or "").strip().lower()
 
-def _page_vote_map(votes: dict[str, Any], *, limit: int, cursor: Any) -> tuple[dict[str, Any], str | None]:
+
+def _page_vote_map(
+    votes: dict[str, Any], *, limit: int, cursor: Any
+) -> tuple[dict[str, Any], str | None]:
     _cursor_n, cursor_key = _cursor_unpack(cursor)
     rows = [(str(k), v) for k, v in votes.items()]
     rows.sort(key=lambda item: item[0])
@@ -272,6 +300,8 @@ def _page_vote_map(votes: dict[str, Any], *, limit: int, cursor: Any) -> tuple[d
     if len(page_rows) == limit:
         next_cursor = _cursor_pack(created_at_nonce=0, content_id=page_rows[-1][0])
     return {k: v for k, v in page_rows}, next_cursor
+
+
 def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
     out = dict(obj)
     dispute_id = str(out.get("id") or out.get("dispute_id") or "").strip()
@@ -304,7 +334,15 @@ def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
             elif choice:
                 vote_counts["abstain"] += 1
 
-    juror_counts = {"assigned": 0, "accepted": 0, "declined": 0, "present": 0, "withdrawn": 0, "timed_out": 0, "completed": 0}
+    juror_counts = {
+        "assigned": 0,
+        "accepted": 0,
+        "declined": 0,
+        "present": 0,
+        "withdrawn": 0,
+        "timed_out": 0,
+        "completed": 0,
+    }
     for _, record in sorted(jurors.items(), key=lambda item: str(item[0])):
         if not isinstance(record, dict):
             continue
@@ -337,9 +375,9 @@ def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-
-
-def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "", st: dict[str, Any] | None = None) -> dict[str, Any]:
+def _redact_dispute_detail_maps(
+    obj: dict[str, Any], *, viewer: str = "", st: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Return dispute detail/list shape without unbounded maps/lists."""
 
     st = st if isinstance(st, dict) else {}
@@ -366,7 +404,11 @@ def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "", st: di
         normalized["juror_self"] = viewer_juror
         review_deadline = int(viewer_juror.get("vote_deadline_height") or 0)
         normalized["canonical_deadlines"] = {
-            "accepted_at_height": int(viewer_juror.get("accepted_at_height") or viewer_juror.get("accepted_at_block_height") or 0),
+            "accepted_at_height": int(
+                viewer_juror.get("accepted_at_height")
+                or viewer_juror.get("accepted_at_block_height")
+                or 0
+            ),
             "review_deadline_height": review_deadline,
             "vote_deadline_height": review_deadline,
             "safe_withdraw_until_height": int(viewer_juror.get("safe_withdraw_until_height") or 0),
@@ -380,7 +422,9 @@ def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "", st: di
         }
     normalized["counts_total"] = {
         "jurors": len(jurors),
-        "votes": int(sum(normalized.get("vote_counts", {}).values())) if isinstance(normalized.get("vote_counts"), dict) else len(votes),
+        "votes": int(sum(normalized.get("vote_counts", {}).values()))
+        if isinstance(normalized.get("vote_counts"), dict)
+        else len(votes),
         "evidence": len(evidence),
         "appeals": len(appeals),
     }
@@ -468,12 +512,16 @@ def _dispute_obj_from_snapshot(st: dict[str, Any], dispute_id: str) -> dict[str,
     raise ApiError.not_found("not_found", "Dispute not found")
 
 
-
 def _status_for_viewer(obj: dict[str, Any], viewer: str) -> str:
-    return str(_viewer_juror_record(obj, viewer).get("status") or "unassigned").strip().lower() or "unassigned"
+    return (
+        str(_viewer_juror_record(obj, viewer).get("status") or "unassigned").strip().lower()
+        or "unassigned"
+    )
 
 
-def _dispute_ineligibility_reasons(st: dict[str, Any], obj: dict[str, Any], viewer: str) -> list[str]:
+def _dispute_ineligibility_reasons(
+    st: dict[str, Any], obj: dict[str, Any], viewer: str
+) -> list[str]:
     reasons: list[str] = []
     if not viewer:
         reasons.append("account_session_required")
@@ -487,7 +535,12 @@ def _dispute_ineligibility_reasons(st: dict[str, Any], obj: dict[str, Any], view
     target_owner = _resolved_target_owner(st, normalized)
     if target_owner and _same_identity(viewer, target_owner):
         reasons.append("target_owner_conflict")
-    accused = str(normalized.get("accused") or normalized.get("accused_account") or normalized.get("target_account") or "").strip()
+    accused = str(
+        normalized.get("accused")
+        or normalized.get("accused_account")
+        or normalized.get("target_account")
+        or ""
+    ).strip()
     if accused and _same_identity(viewer, accused):
         reasons.append("accused_actor_conflict")
     eligible = normalized.get("eligible_juror_ids")
@@ -502,7 +555,9 @@ def _dispute_ineligibility_reasons(st: dict[str, Any], obj: dict[str, Any], view
     return sorted(set(reasons))
 
 
-def _dispute_tx_template(*, tx_type: str, signer: str, dispute_id: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+def _dispute_tx_template(
+    *, tx_type: str, signer: str, dispute_id: str, payload: dict[str, Any] | None = None
+) -> dict[str, Any]:
     body = dict(payload or {})
     body.setdefault("dispute_id", dispute_id)
     return {
@@ -526,7 +581,12 @@ def v1_disputes_list(request: Request):
     target_id = str(qp.get("target_id") or "").strip()
     stage = str(qp.get("stage") or "").strip().lower()
     active_only = str(qp.get("active_only") or "").strip().lower() in {"1", "true", "yes", "on"}
-    include_summary = str(qp.get("include_summary") or "").strip().lower() in {"1", "true", "yes", "on"}
+    include_summary = str(qp.get("include_summary") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
     by_id = _disputes_by_id(st)
     if not by_id:
@@ -562,9 +622,12 @@ def v1_disputes_list(request: Request):
     )
     payload: dict[str, Any] = {"ok": True, "items": items[:limit]}
     if include_summary:
-        payload["summary"] = {"total": len(by_id), "active": active_count, "resolved": resolved_count}
+        payload["summary"] = {
+            "total": len(by_id),
+            "active": active_count,
+            "resolved": resolved_count,
+        }
     return payload
-
 
 
 @router.get("/disputes/eligible")
@@ -573,7 +636,15 @@ def v1_disputes_eligible(request: Request):
     st = _snapshot(request)
     viewer = str(_viewer_from_request(request, st) or "").strip()
     if not viewer:
-        return {"ok": False, "error": {"code": "session_required", "message": "dispute eligibility requires account session headers"}, "items": [], "count": 0}
+        return {
+            "ok": False,
+            "error": {
+                "code": "session_required",
+                "message": "dispute eligibility requires account session headers",
+            },
+            "items": [],
+            "count": 0,
+        }
     items: list[dict[str, Any]] = []
     for _, obj in sorted(_disputes_by_id(st).items(), key=lambda item: str(item[0])):
         if not isinstance(obj, dict):
@@ -582,9 +653,18 @@ def v1_disputes_eligible(request: Request):
         if reasons:
             continue
         redacted = _redact_dispute_detail_for_viewer(obj, viewer=viewer, st=st)
-        redacted["eligibility"] = {"eligible": True, "reasons": ["eligible"], "backend_source_of_truth": True}
+        redacted["eligibility"] = {
+            "eligible": True,
+            "reasons": ["eligible"],
+            "backend_source_of_truth": True,
+        }
         items.append(redacted)
-    items.sort(key=lambda x: (int(x.get("canonical_deadlines", {}).get("review_deadline_height") or 0), str(x.get("id") or "")))
+    items.sort(
+        key=lambda x: (
+            int(x.get("canonical_deadlines", {}).get("review_deadline_height") or 0),
+            str(x.get("id") or ""),
+        )
+    )
     return {"ok": True, "account_id": viewer, "items": items, "count": len(items)}
 
 
@@ -594,7 +674,15 @@ def v1_disputes_current(request: Request):
     st = _snapshot(request)
     viewer = str(_viewer_from_request(request, st) or "").strip()
     if not viewer:
-        return {"ok": False, "error": {"code": "session_required", "message": "current disputes require account session headers"}, "items": [], "count": 0}
+        return {
+            "ok": False,
+            "error": {
+                "code": "session_required",
+                "message": "current disputes require account session headers",
+            },
+            "items": [],
+            "count": 0,
+        }
     items: list[dict[str, Any]] = []
     for _, obj in sorted(_disputes_by_id(st).items(), key=lambda item: str(item[0])):
         if not isinstance(obj, dict):
@@ -605,7 +693,11 @@ def v1_disputes_current(request: Request):
         redacted = _redact_dispute_detail_for_viewer(obj, viewer=viewer, st=st)
         deadlines = _as_dict(redacted.get("canonical_deadlines"))
         redacted["assignment_status"] = status
-        redacted["next_action"] = "vote" if status in {"accepted", "present", "attended"} else ("accept_or_decline" if status == "assigned" else "completed")
+        redacted["next_action"] = (
+            "vote"
+            if status in {"accepted", "present", "attended"}
+            else ("accept_or_decline" if status == "assigned" else "completed")
+        )
         redacted["backend_source_of_truth"] = True
         redacted["deadline_sort_height"] = int(deadlines.get("review_deadline_height") or 0)
         items.append(redacted)
@@ -628,8 +720,12 @@ def v1_dispute_accept(dispute_id: str, request: Request):
         "reasons": reasons or ["eligible"],
         "warning": "Accepting this dispute creates a 1-hour review obligation. Withdraw within 15 minutes with no reputation impact. Late withdrawal causes a small juror reliability penalty. Timeout causes a larger juror reliability penalty.",
         "deterministic_source": "signed_tx_submit",
-        "tx": _dispute_tx_template(tx_type="DISPUTE_JUROR_ACCEPT", signer=viewer, dispute_id=dispute_id),
-        "tx_template": _dispute_tx_template(tx_type="DISPUTE_JUROR_ACCEPT", signer=viewer, dispute_id=dispute_id),
+        "tx": _dispute_tx_template(
+            tx_type="DISPUTE_JUROR_ACCEPT", signer=viewer, dispute_id=dispute_id
+        ),
+        "tx_template": _dispute_tx_template(
+            tx_type="DISPUTE_JUROR_ACCEPT", signer=viewer, dispute_id=dispute_id
+        ),
     }
 
 
@@ -649,8 +745,12 @@ def v1_dispute_withdraw(dispute_id: str, request: Request):
         "backend_classifies_penalty": True,
         "frontend_classifies_penalty": False,
         "deterministic_source": "signed_tx_submit",
-        "tx": _dispute_tx_template(tx_type="DISPUTE_JUROR_WITHDRAW", signer=viewer, dispute_id=dispute_id),
-        "tx_template": _dispute_tx_template(tx_type="DISPUTE_JUROR_WITHDRAW", signer=viewer, dispute_id=dispute_id),
+        "tx": _dispute_tx_template(
+            tx_type="DISPUTE_JUROR_WITHDRAW", signer=viewer, dispute_id=dispute_id
+        ),
+        "tx_template": _dispute_tx_template(
+            tx_type="DISPUTE_JUROR_WITHDRAW", signer=viewer, dispute_id=dispute_id
+        ),
     }
 
 
@@ -660,12 +760,16 @@ async def v1_dispute_vote(dispute_id: str, request: Request):
     viewer = str(require_account_session(request, st) or "").strip()
     obj = _dispute_obj_from_snapshot(st, dispute_id)
     status = _status_for_viewer(obj, viewer)
-    body = await _read_json_limited(request, max_bytes_env="WEALL_MAX_HTTP_DISPUTE_ACTION_BYTES", default_max_bytes=64 * 1024)
+    body = await _read_json_limited(
+        request, max_bytes_env="WEALL_MAX_HTTP_DISPUTE_ACTION_BYTES", default_max_bytes=64 * 1024
+    )
     payload = body if isinstance(body, dict) else {}
     payload.setdefault("dispute_id", dispute_id)
     viewer_juror = _viewer_juror_record(obj, viewer)
     attendance = viewer_juror.get("attendance") if isinstance(viewer_juror, dict) else None
-    attendance_present = (isinstance(attendance, dict) and bool(attendance.get("present", False))) or status in {"present", "attended"}
+    attendance_present = (
+        isinstance(attendance, dict) and bool(attendance.get("present", False))
+    ) or status in {"present", "attended"}
     allowed = status in {"accepted", "present", "attended"} and attendance_present
     if allowed:
         reasons = ["eligible"]
@@ -686,8 +790,12 @@ async def v1_dispute_vote(dispute_id: str, request: Request):
         "backend_classifies_deadline": True,
         "frontend_classifies_penalty": False,
         "deterministic_source": "signed_tx_submit",
-        "tx": _dispute_tx_template(tx_type="DISPUTE_VOTE_SUBMIT", signer=viewer, dispute_id=dispute_id, payload=payload),
-        "tx_template": _dispute_tx_template(tx_type="DISPUTE_VOTE_SUBMIT", signer=viewer, dispute_id=dispute_id, payload=payload),
+        "tx": _dispute_tx_template(
+            tx_type="DISPUTE_VOTE_SUBMIT", signer=viewer, dispute_id=dispute_id, payload=payload
+        ),
+        "tx_template": _dispute_tx_template(
+            tx_type="DISPUTE_VOTE_SUBMIT", signer=viewer, dispute_id=dispute_id, payload=payload
+        ),
     }
 
 
@@ -705,7 +813,11 @@ def v1_dispute_votes(dispute_id: str, request: Request):
     _maybe_observer_read_sync(request)
     st = _snapshot(request)
     obj = _normalize_dispute(_dispute_obj_from_snapshot(st, dispute_id))
-    counts = obj.get("vote_counts") if isinstance(obj.get("vote_counts"), dict) else {"yes": 0, "no": 0, "abstain": 0}
+    counts = (
+        obj.get("vote_counts")
+        if isinstance(obj.get("vote_counts"), dict)
+        else {"yes": 0, "no": 0, "abstain": 0}
+    )
     return {
         "ok": True,
         "dispute_id": str(obj.get("id") or dispute_id),

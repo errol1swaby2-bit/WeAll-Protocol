@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 NESTED = ROOT / "Weall-Protocol"
 WEB = ROOT / "web" / "src"
@@ -39,7 +38,9 @@ def test_async_evidence_waits_for_local_sync_before_dependent_txs() -> None:
 
     assert "requireLocalStateSynced?: boolean" in page
     assert "const localSynced = st?.local_state_synced === true" in page
-    assert "return false" in re.search(r"async function waitForSubmittedTxVisible\(.*?\n\}", page, re.S).group(0)
+    assert "return false" in re.search(
+        r"async function waitForSubmittedTxVisible\(.*?\n\}", page, re.S
+    ).group(0)
     assert "Batch 400: keep the native async evidence sequence contiguous" in page
     assert "Submit request-open, evidence-declare, and evidence-bind first; then" in page
     assert "const boundCaseVisible = await waitForAsyncCaseVisible" in page

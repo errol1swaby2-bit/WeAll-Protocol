@@ -3,7 +3,21 @@ from __future__ import annotations
 
 from typing import Any
 
-_ACTIVE_STAGES = frozenset({"draft", "poll", "voting", "open", "queued", "finalizing", "revision", "validation", "vote", "closed", "tallied"})
+_ACTIVE_STAGES = frozenset(
+    {
+        "draft",
+        "poll",
+        "voting",
+        "open",
+        "queued",
+        "finalizing",
+        "revision",
+        "validation",
+        "vote",
+        "closed",
+        "tallied",
+    }
+)
 
 from fastapi import APIRouter, Request
 
@@ -98,9 +112,9 @@ def _aggregate_counts(obj: dict[str, Any], *, stage: str) -> dict[str, int]:
     return _count_map(_as_vote_map(obj.get(votes_key)))
 
 
-
-
-def _page_vote_map(votes: dict[str, Any], *, limit: int, cursor: Any) -> tuple[dict[str, Any], str | None]:
+def _page_vote_map(
+    votes: dict[str, Any], *, limit: int, cursor: Any
+) -> tuple[dict[str, Any], str | None]:
     _cursor_n, cursor_key = _cursor_unpack(cursor)
     rows = [(str(k), v) for k, v in votes.items()]
     rows.sort(key=lambda item: item[0])
@@ -146,6 +160,7 @@ def _summary_from_items(items: list[dict[str, Any]]) -> dict[str, Any]:
         "by_stage": dict(sorted(by_stage.items(), key=lambda kv: kv[0])),
     }
 
+
 def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     """Ensure a stable shape for API consumers.
 
@@ -174,21 +189,21 @@ def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     out["poll_vote_total"] = int(sum(poll_counts.values()))
     out["vote_total"] = int(sum(counts.values()))
     out["has_actions"] = bool(isinstance(out.get("actions"), list) and out.get("actions"))
-    out["execution_count"] = len(out.get("executions")) if isinstance(out.get("executions"), list) else 0
+    out["execution_count"] = (
+        len(out.get("executions")) if isinstance(out.get("executions"), list) else 0
+    )
     out["counts_current"] = _proposal_counts_current(out)
     out["vote_window"] = "poll" if _proposal_stage(out) == "poll" else "final"
     out["is_active"] = _is_active_stage(_proposal_stage(out))
     return out
 
 
-
-
 def _redact_proposal_vote_maps(obj: dict[str, Any]) -> dict[str, Any]:
     """Return proposal detail/list shape without unbounded voter maps."""
 
     out = _normalize_proposal(obj)
-    poll_votes = _as_vote_map(obj.get("poll_votes"))
-    votes = _as_vote_map(obj.get("votes"))
+    _as_vote_map(obj.get("poll_votes"))
+    _as_vote_map(obj.get("votes"))
     out.pop("poll_votes", None)
     out.pop("votes", None)
     out["poll_votes_redacted"] = True
@@ -198,6 +213,7 @@ def _redact_proposal_vote_maps(obj: dict[str, Any]) -> dict[str, Any]:
         "votes": int(sum(_aggregate_counts(obj, stage="voting").values())),
     }
     return out
+
 
 def _proposal_obj_from_snapshot(st: dict[str, Any], proposal_id: str) -> dict[str, Any]:
     """Fetch a proposal object by id from snapshot, supporting canonical + legacy IDs."""

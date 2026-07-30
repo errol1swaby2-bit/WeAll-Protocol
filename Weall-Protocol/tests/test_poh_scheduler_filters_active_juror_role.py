@@ -51,8 +51,12 @@ def test_poh_assignment_pool_requires_active_juror_role_by_default() -> None:
     state = _state()
 
     assert eligible_live_jurors(state=state) == ["@active"]
-    assert pick_async_jurors(state=state, case_id="case-1", target_account="@target", n_jurors=1) == ["@active"]
-    assert pick_tier2_jurors(state=state, case_id="case-2", target_account="@target", n_jurors=1) == ["@active"]
+    assert pick_async_jurors(
+        state=state, case_id="case-1", target_account="@target", n_jurors=1
+    ) == ["@active"]
+    assert pick_tier2_jurors(
+        state=state, case_id="case-2", target_account="@target", n_jurors=1
+    ) == ["@active"]
 
     with pytest.raises(ValueError, match="insufficient_eligible_jurors"):
         pick_async_jurors(state=state, case_id="case-1", target_account="@target", n_jurors=2)

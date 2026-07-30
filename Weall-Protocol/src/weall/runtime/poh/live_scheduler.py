@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.poh.live_quorum import (
     DEFAULT_LIVE_PASS_THRESHOLD_DENOMINATOR,
     DEFAULT_LIVE_PASS_THRESHOLD_NUMERATOR,
@@ -11,6 +10,7 @@ from weall.runtime.poh.live_quorum import (
     MAX_LIVE_JURORS,
     live_quorum_summary,
 )
+from weall.runtime.reputation_units import threshold_to_units
 from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = dict[str, Any]
@@ -43,13 +43,13 @@ def _poh_params(state: Json) -> Json:
     return poh if isinstance(poh, dict) else {}
 
 
-
 def _param_int(state: Json, *, key: str, default: int) -> int:
     poh = _poh_params(state)
     try:
         return int(poh.get(key, default))
     except Exception:
         return int(default)
+
 
 def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_units: int) -> int:
     poh = _poh_params(state)
@@ -59,8 +59,6 @@ def _param_rep_units(state: Json, *, units_key: str, legacy_key: str, default_un
     except Exception:
         pass
     return max(0, threshold_to_units(poh.get(legacy_key), default=default_units))
-
-
 
 
 def _param_bool_any(state: Json, *, keys: tuple[str, ...], default: bool = False) -> bool:
@@ -124,7 +122,10 @@ def _live_partial_panels_allowed(state: Json, *, next_height: int) -> bool:
         return bool(explicit)
     return int(next_height) <= int(until)
 
-def _session_commitment(state: Json, *, case_id: str, account_id: str, case: Json | None = None) -> str:
+
+def _session_commitment(
+    state: Json, *, case_id: str, account_id: str, case: Json | None = None
+) -> str:
     # Dedicated Live requests must provide a session commitment up front.  Keep
     # the deterministic fallback for legacy in-memory fixtures only; strict
     # apply-layer validation will reject missing case commitments before init or
@@ -326,7 +327,9 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                         n_interacting=MAX_LIVE_INTERACTING_JURORS,
                         n_observing=MAX_LIVE_JURORS - MAX_LIVE_INTERACTING_JURORS,
                         min_rep_units=int(min_rep_units),
-                        allow_partial=_live_partial_panels_allowed(state, next_height=int(next_height)),
+                        allow_partial=_live_partial_panels_allowed(
+                            state, next_height=int(next_height)
+                        ),
                     )
                     jurors = list(interacting) + list(observing)
                 except Exception:

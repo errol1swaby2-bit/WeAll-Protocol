@@ -41,7 +41,9 @@ def _juror_has_vote(dispute: Json, juror: str) -> bool:
     return any(str(voter or "").strip() in variants for voter in votes.keys())
 
 
-def _queue_juror_timeout_if_due(state: Json, *, dispute_id: str, dispute: Json, juror: str, rec: Json, next_height: int) -> bool:
+def _queue_juror_timeout_if_due(
+    state: Json, *, dispute_id: str, dispute: Json, juror: str, rec: Json, next_height: int
+) -> bool:
     status = str(rec.get("status") or "").strip().lower()
     if status not in {"accepted", "attended", "present"}:
         return False
@@ -72,7 +74,12 @@ def _queue_juror_timeout_if_due(state: Json, *, dispute_id: str, dispute: Json, 
 
 def _appeal_window_blocks(dispute: Json, *, default: int = 72) -> int:
     rules = _d(dispute.get("rules"))
-    return max(1, _i(dispute.get("appeal_window_blocks", rules.get("appeal_window_blocks", default)), default))
+    return max(
+        1,
+        _i(
+            dispute.get("appeal_window_blocks", rules.get("appeal_window_blocks", default)), default
+        ),
+    )
 
 
 def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
@@ -90,7 +97,12 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
         if isinstance(jurors, dict):
             for juror, rec in sorted(jurors.items(), key=lambda item: str(item[0])):
                 if isinstance(rec, dict) and _queue_juror_timeout_if_due(
-                    state, dispute_id=str(did), dispute=dispute, juror=str(juror), rec=rec, next_height=int(next_height)
+                    state,
+                    dispute_id=str(did),
+                    dispute=dispute,
+                    juror=str(juror),
+                    rec=rec,
+                    next_height=int(next_height),
                 ):
                     enq += 1
         stage = str(dispute.get("stage") or "").strip().lower()
@@ -122,7 +134,9 @@ def tick_dispute_lifecycle(state: Json, *, next_height: int) -> int:
             continue
         deadline = _i(dispute.get("appeal_deadline_height"), 0)
         if deadline <= 0:
-            verdict_h = _i(dispute.get("verdict_at_height") or dispute.get("resolved_at_height"), next_height)
+            verdict_h = _i(
+                dispute.get("verdict_at_height") or dispute.get("resolved_at_height"), next_height
+            )
             deadline = int(verdict_h) + _appeal_window_blocks(dispute)
             dispute["appeal_deadline_height"] = int(deadline)
         if stage in {"appealed", "appeal_review"}:

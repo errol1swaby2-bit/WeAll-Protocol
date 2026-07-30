@@ -114,14 +114,25 @@ def _assign(st: dict, case_id: str, jurors: list[str]) -> dict:
 def _active_vote(st: dict, case_id: str, juror_id: str, verdict: str, nonce: int) -> int:
     apply_tx(
         st,
-        _env("POH_LIVE_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": nonce}, signer=juror_id, nonce=nonce),
+        _env(
+            "POH_LIVE_JUROR_ACCEPT",
+            {"case_id": case_id, "ts_ms": nonce},
+            signer=juror_id,
+            nonce=nonce,
+        ),
     )
     nonce += 1
     apply_tx(
         st,
         _env(
             "POH_LIVE_ATTENDANCE_MARK",
-            {"case_id": case_id, "juror_id": juror_id, "attended": True, "session_commitment": "sc:1", "ts_ms": nonce},
+            {
+                "case_id": case_id,
+                "juror_id": juror_id,
+                "attended": True,
+                "session_commitment": "sc:1",
+                "ts_ms": nonce,
+            },
             signer=juror_id,
             nonce=nonce,
         ),
@@ -270,7 +281,6 @@ def test_live_scheduler_bootstraps_with_partial_eligible_pool() -> None:
     assert queued["payload"]["live_quorum"]["required_passes"] == 1
 
 
-
 def test_live_scheduler_enqueues_init_and_assignment_for_requested_case() -> None:
     st = _state(juror_count=1)
     st.setdefault("params", {})["poh"] = {
@@ -351,6 +361,7 @@ def test_live_scheduler_keeps_legacy_open_case_assignment_without_commitments() 
     assert enq == 1
     queued = st.get("system_queue") or []
     assert [item["tx_type"] for item in queued] == ["POH_LIVE_JUROR_ASSIGN"]
+
 
 def test_live_scheduler_rejects_partial_panel_after_bootstrap_sunset() -> None:
     st = _state(juror_count=1)

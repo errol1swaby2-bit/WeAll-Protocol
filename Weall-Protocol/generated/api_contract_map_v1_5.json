@@ -452,7 +452,7 @@
       "route_id": "1fb9dfa2e3a3bc38",
       "route_path_without_v1_prefix": "/content/{content_id}",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 924,
+      "source_lineno": 964,
       "summary": "",
       "tags": [
         "content"
@@ -474,7 +474,7 @@
       "route_id": "934a94a299671665",
       "route_path_without_v1_prefix": "/content/{content_id}/history",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 873,
+      "source_lineno": 913,
       "summary": "",
       "tags": [
         "content"
@@ -496,7 +496,7 @@
       "route_id": "b0081d6b1b60e647",
       "route_path_without_v1_prefix": "/content/{content_id}/scoped",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 978,
+      "source_lineno": 1018,
       "summary": "",
       "tags": [
         "content"
@@ -562,7 +562,7 @@
       "route_id": "0ca13142ef0583a9",
       "route_path_without_v1_prefix": "/disputes",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 519,
+      "source_lineno": 574,
       "summary": "",
       "tags": [
         "disputes"
@@ -584,7 +584,7 @@
       "route_id": "b5d4205c4c827d9b",
       "route_path_without_v1_prefix": "/disputes/current",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 592,
+      "source_lineno": 672,
       "summary": "",
       "tags": [
         "disputes"
@@ -606,7 +606,7 @@
       "route_id": "8490e847698c6a7e",
       "route_path_without_v1_prefix": "/disputes/eligible",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 571,
+      "source_lineno": 634,
       "summary": "",
       "tags": [
         "disputes"
@@ -628,7 +628,7 @@
       "route_id": "6b48e858f7dbe6e5",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 695,
+      "source_lineno": 803,
       "summary": "",
       "tags": [
         "disputes"
@@ -650,7 +650,7 @@
       "route_id": "938e25efe2ccbe14",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/accept",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 617,
+      "source_lineno": 709,
       "summary": "",
       "tags": [
         "disputes"
@@ -672,7 +672,7 @@
       "route_id": "178aa3a76252c0d2",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/vote",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 658,
+      "source_lineno": 758,
       "summary": "",
       "tags": [
         "disputes"
@@ -694,7 +694,7 @@
       "route_id": "4828eba89b7123a6",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/votes",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 704,
+      "source_lineno": 812,
       "summary": "",
       "tags": [
         "disputes"
@@ -716,7 +716,7 @@
       "route_id": "5185458f5b421f35",
       "route_path_without_v1_prefix": "/disputes/{dispute_id}/withdraw",
       "source": "src/weall/api/routes_public_parts/disputes.py",
-      "source_lineno": 637,
+      "source_lineno": 733,
       "summary": "",
       "tags": [
         "disputes"
@@ -804,7 +804,7 @@
       "route_id": "f11984242f1bc865",
       "route_path_without_v1_prefix": "/feed",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 759,
+      "source_lineno": 792,
       "summary": "",
       "tags": [
         "content"
@@ -870,7 +870,7 @@
       "route_id": "a6dae38992332d75",
       "route_path_without_v1_prefix": "/gov/ballot-profile",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 226,
+      "source_lineno": 242,
       "summary": "",
       "tags": [
         "gov"
@@ -892,7 +892,7 @@
       "route_id": "1eec389b413aab53",
       "route_path_without_v1_prefix": "/gov/proposals",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 246,
+      "source_lineno": 262,
       "summary": "",
       "tags": [
         "gov"
@@ -914,7 +914,7 @@
       "route_id": "7427dc23f58b8cde",
       "route_path_without_v1_prefix": "/gov/proposals/{proposal_id}",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 324,
+      "source_lineno": 340,
       "summary": "",
       "tags": [
         "gov"
@@ -936,7 +936,7 @@
       "route_id": "a28871e53aca2859",
       "route_path_without_v1_prefix": "/gov/proposals/{proposal_id}/votes",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 340,
+      "source_lineno": 356,
       "summary": "",
       "tags": [
         "gov"
@@ -958,7 +958,7 @@
       "route_id": "27ca803e4d287a44",
       "route_path_without_v1_prefix": "/governance/active",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 299,
+      "source_lineno": 315,
       "summary": "",
       "tags": [
         "gov"
@@ -980,7 +980,7 @@
       "route_id": "d058acb6eb1ff745",
       "route_path_without_v1_prefix": "/governance/ballot-profile",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 226,
+      "source_lineno": 242,
       "summary": "",
       "tags": [
         "gov"
@@ -1002,7 +1002,7 @@
       "route_id": "12ed64685299e002",
       "route_path_without_v1_prefix": "/governance/current",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 299,
+      "source_lineno": 315,
       "summary": "",
       "tags": [
         "gov"
@@ -1024,7 +1024,7 @@
       "route_id": "ce609f7bea3f01a6",
       "route_path_without_v1_prefix": "/governance/proposals",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 246,
+      "source_lineno": 262,
       "summary": "",
       "tags": [
         "gov"
@@ -1046,7 +1046,7 @@
       "route_id": "d061a7073152c438",
       "route_path_without_v1_prefix": "/governance/proposals/{proposal_id}",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 324,
+      "source_lineno": 340,
       "summary": "",
       "tags": [
         "gov"
@@ -1068,7 +1068,7 @@
       "route_id": "479692f9d86f2c2a",
       "route_path_without_v1_prefix": "/governance/proposals/{proposal_id}/votes",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 340,
+      "source_lineno": 356,
       "summary": "",
       "tags": [
         "gov"
@@ -2608,7 +2608,7 @@
       "route_id": "5b2ab618115bb5a4",
       "route_path_without_v1_prefix": "/proposals",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 246,
+      "source_lineno": 262,
       "summary": "",
       "tags": [
         "gov"
@@ -2630,7 +2630,7 @@
       "route_id": "65c54040003042bf",
       "route_path_without_v1_prefix": "/proposals/active",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 299,
+      "source_lineno": 315,
       "summary": "",
       "tags": [
         "gov"
@@ -2652,7 +2652,7 @@
       "route_id": "cd13445868386d42",
       "route_path_without_v1_prefix": "/proposals/current",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 299,
+      "source_lineno": 315,
       "summary": "",
       "tags": [
         "gov"
@@ -2674,7 +2674,7 @@
       "route_id": "7a1d5138cfc23f7e",
       "route_path_without_v1_prefix": "/proposals/{proposal_id}",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 324,
+      "source_lineno": 340,
       "summary": "",
       "tags": [
         "gov"
@@ -2696,7 +2696,7 @@
       "route_id": "739af6dc131061d5",
       "route_path_without_v1_prefix": "/proposals/{proposal_id}/votes",
       "source": "src/weall/api/routes_public_parts/gov.py",
-      "source_lineno": 340,
+      "source_lineno": 356,
       "summary": "",
       "tags": [
         "gov"
@@ -3400,7 +3400,7 @@
       "route_id": "72282a3231bedf33",
       "route_path_without_v1_prefix": "/thread/{thread_id}",
       "source": "src/weall/api/routes_public_parts/content.py",
-      "source_lineno": 1031,
+      "source_lineno": 1079,
       "summary": "",
       "tags": [
         "content"

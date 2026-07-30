@@ -258,9 +258,7 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
             poll_period = _poll_period_blocks(pr)
             poll_close_h = int(poll_h) + int(poll_period)
             if int(next_height) >= int(poll_close_h):
-                tally = _count_votes_direct_only(
-                    pr, votes_key="poll_votes"
-                )
+                tally = _count_votes_direct_only(pr, votes_key="poll_votes")
                 yes = int(tally["yes"])
                 no = int(tally["no"])
                 abstain = int(tally["abstain"])
@@ -342,9 +340,7 @@ def tick_governance_lifecycle(state: Json, *, next_height: int) -> int:
             close_h = int(vote_opened_h) + int(vote_period)
 
             if int(next_height) >= int(close_h):
-                tally = _count_votes_direct_only(
-                    pr, votes_key="votes"
-                )
+                tally = _count_votes_direct_only(pr, votes_key="votes")
                 yes = int(tally["yes"])
                 no = int(tally["no"])
                 abstain = int(tally["abstain"])

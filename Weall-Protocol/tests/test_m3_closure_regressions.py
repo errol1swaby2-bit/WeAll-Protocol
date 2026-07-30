@@ -96,7 +96,9 @@ def test_strict_governance_enforces_snapshot_first_ballot_finality_and_no_revoke
     with pytest.raises(ApplyError) as outside:
         apply_governance(
             state,
-            _env("GOV_VOTE_CAST", "@dave", 1, {"proposal_id": proposal["proposal_id"], "vote": "yes"}),
+            _env(
+                "GOV_VOTE_CAST", "@dave", 1, {"proposal_id": proposal["proposal_id"], "vote": "yes"}
+            ),
         )
     assert outside.value.reason == "governance_vote_requires_active_round_member"
 
@@ -107,7 +109,9 @@ def test_strict_governance_enforces_snapshot_first_ballot_finality_and_no_revoke
     with pytest.raises(ApplyError) as duplicate:
         apply_governance(
             state,
-            _env("GOV_VOTE_CAST", "@alice", 3, {"proposal_id": proposal["proposal_id"], "vote": "no"}),
+            _env(
+                "GOV_VOTE_CAST", "@alice", 3, {"proposal_id": proposal["proposal_id"], "vote": "no"}
+            ),
         )
     assert duplicate.value.reason == "ballot_already_final"
 
@@ -181,8 +185,7 @@ def test_strict_no_action_governance_uses_system_finalization_and_receipts() -> 
     queued_types = [
         item.get("tx_type")
         for item in queue
-        if isinstance(item, dict)
-        and (item.get("payload") or {}).get("proposal_id") == proposal_id
+        if isinstance(item, dict) and (item.get("payload") or {}).get("proposal_id") == proposal_id
     ]
     assert queued_types[:4] == [
         "GOV_VOTING_CLOSE",
@@ -236,8 +239,7 @@ def test_strict_no_action_governance_uses_system_finalization_and_receipts() -> 
     receipt_types = {
         item.get("tx_type")
         for item in state["system_queue"]
-        if isinstance(item, dict)
-        and (item.get("payload") or {}).get("proposal_id") == proposal_id
+        if isinstance(item, dict) and (item.get("payload") or {}).get("proposal_id") == proposal_id
     }
     assert "GOV_EXECUTION_RECEIPT" in receipt_types
     assert "GOV_PROPOSAL_RECEIPT" in receipt_types
@@ -250,7 +252,12 @@ def test_strict_governance_fails_closed_without_active_ballot_profile() -> None:
     with pytest.raises(ApplyError) as exc:
         apply_governance(
             state,
-            _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": proposal["proposal_id"], "vote": "yes"}),
+            _env(
+                "GOV_VOTE_CAST",
+                "@alice",
+                2,
+                {"proposal_id": proposal["proposal_id"], "vote": "yes"},
+            ),
         )
     assert exc.value.reason == "BALLOT_PROFILE_INACTIVE"
 
@@ -294,8 +301,7 @@ def test_strict_group_ranked_ballots_are_anonymous_and_final() -> None:
     )
     group = state["roles"]["groups_by_id"]["g:m3-election"]
     group["members"] = {
-        account: {"status": "active"}
-        for account in ("@alice", "@bob", "@carol", "@dana", "@erin")
+        account: {"status": "active"} for account in ("@alice", "@bob", "@carol", "@dana", "@erin")
     }
     for account in ("@dana", "@erin"):
         state["accounts"][account] = {"poh_tier": 2, "banned": False, "locked": False}
@@ -477,7 +483,6 @@ def test_strict_dispute_ballot_state_is_aggregate_only() -> None:
             ),
         )
     assert duplicate.value.reason == "dispute_ballot_already_final"
-
 
 
 def test_strict_appeal_ballot_state_is_aggregate_only_and_final() -> None:
@@ -717,7 +722,10 @@ def test_unassigned_dispute_panel_repairs_only_when_full_panel_and_substitutes_e
         for record in dispute["jurors"].values()
     )
 
-def test_content_flag_queue_failure_creates_repairable_canonical_record(monkeypatch: pytest.MonkeyPatch) -> None:
+
+def test_content_flag_queue_failure_creates_repairable_canonical_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     state = _strict_state()
     state["accounts"]["@reporter"] = {"poh_tier": 1, "banned": False, "locked": False}
     state["content"] = {
@@ -750,7 +758,9 @@ def test_content_flag_queue_failure_creates_repairable_canonical_record(monkeypa
     monkeypatch.setattr(content_apply_module, "enqueue_system_tx", real_enqueue)
     assert repair_pending_content_escalations(state, next_height=101) == 1
     assert pending["status"] == "queued"
-    assert any(item.get("tx_type") == "CONTENT_ESCALATE_TO_DISPUTE" for item in state["system_queue"])
+    assert any(
+        item.get("tx_type") == "CONTENT_ESCALATE_TO_DISPUTE" for item in state["system_queue"]
+    )
 
 
 def test_public_content_mutations_append_immutable_history_chain() -> None:
@@ -761,11 +771,21 @@ def test_public_content_mutations_append_immutable_history_chain() -> None:
     )
     apply_content(
         state,
-        _env("CONTENT_POST_EDIT", "@alice", 2, {"post_id": "post:m3", "body": "v2", "reason": "clarity"}),
+        _env(
+            "CONTENT_POST_EDIT",
+            "@alice",
+            2,
+            {"post_id": "post:m3", "body": "v2", "reason": "clarity"},
+        ),
     )
     apply_content(
         state,
-        _env("CONTENT_POST_DELETE", "@alice", 3, {"post_id": "post:m3", "reason": "author withdrawal"}),
+        _env(
+            "CONTENT_POST_DELETE",
+            "@alice",
+            3,
+            {"post_id": "post:m3", "reason": "author withdrawal"},
+        ),
     )
 
     chain = state["content"]["history"]["posts"]["post:m3"]

@@ -2709,7 +2709,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "2d03496cdfa663bd3f4f7860e069a49536912421195f4314727270b9fd339f8e",
+      "sha256": "39bf8fdf4178108bdc93dcb47b7f49a3527f523ce4ca0e9784dcb04265e9ebf9",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -3017,7 +3017,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "7eec7e60ea3bc0240d591d14243170b523ffe7d2390e3a137fa5bfe5c476e54e",
+      "sha256": "337d958f0edb9c53045bacad15527a9c5f20edec4aed43192e2c655ed8acad53",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3115,7 +3115,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c09f5b20881a6922acd454d98e4d3115718bd3690dec706956a3a7a2775e6bd8",
+      "sha256": "9d06a553475ec70fabd9e1c803ce7786a24df35d55c98c07c41a437bd4880841",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3297,7 +3297,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5c4658c12d2db459c486b2266423f3653acf5e42a4264278dfba1b68c2e07594",
+      "sha256": "f200647381d28979899ed40eb77d111337aecae57468ce77b5ba44f9cb4aef0e",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -4414,7 +4414,7 @@
       ],
       "path": "scripts/gen_governance_execution_vectors_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "0101f7758bfccf7624da1b2fadc78e89fb3cbf1884d9885fcd45b7d1fc890b08",
+      "sha256": "3afb07049bcd6bc37b4df5d296bfdf77fcf2dd15a57904f6dd28e5e763718c41",
       "source_id": "SRC-3EF839A60FAF0223"
     },
     {
@@ -6413,7 +6413,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "274b69f3b2977780be7567951bc9e1523ce1c4e89be6d182d9c932a39efd7fa9",
+      "sha256": "3e08ef983bc9bffa59e54577e65ed172592040ea34100821aaf5de1db7a8658b",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6789,7 +6789,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/content.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "2c454308ccc5c7f82bf29bfed5bb49b2c4e12393fb7e93eb1f315b1269f751af",
+      "sha256": "178477e52dd139f013fbbf9e1de039da8eb7bf2f990573e5a5d2003375e8542e",
       "source_id": "SRC-99983AD9E74806F7"
     },
     {
@@ -6827,7 +6827,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/disputes.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "bc301eef481e5760aad845cf69ab619060419688d68118a79132d8eda4fc9772",
+      "sha256": "1840f2cad1a118cf389c2c1448d0e1a97d4aae0faf6822053a334405e59d7ed0",
       "source_id": "SRC-05CBF1893FC1155E"
     },
     {
@@ -6875,7 +6875,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/gov.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "a11534707c1bd3508bea6795a5950f08c665c7b87bf54b5b5ef8b7385e6bf1de",
+      "sha256": "0b85301e019cf0059d93659550b5f8294c7a95ba758deb99f13c044ad2e29c67",
       "source_id": "SRC-8EBA8A865F2A5B3D"
     },
     {
@@ -8154,7 +8154,7 @@
       ],
       "path": "src/weall/runtime/apply/content.py",
       "primary_mechanism_id": "M-039",
-      "sha256": "2822256ec3659ca6dd8fd126e792c89d6903f7b749edac968888dbbb20cd3a02",
+      "sha256": "c2c52d91deee070d97c27044b80beda58f52d79df87ae1f0632a02ea0e09fa7a",
       "source_id": "SRC-8E7A46D33E345524"
     },
     {
@@ -8351,7 +8351,7 @@
       ],
       "path": "src/weall/runtime/apply/dispute.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "fe073f14c5e4f3e4c7ffd956c94888ab3502ed9651ec10b06363e854263a3138",
+      "sha256": "51dc7186fb2f55b8623dee5ed71b9588136a5580b14c6a06cb1372275bde2313",
       "source_id": "SRC-2E76D23317EE6BDB"
     },
     {
@@ -8490,7 +8490,7 @@
       ],
       "path": "src/weall/runtime/apply/governance.py",
       "primary_mechanism_id": "M-049",
-      "sha256": "1af22342dbff144967842022af157e76f91671aeeb1d9abc4921301ad7a53804",
+      "sha256": "e4f6b9f6869a7e5f744bcf6e160bb39c38af3b1f35c705845769c4854865b457",
       "source_id": "SRC-A6C282C450952C4C"
     },
     {
@@ -8610,7 +8610,7 @@
       ],
       "path": "src/weall/runtime/apply/groups.py",
       "primary_mechanism_id": "M-039",
-      "sha256": "c40cc79d9961da1efd6cd4e9d78d6e2dd3740eb63d91781a7f89e3dc405abc6c",
+      "sha256": "f69190660156b55737d652b2b6b4bbed34fe32144510920b59cb75bfd4fe1b6f",
       "source_id": "SRC-A3A8E7E2A1832F87"
     },
     {
@@ -9417,7 +9417,7 @@
       ],
       "path": "src/weall/runtime/apply/roles.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "60dd2220f31a6a5bd4d475ac4fc257d363c5acf6847316a609ae4adc31e81853",
+      "sha256": "8e55efd8a7a07034e17bebe41dd484e885caf0aff58b60eb524322d7782d81c6",
       "source_id": "SRC-C5933119C6D88AA7"
     },
     {
@@ -9677,7 +9677,7 @@
       ],
       "path": "src/weall/runtime/ballot_policy.py",
       "primary_mechanism_id": "M-050",
-      "sha256": "07c2f123e21387a14db80435f196399ddf5a45aae7551798e724058c201b8096",
+      "sha256": "22ff71eaf00bfae2f8e4241f62c8797652e17b2d20ea0afd4b7feb5bedfdc19f",
       "source_id": "SRC-60704273EB43099F"
     },
     {
@@ -10127,7 +10127,7 @@
       ],
       "path": "src/weall/runtime/dispute_engine.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "0fbf681e7e6440289510c593eadcbe49183e0b401c0c66cd5f0b9ae84ce85fee",
+      "sha256": "91b75e25fdd9d3395a8a4f4320c798100cdf4174608628bdbfe659f0b43cad8e",
       "source_id": "SRC-54BD7334E96CF0CA"
     },
     {
@@ -10346,7 +10346,7 @@
       ],
       "path": "src/weall/runtime/genesis_bootstrap.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "9984f3ef7847c0ea9a3cbaace6c1da36b182a8ae57d53cef0d92cffa9039c208",
+      "sha256": "5c5e47598c35da7d1c19599150deede6143a5e5f334ba2b3998caee46916ef57",
       "source_id": "SRC-795ADF0884ACC9CB"
     },
     {
@@ -10378,7 +10378,7 @@
       ],
       "path": "src/weall/runtime/gov_engine.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "9fbff016fa764f088f05aff85251571eb338371ebd55b71e03d504d5f1ec3a69",
+      "sha256": "6a574f04fd927e7df462bb830e2533e37ef554ae325b44a2658f1f3eb279517c",
       "source_id": "SRC-A07193FDBCB87884"
     },
     {
@@ -11201,7 +11201,7 @@
       ],
       "path": "src/weall/runtime/poh/live_scheduler.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "38be71bdb8d3f574a94e5f7dc766735bb0ed422ed717b501353638ac4adb615b",
+      "sha256": "4919a2a4086aa7cd82b64827a2043c0a424e91b09868fa0bf58828f50c32ed5a",
       "source_id": "SRC-966ED2AC6AA9E3AB"
     },
     {
@@ -11377,7 +11377,7 @@
       ],
       "path": "src/weall/runtime/reputation_matrix.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "addf12aaff4db2bb93fee244454b0dfdc096b915420c9c4f73ed9ca034fa5ca1",
+      "sha256": "514b56aae6a698eeb9a2d8892424bff260edef0a2a20856804334e80b715b5ef",
       "source_id": "SRC-6C9B9BF3F679089F"
     },
     {
@@ -12521,7 +12521,7 @@
       ],
       "path": "tests/prod/test_public_discovery_no_named_provider_dependency.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "36dfde44434650c53159994515bef769b00472eac8d6f4438c023cc1a9ae07c7",
+      "sha256": "aa21c1f1a7fffc02dfc0f90db89403199c4c3c136df0bc6224faaa2727bde7a2",
       "source_id": "SRC-1D8EBC3BC7DB51BF"
     },
     {
@@ -14473,7 +14473,7 @@
       ],
       "path": "tests/test_combined_journey_gates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "a6721019ad17e16d51171f8cff99e301c0c4b7b54839595f92a74bfb61080d6d",
+      "sha256": "5d70d291aa38fccde234dde0cd0ba211dbf1badf880810d1eb8f39627ed5f0db",
       "source_id": "SRC-C67B71A84B835105"
     },
     {
@@ -14765,7 +14765,7 @@
       ],
       "path": "tests/test_content_review_conflict_enforcement.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "1b79c8d997f2596c478e621bd301a35def2044b3b9395d9dfe775b0780726d39",
+      "sha256": "f0129fdcb79f4a661e654f78fce5b6db8644bab2da70438cb48708af98bc67fc",
       "source_id": "SRC-715211FA7BB042CB"
     },
     {
@@ -19042,7 +19042,7 @@
       ],
       "path": "tests/test_local_rehearsal_downstream_review_sync.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b6f638aad1bca92fb95b1a70c3e37cc96b764273f3adac6b7136b491e9fce194",
+      "sha256": "3f7146b01368cfed203a6312b315da3d0520ee87af4b0f91a55221c614dd0b83",
       "source_id": "SRC-2BE6F283749988FB"
     },
     {
@@ -19359,7 +19359,7 @@
       ],
       "path": "tests/test_m3_closure_regressions.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "b854dcb19cc1994c5e79ed440653a45216d5b5dca83717e1c079957f6cbfbfb3",
+      "sha256": "f9f33f7da3b076df5dfa4ce729cb7cebf10f0ca3bafb6b02ff36976b20247a0a",
       "source_id": "SRC-ED01B39F2BA825F5"
     },
     {
@@ -19379,7 +19379,7 @@
       ],
       "path": "tests/test_m3_electorate_round_policy.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "248efb4836df062477eb483acf0d330e41b2464ef41c43a4f19fcc9544b5b0db",
+      "sha256": "1d448b039ac835feef027b098c5e04b00641c8e04ee583a00613606300bb6f79",
       "source_id": "SRC-6728376AB11C3A94"
     },
     {
@@ -20727,7 +20727,7 @@
       ],
       "path": "tests/test_observer_reconciliation_and_bounded_details.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "3e24d7316a7d69b53fa865057c41d7cfcc96360ee34ac3ea42eba099296d5fc5",
+      "sha256": "98c300ad16d5379b4ec7b8a554a810006c1cc169a56c22367b608c2915647550",
       "source_id": "SRC-3726C3CD27742F89"
     },
     {
@@ -20790,7 +20790,7 @@
       ],
       "path": "tests/test_observer_tx_queue_and_scoped_reads.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "763c601e6f21f8d767be87c60b70dd046209d87ac065381445988cdaa965b735",
+      "sha256": "32404c5861dcce581b9b1fa0dc9949e566134b52e39eac7117769211c5f21c1c",
       "source_id": "SRC-BFCD120F4BF74B4D"
     },
     {
@@ -21412,7 +21412,7 @@
       ],
       "path": "tests/test_poh_live_adaptive_quorum.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "5a9b2adc6ecc0cbd399af508edccf305a32d0ee61c2f979bf94c2df7cbbf0c21",
+      "sha256": "978239e1762142cbf56e19083802b80c82217dc7e515cb87c67be09d03ff6680",
       "source_id": "SRC-ED019EE25BE8D965"
     },
     {
@@ -21570,7 +21570,7 @@
       ],
       "path": "tests/test_poh_scheduler_filters_active_juror_role.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "0dc57e2414d1148b61059467c98bd5ee00c187aa2ef7f55c2790cad81b2916b4",
+      "sha256": "2f0a5976e919dae7a49417f23ba5fb752535e1e5f2eaab06ece5601ae5a927ed",
       "source_id": "SRC-FFC94EA4F75305DD"
     },
     {
@@ -26108,7 +26108,7 @@
       ],
       "path": "tests/test_tx_schema_governance_dispute_receipts.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "624d592d66ed44b39b09b37c37a418a3dbc617a1b97345d50fcd920b409037e5",
+      "sha256": "8d7cd304b25285443defb43be8e00c14a7aaccf728adbf3690738cb234758fc4",
       "source_id": "SRC-6671B6C9C3B68A07"
     },
     {
@@ -27028,7 +27028,7 @@
       ],
       "path": "tests/test_wallet_treasury_governance_reputation_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "285cf255061b5b3cf24e131a7f3f6992ea69db6034bf8d5d9892e4feba68ff8f",
+      "sha256": "568f1ef16828535f8195bdc923db415275d8370a3e0005b90ae522c9756739f3",
       "source_id": "SRC-CEAB13195501C3A5"
     },
     {

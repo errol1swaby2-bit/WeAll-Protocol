@@ -592,7 +592,11 @@ def _append_content_history(
 
     before_snapshot = _public_content_snapshot(before) if isinstance(before, dict) else None
     after_snapshot = _public_content_snapshot(after) if isinstance(after, dict) else None
-    previous_receipt = _as_str(chain[-1].get("receipt_commitment")) if chain and isinstance(chain[-1], dict) else ""
+    previous_receipt = (
+        _as_str(chain[-1].get("receipt_commitment"))
+        if chain and isinstance(chain[-1], dict)
+        else ""
+    )
     entry: Json = {
         "version": int(len(chain) + 1),
         "target_type": kind,
@@ -602,7 +606,9 @@ def _append_content_history(
         "nonce": int(nonce),
         "height": int(state.get("height", 0) or 0),
         "previous_receipt_commitment": previous_receipt,
-        "before_commitment": _canonical_hash(before_snapshot) if before_snapshot is not None else "",
+        "before_commitment": _canonical_hash(before_snapshot)
+        if before_snapshot is not None
+        else "",
         "after_commitment": _canonical_hash(after_snapshot) if after_snapshot is not None else "",
         "before": before_snapshot,
         "after": after_snapshot,
@@ -1510,33 +1516,17 @@ def _content_escalation_collision_dispute_id(
     existing dispute.
     """
 
-    flag_id = _as_str(
-        payload.get("flag_id")
-        or ""
-    ).strip()
+    flag_id = _as_str(payload.get("flag_id") or "").strip()
 
-    flagged_by = _as_str(
-        payload.get("flagged_by")
-        or payload.get("reported_by")
-        or ""
-    ).strip()
+    flagged_by = _as_str(payload.get("flagged_by") or payload.get("reported_by") or "").strip()
 
-    queue_id = _as_str(
-        payload.get("_system_queue_id")
-        or ""
-    ).strip()
+    queue_id = _as_str(payload.get("_system_queue_id") or "").strip()
 
-    parent_ref = _as_str(
-        getattr(env, "parent", "")
-        or ""
-    ).strip()
+    parent_ref = _as_str(getattr(env, "parent", "") or "").strip()
 
     commitment = _canonical_hash(
         {
-            "domain": (
-                "weall.content-escalation."
-                "dispute-id.v1"
-            ),
+            "domain": ("weall.content-escalation.dispute-id.v1"),
             "flag_id": flag_id,
             "flagged_by": flagged_by,
             "parent_ref": parent_ref,
@@ -1546,10 +1536,7 @@ def _content_escalation_collision_dispute_id(
         }
     )
 
-    return (
-        "dispute:content:"
-        f"{commitment}"
-    )
+    return f"dispute:content:{commitment}"
 
 
 def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
@@ -1601,25 +1588,16 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     # derive a deterministic content-specific ID from the canonical escalation
     # evidence.
     if not dispute_id:
-        default_dispute_id = (
-            f"dispute:{env.signer}:"
-            f"{int(env.nonce)}"
-        )
+        default_dispute_id = f"dispute:{env.signer}:{int(env.nonce)}"
 
-        disputes_root = _as_dict(
-            state.get(
-                "disputes_by_id"
-            )
-        )
+        disputes_root = _as_dict(state.get("disputes_by_id"))
 
         if default_dispute_id in disputes_root:
-            dispute_id = (
-                _content_escalation_collision_dispute_id(
-                    env=env,
-                    payload=payload,
-                    target_type=target_type,
-                    target_id=target_id,
-                )
+            dispute_id = _content_escalation_collision_dispute_id(
+                env=env,
+                payload=payload,
+                target_type=target_type,
+                target_id=target_id,
             )
 
     # Open dispute (uses same TxEnvelope shape)

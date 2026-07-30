@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
@@ -66,7 +65,9 @@ def _real_client(tmp_path: Path) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def _signed_account_register(account: str, *, chain_id: str = "weall-observer-362") -> dict[str, Any]:
+def _signed_account_register(
+    account: str, *, chain_id: str = "weall-observer-362"
+) -> dict[str, Any]:
     seed = bytes.fromhex("62" * 32)
     sk = MLDSA65PrivateKey.from_seed_bytes(seed)
     pubkey = sk.public_key().public_bytes_raw().hex()
@@ -122,7 +123,9 @@ def _state() -> dict[str, Any]:
     }
 
 
-def test_upstream_manifest_top_level_chain_and_hash_are_enforced(tmp_path: Path, monkeypatch) -> None:
+def test_upstream_manifest_top_level_chain_and_hash_are_enforced(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -142,13 +145,17 @@ def test_upstream_manifest_top_level_chain_and_hash_are_enforced(tmp_path: Path,
         if req.full_url.endswith("/v1/chain/identity"):
             return _FakeResponse({"ok": True, "chain_id": "weall-observer-362"})
         if req.full_url.endswith("/v1/chain/manifest"):
-            return _FakeResponse({"ok": True, "chain_id": "weall-observer-362", "manifest_hash": "wrong-manifest"})
+            return _FakeResponse(
+                {"ok": True, "chain_id": "weall-observer-362", "manifest_hash": "wrong-manifest"}
+            )
         raise AssertionError("tx forwarding must not happen after manifest hash mismatch")
 
     monkeypatch.setattr("weall.api.routes_public_parts.tx.urllib.request.urlopen", fake_urlopen)
     with _real_client(tmp_path) as client:
         assert client.post("/v1/tx/submit", json=tx).status_code == 200
-        drained = client.post("/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-secret"})
+        drained = client.post(
+            "/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-secret"}
+        )
 
     assert drained.status_code == 200, drained.text
     result = drained.json()["result"]["results"][0]["results"][0]
@@ -160,7 +167,9 @@ def test_upstream_manifest_top_level_chain_and_hash_are_enforced(tmp_path: Path,
     assert _read_tx_queue(tx_queue)["records"][0]["tx_id"] == tx_id
 
 
-def test_observer_tx_queue_autodrain_worker_retries_without_manual_route(tmp_path: Path, monkeypatch) -> None:
+def test_observer_tx_queue_autodrain_worker_retries_without_manual_route(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")

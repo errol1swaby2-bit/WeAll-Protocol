@@ -119,9 +119,7 @@ def _initial_state(self) -> Json:
     _ballot_profile_raw = os.environ.get("WEALL_BALLOT_PROFILE_ID")
     _ballot_active_raw = os.environ.get("WEALL_BALLOT_PROFILE_ACTIVE")
     if _m3_strict_raw is not None:
-        params["m3_civic_governance_strict"] = _env_bool(
-            "WEALL_M3_CIVIC_GOVERNANCE_STRICT", False
-        )
+        params["m3_civic_governance_strict"] = _env_bool("WEALL_M3_CIVIC_GOVERNANCE_STRICT", False)
     if _ballot_profile_raw is not None:
         _ballot_profile_id = str(_ballot_profile_raw).strip()
         if not _ballot_profile_id:

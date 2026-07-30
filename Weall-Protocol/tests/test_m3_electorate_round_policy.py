@@ -176,8 +176,9 @@ def test_denominator_refresh_is_system_only_and_never_mutates_active_round_in_pl
     assert proposal["electorate_rounds"][0] == original
     assert proposal["eligible_voter_count"] == 3
 
-    from weall.runtime.errors import ApplyError
     import pytest
+
+    from weall.runtime.errors import ApplyError
 
     with pytest.raises(ApplyError) as exc:
         apply_governance(
@@ -206,7 +207,8 @@ def test_lifecycle_tick_refreshes_quorum_unmet_round_before_closing() -> None:
 
     assert queued == 1
     refreshes = [
-        item for item in state["system_queue"]
+        item
+        for item in state["system_queue"]
         if item.get("tx_type") == "GOV_STAGE_SET"
         and item.get("payload", {}).get("electorate_refresh") is True
     ]
@@ -265,8 +267,9 @@ def test_max_rounds_expire_with_explicit_no_decision_finality() -> None:
 
 
 def test_failed_refresh_does_not_close_or_rewrite_active_round() -> None:
-    from weall.runtime.errors import ApplyError
     import pytest
+
+    from weall.runtime.errors import ApplyError
 
     state = _state()
     proposal = _create_protocol_vote(state)

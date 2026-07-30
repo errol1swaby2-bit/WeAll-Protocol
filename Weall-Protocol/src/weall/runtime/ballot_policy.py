@@ -95,7 +95,9 @@ def _public_activation_receipt_matches(state: Json, profile_id: str, mode: str) 
         if not _as_str(item.get("profile_hash") or item.get("digest")):
             continue
         allowed_modes = item.get("allowed_modes")
-        if isinstance(allowed_modes, list) and mode not in {_as_str(x).lower() for x in allowed_modes}:
+        if isinstance(allowed_modes, list) and mode not in {
+            _as_str(x).lower() for x in allowed_modes
+        }:
             continue
         if mode in _PUBLIC_MODES and not _as_bool(item.get("independent_review_complete")):
             continue
@@ -126,12 +128,16 @@ def ballot_profile_status(state: Json) -> Json:
         }
 
     if mode in _PUBLIC_MODES:
-        active = bool(rec.get("active")) and _public_activation_receipt_matches(state, profile_id, mode)
+        active = bool(rec.get("active")) and _public_activation_receipt_matches(
+            state, profile_id, mode
+        )
         return {
             **rec,
             "strict": True,
             "active": active,
-            "reason": "active_public_profile" if active else "public_profile_activation_receipt_missing",
+            "reason": "active_public_profile"
+            if active
+            else "public_profile_activation_receipt_missing",
         }
 
     # Controlled-testnet use is intentionally bounded to aggregate-only public
@@ -142,7 +148,9 @@ def ballot_profile_status(state: Json) -> Json:
         **rec,
         "strict": True,
         "active": active,
-        "reason": "active_controlled_testnet_profile" if active else "controlled_testnet_profile_inactive",
+        "reason": "active_controlled_testnet_profile"
+        if active
+        else "controlled_testnet_profile_inactive",
     }
 
 

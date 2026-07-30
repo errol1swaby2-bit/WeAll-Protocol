@@ -105,7 +105,11 @@ def _dispute_ballot_nullifiers(dispute: Json, *, appeal: bool = False) -> dict[s
 def _dispute_voted_juror_ids(dispute: Json, *, appeal: bool = False) -> list[str]:
     key = "appeal_voted_juror_ids" if appeal else "voted_juror_ids"
     raw = dispute.get(key)
-    values = sorted({_as_str(item).strip() for item in raw if _as_str(item).strip()}) if isinstance(raw, list) else []
+    values = (
+        sorted({_as_str(item).strip() for item in raw if _as_str(item).strip()})
+        if isinstance(raw, list)
+        else []
+    )
     dispute[key] = values
     return values
 
@@ -138,7 +142,9 @@ def _record_deattributed_resolution_option(
     dispute[key] = options
 
 
-def _select_deattributed_resolution(dispute: Json, *, winning_choice: str, appeal: bool = False) -> Json:
+def _select_deattributed_resolution(
+    dispute: Json, *, winning_choice: str, appeal: bool = False
+) -> Json:
     key = "appeal_resolution_options" if appeal else "resolution_options"
     options = dispute.get(key)
     if not isinstance(options, dict):
@@ -438,13 +444,30 @@ def _dispute_conflict_account_ids(state: Json, dispute: Json) -> list[str]:
         conflicts.extend(_resolve_account_identity(state, item) for item in raw_rule_conflicts)
 
     target_type = _as_str(dispute.get("target_type")).strip().lower()
-    group_id = _as_str(dispute.get("group_id") or (dispute.get("target_id") if target_type in {"group", "membership", "moderator"} else "")).strip()
+    group_id = _as_str(
+        dispute.get("group_id")
+        or (dispute.get("target_id") if target_type in {"group", "membership", "moderator"} else "")
+    ).strip()
     if group_id:
         roles = _as_dict(state.get("roles"))
-        groups = roles.get("groups_by_id") if isinstance(roles.get("groups_by_id"), dict) else state.get("groups_by_id")
+        groups = (
+            roles.get("groups_by_id")
+            if isinstance(roles.get("groups_by_id"), dict)
+            else state.get("groups_by_id")
+        )
         group = groups.get(group_id) if isinstance(groups, dict) else None
         if isinstance(group, dict):
-            for role_key in ("creator", "creators", "admin", "admins", "moderator", "moderators", "emissary", "emissaries", "signers"):
+            for role_key in (
+                "creator",
+                "creators",
+                "admin",
+                "admins",
+                "moderator",
+                "moderators",
+                "emissary",
+                "emissaries",
+                "signers",
+            ):
                 raw = group.get(role_key)
                 if isinstance(raw, list):
                     conflicts.extend(_resolve_account_identity(state, item) for item in raw)
@@ -454,18 +477,33 @@ def _dispute_conflict_account_ids(state: Json, dispute: Json) -> list[str]:
                     conflicts.append(_resolve_account_identity(state, raw))
             role_map = group.get("roles")
             if isinstance(role_map, dict):
-                for role_key in ("creator", "creators", "admin", "admins", "moderator", "moderators", "emissary", "emissaries"):
+                for role_key in (
+                    "creator",
+                    "creators",
+                    "admin",
+                    "admins",
+                    "moderator",
+                    "moderators",
+                    "emissary",
+                    "emissaries",
+                ):
                     raw = role_map.get(role_key)
                     if isinstance(raw, list):
                         conflicts.extend(_resolve_account_identity(state, item) for item in raw)
                     elif isinstance(raw, dict):
-                        conflicts.extend(_resolve_account_identity(state, item) for item in raw.keys())
+                        conflicts.extend(
+                            _resolve_account_identity(state, item) for item in raw.keys()
+                        )
 
     return _normalized_str_list([item for item in conflicts if item])
 
 
 def _dispute_panel_size(dispute: Json) -> int:
-    raw = _as_str(dispute.get("severity") or _as_dict(dispute.get("rules")).get("severity") or "low").strip().lower()
+    raw = (
+        _as_str(dispute.get("severity") or _as_dict(dispute.get("rules")).get("severity") or "low")
+        .strip()
+        .lower()
+    )
     if raw in {"critical", "severe", "high", "major"}:
         return 25
     if raw in {"medium", "moderate", "elevated"}:
@@ -2226,9 +2264,15 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
             for legacy_juror, record in sorted(votes.items(), key=lambda item: str(item[0])):
                 if not isinstance(record, dict):
                     continue
-                choice = _as_str(
-                    record.get("decision") if is_appeal_vote else record.get("vote") or record.get("choice")
-                ).strip().lower()
+                choice = (
+                    _as_str(
+                        record.get("decision")
+                        if is_appeal_vote
+                        else record.get("vote") or record.get("choice")
+                    )
+                    .strip()
+                    .lower()
+                )
                 if choice:
                     counts[choice] = int(counts.get(choice, 0)) + 1
                 canonical_legacy = _as_str(legacy_juror).strip()
@@ -2242,9 +2286,14 @@ def _apply_dispute_vote_submit(state: Json, env: TxEnvelope) -> Json:
                     )
                     nullifiers.setdefault(
                         legacy_nullifier,
-                        {"height": int(_as_int(record.get("height"), 0)), "migrated_from_attributable_state": True},
+                        {
+                            "height": int(_as_int(record.get("height"), 0)),
+                            "migrated_from_attributable_state": True,
+                        },
                     )
-                legacy_resolution = record.get("resolution") if isinstance(record.get("resolution"), dict) else None
+                legacy_resolution = (
+                    record.get("resolution") if isinstance(record.get("resolution"), dict) else None
+                )
                 _record_deattributed_resolution_option(
                     d,
                     choice=choice,
@@ -2495,9 +2544,7 @@ def _maybe_record_appeal_panel_vote(
     if decision:
         resolution: Json = {"decision": decision}
         if strict_ballot:
-            selected = _select_deattributed_resolution(
-                d, winning_choice=decision, appeal=True
-            )
+            selected = _select_deattributed_resolution(d, winning_choice=decision, appeal=True)
             resolution.update(selected)
             resolution["decision"] = decision
         else:
@@ -2769,9 +2816,7 @@ def _record_dispute_juror_accountability(state: Json, dispute: Json, *, dispute_
     assigned = _normalized_str_list(dispute.get("assigned_jurors"))
     appeal_panel = _normalized_str_list(dispute.get("appeal_panel_juror_ids"))
     appeal_active = bool(dispute.get("appeals")) and assigned == appeal_panel
-    votes = _as_dict(
-        dispute.get("appeal_panel_votes" if appeal_active else "votes")
-    )
+    votes = _as_dict(dispute.get("appeal_panel_votes" if appeal_active else "votes"))
     voted: set[str] = set()
     voted_key = "appeal_voted_juror_ids" if appeal_active else "voted_juror_ids"
     for voter in _normalized_str_list(dispute.get(voted_key)):
