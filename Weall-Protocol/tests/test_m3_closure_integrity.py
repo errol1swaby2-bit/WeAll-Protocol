@@ -49,7 +49,6 @@ def test_canonical_m3_runners_and_contract_exist() -> None:
         assert not path.is_symlink(), rel
 
 
-
 def test_generated_actor_template_uses_canonical_account_ids(tmp_path: Path) -> None:
     proc = subprocess.run(
         [
@@ -88,6 +87,7 @@ def test_generated_actor_template_uses_canonical_account_ids(tmp_path: Path) -> 
         else:
             assert role_to_account[role] == account
 
+
 def test_closure_runner_requires_observer_privacy_and_freshness_gates() -> None:
     source = _read("scripts/run_m3_complete_closure.sh")
     for marker in (
@@ -119,6 +119,8 @@ def test_evidence_contract_requires_all_evidence_families() -> None:
     assert "M3 observer catch-up without authority" in contract.REQUIRED_GATES
     assert "M3 artifact privacy scan" in contract.REQUIRED_GATES
     assert "M3 strict live ballot profile" in contract.REQUIRED_GATES
+    assert "frontend M3 embedded attendance transcript source" in contract.REQUIRED_GATES
+    assert len(contract.REQUIRED_GATES) == 28
     for required in (
         "artifacts/m3-closure/browser/civic/transaction-transcript.json",
         "artifacts/m3-closure/restart-replay/final-state.json",
@@ -133,7 +135,9 @@ def test_evidence_contract_requires_all_evidence_families() -> None:
     assert len(contract.REQUIRED_NEGATIVE_LABELS) >= 10
 
 
-def test_real_stack_spec_executes_negative_signed_attempts_and_requires_eighteen_reviewers() -> None:
+def test_real_stack_spec_executes_negative_signed_attempts_and_requires_eighteen_reviewers() -> (
+    None
+):
     source = _read("web/tests/e2e/m3_civic_governance_real_stack.spec.ts")
     for marker in (
         "schema_version).toBe(3)",
@@ -182,11 +186,21 @@ def test_manifest_and_commit_checker_share_schema_three_contract() -> None:
 
 
 def test_scope_crosswalk_references_only_existing_implementation_paths() -> None:
-    crosswalk = json.loads((BACKEND / "docs/production_readiness/M3_SCOPE_CROSSWALK.json").read_text())
+    crosswalk = json.loads(
+        (BACKEND / "docs/production_readiness/M3_SCOPE_CROSSWALK.json").read_text()
+    )
     for deliverable in crosswalk["deliverables"]:
         for value in deliverable["implementation"]:
             text = str(value)
-            path = (BACKEND / text).resolve() if text.startswith("../") else (ROOT / text if text.startswith(("scripts/", "web/", "Weall-Protocol/")) else BACKEND / text)
+            path = (
+                (BACKEND / text).resolve()
+                if text.startswith("../")
+                else (
+                    ROOT / text
+                    if text.startswith(("scripts/", "web/", "Weall-Protocol/"))
+                    else BACKEND / text
+                )
+            )
             assert path.exists(), f"{deliverable['id']}: {value}"
 
 
@@ -255,7 +269,12 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
             return role, role_accounts[role]
         if label == "appeal_open":
             return "author_proposer", "@author"
-        if label in {"membership_request", "group_post_create", "content_report", "proposal_comment"}:
+        if label in {
+            "membership_request",
+            "group_post_create",
+            "content_report",
+            "proposal_comment",
+        }:
             return "member_reporter_voter", "@member"
         if label == "eligible_ballots" and index == 2:
             return "member_reporter_voter", "@member"
@@ -319,7 +338,9 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
         ]
     )
 
-    def negative(label: str, role: str, account: str, subject: str, payload: dict, *, prior: str = "") -> dict:
+    def negative(
+        label: str, role: str, account: str, subject: str, payload: dict, *, prior: str = ""
+    ) -> dict:
         item = {
             "label": label,
             "role": role,
@@ -391,7 +412,10 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
                 "member_reporter_voter",
                 "@member",
                 journey["negative_proposal_id"],
-                {"proposal_id": journey["negative_proposal_id"], **({} if "revoke" in label else {"vote": "no"})},
+                {
+                    "proposal_id": journey["negative_proposal_id"],
+                    **({} if "revoke" in label else {"vote": "no"}),
+                },
                 prior="tx-negative-governance-vote",
             )
         )
@@ -406,7 +430,10 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
                 "reviewer_original_01",
                 "@original01",
                 journey["negative_dispute_id"],
-                {"dispute_id": journey["negative_dispute_id"], **({} if "revoke" in label else {"vote": "no"})},
+                {
+                    "dispute_id": journey["negative_dispute_id"],
+                    **({} if "revoke" in label else {"vote": "no"}),
+                },
                 prior="tx-negative-dispute-vote",
             )
         )
@@ -445,9 +472,7 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
         "member_reporter_voter",
     )
     assert (
-        contract.EXPECTED_NEGATIVE_ERROR_CODES[
-            "nonowner_appeal_rejected"
-        ]
+        contract.EXPECTED_NEGATIVE_ERROR_CODES["nonowner_appeal_rejected"]
         == "appeal_not_target_owner"
     )
 
@@ -487,10 +512,7 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
     )
     assert original_attendance["tx_id"] == original_acceptance["tx_id"]
     assert original_attendance["tx_type"] == "DISPUTE_JUROR_ACCEPT"
-    assert (
-        original_attendance["evidence_kind"]
-        == contract.EMBEDDED_ATTENDANCE_EVIDENCE_KIND
-    )
+    assert original_attendance["evidence_kind"] == contract.EMBEDDED_ATTENDANCE_EVIDENCE_KIND
 
     broken_attendance = json.loads(json.dumps(transcript))
     target = next(
@@ -501,6 +523,7 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
     )
     target["tx_id"] = "tx-impossible-separate-attendance"
     import pytest
+
     with pytest.raises(ValueError, match="attendance_acceptance_pair_missing"):
         contract.validate_public_actor_transcript(
             manifest,
@@ -522,7 +545,9 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
         filtered_actions.append(item)
     under_quorum["actions"] = filtered_actions
     assert removed is True
-    with pytest.raises(ValueError, match="transaction_main_action_count_low:original_panel_ballots:4:5"):
+    with pytest.raises(
+        ValueError, match="transaction_main_action_count_low:original_panel_ballots:4:5"
+    ):
         contract.validate_public_actor_transcript(
             manifest,
             under_quorum,
@@ -598,9 +623,14 @@ def test_private_material_contract_detects_tokens_without_rejecting_public_metad
     sys.path.insert(0, str(ROOT / "scripts"))
     import m3_evidence_contract as contract
 
-    assert contract.private_material_findings(b'{"authorization_required": true, "cookie_policy": "none"}') == []
+    assert (
+        contract.private_material_findings(
+            b'{"authorization_required": true, "cookie_policy": "none"}'
+        )
+        == []
+    )
     assert contract.private_material_findings(b'{"authorization": "Bearer secret-token-123456"}')
-    assert contract.private_material_findings(b'-----BEGIN PRIVATE KEY-----')
+    assert contract.private_material_findings(b"-----BEGIN PRIVATE KEY-----")
 
 
 def test_final_closure_runbook_preserves_freeze_then_direct_child_sequence() -> None:
@@ -651,6 +681,7 @@ def test_observer_authority_contract_is_runtime_bound() -> None:
     broken = json.loads(json.dumps(value))
     broken["authority_checks"]["validator_effective"] = False
     import pytest
+
     with pytest.raises(ValueError, match="observer_authority_checks_invalid"):
         contract.validate_observer_authority(broken, freeze=freeze, tree=tree)
 
@@ -677,6 +708,7 @@ def test_live_ballot_profile_contract_requires_strict_controlled_testnet() -> No
     assert contract.validate_live_ballot_profile(value, freeze=freeze, tree=tree)["active"] is True
     value["ballot_profile"]["strict"] = False
     import pytest
+
     with pytest.raises(ValueError, match="live_ballot_profile_not_strict_active"):
         contract.validate_live_ballot_profile(value, freeze=freeze, tree=tree)
 
@@ -725,6 +757,7 @@ def test_transaction_contract_rejects_uncompleted_templates() -> None:
         "template_notice": "not complete",
     }
     import pytest
+
     with pytest.raises(ValueError, match="transaction_transcript_template_not_completed"):
         contract.validate_public_actor_transcript(manifest, transcript, freeze=freeze)
 
@@ -760,9 +793,7 @@ def test_generated_template_marks_ineligible_governance_rejection_as_admission_l
     assert proc.returncode == 0, proc.stdout
 
     transcript = json.loads(
-        (tmp_path / "m3-transaction-transcript.template.json").read_text(
-            encoding="utf-8"
-        )
+        (tmp_path / "m3-transaction-transcript.template.json").read_text(encoding="utf-8")
     )
     matching = [
         item
@@ -777,9 +808,7 @@ def test_generated_template_marks_ineligible_governance_rejection_as_admission_l
 
 
 def test_ineligible_governance_negative_contract_tracks_canonical_vote_subject_gate() -> None:
-    tx_index = json.loads(
-        (BACKEND / "generated" / "tx_index.json").read_text(encoding="utf-8")
-    )
+    tx_index = json.loads((BACKEND / "generated" / "tx_index.json").read_text(encoding="utf-8"))
     vote_index = tx_index["by_name"]["GOV_VOTE_CAST"]
     vote_contract = tx_index["tx_types"][vote_index]
     assert vote_contract["subject_gate"] == "Tier2+"
@@ -791,6 +820,5 @@ def test_ineligible_governance_negative_contract_tracks_canonical_vote_subject_g
     label = "ineligible_governance_vote_rejected"
     assert contract.EXPECTED_NEGATIVE_ERROR_CODES[label] == "gate_denied"
     assert (
-        contract.EXPECTED_NEGATIVE_ERROR_REASONS[label]
-        == f"gate:{vote_contract['subject_gate']}"
+        contract.EXPECTED_NEGATIVE_ERROR_REASONS[label] == f"gate:{vote_contract['subject_gate']}"
     )

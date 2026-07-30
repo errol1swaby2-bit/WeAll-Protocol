@@ -32,24 +32,22 @@ def test_m3_traceability_checker_passes() -> None:
     assert "OK: M3 traceability validated" in result.stdout
 
 
-def test_m3_traceability_records_protocol_corrections_as_evidence_gated() -> None:
+def test_m3_traceability_records_all_requirements_and_deliverables_closed() -> None:
     trace = _json(TRACE_PATH)
     rows = {
         str(row["id"]): row
         for row in trace["requirements"]  # type: ignore[index]
     }
-    for row_id in (
-        "M3-P0-01",
-        "M3-P0-02",
-        "M3-P0-03",
-        "M3-P0-04",
-        "M3-P0-05",
-        "M3-P1-09",
-    ):
-        assert rows[row_id]["status"] == "implemented_requires_integrated_evidence"
+    assert rows
+    assert {str(row["status"]) for row in rows.values()} == {"closed"}
+    assert all(row.get("evidence") for row in rows.values())
 
     crosswalk = _json(CROSSWALK_PATH)
     assert crosswalk["blocking_protocol_gaps"] == []
+    deliverables = crosswalk["deliverables"]  # type: ignore[index]
+    assert deliverables
+    assert {str(row["status"]) for row in deliverables} == {"closed"}
+    assert all(row.get("evidence") for row in deliverables)
     corrections = {
         str(row["mechanism_id"])
         for row in crosswalk["implemented_protocol_corrections"]  # type: ignore[index]

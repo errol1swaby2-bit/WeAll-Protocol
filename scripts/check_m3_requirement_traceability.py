@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "Weall-Protocol"
 TRACE_PATH = BACKEND / "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json"
 CROSSWALK_PATH = BACKEND / "docs/production_readiness/M3_SCOPE_CROSSWALK.json"
+MANIFEST_PATH = ROOT / "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
 
 REQUIRED_MECHANISMS = {
     "M-039",
@@ -80,6 +81,25 @@ def _load(path: Path) -> dict[str, Any]:
     return value
 
 
+def _manifest_evidence_paths() -> set[str]:
+    manifest = _load(MANIFEST_PATH)
+    if manifest.get("schema_version") != 3:
+        raise ContractError("m3_evidence_manifest_schema_version")
+    files = manifest.get("files")
+    if not isinstance(files, list) or not files:
+        raise ContractError("m3_evidence_manifest_files_not_list")
+
+    declared: set[str] = {str(MANIFEST_PATH.relative_to(ROOT)).replace("\\", "/")}
+    for item in files:
+        if not isinstance(item, dict):
+            raise ContractError("m3_evidence_manifest_file_not_object")
+        evidence_path = str(item.get("path") or "").strip().rstrip("/")
+        if not evidence_path.startswith("artifacts/m3-closure/"):
+            raise ContractError(f"m3_evidence_manifest_path_outside_root:{evidence_path}")
+        declared.add(evidence_path)
+    return declared
+
+
 def _strings(value: Any, *, field: str, row_id: str) -> list[str]:
     if not isinstance(value, list) or not value:
         raise ContractError(f"m3_traceability_missing_list:{row_id}:{field}")
@@ -114,7 +134,9 @@ def _require_paths_exist(values: list[str], *, field: str, row_id: str) -> int:
         try:
             path.relative_to(ROOT)
         except ValueError as exc:
-            raise ContractError(f"m3_traceability_path_outside_repository:{row_id}:{field}:{value}") from exc
+            raise ContractError(
+                f"m3_traceability_path_outside_repository:{row_id}:{field}:{value}"
+            ) from exc
         if not path.exists():
             raise ContractError(f"m3_traceability_path_missing:{row_id}:{field}:{value}")
         if path.is_symlink():
@@ -123,9 +145,42 @@ def _require_paths_exist(values: list[str], *, field: str, row_id: str) -> int:
     return checked
 
 
+def _require_evidence_paths_declared(
+    values: list[str],
+    *,
+    field: str,
+    row_id: str,
+    manifest_paths: set[str],
+) -> int:
+    checked = 0
+    for value in values:
+        normalized = value.strip().rstrip("/")
+        if not normalized.startswith("artifacts/m3-closure/"):
+            raise ContractError(
+                f"m3_traceability_evidence_outside_artifact_root:{row_id}:{field}:{value}"
+            )
+
+        exact = normalized in manifest_paths
+        prefix = normalized + "/"
+        contains_bound_artifact = any(
+            evidence_path.startswith(prefix) for evidence_path in manifest_paths
+        )
+        if not exact and not contains_bound_artifact:
+            raise ContractError(
+                f"m3_traceability_evidence_not_manifest_bound:{row_id}:{field}:{value}"
+            )
+
+        repository_path = _resolve_repository_path(normalized)
+        if repository_path.exists() and repository_path.is_symlink():
+            raise ContractError(f"m3_traceability_symlink_forbidden:{row_id}:{field}:{value}")
+        checked += 1
+    return checked
+
+
 def main() -> int:
     trace = _load(TRACE_PATH)
     crosswalk = _load(CROSSWALK_PATH)
+    manifest_paths = _manifest_evidence_paths()
 
     if trace.get("schema_version") != 1 or crosswalk.get("schema_version") != 1:
         raise ContractError("m3_traceability_schema_version")
@@ -135,11 +190,7 @@ def main() -> int:
     if "R-M3" not in str(crosswalk.get("milestone") or ""):
         raise ContractError("m3_crosswalk_wrong_milestone")
 
-    controlled = {
-        str(item)
-        for item in trace.get("controlled_statuses", [])
-        if str(item).strip()
-    }
+    controlled = {str(item) for item in trace.get("controlled_statuses", []) if str(item).strip()}
     if not controlled:
         raise ContractError("m3_traceability_missing_controlled_statuses")
 
@@ -182,19 +233,26 @@ def main() -> int:
             )
         mechanism_union.update(mechanisms)
 
-        implementation_paths = _strings(raw.get("implementation"), field="implementation", row_id=row_id)
+        implementation_paths = _strings(
+            raw.get("implementation"), field="implementation", row_id=row_id
+        )
         test_paths = _strings(raw.get("tests"), field="tests", row_id=row_id)
-        checked_paths += _require_paths_exist(implementation_paths, field="implementation", row_id=row_id)
+        checked_paths += _require_paths_exist(
+            implementation_paths, field="implementation", row_id=row_id
+        )
         checked_paths += _require_paths_exist(test_paths, field="tests", row_id=row_id)
 
-        if status in {
-            "evidence_required",
-            "planned",
-            "planned_failing_test",
-            "implemented_requires_integrated_evidence",
-            "implemented_requires_protocol_corrections_and_evidence",
-        }:
-            _strings(raw.get("evidence"), field="evidence", row_id=row_id)
+        evidence_paths = _strings(
+            raw.get("evidence"),
+            field="evidence",
+            row_id=row_id,
+        )
+        checked_paths += _require_evidence_paths_declared(
+            evidence_paths,
+            field="evidence",
+            row_id=row_id,
+            manifest_paths=manifest_paths,
+        )
 
     found_requirements = set(rows)
     if found_requirements != REQUIRED_REQUIREMENTS:
@@ -221,26 +279,17 @@ def main() -> int:
             )
         )
 
-    # Protocol corrections are implemented, but closure remains evidence-gated.
-    corrected_rows = {
-        "M3-P0-01",
-        "M3-P0-02",
-        "M3-P0-03",
-        "M3-P0-04",
-        "M3-P0-05",
-        "M3-P1-09",
-    }
-    for row_id in corrected_rows:
-        if rows[row_id]["status"] != "implemented_requires_integrated_evidence":
-            raise ContractError(f"m3_traceability_correction_status_invalid:{row_id}")
+    non_closed_rows = sorted(
+        row_id for row_id, row in rows.items() if row.get("status") != "closed"
+    )
+    if non_closed_rows:
+        raise ContractError("m3_traceability_requirement_not_closed:" + ",".join(non_closed_rows))
 
     mechanism_rows = crosswalk.get("mechanism_scope")
     if not isinstance(mechanism_rows, list):
         raise ContractError("m3_crosswalk_mechanism_scope_not_list")
     cross_mechanisms = {
-        str(item.get("id") or "").strip()
-        for item in mechanism_rows
-        if isinstance(item, dict)
+        str(item.get("id") or "").strip() for item in mechanism_rows if isinstance(item, dict)
     }
     if cross_mechanisms != REQUIRED_MECHANISMS:
         raise ContractError(
@@ -258,9 +307,7 @@ def main() -> int:
     if not isinstance(deliverables, list):
         raise ContractError("m3_crosswalk_deliverables_not_list")
     deliverable_ids = {
-        str(item.get("id") or "").strip()
-        for item in deliverables
-        if isinstance(item, dict)
+        str(item.get("id") or "").strip() for item in deliverables if isinstance(item, dict)
     }
     if deliverable_ids != REQUIRED_DELIVERABLES:
         raise ContractError(
@@ -282,17 +329,54 @@ def main() -> int:
             item.get("implementation"), field="implementation", row_id=deliverable_id
         )
         checked_paths += _require_paths_exist(
-            implementation_paths, field="implementation", row_id=deliverable_id
+            implementation_paths,
+            field="implementation",
+            row_id=deliverable_id,
+        )
+        evidence_paths = _strings(
+            item.get("evidence"),
+            field="evidence",
+            row_id=deliverable_id,
+        )
+        checked_paths += _require_evidence_paths_declared(
+            evidence_paths,
+            field="evidence",
+            row_id=deliverable_id,
+            manifest_paths=manifest_paths,
+        )
+        if item.get("status") != "closed":
+            raise ContractError(f"m3_crosswalk_deliverable_not_closed:{deliverable_id}")
+
+    corrections = crosswalk.get("implemented_protocol_corrections")
+    if not isinstance(corrections, list):
+        raise ContractError("m3_crosswalk_corrections_not_list")
+    for item in corrections:
+        if not isinstance(item, dict):
+            raise ContractError("m3_crosswalk_correction_not_object")
+        correction_id = str(item.get("id") or "").strip()
+        verification = _strings(
+            item.get("verification"),
+            field="verification",
+            row_id=correction_id,
+        )
+        repository_paths = [value for value in verification if not value.startswith("artifacts/")]
+        evidence_paths = [value for value in verification if value.startswith("artifacts/")]
+        checked_paths += _require_paths_exist(
+            repository_paths,
+            field="verification",
+            row_id=correction_id,
+        )
+        checked_paths += _require_evidence_paths_declared(
+            evidence_paths,
+            field="verification",
+            row_id=correction_id,
+            manifest_paths=manifest_paths,
         )
 
     gaps = crosswalk.get("blocking_protocol_gaps")
     if not isinstance(gaps, list):
         raise ContractError("m3_crosswalk_blocking_gaps_not_list")
-    gap_ids = {
-        str(item.get("id") or "").strip()
-        for item in gaps
-        if isinstance(item, dict)
-    }
+    gap_ids = {str(item.get("id") or "").strip() for item in gaps if isinstance(item, dict)}
     if gap_ids != REQUIRED_BLOCKING_GAPS:
         raise ContractError(
             "m3_crosswalk_blocking_gap_set_mismatch:"

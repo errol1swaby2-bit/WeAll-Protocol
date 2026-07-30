@@ -111,9 +111,11 @@
         "../scripts/check_m3_live_ballot_profile.py"
       ],
       "evidence": [
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
       ],
-      "status": "implemented_requires_integrated_evidence"
+      "status": "closed"
     },
     {
       "id": "m3-content-group-e2e",
@@ -143,7 +145,7 @@
       "evidence": [
         "artifacts/m3-closure/browser/civic"
       ],
-      "status": "implemented_requires_integrated_evidence"
+      "status": "closed"
     },
     {
       "id": "m3-dispute-appeal-e2e",
@@ -171,9 +173,10 @@
         "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
-        "artifacts/m3-closure/browser/dispute"
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/browser/civic/dispute-negative-apply-proofs.json"
       ],
-      "status": "implemented_requires_integrated_evidence"
+      "status": "closed"
     },
     {
       "id": "m3-proposal-finalization-e2e",
@@ -198,9 +201,11 @@
         "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
-        "artifacts/m3-closure/browser/governance"
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/browser/civic/remaining-negative-apply-proofs.json",
+        "artifacts/m3-closure/backend/live-ballot-profile.json"
       ],
-      "status": "implemented_requires_integrated_evidence"
+      "status": "closed"
     },
     {
       "id": "m3-determinism",
@@ -225,7 +230,7 @@
         "artifacts/m3-closure/two-node",
         "artifacts/m3-closure/observer"
       ],
-      "status": "implemented_requires_integrated_evidence"
+      "status": "closed"
     },
     {
       "id": "m3-closure-integrity",
@@ -264,7 +269,7 @@
       "evidence": [
         "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
       ],
-      "status": "implemented_requires_integrated_evidence"
+      "status": "closed"
     }
   ],
   "blocking_protocol_gaps": [],
@@ -305,7 +310,8 @@
       "description": "First admitted ballots are final in the controlled-testnet profile; replacement and revoke attempts fail deterministically, and canonical public choice state is aggregate-only.",
       "verification": [
         "tests/test_m3_closure_regressions.py",
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/remaining-negative-apply-proofs.json"
       ]
     },
     {
@@ -315,7 +321,8 @@
       "verification": [
         "tests/test_m3_electorate_round_policy.py",
         "tests/test_m3_closure_regressions.py",
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log"
       ]
     }
   ]

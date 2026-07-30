@@ -17,7 +17,7 @@
     {
       "id": "M3-P0-01",
       "title": "Capture the correct protocol-wide or group electorate for every versioned voting round",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P0",
       "mechanisms": [
         "M-049",
@@ -41,14 +41,15 @@
       ],
       "acceptance": "Proposal state records electorate scope plus an append-only round record containing opening height, canonical eligible identities or commitment, denominator, threshold and round number before that round admits ballots.",
       "evidence": [
-        "artifacts/m3-closure/governance",
-        "artifacts/m3-closure/backend/live-ballot-profile.json"
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
       ]
     },
     {
       "id": "M3-P0-02",
       "title": "Make the first admitted final ballot immutable",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P0",
       "mechanisms": [
         "M-050"
@@ -67,14 +68,15 @@
       ],
       "acceptance": "A second ballot, replacement ballot, or vote-revoke transaction from the same voter fails deterministically after the first valid ballot is admitted.",
       "evidence": [
-        "artifacts/m3-closure/governance",
-        "artifacts/m3-closure/backend/live-ballot-profile.json"
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
       ]
     },
     {
       "id": "M3-P0-03",
       "title": "Use immutable per-round denominators with deterministic quorum refresh and no-decision expiry",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P0",
       "mechanisms": [
         "M-050",
@@ -92,13 +94,14 @@
       ],
       "acceptance": "A voting round denominator never changes in place. If quorum is unmet, a SYSTEM-controlled transition either opens a new round from current canonical eligibility, applies a bounded extension, or emits an explicit expired-without-decision receipt after the configured limit. Exact integer arithmetic is used throughout.",
       "evidence": [
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
       ]
     },
     {
       "id": "M3-P0-04",
       "title": "Do not expose a forbidden identity-to-ballot-choice mapping",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P0",
       "mechanisms": [
         "M-050"
@@ -119,13 +122,14 @@
       ],
       "acceptance": "Public state and receipts prove inclusion, eligibility and aggregate outcome without publishing an identity-choice association where sealed-ballot rules apply.",
       "evidence": [
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
       ]
     },
     {
       "id": "M3-P0-05",
       "title": "Keep validator authority separate from political eligibility",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P0",
       "mechanisms": [
         "M-051"
@@ -143,13 +147,14 @@
       ],
       "acceptance": "A validator outside the active civic electorate round cannot vote; an eligible Tier-2 human does not require validator status.",
       "evidence": [
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/observer/authority.json"
       ]
     },
     {
       "id": "M3-P0-06",
       "title": "Preserve public group reads with backend-enforced participation gates",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P0",
       "mechanisms": [
         "M-041",
@@ -168,14 +173,15 @@
       ],
       "acceptance": "A nonmember can read public group state and content; only an eligible member can perform member-gated writes.",
       "evidence": [
-        "artifacts/m3-closure/browser/civic",
-        "artifacts/m3-closure/public-only"
+        "artifacts/m3-closure/browser/civic/group-authority-probe.json",
+        "artifacts/m3-closure/frontend/group-flow-source.log",
+        "artifacts/m3-closure/frontend/public-only-protocol-source.log"
       ]
     },
     {
       "id": "M3-P0-07",
       "title": "Complete backend and frontend suites from the implementation freeze",
-      "status": "evidence_required",
+      "status": "closed",
       "priority": "P0",
       "mechanisms": [
         "M-039",
@@ -206,7 +212,7 @@
     {
       "id": "M3-P1-01",
       "title": "Tier-2 user creates a signed public post and reconciles finality",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-039",
@@ -229,7 +235,7 @@
     {
       "id": "M3-P1-02",
       "title": "Independent Tier-2 user joins a public group through the canonical membership request",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-042",
@@ -252,7 +258,7 @@
     {
       "id": "M3-P1-03",
       "title": "Group member creates content while a nonmember retains public read access",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-039",
@@ -276,7 +282,7 @@
     {
       "id": "M3-P1-04",
       "title": "Signed report creates a public reviewable dispute and deterministic reviewer assignments",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-040",
@@ -296,14 +302,15 @@
         "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
-        "artifacts/m3-closure/browser/dispute"
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/browser/civic/dispute-negative-apply-proofs.json"
       ],
       "acceptance": "A signed report references committed content, creates a public dispute record, and assigns only conflict-free opted-in eligible reviewers."
     },
     {
       "id": "M3-P1-05",
       "title": "Independent reviewers accept, attend and submit one final review ballot each",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-054",
@@ -321,14 +328,15 @@
         "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
-        "artifacts/m3-closure/browser/dispute"
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/frontend/m3-embedded-attendance-source.log"
       ],
       "acceptance": "Each selected reviewer uses an independent signing identity; duplicate votes and unauthorized reviewer actions fail."
     },
     {
       "id": "M3-P1-06",
       "title": "Appeal uses the required fresh panel and produces an append-only final correction receipt",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-055"
@@ -345,14 +353,15 @@
         "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
-        "artifacts/m3-closure/browser/dispute"
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/browser/civic/dispute-negative-apply-proofs.json"
       ],
       "acceptance": "An eligible affected actor files an appeal; panel reuse/conflicts are rejected; final outcome and correction history remain publicly inspectable."
     },
     {
       "id": "M3-P1-07",
       "title": "Protected identity evidence remains excluded from broad civic routes",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-040",
@@ -376,7 +385,7 @@
     {
       "id": "M3-P1-08",
       "title": "Eligible Tier-2 user creates and comments on a no-action civic proposal",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-049",
@@ -393,15 +402,15 @@
         "../web/scripts/test_governance_rendered_journey_source.mjs"
       ],
       "evidence": [
-        "artifacts/m3-closure/browser/governance",
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/frontend/governance-source.log"
       ],
       "acceptance": "Creation and comments are signed, publicly visible, and do not imply approval, execution or finality."
     },
     {
       "id": "M3-P1-09",
       "title": "Only eligible humans or group members in the active round can cast one final ballot",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-050",
@@ -421,15 +430,16 @@
         "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
-        "artifacts/m3-closure/browser/governance",
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/browser/civic/remaining-negative-apply-proofs.json"
       ],
       "acceptance": "Eligible actors in the active electorate round succeed with equal weight; ineligible, validator-only, duplicate, replacement and revoke attempts fail deterministically. Ballots from a prior no-quorum round remain historical and do not count in a replacement round."
     },
     {
       "id": "M3-P1-10",
       "title": "Block-height close, tally and finalization create traceable receipts",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P1",
       "mechanisms": [
         "M-049",
@@ -449,15 +459,15 @@
         "tests/test_m3_closure_regressions.py"
       ],
       "evidence": [
-        "artifacts/m3-closure/browser/governance",
-        "artifacts/m3-closure/governance"
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/frontend/governance-source.log"
       ],
       "acceptance": "Backend block height\u2014not browser time\u2014closes each voting round and publishes immutable round, denominator, tally, no-decision/reopen where applicable, and finalization receipts."
     },
     {
       "id": "M3-P2-01",
       "title": "Non-skippable independent-browser multi-actor civic/governance journey",
-      "status": "evidence_required",
+      "status": "closed",
       "priority": "P2",
       "mechanisms": [
         "M-039",
@@ -487,7 +497,7 @@
     {
       "id": "M3-P2-02",
       "title": "Restart and deterministic replay preserve the complete M3 final state",
-      "status": "evidence_required",
+      "status": "closed",
       "priority": "P2",
       "mechanisms": [
         "M-039",
@@ -517,7 +527,7 @@
     {
       "id": "M3-P2-03",
       "title": "Two nodes converge on identical M3 state and receipts",
-      "status": "evidence_required",
+      "status": "closed",
       "priority": "P2",
       "mechanisms": [
         "M-039",
@@ -546,7 +556,7 @@
     {
       "id": "M3-P2-04",
       "title": "Observer catches up to the finalized M3 state without gaining authority",
-      "status": "evidence_required",
+      "status": "closed",
       "priority": "P2",
       "mechanisms": [
         "M-039",
@@ -599,12 +609,16 @@
       "tests": [
         "tests/test_m3_scope_contract.py"
       ],
-      "acceptance": "Every scoped mechanism and requirement has a unique row, status, source/test mapping, acceptance condition and evidence family."
+      "acceptance": "Every scoped mechanism and requirement has a unique row, status, source/test mapping, acceptance condition and evidence family.",
+      "evidence": [
+        "artifacts/m3-closure/backend/requirement-traceability.log",
+        "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
+      ]
     },
     {
       "id": "M3-P2-06",
       "title": "Implementation freeze and evidence-only direct child bind closure",
-      "status": "evidence_required",
+      "status": "closed",
       "priority": "P2",
       "mechanisms": [
         "M-039",
@@ -638,7 +652,7 @@
     {
       "id": "M3-P2-07",
       "title": "M3 mandatory journeys cannot be skipped or replaced by synthetic direct-apply proof",
-      "status": "implemented_requires_integrated_evidence",
+      "status": "closed",
       "priority": "P2",
       "mechanisms": [
         "M-039",

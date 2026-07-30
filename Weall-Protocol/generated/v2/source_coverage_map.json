@@ -1774,7 +1774,7 @@
       ],
       "path": "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "776bfb1d34910e34d14148a7a6ff72962175e23418d63ff0aa5ef2384ae29e35",
+      "sha256": "537b0d9439cc0c6c1e06e07bfa627853fb201d1b5ad1d04932223edd08d4c00e",
       "source_id": "SRC-3FDC198445C13464"
     },
     {
@@ -1787,7 +1787,7 @@
       ],
       "path": "docs/production_readiness/M3_SCOPE_CROSSWALK.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "c4c3af77e8423db80daf9954fa00e9619a57ddc1d8d103a27ae816955194f77c",
+      "sha256": "b1ebc174a5ee59d3d4ecd1fef5584a824371f599e59abd860dbd8357b0903feb",
       "source_id": "SRC-10DDED63FC2EA002"
     },
     {
@@ -19308,7 +19308,7 @@
       ],
       "path": "tests/test_m3_closure_integrity.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "c7933243bbc1833e04ab8ae2e953a76d12ceaab3137a507907b6e6cf3a82053b",
+      "sha256": "f2366c5d8cceb54462eb7b487fb4d045a4eb9ac69a3b41293c4ff17ae4aafa3c",
       "source_id": "SRC-C5719DCEBD01CE0A"
     },
     {
@@ -19396,7 +19396,7 @@
       ],
       "path": "tests/test_m3_scope_contract.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "888ee756929d158b186c963033c51202d0b68740105a79e284c13cc2b3a3ca6e",
+      "sha256": "04a0439ec1f1d7377cdc4e8895c5999d923b2ad02fbf22a67151bf29585b0a6a",
       "source_id": "SRC-A0B3677940F16B0D"
     },
     {

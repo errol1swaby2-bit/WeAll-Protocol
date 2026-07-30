@@ -28,6 +28,7 @@ REQUIRED_GATES = (
     "frontend first-run source",
     "frontend governance source",
     "frontend dispute source",
+    "frontend M3 embedded attendance transcript source",
     "frontend contract check",
     "frontend production safety check",
     "frontend typecheck",
@@ -98,7 +99,10 @@ PRIVATE_MARKERS = (
 
 SENSITIVE_PATTERNS = (
     re.compile(rb"-----BEGIN (?:OPENSSH |RSA |EC )?PRIVATE KEY-----", re.I),
-    re.compile(rb'"(?:private[_-]?key(?:_hex)?|secret[_-]?key(?:b64)?|seed[_-]?phrase|mnemonic|session[_-]?key|recovery[_-]?file)"\s*:\s*"?[^"\s,}]{8,}', re.I),
+    re.compile(
+        rb'"(?:private[_-]?key(?:_hex)?|secret[_-]?key(?:b64)?|seed[_-]?phrase|mnemonic|session[_-]?key|recovery[_-]?file)"\s*:\s*"?[^"\s,}]{8,}',
+        re.I,
+    ),
     re.compile(rb'"(?:authorization|cookie)"\s*:\s*"[^"\r\n]{8,}"', re.I),
     re.compile(rb"Authorization:\s*Bearer\s+[A-Za-z0-9._~+/=-]+", re.I),
     re.compile(rb"(?:session|api|access|bearer)[_-]?token\s*[=:]\s*[A-Za-z0-9._~+/=-]{16,}", re.I),
@@ -144,6 +148,7 @@ def validate_live_ballot_profile(
     if actual != expected:
         raise ValueError("live_ballot_profile_not_strict_active")
     return actual
+
 
 REQUIRED_ACTION_LABELS = {
     "post_create",
@@ -305,9 +310,7 @@ def is_controlled_devnet_bootstrap_reviewer(role: str, account: str) -> bool:
 
 
 def is_reviewer_action_identity(role: str, account: str) -> bool:
-    return is_manifest_reviewer_role(role) or is_controlled_devnet_bootstrap_reviewer(
-        role, account
-    )
+    return is_manifest_reviewer_role(role) or is_controlled_devnet_bootstrap_reviewer(role, account)
 
 
 def action_requires_manifest_actor_binding(label: str, role: str, account: str) -> bool:
@@ -348,13 +351,17 @@ def role_allowed_for_negative(label: str, role: str) -> bool:
     }:
         return role in {"author_proposer", "member_reporter_voter"}
     if label == "nonselected_reviewer_vote_rejected":
-        return role.startswith(APPEAL_REVIEWER_ROLE_PREFIX) or role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX)
+        return role.startswith(APPEAL_REVIEWER_ROLE_PREFIX) or role.startswith(
+            ORIGINAL_REVIEWER_ROLE_PREFIX
+        )
     if label in {
         "duplicate_dispute_ballot_rejected",
         "replacement_dispute_ballot_rejected",
         "dispute_revoke_rejected",
     }:
-        return role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX) or role.startswith(APPEAL_REVIEWER_ROLE_PREFIX)
+        return role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX) or role.startswith(
+            APPEAL_REVIEWER_ROLE_PREFIX
+        )
     return False
 
 
@@ -401,9 +408,7 @@ def validate_embedded_attendance_pairs(actions: list[dict]) -> None:
 
         for field in ("role", "account", "subject_id", "status"):
             if attendance.get(field) != acceptance.get(field):
-                raise ValueError(
-                    f"transaction_attendance_acceptance_pair_invalid:{tx_id}:{field}"
-                )
+                raise ValueError(f"transaction_attendance_acceptance_pair_invalid:{tx_id}:{field}")
 
         if (
             attendance.get("tx_type") != "DISPUTE_JUROR_ACCEPT"
@@ -411,14 +416,13 @@ def validate_embedded_attendance_pairs(actions: list[dict]) -> None:
         ):
             raise ValueError(f"transaction_attendance_acceptance_pair_invalid:{tx_id}:tx_type")
 
-        if (
-            attendance.get("evidence_kind")
-            != EMBEDDED_ATTENDANCE_EVIDENCE_KIND
-        ):
+        if attendance.get("evidence_kind") != EMBEDDED_ATTENDANCE_EVIDENCE_KIND:
             raise ValueError(f"transaction_attendance_evidence_kind_invalid:{tx_id}")
 
 
-def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, freeze: str) -> dict:
+def validate_public_actor_transcript(
+    actor_manifest: dict, transcript: dict, *, freeze: str
+) -> dict:
     if actor_manifest.get("schema_version") != 3:
         raise ValueError("actor_manifest_schema_mismatch")
     if str(actor_manifest.get("implementation_freeze_commit") or "") != freeze:
@@ -439,9 +443,14 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
         accounts.add(account)
     if not REQUIRED_HUMAN_ROLES.issubset(role_to_account):
         raise ValueError("actor_manifest_required_roles_missing")
-    original_reviewers = sum(role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX) for role in role_to_account)
+    original_reviewers = sum(
+        role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX) for role in role_to_account
+    )
     appeal_reviewers = sum(role.startswith(APPEAL_REVIEWER_ROLE_PREFIX) for role in role_to_account)
-    if original_reviewers < MIN_REVIEWERS_PER_PANEL_POOL or appeal_reviewers < MIN_REVIEWERS_PER_PANEL_POOL:
+    if (
+        original_reviewers < MIN_REVIEWERS_PER_PANEL_POOL
+        or appeal_reviewers < MIN_REVIEWERS_PER_PANEL_POOL
+    ):
         raise ValueError("actor_manifest_reviewer_partition_invalid")
     if int(actor_manifest.get("reviewer_count") or 0) != original_reviewers + appeal_reviewers:
         raise ValueError("actor_manifest_reviewer_count_mismatch")
@@ -459,7 +468,11 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
     journey = actor_manifest.get("journey")
     if not isinstance(journey, dict):
         raise ValueError("actor_manifest_journey_missing")
-    for field in (set(MAIN_ACTION_SUBJECT_FIELD.values()) | set(NEGATIVE_SUBJECT_FIELD.values()) | {"negative_post_id"}):
+    for field in (
+        set(MAIN_ACTION_SUBJECT_FIELD.values())
+        | set(NEGATIVE_SUBJECT_FIELD.values())
+        | {"negative_post_id"}
+    ):
         if not str(journey.get(field) or "").strip():
             raise ValueError(f"actor_manifest_journey_field_missing:{field}")
     if str(journey["negative_dispute_id"]) == str(journey["dispute_id"]):
@@ -536,7 +549,9 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
         negative_labels.add(label)
         expected_subject = str(journey.get(NEGATIVE_SUBJECT_FIELD[label]) or "")
         if not subject_id or subject_id != expected_subject:
-            raise ValueError(f"transaction_negative_subject_invalid:{label}:{subject_id}:{expected_subject}")
+            raise ValueError(
+                f"transaction_negative_subject_invalid:{label}:{subject_id}:{expected_subject}"
+            )
         if tx_type not in NEGATIVE_TX_TYPES[label]:
             raise ValueError(f"transaction_negative_tx_type_invalid:{label}:{tx_type}")
         if error_code != EXPECTED_NEGATIVE_ERROR_CODES[label]:
@@ -565,7 +580,9 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
         if label == "nonmember_group_write_rejected":
             payload_group = str(payload.get("group_id") or "")
             tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
-            if payload_group != subject_id and f"group:{subject_id}" not in {str(item) for item in tags}:
+            if payload_group != subject_id and f"group:{subject_id}" not in {
+                str(item) for item in tags
+            }:
                 raise ValueError(f"transaction_negative_group_payload_unbound:{label}")
         elif "governance" in label:
             if str(payload.get("proposal_id") or "") != subject_id:
@@ -598,6 +615,7 @@ def validate_public_actor_transcript(actor_manifest: dict, transcript: dict, *, 
         "chain_id": chain_id,
         "journey": actor_manifest.get("journey"),
     }
+
 
 MAIN_ACTION_SUBJECT_FIELD = {
     "post_create": "post_id",
@@ -650,7 +668,10 @@ PRECONDITION_REQUIRED_NEGATIVES = {
 def validate_observer_authority(value: dict, *, freeze: str, tree: str) -> dict:
     if value.get("schema_version") != 1:
         raise ValueError("observer_authority_schema_invalid")
-    if value.get("implementation_freeze_commit") != freeze or value.get("implementation_tree") != tree:
+    if (
+        value.get("implementation_freeze_commit") != freeze
+        or value.get("implementation_tree") != tree
+    ):
         raise ValueError("observer_authority_freeze_mismatch")
     if value.get("mode") != "observer" or value.get("authority_absent") is not True:
         raise ValueError("observer_authority_posture_invalid")
@@ -664,7 +685,11 @@ def validate_observer_authority(value: dict, *, freeze: str, tree: str) -> dict:
         "validator_effective",
         "helper_effective",
     }
-    if not isinstance(checks, dict) or set(checks) != required or any(checks.get(name) is not True for name in required):
+    if (
+        not isinstance(checks, dict)
+        or set(checks) != required
+        or any(checks.get(name) is not True for name in required)
+    ):
         raise ValueError("observer_authority_checks_invalid")
     if not str(value.get("chain_id") or "").strip():
         raise ValueError("observer_authority_chain_id_missing")
