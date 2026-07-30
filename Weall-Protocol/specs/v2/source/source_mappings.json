@@ -5770,6 +5770,18 @@
       "path": "tooling/gen_tx_contract_map.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "transactions",
+        "state",
+        "failures",
+        "activation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/ballot_policy.py",
+      "primary_mechanism_id": "M-050",
+      "review_status": "mapped_current_snapshot"
     }
   ],
   "schema": "weall.v2.source_mapping_registry",

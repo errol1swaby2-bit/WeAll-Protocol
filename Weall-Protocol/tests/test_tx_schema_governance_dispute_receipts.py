@@ -75,6 +75,8 @@ def test_schema_models_registered() -> None:
         ("DISPUTE_RESOLVE", {"dispute_id": "d1", "resolution": {"outcome": "remove"}, "_due_height": 12}),
         ("DISPUTE_APPEAL", {"dispute_id": "d1", "reason": "new evidence", "basis": {"cid": "baaaaaaaaaaaaaaaaaaaaa"}}),
         ("DISPUTE_FINAL_RECEIPT", {"receipt_id": "r1", "dispute_id": "d1", "resolution": {"outcome": "remove"}}),
+        ("DISPUTE_FINAL_RECEIPT", {"dispute_id": "d1", "appeal_resolution": {"decision": "uphold", "actions": []}, "_parent_ref": "appeal-final"}),
+        ("DISPUTE_FINAL_RECEIPT", {"dispute_id": "d1", "resolution": {}, "appeal_window_closed": True, "appeal_deadline_height": 42}),
         ("CASE_TYPE_REGISTER", {"case_type": "poh_review"}),
         ("CASE_BIND_TO_DISPUTE", {"case_id": "c1", "dispute_id": "d1"}),
         ("CASE_OUTCOME_RECEIPT", {"case_id": "c1", "outcome": {"approved": True}}),
@@ -85,6 +87,9 @@ def test_schema_models_registered() -> None:
         ("DISPUTE_EVIDENCE_BIND", {"dispute_id": "d1", "evidence_id": "e1"}),
         ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "vote": "approve"}),
         ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "verdict": "approve", "resolution": {"action": "remove"}}),
+        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "appeal_decision": "uphold", "appeal_resolution": {"decision": "uphold", "actions": []}}),
+        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "appeal_vote": "reverse"}),
+        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "appeal_resolution": {"decision": "modify", "actions": []}}),
     ],
 )
 def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
@@ -117,7 +122,7 @@ def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
         ("DISPUTE_OPEN", {"dispute_id": "d1", "target_id": "post-1"}, "target_type"),
         ("DISPUTE_JUROR_ASSIGN", {"dispute_id": "d1"}, "juror_id"),
         ("DISPUTE_EVIDENCE_DECLARE", {"dispute_id": "d1"}, "evidence_id"),
-        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1"}, "either vote or verdict is required"),
+        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1"}, "either vote, verdict, appeal_decision"),
     ],
 )
 def test_missing_required_fields_are_rejected(tx_type: str, payload: dict, expected_fragment: str) -> None:

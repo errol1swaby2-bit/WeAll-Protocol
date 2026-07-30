@@ -1,0 +1,66 @@
+==> Node 1
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 7,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "15f009422673744872437f072fbd67e53b3aeea61ecb6e256e913dd5bc00c2f7",
+  "tip_hash": "2e8af5322798d3b4c839bc610bf6e8bafd06ba9cb13863572ecbbfa2ef9f859a",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> Node 2
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 7,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "15f009422673744872437f072fbd67e53b3aeea61ecb6e256e913dd5bc00c2f7",
+  "tip_hash": "2e8af5322798d3b4c839bc610bf6e8bafd06ba9cb13863572ecbbfa2ef9f859a",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> OK: node chain manifests are valid and current
+==> OK: node identities, tips, and state roots match
+==> Node 1
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 7,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "15f009422673744872437f072fbd67e53b3aeea61ecb6e256e913dd5bc00c2f7",
+  "tip_hash": "2e8af5322798d3b4c839bc610bf6e8bafd06ba9cb13863572ecbbfa2ef9f859a",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> Node 2
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 7,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "15f009422673744872437f072fbd67e53b3aeea61ecb6e256e913dd5bc00c2f7",
+  "tip_hash": "2e8af5322798d3b4c839bc610bf6e8bafd06ba9cb13863572ecbbfa2ef9f859a",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> OK: node chain manifests are valid and current
+==> OK: node identities, tips, and state roots match
+==> Node 1
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 8,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "e7a14888ef378e05341fc3df607f7af3e54301abbc46a5ca14ac027a7c9b7c73",
+  "tip_hash": "771be88306612d069607b50c652c757455c78c0e118306e121c5ced6a0547afb",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> Node 2
+{
+  "chain_id": "weall-controlled-devnet",
+  "height": 8,
+  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "schema_version": "1",
+  "state_root": "e7a14888ef378e05341fc3df607f7af3e54301abbc46a5ca14ac027a7c9b7c73",
+  "tip_hash": "771be88306612d069607b50c652c757455c78c0e118306e121c5ced6a0547afb",
+  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+}
+==> OK: node chain manifests are valid and current
+==> OK: node identities, tips, and state roots match

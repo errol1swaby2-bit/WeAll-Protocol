@@ -34,7 +34,7 @@ byte-identical derivative of the pinned source PDF.
 - `current_tx_canon.json` and `tx_contract_matrix.json`: all 236 current compatibility transactions.
 - `target_tx_canon.json`: the 27 target TX contracts.
 - `target_contract_canon.json` and `target_contract_schema_index.json`: all 150 exact target TX/MSG/SYS/RCP contracts with structured deterministic-CBOR field schemas and schema fingerprints.
-- `route_contract_map.json`: all 159 current route implementations.
+- `route_contract_map.json`: all 162 current route implementations.
 - `state_contract_index.json`: the 94 exact PDF-defined state-object contracts.
 - `runtime_state_inventory.json`: the separate 972-row AST-derived current runtime state inventory.
 - `message_contract_index.json`: runtime and `src/weall/net` MSG candidates,

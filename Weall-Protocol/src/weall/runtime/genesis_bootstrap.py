@@ -10,6 +10,7 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 
 
 from weall.crypto.signature_profiles import PQ_MLDSA_V1
+from weall.runtime.ballot_policy import CONTROLLED_TESTNET_BALLOT_PROFILE
 from weall.runtime.executor import (
     CLOCK_SKEW_WARN_MS,
     GENESIS_CREATED_MS,
@@ -108,6 +109,41 @@ def _initial_state(self) -> Json:
         "require_recovery_key_at_account_register": bool(strict_identity_registration),
         "require_evidence_kem_at_account_register": bool(strict_identity_registration),
     }
+
+    # M3 controlled-testnet ballot closure is an explicit genesis choice.  It
+    # must never become active merely because a node happens to run in a dev or
+    # controlled-devnet process profile.  The closure harness opts in with all
+    # three variables below so every node starts from the same canonical ballot
+    # policy and the resulting profile is state-root bound.
+    _m3_strict_raw = os.environ.get("WEALL_M3_CIVIC_GOVERNANCE_STRICT")
+    _ballot_profile_raw = os.environ.get("WEALL_BALLOT_PROFILE_ID")
+    _ballot_active_raw = os.environ.get("WEALL_BALLOT_PROFILE_ACTIVE")
+    if _m3_strict_raw is not None:
+        params["m3_civic_governance_strict"] = _env_bool(
+            "WEALL_M3_CIVIC_GOVERNANCE_STRICT", False
+        )
+    if _ballot_profile_raw is not None:
+        _ballot_profile_id = str(_ballot_profile_raw).strip()
+        if not _ballot_profile_id:
+            raise ExecutorError(
+                "genesis_config_error: WEALL_BALLOT_PROFILE_ID must be non-empty when set"
+            )
+        params["ballot_profile_id"] = _ballot_profile_id
+    if _ballot_active_raw is not None:
+        params["ballot_profile_active"] = _env_bool("WEALL_BALLOT_PROFILE_ACTIVE", False)
+
+    if bool(params.get("ballot_profile_active")):
+        if not bool(params.get("m3_civic_governance_strict")):
+            raise ExecutorError(
+                "genesis_config_error: an active ballot profile requires "
+                "WEALL_M3_CIVIC_GOVERNANCE_STRICT=1"
+            )
+        if str(params.get("ballot_profile_id") or "") != CONTROLLED_TESTNET_BALLOT_PROFILE:
+            raise ExecutorError(
+                "genesis_config_error: controlled-testnet ballot activation requires "
+                f"WEALL_BALLOT_PROFILE_ID={CONTROLLED_TESTNET_BALLOT_PROFILE}"
+            )
+        params["mode"] = "controlled-testnet"
     if bootstrap_open_enabled:
         params["poh_bootstrap_mode"] = "open"
         params["poh_bootstrap_max_height"] = bootstrap_max_height

@@ -1,0 +1,683 @@
+{
+  "schema_version": 1,
+  "milestone": "R-M3 controlled-testnet civic and governance closure",
+  "planning_base_commit": "54d16b9541b8ba7aba2eeac366b05f69a1c153cf",
+  "closure_policy": "implementation plus non-skippable externally generated evidence plus evidence-only direct child",
+  "controlled_statuses": [
+    "open_protocol_gap",
+    "implemented_requires_integrated_evidence",
+    "implemented_requires_protocol_corrections_and_evidence",
+    "evidence_required",
+    "planned_failing_test",
+    "planned",
+    "implemented_scaffold",
+    "closed"
+  ],
+  "requirements": [
+    {
+      "id": "M3-P0-01",
+      "title": "Capture the correct protocol-wide or group electorate for every versioned voting round",
+      "status": "closed",
+      "priority": "P0",
+      "mechanisms": [
+        "M-049",
+        "M-051"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/runtime/gov_engine.py",
+        "src/weall/runtime/poh/eligibility.py",
+        "src/weall/runtime/ballot_policy.py",
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/runtime/genesis_bootstrap.py"
+      ],
+      "tests": [
+        "tests/test_governance_stale_state_safety.py",
+        "tests/test_governance_system_queue_autoprogress.py",
+        "tests/p0/test_p0_governance_pipeline.py",
+        "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_closure_regressions.py",
+        "tests/test_m3_genesis_ballot_profile.py"
+      ],
+      "acceptance": "Proposal state records electorate scope plus an append-only round record containing opening height, canonical eligible identities or commitment, denominator, threshold and round number before that round admits ballots.",
+      "evidence": [
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
+      ]
+    },
+    {
+      "id": "M3-P0-02",
+      "title": "Make the first admitted final ballot immutable",
+      "status": "closed",
+      "priority": "P0",
+      "mechanisms": [
+        "M-050"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/runtime/tx_conflicts.py",
+        "src/weall/runtime/tx_schema.py",
+        "src/weall/runtime/ballot_policy.py"
+      ],
+      "tests": [
+        "tests/p0/test_p0_governance_pipeline.py",
+        "tests/test_governance_stale_state_safety.py",
+        "tests/test_m3_closure_regressions.py",
+        "tests/test_m3_genesis_ballot_profile.py"
+      ],
+      "acceptance": "A second ballot, replacement ballot, or vote-revoke transaction from the same voter fails deterministically after the first valid ballot is admitted.",
+      "evidence": [
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
+      ]
+    },
+    {
+      "id": "M3-P0-03",
+      "title": "Use immutable per-round denominators with deterministic quorum refresh and no-decision expiry",
+      "status": "closed",
+      "priority": "P0",
+      "mechanisms": [
+        "M-050",
+        "M-051"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/runtime/gov_engine.py"
+      ],
+      "tests": [
+        "tests/p0/test_p0_governance_pipeline.py",
+        "tests/test_governance_system_queue_autoprogress.py",
+        "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_closure_regressions.py"
+      ],
+      "acceptance": "A voting round denominator never changes in place. If quorum is unmet, a SYSTEM-controlled transition either opens a new round from current canonical eligibility, applies a bounded extension, or emits an explicit expired-without-decision receipt after the configured limit. Exact integer arithmetic is used throughout.",
+      "evidence": [
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
+      ]
+    },
+    {
+      "id": "M3-P0-04",
+      "title": "Do not expose a forbidden identity-to-ballot-choice mapping",
+      "status": "closed",
+      "priority": "P0",
+      "mechanisms": [
+        "M-050"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/api/routes_public_parts/gov.py",
+        "../web/src/pages/Proposal.tsx",
+        "src/weall/runtime/ballot_policy.py",
+        "src/weall/runtime/apply/dispute.py",
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/api/routes_public_parts/disputes.py"
+      ],
+      "tests": [
+        "tests/test_tx_schema_governance_dispute_receipts.py",
+        "../web/scripts/test_governance_rendered_journey_source.mjs",
+        "tests/test_m3_closure_regressions.py"
+      ],
+      "acceptance": "Public state and receipts prove inclusion, eligibility and aggregate outcome without publishing an identity-choice association where sealed-ballot rules apply.",
+      "evidence": [
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
+      ]
+    },
+    {
+      "id": "M3-P0-05",
+      "title": "Keep validator authority separate from political eligibility",
+      "status": "closed",
+      "priority": "P0",
+      "mechanisms": [
+        "M-051"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/runtime/poh/eligibility.py",
+        "src/weall/runtime/ballot_policy.py"
+      ],
+      "tests": [
+        "tests/test_governance_stale_state_safety.py",
+        "tests/p0/test_p0_governance_pipeline.py",
+        "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_closure_regressions.py"
+      ],
+      "acceptance": "A validator outside the active civic electorate round cannot vote; an eligible Tier-2 human does not require validator status.",
+      "evidence": [
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/observer/authority.json"
+      ]
+    },
+    {
+      "id": "M3-P0-06",
+      "title": "Preserve public group reads with backend-enforced participation gates",
+      "status": "closed",
+      "priority": "P0",
+      "mechanisms": [
+        "M-041",
+        "M-042",
+        "M-043"
+      ],
+      "implementation": [
+        "src/weall/api/routes_public_parts/groups.py",
+        "src/weall/runtime/apply/groups.py",
+        "src/weall/runtime/apply/content.py"
+      ],
+      "tests": [
+        "tests/test_group_join_route_and_membership_status.py",
+        "tests/test_group_scoped_posting_authority.py",
+        "../web/scripts/test_group_flow_readiness_source.mjs"
+      ],
+      "acceptance": "A nonmember can read public group state and content; only an eligible member can perform member-gated writes.",
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/group-authority-probe.json",
+        "artifacts/m3-closure/frontend/group-flow-source.log",
+        "artifacts/m3-closure/frontend/public-only-protocol-source.log"
+      ]
+    },
+    {
+      "id": "M3-P0-07",
+      "title": "Complete backend and frontend suites from the implementation freeze",
+      "status": "closed",
+      "priority": "P0",
+      "mechanisms": [
+        "M-039",
+        "M-040",
+        "M-041",
+        "M-042",
+        "M-043",
+        "M-049",
+        "M-050",
+        "M-051",
+        "M-054",
+        "M-055",
+        "M-056"
+      ],
+      "implementation": [
+        "../scripts/run_m3_complete_closure.sh"
+      ],
+      "tests": [
+        "tests",
+        "../web"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/backend",
+        "artifacts/m3-closure/frontend"
+      ],
+      "acceptance": "All mandatory suites pass with zero skipped M3 journeys."
+    },
+    {
+      "id": "M3-P1-01",
+      "title": "Tier-2 user creates a signed public post and reconciles finality",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-039",
+        "M-041"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/content.py",
+        "src/weall/api/routes_public_parts/content.py",
+        "../web/src/pages/CreatePostPage.tsx"
+      ],
+      "tests": [
+        "../web/scripts/test_public_social_flow_readiness_source.mjs",
+        "tests/test_public_only_protocol_redesign.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic"
+      ],
+      "acceptance": "The browser signs and submits the canonical transaction, tracks transaction status, and observes the committed post from a public read route."
+    },
+    {
+      "id": "M3-P1-02",
+      "title": "Independent Tier-2 user joins a public group through the canonical membership request",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-042",
+        "M-043"
+      ],
+      "implementation": [
+        "src/weall/api/routes_public_parts/groups.py",
+        "src/weall/runtime/apply/groups.py",
+        "../web/src/pages/Group.tsx"
+      ],
+      "tests": [
+        "tests/test_group_join_route_and_membership_status.py",
+        "../web/scripts/test_group_flow_readiness_source.mjs"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic"
+      ],
+      "acceptance": "The client obtains, signs and submits GROUP_MEMBERSHIP_REQUEST; committed membership status is visible before member-gated posting unlocks."
+    },
+    {
+      "id": "M3-P1-03",
+      "title": "Group member creates content while a nonmember retains public read access",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-039",
+        "M-041",
+        "M-043"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/content.py",
+        "src/weall/api/routes_public_parts/groups.py",
+        "../web/src/pages/Group.tsx"
+      ],
+      "tests": [
+        "tests/test_group_scoped_posting_authority.py",
+        "../web/scripts/test_group_flow_readiness_source.mjs"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic"
+      ],
+      "acceptance": "Member write succeeds, nonmember write fails, and both actors can read the committed group content."
+    },
+    {
+      "id": "M3-P1-04",
+      "title": "Signed report creates a public reviewable dispute and deterministic reviewer assignments",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-040",
+        "M-054"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/dispute.py",
+        "src/weall/runtime/dispute_engine.py",
+        "src/weall/api/routes_public_parts/disputes.py",
+        "src/weall/runtime/apply/content.py",
+        "src/weall/runtime/scheduler_pipeline.py"
+      ],
+      "tests": [
+        "tests/test_full_node_db_api_dispute_storage_coverage.py",
+        "tests/test_tx_schema_governance_dispute_receipts.py",
+        "../web/scripts/test_dispute_review_rendered_journey_source.mjs",
+        "tests/test_m3_closure_regressions.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/browser/civic/dispute-negative-apply-proofs.json"
+      ],
+      "acceptance": "A signed report references committed content, creates a public dispute record, and assigns only conflict-free opted-in eligible reviewers."
+    },
+    {
+      "id": "M3-P1-05",
+      "title": "Independent reviewers accept, attend and submit one final review ballot each",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-054",
+        "M-056"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/dispute.py",
+        "src/weall/runtime/dispute_engine.py",
+        "../web/src/pages/DisputeReview.tsx",
+        "src/weall/runtime/ballot_policy.py"
+      ],
+      "tests": [
+        "tests/test_live_room_and_dispute_assignment_regression.py",
+        "tests/test_tx_schema_governance_dispute_receipts.py",
+        "tests/test_m3_closure_regressions.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/frontend/m3-embedded-attendance-source.log"
+      ],
+      "acceptance": "Each selected reviewer uses an independent signing identity; duplicate votes and unauthorized reviewer actions fail."
+    },
+    {
+      "id": "M3-P1-06",
+      "title": "Appeal uses the required fresh panel and produces an append-only final correction receipt",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-055"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/dispute.py",
+        "src/weall/runtime/dispute_engine.py",
+        "../web/src/pages/DisputeDetail.tsx",
+        "src/weall/runtime/ballot_policy.py"
+      ],
+      "tests": [
+        "scripts/rehearse_reviewer_accountability_appeal_b592_v1_5.py",
+        "tests/test_tx_schema_governance_dispute_receipts.py",
+        "tests/test_m3_closure_regressions.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/browser/civic/dispute-negative-apply-proofs.json"
+      ],
+      "acceptance": "An eligible affected actor files an appeal; panel reuse/conflicts are rejected; final outcome and correction history remain publicly inspectable."
+    },
+    {
+      "id": "M3-P1-07",
+      "title": "Protected identity evidence remains excluded from broad civic routes",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-040",
+        "M-054",
+        "M-055"
+      ],
+      "implementation": [
+        "src/weall/api/routes_public_parts/disputes.py",
+        "src/weall/runtime/poh/evidence_lifecycle.py",
+        "../web/src/pages/DisputeDetail.tsx"
+      ],
+      "tests": [
+        "tests/test_restricted_poh_session_and_webrtc_transport.py",
+        "../web/scripts/test_dispute_review_rendered_journey_source.mjs"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/privacy"
+      ],
+      "acceptance": "Public report, group, content and governance routes contain commitments/outcomes but no raw PoH, government-ID, private-key or recovery material."
+    },
+    {
+      "id": "M3-P1-08",
+      "title": "Eligible Tier-2 user creates and comments on a no-action civic proposal",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-049",
+        "M-051"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/runtime/gov_engine.py",
+        "../web/src/pages/ProposalCreate.tsx",
+        "../web/src/pages/Proposal.tsx"
+      ],
+      "tests": [
+        "tests/p0/test_p0_governance_pipeline.py",
+        "../web/scripts/test_governance_rendered_journey_source.mjs"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/frontend/governance-source.log"
+      ],
+      "acceptance": "Creation and comments are signed, publicly visible, and do not imply approval, execution or finality."
+    },
+    {
+      "id": "M3-P1-09",
+      "title": "Only eligible humans or group members in the active round can cast one final ballot",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-050",
+        "M-051"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/runtime/poh/eligibility.py",
+        "../web/src/pages/Proposal.tsx",
+        "src/weall/runtime/ballot_policy.py",
+        "src/weall/runtime/apply/groups.py"
+      ],
+      "tests": [
+        "tests/test_governance_stale_state_safety.py",
+        "tests/p0/test_p0_governance_pipeline.py",
+        "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_closure_regressions.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/browser/civic/remaining-negative-apply-proofs.json"
+      ],
+      "acceptance": "Eligible actors in the active electorate round succeed with equal weight; ineligible, validator-only, duplicate, replacement and revoke attempts fail deterministically. Ballots from a prior no-quorum round remain historical and do not count in a replacement round."
+    },
+    {
+      "id": "M3-P1-10",
+      "title": "Block-height close, tally and finalization create traceable receipts",
+      "status": "closed",
+      "priority": "P1",
+      "mechanisms": [
+        "M-049",
+        "M-050",
+        "M-051"
+      ],
+      "implementation": [
+        "src/weall/runtime/apply/governance.py",
+        "src/weall/runtime/gov_engine.py",
+        "src/weall/runtime/system_tx_engine.py"
+      ],
+      "tests": [
+        "tests/test_governance_system_queue_autoprogress.py",
+        "tests/test_tx_schema_governance_dispute_receipts.py",
+        "tests/p0/test_p0_governance_pipeline.py",
+        "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_closure_regressions.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/frontend/governance-source.log"
+      ],
+      "acceptance": "Backend block height\u2014not browser time\u2014closes each voting round and publishes immutable round, denominator, tally, no-decision/reopen where applicable, and finalization receipts."
+    },
+    {
+      "id": "M3-P2-01",
+      "title": "Non-skippable independent-browser multi-actor civic/governance journey",
+      "status": "closed",
+      "priority": "P2",
+      "mechanisms": [
+        "M-039",
+        "M-040",
+        "M-041",
+        "M-042",
+        "M-043",
+        "M-049",
+        "M-050",
+        "M-051",
+        "M-054",
+        "M-055",
+        "M-056"
+      ],
+      "implementation": [
+        "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
+        "../scripts/run_m3_complete_closure.sh"
+      ],
+      "tests": [
+        "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/browser"
+      ],
+      "acceptance": "The journey uses independent browser contexts and canonical signed transactions; it cannot skip, use a demo seed, or call runtime appliers directly."
+    },
+    {
+      "id": "M3-P2-02",
+      "title": "Restart and deterministic replay preserve the complete M3 final state",
+      "status": "closed",
+      "priority": "P2",
+      "mechanisms": [
+        "M-039",
+        "M-040",
+        "M-042",
+        "M-043",
+        "M-049",
+        "M-050",
+        "M-051",
+        "M-054",
+        "M-055",
+        "M-056"
+      ],
+      "implementation": [
+        "../scripts/run_m3_complete_closure.sh"
+      ],
+      "tests": [
+        "tests/test_bounded_rollback_equivalence.py",
+        "tests/test_priority1_replay_schedule_consistency.py",
+        "tests/test_priority2_state_replay_determinism.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/restart-replay"
+      ],
+      "acceptance": "Pre-restart and replayed civic state, receipts, electorate snapshot, dispute history and state root match."
+    },
+    {
+      "id": "M3-P2-03",
+      "title": "Two nodes converge on identical M3 state and receipts",
+      "status": "closed",
+      "priority": "P2",
+      "mechanisms": [
+        "M-039",
+        "M-040",
+        "M-042",
+        "M-043",
+        "M-049",
+        "M-050",
+        "M-051",
+        "M-054",
+        "M-055",
+        "M-056"
+      ],
+      "implementation": [
+        "../scripts/run_m3_complete_closure.sh"
+      ],
+      "tests": [
+        "tests/test_devnet_cross_node_convergence.py",
+        "tests/test_helper_multinode_divergence_guards.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/two-node"
+      ],
+      "acceptance": "Both nodes match chain identity, height, tip, state root, transaction index and the canonical M3 receipt set."
+    },
+    {
+      "id": "M3-P2-04",
+      "title": "Observer catches up to the finalized M3 state without gaining authority",
+      "status": "closed",
+      "priority": "P2",
+      "mechanisms": [
+        "M-039",
+        "M-040",
+        "M-042",
+        "M-043",
+        "M-049",
+        "M-050",
+        "M-051",
+        "M-054",
+        "M-055",
+        "M-056"
+      ],
+      "implementation": [
+        "../scripts/run_m3_complete_closure.sh"
+      ],
+      "tests": [
+        "tests/test_external_observer_controlled_devnet_rehearsal.py",
+        "tests/test_observer_reconciliation_and_bounded_details.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/observer"
+      ],
+      "acceptance": "Observer state matches the leader/follower final state while validator, reviewer and voter authority remain locked."
+    },
+    {
+      "id": "M3-P2-05",
+      "title": "M3 scope and requirement traceability are machine checked",
+      "status": "closed",
+      "priority": "P2",
+      "mechanisms": [
+        "M-039",
+        "M-040",
+        "M-041",
+        "M-042",
+        "M-043",
+        "M-049",
+        "M-050",
+        "M-051",
+        "M-054",
+        "M-055",
+        "M-056"
+      ],
+      "implementation": [
+        "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json",
+        "docs/production_readiness/M3_SCOPE_CROSSWALK.json",
+        "../scripts/check_m3_requirement_traceability.py",
+        "../scripts/run_m3_complete_closure.sh"
+      ],
+      "tests": [
+        "tests/test_m3_scope_contract.py"
+      ],
+      "acceptance": "Every scoped mechanism and requirement has a unique row, status, source/test mapping, acceptance condition and evidence family.",
+      "evidence": [
+        "artifacts/m3-closure/backend/requirement-traceability.log",
+        "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
+      ]
+    },
+    {
+      "id": "M3-P2-06",
+      "title": "Implementation freeze and evidence-only direct child bind closure",
+      "status": "closed",
+      "priority": "P2",
+      "mechanisms": [
+        "M-039",
+        "M-040",
+        "M-041",
+        "M-042",
+        "M-043",
+        "M-049",
+        "M-050",
+        "M-051",
+        "M-054",
+        "M-055",
+        "M-056"
+      ],
+      "implementation": [
+        "docs/production_readiness/M3_CLOSURE_PROCESS.md",
+        "../scripts/gen_m3_closure_manifest.py",
+        "../scripts/run_m3_complete_closure.sh",
+        "../scripts/check_m3_evidence_only_commit.py",
+        "../scripts/check_m3_evidence_only_commit.sh"
+      ],
+      "tests": [
+        "tests/test_m3_scope_contract.py",
+        "tests/test_m3_closure_integrity.py"
+      ],
+      "evidence": [
+        "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
+      ],
+      "acceptance": "Evidence commit is the direct child of the recorded freeze and changes only the complete committed M3 evidence snapshot."
+    },
+    {
+      "id": "M3-P2-07",
+      "title": "M3 mandatory journeys cannot be skipped or replaced by synthetic direct-apply proof",
+      "status": "closed",
+      "priority": "P2",
+      "mechanisms": [
+        "M-039",
+        "M-040",
+        "M-042",
+        "M-043",
+        "M-049",
+        "M-050",
+        "M-051",
+        "M-054",
+        "M-055"
+      ],
+      "implementation": [
+        "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
+        "../scripts/run_m3_complete_closure.sh",
+        "../scripts/check_m3_evidence_only_commit.py"
+      ],
+      "tests": [
+        "tests/test_m3_scope_contract.py"
+      ],
+      "acceptance": "Closure runner fails on Playwright skip/fixme, missing independent actor manifest, demo bootstrap, unsigned submission, direct applier use, or absent finality reconciliation.",
+      "evidence": [
+        "artifacts/m3-closure/browser",
+        "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
+      ]
+    }
+  ]
+}

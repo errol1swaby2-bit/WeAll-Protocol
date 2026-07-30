@@ -1,6 +1,8 @@
 # src/weall/runtime/apply/groups.py
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from fractions import Fraction
 from typing import Any
@@ -8,6 +10,7 @@ from typing import Any
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
 from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.bounded_rollback import journal_set_dict_key
+from weall.runtime.ballot_policy import ballot_profile_status, strict_civic_governance_enabled
 from weall.runtime.group_treasury_scheduler import (
     maybe_enqueue_group_spend_execute,
     maybe_enqueue_group_spend_expire,
@@ -258,6 +261,28 @@ def _ensure_group_emissary_ballots(state: Json) -> Json:
         root = {}
         state["group_emissary_ballots"] = root
     return root
+
+
+def _ensure_group_emissary_ballot_boxes(state: Json) -> Json:
+    root = state.get("group_emissary_ballot_boxes")
+    if not isinstance(root, dict):
+        root = {}
+        state["group_emissary_ballot_boxes"] = root
+    return root
+
+
+def _ensure_group_emissary_ballot_nullifiers(state: Json) -> Json:
+    root = state.get("group_emissary_ballot_nullifiers")
+    if not isinstance(root, dict):
+        root = {}
+        state["group_emissary_ballot_nullifiers"] = root
+    return root
+
+
+def _group_ballot_hash(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def _uniq_sorted_accounts(xs: Any) -> list[str]:
@@ -1278,6 +1303,8 @@ def _apply_group_emissary_election_create(state: Json, env: TxEnvelope) -> Json:
 
     ballots_root = _ensure_group_emissary_ballots(state)
     ballots_root[election_id] = {}
+    _ensure_group_emissary_ballot_boxes(state)[election_id] = {}
+    _ensure_group_emissary_ballot_nullifiers(state)[election_id] = {}
 
     return {
         "applied": "GROUP_EMISSARY_ELECTION_CREATE",
@@ -1307,6 +1334,18 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
         raise GroupsApplyError("not_found", "election_not_found", {"election_id": election_id})
     if _as_str(e.get("status")).strip().lower() != "open":
         raise GroupsApplyError("forbidden", "election_not_open", {"election_id": election_id})
+
+    profile = ballot_profile_status(state)
+    if bool(profile.get("strict")) and not bool(profile.get("active")):
+        raise GroupsApplyError(
+            "forbidden",
+            "ballot_profile_inactive",
+            {
+                "election_id": election_id,
+                "profile_id": profile.get("profile_id"),
+                "profile_reason": profile.get("reason"),
+            },
+        )
 
     now_h = _height_hint(state, env)
     start_h = _as_int(e.get("start_height"), 0)
@@ -1350,14 +1389,77 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
         ballots = {}
         ballots_root[election_id] = ballots
 
-    had = voter in ballots
-    ballots[voter] = {
-        "ranking": norm_rank,
-        "cast_at_nonce": int(env.nonce),
-        "cast_at_height": int(now_h),
-        "payload": payload,
-    }
-    ballots_root[election_id] = ballots
+    strict_ballot = bool(profile.get("strict"))
+    if strict_ballot:
+        boxes_root = _ensure_group_emissary_ballot_boxes(state)
+        nullifier_root = _ensure_group_emissary_ballot_nullifiers(state)
+        box = boxes_root.get(election_id)
+        if not isinstance(box, dict):
+            box = {}
+            boxes_root[election_id] = box
+        nullifiers = nullifier_root.get(election_id)
+        if not isinstance(nullifiers, dict):
+            nullifiers = {}
+            nullifier_root[election_id] = nullifiers
+
+        # Migrate any attributable local ballots once, aggregate identical ranked
+        # choices, and erase the voter-to-ranking mapping.
+        if ballots:
+            for legacy_voter, record in sorted(ballots.items(), key=lambda item: str(item[0])):
+                if not isinstance(record, dict) or not isinstance(record.get("ranking"), list):
+                    continue
+                legacy_rank = [str(x) for x in record.get("ranking")]
+                ballot_commitment = _group_ballot_hash(
+                    {"domain": "weall.group.emissary.anonymous-ballot.v1", "election_id": election_id, "ranking": legacy_rank}
+                )
+                existing = box.get(ballot_commitment)
+                count = _as_int(existing.get("count"), 0) if isinstance(existing, dict) else 0
+                box[ballot_commitment] = {"ranking": legacy_rank, "count": int(count + 1)}
+                legacy_nullifier = _group_ballot_hash(
+                    {"domain": "weall.group.emissary.ballot-nullifier.v1", "election_id": election_id, "voter": str(legacy_voter)}
+                )
+                nullifiers.setdefault(
+                    legacy_nullifier,
+                    {"height": _as_int(record.get("cast_at_height"), 0), "migrated_from_attributable_state": True},
+                )
+            ballots.clear()
+            ballots_root[election_id] = {}
+
+        voter_nullifier = _group_ballot_hash(
+            {"domain": "weall.group.emissary.ballot-nullifier.v1", "election_id": election_id, "voter": voter}
+        )
+        if voter_nullifier in nullifiers:
+            raise GroupsApplyError(
+                "conflict",
+                "ballot_already_final",
+                {"election_id": election_id, "voter": voter},
+            )
+        ballot_commitment = _group_ballot_hash(
+            {"domain": "weall.group.emissary.anonymous-ballot.v1", "election_id": election_id, "ranking": norm_rank}
+        )
+        existing = box.get(ballot_commitment)
+        count = _as_int(existing.get("count"), 0) if isinstance(existing, dict) else 0
+        box[ballot_commitment] = {"ranking": list(norm_rank), "count": int(count + 1)}
+        nullifiers[voter_nullifier] = {
+            "cast_at_height": int(now_h),
+            "ballot_profile_id": _as_str(profile.get("profile_id")),
+            "final": True,
+        }
+        boxes_root[election_id] = box
+        nullifier_root[election_id] = nullifiers
+        ballots_root[election_id] = {}
+        had = False
+    else:
+        had = voter in ballots
+        ballots[voter] = {
+            "ranking": norm_rank,
+            "cast_at_nonce": int(env.nonce),
+            "cast_at_height": int(now_h),
+            "ballot_profile_id": _as_str(profile.get("profile_id")),
+            "final": False,
+            "payload": payload,
+        }
+        ballots_root[election_id] = ballots
 
     return {
         "applied": "GROUP_EMISSARY_BALLOT_CAST",
@@ -1365,6 +1467,7 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
         "voter": voter,
         "deduped": had,
         "n_ranked": len(norm_rank),
+        "public_ballot_disclosure": "aggregate_ranked_ballot_box" if strict_ballot else "legacy_attributable",
     }
 
 
@@ -1416,7 +1519,17 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
     ballots_root = _ensure_group_emissary_ballots(state)
     raw_ballots = ballots_root.get(election_id)
     ballots_by_voter: dict[str, list[str]] = {}
-    if isinstance(raw_ballots, dict):
+    if strict_civic_governance_enabled(state):
+        ballot_box = _ensure_group_emissary_ballot_boxes(state).get(election_id)
+        if isinstance(ballot_box, dict):
+            for commitment, record in sorted(ballot_box.items(), key=lambda item: str(item[0])):
+                if not isinstance(record, dict) or not isinstance(record.get("ranking"), list):
+                    continue
+                count = max(0, _as_int(record.get("count"), 0))
+                ranking = [str(x) for x in record.get("ranking")]
+                for index in range(count):
+                    ballots_by_voter[f"anon:{commitment}:{index}"] = list(ranking)
+    elif isinstance(raw_ballots, dict):
         for voter, b in raw_ballots.items():
             if isinstance(b, dict) and isinstance(b.get("ranking"), list):
                 ballots_by_voter[str(voter)] = [str(x) for x in b.get("ranking")]

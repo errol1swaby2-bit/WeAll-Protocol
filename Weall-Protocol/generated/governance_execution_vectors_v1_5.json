@@ -580,7 +580,7 @@
       }
     }
   ],
-  "artifact_hash": "8f257d7c5226750e600177cd8c49127f4f7e7c59501305073389cf4c0c1b6340",
+  "artifact_hash": "65d1f1c61a7b2836bf31ef437415914c08a2f608ae682661f7470c75bef80512",
   "conflict_vectors": [
     {
       "applied_action_results": [
@@ -711,7 +711,7 @@
         },
         "ok": false
       },
-      "state_hash_after": "52669453cb158b4e84ab4acd819bdd9b3d51ce5127f843c96f716caf413bb92a"
+      "state_hash_after": "2b9ff29ea6e50e7ebf4c73690c68761b700d5d0251649171a450301f60bb4512"
     },
     {
       "expected_reason": "proposal_not_executable",
@@ -727,7 +727,7 @@
         },
         "ok": false
       },
-      "state_hash_after": "773a345c8b15e6f08d2ada9628ed16150117b1cd6595895da8d4489b17aacb5b"
+      "state_hash_after": "04f39528457b0e5e1d84dd4eed9ee5a112957dc612892b1d85926860ee221496"
     },
     {
       "expected_reason": "proposal_did_not_pass",
@@ -742,7 +742,7 @@
         },
         "ok": false
       },
-      "state_hash_after": "852a8db840588eabf837c3bd9fb57b6c0786b77f408d1e7f225878980d30cf79"
+      "state_hash_after": "1000109495c74ea421a09bd9c433673cbd32d68c8a2d84481eb24fc1dfbeb134"
     }
   ],
   "ok": true,

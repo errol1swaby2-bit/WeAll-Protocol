@@ -226,10 +226,14 @@ def test_detail_endpoints_cannot_bypass_bounded_vote_and_member_routes() -> None
         assert "appeals" not in d1
         assert d1["counts_total"] == {"jurors": 5, "votes": 5, "evidence": 4, "appeals": 2}
 
-        # Dedicated paginated routes remain the only normal way to fetch large maps.
+        # Dedicated ballot routes expose aggregate results only; identity-choice
+        # maps are never a normal public read surface.
         votes = client.get("/v1/gov/proposals/p1/votes?limit=2")
         assert votes.status_code == 200, votes.text
-        assert len(votes.json()["votes"]) == 2
+        assert "votes" not in votes.json()
+        assert votes.json()["votes_redacted"] is True
+        assert votes.json()["identity_choice_maps_exposed"] is False
+        assert votes.json()["counts_total"] == {"poll_votes": 3, "votes": 5}
         members = client.get("/v1/groups/g1/members?limit=2")
         assert members.status_code == 200, members.text
         assert len(members.json()["members"]) == 2

@@ -10,6 +10,8 @@ read model is the public/API bridge for the matrix dimensions.
 """
 
 from dataclasses import dataclass
+import hashlib
+import json
 from typing import Any, Iterable
 
 from weall.runtime.reputation_events import (
@@ -395,6 +397,7 @@ def _dispute_events(state: Json, account_id: str) -> list[MatrixEvent]:
         juror_records = _as_dict(dispute.get("jurors"))
         legacy_assigned = _as_dict(dispute.get("assigned_jurors"))
         votes = _as_dict(dispute.get("votes"))
+        voted_jurors = _as_list(dispute.get("voted_juror_ids"))
         stage = _as_str(dispute.get("stage") or dispute.get("status")).lower()
         assignment: Json | None = None
         signer_key = ""
@@ -413,7 +416,9 @@ def _dispute_events(state: Json, account_id: str) -> list[MatrixEvent]:
             status = _as_str(assignment.get("status") or "assigned").lower()
             source_ref = f"{did}:{signer_key or account_id}"
             if status in {"accepted", "attended", "present"}:
-                has_vote = any(_as_str(key) in variants for key in votes.keys())
+                has_vote = any(_as_str(key) in variants for key in votes.keys()) or any(
+                    bool(_identity_variants(voter).intersection(variants)) for voter in voted_jurors
+                )
                 if has_vote:
                     delta = 250
                     etype = "DISPUTE_VOTE_COMPLETED"
@@ -531,21 +536,46 @@ def _governance_events(state: Json, account_id: str) -> list[MatrixEvent]:
                     details={"proposal_id": pid, "stage": stage},
                 )
             )
-        for vote_bucket_name in ("votes", "poll_votes"):
-            vote_bucket = _as_dict(proposal.get(vote_bucket_name))
-            for voter in vote_bucket.keys():
-                if _as_str(voter) in variants:
-                    events.append(
-                        _event(
-                            account_id=account_id,
-                            dimension="governance",
-                            event_type="GOV_VOTE_CAST",
-                            delta_milli=50,
-                            source="governance",
-                            source_ref=f"{pid}:{vote_bucket_name}:{voter}",
-                            details={"proposal_id": pid, "vote_bucket": vote_bucket_name},
-                        )
+        participation_buckets = (
+            ("votes", "ballot_nullifiers", "voting"),
+            ("poll_votes", "poll_ballot_nullifiers", "poll"),
+        )
+        round_no = _as_int(proposal.get("electorate_round"), 0)
+        for vote_bucket_name, nullifier_bucket_name, stage_name in participation_buckets:
+            legacy_voters = set(_as_dict(proposal.get(vote_bucket_name)).keys())
+            nullifiers = set(_as_dict(proposal.get(nullifier_bucket_name)).keys())
+            matched_ref = ""
+            for voter in sorted(legacy_voters, key=str):
+                if _identity_variants(voter).intersection(variants):
+                    matched_ref = _as_str(voter)
+                    break
+            if not matched_ref and nullifiers:
+                for voter in sorted(variants):
+                    material = {
+                        "domain": "weall.governance.ballot-nullifier.v1",
+                        "proposal_id": pid,
+                        "round": int(round_no),
+                        "stage": stage_name,
+                        "voter": voter,
+                    }
+                    candidate = hashlib.sha256(
+                        json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                    ).hexdigest()
+                    if candidate in nullifiers:
+                        matched_ref = candidate
+                        break
+            if matched_ref:
+                events.append(
+                    _event(
+                        account_id=account_id,
+                        dimension="governance",
+                        event_type="GOV_VOTE_CAST",
+                        delta_milli=50,
+                        source="governance",
+                        source_ref=f"{pid}:{vote_bucket_name}:{matched_ref}",
+                        details={"proposal_id": pid, "vote_bucket": vote_bucket_name},
                     )
+                )
         for idx, raw_comment in enumerate(_as_list(proposal.get("comments"))):
             comment = _as_dict(raw_comment)
             if _matches_account(comment.get("by") or comment.get("author") or comment.get("account_id"), account_id):

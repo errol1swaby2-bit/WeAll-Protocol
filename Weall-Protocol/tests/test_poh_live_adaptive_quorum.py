@@ -374,3 +374,50 @@ def test_live_scheduler_rejects_partial_panel_after_bootstrap_sunset() -> None:
 
     assert schedule_poh_live_system_txs(st, next_height=2) == 0
     assert not st.get("system_queue")
+
+
+def test_live_scheduler_retries_missing_receipt_after_award() -> None:
+    st = _state(juror_count=1)
+    st["poh"] = {
+        "live_cases": {
+            "case-live-1": {
+                "case_id": "case-live-1",
+                "account_id": "alice",
+                "status": "awarded",
+                "outcome": "pass",
+                "tier_awarded": 2,
+            }
+        }
+    }
+
+    enq = schedule_poh_live_system_txs(st, next_height=2)
+
+    assert enq == 1
+    queued = st.get("system_queue") or []
+    assert [item["tx_type"] for item in queued] == ["POH_LIVE_RECEIPT"]
+    assert queued[0]["parent"] == "POH_LIVE_FINALIZE"
+    assert queued[0]["payload"] == {
+        "case_id": "case-live-1",
+        "receipt_id": "poh_live_rcpt:case-live-1",
+        "ts_ms": 0,
+    }
+
+
+def test_live_scheduler_does_not_repeat_emitted_receipt() -> None:
+    st = _state(juror_count=1)
+    st["poh"] = {
+        "live_cases": {
+            "case-live-1": {
+                "case_id": "case-live-1",
+                "account_id": "alice",
+                "status": "awarded",
+                "outcome": "pass",
+                "tier_awarded": 2,
+                "live_receipt_emitted": True,
+                "live_receipt_id": "poh_live_rcpt:case-live-1",
+            }
+        }
+    }
+
+    assert schedule_poh_live_system_txs(st, next_height=2) == 0
+    assert not st.get("system_queue")

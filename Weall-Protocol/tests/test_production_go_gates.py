@@ -57,7 +57,6 @@ class _ObserverExecutor:
             },
         }
 
-
     def tx_index_hash(self) -> str:
         return "txhash"
 
@@ -101,8 +100,7 @@ def test_build_and_assert_production_genesis_artifacts(tmp_path: Path) -> None:
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert built.returncode == 0, built.stderr + built.stdout
@@ -120,8 +118,7 @@ def test_build_and_assert_production_genesis_artifacts(tmp_path: Path) -> None:
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert checked.returncode == 0, checked.stderr + checked.stdout
@@ -139,13 +136,18 @@ def test_assert_production_genesis_rejects_template_placeholders(tmp_path: Path)
             {
                 "chain_id": "weall-prod",
                 "time": 0,
-                "accounts": {"SYSTEM": {}, "FOUNDING_NODE_ID": {"keys": {"PUT_FOUNDING_PUBKEY_HEX_HERE": {}}}},
+                "accounts": {
+                    "SYSTEM": {},
+                    "FOUNDING_NODE_ID": {"keys": {"PUT_FOUNDING_PUBKEY_HEX_HERE": {}}},
+                },
                 "params": {
                     "genesis_time": 0,
                     "economic_unlock_time": 0,
                     "economics_enabled": False,
                     "bootstrap_founder_account": "FOUNDING_NODE_ID",
-                    "bootstrap_allowlist": {"FOUNDING_NODE_ID": {"pubkey": "PUT_FOUNDING_PUBKEY_HEX_HERE"}},
+                    "bootstrap_allowlist": {
+                        "FOUNDING_NODE_ID": {"pubkey": "PUT_FOUNDING_PUBKEY_HEX_HERE"}
+                    },
                     "poh_bootstrap_mode": "allowlist",
                     "poh_bootstrap_auto_lock_rule": "active_validators>=BFT_MIN_VALIDATORS",
                 },
@@ -184,8 +186,7 @@ def test_assert_production_genesis_rejects_template_placeholders(tmp_path: Path)
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert checked.returncode == 2
@@ -226,10 +227,16 @@ def test_frontend_backend_congruity_script_supports_exported_layout() -> None:
         [sys.executable, str(CONGRUITY)],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert result.returncode == 0, result.stderr + result.stdout
-    assert "WeAll-Protocol/web" in result.stdout
+
+    expected_repo = ROOT.parent.resolve()
+    expected_frontend = (expected_repo / "web").resolve()
+    expected_backend = ROOT.resolve()
+
+    assert f"Repo root: {expected_repo}" in result.stdout
+    assert f"Frontend:  {expected_frontend}" in result.stdout
+    assert f"Backend:   {expected_backend}" in result.stdout
     assert "PASS" in result.stdout

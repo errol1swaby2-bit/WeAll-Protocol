@@ -1,7 +1,7 @@
 {
   "expected_counts": {
     "transactions": 236,
-    "routes": 159,
+    "routes": 162,
     "requirements": 755,
     "parameters": 215,
     "mechanisms": 78,

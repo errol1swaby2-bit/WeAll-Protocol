@@ -285,7 +285,7 @@ def test_executable_governance_rejects_non_electorate_vote() -> None:
         "params": {"mode": "production"},
         "accounts": {
             "@val": {"poh_tier": 2, "banned": False, "locked": False},
-            "@outsider": {"poh_tier": 2, "banned": False, "locked": False},
+            "@outsider": {"poh_tier": 1, "banned": False, "locked": False},
         },
         "roles": {"validators": {"active_set": ["@val"]}},
     }
@@ -310,7 +310,7 @@ def test_executable_governance_rejects_non_electorate_vote() -> None:
             _env("GOV_VOTE_CAST", "@outsider", 2, {"proposal_id": "p1", "vote": "yes"}),
         )
 
-    assert excinfo.value.reason == "executable_governance_vote_requires_electorate_member"
+    assert excinfo.value.reason == "governance_vote_requires_active_round_member"
     assert "@outsider" not in state["gov_proposals_by_id"]["p1"]["votes"]
 
 

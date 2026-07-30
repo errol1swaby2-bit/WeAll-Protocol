@@ -221,11 +221,22 @@ def _viewer_juror_record(obj: dict[str, Any], viewer: str) -> dict[str, Any]:
 
 
 def _viewer_vote_record(obj: dict[str, Any], viewer: str) -> dict[str, Any]:
-    """Expose only the caller's own vote while keeping global vote maps redacted."""
+    """Expose admission status, never the caller's canonical ballot choice."""
 
     if not viewer:
         return {}
     variants = _identity_variants(viewer)
+    voted = obj.get("voted_juror_ids")
+    if isinstance(voted, list):
+        for voter in voted:
+            if set(variants).intersection(_identity_variants(str(voter))):
+                return {
+                    "account": viewer,
+                    "juror": viewer,
+                    "admitted": True,
+                    "choice_redacted": True,
+                    "final": True,
+                }
     votes = _as_dict(obj.get("votes"))
     for variant in variants:
         rec = votes.get(variant)
@@ -273,17 +284,25 @@ def _normalize_dispute(obj: dict[str, Any]) -> dict[str, Any]:
     evidence = out.get("evidence") if isinstance(out.get("evidence"), list) else []
     appeals = out.get("appeals") if isinstance(out.get("appeals"), list) else []
 
-    vote_counts = {"yes": 0, "no": 0, "abstain": 0}
-    for _, record in sorted(votes.items(), key=lambda item: str(item[0])):
-        if not isinstance(record, dict):
-            continue
-        choice = _vote_choice_from_record(record)
-        if choice in {"yes", "remove", "removed", "uphold", "upheld", "report_upheld"}:
-            vote_counts["yes"] += 1
-        elif choice in {"no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"}:
-            vote_counts["no"] += 1
-        elif choice:
-            vote_counts["abstain"] += 1
+    aggregate = out.get("vote_counts")
+    if isinstance(aggregate, dict):
+        vote_counts = {
+            "yes": max(0, int(aggregate.get("yes") or 0)),
+            "no": max(0, int(aggregate.get("no") or 0)),
+            "abstain": max(0, int(aggregate.get("abstain") or 0)),
+        }
+    else:
+        vote_counts = {"yes": 0, "no": 0, "abstain": 0}
+        for _, record in sorted(votes.items(), key=lambda item: str(item[0])):
+            if not isinstance(record, dict):
+                continue
+            choice = _vote_choice_from_record(record)
+            if choice in {"yes", "remove", "removed", "uphold", "upheld", "report_upheld"}:
+                vote_counts["yes"] += 1
+            elif choice in {"no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"}:
+                vote_counts["no"] += 1
+            elif choice:
+                vote_counts["abstain"] += 1
 
     juror_counts = {"assigned": 0, "accepted": 0, "declined": 0, "present": 0, "withdrawn": 0, "timed_out": 0, "completed": 0}
     for _, record in sorted(jurors.items(), key=lambda item: str(item[0])):
@@ -361,7 +380,7 @@ def _redact_dispute_detail_maps(obj: dict[str, Any], *, viewer: str = "", st: di
         }
     normalized["counts_total"] = {
         "jurors": len(jurors),
-        "votes": len(votes),
+        "votes": int(sum(normalized.get("vote_counts", {}).values())) if isinstance(normalized.get("vote_counts"), dict) else len(votes),
         "evidence": len(evidence),
         "appeals": len(appeals),
     }
@@ -686,16 +705,13 @@ def v1_dispute_votes(dispute_id: str, request: Request):
     _maybe_observer_read_sync(request)
     st = _snapshot(request)
     obj = _normalize_dispute(_dispute_obj_from_snapshot(st, dispute_id))
-    votes_all = _as_dict(obj.get("votes"))
-    qp = request.query_params
-    limit = max(1, min(500, _int_param(qp.get("limit"), 100)))
-    votes, next_cursor = _page_vote_map(votes_all, limit=limit, cursor=qp.get("cursor"))
+    counts = obj.get("vote_counts") if isinstance(obj.get("vote_counts"), dict) else {"yes": 0, "no": 0, "abstain": 0}
     return {
         "ok": True,
         "dispute_id": str(obj.get("id") or dispute_id),
         "stage": str(obj.get("stage") or "open"),
-        "votes": votes,
-        "vote_counts": obj.get("vote_counts") or {"yes": 0, "no": 0, "abstain": 0},
-        "next_cursor": next_cursor,
-        "counts_total": {"votes": len(votes_all), "returned_votes": len(votes)},
+        "vote_counts": counts,
+        "identity_choice_maps_exposed": False,
+        "votes_redacted": True,
+        "counts_total": {"votes": int(sum(int(v or 0) for v in counts.values()))},
     }

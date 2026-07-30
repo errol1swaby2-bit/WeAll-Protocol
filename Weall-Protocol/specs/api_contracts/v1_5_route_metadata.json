@@ -447,6 +447,30 @@
       "error_model": "standard_api_error_envelope; 400 account/session/pubkey/sig required; 403 stale/bad_sig/direct_mutation_disabled; 404 account_not_found",
       "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
       "truth_boundary": "Session login creates backend-recognized session material only after signed account-key proof and runtime direct-session gate. It is not a generic public write route."
+    },
+    "GET /v1/content/{content_id}/history": {
+      "cache_policy": "no_store_dynamic_protocol_surface",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "auth": "public_read_append_only_content_mutation_receipts",
+      "error_model": "standard_api_error_envelope_or_bounded_content_history_payload",
+      "truth_boundary": "Returns bounded append-only public mutation receipts and commitments for posts or comments. It does not expose private evidence, session material, or mutable replacement history."
+    },
+    "GET /v1/gov/ballot-profile": {
+      "cache_policy": "no_store_dynamic_protocol_surface",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "auth": "public_read_fail_closed_ballot_profile_status",
+      "error_model": "standard_api_error_envelope_or_ballot_profile_status_payload",
+      "truth_boundary": "Returns the active ballot-profile identifier, mode, strictness, and launch-gate reason. It exposes no voter identity, ballot choice, nullifier, or sealed ballot material."
+    },
+    "GET /v1/governance/ballot-profile": {
+      "cache_policy": "no_store_dynamic_protocol_surface",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "auth": "public_read_fail_closed_ballot_profile_status",
+      "error_model": "standard_api_error_envelope_or_ballot_profile_status_payload",
+      "truth_boundary": "Returns the active ballot-profile identifier, mode, strictness, and launch-gate reason. It exposes no voter identity, ballot choice, nullifier, or sealed ballot material."
     }
   },
   "schema": "weall.api_route_metadata.v1_5",

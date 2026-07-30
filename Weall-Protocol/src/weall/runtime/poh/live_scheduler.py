@@ -242,6 +242,16 @@ def _case_needs_finalize(case: Json) -> bool:
     return have_verdicts == len(active)
 
 
+def _case_needs_receipt(case: Json) -> bool:
+    if not isinstance(case, dict):
+        return False
+    emitted = case.get("live_receipt_emitted")
+    if emitted is True or _as_str(emitted).strip().lower() == "true":
+        return False
+    status = _as_str(case.get("status") or "").strip().lower()
+    return status in ("awarded", "rejected")
+
+
 def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
     """Enqueue system txs needed to progress Live cases.
 
@@ -372,6 +382,26 @@ def schedule_poh_live_system_txs(state: Json, *, next_height: int) -> int:
                 state,
                 tx_type="POH_LIVE_RECEIPT",
                 payload={"case_id": cid, "receipt_id": f"poh_live_rcpt:{cid}", "ts_ms": 0},
+                due_height=int(next_height),
+                signer="SYSTEM",
+                once=True,
+                parent="POH_LIVE_FINALIZE",
+                phase="post",
+            )
+            enq += 1
+
+        # A finalize and its parent-bound receipt can conflict on the same
+        # case in one block. If the receipt is not included, the finalized
+        # case must deterministically enqueue it again on the next height.
+        if _case_needs_receipt(case):
+            enqueue_system_tx(
+                state,
+                tx_type="POH_LIVE_RECEIPT",
+                payload={
+                    "case_id": cid,
+                    "receipt_id": f"poh_live_rcpt:{cid}",
+                    "ts_ms": 0,
+                },
                 due_height=int(next_height),
                 signer="SYSTEM",
                 once=True,

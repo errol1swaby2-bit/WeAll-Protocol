@@ -63,7 +63,7 @@
     "authority_time_source": "finalized_block_height",
     "compiler_mode": "hermetic_static_analysis",
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
-    "route_count": 159,
+    "route_count": 162,
     "stable_id_reuse": "forbidden",
     "transaction_count": 236,
     "unmapped_change_policy": "fail_closed"
