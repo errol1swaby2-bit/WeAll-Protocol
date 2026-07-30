@@ -1,0 +1,6 @@
+{"api": "http://127.0.0.1:18322", "chain_id": "weall-controlled-devnet", "consensus_local_is_active_validator": false, "height": 1, "mode": "observer", "ok": true}
+OK: external observer authority lock gate passed
+- production preflight accepted the manifest and rejected authority secrets
+- observer mode is forced on
+- validator signing, BFT, helper mode, and block-loop autostart are forced off
+- validator/service authority roles are absent from the local observer environment

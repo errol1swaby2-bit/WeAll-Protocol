@@ -3,12 +3,27 @@ from __future__ import annotations
 
 from typing import Any
 
-_ACTIVE_STAGES = frozenset({"draft", "poll", "voting", "open", "queued", "finalizing", "revision", "validation", "vote", "closed", "tallied"})
+_ACTIVE_STAGES = frozenset(
+    {
+        "draft",
+        "poll",
+        "voting",
+        "open",
+        "queued",
+        "finalizing",
+        "revision",
+        "validation",
+        "vote",
+        "closed",
+        "tallied",
+    }
+)
 
 from fastapi import APIRouter, Request
 
 from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import _cursor_pack, _cursor_unpack, _int_param, _snapshot
+from weall.runtime.ballot_policy import ballot_profile_status
 
 router = APIRouter()
 
@@ -77,9 +92,29 @@ def _count_map(m: dict[str, Any]) -> dict[str, int]:
     return out
 
 
+def _aggregate_counts(obj: dict[str, Any], *, stage: str) -> dict[str, int]:
+    key = "poll_vote_counts" if str(stage or "").strip().lower() == "poll" else "vote_counts"
+    raw = obj.get(key)
+    if isinstance(raw, dict):
+        out: dict[str, int] = {}
+        for choice, count in raw.items():
+            try:
+                normalized = max(0, int(count))
+            except Exception:
+                normalized = 0
+            if str(choice).strip():
+                out[str(choice).strip()] = normalized
+        out.setdefault("yes", 0)
+        out.setdefault("no", 0)
+        out.setdefault("abstain", 0)
+        return out
+    votes_key = "poll_votes" if str(stage or "").strip().lower() == "poll" else "votes"
+    return _count_map(_as_vote_map(obj.get(votes_key)))
 
 
-def _page_vote_map(votes: dict[str, Any], *, limit: int, cursor: Any) -> tuple[dict[str, Any], str | None]:
+def _page_vote_map(
+    votes: dict[str, Any], *, limit: int, cursor: Any
+) -> tuple[dict[str, Any], str | None]:
     _cursor_n, cursor_key = _cursor_unpack(cursor)
     rows = [(str(k), v) for k, v in votes.items()]
     rows.sort(key=lambda item: item[0])
@@ -98,7 +133,7 @@ def _proposal_stage(obj: dict[str, Any]) -> str:
 
 def _proposal_counts_current(obj: dict[str, Any]) -> dict[str, int]:
     stage = _proposal_stage(obj)
-    return _count_map(obj.get("poll_votes") if stage == "poll" else obj.get("votes"))
+    return _aggregate_counts(obj, stage=stage)
 
 
 def _is_active_stage(stage: str) -> bool:
@@ -125,6 +160,7 @@ def _summary_from_items(items: list[dict[str, Any]]) -> dict[str, Any]:
         "by_stage": dict(sorted(by_stage.items(), key=lambda kv: kv[0])),
     }
 
+
 def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     """Ensure a stable shape for API consumers.
 
@@ -143,8 +179,8 @@ def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
 
     poll_votes = _as_vote_map(out.get("poll_votes"))
     votes = _as_vote_map(out.get("votes"))
-    poll_counts = _count_map(poll_votes)
-    counts = _count_map(votes)
+    poll_counts = _aggregate_counts(out, stage="poll")
+    counts = _aggregate_counts(out, stage="voting")
 
     out["poll_votes"] = poll_votes
     out["votes"] = votes
@@ -153,27 +189,31 @@ def _normalize_proposal(obj: dict[str, Any]) -> dict[str, Any]:
     out["poll_vote_total"] = int(sum(poll_counts.values()))
     out["vote_total"] = int(sum(counts.values()))
     out["has_actions"] = bool(isinstance(out.get("actions"), list) and out.get("actions"))
-    out["execution_count"] = len(out.get("executions")) if isinstance(out.get("executions"), list) else 0
+    out["execution_count"] = (
+        len(out.get("executions")) if isinstance(out.get("executions"), list) else 0
+    )
     out["counts_current"] = _proposal_counts_current(out)
     out["vote_window"] = "poll" if _proposal_stage(out) == "poll" else "final"
     out["is_active"] = _is_active_stage(_proposal_stage(out))
     return out
 
 
-
-
 def _redact_proposal_vote_maps(obj: dict[str, Any]) -> dict[str, Any]:
     """Return proposal detail/list shape without unbounded voter maps."""
 
     out = _normalize_proposal(obj)
-    poll_votes = _as_vote_map(obj.get("poll_votes"))
-    votes = _as_vote_map(obj.get("votes"))
+    _as_vote_map(obj.get("poll_votes"))
+    _as_vote_map(obj.get("votes"))
     out.pop("poll_votes", None)
     out.pop("votes", None)
     out["poll_votes_redacted"] = True
     out["votes_redacted"] = True
-    out["counts_total"] = {"poll_votes": len(poll_votes), "votes": len(votes)}
+    out["counts_total"] = {
+        "poll_votes": int(sum(_aggregate_counts(obj, stage="poll").values())),
+        "votes": int(sum(_aggregate_counts(obj, stage="voting").values())),
+    }
     return out
+
 
 def _proposal_obj_from_snapshot(st: dict[str, Any], proposal_id: str) -> dict[str, Any]:
     """Fetch a proposal object by id from snapshot, supporting canonical + legacy IDs."""
@@ -195,6 +235,25 @@ def _proposal_obj_from_snapshot(st: dict[str, Any], proposal_id: str) -> dict[st
             return v
 
     raise ApiError.not_found("not_found", "Proposal not found")
+
+
+@router.get("/governance/ballot-profile")
+@router.get("/gov/ballot-profile")
+def v1_gov_ballot_profile(request: Request) -> dict[str, Any]:
+    """Expose the bounded ballot launch state without exposing ballot material."""
+
+    _maybe_observer_read_sync(request)
+    status = ballot_profile_status(_snapshot(request))
+    return {
+        "ok": True,
+        "ballot_profile": {
+            "profile_id": str(status.get("profile_id") or ""),
+            "active": bool(status.get("active")),
+            "strict": bool(status.get("strict")),
+            "mode": str(status.get("mode") or ""),
+            "reason": str(status.get("reason") or ""),
+        },
+    }
 
 
 @router.get("/proposals")
@@ -305,22 +364,20 @@ def v1_gov_proposal_votes(proposal_id: str, request: Request):
     st = _snapshot(request)
     obj = _proposal_obj_from_snapshot(st, proposal_id)
 
-    poll_votes_all = _as_vote_map(obj.get("poll_votes"))
-    votes_all = _as_vote_map(obj.get("votes"))
-    qp = request.query_params
-    limit = max(1, min(500, _int_param(qp.get("limit"), 100)))
-    poll_votes, poll_next_cursor = _page_vote_map(poll_votes_all, limit=limit, cursor=qp.get("poll_cursor") or qp.get("cursor"))
-    votes, next_cursor = _page_vote_map(votes_all, limit=limit, cursor=qp.get("cursor"))
+    poll_counts = _aggregate_counts(obj, stage="poll")
+    counts = _aggregate_counts(obj, stage="voting")
 
     return {
         "ok": True,
         "proposal_id": str(obj.get("proposal_id") or obj.get("id") or proposal_id),
         "stage": str(obj.get("stage") or obj.get("status") or "unknown"),
-        "poll_votes": poll_votes,
-        "votes": votes,
-        "poll_counts": _count_map(poll_votes_all),
-        "counts": _count_map(votes_all),
-        "next_cursor": next_cursor,
-        "poll_next_cursor": poll_next_cursor,
-        "counts_total": {"poll_votes": len(poll_votes_all), "votes": len(votes_all), "returned_votes": len(votes), "returned_poll_votes": len(poll_votes)},
+        "poll_counts": poll_counts,
+        "counts": counts,
+        "identity_choice_maps_exposed": False,
+        "poll_votes_redacted": True,
+        "votes_redacted": True,
+        "counts_total": {
+            "poll_votes": int(sum(poll_counts.values())),
+            "votes": int(sum(counts.values())),
+        },
     }

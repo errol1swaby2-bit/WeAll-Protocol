@@ -9,8 +9,11 @@ consume state-rooted reputation events before it affects consensus behavior; thi
 read model is the public/API bridge for the matrix dimensions.
 """
 
+import hashlib
+import json
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from weall.runtime.reputation_events import (
     DIMENSION_ALIASES,
@@ -395,6 +398,7 @@ def _dispute_events(state: Json, account_id: str) -> list[MatrixEvent]:
         juror_records = _as_dict(dispute.get("jurors"))
         legacy_assigned = _as_dict(dispute.get("assigned_jurors"))
         votes = _as_dict(dispute.get("votes"))
+        voted_jurors = _as_list(dispute.get("voted_juror_ids"))
         stage = _as_str(dispute.get("stage") or dispute.get("status")).lower()
         assignment: Json | None = None
         signer_key = ""
@@ -413,11 +417,19 @@ def _dispute_events(state: Json, account_id: str) -> list[MatrixEvent]:
             status = _as_str(assignment.get("status") or "assigned").lower()
             source_ref = f"{did}:{signer_key or account_id}"
             if status in {"accepted", "attended", "present"}:
-                has_vote = any(_as_str(key) in variants for key in votes.keys())
+                has_vote = any(_as_str(key) in variants for key in votes.keys()) or any(
+                    bool(_identity_variants(voter).intersection(variants)) for voter in voted_jurors
+                )
                 if has_vote:
                     delta = 250
                     etype = "DISPUTE_VOTE_COMPLETED"
-                elif stage in {"resolved", "finalized", "closed", "report_upheld", "report_not_upheld"}:
+                elif stage in {
+                    "resolved",
+                    "finalized",
+                    "closed",
+                    "report_upheld",
+                    "report_not_upheld",
+                }:
                     delta = -1_000
                     etype = "DISPUTE_ASSIGNED_NO_VOTE"
                 else:
@@ -435,8 +447,12 @@ def _dispute_events(state: Json, account_id: str) -> list[MatrixEvent]:
                             details={
                                 "dispute_id": did,
                                 "stage": stage,
-                                "vote_deadline_height": _as_int(assignment.get("vote_deadline_height"), 0),
-                                "safe_withdraw_until_height": _as_int(assignment.get("safe_withdraw_until_height"), 0),
+                                "vote_deadline_height": _as_int(
+                                    assignment.get("vote_deadline_height"), 0
+                                ),
+                                "safe_withdraw_until_height": _as_int(
+                                    assignment.get("safe_withdraw_until_height"), 0
+                                ),
                             },
                         )
                     )
@@ -479,8 +495,12 @@ def _dispute_events(state: Json, account_id: str) -> list[MatrixEvent]:
         reporter = dispute.get("reporter") or dispute.get("created_by") or dispute.get("account_id")
         if _matches_account(reporter, account_id):
             resolution = _as_dict(dispute.get("resolution") or dispute.get("final_resolution"))
-            outcome = _as_str(resolution.get("outcome") or resolution.get("decision") or stage).lower()
-            delta = 100 if outcome in {"report_upheld", "uphold", "upheld", "remove", "hidden"} else 0
+            outcome = _as_str(
+                resolution.get("outcome") or resolution.get("decision") or stage
+            ).lower()
+            delta = (
+                100 if outcome in {"report_upheld", "uphold", "upheld", "remove", "hidden"} else 0
+            )
             events.append(
                 _event(
                     account_id=account_id,
@@ -531,24 +551,51 @@ def _governance_events(state: Json, account_id: str) -> list[MatrixEvent]:
                     details={"proposal_id": pid, "stage": stage},
                 )
             )
-        for vote_bucket_name in ("votes", "poll_votes"):
-            vote_bucket = _as_dict(proposal.get(vote_bucket_name))
-            for voter in vote_bucket.keys():
-                if _as_str(voter) in variants:
-                    events.append(
-                        _event(
-                            account_id=account_id,
-                            dimension="governance",
-                            event_type="GOV_VOTE_CAST",
-                            delta_milli=50,
-                            source="governance",
-                            source_ref=f"{pid}:{vote_bucket_name}:{voter}",
-                            details={"proposal_id": pid, "vote_bucket": vote_bucket_name},
-                        )
+        participation_buckets = (
+            ("votes", "ballot_nullifiers", "voting"),
+            ("poll_votes", "poll_ballot_nullifiers", "poll"),
+        )
+        round_no = _as_int(proposal.get("electorate_round"), 0)
+        for vote_bucket_name, nullifier_bucket_name, stage_name in participation_buckets:
+            legacy_voters = set(_as_dict(proposal.get(vote_bucket_name)).keys())
+            nullifiers = set(_as_dict(proposal.get(nullifier_bucket_name)).keys())
+            matched_ref = ""
+            for voter in sorted(legacy_voters, key=str):
+                if _identity_variants(voter).intersection(variants):
+                    matched_ref = _as_str(voter)
+                    break
+            if not matched_ref and nullifiers:
+                for voter in sorted(variants):
+                    material = {
+                        "domain": "weall.governance.ballot-nullifier.v1",
+                        "proposal_id": pid,
+                        "round": int(round_no),
+                        "stage": stage_name,
+                        "voter": voter,
+                    }
+                    candidate = hashlib.sha256(
+                        json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                    ).hexdigest()
+                    if candidate in nullifiers:
+                        matched_ref = candidate
+                        break
+            if matched_ref:
+                events.append(
+                    _event(
+                        account_id=account_id,
+                        dimension="governance",
+                        event_type="GOV_VOTE_CAST",
+                        delta_milli=50,
+                        source="governance",
+                        source_ref=f"{pid}:{vote_bucket_name}:{matched_ref}",
+                        details={"proposal_id": pid, "vote_bucket": vote_bucket_name},
                     )
+                )
         for idx, raw_comment in enumerate(_as_list(proposal.get("comments"))):
             comment = _as_dict(raw_comment)
-            if _matches_account(comment.get("by") or comment.get("author") or comment.get("account_id"), account_id):
+            if _matches_account(
+                comment.get("by") or comment.get("author") or comment.get("account_id"), account_id
+            ):
                 events.append(
                     _event(
                         account_id=account_id,
@@ -667,7 +714,9 @@ def _validator_events(state: Json, account_id: str) -> list[MatrixEvent]:
             )
         )
     slashing = _as_dict(state.get("slashing"))
-    for slash_id, raw in sorted(_as_dict(slashing.get("executions")).items(), key=lambda item: str(item[0])):
+    for slash_id, raw in sorted(
+        _as_dict(slashing.get("executions")).items(), key=lambda item: str(item[0])
+    ):
         rec = _as_dict(raw)
         if _matches_account(rec.get("validator") or rec.get("account"), account_id):
             for dimension in ("validator", "abuse_risk"):
@@ -775,7 +824,9 @@ def _creator_social_events(state: Json, account_id: str) -> list[MatrixEvent]:
     hidden_count = 0
     for post_id, raw in sorted(posts.items(), key=lambda item: str(item[0])):
         post = _as_dict(raw)
-        if not _matches_account(post.get("author") or post.get("owner") or post.get("account_id"), account_id):
+        if not _matches_account(
+            post.get("author") or post.get("owner") or post.get("account_id"), account_id
+        ):
             continue
         deleted = bool(post.get("deleted", False))
         vis = _as_str(post.get("visibility") or "public").lower()
@@ -795,9 +846,11 @@ def _creator_social_events(state: Json, account_id: str) -> list[MatrixEvent]:
             )
         )
     comment_count = 0
-    for comment_id, raw in sorted(comments.items(), key=lambda item: str(item[0])):
+    for _comment_id, raw in sorted(comments.items(), key=lambda item: str(item[0])):
         comment = _as_dict(raw)
-        if _matches_account(comment.get("author") or comment.get("owner") or comment.get("account_id"), account_id):
+        if _matches_account(
+            comment.get("author") or comment.get("owner") or comment.get("account_id"), account_id
+        ):
             comment_count += 1
     if comment_count:
         events.append(
@@ -862,7 +915,9 @@ def derive_reputation_matrix(
     raw_events = collect_reputation_matrix_events(state, acct_id)
     events = [MatrixEvent(**event) for event in raw_events]
     dimensions = _dimensions_from_events(events)
-    scalar_units = account_reputation_units(_as_dict(_as_dict(state.get("accounts")).get(acct_id)), default=0)
+    scalar_units = account_reputation_units(
+        _as_dict(_as_dict(state.get("accounts")).get(acct_id)), default=0
+    )
     aggregate = _aggregate_public_score(dimensions)
     public_dims = {name: dimensions[name] for name in PUBLIC_DIMENSIONS}
     exposed_dimensions = public_dims

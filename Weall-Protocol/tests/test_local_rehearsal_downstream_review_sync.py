@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 NESTED = ROOT / "Weall-Protocol"
 WEB = ROOT / "web" / "src"
@@ -39,7 +38,9 @@ def test_async_evidence_waits_for_local_sync_before_dependent_txs() -> None:
 
     assert "requireLocalStateSynced?: boolean" in page
     assert "const localSynced = st?.local_state_synced === true" in page
-    assert "return false" in re.search(r"async function waitForSubmittedTxVisible\(.*?\n\}", page, re.S).group(0)
+    assert "return false" in re.search(
+        r"async function waitForSubmittedTxVisible\(.*?\n\}", page, re.S
+    ).group(0)
     assert "Batch 400: keep the native async evidence sequence contiguous" in page
     assert "Submit request-open, evidence-declare, and evidence-bind first; then" in page
     assert "const boundCaseVisible = await waitForAsyncCaseVisible" in page
@@ -55,9 +56,12 @@ def test_content_escalation_uses_explicit_content_review_lane_opt_in() -> None:
     assert "explicit_active_juror_opt_in_required" in src
     assert "_filter_target_owner_from_jurors" in src
     assert "CONTENT_REVIEW_LANE" in src
-    assignment_block = src.split("reviewer_responsibility_policy", 1)[0].rsplit("assigned_jurors =", 1)[-1]
-    assert "eligible_reviewer_ids(state, CONTENT_REVIEW_LANE)" in assignment_block
-    assert "_active_juror_accounts(state)" not in assignment_block
-    assert "_active_validator_accounts(state)" not in assignment_block
-    assert "_bootstrap_reviewer_accounts(state)" not in assignment_block
-    assert "fallback_signer" not in assignment_block
+    function_block = src.split("def _apply_content_escalate_to_dispute", 1)[1].split(
+        "def _apply_flag_escalation_receipt", 1
+    )[0]
+    assert "eligible_reviewer_ids(state, CONTENT_REVIEW_LANE)" in function_block
+    assert "select_dispute_panel(" in function_block
+    assert "_active_juror_accounts(state)" not in function_block
+    assert "_active_validator_accounts(state)" not in function_block
+    assert "_bootstrap_reviewer_accounts(state)" not in function_block
+    assert "fallback_signer" not in function_block

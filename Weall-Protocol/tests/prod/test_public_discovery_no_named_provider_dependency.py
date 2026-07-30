@@ -21,12 +21,20 @@ def _forbidden_terms() -> list[str]:
 
 
 def _project_files() -> list[Path]:
-    skipped_dirs = {".git", ".venv", "__pycache__", ".pytest_cache", "node_modules", "secrets", "dist"}
+    skipped_dirs = {
+        ".git",
+        ".venv",
+        "__pycache__",
+        ".pytest_cache",
+        "node_modules",
+        "secrets",
+        "dist",
+    }
     files: list[Path] = []
     for path in ROOT.parent.rglob("*"):
         if not path.is_file():
             continue
-        if any(part in skipped_dirs for part in path.parts):
+        if any(part in skipped_dirs or part.startswith(".venv") for part in path.parts):
             continue
         if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".zip", ".sqlite", ".db"}:
             continue

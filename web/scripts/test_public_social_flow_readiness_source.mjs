@@ -97,7 +97,7 @@ for (const needle of [
   "Feed should show:",
   "Create Post should show:",
   "Thread should show:",
-  "Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence gates.",
+  "Pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external evidence gates.",
 ]) {
   assertIncludes(socialDoc, needle, "Public social readiness doc");
 }

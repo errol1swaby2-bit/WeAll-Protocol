@@ -13,7 +13,9 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False) -> TxEnvelope:
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -68,8 +70,12 @@ def test_treasury_spend_execute_moves_balances_and_records_transfer() -> None:
         "height": 10,
         "time": 1,
         "params": {"economic_unlock_time": 0, "economics_enabled": True},
-        "accounts": {"@bob": {"balance": 0, "nonce": 0, "poh_tier": 2, "banned": False, "locked": False}},
-        "treasury_wallets": {"TREASURY_PROTOCOL": {"wallet_id": "TREASURY_PROTOCOL", "balance": 1000}},
+        "accounts": {
+            "@bob": {"balance": 0, "nonce": 0, "poh_tier": 2, "banned": False, "locked": False}
+        },
+        "treasury_wallets": {
+            "TREASURY_PROTOCOL": {"wallet_id": "TREASURY_PROTOCOL", "balance": 1000}
+        },
         "treasury": {
             "spends": {
                 "spend-1": {
@@ -112,7 +118,9 @@ def test_treasury_spend_execute_rejects_insufficient_balance_without_marking_exe
         "height": 10,
         "time": 1,
         "params": {"economic_unlock_time": 0, "economics_enabled": True},
-        "accounts": {"@bob": {"balance": 0, "nonce": 0, "poh_tier": 2, "banned": False, "locked": False}},
+        "accounts": {
+            "@bob": {"balance": 0, "nonce": 0, "poh_tier": 2, "banned": False, "locked": False}
+        },
         "treasury_wallets": {"TREASURY_PROTOCOL": {"wallet_id": "TREASURY_PROTOCOL", "balance": 5}},
         "treasury": {
             "spends": {
@@ -149,8 +157,12 @@ def test_group_treasury_spend_execute_moves_balances() -> None:
         "height": 10,
         "time": 1,
         "params": {"economic_unlock_time": 0, "economics_enabled": True},
-        "accounts": {"@bob": {"balance": 0, "nonce": 0, "poh_tier": 2, "banned": False, "locked": False}},
-        "treasury_wallets": {"TREASURY_GROUP::g1": {"wallet_id": "TREASURY_GROUP::g1", "balance": 300}},
+        "accounts": {
+            "@bob": {"balance": 0, "nonce": 0, "poh_tier": 2, "banned": False, "locked": False}
+        },
+        "treasury_wallets": {
+            "TREASURY_GROUP::g1": {"wallet_id": "TREASURY_GROUP::g1", "balance": 300}
+        },
         "group_treasury_spends": {
             "gspend-1": {
                 "spend_id": "gspend-1",
@@ -189,7 +201,9 @@ def test_group_treasury_spend_execute_rejects_missing_recipient() -> None:
         "time": 1,
         "params": {"economic_unlock_time": 0, "economics_enabled": True},
         "accounts": {},
-        "treasury_wallets": {"TREASURY_GROUP::g1": {"wallet_id": "TREASURY_GROUP::g1", "balance": 300}},
+        "treasury_wallets": {
+            "TREASURY_GROUP::g1": {"wallet_id": "TREASURY_GROUP::g1", "balance": 300}
+        },
         "group_treasury_spends": {
             "gspend-1": {
                 "spend_id": "gspend-1",
@@ -209,7 +223,9 @@ def test_group_treasury_spend_execute_rejects_missing_recipient() -> None:
     with pytest.raises(GroupsApplyError) as excinfo:
         apply_groups(
             state,
-            _env("GROUP_TREASURY_SPEND_EXECUTE", "SYSTEM", 2, {"spend_id": "gspend-1"}, system=True),
+            _env(
+                "GROUP_TREASURY_SPEND_EXECUTE", "SYSTEM", 2, {"spend_id": "gspend-1"}, system=True
+            ),
         )
 
     assert excinfo.value.reason == "to_account_missing"
@@ -269,7 +285,9 @@ def test_governance_executable_action_must_have_current_canon_schema_even_if_all
                     "proposal_id": "p1",
                     "title": "stale action",
                     "rules": {"start_stage": "voting"},
-                    "actions": [{"tx_type": "TREASURY_PARAMS_SET", "payload": {"timelock_blocks": 1}}],
+                    "actions": [
+                        {"tx_type": "TREASURY_PARAMS_SET", "payload": {"timelock_blocks": 1}}
+                    ],
                 },
             ),
         )
@@ -285,7 +303,7 @@ def test_executable_governance_rejects_non_electorate_vote() -> None:
         "params": {"mode": "production"},
         "accounts": {
             "@val": {"poh_tier": 2, "banned": False, "locked": False},
-            "@outsider": {"poh_tier": 2, "banned": False, "locked": False},
+            "@outsider": {"poh_tier": 1, "banned": False, "locked": False},
         },
         "roles": {"validators": {"active_set": ["@val"]}},
     }
@@ -310,7 +328,7 @@ def test_executable_governance_rejects_non_electorate_vote() -> None:
             _env("GOV_VOTE_CAST", "@outsider", 2, {"proposal_id": "p1", "vote": "yes"}),
         )
 
-    assert excinfo.value.reason == "executable_governance_vote_requires_electorate_member"
+    assert excinfo.value.reason == "governance_vote_requires_active_round_member"
     assert "@outsider" not in state["gov_proposals_by_id"]["p1"]["votes"]
 
 
@@ -326,9 +344,7 @@ def test_role_activation_rejects_revoked_role_eligibility() -> None:
             }
         },
         "reputation": {
-            "role_eligibility": {
-                "@alice": {"roles": {"Juror": False}, "updated_at_nonce": 9}
-            }
+            "role_eligibility": {"@alice": {"roles": {"Juror": False}, "updated_at_nonce": 9}}
         },
         "roles": {"jurors": {"by_id": {"@alice": {"enrolled": True}}, "active_set": []}},
     }
@@ -360,7 +376,9 @@ def test_role_activation_revalidates_current_account_restrictions() -> None:
     with pytest.raises(RolesApplyError) as excinfo:
         apply_roles(
             state,
-            _env("ROLE_NODE_OPERATOR_ACTIVATE", "SYSTEM", 10, {"account_id": "@alice"}, system=True),
+            _env(
+                "ROLE_NODE_OPERATOR_ACTIVATE", "SYSTEM", 10, {"account_id": "@alice"}, system=True
+            ),
         )
 
     assert excinfo.value.reason == "account_restricted"

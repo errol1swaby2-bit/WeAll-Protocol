@@ -31,8 +31,21 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1820,
+  "file_count": 1836,
   "files": [
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/FUNDING.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "f51246849ecd391e6092697749c895f50a4f2bb88504003177a0f48361bc5756",
+      "source_id": "SRC-6A028C20470ECCB8"
+    },
     {
       "affected_registers": [
         "non_protocol_utility"
@@ -1261,7 +1274,7 @@
       ],
       "path": "docs/V2_SPEC_COMPILER.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "f43d91d3b2a528bb1359a7e97a526549a60e1077b3bd2771e82c1eb4e89b8508",
+      "sha256": "7741cd11d15cbf98c0b394ce0633222e4b6079fb947512f5dfb33737b0d372ff",
       "source_id": "SRC-A8946DAF268912DC"
     },
     {
@@ -1724,6 +1737,84 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d18059b71b989d5faaa0bf9c6160b8580cf9be7fb1b2dbe013e1381549fc488a",
       "source_id": "SRC-7193B10A3F6BC28A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/production_readiness/M3_ACTOR_AND_TRANSCRIPT_CONTRACT.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "632d4e45f0d0ed48fa79252ca307fdcb912e2ad9240ccc64a3b72dbf4218de28",
+      "source_id": "SRC-6CC2CA6940525A3C"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/production_readiness/M3_CLOSURE_PROCESS.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "1fb6e0a027eaddb42befb3316e3b83709e39d83fd5b20028d36b762ec1c03ab5",
+      "source_id": "SRC-20841AF877A82D79"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/production_readiness/M3_FINAL_CLOSURE_RUNBOOK_WSL.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "e913ab1720a39d27f6d584cbdc2a27c48771c9978b1ef104d41b7a8198d2d04d",
+      "source_id": "SRC-42EE7A4261544C8A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json",
+      "primary_mechanism_id": "M-076",
+      "sha256": "537b0d9439cc0c6c1e06e07bfa627853fb201d1b5ad1d04932223edd08d4c00e",
+      "source_id": "SRC-3FDC198445C13464"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/production_readiness/M3_SCOPE_CROSSWALK.json",
+      "primary_mechanism_id": "M-076",
+      "sha256": "b1ebc174a5ee59d3d4ecd1fef5584a824371f599e59abd860dbd8357b0903feb",
+      "source_id": "SRC-10DDED63FC2EA002"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/production_readiness/M3_TRUTH_BOUNDARIES.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "13c6599c342dec92f2af0aae6209d68c9c31efa2d7d2b4a80220e6976d9e10f6",
+      "source_id": "SRC-6E0089665D7F4328"
     },
     {
       "affected_registers": [
@@ -2618,7 +2709,7 @@
       ],
       "path": "generated/api_contract_map_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "dd10d4de113a264a638ce16562002e3a891cc0708518db700eed4023878fc003",
+      "sha256": "39bf8fdf4178108bdc93dcb47b7f49a3527f523ce4ca0e9784dcb04265e9ebf9",
       "source_id": "SRC-8A89C04D6D2FE32D"
     },
     {
@@ -2688,7 +2779,7 @@
       ],
       "path": "generated/b517_b521_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "6dc3abf3d8329146df3f770343dd96ffb0fc159914f458b92e095e33552250a7",
+      "sha256": "63d98f73b5f0ba886ff486d30e677ddbe928f3034125bdf1a7553d0025fcaf73",
       "source_id": "SRC-843D17467D1AAAD3"
     },
     {
@@ -2702,7 +2793,7 @@
       ],
       "path": "generated/b523_b527_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "816425d9ff852e20dd8ecd077a8cc0a1c50d52d752852b523cbfc63dffb9faf4",
+      "sha256": "80bcfa44457cf14bdd5b8a99ad84bbb6687291c881706b9a4770dfebbfdafeb7",
       "source_id": "SRC-D0AECF645E544A11"
     },
     {
@@ -2744,7 +2835,7 @@
       ],
       "path": "generated/b539_b543_production_path_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "2f36f37a26070956f60d8c322d51a185f486ac0029312c2087167f1fbe608518",
+      "sha256": "e1f4dd50056489dda07b0a2874cbcdc33315e08f5e93db31746ba82ce5ad74f3",
       "source_id": "SRC-53061E3DE6083DDC"
     },
     {
@@ -2772,7 +2863,7 @@
       ],
       "path": "generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "422d51a16993d7d28e9580a9c9554b56c6d739d82d792d6e07c835e916c3837e",
+      "sha256": "54c9c4c98a87ca4cdee0ba1a8abf10e3c484747d324dcc4f98083265a9826b82",
       "source_id": "SRC-0524901BF4D5FCD1"
     },
     {
@@ -2856,7 +2947,7 @@
       ],
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "665768810e43d042c089fefbb8ce3e2abce737eabb4856edaba06a4dc63cba11",
+      "sha256": "a2d31f80daf25266728ffa152d382745885290dacb62c4a5cb883328a757dae1",
       "source_id": "SRC-6A445811DBAE2762"
     },
     {
@@ -2926,7 +3017,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "683e6141503da38010d7ee4d9184cf656b330786627d1f6baae02175b68083f9",
+      "sha256": "337d958f0edb9c53045bacad15527a9c5f20edec4aed43192e2c655ed8acad53",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -2954,7 +3045,7 @@
       ],
       "path": "generated/governance_execution_vectors_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "cdc99d772e91a5d57863722b5e869a6e31b19c90ddcc0e5cdf8be5e2078a6462",
+      "sha256": "5f85e7501eac61d3bc313c7cb790715f0fd267ccf65db42c6e01b544e1d2974f",
       "source_id": "SRC-5984A31C527A43B9"
     },
     {
@@ -3024,7 +3115,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "714031fcf1862cd314fdcdb1e9bbf85ac9cd33d26eac7e8a7b8a5f3a0abf1b18",
+      "sha256": "9d06a553475ec70fabd9e1c803ce7786a24df35d55c98c07c41a437bd4880841",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3206,7 +3297,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "498265fffcec57a0f8aced4d4413d0a72b5e1a3c3c58a59e6740652986cc806e",
+      "sha256": "f200647381d28979899ed40eb77d111337aecae57468ce77b5ba44f9cb4aef0e",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -4323,7 +4414,7 @@
       ],
       "path": "scripts/gen_governance_execution_vectors_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7adb4fabcbe1f42b3f1d55395de1f940971be34e7b63bc1d14c52be9d2f444fb",
+      "sha256": "3afb07049bcd6bc37b4df5d296bfdf77fcf2dd15a57904f6dd28e5e763718c41",
       "source_id": "SRC-3EF839A60FAF0223"
     },
     {
@@ -6102,7 +6193,7 @@
       ],
       "path": "specs/v2/source/divergences.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8f90547aaf4d4a1729e86e5730b54b2ecf8c29aca628f58075c9538af7ecf851",
+      "sha256": "11c93f65f6d701660d3ac592ca981ac0c4032c00f484bea1a2db8235a1c814d5",
       "source_id": "SRC-E84E9D1203226739"
     },
     {
@@ -6128,7 +6219,7 @@
       ],
       "path": "specs/v2/source/manifest.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "03ece1438817ae6b3e205c4814caf960a920c80ddad6b1244828975558da859d",
+      "sha256": "634e9c854422c80895173c9ec670af2af2418d168d39db419e661fd0d3edcab3",
       "source_id": "SRC-72C2BC955E2646B0"
     },
     {
@@ -6282,7 +6373,7 @@
       ],
       "path": "specs/v2/source/protocol_registry.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "f57106713dfc2c1f23152a44e7ca5a835e9f53c084061a6906faec9e4158a7c7",
+      "sha256": "5f418e3760f1d3d27f21be4d0707845310e6a111373835f0ef977f3820cd28a3",
       "source_id": "SRC-A831CE8963E94834"
     },
     {
@@ -6322,7 +6413,7 @@
       ],
       "path": "specs/v2/source/semantic_reviews.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "f86dc41323942d0d6f36e6343a72a3dcd571f9eb3b434e9fc8fd74a235b22042",
+      "sha256": "3e08ef983bc9bffa59e54577e65ed172592040ea34100821aaf5de1db7a8658b",
       "source_id": "SRC-AF55B4E4E8AFF2DD"
     },
     {
@@ -6335,7 +6426,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "9ab3efe9e320866460d3134d0d08447ac20de70551c8ef39437f08d88e199aa2",
+      "sha256": "0a1da445bb53adc1f717d980ec55a38928022600d0f728489f7aa150d1205bd0",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
@@ -6348,7 +6439,7 @@
       ],
       "path": "specs/v2/source/stable_ids.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "720ce3fb9db782212f538a333d31cd9881b7dcdfe02950d52c92fd2d5014156e",
+      "sha256": "47d1c4fad05277b2dee15dc9856e96f5be007c13b66a0561ff4a62cd4b3e2b1a",
       "source_id": "SRC-79EEF7122111E1F7"
     },
     {
@@ -6693,11 +6784,12 @@
         "ROUTE-28F65A35627B407B",
         "ROUTE-78C1A65F045FB037",
         "ROUTE-9CF6C814B6638E9B",
+        "ROUTE-C78F777613C12B27",
         "ROUTE-EE1C3B1D0627E5ED"
       ],
       "path": "src/weall/api/routes_public_parts/content.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "af9e18f3d533c45bce91555a0e181ffd0338efb89421365e00e3a14001c1baa2",
+      "sha256": "178477e52dd139f013fbbf9e1de039da8eb7bf2f990573e5a5d2003375e8542e",
       "source_id": "SRC-99983AD9E74806F7"
     },
     {
@@ -6735,7 +6827,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/disputes.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "1b9cf1dc5b4df752b6975586cf9c23d70683a857887c900a781ba4404dff5c6b",
+      "sha256": "1840f2cad1a118cf389c2c1448d0e1a97d4aae0faf6822053a334405e59d7ed0",
       "source_id": "SRC-05CBF1893FC1155E"
     },
     {
@@ -6773,15 +6865,17 @@
         "ROUTE-754B51825F4ADBCB",
         "ROUTE-76EC4971F7B025C5",
         "ROUTE-78946D5BD1233277",
+        "ROUTE-7C2D535C9DB21237",
         "ROUTE-80510BDDAF44D5FC",
         "ROUTE-8A6B3BEDE044826B",
         "ROUTE-AF7B4CF580A3E084",
+        "ROUTE-CABD46D47B814D02",
         "ROUTE-E1F670F58B35F6BF",
         "ROUTE-FC8DE2E056DFA6A3"
       ],
       "path": "src/weall/api/routes_public_parts/gov.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "56d81436baf93e506beb8a6ec1d2b8c512596e79706c807fc99fecbd62e1367a",
+      "sha256": "0b85301e019cf0059d93659550b5f8294c7a95ba758deb99f13c044ad2e29c67",
       "source_id": "SRC-8EBA8A865F2A5B3D"
     },
     {
@@ -7003,7 +7097,7 @@
       ],
       "path": "src/weall/api/routes_public_parts/poh.py",
       "primary_mechanism_id": "M-069",
-      "sha256": "02cbb84c14967e955e97eba4cdc77aaa65264e8eed3912bf2438e60cac089740",
+      "sha256": "9e8bb5dc0a3eec8f2a4e7ab6acd64d150a517754d5e56843cd794bb0dd92ccc1",
       "source_id": "SRC-F65A78E0416B9DB6"
     },
     {
@@ -7938,6 +8032,7 @@
         "STATE-0240763F52D80D4C",
         "STATE-042679C6C5757DF9",
         "STATE-053F1CFC046EF7ED",
+        "STATE-07764AC4F24EEFE3",
         "STATE-087BDD7D854B0E61",
         "STATE-0EC72BA50839A642",
         "STATE-107753D2F78E8110",
@@ -7945,6 +8040,7 @@
         "STATE-14981F4BF406ECCE",
         "STATE-1633AB9DECBED89C",
         "STATE-1AE9C8F940BA6B2C",
+        "STATE-1B06EE70D18F403C",
         "STATE-1BDD07D03715D481",
         "STATE-1D39887A33F2DE8F",
         "STATE-24AE6E675E9323F6",
@@ -7958,8 +8054,10 @@
         "STATE-37A3D1B6C787A058",
         "STATE-38448529A693D265",
         "STATE-4148CB9C4184AD23",
+        "STATE-478155E1347E2B5A",
         "STATE-48C66E5C85D9B8D7",
         "STATE-48DFC951229C7968",
+        "STATE-4B116AB01584148E",
         "STATE-4C88F5326131A288",
         "STATE-4E49E38C58DEB076",
         "STATE-5056A6B2101DB3F9",
@@ -7969,12 +8067,18 @@
         "STATE-5B6789120EC507F3",
         "STATE-637A55A669E9DD95",
         "STATE-67DFE80D9EB6F56F",
+        "STATE-69D1D6B41CDB4BC5",
+        "STATE-69EC752FD8465BC3",
+        "STATE-7077FCE04A258615",
+        "STATE-722E282847E6E415",
         "STATE-73CF00A1C6AA33C0",
         "STATE-74023AAAC4643889",
+        "STATE-7547276AAE68E01C",
         "STATE-780229C2B2EA9BAC",
         "STATE-7EF83C948108B103",
         "STATE-8116156D3049B898",
         "STATE-83E996B8FCB2F8BE",
+        "STATE-861B78673625950E",
         "STATE-8BFBAF07D3324ED4",
         "STATE-8C687286FDFEF911",
         "STATE-900E06A4FFAB2AE0",
@@ -7983,13 +8087,16 @@
         "STATE-91406F63BFE7E22C",
         "STATE-918199AC593A881C",
         "STATE-97BA75AB939C7C40",
+        "STATE-98E21B0FAFC343D9",
         "STATE-992FE795CDE3C6C9",
         "STATE-9E2FD3887A59E7E7",
+        "STATE-A069C8AA1FCB6F78",
         "STATE-A223F6FEF5D88198",
         "STATE-A7A716D2FE03E077",
         "STATE-AAFA4F384C2D64B6",
         "STATE-AC006CC14EEFFF03",
         "STATE-AC388E58E7E52C02",
+        "STATE-B286BDC3DFF3AE63",
         "STATE-B3168E9C7547A915",
         "STATE-B3A085B0590EAD4F",
         "STATE-B56065E3A5B37344",
@@ -8005,11 +8112,14 @@
         "STATE-D11EE14B6F71DC61",
         "STATE-D9D61EB955665728",
         "STATE-DA76BD690F54C159",
+        "STATE-DA807490D01C1905",
         "STATE-DB7BB4D1765731B8",
         "STATE-DB7E9301D7C64F40",
         "STATE-DD6F702AF27087C9",
         "STATE-E0E8F080EF035D81",
         "STATE-E6F298AAFE88A6A8",
+        "STATE-E824BF6950C214D0",
+        "STATE-ECB88790D427AE65",
         "STATE-F2492AE633050FCE",
         "STATE-F454132CA247C64B",
         "STATE-F711CC08264801D9",
@@ -8020,6 +8130,7 @@
         "SYS-43DE34316B5A63FE",
         "SYS-512C70828A91EB25",
         "SYS-514D178A071C4165",
+        "SYS-60E49089D8385A8B",
         "SYS-85A41EA62466AB96",
         "SYS-87DD8A49CB64A1BA",
         "SYS-E354EC6A0A1C3E91",
@@ -8043,7 +8154,7 @@
       ],
       "path": "src/weall/runtime/apply/content.py",
       "primary_mechanism_id": "M-039",
-      "sha256": "b3675084b73c71bdf024f29338184bd1e97e4197aeba7d06286fdbd05134ab45",
+      "sha256": "c2c52d91deee070d97c27044b80beda58f52d79df87ae1f0632a02ea0e09fa7a",
       "source_id": "SRC-8E7A46D33E345524"
     },
     {
@@ -8057,6 +8168,7 @@
       "mappings": [
         "M-054",
         "MSG-1FAD188541DF9EB1",
+        "MSG-220886883969F0EF",
         "MSG-2D2E67A9B342A5DC",
         "MSG-5F2FA315337D7ECD",
         "MSG-88176C4EF450A8B1",
@@ -8066,16 +8178,24 @@
         "STATE-04BE2CC0CF084503",
         "STATE-05D6661BCA82D637",
         "STATE-08416106F271D623",
+        "STATE-0917D30FC77DD7A9",
         "STATE-0A8705F2027F4B21",
         "STATE-0C857F7169CE4E2A",
+        "STATE-0CC7FD77B19346C7",
+        "STATE-0D10A28460D9A433",
         "STATE-0E14965CED99519E",
         "STATE-14003FDB32239E8D",
+        "STATE-1525AEDDDE8BFDDE",
+        "STATE-15CDC263DA931C2D",
         "STATE-17FD0623194658B0",
+        "STATE-1980B3ABB9AFC05C",
         "STATE-1B7B6687C2D61825",
         "STATE-1C8B1B89C3070B5C",
+        "STATE-1DBC6B0BE3CF84B6",
         "STATE-1E154BED22E6D7D1",
         "STATE-1E4F4410C36BEDA3",
         "STATE-2156287E2B02F188",
+        "STATE-21E75CFA0D02D376",
         "STATE-282C6522CAA617C6",
         "STATE-2AA371FB2435BCA3",
         "STATE-2C304814B6A85614",
@@ -8083,8 +8203,12 @@
         "STATE-2F59EBFA5B4A91B7",
         "STATE-32841ADFED4AC901",
         "STATE-3416B60AE4D6201B",
+        "STATE-3573AF88E7B09740",
         "STATE-36F8A66CDBDD2FB0",
+        "STATE-374C033819315E80",
         "STATE-3950C709819BCEA7",
+        "STATE-39895D76712E8DE2",
+        "STATE-4108D088C9B512CE",
         "STATE-42313145339BF519",
         "STATE-47D063A1E3079BD2",
         "STATE-49B0DA9356E0CBB8",
@@ -8092,11 +8216,16 @@
         "STATE-4B61E58AF6D5E070",
         "STATE-4CDF0909538E8688",
         "STATE-4DBB50D11052C6EC",
+        "STATE-4E63AAB49EFC6C67",
+        "STATE-51DDD37E9A6AA5AD",
         "STATE-54FAAC40E182DCFE",
         "STATE-57083AC121D4BD6F",
+        "STATE-571898D7474EE81D",
         "STATE-598CB708D4664EC5",
         "STATE-5AB7B5E5E7DAB7F3",
+        "STATE-5D34A5C65427A4C5",
         "STATE-5EA14738B359D7E3",
+        "STATE-5FFDD4B580EC69C3",
         "STATE-610847090054560B",
         "STATE-61C07E5B86598421",
         "STATE-61D40B9D5319CB5E",
@@ -8108,6 +8237,7 @@
         "STATE-72984E3CBE872CD3",
         "STATE-73DA9F08A7231E6A",
         "STATE-7648428C4119995A",
+        "STATE-7726812E95C0E4CA",
         "STATE-78B2AE5BC6492767",
         "STATE-78F1E4F66D7B4926",
         "STATE-7A03749310BAB585",
@@ -8119,22 +8249,29 @@
         "STATE-836CA9ADC0FCEFFE",
         "STATE-844C572BF0232035",
         "STATE-889103BE274EE069",
+        "STATE-88B7286B8885FC28",
         "STATE-8A4E2329F996DADC",
         "STATE-8B352F4EAB875E7D",
         "STATE-8B89BA07D517470D",
+        "STATE-8EF6B484ACF38405",
         "STATE-9033DBF41D778831",
         "STATE-98B1F80C7E571A96",
         "STATE-99142EAB851CC957",
+        "STATE-99C4AD511EB26A99",
         "STATE-9AEF755A33F0A364",
         "STATE-9B5ADAC0ABCDD87D",
+        "STATE-9D73E6D085667BBC",
         "STATE-9FDEEFF5C562037F",
         "STATE-A2C29A75EB2D9082",
         "STATE-A5A19CD6620964E8",
         "STATE-A6615154953B81C7",
+        "STATE-A7FDBEA3E1880A13",
+        "STATE-A922EE012A4DDD70",
         "STATE-AAA0AE700943A3C1",
         "STATE-AB8C8790B9618F3C",
         "STATE-AC01F5BC0E40F499",
         "STATE-AEF8341F572EE53E",
+        "STATE-B12BE1E84D0C4B1B",
         "STATE-B3F57E5C1540343E",
         "STATE-B4F9CC4A65E52FAD",
         "STATE-B65D80A919706A03",
@@ -8161,14 +8298,18 @@
         "STATE-DA8C477CA03CEA94",
         "STATE-DBFDEA521EA225FA",
         "STATE-DD7FF8F5E7252929",
+        "STATE-DE5DB1040EE96DA8",
         "STATE-DEA916456EC66FBD",
         "STATE-E01D60BB37F4D3BD",
         "STATE-E554259320A20B95",
         "STATE-E5D8190403945A08",
         "STATE-E6689D59EBADDA8B",
+        "STATE-E67D01B80BC80D70",
         "STATE-E682CA8752C2B202",
+        "STATE-E69C557256C45FDD",
         "STATE-E6E50D9A8AC8BEAA",
         "STATE-E88388029EA0390A",
+        "STATE-E8C160B7A4D76035",
         "STATE-E997785BC72D0CC1",
         "STATE-EE410CA2927CA806",
         "STATE-F0A926570A274F69",
@@ -8176,6 +8317,7 @@
         "STATE-F96A372465F1BD93",
         "STATE-FA56FD9C5B576968",
         "STATE-FB20D2F35980984B",
+        "STATE-FC0E3572000C2CD7",
         "STATE-FEA90297C58F8F77",
         "SYS-066FA2DF2817AD6D",
         "SYS-11707CF045002972",
@@ -8209,7 +8351,7 @@
       ],
       "path": "src/weall/runtime/apply/dispute.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "f259cae387b4bea5f88d27c336b48368a1c01b489b204d804f57e412fd9a22d1",
+      "sha256": "51dc7186fb2f55b8623dee5ed71b9588136a5580b14c6a06cb1372275bde2313",
       "source_id": "SRC-2E76D23317EE6BDB"
     },
     {
@@ -8295,6 +8437,7 @@
       "mappings": [
         "M-049",
         "MSG-05F20A153B2860D0",
+        "MSG-4748518EBA158BC2",
         "MSG-50C9D0BA1A309C83",
         "MSG-5D5830243AEBE820",
         "MSG-6E622B7B73A3FC97",
@@ -8303,20 +8446,27 @@
         "MSG-75401C2253410F2F",
         "MSG-78D76212678A2603",
         "MSG-7B7BBE1DCA07B14F",
-        "MSG-90DA99114CAB9D5D",
+        "MSG-82777E2CD94A66F7",
+        "MSG-8C76D95A8BE9F45D",
         "MSG-968037DF3F8414D1",
         "MSG-96EEACC9FFE9BDC3",
         "MSG-97B52A349A043A9B",
+        "MSG-AD82C7C16E411A84",
         "MSG-BBC66AF9B0E1D7FB",
         "MSG-C725C16176A6E547",
         "MSG-C8034D1343AA2C1A",
         "MSG-CB767AE407D4E42B",
         "MSG-CFF62FD75413CA98",
+        "MSG-E0A33E4874BC3F77",
         "MSG-E0D955DFCCF70B90",
         "MSG-E0DF86E833AC448F",
+        "MSG-E4863AFC8EE7DD07",
+        "MSG-E63C5EFFDA9597C0",
         "MSG-EF530B946C58ABAE",
+        "MSG-FC349DE7040DE402",
         "SYS-09CC43A695F9BE96",
         "SYS-0DC06D9D0E196397",
+        "SYS-43A4CEB114EB45C3",
         "SYS-7384BE1E3DF47DB7",
         "SYS-795F37EE58D05C95",
         "SYS-9226850E32D9CBE9",
@@ -8340,7 +8490,7 @@
       ],
       "path": "src/weall/runtime/apply/governance.py",
       "primary_mechanism_id": "M-049",
-      "sha256": "e4888abe15cc8b75c58f7e648911c66d5e50c4dafee989fd2d6d2348829625be",
+      "sha256": "e4f6b9f6869a7e5f744bcf6e160bb39c38af3b1f35c705845769c4854865b457",
       "source_id": "SRC-A6C282C450952C4C"
     },
     {
@@ -8358,6 +8508,7 @@
         "STATE-0F33849FBC2D7E12",
         "STATE-11728A289742C9D6",
         "STATE-1243AE833EA25395",
+        "STATE-1441F8C546B30978",
         "STATE-157751F21378EE43",
         "STATE-15F560A8F4A3C665",
         "STATE-20007B48C20E0DE7",
@@ -8367,17 +8518,21 @@
         "STATE-358993ED5164D5B0",
         "STATE-3760E098EB62F31A",
         "STATE-38C04E1FB602F7E1",
+        "STATE-3E375D65AB1A8BF7",
         "STATE-3EEC903246A72191",
         "STATE-3F52DF210E73382D",
         "STATE-40FBCEB794E41F05",
         "STATE-41E0B5D1AA2FEB86",
+        "STATE-44284D78A58A9FFB",
         "STATE-451521395B811F87",
         "STATE-4694F8DD749D8708",
+        "STATE-481A909A771641EE",
         "STATE-481D75F052FE5669",
         "STATE-51E1ED470F740ECA",
         "STATE-55AB42EBA1C271CF",
         "STATE-5BBCDF1C9647593B",
         "STATE-648A40BEC06889A1",
+        "STATE-67FEE0B05934C43E",
         "STATE-6D5BD7D0F6295866",
         "STATE-7009CE978FDE1F1A",
         "STATE-7544C4D554F0399C",
@@ -8386,12 +8541,14 @@
         "STATE-7CBF18AB180C1ADB",
         "STATE-818A9D89BCA77A06",
         "STATE-8277B97A5F9F8805",
+        "STATE-82C342DF742F1F1F",
         "STATE-82E762E45411F782",
         "STATE-88DA3366DF4CA703",
         "STATE-89E30D4C1FCCF2FB",
         "STATE-8E7FE773CED00C3B",
         "STATE-8EB4BAE4C66C55E7",
         "STATE-96BD6A3945A9F859",
+        "STATE-99C82E9ED57EF842",
         "STATE-9CC2CA3053B086C0",
         "STATE-9E802A58D8795F6A",
         "STATE-A100AF5D57E1DE55",
@@ -8411,8 +8568,11 @@
         "STATE-CD253753F7861840",
         "STATE-D391936F11070DB1",
         "STATE-D4424138239D2E7A",
+        "STATE-D7849419FACA270F",
         "STATE-D84D9952A3D4E6A1",
         "STATE-DC1712626B89C38A",
+        "STATE-DD1D2549B6E28845",
+        "STATE-E3D778E8E63B136D",
         "STATE-E4E3492A117F363D",
         "STATE-E679AB800E8025A5",
         "STATE-E72DBB97DED0498F",
@@ -8450,7 +8610,7 @@
       ],
       "path": "src/weall/runtime/apply/groups.py",
       "primary_mechanism_id": "M-039",
-      "sha256": "5add1a374acf8054fdbc213d7d8053d68892a14fe65ced7d21411ff9804bce9a",
+      "sha256": "f69190660156b55737d652b2b6b4bbed34fe32144510920b59cb75bfd4fe1b6f",
       "source_id": "SRC-A3A8E7E2A1832F87"
     },
     {
@@ -9257,7 +9417,7 @@
       ],
       "path": "src/weall/runtime/apply/roles.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "132e71cc6b9da525aef6448f7ec09e38db827fb0e762c047e3c4a2d01124f890",
+      "sha256": "8e55efd8a7a07034e17bebe41dd484e885caf0aff58b60eb524322d7782d81c6",
       "source_id": "SRC-C5933119C6D88AA7"
     },
     {
@@ -9503,6 +9663,22 @@
       "primary_mechanism_id": "M-012",
       "sha256": "152dcb11c9c2e14a947efe55da5689b8877fca7f6deb047402913b14aced5238",
       "source_id": "SRC-433841E53B04E3B1"
+    },
+    {
+      "affected_registers": [
+        "activation",
+        "failures",
+        "state",
+        "transactions"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-050"
+      ],
+      "path": "src/weall/runtime/ballot_policy.py",
+      "primary_mechanism_id": "M-050",
+      "sha256": "22ff71eaf00bfae2f8e4241f62c8797652e17b2d20ea0afd4b7feb5bedfdc19f",
+      "source_id": "SRC-60704273EB43099F"
     },
     {
       "affected_registers": [
@@ -9951,7 +10127,7 @@
       ],
       "path": "src/weall/runtime/dispute_engine.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "a99f4ef3c85d1cec0504cfd13d58ec20ae6fac83f11983365c1b0c6954bcc393",
+      "sha256": "91b75e25fdd9d3395a8a4f4320c798100cdf4174608628bdbfe659f0b43cad8e",
       "source_id": "SRC-54BD7334E96CF0CA"
     },
     {
@@ -10170,7 +10346,7 @@
       ],
       "path": "src/weall/runtime/genesis_bootstrap.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "c54a8e64ff2cb80b4f44946db0cfe201732ad485f571afc762ed0c5f97ba6704",
+      "sha256": "5c5e47598c35da7d1c19599150deede6143a5e5f334ba2b3998caee46916ef57",
       "source_id": "SRC-795ADF0884ACC9CB"
     },
     {
@@ -10202,7 +10378,7 @@
       ],
       "path": "src/weall/runtime/gov_engine.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "5b385b76c36f4af4e2fc9c159f4c678abe60eac1a43f4e9172fbae0d26b31b8a",
+      "sha256": "6a574f04fd927e7df462bb830e2533e37ef554ae325b44a2658f1f3eb279517c",
       "source_id": "SRC-A07193FDBCB87884"
     },
     {
@@ -10997,7 +11173,7 @@
       ],
       "path": "src/weall/runtime/poh/juror_select.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "4b70ffd66247ebc3dd54d69291e58efa2fede5485dfc437c5c93605ef46f5b11",
+      "sha256": "58b6b0c2b68c9ab746b53f8ff48a76f07674b0a86134387e53c43f9f0e92aa0b",
       "source_id": "SRC-BBDC152DDA3A2FB0"
     },
     {
@@ -11025,7 +11201,7 @@
       ],
       "path": "src/weall/runtime/poh/live_scheduler.py",
       "primary_mechanism_id": "M-028",
-      "sha256": "5f608f82310115ed7f7efbb3ee0aad85a48fe7bc42ba47dc0eca6bd32e8ab29d",
+      "sha256": "4919a2a4086aa7cd82b64827a2043c0a424e91b09868fa0bf58828f50c32ed5a",
       "source_id": "SRC-966ED2AC6AA9E3AB"
     },
     {
@@ -11201,7 +11377,7 @@
       ],
       "path": "src/weall/runtime/reputation_matrix.py",
       "primary_mechanism_id": "M-054",
-      "sha256": "b423385f8fd2858706b5c3402887e155a2a850bffa125d0d4eae9bbd32ccb731",
+      "sha256": "514b56aae6a698eeb9a2d8892424bff260edef0a2a20856804334e80b715b5ef",
       "source_id": "SRC-6C9B9BF3F679089F"
     },
     {
@@ -11311,7 +11487,7 @@
       ],
       "path": "src/weall/runtime/scheduler_pipeline.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "1b965d37e9bfc24a7401f348ac3c1d05cca36b39ab1c940309993e8b0dab8563",
+      "sha256": "4aaa51454ed0fcda36d20dffe5f0f5360af0196cc7c60222d15340cbb9c08714",
       "source_id": "SRC-D2402113C1DE1903"
     },
     {
@@ -11599,7 +11775,7 @@
       ],
       "path": "src/weall/runtime/tx_schema.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "e43afb0462d74750c7ae7a6937ac06de4aa2234a2f3db673373558091063e43a",
+      "sha256": "0caac56e87366b21574fa1a9d78062f3bda132f329840016a19244e25d218f7c",
       "source_id": "SRC-D15F05EB56291F35"
     },
     {
@@ -12345,7 +12521,7 @@
       ],
       "path": "tests/prod/test_public_discovery_no_named_provider_dependency.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d1a37843577d8a2884fd433bec9a28504e6448178fd335a514e8b68260774b20",
+      "sha256": "aa21c1f1a7fffc02dfc0f90db89403199c4c3c136df0bc6224faaa2727bde7a2",
       "source_id": "SRC-1D8EBC3BC7DB51BF"
     },
     {
@@ -14297,7 +14473,7 @@
       ],
       "path": "tests/test_combined_journey_gates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "c244630d7d775deba5154d83a92e628b8fe4995cd639d8622df0e9258d577033",
+      "sha256": "5d70d291aa38fccde234dde0cd0ba211dbf1badf880810d1eb8f39627ed5f0db",
       "source_id": "SRC-C67B71A84B835105"
     },
     {
@@ -14589,7 +14765,7 @@
       ],
       "path": "tests/test_content_review_conflict_enforcement.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "f0245473ebbc1a6137bc88ed0023b907123d20b2e0ab1d7eef334821028df672",
+      "sha256": "f0129fdcb79f4a661e654f78fce5b6db8644bab2da70438cb48708af98bc67fc",
       "source_id": "SRC-715211FA7BB042CB"
     },
     {
@@ -18866,7 +19042,7 @@
       ],
       "path": "tests/test_local_rehearsal_downstream_review_sync.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ba5ebdb58a0e815a37b7795a2b0ef071665f01fb9c8d8534e4acef06a1772b70",
+      "sha256": "3f7146b01368cfed203a6312b315da3d0520ee87af4b0f91a55221c614dd0b83",
       "source_id": "SRC-2BE6F283749988FB"
     },
     {
@@ -19126,6 +19302,115 @@
       "primary_mechanism_id": "M-076",
       "sha256": "81dacc5b63b07410df4bdab1fb32ac4abe1d497e4e78fdd6ad81681c603331f9",
       "source_id": "SRC-09E5F742A265F535"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-7C2D535C9DB21237",
+        "ROUTE-EE2EFB47FA6F30A2",
+        "TX-0205",
+        "TX-0208",
+        "TX-0404",
+        "TX-1200"
+      ],
+      "path": "tests/test_m3_closure_integrity.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "f2366c5d8cceb54462eb7b487fb4d045a4eb9ac69a3b41293c4ff17ae4aafa3c",
+      "source_id": "SRC-C5719DCEBD01CE0A"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "ROUTE-7C2D535C9DB21237",
+        "TX-0200",
+        "TX-0205",
+        "TX-0208",
+        "TX-0210",
+        "TX-0211",
+        "TX-0300",
+        "TX-0301",
+        "TX-0302",
+        "TX-0306",
+        "TX-0310",
+        "TX-0400",
+        "TX-0404",
+        "TX-0408",
+        "TX-0409",
+        "TX-1600",
+        "TX-1601",
+        "TX-1602",
+        "TX-1603",
+        "TX-1604",
+        "TX-1700",
+        "TX-1715",
+        "TX-1716"
+      ],
+      "path": "tests/test_m3_closure_regressions.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "f9f33f7da3b076df5dfa4ce729cb7cebf10f0ca3bafb6b02ff36976b20247a0a",
+      "source_id": "SRC-ED01B39F2BA825F5"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32",
+        "TX-0400",
+        "TX-0403",
+        "TX-0404",
+        "TX-1601",
+        "TX-1602"
+      ],
+      "path": "tests/test_m3_electorate_round_policy.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "1d448b039ac835feef027b098c5e04b00641c8e04ee583a00613606300bb6f79",
+      "source_id": "SRC-6728376AB11C3A94"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_m3_genesis_ballot_profile.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "d1d6534ddb55cd017a91f2924ba135a4217b0724e7e9b499cb931ba0e5754e2c",
+      "source_id": "SRC-67174118E0B77511"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_m3_scope_contract.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "04a0439ec1f1d7377cdc4e8895c5999d923b2ad02fbf22a67151bf29585b0a6a",
+      "source_id": "SRC-A0B3677940F16B0D"
     },
     {
       "affected_registers": [
@@ -20442,7 +20727,7 @@
       ],
       "path": "tests/test_observer_reconciliation_and_bounded_details.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "60582527a67e7507a7cce706bf35df9f1689a6e2a418dfcb23177b0dd4d87d61",
+      "sha256": "98c300ad16d5379b4ec7b8a554a810006c1cc169a56c22367b608c2915647550",
       "source_id": "SRC-3726C3CD27742F89"
     },
     {
@@ -20505,7 +20790,7 @@
       ],
       "path": "tests/test_observer_tx_queue_and_scoped_reads.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "59385de7be1405c5bc1ff38694e5da85ae21deaf7047215ed1112f7934116749",
+      "sha256": "32404c5861dcce581b9b1fa0dc9949e566134b52e39eac7117769211c5f21c1c",
       "source_id": "SRC-BFCD120F4BF74B4D"
     },
     {
@@ -21122,12 +21407,28 @@
         "TX-0122",
         "TX-0124",
         "TX-0125",
-        "TX-0126"
+        "TX-0126",
+        "TX-0127"
       ],
       "path": "tests/test_poh_live_adaptive_quorum.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ff24fed44d40891ad5ba40a79752ec974cc6e47576dfab749215fbd072811b40",
+      "sha256": "978239e1762142cbf56e19083802b80c82217dc7e515cb87c67be09d03ff6680",
       "source_id": "SRC-ED019EE25BE8D965"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_poh_live_case_receipt_route_model.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "80b0bf4fe48fa9ac8c9d5f04cc6b25ea70bf5275df9da43cf4c3b16f3d06c6ec",
+      "source_id": "SRC-1D6F021E51805985"
     },
     {
       "affected_registers": [
@@ -21269,7 +21570,7 @@
       ],
       "path": "tests/test_poh_scheduler_filters_active_juror_role.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "61341444ed59132312dc315c5b6b7e177cb1c79034c1267278b116d89ce9ab33",
+      "sha256": "2f0a5976e919dae7a49417f23ba5fb752535e1e5f2eaab06ece5601ae5a927ed",
       "source_id": "SRC-FFC94EA4F75305DD"
     },
     {
@@ -23406,7 +23707,7 @@
       ],
       "path": "tests/test_production_go_gates.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "801133dc5e599839ea5e7d9739f42de47c63e73c91b54aeb0ca2b1cf6b8d6442",
+      "sha256": "b1fe1a923ba7d8484cd565f5c1f017f438dba72f3866061c17399992eb6f628c",
       "source_id": "SRC-876DEAB5BD3319FA"
     },
     {
@@ -25807,7 +26108,7 @@
       ],
       "path": "tests/test_tx_schema_governance_dispute_receipts.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "713db9a62a2065bdd2e2411274619d692844b29bfbf5a8dcfa6522780e564b96",
+      "sha256": "8d7cd304b25285443defb43be8e00c14a7aaccf728adbf3690738cb234758fc4",
       "source_id": "SRC-6671B6C9C3B68A07"
     },
     {
@@ -26243,7 +26544,9 @@
         "ROUTE-C1E0E47155D23D72",
         "ROUTE-C5E20A807643E820",
         "ROUTE-C6E77A400A053E6C",
+        "ROUTE-C78F777613C12B27",
         "ROUTE-C81B30307BC99421",
+        "ROUTE-CABD46D47B814D02",
         "ROUTE-D489E12F8A1A0359",
         "ROUTE-D52A5A9CC71BAB5D",
         "ROUTE-D781A9EFACB8CE09",
@@ -26263,7 +26566,7 @@
       ],
       "path": "tests/test_v2_spec_compiler.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8875892f1154491ef92722f6f649d2d695434b7d2b83c61654819771f3ab9678",
+      "sha256": "32930a4cb4b6f82da9c4893309c8e4fa300d4ec8a2df7557e2062afc28fbb212",
       "source_id": "SRC-9B8B949DCD736399"
     },
     {
@@ -26725,7 +27028,7 @@
       ],
       "path": "tests/test_wallet_treasury_governance_reputation_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "4d21560c74d6690de6b7b98a0aebe63a912fcfe1d07905871adcff492597a638",
+      "sha256": "568f1ef16828535f8195bdc923db415275d8370a3e0005b90ae522c9756739f3",
       "source_id": "SRC-CEAB13195501C3A5"
     },
     {
@@ -26958,7 +27261,7 @@
       ],
       "path": "../web/scripts/test_account_profile_readiness_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "c3b815c4d2b270fb4427203d9f3921a7d0fe40e2e215b415452cf031c58e2a4b",
+      "sha256": "3f0c659926553dc5a999f5b3fdec424d3b9ad1e06d03edb60a7fcc37ab000e47",
       "source_id": "SRC-1E8B226740599F0F"
     },
     {
@@ -27036,7 +27339,7 @@
       ],
       "path": "../web/scripts/test_first_run_tester_journey_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "6edd6188963a98f7338401a4b1963586fb0dc277382384ab5acfb5d13975baf4",
+      "sha256": "11ecfd80d18f0aa70b4a52dd88452d71d8034a56c92a59c6969bc9815a13d51c",
       "source_id": "SRC-C73460DCD1CBD050"
     },
     {
@@ -27168,6 +27471,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "6f04344f17f65b42741deb3df5b4af082f581e9f43b47c82a7b4b512fbf825c8",
       "source_id": "SRC-8A6459B5B80EA21C"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test_or_tooling",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/scripts/test_m3_transcript_attendance_source.mjs",
+      "primary_mechanism_id": "M-076",
+      "sha256": "5ed47b80411009ce54a4c005335b905bf8d2feb3c0852cdc5667ab01847c6ac0",
+      "source_id": "SRC-A61C9E0D544DF952"
     },
     {
       "affected_registers": [
@@ -27322,7 +27638,7 @@
       ],
       "path": "../web/scripts/test_public_social_flow_readiness_source.mjs",
       "primary_mechanism_id": "M-076",
-      "sha256": "0dcbf944888ded10c1d1ac81b96025c25776614f08ece4b59af46788660b37b3",
+      "sha256": "04b77aab9f69ee5a630189e6e742381be38647522b0e2010619faeb74b8a6df9",
       "source_id": "SRC-7EA6228D3B32AC85"
     },
     {
@@ -29291,6 +29607,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "288f86a7329f2be3927691f1d7d24e79f09347fbc9f0a74f1e2395cf0b8d2c9c",
       "source_id": "SRC-A4401C6182FD2E78"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "frontend_test",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
+      "primary_mechanism_id": "M-076",
+      "sha256": "6a4d60a8818518f94ee529241d845fb14db1d86efb1062d10263f8dad3cc5b52",
+      "source_id": "SRC-808F7746F7D99296"
     },
     {
       "affected_registers": [

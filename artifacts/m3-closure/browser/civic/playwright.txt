@@ -1,0 +1,15 @@
+
+> weall-web@0.1.0 test:m3-civic-governance-real-stack
+> playwright test tests/e2e/m3_civic_governance_real_stack.spec.ts
+
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › tests/e2e/m3_civic_governance_real_stack.spec.ts:386:1 › M3 independent actors complete the signed civic and governance journey (16.1s)
+
+  1 passed (17.5s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m

@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 
 from weall.runtime.gate_expr import eval_gate
-from weall.runtime.poh.juror_select import eligible_live_jurors, pick_async_jurors, pick_tier2_jurors
+from weall.runtime.poh.juror_select import (
+    eligible_live_jurors,
+    pick_async_jurors,
+    pick_live_jurors,
+    pick_tier2_jurors,
+)
 
 
 def _state(*, bootstrap_compat: bool = False) -> dict:
@@ -46,8 +51,12 @@ def test_poh_assignment_pool_requires_active_juror_role_by_default() -> None:
     state = _state()
 
     assert eligible_live_jurors(state=state) == ["@active"]
-    assert pick_async_jurors(state=state, case_id="case-1", target_account="@target", n_jurors=1) == ["@active"]
-    assert pick_tier2_jurors(state=state, case_id="case-2", target_account="@target", n_jurors=1) == ["@active"]
+    assert pick_async_jurors(
+        state=state, case_id="case-1", target_account="@target", n_jurors=1
+    ) == ["@active"]
+    assert pick_tier2_jurors(
+        state=state, case_id="case-2", target_account="@target", n_jurors=1
+    ) == ["@active"]
 
     with pytest.raises(ValueError, match="insufficient_eligible_jurors"):
         pick_async_jurors(state=state, case_id="case-1", target_account="@target", n_jurors=2)
@@ -84,3 +93,40 @@ def test_poh_bootstrap_compat_flag_is_explicit_and_chain_state_bound() -> None:
     # before the active Juror role set is complete, but only because chain state
     # explicitly opts into the same case-scoped fallback used by the gate.
     assert eligible_live_jurors(state=state) == ["@active", "@tier2_no_role"]
+
+
+def test_live_partial_panel_relaxes_size_not_reviewer_authority() -> None:
+    state = _state()
+
+    interacting, observing = pick_live_jurors(
+        state=state,
+        case_id="live-case-1",
+        target_account="@target",
+        n_interacting=3,
+        n_observing=7,
+        allow_partial=True,
+    )
+
+    selected = interacting + observing
+    assert selected == ["@active"]
+    assert "@tier2_no_role" not in selected
+
+
+def test_live_partial_panel_selection_matches_live_apply_lane_gate() -> None:
+    state = _state(bootstrap_compat=True)
+
+    # The generic compatibility flag can preserve older async/gate fixtures,
+    # but a Live assignment must still match the exact apply-layer
+    # poh_live_review responsibility requirement.
+    interacting, observing = pick_live_jurors(
+        state=state,
+        case_id="live-case-2",
+        target_account="@target",
+        n_interacting=3,
+        n_observing=7,
+        allow_partial=True,
+    )
+
+    selected = interacting + observing
+    assert selected == ["@active"]
+    assert "@tier2_no_role" not in selected

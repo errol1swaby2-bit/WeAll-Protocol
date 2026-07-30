@@ -4,13 +4,10 @@ import copy
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
-
 from weall.net.messages import MsgType, PingMsg, WireHeader
 from weall.net.relay import RelayConfig, RelaySpool, make_relay_access_request, make_relay_envelope
 from weall.runtime.apply.economics import apply_economics
 from weall.runtime.apply.governance import apply_governance
-from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.system_tx_engine import system_tx_emitter
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.testing.sigtools import deterministic_mldsa_keypair
@@ -35,7 +32,9 @@ def _env(
             "payload": payload or {},
             "sig": "sig",
             "system": bool(system),
-            "parent": parent if parent is not None else (f"parent:{tx_type}:{nonce}" if system else None),
+            "parent": parent
+            if parent is not None
+            else (f"parent:{tx_type}:{nonce}" if system else None),
         }
     )
 
@@ -52,6 +51,19 @@ def _governance_wallet_state() -> dict[str, Any]:
             "economics_enabled": False,
             "system_signer": "SYSTEM",
         },
+        "ballot_profile": {
+            "profile_id": "production-reviewed-batch337-v1",
+            "active": True,
+        },
+        "ballot_profile_activation_receipts": [
+            {
+                "profile_id": "production-reviewed-batch337-v1",
+                "status": "active",
+                "profile_hash": "a" * 64,
+                "allowed_modes": ["prod"],
+                "independent_review_complete": True,
+            }
+        ],
         "accounts": {
             "@validator1": {
                 "nonce": 0,
@@ -78,7 +90,12 @@ def _governance_wallet_state() -> dict[str, Any]:
                 "reputation": "10",
             },
         },
-        "roles": {"validators": {"active_set": ["@validator1"], "by_id": {"@validator1": {"active": True}}}},
+        "roles": {
+            "validators": {
+                "active_set": ["@validator1"],
+                "by_id": {"@validator1": {"active": True}},
+            }
+        },
         "governance": {"proposals": {}},
         "system_queue": [],
     }
@@ -103,9 +120,13 @@ def _run_activation_and_transfer(state: dict[str, Any]) -> dict[str, Any]:
             },
         ),
     )
-    apply_governance(state, _env("GOV_VOTE_CAST", "@validator1", 2, {"proposal_id": proposal_id, "vote": "yes"}))
+    apply_governance(
+        state, _env("GOV_VOTE_CAST", "@validator1", 2, {"proposal_id": proposal_id, "vote": "yes"})
+    )
     state["height"] = 101
-    apply_governance(state, _env("GOV_VOTING_CLOSE", "SYSTEM", 3, {"proposal_id": proposal_id}, system=True))
+    apply_governance(
+        state, _env("GOV_VOTING_CLOSE", "SYSTEM", 3, {"proposal_id": proposal_id}, system=True)
+    )
     state["height"] = 102
     apply_governance(
         state,
@@ -118,12 +139,30 @@ def _run_activation_and_transfer(state: dict[str, Any]) -> dict[str, Any]:
         ),
     )
     state["height"] = 103
-    apply_governance(state, _env("GOV_EXECUTE", "SYSTEM", 5, {"proposal_id": proposal_id}, system=True, parent="gov-parent"))
+    apply_governance(
+        state,
+        _env(
+            "GOV_EXECUTE",
+            "SYSTEM",
+            5,
+            {"proposal_id": proposal_id},
+            system=True,
+            parent="gov-parent",
+        ),
+    )
 
-    queued = [item for item in state.get("system_queue", []) if item.get("tx_type") == "ECONOMICS_ACTIVATION"]
+    queued = [
+        item
+        for item in state.get("system_queue", [])
+        if item.get("tx_type") == "ECONOMICS_ACTIVATION"
+    ]
     assert len(queued) == 1
     state["height"] = int(queued[0]["due_height"])
-    emitted = [tx for tx in system_tx_emitter(state, None, next_height=state["height"], phase="post") if tx.tx_type == "ECONOMICS_ACTIVATION"]
+    emitted = [
+        tx
+        for tx in system_tx_emitter(state, None, next_height=state["height"], phase="post")
+        if tx.tx_type == "ECONOMICS_ACTIVATION"
+    ]
     assert len(emitted) == 1
     apply_economics(state, emitted[0])
     assert state["params"]["economics_enabled"] is True
@@ -162,10 +201,14 @@ def _relay_cfg() -> RelayConfig:
 
 
 def _header() -> WireHeader:
-    return WireHeader(type=MsgType.PING, chain_id="chain-observers", schema_version="1", tx_index_hash="h" * 64)
+    return WireHeader(
+        type=MsgType.PING, chain_id="chain-observers", schema_version="1", tx_index_hash="h" * 64
+    )
 
 
-def test_relay_spool_handles_five_recipient_bound_observers_without_mailbox_leakage(tmp_path: Path) -> None:
+def test_relay_spool_handles_five_recipient_bound_observers_without_mailbox_leakage(
+    tmp_path: Path,
+) -> None:
     cfg = _relay_cfg()
     spool = RelaySpool(tmp_path / "relay.sqlite")
     genesis_pub, genesis_priv = _priv_hex("genesis")
@@ -191,7 +234,9 @@ def test_relay_spool_handles_five_recipient_bound_observers_without_mailbox_leak
 
     status = spool.status(now_ms=12_000)
     assert status["messages_total"] == 5
-    assert {row["recipient_peer_id"]: row["count"] for row in status["by_recipient"]} == {observer_id: 1 for observer_id in observer_keys}
+    assert {row["recipient_peer_id"]: row["count"] for row in status["by_recipient"]} == {
+        observer_id: 1 for observer_id in observer_keys
+    }
 
     for i, (observer_id, (observer_pub, observer_priv)) in enumerate(observer_keys.items()):
         fetch_req = make_relay_access_request(

@@ -1,5 +1,5 @@
 {
-  "count": 3,
+  "count": 5,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "39f7a181779ff3cd5ca979b3826cf4865422252760d621fa58fd6cc17939a32e"
+    "source_tree_digest": "00bcaeda8547ad353d47b360eba62abbb30285ef609d34bda27ddc3fe2d4a785"
   },
   "rows": [
     {
@@ -41,7 +41,7 @@
       "closure_evidence": [
         "SEMANTIC-REVIEW-ROUTE-W1.1"
       ],
-      "current_behavior": "All 159 current route contracts are bound to explicit maintainer-reviewed semantic snapshots.",
+      "current_behavior": "All 162 current route contracts are bound to explicit maintainer-reviewed semantic snapshots.",
       "id": "DIV-W1-ROUTE-SEMANTIC",
       "owner": "WeAll Protocol Maintainer",
       "status": "closed",
@@ -62,6 +62,41 @@
       "status": "deferred_to_launch_authorization",
       "target_behavior": "Independent reviewer signs same-commit W1 evidence before launch authorization.",
       "title": "Independent review evidence"
+    },
+    {
+      "activation_gate": "controlled_testnet_only_public_profiles_fail_closed",
+      "affected_mechanisms": [
+        "M-050",
+        "M-051"
+      ],
+      "closure_evidence": [
+        "tests/test_m3_closure_regressions.py",
+        "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json",
+        "artifacts/m3-closure/manifest.json"
+      ],
+      "current_behavior": "The bounded controlled-testnet ballot profile enforces frozen Tier-2 or single-group electorates, first-ballot finality, aggregate-only canonical choice state, and separate participation nullifiers. Public-testnet and Mainnet profiles remain disabled pending production sealed-ballot review and activation evidence.",
+      "id": "DIV-M3-BALLOT-CONTROLLED-TESTNET",
+      "owner": "WeAll Protocol Maintainer",
+      "status": "open",
+      "target_behavior": "Production universal sealed ballots with metadata resistance, independent review, and activation receipts across every civic voting surface.",
+      "title": "Controlled-testnet ballot and electorate implementation overlay"
+    },
+    {
+      "activation_gate": "controlled_testnet_only_public_profiles_fail_closed",
+      "affected_mechanisms": [
+        "M-054"
+      ],
+      "closure_evidence": [
+        "tests/test_m3_closure_regressions.py",
+        "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json",
+        "artifacts/m3-closure/manifest.json"
+      ],
+      "current_behavior": "The bounded controlled-testnet review profile deterministically assigns severity-sized panels, substitutes, conflict exclusions, fresh disjoint appeal panels, delayed full-panel repair, aggregate-only ballots, and deterministic report-escalation repair.",
+      "id": "DIV-M3-REVIEW-CONTROLLED-TESTNET",
+      "owner": "WeAll Protocol Maintainer",
+      "status": "open",
+      "target_behavior": "Production reviewed dispute mechanics with independent adversarial evidence, multi-node replay evidence, and launch authorization.",
+      "title": "Controlled-testnet review and report-liveness implementation overlay"
     }
   ],
   "schema": "weall.v2.divergence_registry",

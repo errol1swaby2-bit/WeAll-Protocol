@@ -43,7 +43,9 @@
     "test:account-custody-source": "node scripts/test_account_custody_source.mjs",
     "test:account-custody-real-stack": "playwright test tests/e2e/account_custody_registration_restore.spec.ts",
     "test:m2-async-independent-browsers": "playwright test tests/e2e/poh_async_independent_browsers.spec.ts",
-    "test:m2-live-independent-browsers": "playwright test tests/e2e/poh_live_independent_browsers.spec.ts"
+    "test:m2-live-independent-browsers": "playwright test tests/e2e/poh_live_independent_browsers.spec.ts",
+    "test:m3-civic-governance-real-stack": "playwright test tests/e2e/m3_civic_governance_real_stack.spec.ts",
+    "test:m3-transcript-attendance-source": "node scripts/test_m3_transcript_attendance_source.mjs"
   },
   "dependencies": {
     "@noble/post-quantum": "0.6.1",

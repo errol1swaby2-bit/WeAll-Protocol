@@ -10,9 +10,9 @@ from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import (
     _cursor_pack,
     _cursor_unpack,
-    _int_param,
     _group_roles_by_id,
     _groups_by_id,
+    _int_param,
     _normalize_tags_param,
     _str_param,
 )
@@ -47,6 +47,7 @@ def _snapshot(request: Request) -> Json:
         return st if isinstance(st, dict) else {}
     except Exception:
         return {}
+
 
 def _content_root(st: Json) -> Json:
     return _as_dict(st.get("content"))
@@ -129,7 +130,11 @@ def _resolution_hides_target(resolution: Json) -> bool:
         if tx_type == "MOD_ACTION_RECEIPT":
             act = str(payload.get("action") or "").strip().lower()
             visibility = str(payload.get("visibility") or "").strip().lower()
-            if act in {"hide", "delete", "remove"} or visibility in {"hidden", "deleted", "removed"}:
+            if act in {"hide", "delete", "remove"} or visibility in {
+                "hidden",
+                "deleted",
+                "removed",
+            }:
                 return True
     return False
 
@@ -137,13 +142,11 @@ def _resolution_hides_target(resolution: Json) -> bool:
 def _vote_choice_from_record(rec: Json) -> str:
     """Return the reviewer choice from old/new dispute vote record shapes."""
 
-    choice = str(
-        rec.get("vote")
-        or rec.get("choice")
-        or rec.get("decision")
-        or rec.get("outcome")
-        or ""
-    ).strip().lower()
+    choice = (
+        str(rec.get("vote") or rec.get("choice") or rec.get("decision") or rec.get("outcome") or "")
+        .strip()
+        .lower()
+    )
     if choice:
         return choice
     resolution = _as_dict(rec.get("resolution"))
@@ -163,25 +166,27 @@ def _dispute_vote_tally_hides_target(raw: Json) -> bool:
     routes remain the place to inspect or challenge the outcome.
     """
 
-    votes = _as_dict(raw.get("votes"))
-    if not votes:
-        return False
+    aggregate = _as_dict(raw.get("vote_counts"))
+    yes = _safe_int(aggregate.get("yes"), 0)
+    no = _safe_int(aggregate.get("no"), 0)
+    active_votes = sum(max(0, _safe_int(value, 0)) for value in aggregate.values())
 
-    yes = 0
-    no = 0
-    active_votes = 0
-    for rec in votes.values():
-        if not isinstance(rec, dict):
-            continue
-        choice = _vote_choice_from_record(rec)
-        if choice in {"yes", "remove", "removed", "uphold", "upheld", "report_upheld"}:
-            yes += 1
-            active_votes += 1
-        elif choice in {"no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"}:
-            no += 1
-            active_votes += 1
-        elif choice in {"abstain", "need_more_review", "need-more-review", "more_review"}:
-            active_votes += 1
+    if not aggregate:
+        votes = _as_dict(raw.get("votes"))
+        if not votes:
+            return False
+        for rec in votes.values():
+            if not isinstance(rec, dict):
+                continue
+            choice = _vote_choice_from_record(rec)
+            if choice in {"yes", "remove", "removed", "uphold", "upheld", "report_upheld"}:
+                yes += 1
+                active_votes += 1
+            elif choice in {"no", "keep", "kept", "dismiss", "dismissed", "report_not_upheld"}:
+                no += 1
+                active_votes += 1
+            elif choice in {"abstain", "need_more_review", "need-more-review", "more_review"}:
+                active_votes += 1
 
     try:
         required = int(raw.get("required_votes") or 0)
@@ -253,7 +258,9 @@ def _dispute_record_hides_target(st: Json, *, target_keys: list[str]) -> bool:
     return False
 
 
-def _content_target_hidden_by_review(st: Json, target_id: str = "", obj: Json | None = None) -> bool:
+def _content_target_hidden_by_review(
+    st: Json, target_id: str = "", obj: Json | None = None
+) -> bool:
     keys = _target_key_variants(target_id, obj)
     if not keys:
         return False
@@ -296,7 +303,6 @@ def _comment_visible(st: Json, comment: Json) -> bool:
     return bool(root and _post_visible(st, root, root_id))
 
 
-
 def _tags_list(obj: Json) -> list[str]:
     raw = obj.get("tags")
     if isinstance(raw, str):
@@ -327,7 +333,9 @@ def _media_ref_summary(raw: Any, media_index: Json) -> Any:
         out: Json = {
             "media_id": media_id,
             "cid": cid,
-            "mime": str(payload.get("mime") or payload.get("mime_type") or payload.get("content_type") or "").strip(),
+            "mime": str(
+                payload.get("mime") or payload.get("mime_type") or payload.get("content_type") or ""
+            ).strip(),
             "name": str(payload.get("name") or payload.get("filename") or media_id).strip(),
             "kind": str(rec.get("kind") or payload.get("kind") or "").strip(),
             "bytes": _safe_int(payload.get("size") or payload.get("size_bytes"), 0),
@@ -358,7 +366,6 @@ def _with_media_summaries(st: Json, obj: Json) -> Json:
     out["media"] = [_media_ref_summary(item, media_index) for item in raw_media]
     out["media_load_policy"] = "viewport"
     return out
-
 
 
 def _group_has_non_public_legacy_read_marker(g: Json) -> bool:
@@ -477,8 +484,11 @@ def _viewer_can_read_comment(st: Json, comment: Json, viewer: str) -> bool:
         return _viewer_can_read_post(st, root, viewer)
     return _visibility_of_content(comment) in {"public", ""}
 
+
 def _content_identity(obj: Json) -> str:
-    return str(obj.get("post_id") or obj.get("comment_id") or obj.get("content_id") or obj.get("id") or "").strip()
+    return str(
+        obj.get("post_id") or obj.get("comment_id") or obj.get("content_id") or obj.get("id") or ""
+    ).strip()
 
 
 def _sort_by_nonce_desc(items: list[Json], *, key: str) -> list[Json]:
@@ -514,7 +524,9 @@ def _feed_rank_mode(raw: Any) -> str:
 
 
 def _author_of_feed_item(obj: Json) -> str:
-    return _str_param(obj.get("author") or obj.get("owner") or obj.get("account_id") or obj.get("created_by")).strip()
+    return _str_param(
+        obj.get("author") or obj.get("owner") or obj.get("account_id") or obj.get("created_by")
+    ).strip()
 
 
 def _account_record(st: Json, account_id: str) -> Json:
@@ -559,7 +571,9 @@ def _production_reaction_stats_by_target(st: Json) -> dict[str, Json]:
     for key, raw in sorted(reactions.items(), key=lambda item: str(item[0])):
         rec = _as_dict(raw)
         target_id = str(rec.get("target_id") or "").strip()
-        actor = str(rec.get("by") or rec.get("actor") or rec.get("account_id") or str(key).split(":", 1)[0]).strip()
+        actor = str(
+            rec.get("by") or rec.get("actor") or rec.get("account_id") or str(key).split(":", 1)[0]
+        ).strip()
         reaction = str(rec.get("reaction") or "").strip().lower()
         if not target_id or not actor or not reaction:
             continue
@@ -567,7 +581,9 @@ def _production_reaction_stats_by_target(st: Json) -> dict[str, Json]:
         if actor_key in seen:
             continue
         seen.add(actor_key)
-        bucket = stats.setdefault(target_id, {"weighted_positive": 0, "weighted_negative": 0, "unique_reactors": 0})
+        bucket = stats.setdefault(
+            target_id, {"weighted_positive": 0, "weighted_negative": 0, "unique_reactors": 0}
+        )
         weight = _reaction_weight_for_actor(st, actor)
         if reaction in negative:
             bucket["weighted_negative"] = int(bucket.get("weighted_negative", 0)) + weight
@@ -585,8 +601,15 @@ def _author_frequency_penalties(posts: list[Json]) -> dict[str, int]:
             continue
         by_author.setdefault(author, []).append(post)
     penalties: dict[str, int] = {}
-    for author, author_posts in by_author.items():
-        ordered = sorted(author_posts, key=lambda obj: (_safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0), _content_identity(obj)), reverse=True)
+    for _author, author_posts in by_author.items():
+        ordered = sorted(
+            author_posts,
+            key=lambda obj: (
+                _safe_int(obj.get("created_at_nonce") or obj.get("created_nonce"), 0),
+                _content_identity(obj),
+            ),
+            reverse=True,
+        )
         for index, post in enumerate(ordered):
             if index <= 0:
                 continue
@@ -639,7 +662,11 @@ def _feed_rank_score(
         unique_reactors = min(250, _safe_int(obj.get("unique_reactors"), reactions))
         comment_quality = min(20_000, comments * 1_000)
         engagement = min(80_000, weighted_positive * 4 + unique_reactors * 500 + comment_quality)
-        downrank = min(60_000, weighted_negative * 2) + moderation_penalty + max(0, int(author_frequency_penalty))
+        downrank = (
+            min(60_000, weighted_negative * 2)
+            + moderation_penalty
+            + max(0, int(author_frequency_penalty))
+        )
         return int(freshness + engagement + author_quality - downrank)
     return int(created)
 
@@ -698,12 +725,18 @@ def _feed_cursor_unpack(raw: Any, *, mode: str) -> tuple[int, int, str] | None:
     # Ranked cursor format first.
     pad = "=" * ((4 - (len(text) % 4)) % 4)
     try:
-        decoded = base64.urlsafe_b64decode((text + pad).encode("ascii")).decode("utf-8", errors="strict")
+        decoded = base64.urlsafe_b64decode((text + pad).encode("ascii")).decode(
+            "utf-8", errors="strict"
+        )
         data = json.loads(decoded)
         if isinstance(data, dict) and int(data.get("v") or 0) == 1:
             if str(data.get("mode") or "") != mode:
                 return None
-            return (_safe_int(data.get("score"), 0), _safe_int(data.get("nonce"), 0), str(data.get("id") or "").strip())
+            return (
+                _safe_int(data.get("score"), 0),
+                _safe_int(data.get("nonce"), 0),
+                str(data.get("id") or "").strip(),
+            )
     except Exception:
         pass
 
@@ -739,7 +772,9 @@ def _reaction_counts_by_target(st: Json) -> dict[str, dict[str, int]]:
 
 def _with_reaction_counts(obj: Json, counts_by_target: dict[str, dict[str, int]]) -> Json:
     out = dict(obj)
-    target_id = str(out.get("comment_id") or out.get("post_id") or out.get("content_id") or "").strip()
+    target_id = str(
+        out.get("comment_id") or out.get("post_id") or out.get("content_id") or ""
+    ).strip()
     existing = _as_dict(out.get("reactions"))
     merged: Json = {}
     for key, value in existing.items():
@@ -789,7 +824,7 @@ def feed(request: Request) -> dict[str, object]:
         post_id = _str_param(post.get("post_id") or post.get("id") or pid).strip()
         post.setdefault("id", post_id)
         post.setdefault("created_at_nonce", _safe_int(post.get("created_nonce"), 0))
-        created_at_nonce = _safe_int(post.get("created_at_nonce") or post.get("created_nonce"), 0)
+        _safe_int(post.get("created_at_nonce") or post.get("created_nonce"), 0)
 
         if not _post_visible(st, post, post_id):
             continue
@@ -819,7 +854,9 @@ def feed(request: Request) -> dict[str, object]:
 
         filtered.append(_with_media_summaries(st, post))
 
-    max_created_nonce = max([_safe_int(p.get("created_at_nonce") or p.get("created_nonce"), 0) for p in filtered] or [0])
+    max_created_nonce = max(
+        [_safe_int(p.get("created_at_nonce") or p.get("created_nonce"), 0) for p in filtered] or [0]
+    )
     author_penalties = _author_frequency_penalties(filtered) if rank_mode == "production" else {}
     for post in filtered:
         ident = _content_identity(post)
@@ -832,8 +869,12 @@ def feed(request: Request) -> dict[str, object]:
         )
         if rank_mode == "production":
             post["feed_rank_breakdown"] = {
-                "weighted_positive_reactions": _safe_int(post.get("weighted_positive_reactions"), 0),
-                "weighted_negative_reactions": _safe_int(post.get("weighted_negative_reactions"), 0),
+                "weighted_positive_reactions": _safe_int(
+                    post.get("weighted_positive_reactions"), 0
+                ),
+                "weighted_negative_reactions": _safe_int(
+                    post.get("weighted_negative_reactions"), 0
+                ),
                 "unique_reactors": _safe_int(post.get("unique_reactors"), 0),
                 "comment_total": _safe_int(post.get("comment_total"), 0),
                 "author_frequency_penalty": _safe_int(author_penalties.get(ident), 0),
@@ -856,14 +897,66 @@ def feed(request: Request) -> dict[str, object]:
             "mode": rank_mode,
             "deterministic": True,
             "personalized": False,
-            "default_order": "created_at_nonce_desc" if rank_mode == "recency" else "feed_rank_score_desc",
+            "default_order": "created_at_nonce_desc"
+            if rank_mode == "recency"
+            else "feed_rank_score_desc",
             "cursor_model": "legacy_nonce_id" if rank_mode == "recency" else "rank_score_nonce_id",
             "production_social_feed": rank_mode == "production",
-            "personalized": False,
             "uses_reputation_weighting": rank_mode == "production",
             "uses_anti_brigading_caps": rank_mode == "production",
             "uses_author_diversity_dampening": rank_mode == "production",
         },
+    }
+
+
+@router.get("/content/{content_id}/history")
+def content_history_get(request: Request, content_id: str) -> dict[str, object]:
+    """Return a bounded append-only public mutation receipt chain."""
+
+    st = _snapshot(request)
+    pid = str(content_id or "").strip()
+    if not pid:
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "content history not found"}
+        )
+
+    history = _as_dict(_content_root(st).get("history"))
+    post_chain = _as_dict(history.get("posts")).get(pid)
+    comment_chain = _as_dict(history.get("comments")).get(pid)
+    if isinstance(post_chain, list):
+        content_type = "post"
+        chain = post_chain
+    elif isinstance(comment_chain, list):
+        content_type = "comment"
+        chain = comment_chain
+    else:
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "content history not found"}
+        )
+
+    limit = max(1, min(200, _int_param(request.query_params.get("limit"), 50)))
+    before_version = _int_param(request.query_params.get("before_version"), len(chain) + 1)
+    rows = [
+        dict(item)
+        for item in chain
+        if isinstance(item, dict) and _safe_int(item.get("version"), 0) < before_version
+    ]
+    rows.sort(key=lambda item: _safe_int(item.get("version"), 0), reverse=True)
+    page = rows[:limit]
+    next_before_version = None
+    if len(rows) > limit and page:
+        next_before_version = _safe_int(page[-1].get("version"), 0)
+
+    return {
+        "ok": True,
+        "content_id": pid,
+        "type": content_type,
+        "items": page,
+        "next_before_version": next_before_version,
+        "append_only": True,
+        "latest_receipt_commitment": str(chain[-1].get("receipt_commitment") or "")
+        if chain and isinstance(chain[-1], dict)
+        else "",
     }
 
 
@@ -940,7 +1033,9 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
 
     pid = str(content_id or "").strip()
     if not pid:
-        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+        raise HTTPException(
+            status_code=404, detail={"code": "not_found", "message": "content not found"}
+        )
 
     moderation = _moderation_targets(st)
     reaction_counts = _reaction_counts_by_target(st)
@@ -949,7 +1044,9 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     if pid in posts:
         post = _with_reaction_counts(_as_dict(posts.get(pid)), reaction_counts)
         if not _viewer_can_read_post(st, post, viewer):
-            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+            raise HTTPException(
+                status_code=404, detail={"code": "not_found", "message": "content not found"}
+            )
         return {
             "ok": True,
             "type": "post",
@@ -962,7 +1059,9 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
     if pid in comments:
         com = _with_reaction_counts(_as_dict(comments.get(pid)), reaction_counts)
         if not _viewer_can_read_comment(st, com, viewer):
-            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+            raise HTTPException(
+                status_code=404, detail={"code": "not_found", "message": "content not found"}
+            )
         return {
             "ok": True,
             "type": "comment",
@@ -971,7 +1070,9 @@ def content_get_scoped(request: Request, content_id: str) -> dict[str, object]:
             "scope": {"viewer": viewer, "authorized": True},
         }
 
-    raise HTTPException(status_code=404, detail={"code": "not_found", "message": "content not found"})
+    raise HTTPException(
+        status_code=404, detail={"code": "not_found", "message": "content not found"}
+    )
 
 
 @router.get("/thread/{thread_id}")
@@ -1030,7 +1131,9 @@ def thread_get(request: Request, thread_id: str) -> dict[str, object]:
     if len(page) == limit:
         last = page[-1]
         next_cursor = _cursor_pack(
-            created_at_nonce=_safe_int(last.get("created_at_nonce") or last.get("created_nonce"), 0),
+            created_at_nonce=_safe_int(
+                last.get("created_at_nonce") or last.get("created_nonce"), 0
+            ),
             content_id=str(last.get("comment_id") or last.get("id") or ""),
         )
 

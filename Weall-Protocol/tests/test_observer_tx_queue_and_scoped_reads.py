@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
@@ -54,7 +53,9 @@ def _client_with_executor(ex: Any) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def _signed_account_register(account: str, *, chain_id: str = "weall-observer-tx-queue") -> dict[str, Any]:
+def _signed_account_register(
+    account: str, *, chain_id: str = "weall-observer-tx-queue"
+) -> dict[str, Any]:
     seed = bytes.fromhex("58" * 32)
     sk = MLDSA65PrivateKey.from_seed_bytes(seed)
     pubkey = sk.public_key().public_bytes_raw().hex()
@@ -81,7 +82,9 @@ def _read_tx_queue(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def test_observer_tx_queue_survives_upstream_outage_and_retries(tmp_path: Path, monkeypatch) -> None:
+def test_observer_tx_queue_survives_upstream_outage_and_retries(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_queue = tmp_path / "observer-tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "1")
@@ -122,7 +125,9 @@ def test_observer_tx_queue_survives_upstream_outage_and_retries(tmp_path: Path, 
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-token")
     monkeypatch.setattr("weall.api.routes_public_parts.tx.urllib.request.urlopen", upstream_accept)
     with _client_with_executor(_real_executor(tmp_path)) as client:
-        drained = client.post("/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-token"})
+        drained = client.post(
+            "/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-token"}
+        )
         assert drained.status_code == 200, drained.text
         assert drained.json()["result"]["accepted"] is True
 
@@ -160,7 +165,9 @@ def test_observer_upstream_tx_id_mismatch_remains_pending(tmp_path: Path, monkey
     assert stored["records"][0]["upstream_status"] == "pending"
 
 
-def test_local_observer_status_reconciles_upstream_confirmation(tmp_path: Path, monkeypatch) -> None:
+def test_local_observer_status_reconciles_upstream_confirmation(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_queue = tmp_path / "observer-tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -177,7 +184,15 @@ def test_local_observer_status_reconciles_upstream_confirmation(tmp_path: Path, 
         if req.full_url.endswith("/v1/tx/submit"):
             return _FakeResponse({"ok": True, "tx_id": tx_id, "status": "accepted"})
         if req.full_url.endswith(f"/v1/tx/status/{tx_id}"):
-            return _FakeResponse({"ok": True, "tx_id": tx_id, "status": "confirmed", "height": 7, "block_id": "block:7"})
+            return _FakeResponse(
+                {
+                    "ok": True,
+                    "tx_id": tx_id,
+                    "status": "confirmed",
+                    "height": 7,
+                    "block_id": "block:7",
+                }
+            )
         raise AssertionError(req.full_url)
 
     monkeypatch.setattr("weall.api.routes_public_parts.tx.urllib.request.urlopen", fake_urlopen)
@@ -197,17 +212,51 @@ def _state() -> dict[str, Any]:
     return {
         "chain_id": "batch360",
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 2, "session_keys": {"sk:@alice": {"active": True, "ttl_s": 0}}},
-            "@bob": {"nonce": 0, "poh_tier": 2, "session_keys": {"sk:@bob": {"active": True, "ttl_s": 0}}},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "session_keys": {"sk:@alice": {"active": True, "ttl_s": 0}},
+            },
+            "@bob": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "session_keys": {"sk:@bob": {"active": True, "ttl_s": 0}},
+            },
         },
         "content": {
             "posts": {
-                "post:public": {"post_id": "post:public", "author": "@alice", "body": "public", "visibility": "public", "media": ["media:1"], "created_nonce": 10},
-                "post:private": {"post_id": "post:private", "author": "@alice", "body": "private", "visibility": "private", "media": ["media:1"], "created_nonce": 11},
+                "post:public": {
+                    "post_id": "post:public",
+                    "author": "@alice",
+                    "body": "public",
+                    "visibility": "public",
+                    "media": ["media:1"],
+                    "created_nonce": 10,
+                },
+                "post:private": {
+                    "post_id": "post:private",
+                    "author": "@alice",
+                    "body": "private",
+                    "visibility": "private",
+                    "media": ["media:1"],
+                    "created_nonce": 11,
+                },
             },
             "comments": {
-                "comment:public": {"comment_id": "comment:public", "post_id": "post:public", "author": "@bob", "body": "ok", "created_nonce": 12},
-                "comment:private": {"comment_id": "comment:private", "post_id": "post:private", "author": "@bob", "body": "hidden", "created_nonce": 13},
+                "comment:public": {
+                    "comment_id": "comment:public",
+                    "post_id": "post:public",
+                    "author": "@bob",
+                    "body": "ok",
+                    "created_nonce": 12,
+                },
+                "comment:private": {
+                    "comment_id": "comment:private",
+                    "post_id": "post:private",
+                    "author": "@bob",
+                    "body": "hidden",
+                    "created_nonce": 13,
+                },
             },
             "media": {"media:1": {"payload": {"cid": CID, "mime": "image/png", "size_bytes": 12}}},
             "reactions": {},
@@ -216,13 +265,29 @@ def _state() -> dict[str, Any]:
             "g1": {"id": "g1", "members": {f"@u{i:03d}": {"role": "member"} for i in range(5)}}
         },
         "gov_proposals_by_id": {
-            "p1": {"proposal_id": "p1", "stage": "voting", "votes": {f"@v{i:03d}": {"vote": "yes" if i % 2 else "no"} for i in range(5)}, "poll_votes": {}}
+            "p1": {
+                "proposal_id": "p1",
+                "stage": "voting",
+                "votes": {f"@v{i:03d}": {"vote": "yes" if i % 2 else "no"} for i in range(5)},
+                "poll_votes": {},
+            }
         },
         "disputes_by_id": {
-            "d1": {"id": "d1", "stage": "open", "votes": {f"@j{i:03d}": {"vote": "yes" if i % 2 else "no"} for i in range(5)}}
+            "d1": {
+                "id": "d1",
+                "stage": "open",
+                "votes": {f"@j{i:03d}": {"vote": "yes" if i % 2 else "no"} for i in range(5)},
+            }
         },
         "activity": {
-            "items_by_id": {"activity:1": {"kind": "reply", "account": "@alice", "body": "public activity", "created_at_nonce": 1}},
+            "items_by_id": {
+                "activity:1": {
+                    "kind": "reply",
+                    "account": "@alice",
+                    "body": "public activity",
+                    "created_at_nonce": 1,
+                }
+            },
         },
     }
 
@@ -240,7 +305,7 @@ def test_content_detail_hides_non_public_content() -> None:
         assert client.get("/v1/content/comment:private").status_code == 404
 
 
-def test_group_members_and_vote_maps_are_paginated() -> None:
+def test_group_members_are_paginated_and_ballot_choices_are_redacted() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         members = client.get("/v1/groups/g1/members?limit=2")
         assert members.status_code == 200, members.text
@@ -249,20 +314,24 @@ def test_group_members_and_vote_maps_are_paginated() -> None:
 
         proposal_votes = client.get("/v1/gov/proposals/p1/votes?limit=2")
         assert proposal_votes.status_code == 200, proposal_votes.text
-        assert len(proposal_votes.json()["votes"]) == 2
+        assert "votes" not in proposal_votes.json()
+        assert proposal_votes.json()["votes_redacted"] is True
+        assert proposal_votes.json()["identity_choice_maps_exposed"] is False
         assert proposal_votes.json()["counts_total"]["votes"] == 5
-        assert proposal_votes.json()["next_cursor"]
 
         dispute_votes = client.get("/v1/disputes/d1/votes?limit=2")
         assert dispute_votes.status_code == 200, dispute_votes.text
-        assert len(dispute_votes.json()["votes"]) == 2
+        assert "votes" not in dispute_votes.json()
+        assert dispute_votes.json()["votes_redacted"] is True
+        assert dispute_votes.json()["identity_choice_maps_exposed"] is False
         assert dispute_votes.json()["counts_total"]["votes"] == 5
-        assert dispute_votes.json()["next_cursor"]
 
 
 def test_removed_message_thread_routes_are_unmounted() -> None:
     with _client_with_executor(_FakeExecutor(_state())) as client:
         listing = client.get("/v1/" + "mess" + "ages/threads", headers=_auth("@alice"))
         assert listing.status_code == 404, listing.text
-        detail = client.get("/v1/" + "mess" + "ages/threads/" + "d" + "m" + ":1?limit=1", headers=_auth("@alice"))
+        detail = client.get(
+            "/v1/" + "mess" + "ages/threads/" + "d" + "m" + ":1?limit=1", headers=_auth("@alice")
+        )
         assert detail.status_code == 404, detail.text

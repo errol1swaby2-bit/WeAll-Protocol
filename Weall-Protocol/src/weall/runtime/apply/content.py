@@ -22,12 +22,15 @@ receipts as the authoritative record. Receipt-only does NOT mean "no state".
 For production correctness, a receipt MUST mutate canonical state deterministically.
 """
 
+import copy
+import hashlib
+import json
 from dataclasses import dataclass
 from typing import Any
 
 # We import the dispute opener directly to avoid duplicating dispute schema.
 # (This is intentionally a light dependency; dispute.py has no content imports.)
-from weall.runtime.apply.dispute import dispute_open  # type: ignore
+from weall.runtime.apply.dispute import dispute_open, select_dispute_panel  # type: ignore
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
 from weall.runtime.poh.state import effective_poh_tier
@@ -46,6 +49,12 @@ from weall.runtime.tx_admission import TxEnvelope
 from weall.util.ipfs_cid import validate_ipfs_cid
 
 Json = dict[str, Any]
+
+
+def _canonical_hash(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    ).hexdigest()
 
 
 @dataclass
@@ -516,6 +525,12 @@ def _ensure_root(state: Json) -> Json:
     content.setdefault("comments", {})
     content.setdefault("reactions", {})
     content.setdefault("flags", {})
+    content.setdefault("history", {"posts": {}, "comments": {}})
+    history = content.get("history")
+    if isinstance(history, dict):
+        history.setdefault("posts", {})
+        history.setdefault("comments", {})
+    content.setdefault("pending_escalations", {})
 
     # Media + moderation surfaces
     content.setdefault("media", {})
@@ -530,6 +545,137 @@ def _ensure_root(state: Json) -> Json:
         )  # target_id -> {visibility, locked, labels, dispute_id, last_action}
 
     return content
+
+
+def _immutable_json_snapshot(value: Any) -> Any:
+    """Materialize journal proxies into detached JSON-like containers."""
+
+    if isinstance(value, dict):
+        return {
+            str(key): _immutable_json_snapshot(item)
+            for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
+        }
+    if isinstance(value, list):
+        return [_immutable_json_snapshot(item) for item in value]
+    return copy.deepcopy(value)
+
+
+def _public_content_snapshot(record: Json) -> Json:
+    """Return a deterministic immutable snapshot for edit/delete history."""
+
+    return {
+        str(key): _immutable_json_snapshot(value)
+        for key, value in sorted(record.items(), key=lambda item: str(item[0]))
+        if str(key) not in {"reputation_accrual"}
+    }
+
+
+def _append_content_history(
+    state: Json,
+    *,
+    kind: str,
+    target_id: str,
+    actor: str,
+    nonce: int,
+    action: str,
+    before: Json | None,
+    after: Json | None,
+    reason: str = "",
+) -> Json:
+    content = _ensure_root(state)
+    history = _as_dict(content.get("history"))
+    lane_name = "posts" if kind == "post" else "comments"
+    lane = _as_dict(history.get(lane_name))
+    chain = lane.get(target_id)
+    if not isinstance(chain, list):
+        chain = []
+
+    before_snapshot = _public_content_snapshot(before) if isinstance(before, dict) else None
+    after_snapshot = _public_content_snapshot(after) if isinstance(after, dict) else None
+    previous_receipt = (
+        _as_str(chain[-1].get("receipt_commitment"))
+        if chain and isinstance(chain[-1], dict)
+        else ""
+    )
+    entry: Json = {
+        "version": int(len(chain) + 1),
+        "target_type": kind,
+        "target_id": target_id,
+        "action": action,
+        "actor": actor,
+        "nonce": int(nonce),
+        "height": int(state.get("height", 0) or 0),
+        "previous_receipt_commitment": previous_receipt,
+        "before_commitment": _canonical_hash(before_snapshot)
+        if before_snapshot is not None
+        else "",
+        "after_commitment": _canonical_hash(after_snapshot) if after_snapshot is not None else "",
+        "before": before_snapshot,
+        "after": after_snapshot,
+    }
+    if reason:
+        entry["reason"] = reason
+    entry["receipt_commitment"] = _canonical_hash(
+        {key: value for key, value in entry.items() if key != "receipt_commitment"}
+    )
+    chain.append(entry)
+    lane[target_id] = chain
+    history[lane_name] = lane
+    content["history"] = history
+    return entry
+
+
+def _pending_escalation_root(state: Json) -> Json:
+    content = _ensure_root(state)
+    root = content.get("pending_escalations")
+    if not isinstance(root, dict):
+        root = {}
+        content["pending_escalations"] = root
+    return root
+
+
+def repair_pending_content_escalations(state: Json, *, next_height: int) -> int:
+    """Deterministically retry accepted reports whose escalation enqueue failed."""
+
+    pending = _pending_escalation_root(state)
+    repaired = 0
+    for flag_id in sorted(pending):
+        rec = pending.get(flag_id)
+        if not isinstance(rec, dict) or _as_str(rec.get("status")) not in {"pending", "retry"}:
+            continue
+        due_height = _as_int(rec.get("next_retry_height"), 0)
+        if due_height > int(next_height):
+            continue
+        try:
+            queue_id = enqueue_system_tx(
+                state,
+                tx_type="CONTENT_ESCALATE_TO_DISPUTE",
+                payload={
+                    "target_type": "content",
+                    "target_id": _as_str(rec.get("target_id")),
+                    "reason": _as_str(rec.get("reason")),
+                    "flag_id": flag_id,
+                    "flagged_by": _as_str(rec.get("flagged_by")),
+                },
+                due_height=int(next_height),
+                signer="SYSTEM",
+                once=True,
+                parent=f"CONTENT_FLAG:{flag_id}",
+                phase="post",
+            )
+            rec["status"] = "queued"
+            rec["queue_id"] = queue_id
+            rec["repaired_at_height"] = int(next_height)
+            rec.pop("last_error", None)
+            repaired += 1
+        except Exception as exc:
+            attempts = _as_int(rec.get("attempts"), 0) + 1
+            rec["attempts"] = attempts
+            rec["status"] = "retry"
+            rec["last_error"] = type(exc).__name__
+            rec["next_retry_height"] = int(next_height) + min(64, 2 ** min(attempts, 6))
+        pending[flag_id] = rec
+    return repaired
 
 
 def _ensure_account_nonce(state: Json, signer: str, nonce: int) -> None:
@@ -718,6 +864,16 @@ def _apply_post_create(state: Json, env: TxEnvelope) -> Json:
             maturity_blocks=maturity_blocks,
         ),
     }
+    _append_content_history(
+        state,
+        kind="post",
+        target_id=post_id,
+        actor=str(env.signer),
+        nonce=int(env.nonce),
+        action="create",
+        before=None,
+        after=posts[post_id],
+    )
 
     _ensure_account_nonce(state, env.signer, env.nonce)
     return {"applied": "CONTENT_POST_CREATE", "post_id": post_id}
@@ -739,6 +895,7 @@ def _apply_post_edit(state: Json, env: TxEnvelope) -> Json:
     if post.get("author") != env.signer:
         raise ContentApplyError("forbidden", "not_author", {"post_id": post_id})
 
+    before = dict(post)
     candidate: Json = dict(post)
     if "visibility" in payload:
         candidate["visibility"] = _as_str(payload.get("visibility")).strip().lower() or "public"
@@ -763,6 +920,17 @@ def _apply_post_edit(state: Json, env: TxEnvelope) -> Json:
         post["group_id"] = group_id or None
 
     post["edited_nonce"] = int(env.nonce)
+    _append_content_history(
+        state,
+        kind="post",
+        target_id=post_id,
+        actor=str(env.signer),
+        nonce=int(env.nonce),
+        action="edit",
+        before=before,
+        after=post,
+        reason=_as_str(payload.get("reason")).strip(),
+    )
 
     _ensure_account_nonce(state, env.signer, env.nonce)
     return {"applied": "CONTENT_POST_EDIT", "post_id": post_id}
@@ -783,8 +951,20 @@ def _apply_post_delete(state: Json, env: TxEnvelope) -> Json:
     if post.get("author") != env.signer and not env.system:
         raise ContentApplyError("forbidden", "not_author_or_system", {"post_id": post_id})
 
+    before = dict(post)
     post["deleted"] = True
     post["deleted_nonce"] = int(env.nonce)
+    _append_content_history(
+        state,
+        kind="post",
+        target_id=post_id,
+        actor=str(env.signer),
+        nonce=int(env.nonce),
+        action="delete",
+        before=before,
+        after=post,
+        reason=_as_str(payload.get("reason")).strip(),
+    )
     return {"applied": "CONTENT_POST_DELETE", "post_id": post_id}
 
 
@@ -873,6 +1053,16 @@ def _apply_comment_create(state: Json, env: TxEnvelope) -> Json:
         "labels": [],
         "deleted": False,
     }
+    _append_content_history(
+        state,
+        kind="comment",
+        target_id=comment_id,
+        actor=str(env.signer),
+        nonce=int(env.nonce),
+        action="create",
+        before=None,
+        after=comments[comment_id],
+    )
 
     _ensure_account_nonce(state, env.signer, env.nonce)
     return {"applied": "CONTENT_COMMENT_CREATE", "comment_id": comment_id}
@@ -893,8 +1083,20 @@ def _apply_comment_delete(state: Json, env: TxEnvelope) -> Json:
     if comment.get("author") != env.signer and not env.system:
         raise ContentApplyError("forbidden", "not_author_or_system", {"comment_id": comment_id})
 
+    before = dict(comment)
     comment["deleted"] = True
     comment["deleted_nonce"] = int(env.nonce)
+    _append_content_history(
+        state,
+        kind="comment",
+        target_id=comment_id,
+        actor=str(env.signer),
+        nonce=int(env.nonce),
+        action="delete",
+        before=before,
+        after=comment,
+        reason=_as_str(payload.get("reason")).strip(),
+    )
     return {"applied": "CONTENT_COMMENT_DELETE", "comment_id": comment_id}
 
 
@@ -955,6 +1157,7 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
     # Demo-safe deterministic posture: a content flag is not just a dead moderation marker.
     # When the target has not already been escalated, enqueue the canonical escalation tx for
     # the next block so the disputes surface becomes authoritative without client-side synthesis.
+    escalation_status = "already_escalated"
     try:
         targets = _mod_targets(state)
         existing = targets.get(target_id)
@@ -963,7 +1166,7 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
         ).strip()
         if not existing_dispute_id:
             height = _as_int(state.get("height") or 0)
-            enqueue_system_tx(
+            queue_id = enqueue_system_tx(
                 state,
                 tx_type="CONTENT_ESCALATE_TO_DISPUTE",
                 payload={
@@ -979,11 +1182,39 @@ def _apply_content_flag(state: Json, env: TxEnvelope) -> Json:
                 parent=f"CONTENT_FLAG:{flag_id}",
                 phase="post",
             )
-    except Exception:
-        # The flag itself remains authoritative even if audit receipt scheduling fails.
-        pass
+            escalation_status = "queued"
+            _pending_escalation_root(state)[flag_id] = {
+                "flag_id": flag_id,
+                "target_id": target_id,
+                "flagged_by": str(env.signer),
+                "reason": reason,
+                "status": "queued",
+                "queue_id": queue_id,
+                "accepted_at_height": int(height),
+                "attempts": 0,
+            }
+    except Exception as exc:
+        # The accepted report receives a canonical repair record. The scheduler
+        # retries it deterministically, so a queue failure cannot strand a flag.
+        height = _as_int(state.get("height") or 0)
+        _pending_escalation_root(state)[flag_id] = {
+            "flag_id": flag_id,
+            "target_id": target_id,
+            "flagged_by": str(env.signer),
+            "reason": reason,
+            "status": "pending",
+            "accepted_at_height": int(height),
+            "next_retry_height": int(height) + 1,
+            "attempts": 1,
+            "last_error": type(exc).__name__,
+        }
+        escalation_status = "pending_repair"
 
-    return {"applied": "CONTENT_FLAG", "flag_id": flag_id}
+    return {
+        "applied": "CONTENT_FLAG",
+        "flag_id": flag_id,
+        "escalation_status": escalation_status,
+    }
 
 
 # ---------------------------
@@ -1270,6 +1501,44 @@ def _apply_content_thread_lock_set(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "CONTENT_THREAD_LOCK_SET", "target_id": target_id, "locked": locked}
 
 
+def _content_escalation_collision_dispute_id(
+    *,
+    env: TxEnvelope,
+    payload: Json,
+    target_type: str,
+    target_id: str,
+) -> str:
+    """Return a deterministic fallback ID when the legacy system ID is occupied.
+
+    System-queue envelopes intentionally use nonce zero. The first historical
+    content escalation therefore uses ``dispute:SYSTEM:0``. Later escalations
+    must derive a stable content-specific ID instead of colliding with that
+    existing dispute.
+    """
+
+    flag_id = _as_str(payload.get("flag_id") or "").strip()
+
+    flagged_by = _as_str(payload.get("flagged_by") or payload.get("reported_by") or "").strip()
+
+    queue_id = _as_str(payload.get("_system_queue_id") or "").strip()
+
+    parent_ref = _as_str(getattr(env, "parent", "") or "").strip()
+
+    commitment = _canonical_hash(
+        {
+            "domain": ("weall.content-escalation.dispute-id.v1"),
+            "flag_id": flag_id,
+            "flagged_by": flagged_by,
+            "parent_ref": parent_ref,
+            "queue_id": queue_id,
+            "target_id": target_id,
+            "target_type": target_type,
+        }
+    )
+
+    return f"dispute:content:{commitment}"
+
+
 def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     """Escalate a content target to the dispute system.
 
@@ -1313,6 +1582,24 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
             "deduped": True,
         }
 
+    # Preserve the historical first system-generated dispute ID. System queue
+    # envelopes use nonce zero, so a later escalation would otherwise attempt
+    # to recreate ``dispute:SYSTEM:0``. When that default is already occupied,
+    # derive a deterministic content-specific ID from the canonical escalation
+    # evidence.
+    if not dispute_id:
+        default_dispute_id = f"dispute:{env.signer}:{int(env.nonce)}"
+
+        disputes_root = _as_dict(state.get("disputes_by_id"))
+
+        if default_dispute_id in disputes_root:
+            dispute_id = _content_escalation_collision_dispute_id(
+                env=env,
+                payload=payload,
+                target_type=target_type,
+                target_id=target_id,
+            )
+
     # Open dispute (uses same TxEnvelope shape)
     d_env = TxEnvelope(
         tx_type="DISPUTE_OPEN",
@@ -1353,13 +1640,39 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
     # exact lane consent, or the reporter as a reviewer. This keeps review duty
     # auditable and prevents accidental reputation liability for users who never
     # accepted the specific content-review responsibility.
-    assigned_jurors = clean_jurors(eligible_reviewer_ids(state, CONTENT_REVIEW_LANE))
+    reviewer_candidates = clean_jurors(eligible_reviewer_ids(state, CONTENT_REVIEW_LANE))
     if target_author:
         dispute_obj["target_owner"] = target_author
+        # Compatibility/read-model marker retained while the broader
+        # constitutional conflict receipt records every excluded party.
+        dispute_obj["conflict_policy"] = "target_owner_excluded_from_content_review"
+    # The reporter and content owner are parties to the case and may never sit
+    # on its panel. Additional material conflicts are filtered by the shared
+    # dispute panel selector.
+    dispute_obj["reported_by"] = payload.get("flagged_by") or payload.get("reported_by")
+    dispute_obj["flagged_by"] = payload.get("flagged_by") or payload.get("reported_by")
+    selection = select_dispute_panel(
+        state,
+        dispute_obj,
+        reviewer_candidates,
+        round_no=1,
+    )
+    assigned_jurors = list(selection["panel"])
+    dispute_obj["panel_round"] = 1
+    dispute_obj["panel_status"] = selection["status"]
+    dispute_obj["panel_commitment"] = selection["panel_commitment"]
+    dispute_obj["panel_required_size"] = selection["required_panel_size"]
+    dispute_obj["substitute_required_count"] = selection["required_substitute_count"]
+    dispute_obj["substitute_juror_ids"] = list(selection["substitutes"])
+    dispute_obj["conflicted_juror_ids"] = list(selection["conflicted_juror_ids"])
     dispute_obj["reviewer_responsibility_policy"] = "explicit_active_juror_opt_in_required"
     if not assigned_jurors:
         dispute_obj["stage"] = "unassigned"
-        dispute_obj["assignment_blocked_reason"] = "no_unconflicted_content_reviewer"
+        dispute_obj["assignment_blocked_reason"] = (
+            "insufficient_constitutional_reviewer_pool"
+            if selection["status"] == "insufficient_reviewer_pool"
+            else "no_unconflicted_content_reviewer"
+        )
         dispute_obj["jurors"] = _as_dict(dispute_obj.get("jurors"))
         dispute_obj["eligible_juror_ids"] = []
         dispute_obj["assigned_jurors"] = []
@@ -1380,6 +1693,8 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
             jurors[juror] = {
                 "status": _as_str(existing.get("status") or "assigned") or "assigned",
                 "assigned_at_nonce": _as_int(existing.get("assigned_at_nonce"), int(env.nonce)),
+                "assigned_at_height": int(current_height),
+                "panel_round": 1,
             }
             if isinstance(existing.get("attendance"), dict):
                 jurors[juror]["attendance"] = dict(_as_dict(existing.get("attendance")))

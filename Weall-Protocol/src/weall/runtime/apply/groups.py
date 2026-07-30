@@ -1,13 +1,16 @@
 # src/weall/runtime/apply/groups.py
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from fractions import Fraction
 from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
-from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
+from weall.runtime.ballot_policy import ballot_profile_status, strict_civic_governance_enabled
 from weall.runtime.bounded_rollback import journal_set_dict_key
+from weall.runtime.econ_phase import deny_if_econ_disabled, deny_if_econ_time_locked
 from weall.runtime.group_treasury_scheduler import (
     maybe_enqueue_group_spend_execute,
     maybe_enqueue_group_spend_expire,
@@ -134,7 +137,9 @@ def _require_treasury_wallet(state: Json, treasury_id: str) -> Json:
     wallets = _ensure_treasury_wallets(state)
     wallet = wallets.get(treasury_id)
     if not isinstance(wallet, dict):
-        raise GroupsApplyError("not_found", "group_treasury_wallet_not_found", {"treasury_id": treasury_id})
+        raise GroupsApplyError(
+            "not_found", "group_treasury_wallet_not_found", {"treasury_id": treasury_id}
+        )
     wallet.setdefault("wallet_id", treasury_id)
     wallet.setdefault("balance", 0)
     return wallet
@@ -153,8 +158,6 @@ def _active_emissary_election_for_group(state: Json, group_id: str) -> Json | No
     return None
 
 
-
-
 def _active_group_treasury_spend_for_group(state: Json, group_id: str) -> Json | None:
     spends = _ensure_group_spends(state)
     gid = _as_str(group_id).strip()
@@ -168,6 +171,7 @@ def _active_group_treasury_spend_for_group(state: Json, group_id: str) -> Json |
             continue
         return spend
     return None
+
 
 def _height_hint(state: Json, env: TxEnvelope) -> int:
     """Return the block height currently applying.
@@ -213,9 +217,7 @@ def _group_treasury_timelock_blocks(state: Json) -> int:
             v2 = tparams.get("timelock_blocks")
             if v2 is None or v2 == "":
                 return 0
-            return _strict_positive_int_from_state(
-                v2, field_name="treasury.params.timelock_blocks"
-            )
+            return _strict_positive_int_from_state(v2, field_name="treasury.params.timelock_blocks")
 
     return 0
 
@@ -258,6 +260,28 @@ def _ensure_group_emissary_ballots(state: Json) -> Json:
         root = {}
         state["group_emissary_ballots"] = root
     return root
+
+
+def _ensure_group_emissary_ballot_boxes(state: Json) -> Json:
+    root = state.get("group_emissary_ballot_boxes")
+    if not isinstance(root, dict):
+        root = {}
+        state["group_emissary_ballot_boxes"] = root
+    return root
+
+
+def _ensure_group_emissary_ballot_nullifiers(state: Json) -> Json:
+    root = state.get("group_emissary_ballot_nullifiers")
+    if not isinstance(root, dict):
+        root = {}
+        state["group_emissary_ballot_nullifiers"] = root
+    return root
+
+
+def _group_ballot_hash(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def _uniq_sorted_accounts(xs: Any) -> list[str]:
@@ -304,27 +328,41 @@ def _normalize_group_permission(value: Any, *, default: str) -> str:
 
 
 def _group_permissions_from_payload(payload: Json, existing: Json | None = None) -> Json:
-    existing_permissions = existing.get("permissions") if isinstance(existing, dict) and isinstance(existing.get("permissions"), dict) else {}
+    existing_permissions = (
+        existing.get("permissions")
+        if isinstance(existing, dict) and isinstance(existing.get("permissions"), dict)
+        else {}
+    )
     return {
         "read": "public",
         "post": _normalize_group_permission(
-            payload.get("posting_permission") or payload.get("post_permission") or existing_permissions.get("post"),
+            payload.get("posting_permission")
+            or payload.get("post_permission")
+            or existing_permissions.get("post"),
             default="members",
         ),
         "comment": _normalize_group_permission(
-            payload.get("commenting_permission") or payload.get("comment_permission") or existing_permissions.get("comment"),
+            payload.get("commenting_permission")
+            or payload.get("comment_permission")
+            or existing_permissions.get("comment"),
             default="members",
         ),
         "vote": _normalize_group_permission(
-            payload.get("voting_permission") or payload.get("vote_permission") or existing_permissions.get("vote"),
+            payload.get("voting_permission")
+            or payload.get("vote_permission")
+            or existing_permissions.get("vote"),
             default="members",
         ),
         "moderate": _normalize_group_permission(
-            payload.get("moderation_permission") or payload.get("moderate_permission") or existing_permissions.get("moderate"),
+            payload.get("moderation_permission")
+            or payload.get("moderate_permission")
+            or existing_permissions.get("moderate"),
             default="moderators",
         ),
         "admin": _normalize_group_permission(
-            payload.get("administration_permission") or payload.get("admin_permission") or existing_permissions.get("admin"),
+            payload.get("administration_permission")
+            or payload.get("admin_permission")
+            or existing_permissions.get("admin"),
             default="admins",
         ),
     }
@@ -525,7 +563,11 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
             "threshold": int(threshold),
             "moderators": [],
             "emissaries": [],
-            "members": {creator: {"account": creator, "joined_at_nonce": int(env.nonce), "role": "creator"}} if creator else {},
+            "members": {
+                creator: {"account": creator, "joined_at_nonce": int(env.nonce), "role": "creator"}
+            }
+            if creator
+            else {},
         },
         ("groups_by_id", group_id),
     )
@@ -648,7 +690,11 @@ def _apply_group_membership_request(state: Json, env: TxEnvelope) -> Json:
 
     # Group membership may gate participation, but never read visibility.  The
     # public-only default keeps join semantics simple and deterministic.
-    members[account] = {"joined_at_nonce": int(env.nonce), "joined_via": "request_auto_accept", "role": "member"}
+    members[account] = {
+        "joined_at_nonce": int(env.nonce),
+        "joined_via": "request_auto_accept",
+        "role": "member",
+    }
     g["members"] = members
     reqs = g.get("membership_requests")
     if isinstance(reqs, dict) and account in reqs:
@@ -759,7 +805,9 @@ def _apply_group_signers_set(state: Json, env: TxEnvelope) -> Json:
             "group_emissary_election_open",
             {
                 "group_id": group_id,
-                "election_id": _as_str(active_election.get("election_id") or active_election.get("id")).strip(),
+                "election_id": _as_str(
+                    active_election.get("election_id") or active_election.get("id")
+                ).strip(),
             },
         )
 
@@ -818,7 +866,9 @@ def _apply_group_moderators_set(state: Json, env: TxEnvelope) -> Json:
             "group_emissary_election_open",
             {
                 "group_id": group_id,
-                "election_id": _as_str(active_election.get("election_id") or active_election.get("id")).strip(),
+                "election_id": _as_str(
+                    active_election.get("election_id") or active_election.get("id")
+                ).strip(),
             },
         )
 
@@ -834,10 +884,14 @@ def _apply_group_treasury_create(state: Json, env: TxEnvelope) -> Json:
         raise GroupsApplyError("invalid_payload", "missing_treasury_id", {"tx_type": env.tx_type})
     wallets = _ensure_treasury_wallets(state)
     if treasury_id in wallets:
-        raise GroupsApplyError("conflict", "group_treasury_wallet_exists", {"treasury_id": treasury_id})
+        raise GroupsApplyError(
+            "conflict", "group_treasury_wallet_exists", {"treasury_id": treasury_id}
+        )
     initial_balance = _as_int(payload.get("balance"), 0)
     if initial_balance < 0:
-        raise GroupsApplyError("invalid_payload", "bad_balance", {"balance": payload.get("balance")})
+        raise GroupsApplyError(
+            "invalid_payload", "bad_balance", {"balance": payload.get("balance")}
+        )
     wallets[treasury_id] = {
         "wallet_id": treasury_id,
         "treasury_id": treasury_id,
@@ -1123,7 +1177,9 @@ def _apply_group_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
     if not to_account:
         raise GroupsApplyError("invalid_state", "missing_spend_recipient", {"spend_id": spend_id})
     if amount <= 0:
-        raise GroupsApplyError("invalid_state", "bad_spend_amount", {"spend_id": spend_id, "amount": amount})
+        raise GroupsApplyError(
+            "invalid_state", "bad_spend_amount", {"spend_id": spend_id, "amount": amount}
+        )
     wallet = _require_treasury_wallet(state, treasury_id)
     recipient = _require_account(state, to_account, field="to")
     wallet_balance = _as_int(wallet.get("balance"), 0)
@@ -1144,7 +1200,12 @@ def _apply_group_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
     s["transferred_amount"] = int(amount)
     s["treasury_balance_after"] = int(wallet["balance"])
     spends[spend_id] = s
-    return {"applied": "GROUP_TREASURY_SPEND_EXECUTE", "spend_id": spend_id, "to": to_account, "amount": int(amount)}
+    return {
+        "applied": "GROUP_TREASURY_SPEND_EXECUTE",
+        "spend_id": spend_id,
+        "to": to_account,
+        "amount": int(amount),
+    }
 
 
 def _apply_group_treasury_policy_set(state: Json, env: TxEnvelope) -> Json:
@@ -1278,6 +1339,8 @@ def _apply_group_emissary_election_create(state: Json, env: TxEnvelope) -> Json:
 
     ballots_root = _ensure_group_emissary_ballots(state)
     ballots_root[election_id] = {}
+    _ensure_group_emissary_ballot_boxes(state)[election_id] = {}
+    _ensure_group_emissary_ballot_nullifiers(state)[election_id] = {}
 
     return {
         "applied": "GROUP_EMISSARY_ELECTION_CREATE",
@@ -1307,6 +1370,18 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
         raise GroupsApplyError("not_found", "election_not_found", {"election_id": election_id})
     if _as_str(e.get("status")).strip().lower() != "open":
         raise GroupsApplyError("forbidden", "election_not_open", {"election_id": election_id})
+
+    profile = ballot_profile_status(state)
+    if bool(profile.get("strict")) and not bool(profile.get("active")):
+        raise GroupsApplyError(
+            "forbidden",
+            "ballot_profile_inactive",
+            {
+                "election_id": election_id,
+                "profile_id": profile.get("profile_id"),
+                "profile_reason": profile.get("reason"),
+            },
+        )
 
     now_h = _height_hint(state, env)
     start_h = _as_int(e.get("start_height"), 0)
@@ -1350,14 +1425,96 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
         ballots = {}
         ballots_root[election_id] = ballots
 
-    had = voter in ballots
-    ballots[voter] = {
-        "ranking": norm_rank,
-        "cast_at_nonce": int(env.nonce),
-        "cast_at_height": int(now_h),
-        "payload": payload,
-    }
-    ballots_root[election_id] = ballots
+    strict_ballot = bool(profile.get("strict"))
+    if strict_ballot:
+        boxes_root = _ensure_group_emissary_ballot_boxes(state)
+        nullifier_root = _ensure_group_emissary_ballot_nullifiers(state)
+        box = boxes_root.get(election_id)
+        if not isinstance(box, dict):
+            box = {}
+            boxes_root[election_id] = box
+        nullifiers = nullifier_root.get(election_id)
+        if not isinstance(nullifiers, dict):
+            nullifiers = {}
+            nullifier_root[election_id] = nullifiers
+
+        # Migrate any attributable local ballots once, aggregate identical ranked
+        # choices, and erase the voter-to-ranking mapping.
+        if ballots:
+            for legacy_voter, record in sorted(ballots.items(), key=lambda item: str(item[0])):
+                if not isinstance(record, dict) or not isinstance(record.get("ranking"), list):
+                    continue
+                legacy_rank = [str(x) for x in record.get("ranking")]
+                ballot_commitment = _group_ballot_hash(
+                    {
+                        "domain": "weall.group.emissary.anonymous-ballot.v1",
+                        "election_id": election_id,
+                        "ranking": legacy_rank,
+                    }
+                )
+                existing = box.get(ballot_commitment)
+                count = _as_int(existing.get("count"), 0) if isinstance(existing, dict) else 0
+                box[ballot_commitment] = {"ranking": legacy_rank, "count": int(count + 1)}
+                legacy_nullifier = _group_ballot_hash(
+                    {
+                        "domain": "weall.group.emissary.ballot-nullifier.v1",
+                        "election_id": election_id,
+                        "voter": str(legacy_voter),
+                    }
+                )
+                nullifiers.setdefault(
+                    legacy_nullifier,
+                    {
+                        "height": _as_int(record.get("cast_at_height"), 0),
+                        "migrated_from_attributable_state": True,
+                    },
+                )
+            ballots.clear()
+            ballots_root[election_id] = {}
+
+        voter_nullifier = _group_ballot_hash(
+            {
+                "domain": "weall.group.emissary.ballot-nullifier.v1",
+                "election_id": election_id,
+                "voter": voter,
+            }
+        )
+        if voter_nullifier in nullifiers:
+            raise GroupsApplyError(
+                "conflict",
+                "ballot_already_final",
+                {"election_id": election_id, "voter": voter},
+            )
+        ballot_commitment = _group_ballot_hash(
+            {
+                "domain": "weall.group.emissary.anonymous-ballot.v1",
+                "election_id": election_id,
+                "ranking": norm_rank,
+            }
+        )
+        existing = box.get(ballot_commitment)
+        count = _as_int(existing.get("count"), 0) if isinstance(existing, dict) else 0
+        box[ballot_commitment] = {"ranking": list(norm_rank), "count": int(count + 1)}
+        nullifiers[voter_nullifier] = {
+            "cast_at_height": int(now_h),
+            "ballot_profile_id": _as_str(profile.get("profile_id")),
+            "final": True,
+        }
+        boxes_root[election_id] = box
+        nullifier_root[election_id] = nullifiers
+        ballots_root[election_id] = {}
+        had = False
+    else:
+        had = voter in ballots
+        ballots[voter] = {
+            "ranking": norm_rank,
+            "cast_at_nonce": int(env.nonce),
+            "cast_at_height": int(now_h),
+            "ballot_profile_id": _as_str(profile.get("profile_id")),
+            "final": False,
+            "payload": payload,
+        }
+        ballots_root[election_id] = ballots
 
     return {
         "applied": "GROUP_EMISSARY_BALLOT_CAST",
@@ -1365,6 +1522,9 @@ def _apply_group_emissary_ballot_cast(state: Json, env: TxEnvelope) -> Json:
         "voter": voter,
         "deduped": had,
         "n_ranked": len(norm_rank),
+        "public_ballot_disclosure": "aggregate_ranked_ballot_box"
+        if strict_ballot
+        else "legacy_attributable",
     }
 
 
@@ -1416,7 +1576,17 @@ def _apply_group_emissary_election_finalize(state: Json, env: TxEnvelope) -> Jso
     ballots_root = _ensure_group_emissary_ballots(state)
     raw_ballots = ballots_root.get(election_id)
     ballots_by_voter: dict[str, list[str]] = {}
-    if isinstance(raw_ballots, dict):
+    if strict_civic_governance_enabled(state):
+        ballot_box = _ensure_group_emissary_ballot_boxes(state).get(election_id)
+        if isinstance(ballot_box, dict):
+            for commitment, record in sorted(ballot_box.items(), key=lambda item: str(item[0])):
+                if not isinstance(record, dict) or not isinstance(record.get("ranking"), list):
+                    continue
+                count = max(0, _as_int(record.get("count"), 0))
+                ranking = [str(x) for x in record.get("ranking")]
+                for index in range(count):
+                    ballots_by_voter[f"anon:{commitment}:{index}"] = list(ranking)
+    elif isinstance(raw_ballots, dict):
         for voter, b in raw_ballots.items():
             if isinstance(b, dict) and isinstance(b.get("ranking"), list):
                 ballots_by_voter[str(voter)] = [str(x) for x in b.get("ranking")]

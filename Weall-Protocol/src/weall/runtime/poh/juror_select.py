@@ -379,13 +379,24 @@ def pick_live_jurors(
 
     entropy = _entropy_hex(state=state)
 
+    # Partial-panel bootstrap relaxes only the number of required seats. It
+    # must not widen reviewer authority to every Tier-2 account. Live
+    # assignment is applied through _require_active_reviewer_lane(), so the
+    # selector must use the same exact poh_live_review eligibility boundary.
+    # Otherwise a newly verified Tier-2 subject can enter the pool without a
+    # reviewer lane, causing every deterministic SYSTEM assignment to fail.
     pool = eligible_live_jurors(
         state=state,
         min_rep_units=min_rep_units,
         min_rep=min_rep,
-        allow_roleless_bootstrap=bool(allow_partial),
+        allow_roleless_bootstrap=False,
         reviewer_lane=POH_LIVE_REVIEW_LANE,
     )
+    pool = [
+        account_id
+        for account_id in pool
+        if reviewer_lane_active(state, account_id, POH_LIVE_REVIEW_LANE)
+    ]
     pool = [a for a in pool if a != target_account]
 
     configured_need = min(MAX_LIVE_JURORS, max(1, int(n_interacting) + int(n_observing)))

@@ -47,12 +47,30 @@ ECONOMICALLY_LOCKED_ACTIONS = {
 }
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: Json, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=int(nonce), payload=dict(payload), sig="", system=bool(system), parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: Json,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=int(nonce),
+        payload=dict(payload),
+        sig="",
+        system=bool(system),
+        parent=parent,
+    )
 
 
 def _canonical_hash(value: Any) -> str:
-    return sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+    return sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
 
 
 def _base_state() -> Json:
@@ -60,10 +78,34 @@ def _base_state() -> Json:
         "height": 20,
         "time": 0,
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10_000, "banned": False, "locked": False},
-            "@bob": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10_000, "banned": False, "locked": False},
-            "@carol": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10_000, "banned": False, "locked": False},
-            "@dana": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10_000, "banned": False, "locked": False},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10_000,
+                "banned": False,
+                "locked": False,
+            },
+            "@bob": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10_000,
+                "banned": False,
+                "locked": False,
+            },
+            "@carol": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10_000,
+                "banned": False,
+                "locked": False,
+            },
+            "@dana": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10_000,
+                "banned": False,
+                "locked": False,
+            },
             "SYSTEM": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10_000},
         },
         "roles": {
@@ -109,11 +151,19 @@ def _base_state() -> Json:
 
 def _error_record(exc: BaseException) -> Json:
     if isinstance(exc, ApplyError):
-        return {"code": str(exc.code), "reason": str(exc.reason), "details": exc.details if isinstance(exc.details, dict) else {}}
+        return {
+            "code": str(exc.code),
+            "reason": str(exc.reason),
+            "details": exc.details if isinstance(exc.details, dict) else {},
+        }
     code = getattr(exc, "code", "error")
     reason = getattr(exc, "reason", type(exc).__name__)
     details = getattr(exc, "details", {})
-    return {"code": str(code), "reason": str(reason), "details": details if isinstance(details, dict) else {}}
+    return {
+        "code": str(code),
+        "reason": str(reason),
+        "details": details if isinstance(details, dict) else {},
+    }
 
 
 def _try_apply(state: Json, env: TxEnvelope) -> Json:
@@ -129,7 +179,7 @@ def _try_apply(state: Json, env: TxEnvelope) -> Json:
 
 def _proposal_vector_for_action(action_type: str, payload: Json, canon: Any) -> Json:
     state = _base_state()
-    proposal_id = f"v15-{action_type.lower().replace('_', '-') }"
+    proposal_id = f"v15-{action_type.lower().replace('_', '-')}"
     action = {"tx_type": action_type, "payload": dict(payload)}
     create_payload = {
         "proposal_id": proposal_id,
@@ -154,7 +204,19 @@ def _proposal_vector_for_action(action_type: str, payload: Json, canon: Any) -> 
 
     proposal = state["gov_proposals_by_id"][proposal_id]
     proposal["stage"] = "tallied"
-    proposal["tallies"] = [{"height": 21, "payload": {"proposal_id": proposal_id, "passed": True, "yes": 3, "no": 0, "abstain": 0, "required_votes": 3}}]
+    proposal["tallies"] = [
+        {
+            "height": 21,
+            "payload": {
+                "proposal_id": proposal_id,
+                "passed": True,
+                "yes": 3,
+                "no": 0,
+                "abstain": 0,
+                "required_votes": 3,
+            },
+        }
+    ]
     state["height"] = 21
     exec_result = _try_apply(
         state,
@@ -162,14 +224,24 @@ def _proposal_vector_for_action(action_type: str, payload: Json, canon: Any) -> 
             "GOV_EXECUTE",
             "SYSTEM",
             1,
-            {"proposal_id": proposal_id, "_due_height": 22, "_system_queue_id": f"qid-{action_type.lower()}"},
+            {
+                "proposal_id": proposal_id,
+                "_due_height": 22,
+                "_system_queue_id": f"qid-{action_type.lower()}",
+            },
             system=True,
             parent=f"tx:gov:{proposal_id}",
         ),
     )
     vector["execution_result"] = exec_result
-    vector["final_stage"] = state.get("gov_proposals_by_id", {}).get(proposal_id, {}).get("stage", "")
-    vector["execution_audit_hash"] = (state.get("governance_execution_audit") or [{}])[-1].get("execution_hash", "") if state.get("governance_execution_audit") else ""
+    vector["final_stage"] = (
+        state.get("gov_proposals_by_id", {}).get(proposal_id, {}).get("stage", "")
+    )
+    vector["execution_audit_hash"] = (
+        (state.get("governance_execution_audit") or [{}])[-1].get("execution_hash", "")
+        if state.get("governance_execution_audit")
+        else ""
+    )
     emitted = system_tx_emitter(state, canon=canon, next_height=23, phase="post")
     vector["emitted_actions"] = [
         {
@@ -212,12 +284,16 @@ def _failure_vectors(canon: Any) -> list[Json]:
         "rules": {"start_stage": "voting"},
         "actions": [{"tx_type": "CHAIN_ROOT_OVERRIDE", "payload": {"root": "evil"}}],
     }
-    vectors.append({
-        "id": "failure::unsupported_action",
-        "result": _try_apply(state, _env("GOV_PROPOSAL_CREATE", "@alice", 11, unsupported_payload)),
-        "expected_reason": "governance_action_not_allowed",
-        "state_hash_after": _canonical_hash(state),
-    })
+    vectors.append(
+        {
+            "id": "failure::unsupported_action",
+            "result": _try_apply(
+                state, _env("GOV_PROPOSAL_CREATE", "@alice", 11, unsupported_payload)
+            ),
+            "expected_reason": "governance_action_not_allowed",
+            "state_hash_after": _canonical_hash(state),
+        }
+    )
 
     # Invalid action payloads must fail schema validation deterministically.
     state = _base_state()
@@ -225,32 +301,45 @@ def _failure_vectors(canon: Any) -> list[Json]:
         "proposal_id": "v15-invalid-action-payload",
         "title": "invalid action payload",
         "rules": {"start_stage": "voting"},
-        "actions": [{"tx_type": "VALIDATOR_SUSPEND", "payload": {"account": "@bob", "effective_epoch": 0}}],
+        "actions": [
+            {"tx_type": "VALIDATOR_SUSPEND", "payload": {"account": "@bob", "effective_epoch": 0}}
+        ],
     }
-    vectors.append({
-        "id": "failure::invalid_action_payload",
-        "result": _try_apply(state, _env("GOV_PROPOSAL_CREATE", "@alice", 12, invalid_payload)),
-        "expected_reason": "governance_action_payload_invalid",
-        "state_hash_after": _canonical_hash(state),
-    })
+    vectors.append(
+        {
+            "id": "failure::invalid_action_payload",
+            "result": _try_apply(state, _env("GOV_PROPOSAL_CREATE", "@alice", 12, invalid_payload)),
+            "expected_reason": "governance_action_payload_invalid",
+            "state_hash_after": _canonical_hash(state),
+        }
+    )
 
-    # Production executable governance cannot fall back to creator-only electorate.
+    # Production executable governance cannot proceed without any eligible
+    # Tier-2 human electorate. Validators are not political principals and a
+    # creator-only fallback is forbidden.
     state = _base_state()
     state["roles"] = {}
     state["consensus"] = {}
     state["params"]["chain_mode"] = "production"
+    for account in state.get("accounts", {}).values():
+        if isinstance(account, dict):
+            account["poh_tier"] = 1
     no_electorate_payload = {
         "proposal_id": "v15-no-explicit-electorate",
         "title": "no explicit electorate",
         "rules": {"start_stage": "voting"},
         "actions": [{"tx_type": "GOV_QUORUM_SET", "payload": {"quorum_bps": 6_700}}],
     }
-    vectors.append({
-        "id": "failure::executable_governance_requires_explicit_electorate",
-        "result": _try_apply(state, _env("GOV_PROPOSAL_CREATE", "@alice", 13, no_electorate_payload)),
-        "expected_reason": "executable_governance_requires_explicit_electorate",
-        "state_hash_after": _canonical_hash(state),
-    })
+    vectors.append(
+        {
+            "id": "failure::executable_governance_requires_explicit_electorate",
+            "result": _try_apply(
+                state, _env("GOV_PROPOSAL_CREATE", "@alice", 13, no_electorate_payload)
+            ),
+            "expected_reason": "executable_governance_requires_explicit_electorate",
+            "state_hash_after": _canonical_hash(state),
+        }
+    )
 
     # Scheduler mistakes must not make a draft proposal executable.
     state = _base_state()
@@ -261,12 +350,24 @@ def _failure_vectors(canon: Any) -> list[Json]:
         "actions": [{"tx_type": "GOV_QUORUM_SET", "payload": {"quorum_bps": 6_700}}],
     }
     _try_apply(state, _env("GOV_PROPOSAL_CREATE", "@alice", 14, draft_payload))
-    vectors.append({
-        "id": "failure::execute_before_tally",
-        "result": _try_apply(state, _env("GOV_EXECUTE", "SYSTEM", 2, {"proposal_id": "v15-execute-before-tally"}, system=True, parent="tx:bad-scheduler")),
-        "expected_reason": "proposal_not_executable",
-        "state_hash_after": _canonical_hash(state),
-    })
+    vectors.append(
+        {
+            "id": "failure::execute_before_tally",
+            "result": _try_apply(
+                state,
+                _env(
+                    "GOV_EXECUTE",
+                    "SYSTEM",
+                    2,
+                    {"proposal_id": "v15-execute-before-tally"},
+                    system=True,
+                    parent="tx:bad-scheduler",
+                ),
+            ),
+            "expected_reason": "proposal_not_executable",
+            "state_hash_after": _canonical_hash(state),
+        }
+    )
 
     # A tallied proposal that did not pass cannot emit action txs.
     state = _base_state()
@@ -278,13 +379,27 @@ def _failure_vectors(canon: Any) -> list[Json]:
     }
     _try_apply(state, _env("GOV_PROPOSAL_CREATE", "@alice", 15, failed_vote_payload))
     state["gov_proposals_by_id"]["v15-did-not-pass"]["stage"] = "tallied"
-    state["gov_proposals_by_id"]["v15-did-not-pass"]["tallies"] = [{"height": 22, "payload": {"passed": False}}]
-    vectors.append({
-        "id": "failure::proposal_did_not_pass",
-        "result": _try_apply(state, _env("GOV_EXECUTE", "SYSTEM", 3, {"proposal_id": "v15-did-not-pass"}, system=True, parent="tx:failed-vote")),
-        "expected_reason": "proposal_did_not_pass",
-        "state_hash_after": _canonical_hash(state),
-    })
+    state["gov_proposals_by_id"]["v15-did-not-pass"]["tallies"] = [
+        {"height": 22, "payload": {"passed": False}}
+    ]
+    vectors.append(
+        {
+            "id": "failure::proposal_did_not_pass",
+            "result": _try_apply(
+                state,
+                _env(
+                    "GOV_EXECUTE",
+                    "SYSTEM",
+                    3,
+                    {"proposal_id": "v15-did-not-pass"},
+                    system=True,
+                    parent="tx:failed-vote",
+                ),
+            ),
+            "expected_reason": "proposal_did_not_pass",
+            "state_hash_after": _canonical_hash(state),
+        }
+    )
 
     return vectors
 
@@ -306,16 +421,38 @@ def _conflict_order_vector(canon: Any) -> Json:
     if create["ok"]:
         proposal = state["gov_proposals_by_id"][proposal_id]
         proposal["stage"] = "tallied"
-        proposal["tallies"] = [{"height": 32, "payload": {"proposal_id": proposal_id, "passed": True, "yes": 3, "required_votes": 3}}]
+        proposal["tallies"] = [
+            {
+                "height": 32,
+                "payload": {
+                    "proposal_id": proposal_id,
+                    "passed": True,
+                    "yes": 3,
+                    "required_votes": 3,
+                },
+            }
+        ]
         state["height"] = 32
-        execute = _try_apply(state, _env("GOV_EXECUTE", "SYSTEM", 4, {"proposal_id": proposal_id, "_due_height": 33}, system=True, parent="tx:gov:conflict"))
+        execute = _try_apply(
+            state,
+            _env(
+                "GOV_EXECUTE",
+                "SYSTEM",
+                4,
+                {"proposal_id": proposal_id, "_due_height": 33},
+                system=True,
+                parent="tx:gov:conflict",
+            ),
+        )
     else:
         execute = {"ok": False, "error": {"reason": "proposal_create_failed"}}
     emitted = system_tx_emitter(state, canon=canon, next_height=34, phase="post")
     applied = []
     for index, env in enumerate(emitted):
         state["height"] = 34 + index
-        applied.append({"tx_type": env.tx_type, "payload": dict(env.payload), "result": _try_apply(state, env)})
+        applied.append(
+            {"tx_type": env.tx_type, "payload": dict(env.payload), "result": _try_apply(state, env)}
+        )
     return {
         "id": "conflict::quorum_last_write_order",
         "proposal_create": create,
@@ -331,18 +468,41 @@ def _conflict_order_vector(canon: Any) -> Json:
 
 def build_payload() -> Json:
     canon = load_tx_index_json(ROOT / "generated" / "tx_index.json")
-    allowed_vectors = [_proposal_vector_for_action(action, payload, canon) for action, payload in sorted(ALLOWED_ACTION_PAYLOADS.items())]
+    allowed_vectors = [
+        _proposal_vector_for_action(action, payload, canon)
+        for action, payload in sorted(ALLOWED_ACTION_PAYLOADS.items())
+    ]
     failure_vectors = _failure_vectors(canon)
     conflict_vector = _conflict_order_vector(canon)
     ok = all(
         (
-            (v["proposal_create"]["ok"] is False and v["expected_locked_by_genesis_economics"] is True and v["proposal_create"].get("error", {}).get("reason") == "economic_actions_locked")
-            or (v["proposal_create"]["ok"] is True and v["execution_result"].get("ok") is True and v["expected_locked_by_genesis_economics"] is False)
+            (
+                v["proposal_create"]["ok"] is False
+                and v["expected_locked_by_genesis_economics"] is True
+                and v["proposal_create"].get("error", {}).get("reason") == "economic_actions_locked"
+            )
+            or (
+                v["proposal_create"]["ok"] is True
+                and v["execution_result"].get("ok") is True
+                and v["expected_locked_by_genesis_economics"] is False
+            )
         )
         for v in allowed_vectors
     )
-    ok = bool(ok and all(v["result"].get("ok") is False and v["result"].get("error", {}).get("reason") == v["expected_reason"] for v in failure_vectors))
-    ok = bool(ok and conflict_vector["proposal_create"].get("ok") is True and conflict_vector["execution_result"].get("ok") is True and int(conflict_vector.get("final_quorum", {}).get("quorum_bps") or 0) == 7_500)
+    ok = bool(
+        ok
+        and all(
+            v["result"].get("ok") is False
+            and v["result"].get("error", {}).get("reason") == v["expected_reason"]
+            for v in failure_vectors
+        )
+    )
+    ok = bool(
+        ok
+        and conflict_vector["proposal_create"].get("ok") is True
+        and conflict_vector["execution_result"].get("ok") is True
+        and int(conflict_vector.get("final_quorum", {}).get("quorum_bps") or 0) == 7_500
+    )
     return {
         "schema": "weall.v1_5.governance_execution_vectors",
         "version": 1,
@@ -358,7 +518,13 @@ def build_payload() -> Json:
         "allowed_action_vectors": allowed_vectors,
         "failure_vectors": failure_vectors,
         "conflict_vectors": [conflict_vector],
-        "artifact_hash": _canonical_hash({"allowed": allowed_vectors, "failures": failure_vectors, "conflicts": [conflict_vector]}),
+        "artifact_hash": _canonical_hash(
+            {
+                "allowed": allowed_vectors,
+                "failures": failure_vectors,
+                "conflicts": [conflict_vector],
+            }
+        ),
     }
 
 
@@ -373,12 +539,20 @@ def _write_if_changed(path: Path, text: str) -> bool:
 def _with_legacy_stdout_aliases(payload: Json) -> Json:
     """Preserve the older --json stdout contract while the generated artifact uses the richer v1.5 schema."""
     out = dict(payload)
-    by_type = {row.get("action_type"): row for row in payload.get("allowed_action_vectors", []) if isinstance(row, dict)}
+    by_type = {
+        row.get("action_type"): row
+        for row in payload.get("allowed_action_vectors", [])
+        if isinstance(row, dict)
+    }
     suspend = by_type.get("VALIDATOR_SUSPEND") if isinstance(by_type, dict) else None
     if not isinstance(suspend, dict):
         return out
 
-    emitted_h12 = [str(row.get("tx_type")) for row in suspend.get("emitted_actions", []) if isinstance(row, dict) and row.get("tx_type")]
+    emitted_h12 = [
+        str(row.get("tx_type"))
+        for row in suspend.get("emitted_actions", [])
+        if isinstance(row, dict) and row.get("tx_type")
+    ]
     applied = [row for row in suspend.get("applied_action_results", []) if isinstance(row, dict)]
     validator_status = ""
     for row in applied:
@@ -388,17 +562,25 @@ def _with_legacy_stdout_aliases(payload: Json) -> Json:
         body = result.get("result") if isinstance(result.get("result"), dict) else {}
         validator_status = str(body.get("status") or validator_status)
 
-    execution_receipt_count = sum(1 for row in applied if row.get("tx_type") == "GOV_EXECUTION_RECEIPT")
-    proposal_receipt_count = sum(1 for row in applied if row.get("tx_type") == "GOV_PROPOSAL_RECEIPT")
+    execution_receipt_count = sum(
+        1 for row in applied if row.get("tx_type") == "GOV_EXECUTION_RECEIPT"
+    )
+    proposal_receipt_count = sum(
+        1 for row in applied if row.get("tx_type") == "GOV_PROPOSAL_RECEIPT"
+    )
     out.update(
         {
             "batch509_stdout_compatibility": True,
-            "final_stage": "finalized" if suspend.get("execution_result", {}).get("ok") is True else str(suspend.get("final_stage") or ""),
+            "final_stage": "finalized"
+            if suspend.get("execution_result", {}).get("ok") is True
+            else str(suspend.get("final_stage") or ""),
             "emitted_h11": ["GOV_EXECUTE"],
             "emitted_h12": emitted_h12,
             "validator_b_status": validator_status,
             "execution_receipt_count": execution_receipt_count,
-            "proposal_receipt_count": max(1 if execution_receipt_count else 0, proposal_receipt_count),
+            "proposal_receipt_count": max(
+                1 if execution_receipt_count else 0, proposal_receipt_count
+            ),
         }
     )
     return out
@@ -412,7 +594,10 @@ def main() -> int:
     args = parser.parse_args()
 
     payload = build_payload()
-    text = json.dumps(payload, indent=None if args.json else 2, sort_keys=True, ensure_ascii=False) + "\n"
+    text = (
+        json.dumps(payload, indent=None if args.json else 2, sort_keys=True, ensure_ascii=False)
+        + "\n"
+    )
     out = Path(args.out)
     if args.check:
         if not out.exists():
@@ -423,7 +608,10 @@ def main() -> int:
         return 0
     if args.json:
         stdout_payload = _with_legacy_stdout_aliases(payload)
-        sys.stdout.write(json.dumps(stdout_payload, separators=(",", ":"), sort_keys=True, ensure_ascii=False) + "\n")
+        sys.stdout.write(
+            json.dumps(stdout_payload, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+            + "\n"
+        )
         return 0 if payload.get("ok") is True else 1
     _write_if_changed(out, text)
     print(str(out))

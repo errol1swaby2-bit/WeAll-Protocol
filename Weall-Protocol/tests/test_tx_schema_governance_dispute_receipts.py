@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
 
-
 BASE_ENV = {
     "signer": "alice",
     "nonce": 1,
@@ -55,16 +54,37 @@ def test_schema_models_registered() -> None:
 @pytest.mark.parametrize(
     ("tx_type", "payload"),
     [
-        ("GOV_PROPOSAL_EDIT", {"proposal_id": "p1", "title": "Updated", "actions": [{"tx_type": "GOV_RULES_SET", "payload": {"params": {}}}], "_due_height": 10}),
+        (
+            "GOV_PROPOSAL_EDIT",
+            {
+                "proposal_id": "p1",
+                "title": "Updated",
+                "actions": [{"tx_type": "GOV_RULES_SET", "payload": {"params": {}}}],
+                "_due_height": 10,
+            },
+        ),
         ("GOV_PROPOSAL_WITHDRAW", {"proposal_id": "p1"}),
         ("GOV_STAGE_SET", {"proposal_id": "p1", "stage": "poll", "poll_total_votes": 4}),
         ("GOV_QUORUM_SET", {"quorum_percent": 60}),
         ("GOV_QUORUM_SET", {"quorum_bps": 6000}),
         ("GOV_RULES_SET", {"params": {"gov": {"open": True}}, "treasury": {"timelock_blocks": 5}}),
-        ("GOV_EXECUTE", {"proposal_id": "p1", "actions": [{"tx_type": "GOV_QUORUM_SET", "payload": {"quorum_percent": 51}}], "_parent_ref": "parent-1"}),
+        (
+            "GOV_EXECUTE",
+            {
+                "proposal_id": "p1",
+                "actions": [{"tx_type": "GOV_QUORUM_SET", "payload": {"quorum_percent": 51}}],
+                "_parent_ref": "parent-1",
+            },
+        ),
         ("GOV_EXECUTION_RECEIPT", {"proposal_id": "p1", "ok": True}),
-        ("PROTOCOL_UPGRADE_DECLARE", {"upgrade_id": "u1", "version": "2026.04-prod.1", "hash": "abc123"}),
-        ("PROTOCOL_UPGRADE_ACTIVATE", {"upgrade_id": "u1", "version": "2026.04-prod.1", "hash": "abc123"}),
+        (
+            "PROTOCOL_UPGRADE_DECLARE",
+            {"upgrade_id": "u1", "version": "2026.04-prod.1", "hash": "abc123"},
+        ),
+        (
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            {"upgrade_id": "u1", "version": "2026.04-prod.1", "hash": "abc123"},
+        ),
         ("GOV_VOTE_REVOKE", {"proposal_id": "p1"}),
         ("GOV_VOTING_CLOSE", {"proposal_id": "p1"}),
         ("GOV_TALLY_PUBLISH", {"proposal_id": "p1", "tally": {"yes": 4}, "total_votes": 4}),
@@ -72,19 +92,76 @@ def test_schema_models_registered() -> None:
         ("GOV_PROPOSAL_RECEIPT", {"proposal_id": "p1", "finalized": True}),
         ("DISPUTE_STAGE_SET", {"dispute_id": "d1", "stage": "juror_review"}),
         ("DISPUTE_JUROR_ATTENDANCE", {"dispute_id": "d1", "present": True}),
-        ("DISPUTE_RESOLVE", {"dispute_id": "d1", "resolution": {"outcome": "remove"}, "_due_height": 12}),
-        ("DISPUTE_APPEAL", {"dispute_id": "d1", "reason": "new evidence", "basis": {"cid": "baaaaaaaaaaaaaaaaaaaaa"}}),
-        ("DISPUTE_FINAL_RECEIPT", {"receipt_id": "r1", "dispute_id": "d1", "resolution": {"outcome": "remove"}}),
+        (
+            "DISPUTE_RESOLVE",
+            {"dispute_id": "d1", "resolution": {"outcome": "remove"}, "_due_height": 12},
+        ),
+        (
+            "DISPUTE_APPEAL",
+            {
+                "dispute_id": "d1",
+                "reason": "new evidence",
+                "basis": {"cid": "baaaaaaaaaaaaaaaaaaaaa"},
+            },
+        ),
+        (
+            "DISPUTE_FINAL_RECEIPT",
+            {"receipt_id": "r1", "dispute_id": "d1", "resolution": {"outcome": "remove"}},
+        ),
+        (
+            "DISPUTE_FINAL_RECEIPT",
+            {
+                "dispute_id": "d1",
+                "appeal_resolution": {"decision": "uphold", "actions": []},
+                "_parent_ref": "appeal-final",
+            },
+        ),
+        (
+            "DISPUTE_FINAL_RECEIPT",
+            {
+                "dispute_id": "d1",
+                "resolution": {},
+                "appeal_window_closed": True,
+                "appeal_deadline_height": 42,
+            },
+        ),
         ("CASE_TYPE_REGISTER", {"case_type": "poh_review"}),
         ("CASE_BIND_TO_DISPUTE", {"case_id": "c1", "dispute_id": "d1"}),
         ("CASE_OUTCOME_RECEIPT", {"case_id": "c1", "outcome": {"approved": True}}),
         ("MOD_ACTION_RECEIPT", {"target_id": "post-1", "action": "hide", "labels": ["spam"]}),
         ("FLAG_ESCALATION_RECEIPT", {"target_id": "post-1", "dispute_id": "d1"}),
-        ("DISPUTE_OPEN", {"dispute_id": "d1", "target_type": "content", "target_id": "post-1", "reason": "spam"}),
-        ("DISPUTE_EVIDENCE_DECLARE", {"dispute_id": "d1", "evidence_id": "e1", "kind": "video", "cid": "baaaaaaaaaaaaaaaaaaaaa"}),
+        (
+            "DISPUTE_OPEN",
+            {"dispute_id": "d1", "target_type": "content", "target_id": "post-1", "reason": "spam"},
+        ),
+        (
+            "DISPUTE_EVIDENCE_DECLARE",
+            {
+                "dispute_id": "d1",
+                "evidence_id": "e1",
+                "kind": "video",
+                "cid": "baaaaaaaaaaaaaaaaaaaaa",
+            },
+        ),
         ("DISPUTE_EVIDENCE_BIND", {"dispute_id": "d1", "evidence_id": "e1"}),
         ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "vote": "approve"}),
-        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "verdict": "approve", "resolution": {"action": "remove"}}),
+        (
+            "DISPUTE_VOTE_SUBMIT",
+            {"dispute_id": "d1", "verdict": "approve", "resolution": {"action": "remove"}},
+        ),
+        (
+            "DISPUTE_VOTE_SUBMIT",
+            {
+                "dispute_id": "d1",
+                "appeal_decision": "uphold",
+                "appeal_resolution": {"decision": "uphold", "actions": []},
+            },
+        ),
+        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1", "appeal_vote": "reverse"}),
+        (
+            "DISPUTE_VOTE_SUBMIT",
+            {"dispute_id": "d1", "appeal_resolution": {"decision": "modify", "actions": []}},
+        ),
     ],
 )
 def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
@@ -117,10 +194,12 @@ def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
         ("DISPUTE_OPEN", {"dispute_id": "d1", "target_id": "post-1"}, "target_type"),
         ("DISPUTE_JUROR_ASSIGN", {"dispute_id": "d1"}, "juror_id"),
         ("DISPUTE_EVIDENCE_DECLARE", {"dispute_id": "d1"}, "evidence_id"),
-        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1"}, "either vote or verdict is required"),
+        ("DISPUTE_VOTE_SUBMIT", {"dispute_id": "d1"}, "either vote, verdict, appeal_decision"),
     ],
 )
-def test_missing_required_fields_are_rejected(tx_type: str, payload: dict, expected_fragment: str) -> None:
+def test_missing_required_fields_are_rejected(
+    tx_type: str, payload: dict, expected_fragment: str
+) -> None:
     with pytest.raises((ValidationError, ValueError)) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert expected_fragment in str(excinfo.value)

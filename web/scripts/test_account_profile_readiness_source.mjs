@@ -68,7 +68,7 @@ for (const needle of [
   "PoH/Tier status is protocol eligibility.",
   "It must not be described as legal identity proof",
   "The profile surface must not request or expose raw PoH evidence",
-  "Ready for controlled internal/public-observer rehearsal candidate, with public beta readiness still blocked by explicit external evidence gates.",
+  "Pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external evidence gates.",
 ]) {
   assertIncludes(readiness, needle, "Account/profile readiness doc");
 }

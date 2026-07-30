@@ -4,17 +4,20 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.ledger.roles_schema import ensure_roles_schema, set_treasury_signers
-from weall.runtime.tx_admission import TxEnvelope
-from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.ballot_policy import strict_civic_governance_enabled
+from weall.runtime.node_operator_responsibilities import (
+    active_node_pubkeys_for_account as responsibility_active_node_pubkeys_for_account,
+)
+from weall.runtime.node_operator_responsibilities import (
+    is_node_operator_active,
+)
 from weall.runtime.poh.state import effective_poh_tier
+from weall.runtime.reputation_units import account_reputation_units
+from weall.runtime.reviewer_responsibilities import REVIEWER_LANES
+from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.validator_readiness_runner import (
     ValidatorReadinessError,
     validate_validator_readiness_payload,
-)
-from weall.runtime.reviewer_responsibilities import REVIEWER_LANES
-from weall.runtime.node_operator_responsibilities import (
-    active_node_pubkeys_for_account as responsibility_active_node_pubkeys_for_account,
-    is_node_operator_active,
 )
 
 Json = dict[str, Any]
@@ -125,9 +128,7 @@ def _active_assigned_jurors(dispute: Json) -> list[str]:
     if out:
         return sorted(set(out))
     assigned = [
-        _as_str(x).strip()
-        for x in _as_list(dispute.get("assigned_jurors"))
-        if _as_str(x).strip()
+        _as_str(x).strip() for x in _as_list(dispute.get("assigned_jurors")) if _as_str(x).strip()
     ]
     return sorted(set(assigned))
 
@@ -143,6 +144,11 @@ def _assign_unassigned_content_reviews_to_juror(ledger: Json, acct: str, *, nonc
     """
 
     if not acct:
+        return 0
+    # Strict M3 profiles require a complete deterministic constitutional panel.
+    # A single opt-in transaction must never assign its own signer directly.
+    # The shared scheduler repairs unassigned cases once the full pool exists.
+    if strict_civic_governance_enabled(ledger):
         return 0
     disputes = _as_dict(ledger.get("disputes_by_id"))
     if not disputes:
@@ -211,8 +217,6 @@ def _ensure_roles(ledger: Json) -> Json:
     return roles if isinstance(roles, dict) else {}
 
 
-
-
 def _require_self_or_system(env: TxEnvelope, acct: str, reason: str) -> None:
     if bool(getattr(env, "system", False)):
         return
@@ -263,9 +267,13 @@ def _require_role_activation_eligible(
     if bool(account.get("banned", False)) or bool(account.get("locked", False)):
         raise RolesApplyError("forbidden", "account_restricted", {"account_id": acct, "role": role})
     if effective_poh_tier(ledger, acct) < 2:
-        raise RolesApplyError("forbidden", "live_verification_required", {"account_id": acct, "role": role})
+        raise RolesApplyError(
+            "forbidden", "live_verification_required", {"account_id": acct, "role": role}
+        )
     if _role_eligibility_revoked(ledger, acct, role):
-        raise RolesApplyError("forbidden", "role_eligibility_revoked", {"account_id": acct, "role": role})
+        raise RolesApplyError(
+            "forbidden", "role_eligibility_revoked", {"account_id": acct, "role": role}
+        )
     required = max(0, int(minimum_reputation_milli))
     actual = account_reputation_units(account, default=0)
     if actual < required:
@@ -282,7 +290,9 @@ def _require_role_activation_eligible(
     return account
 
 
-def _role_required_reputation_milli(ledger: Json, payload: Json, role: str, default: int = 0) -> int:
+def _role_required_reputation_milli(
+    ledger: Json, payload: Json, role: str, default: int = 0
+) -> int:
     params = _as_dict(ledger.get("params"))
     for key in (
         "reputation_required_milli",
@@ -333,7 +343,10 @@ def _ensure_node_operator_responsibilities(rec: Json) -> Json:
 def _has_storage_responsibility_intent(payload: Json) -> bool:
     if bool(payload.get("storage_opt_in", False)):
         return True
-    if payload.get("declared_capacity_bytes") is not None or payload.get("storage_capacity_bytes") is not None:
+    if (
+        payload.get("declared_capacity_bytes") is not None
+        or payload.get("storage_capacity_bytes") is not None
+    ):
         return True
     if payload.get("storage_endpoint_commitment") is not None:
         return True
@@ -341,7 +354,10 @@ def _has_storage_responsibility_intent(payload: Json) -> bool:
     if isinstance(responsibilities, dict):
         storage = responsibilities.get("storage")
         if isinstance(storage, dict):
-            return bool(storage.get("opted_in", False)) or storage.get("declared_capacity_bytes") is not None
+            return (
+                bool(storage.get("opted_in", False))
+                or storage.get("declared_capacity_bytes") is not None
+            )
     return False
 
 
@@ -413,7 +429,9 @@ def _active_node_pubkeys_for_account(ledger: Json, acct: str) -> set[str]:
     return set(responsibility_active_node_pubkeys_for_account(account))
 
 
-def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
+def _apply_node_validator_responsibility_opt_in(
+    ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int
+) -> None:
     account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
     if not account:
         raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
@@ -425,7 +443,9 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
     if not is_node_operator_active(ledger, acct):
         raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
 
-    reputation_required = _as_int(_payload_validator_field(payload, "reputation_required_milli", 5000), 5000)
+    reputation_required = _as_int(
+        _payload_validator_field(payload, "reputation_required_milli", 5000), 5000
+    )
     if reputation_required < 0:
         reputation_required = 5000
     reputation_actual = account_reputation_units(account, default=0)
@@ -473,7 +493,9 @@ def _apply_node_validator_responsibility_opt_in(ledger: Json, *, ops: Json, acct
     responsibilities["validator"] = validator
 
 
-def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
+def _apply_node_helper_responsibility_opt_in(
+    ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int
+) -> None:
     account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
     if not account:
         raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
@@ -485,7 +507,9 @@ def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: s
     if not is_node_operator_active(ledger, acct):
         raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
 
-    reputation_required = _as_int(_payload_helper_field(payload, "reputation_required_milli", 2000), 2000)
+    reputation_required = _as_int(
+        _payload_helper_field(payload, "reputation_required_milli", 2000), 2000
+    )
     if reputation_required < 0:
         reputation_required = 2000
     reputation_actual = account_reputation_units(account, default=0)
@@ -512,7 +536,15 @@ def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: s
             "active": True,
             "reputation_required_milli": int(reputation_required),
             "reputation_actual_milli": int(reputation_actual),
-            "helper_capacity_units": max(0, _as_int(_payload_helper_field(payload, "helper_capacity_units", helper.get("helper_capacity_units", 0)), 0)),
+            "helper_capacity_units": max(
+                0,
+                _as_int(
+                    _payload_helper_field(
+                        payload, "helper_capacity_units", helper.get("helper_capacity_units", 0)
+                    ),
+                    0,
+                ),
+            ),
             "updated_at_nonce": int(nonce),
         }
     )
@@ -527,7 +559,9 @@ def _apply_node_helper_responsibility_opt_in(ledger: Json, *, ops: Json, acct: s
     responsibilities["helper"] = helper
 
 
-def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int) -> None:
+def _apply_node_storage_responsibility_opt_in(
+    ledger: Json, *, ops: Json, acct: str, rec: Json, payload: Json, nonce: int
+) -> None:
     account = _as_dict(_as_dict(ledger.get("accounts")).get(acct))
     if not account:
         raise RolesApplyError("not_found", "account_not_found", {"account_id": acct})
@@ -541,7 +575,11 @@ def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: 
 
     declared_raw = payload.get("declared_capacity_bytes", payload.get("storage_capacity_bytes"))
     if declared_raw is None:
-        declared_raw = _payload_storage_field(payload, "declared_capacity_bytes", _payload_storage_field(payload, "storage_capacity_bytes", 0))
+        declared_raw = _payload_storage_field(
+            payload,
+            "declared_capacity_bytes",
+            _payload_storage_field(payload, "storage_capacity_bytes", 0),
+        )
     declared = _as_int(declared_raw, 0)
     if declared <= 0:
         raise RolesApplyError("invalid_payload", "declared_capacity_required", {"account_id": acct})
@@ -568,12 +606,16 @@ def _apply_node_storage_responsibility_opt_in(ledger: Json, *, ops: Json, acct: 
             "updated_at_nonce": int(nonce),
         }
     )
-    endpoint_commitment = _as_str(payload.get("storage_endpoint_commitment") or _payload_storage_field(payload, "storage_endpoint_commitment"))
+    endpoint_commitment = _as_str(
+        payload.get("storage_endpoint_commitment")
+        or _payload_storage_field(payload, "storage_endpoint_commitment")
+    )
     if endpoint_commitment:
         storage["storage_endpoint_commitment"] = endpoint_commitment
     if node_pubkey:
         storage["node_pubkey"] = node_pubkey
     responsibilities["storage"] = storage
+
 
 def _node_operator_record_for_update(ledger: Json, acct: str) -> tuple[Json, Json, Json]:
     roles = _ensure_roles(ledger)
@@ -596,9 +638,13 @@ def _apply_node_operator_storage_opt_in_tx(ledger: Json, env: TxEnvelope) -> Jso
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
     if acct != env.signer:
-        raise RolesApplyError("forbidden", "only_account_can_update_storage_responsibility", {"account_id": acct})
+        raise RolesApplyError(
+            "forbidden", "only_account_can_update_storage_responsibility", {"account_id": acct}
+        )
     ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
-    _apply_node_storage_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+    _apply_node_storage_responsibility_opt_in(
+        ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce)
+    )
     by_id[acct] = rec
     return {"applied": "NODE_OPERATOR_STORAGE_OPT_IN", "account_id": acct}
 
@@ -609,9 +655,13 @@ def _apply_node_operator_validator_opt_in_tx(ledger: Json, env: TxEnvelope) -> J
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
     if acct != env.signer:
-        raise RolesApplyError("forbidden", "only_account_can_update_validator_responsibility", {"account_id": acct})
+        raise RolesApplyError(
+            "forbidden", "only_account_can_update_validator_responsibility", {"account_id": acct}
+        )
     ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
-    _apply_node_validator_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+    _apply_node_validator_responsibility_opt_in(
+        ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce)
+    )
     by_id[acct] = rec
     return {"applied": "NODE_OPERATOR_VALIDATOR_OPT_IN", "account_id": acct}
 
@@ -622,9 +672,13 @@ def _apply_node_operator_helper_opt_in_tx(ledger: Json, env: TxEnvelope) -> Json
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
     if acct != env.signer:
-        raise RolesApplyError("forbidden", "only_account_can_update_helper_responsibility", {"account_id": acct})
+        raise RolesApplyError(
+            "forbidden", "only_account_can_update_helper_responsibility", {"account_id": acct}
+        )
     ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
-    _apply_node_helper_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+    _apply_node_helper_responsibility_opt_in(
+        ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce)
+    )
     by_id[acct] = rec
     return {"applied": "NODE_OPERATOR_HELPER_OPT_IN", "account_id": acct}
 
@@ -635,22 +689,36 @@ def _apply_node_operator_responsibility_update(ledger: Json, env: TxEnvelope) ->
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
     if acct != env.signer:
-        raise RolesApplyError("forbidden", "only_account_can_update_node_operator_responsibilities", {"account_id": acct})
+        raise RolesApplyError(
+            "forbidden",
+            "only_account_can_update_node_operator_responsibilities",
+            {"account_id": acct},
+        )
     ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
     updated: list[str] = []
     if _has_storage_responsibility_intent(payload):
-        _apply_node_storage_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+        _apply_node_storage_responsibility_opt_in(
+            ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce)
+        )
         updated.append("storage")
     if _has_validator_responsibility_intent(payload):
-        _apply_node_validator_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+        _apply_node_validator_responsibility_opt_in(
+            ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce)
+        )
         updated.append("validator")
     if _has_helper_responsibility_intent(payload):
-        _apply_node_helper_responsibility_opt_in(ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce))
+        _apply_node_helper_responsibility_opt_in(
+            ledger, ops=ops, acct=acct, rec=rec, payload=payload, nonce=int(env.nonce)
+        )
         updated.append("helper")
     if not updated:
         raise RolesApplyError("invalid_payload", "no_responsibility_update", {"account_id": acct})
     by_id[acct] = rec
-    return {"applied": "NODE_OPERATOR_RESPONSIBILITY_UPDATE", "account_id": acct, "updated": sorted(updated)}
+    return {
+        "applied": "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+        "account_id": acct,
+        "updated": sorted(updated),
+    }
 
 
 def _apply_validator_readiness_verify(ledger: Json, env: TxEnvelope) -> Json:
@@ -659,14 +727,22 @@ def _apply_validator_readiness_verify(ledger: Json, env: TxEnvelope) -> Json:
     acct = _pick_account(payload, "account_id", "operator", "node_operator", "target", "account")
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
-    status = _as_str(payload.get("verification_status") or payload.get("readiness_status") or payload.get("status")).lower()
+    status = _as_str(
+        payload.get("verification_status")
+        or payload.get("readiness_status")
+        or payload.get("status")
+    ).lower()
     if status not in ("verified", "ready", "failed", "rejected"):
-        raise RolesApplyError("invalid_payload", "validator_readiness_status_required", {"account_id": acct})
+        raise RolesApplyError(
+            "invalid_payload", "validator_readiness_status_required", {"account_id": acct}
+        )
     ops, by_id, rec = _node_operator_record_for_update(ledger, acct)
     responsibilities = _ensure_node_operator_responsibilities(rec)
     validator = _as_dict(responsibilities.get("validator"))
     if not bool(validator.get("opted_in", False)):
-        raise RolesApplyError("forbidden", "validator_responsibility_not_opted_in", {"account_id": acct})
+        raise RolesApplyError(
+            "forbidden", "validator_responsibility_not_opted_in", {"account_id": acct}
+        )
     if status in ("verified", "ready"):
         expected_node_pubkey = _as_str(payload.get("node_pubkey") or validator.get("node_pubkey"))
         try:
@@ -702,10 +778,21 @@ def _apply_validator_readiness_verify(ledger: Json, env: TxEnvelope) -> Json:
             }
         )
     else:
-        validator.update({"active": False, "readiness_status": "failed", "readiness_failed_at_nonce": int(env.nonce), "readiness_failed_at_height": _as_int(ledger.get("height"), 0)})
+        validator.update(
+            {
+                "active": False,
+                "readiness_status": "failed",
+                "readiness_failed_at_nonce": int(env.nonce),
+                "readiness_failed_at_height": _as_int(ledger.get("height"), 0),
+            }
+        )
     responsibilities["validator"] = validator
     by_id[acct] = rec
-    return {"applied": "VALIDATOR_READINESS_VERIFY", "account_id": acct, "verified": status in ("verified", "ready")}
+    return {
+        "applied": "VALIDATOR_READINESS_VERIFY",
+        "account_id": acct,
+        "verified": status in ("verified", "ready"),
+    }
 
 
 def _require_system_env(env: TxEnvelope) -> None:
@@ -813,7 +900,12 @@ def _sync_protocol_treasury_from_emissaries(ledger: Json, *, reason: str, nonce:
 
 
 def _reviewer_lane_values(payload: Json) -> list[str]:
-    raw = payload.get("lane") or payload.get("reviewer_lane") or payload.get("responsibility_lane") or payload.get("reviewer_lanes")
+    raw = (
+        payload.get("lane")
+        or payload.get("reviewer_lane")
+        or payload.get("responsibility_lane")
+        or payload.get("reviewer_lanes")
+    )
     if raw is None:
         responsibilities = payload.get("responsibilities")
         if isinstance(responsibilities, dict):
@@ -821,7 +913,13 @@ def _reviewer_lane_values(payload: Json) -> list[str]:
             if isinstance(reviewer, dict):
                 raw = reviewer.get("lanes") or reviewer.get("lane")
                 if raw is None:
-                    raw = [lane for lane, rec in reviewer.items() if lane in REVIEWER_LANES and isinstance(rec, dict) and bool(rec.get("opted_in", False))]
+                    raw = [
+                        lane
+                        for lane, rec in reviewer.items()
+                        if lane in REVIEWER_LANES
+                        and isinstance(rec, dict)
+                        and bool(rec.get("opted_in", False))
+                    ]
     if isinstance(raw, str):
         values = [raw]
     elif isinstance(raw, list):
@@ -867,10 +965,14 @@ def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) 
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
     if acct != env.signer:
-        raise RolesApplyError("forbidden", "only_account_can_update_reviewer_lane", {"account_id": acct})
+        raise RolesApplyError(
+            "forbidden", "only_account_can_update_reviewer_lane", {"account_id": acct}
+        )
     lanes = _reviewer_lane_values(payload)
     if not lanes:
-        raise RolesApplyError("invalid_payload", "reviewer_lane_required", {"allowed_lanes": list(REVIEWER_LANES)})
+        raise RolesApplyError(
+            "invalid_payload", "reviewer_lane_required", {"allowed_lanes": list(REVIEWER_LANES)}
+        )
 
     by_id = jur.get("by_id")
     if not isinstance(by_id, dict):
@@ -925,7 +1027,9 @@ def _apply_reviewer_lane_update(ledger: Json, env: TxEnvelope, *, active: bool) 
     jur["by_id"] = by_id
     reassigned_reviews = 0
     if active and "content_review" in lanes:
-        reassigned_reviews = _assign_unassigned_content_reviews_to_juror(ledger, acct, nonce=int(env.nonce))
+        reassigned_reviews = _assign_unassigned_content_reviews_to_juror(
+            ledger, acct, nonce=int(env.nonce)
+        )
     return {
         "applied": "REVIEWER_LANE_OPT_IN" if active else "REVIEWER_LANE_OPT_OUT",
         "account_id": acct,
@@ -1146,7 +1250,9 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
         ledger,
         acct,
         role="validator",
-        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "validator", 5000),
+        minimum_reputation_milli=_role_required_reputation_milli(
+            ledger, payload, "validator", 5000
+        ),
     )
 
     if not is_node_operator_active(ledger, acct):
@@ -1157,7 +1263,9 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
     op_rec = _as_dict(by_id.get(acct))
     responsibilities = _as_dict(op_rec.get("responsibilities"))
     validator_resp = _as_dict(responsibilities.get("validator"))
-    if not bool(validator_resp.get("active", False)) or _as_str(validator_resp.get("readiness_status")).strip().lower() not in {"verified", "ready"}:
+    if not bool(validator_resp.get("active", False)) or _as_str(
+        validator_resp.get("readiness_status")
+    ).strip().lower() not in {"verified", "ready"}:
         raise RolesApplyError("forbidden", "validator_readiness_required", {"account_id": acct})
 
     expires_height = _as_int(validator_resp.get("readiness_expires_height"), 0)
@@ -1166,10 +1274,18 @@ def _apply_role_validator_activate(ledger: Json, env: TxEnvelope) -> Json:
         raise RolesApplyError(
             "forbidden",
             "validator_readiness_expired",
-            {"account_id": acct, "current_height": current_height, "expires_height": expires_height},
+            {
+                "account_id": acct,
+                "current_height": current_height,
+                "expires_height": expires_height,
+            },
         )
 
-    node_pubkey = _as_str(payload.get("node_pubkey") or payload.get("node_public_key") or validator_resp.get("node_pubkey")).strip()
+    node_pubkey = _as_str(
+        payload.get("node_pubkey")
+        or payload.get("node_public_key")
+        or validator_resp.get("node_pubkey")
+    ).strip()
     if node_pubkey and node_pubkey not in _active_node_pubkeys_for_account(ledger, acct):
         raise RolesApplyError("forbidden", "node_key_not_registered", {"account_id": acct})
 
@@ -1233,7 +1349,9 @@ def _apply_role_node_operator_enroll(ledger: Json, env: TxEnvelope) -> Json:
     if not acct:
         raise RolesApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
     if acct != env.signer:
-        raise RolesApplyError("forbidden", "only_account_can_enroll_node_operator", {"account_id": acct})
+        raise RolesApplyError(
+            "forbidden", "only_account_can_enroll_node_operator", {"account_id": acct}
+        )
 
     by_id = ops.get("by_id")
     if not isinstance(by_id, dict):
@@ -1317,7 +1435,9 @@ def _apply_role_node_operator_activate(ledger: Json, env: TxEnvelope) -> Json:
         ledger,
         acct,
         role="node_operator",
-        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "node_operator", 0),
+        minimum_reputation_milli=_role_required_reputation_milli(
+            ledger, payload, "node_operator", 0
+        ),
     )
 
     rec["active"] = True
@@ -1543,7 +1663,9 @@ def _apply_role_gov_executor_set(ledger: Json, env: TxEnvelope) -> Json:
         ledger,
         acct,
         role="gov_executor",
-        minimum_reputation_milli=_role_required_reputation_milli(ledger, payload, "gov_executor", 0),
+        minimum_reputation_milli=_role_required_reputation_milli(
+            ledger, payload, "gov_executor", 0
+        ),
     )
 
     already = _as_str(gov_exec.get("current")).strip() == acct and bool(
@@ -1681,8 +1803,6 @@ def _apply_treasury_signers_set(ledger: Json, env: TxEnvelope) -> Json:
     }
 
 
-
-
 def _active_protocol_treasury_spend_for_treasury(ledger: Json, treasury_id: str) -> Json | None:
     tre = ledger.get("treasury")
     if not isinstance(tre, dict):
@@ -1701,6 +1821,7 @@ def _active_protocol_treasury_spend_for_treasury(ledger: Json, treasury_id: str)
             continue
         return spend
     return None
+
 
 # ---------------------------------------------------------------------------
 # Router

@@ -1,0 +1,21 @@
+{
+  "canonical_path": "web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
+  "freeze_spec_sha256": "6a4d60a8818518f94ee529241d845fb14db1d86efb1062d10263f8dad3cc5b52",
+  "implementation_freeze_commit": "4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5",
+  "purpose": "Validate deterministic inline system transitions through confirmed trigger transactions, perform bounded rate-aware status reads, and prove independent actor custody through storage bindings plus private signer companions. Signed negative fixtures use the public signed transaction endpoint and do not depend on expiring browser bearers.",
+  "recorded_at_utc": "2026-07-29T23:20:34Z",
+  "schema_version": 1,
+  "status": "m3_civic_tooling_override_active",
+  "tooling_commit": "a7125a5008c7ecbee8dc84b02714e1d9edd38b92",
+  "tooling_features": [
+    "inline_transition_trigger_binding",
+    "rate_aware_status_reads",
+    "independent_storage_and_signer_custody_binding",
+    "public_signed_tx_submission_without_session_bearer",
+    "signed_in_memory_group_authority_apply_proof",
+    "signed_in_memory_dispute_negative_apply_proofs",
+    "signed_in_memory_remaining_negative_apply_proofs",
+    "public_invalid_tx_envelope_for_unsupported_transaction_type"
+  ],
+  "tooling_spec_sha256": "edddc11db9b2a059c8ebba6ceefdc6fb25b10888c04bf8fc78de48670f228a8f"
+}
