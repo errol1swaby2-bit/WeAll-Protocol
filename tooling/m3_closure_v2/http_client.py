@@ -31,7 +31,7 @@ class RetryPolicy:
     max_delay_s: float = 30.0
     minimum_interval_s: float = 0.15
     timeout_s: float = 15.0
-    retry_statuses: frozenset[int] = frozenset({429, 500, 502, 503, 504})
+    retry_statuses: frozenset[int] = frozenset({429, 500, 502, 503, 504, 599})
 
     def __post_init__(self) -> None:
         if self.max_attempts < 1:
@@ -92,6 +92,12 @@ def urllib_transport(url: str, timeout_s: float) -> HttpResponse:
             status=int(exc.code),
             headers={str(k): str(v) for k, v in exc.headers.items()},
             body=exc.read(4 * 1024 * 1024),
+        )
+    except urllib.error.URLError as exc:
+        return HttpResponse(
+            status=599,
+            headers={},
+            body=str(exc.reason).encode("utf-8", errors="replace"),
         )
 
 

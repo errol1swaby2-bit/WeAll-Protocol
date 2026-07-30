@@ -14,6 +14,7 @@ from .models import (
     parse_transcript,
 )
 from .receipts import ReceiptStore
+from .replay_status import load_replay_status_config, run_replay_status
 from .util import atomic_write_json
 from .verification import verify_transcript_statuses
 
@@ -86,6 +87,13 @@ def _inspect_receipt(args: argparse.Namespace) -> int:
     return 0
 
 
+def _verify_replay_status(args: argparse.Namespace) -> int:
+    config = load_replay_status_config(args.config)
+    payload = run_replay_status(config)
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="m3-closure-v2",
@@ -127,6 +135,17 @@ def build_parser() -> argparse.ArgumentParser:
     receipt.add_argument("--receipt-root", required=True)
     receipt.add_argument("--stage", required=True)
     receipt.set_defaults(handler=_inspect_receipt)
+
+    replay = sub.add_parser(
+        "verify-replay-status",
+        help=(
+            "Create a fresh private ledger snapshot, start an owned current-"
+            "freeze backend, and verify the canonical transcript with bounded "
+            "rate-limit handling."
+        ),
+    )
+    replay.add_argument("--config", required=True)
+    replay.set_defaults(handler=_verify_replay_status)
 
     return parser
 
