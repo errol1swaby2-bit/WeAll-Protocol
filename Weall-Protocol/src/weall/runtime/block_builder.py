@@ -618,15 +618,6 @@ def build_block_candidate(
         if isinstance(helper_execution, dict) and helper_execution
         else ""
     )
-    if isinstance(helper_execution, dict) and helper_execution:
-        helper_rep = helper_execution.get("helper_reputation")
-        if isinstance(helper_rep, dict):
-            rep_state = helper_rep.get("state")
-            if isinstance(rep_state, dict):
-                # Helper reputation influences future helper assignment/quarantine,
-                # so it must be committed state, not only stripped meta.
-                working["helper_reputation"] = dict(rep_state)
-
     # Production commitment to post-apply state.
     state_root = compute_state_root(working)
 
@@ -687,7 +678,6 @@ def build_block_candidate(
             "fraud_lane_ids": list(helper_execution.get("fraud_lane_ids") or []),
             "helper_reputation": dict(helper_execution.get("helper_reputation") or {}),
         }
-        meta_root["helper_reputation"] = dict(helper_execution.get("helper_reputation", {}).get("state") or {})
 
     transition_guardrail = _summarize_transition_guardrail_receipts(
         receipts,

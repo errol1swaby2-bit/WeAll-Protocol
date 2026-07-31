@@ -136,7 +136,7 @@ def test_bft_admission_rejects_off_slot_constitutional_timestamp(tmp_path: Path,
     assert reject.code == "bft_block_time_not_constitutional_slot"
 
 
-def test_helper_reputation_is_state_root_committed_and_replayed(tmp_path: Path, monkeypatch) -> None:
+def test_helper_reputation_is_diagnostic_only_and_not_replayed_into_state(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
@@ -162,13 +162,37 @@ def test_helper_reputation_is_state_root_committed_and_replayed(tmp_path: Path, 
     assert isinstance(new_state, dict)
     helper_execution = block.get("helper_execution")
     assert isinstance(helper_execution, dict)
-    assert "helper_reputation" in new_state
-    assert new_state["helper_reputation"] == helper_execution["helper_reputation"]["state"]
+    helper_reputation = helper_execution["helper_reputation"]
+    assert helper_reputation["transition_policy"] == "diagnostic_only_v1"
+    assert helper_reputation["state_committed"] is False
+    assert new_state.get("helper_reputation") in (None, {})
     assert compute_state_root(new_state) == block["header"]["state_root"]
 
-    meta = follower.apply_block(copy.deepcopy(block))
+    forged = copy.deepcopy(block)
+    forged_rep = forged["helper_execution"]["helper_reputation"]
+    forged_rep["state"] = {
+        "@attacker": {
+            "helper_id": "@attacker",
+            "audits_total": 999,
+            "success_count": 999,
+            "fraud_count": 0,
+            "timeout_count": 0,
+            "quarantine_until_ms": 0,
+            "last_event_ms": 20_000,
+            "last_reason": "forged",
+            "score": 1998,
+            "quarantined": False,
+        }
+    }
+    forged["header"]["helper_execution_root"] = compute_helper_execution_root(
+        helper_execution=forged["helper_execution"]
+    )
+    forged.pop("block_hash", None)
+    forged["block_hash"] = compute_block_hash(header=forged["header"])
+
+    meta = follower.apply_block(forged)
     assert meta.ok is True
-    assert follower.state.get("helper_reputation") == helper_execution["helper_reputation"]["state"]
+    assert follower.state.get("helper_reputation") in (None, {})
 
 
 def test_apply_block_rejects_helper_metadata_plan_mismatch(tmp_path: Path, monkeypatch) -> None:

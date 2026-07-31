@@ -347,6 +347,11 @@ def _build_helper_execution_metadata(
         helper_reputation_state=helper_reputation_state,
         now_ms=int(started_ms),
     )
+    # Reputation transitions are diagnostic-only until followers can derive them
+    # independently from consensus-verifiable certificates and audit results.
+    # Never let proposer-authored helper metadata mutate root-committed state.
+    helper_reputation_summary["transition_policy"] = "diagnostic_only_v1"
+    helper_reputation_summary["state_committed"] = False
     helper_assignment_summary = summarize_assignment_counts(
         candidates_by_lane={str(plan.lane_id): tuple(getattr(plan, "helper_candidates", ()) or ()) for plan in lane_plans},
         assignment_counts={

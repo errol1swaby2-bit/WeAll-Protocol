@@ -602,12 +602,6 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             return ExecutorMeta(ok=False, error="bad_block:vrf:missing", height=0, block_id="")
 
     helper_execution_for_root = block2.get("helper_execution")
-    if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
-        helper_rep = helper_execution_for_root.get("helper_reputation")
-        if isinstance(helper_rep, dict):
-            rep_state = helper_rep.get("state")
-            if isinstance(rep_state, dict):
-                working["helper_reputation"] = dict(rep_state)
 
     state_root = compute_state_root(working)
     have_sr = str(header.get("state_root") or "").strip()
@@ -735,7 +729,6 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             "fraud_lane_ids": list(helper_execution.get("fraud_lane_ids") or []),
             "helper_reputation": dict(helper_execution.get("helper_reputation") or {}),
         }
-        meta_root["helper_reputation"] = dict(helper_execution.get("helper_reputation", {}).get("state") or {})
 
     transition_guardrail = _summarize_transition_guardrail_receipts(
         receipts,

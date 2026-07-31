@@ -635,6 +635,14 @@ def verify_block_helper_plan_metadata(
         lane_plan_id = str(lane.get('plan_id') or '')
         if advertised_plan_id and lane_plan_id and lane_plan_id != advertised_plan_id:
             return False, 'helper_execution_lane_plan_id_mismatch'
+    helper_reputation = helper_execution.get('helper_reputation')
+    if isinstance(helper_reputation, Mapping):
+        transition_policy = str(helper_reputation.get('transition_policy') or '')
+        if transition_policy != 'diagnostic_only_v1':
+            return False, 'helper_reputation_transition_policy_invalid'
+        if helper_reputation.get('state_committed') is not False:
+            return False, 'helper_reputation_state_commitment_forbidden'
+
     accepted = helper_execution.get('accepted_certificates')
     if isinstance(accepted, list):
         for row in accepted:
