@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from weall.runtime.protocol_profile import (
     PRODUCTION_CONSENSUS_PROFILE,
@@ -90,7 +91,9 @@ def consensus_activation_hash(
     return hashlib.sha256(canonical_json(projection).encode("utf-8")).hexdigest()
 
 
-def consensus_profile_mismatch_reasons(local: Mapping[str, Any], remote: Mapping[str, Any]) -> list[str]:
+def consensus_profile_mismatch_reasons(
+    local: Mapping[str, Any], remote: Mapping[str, Any]
+) -> list[str]:
     reasons: list[str] = []
     keys = (
         "chain_id",

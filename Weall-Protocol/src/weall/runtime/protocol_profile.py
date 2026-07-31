@@ -3,8 +3,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from weall.runtime.reputation_units import REPUTATION_SCALE
 
@@ -94,9 +95,7 @@ BLOCK_TX_SIGNATURE_POLICY_REQUIRED = "required"
 BLOCK_TX_SIGNATURE_POLICY_LOCAL_FIXTURE = "optional_local_fixture"
 
 
-def block_tx_signature_policy(
-    state: Mapping[str, Any] | None = None, *, chain_id: str = ""
-) -> str:
+def block_tx_signature_policy(state: Mapping[str, Any] | None = None, *, chain_id: str = "") -> str:
     """Resolve block transaction signature policy from chain identity, never process mode.
 
     Canonical production, public-testnet, and controlled-devnet identities always
@@ -505,7 +504,9 @@ def effective_runtime_consensus_posture() -> dict[str, object]:
         "max_tx_payload_dict_keys": int(
             _env_int("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", p.max_tx_payload_dict_keys)
         ),
-        "max_tx_payload_str_len": int(_env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", p.max_tx_payload_str_len)),
+        "max_tx_payload_str_len": int(
+            _env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", p.max_tx_payload_str_len)
+        ),
         "max_tx_payload_nodes": int(_env_int("WEALL_MAX_TX_PAYLOAD_NODES", p.max_tx_payload_nodes)),
         "consensus_env_audit_ok": bool(env_audit["ok"]),
         "consensus_env_audit_fingerprint": str(env_audit["audit_fingerprint"]),
@@ -636,7 +637,9 @@ def runtime_startup_fingerprint(
         "max_tx_payload_dict_keys": int(
             posture.get("max_tx_payload_dict_keys", p.max_tx_payload_dict_keys)
         ),
-        "max_tx_payload_str_len": int(posture.get("max_tx_payload_str_len", p.max_tx_payload_str_len)),
+        "max_tx_payload_str_len": int(
+            posture.get("max_tx_payload_str_len", p.max_tx_payload_str_len)
+        ),
         "max_tx_payload_nodes": int(posture.get("max_tx_payload_nodes", p.max_tx_payload_nodes)),
         "consensus_env_audit_ok": bool(posture.get("consensus_env_audit_ok", False)),
         "consensus_env_audit_fingerprint": str(

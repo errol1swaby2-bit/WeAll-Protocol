@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 """Follower-side received block replay and commitment verification delegate.
 
@@ -10,12 +11,13 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.executor import (
+    MAX_BLOCK_TIME_ADVANCE_MS,
     ApplyError,
     ExecutorMeta,
     Json,
     LedgerView,
-    MAX_BLOCK_TIME_ADVANCE_MS,
     TxEnvelope,
     _call_admit_bft_commit_block,
     _consensus_fail_closed,
@@ -37,14 +39,12 @@ from weall.runtime.executor import (
     copy,
     effective_bft_enabled,
     ensure_block_hash,
-    recent_block_ids_from_state,
     recent_block_anchor_required_for_height,
+    recent_block_ids_from_state,
     runtime_vrf_required,
     validate_system_tx_queue_binding,
     verify_vrf_record,
 )
-
-from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.protocol_profile import block_tx_signatures_required
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
@@ -55,7 +55,6 @@ from weall.runtime.scheduler_pipeline import (
     run_replay_pre_schedulers,
 )
 from weall.runtime.system_tx_engine import build_system_queue_lookup
-
 
 
 def apply_block(self, block: Json) -> ExecutorMeta:
@@ -93,9 +92,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         return ExecutorMeta(ok=False, error="bad_block:missing_header", height=0, block_id="")
 
     if str(header.get("chain_id") or "").strip() != self.chain_id:
-        return ExecutorMeta(
-            ok=False, error="bad_block:chain_id_mismatch", height=0, block_id=""
-        )
+        return ExecutorMeta(ok=False, error="bad_block:chain_id_mismatch", height=0, block_id="")
 
     if effective_bft_enabled(executor=self, default=False):
         strict_bft_apply = (
@@ -131,9 +128,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     tip_hash = str(self.state.get("tip_hash") or "").strip()
     # Genesis: allow first block when tip_hash is empty.
     if tip_hash and prev_bh != tip_hash:
-        return ExecutorMeta(
-            ok=False, error="bad_block:prev_hash_mismatch", height=0, block_id=""
-        )
+        return ExecutorMeta(ok=False, error="bad_block:prev_hash_mismatch", height=0, block_id="")
 
     ts_ms = int(header.get("block_ts_ms") or block2.get("block_ts_ms") or 0)
     if ts_ms <= 0:
@@ -150,9 +145,13 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     if not bool(time_verdict.ok):
         code = str(time_verdict.code or "ts")
         if code == "not_constitutional_slot":
-            return ExecutorMeta(ok=False, error="bad_block:ts_not_constitutional_slot", height=0, block_id="")
+            return ExecutorMeta(
+                ok=False, error="bad_block:ts_not_constitutional_slot", height=0, block_id=""
+            )
         if code == "before_constitutional_slot":
-            return ExecutorMeta(ok=False, error="bad_block:ts_before_constitutional_slot", height=0, block_id="")
+            return ExecutorMeta(
+                ok=False, error="bad_block:ts_before_constitutional_slot", height=0, block_id=""
+            )
         return ExecutorMeta(ok=False, error=f"bad_block:{code}", height=0, block_id="")
 
     txs = block2.get("txs")
@@ -184,7 +183,11 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         nonlocal queue_lookup_cache
         root = working.get("system_queue")
         marker = (id(root), len(root) if isinstance(root, list) else -1)
-        if queue_lookup_cache is None or queue_lookup_cache[0] != marker[0] or queue_lookup_cache[1] != marker[1]:
+        if (
+            queue_lookup_cache is None
+            or queue_lookup_cache[0] != marker[0]
+            or queue_lookup_cache[1] != marker[1]
+        ):
             queue_lookup_cache = (marker[0], marker[1], build_system_queue_lookup(working))
         return queue_lookup_cache[2]
 
@@ -199,7 +202,12 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     def _run_system_emitter_side_effects(phase: str) -> None:
         # We discard envelopes; the block already contains the tx list.
         _ = emit_system_txs(
-            working, self.tx_index, next_height=next_height, phase=str(phase), proposer="", scheduler_set=scheduler_set
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase=str(phase),
+            proposer="",
+            scheduler_set=scheduler_set,
         )
         _invalidate_queue_lookup()
 
@@ -259,9 +267,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
 
     # Inclusion gates (fail-closed)
     ledger_for_block = LedgerView.from_ledger(working)
-    verify_block_signatures = block_tx_signatures_required(
-        self.state, chain_id=self.chain_id
-    )
+    verify_block_signatures = block_tx_signatures_required(self.state, chain_id=self.chain_id)
     ok, block_reject, per_tx = admit_block_txs(
         env_objs,
         ledger_for_block,
@@ -288,7 +294,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     post_ran = False
     blocked_signers_after_apply_reject: set[str] = set()
 
-    for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
+    for env, env_obj, parse_ok, tx_id, rej in zip(
+        txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False
+    ):
         if not post_ran and bool(getattr(env_obj, "system", False)):
             try:
                 payload = env.get("payload") if isinstance(env, dict) else None
@@ -413,7 +421,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_fn(working, env_obj if parse_ok else env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(
+                    working, env_obj if parse_ok else env, consume_nonce_on_fail=False
+                )
                 applied_ok = meta is not None
             except ApplyError as e:
                 applied_ok = False
@@ -423,11 +433,11 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             except Exception as e:
                 if _consensus_fail_closed():
                     return ExecutorMeta(
-                    ok=False,
-                    error=f"bad_block:tx_apply_failed:{type(e).__name__}",
-                    height=0,
-                    block_id="",
-                )
+                        ok=False,
+                        error=f"bad_block:tx_apply_failed:{type(e).__name__}",
+                        height=0,
+                        block_id="",
+                    )
                 applied_ok = False
                 err_code = type(e).__name__
                 err_reason = str(e)
@@ -606,13 +616,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     state_root = compute_state_root(working)
     have_sr = str(header.get("state_root") or "").strip()
     if not have_sr:
-        return ExecutorMeta(
-            ok=False, error="bad_block:missing_state_root", height=0, block_id=""
-        )
+        return ExecutorMeta(ok=False, error="bad_block:missing_state_root", height=0, block_id="")
     if state_root != have_sr:
-        return ExecutorMeta(
-            ok=False, error="bad_block:state_root_mismatch", height=0, block_id=""
-        )
+        return ExecutorMeta(ok=False, error="bad_block:state_root_mismatch", height=0, block_id="")
 
     recent_anchor_required = recent_block_anchor_required_for_height(
         state=self.state,
@@ -648,7 +654,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             )
     header_helper_root = str(header.get("helper_execution_root") or "").strip()
     if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
-        computed_helper_root = compute_helper_execution_root(helper_execution=helper_execution_for_root)
+        computed_helper_root = compute_helper_execution_root(
+            helper_execution=helper_execution_for_root
+        )
         if not header_helper_root:
             return ExecutorMeta(
                 ok=False, error="bad_block:missing_helper_execution_root", height=0, block_id=""
@@ -745,4 +753,3 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         block=block2, new_state=working, applied_ids=applied_ids, invalid_ids=invalid_ids
     )
     return meta
-

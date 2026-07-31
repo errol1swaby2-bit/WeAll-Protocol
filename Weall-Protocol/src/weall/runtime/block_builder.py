@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 """Leader-side block production and candidate construction delegates.
 
 This module is intentionally a structural extraction from ``weall.runtime.executor``.
@@ -8,12 +10,14 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
+from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.executor import (
+    MAX_BLOCK_TIME_ADVANCE_MS,
     ApplyError,
     ExecutorMeta,
     Json,
     LedgerView,
-    MAX_BLOCK_TIME_ADVANCE_MS,
     TxEnvelope,
     _consensus_fail_closed,
     _helper_execution_profile_hash,
@@ -35,32 +39,28 @@ from weall.runtime.executor import (
     copy,
     ensure_block_hash,
     expected_block_time_ms,
-    is_too_early,
     load_chain_manifest,
     make_block_header,
-    recent_block_ids_from_state,
-    recent_block_anchor_required_for_height,
     make_vrf_record,
     os,
     policy_from_manifest,
     policy_to_json,
+    recent_block_anchor_required_for_height,
+    recent_block_ids_from_state,
     runtime_vrf_required,
     validate_system_tx_queue_binding,
 )
-
-from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
+from weall.runtime.helper_certificates import HelperExecutionCertificate
 from weall.runtime.protocol_profile import block_tx_signatures_required
-from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
     prune_emitted,
+    queue_item_phase,
     run_leader_post_schedulers,
     run_leader_pre_schedulers,
-    queue_item_phase,
 )
 from weall.runtime.system_tx_engine import build_system_queue_lookup
-
 
 
 def produce_block(
@@ -92,7 +92,9 @@ def produce_block(
         if bool(_clock_policy.enabled):
             allow_empty = bool(_clock_policy.empty_blocks_enabled)
         else:
-            allow_empty = str(os.environ.get("WEALL_PRODUCE_EMPTY_BLOCKS") or "").strip().lower() in {
+            allow_empty = str(
+                os.environ.get("WEALL_PRODUCE_EMPTY_BLOCKS") or ""
+            ).strip().lower() in {
                 "1",
                 "true",
                 "yes",
@@ -135,6 +137,7 @@ def produce_block(
     return self.commit_block_candidate(
         block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids
     )
+
 
 def build_block_candidate(
     self,
@@ -251,7 +254,11 @@ def build_block_candidate(
         nonlocal queue_lookup_cache
         root = working.get("system_queue")
         marker = (id(root), len(root) if isinstance(root, list) else -1)
-        if queue_lookup_cache is None or queue_lookup_cache[0] != marker[0] or queue_lookup_cache[1] != marker[1]:
+        if (
+            queue_lookup_cache is None
+            or queue_lookup_cache[0] != marker[0]
+            or queue_lookup_cache[1] != marker[1]
+        ):
             queue_lookup_cache = (marker[0], marker[1], build_system_queue_lookup(working))
         return queue_lookup_cache[2]
 
@@ -304,7 +311,13 @@ def build_block_candidate(
     # Phase: system emitter pre. These side effects also feed state_root and
     # must not be swallowed during local proposal construction in production.
     try:
-        sys_pre = emit_system_txs(working, self.tx_index, next_height=next_height, phase="pre", scheduler_set=scheduler_set)
+        sys_pre = emit_system_txs(
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase="pre",
+            scheduler_set=scheduler_set,
+        )
         _invalidate_queue_lookup()
         for env in sys_pre:
             _apply_system_env(env)
@@ -343,9 +356,7 @@ def build_block_candidate(
     # non-prod behavior permissive so existing unsigned dev/test fixtures
     # can still exercise candidate construction flows.
     ledger_for_block = LedgerView.from_ledger(working)
-    verify_candidate_signatures = block_tx_signatures_required(
-        self.state, chain_id=self.chain_id
-    )
+    verify_candidate_signatures = block_tx_signatures_required(self.state, chain_id=self.chain_id)
     ok, block_reject, per_tx = admit_block_txs(
         env_objs,
         ledger_for_block,
@@ -354,7 +365,9 @@ def build_block_candidate(
         verify_signatures=verify_candidate_signatures,
     )
     if (not ok) and block_reject is not None:
-        self._last_mempool_selection_diag["rejected_count"] = int(len([x for x in per_tx if x is not None]))
+        self._last_mempool_selection_diag["rejected_count"] = int(
+            len([x for x in per_tx if x is not None])
+        )
         return None, None, [], [], f"block_reject:{block_reject.code}:{block_reject.reason}"
 
     # Apply txs (fail-atomic) and always emit deterministic receipts.
@@ -363,7 +376,9 @@ def build_block_candidate(
     # deterministically within this block.
     blocked_signers_after_apply_reject: set[str] = set()
 
-    for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
+    for env, env_obj, parse_ok, tx_id, rej in zip(
+        txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False
+    ):
         if len(applied_envs) >= final_block_tx_cap:
             break
         if not tx_id:
@@ -414,7 +429,9 @@ def build_block_candidate(
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_fn(working, env_obj if parse_ok else env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(
+                    working, env_obj if parse_ok else env, consume_nonce_on_fail=False
+                )
                 applied_ok = meta is not None
             except ApplyError as e:
                 applied_ok = False
@@ -462,7 +479,13 @@ def build_block_candidate(
 
     # Phase: system emitter post. Same fail-closed rule in production.
     try:
-        sys_post = emit_system_txs(working, self.tx_index, next_height=next_height, phase="post", scheduler_set=scheduler_set)
+        sys_post = emit_system_txs(
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase="post",
+            scheduler_set=scheduler_set,
+        )
         _invalidate_queue_lookup()
         for env in sys_post:
             _apply_system_env(env)
@@ -491,7 +514,9 @@ def build_block_candidate(
 
     self._last_mempool_selection_diag["selected_count"] = int(len(applied_ids))
     self._last_mempool_selection_diag["invalid_count"] = int(len(invalid_ids))
-    self._last_mempool_selection_diag["rejected_count"] = int(len([x for x in per_tx if x is not None]))
+    self._last_mempool_selection_diag["rejected_count"] = int(
+        len([x for x in per_tx if x is not None])
+    )
     self._last_mempool_selection_diag["selected_tx_ids"] = [str(x) for x in applied_ids[:64]]
 
     meta_root_working = working.get("meta")
@@ -701,4 +726,3 @@ def build_block_candidate(
         return None, None, [], invalid_ids, f"block_hash_commitment_failed:{type(exc).__name__}"
 
     return block, working, applied_ids, invalid_ids, ""
-
