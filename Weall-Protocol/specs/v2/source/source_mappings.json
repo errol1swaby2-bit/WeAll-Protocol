@@ -1416,6 +1416,16 @@
     {
       "affected_registers": [
         "mechanisms",
+        "activation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_consensus_profile_manifest.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
         "evidence"
       ],
       "classification": "authoritative_or_launch_critical",
@@ -4253,6 +4263,18 @@
     },
     {
       "affected_registers": [
+        "transactions",
+        "state",
+        "failures",
+        "activation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/ballot_policy.py",
+      "primary_mechanism_id": "M-050",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
         "messages",
         "mechanisms"
       ],
@@ -4492,6 +4514,16 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "src/weall/runtime/conflict_lanes.py",
+      "primary_mechanism_id": "M-012",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "activation"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/consensus_profile_manifest.py",
       "primary_mechanism_id": "M-012",
       "review_status": "mapped_current_snapshot"
     },
@@ -5769,18 +5801,6 @@
       "classification": "authoritative_or_launch_critical",
       "path": "tooling/gen_tx_contract_map.py",
       "primary_mechanism_id": "M-076",
-      "review_status": "mapped_current_snapshot"
-    },
-    {
-      "affected_registers": [
-        "transactions",
-        "state",
-        "failures",
-        "activation"
-      ],
-      "classification": "authoritative_or_launch_critical",
-      "path": "src/weall/runtime/ballot_policy.py",
-      "primary_mechanism_id": "M-050",
       "review_status": "mapped_current_snapshot"
     }
   ],

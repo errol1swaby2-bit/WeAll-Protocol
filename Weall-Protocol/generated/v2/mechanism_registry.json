@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "00bcaeda8547ad353d47b360eba62abbb30285ef609d34bda27ddc3fe2d4a785"
+    "source_tree_digest": "8ba660de03a0617a10abdade5771615846cae777c02c5ef1e1129cb32b3076fe"
   },
   "rows": [
     {
@@ -571,6 +571,7 @@
         }
       ],
       "repository_evidence_paths": [
+        "scripts/check_consensus_profile_manifest.py",
         "src/weall/__init__.py",
         "src/weall/env.py",
         "src/weall/indexing/__init__.py",
@@ -586,6 +587,7 @@
         "src/weall/runtime/bootstrap_manifest.py",
         "src/weall/runtime/bounded_rollback.py",
         "src/weall/runtime/conflict_lanes.py",
+        "src/weall/runtime/consensus_profile_manifest.py",
         "src/weall/runtime/constitution.py",
         "src/weall/runtime/constitutional_clock.py",
         "src/weall/runtime/diagnostics.py",
