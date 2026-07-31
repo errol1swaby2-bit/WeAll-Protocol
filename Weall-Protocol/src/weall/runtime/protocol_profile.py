@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
 from weall.runtime.reputation_units import REPUTATION_SCALE
 
@@ -85,6 +85,41 @@ class ProductionConsensusProfile:
 
 
 PRODUCTION_CONSENSUS_PROFILE = ProductionConsensusProfile()
+
+
+CANONICAL_SIGNATURE_REQUIRED_CHAIN_IDS: frozenset[str] = frozenset(
+    {"weall-prod", "weall-testnet-v1", "weall-controlled-devnet"}
+)
+BLOCK_TX_SIGNATURE_POLICY_REQUIRED = "required"
+BLOCK_TX_SIGNATURE_POLICY_LOCAL_FIXTURE = "optional_local_fixture"
+
+
+def block_tx_signature_policy(
+    state: Mapping[str, Any] | None = None, *, chain_id: str = ""
+) -> str:
+    """Resolve block transaction signature policy from chain identity, never process mode.
+
+    Canonical production, public-testnet, and controlled-devnet identities always
+    require signatures.  Non-canonical chains retain an explicit local-fixture
+    compatibility policy so unit tests and isolated developer chains can use
+    unsigned fixtures without creating a prod/dev consensus split.
+    """
+
+    st = state if isinstance(state, Mapping) else {}
+    params = st.get("params") if isinstance(st.get("params"), Mapping) else {}
+    raw = str(params.get("block_tx_signature_policy") or "").strip().lower()
+    if raw in {BLOCK_TX_SIGNATURE_POLICY_REQUIRED, BLOCK_TX_SIGNATURE_POLICY_LOCAL_FIXTURE}:
+        return raw
+    resolved_chain_id = str(chain_id or st.get("chain_id") or "").strip()
+    if resolved_chain_id in CANONICAL_SIGNATURE_REQUIRED_CHAIN_IDS:
+        return BLOCK_TX_SIGNATURE_POLICY_REQUIRED
+    return BLOCK_TX_SIGNATURE_POLICY_LOCAL_FIXTURE
+
+
+def block_tx_signatures_required(
+    state: Mapping[str, Any] | None = None, *, chain_id: str = ""
+) -> bool:
+    return block_tx_signature_policy(state, chain_id=chain_id) == BLOCK_TX_SIGNATURE_POLICY_REQUIRED
 
 
 @dataclass(frozen=True, slots=True)

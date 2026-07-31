@@ -49,6 +49,7 @@ from weall.runtime.executor import (
 )
 
 from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
+from weall.runtime.protocol_profile import block_tx_signatures_required
 from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
@@ -342,8 +343,8 @@ def build_block_candidate(
     # non-prod behavior permissive so existing unsigned dev/test fixtures
     # can still exercise candidate construction flows.
     ledger_for_block = LedgerView.from_ledger(working)
-    verify_candidate_signatures = (
-        str(os.environ.get("WEALL_MODE") or "").strip().lower() == "prod"
+    verify_candidate_signatures = block_tx_signatures_required(
+        self.state, chain_id=self.chain_id
     )
     ok, block_reject, per_tx = admit_block_txs(
         env_objs,

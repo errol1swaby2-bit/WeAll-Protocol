@@ -108,6 +108,11 @@ def _initial_state(self) -> Json:
         "guardian_recovery_new_admission": False,
         "require_recovery_key_at_account_register": bool(strict_identity_registration),
         "require_evidence_kem_at_account_register": bool(strict_identity_registration),
+        "block_tx_signature_policy": (
+            "required"
+            if self.chain_id in {"weall-prod", "weall-testnet-v1", "weall-controlled-devnet"}
+            else "optional_local_fixture"
+        ),
     }
 
     # M3 controlled-testnet ballot closure is an explicit genesis choice.  It

@@ -39,13 +39,13 @@ from weall.runtime.executor import (
     ensure_block_hash,
     recent_block_ids_from_state,
     recent_block_anchor_required_for_height,
-    runtime_mode,
     runtime_vrf_required,
     validate_system_tx_queue_binding,
     verify_vrf_record,
 )
 
 from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
+from weall.runtime.protocol_profile import block_tx_signatures_required
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
@@ -259,7 +259,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
 
     # Inclusion gates (fail-closed)
     ledger_for_block = LedgerView.from_ledger(working)
-    verify_block_signatures = bool(runtime_mode() == "prod")
+    verify_block_signatures = block_tx_signatures_required(
+        self.state, chain_id=self.chain_id
+    )
     ok, block_reject, per_tx = admit_block_txs(
         env_objs,
         ledger_for_block,
