@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1.7
+ARG PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.59.1-noble
+FROM ${PLAYWRIGHT_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/weall-venv \
+    PATH=/opt/weall-venv/bin:$PATH
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       build-essential \
+       ca-certificates \
+       curl \
+       git \
+       gnupg \
+       jq \
+       libffi-dev \
+       libssl-dev \
+       pkg-config \
+       python3 \
+       python3-dev \
+       python3-pip \
+       python3-venv \
+       unzip \
+       zip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+COPY Weall-Protocol/requirements.lock /tmp/weall/requirements.lock
+COPY Weall-Protocol/requirements-dev.lock /tmp/weall/requirements-dev.lock
+RUN python3 -m venv "${VIRTUAL_ENV}" \
+    && python -m pip install --upgrade pip \
+    && python -m pip install --require-hashes -r /tmp/weall/requirements-dev.lock
+
+COPY web/package.json web/package-lock.json /tmp/weall/web/
+RUN cd /tmp/weall/web && npm ci --ignore-scripts
+
+CMD ["bash"]
