@@ -65,6 +65,7 @@ Example configuration:
   "evidence_commit": "72b9122e1d67b216cc8d678f921951a5a52175ad",
   "evidence_transcript_path": "artifacts/m3-closure/browser/civic/transaction-transcript.json",
   "preserved_database": "/home/errol/.local/share/weall/m3-live-4ca0e13e1e48/node1/weall.db",
+  "preserved_operator_keyfile": "/home/errol/.local/share/weall/m3-live-4ca0e13e1e48/genesis-operator.json",
   "output_root": "/home/errol/.local/share/weall/m3-closure-v2/<run-id>",
   "backend_port": 18411,
   "minimum_request_interval_s": 0.35,
@@ -96,3 +97,18 @@ The immutable M3 transcript contains four evidence classes:
 The tooling installation gate validates the actual immutable 62-action
 historical transcript and requires the complete count contract before a live
 backend may start.
+
+
+## Preserved genesis bootstrap binding
+
+Historical replay binds both the persisted ledger and the exact operator
+identity that created its genesis profile. Before backend startup, the tooling:
+
+1. verifies the database-pinned bootstrap profile and canonical hash;
+2. validates the preserved operator keyfile without reporting private material;
+3. requires the keyfile account and public key to match the pinned profile;
+4. copies the keyfile privately with mode `0600`;
+5. removes inherited `WEALL_*` and `GUNICORN_*` variables;
+6. reconstructs the explicit bootstrap environment from pinned values.
+
+The generated bootstrap report contains only hashes and non-secret parameters.

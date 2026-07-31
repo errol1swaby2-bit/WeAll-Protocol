@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import shutil
 import socket
 import sqlite3
 import subprocess
 import time
 import urllib.error
+from decimal import Decimal
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,6 +44,7 @@ class ReplayStatusConfig:
     evidence_commit: str
     evidence_transcript_path: str
     preserved_database: Path
+    preserved_operator_keyfile: Path
     output_root: Path
     backend_host: str = "127.0.0.1"
     backend_port: int = 18411
@@ -78,6 +82,12 @@ class ReplayStatusConfig:
                 "preserved_database_sha256": sha256_file(
                     self.preserved_database
                 ),
+                "preserved_operator_keyfile": str(
+                    self.preserved_operator_keyfile
+                ),
+                "preserved_operator_keyfile_sha256": sha256_file(
+                    self.preserved_operator_keyfile
+                ),
                 "backend_url": self.backend_url,
                 "ballot_profile_id": self.ballot_profile_id,
                 "minimum_request_interval_s": self.minimum_request_interval_s,
@@ -102,6 +112,11 @@ class ReplayStatusConfig:
             or self.preserved_database.is_symlink()
         ):
             raise ContractError("preserved_database_invalid")
+        if (
+            not self.preserved_operator_keyfile.is_file()
+            or self.preserved_operator_keyfile.is_symlink()
+        ):
+            raise ContractError("preserved_operator_keyfile_invalid")
         if not self.output_root.is_absolute():
             raise ContractError("output_root_not_absolute")
         if len(self.implementation_freeze_commit) != 40:
@@ -256,6 +271,206 @@ def sqlite_backup(
     }
 
 
+
+@dataclass(frozen=True)
+class BootstrapBinding:
+    account: str
+    public_key: str
+    reputation_text: str
+    storage_capacity_bytes: int
+    copied_keyfile: Path
+    profile_hash: str
+    source_keyfile_sha256: str
+    copied_keyfile_sha256: str
+
+    def safe_report(self) -> dict[str, Any]:
+        return {
+            "schema": "weall.m3.bootstrap-binding.v1",
+            "account": self.account,
+            "public_key_sha256": hashlib.sha256(
+                self.public_key.encode("utf-8")
+            ).hexdigest(),
+            "reputation_text": self.reputation_text,
+            "storage_capacity_bytes": self.storage_capacity_bytes,
+            "copied_keyfile": str(self.copied_keyfile),
+            "profile_hash": self.profile_hash,
+            "source_keyfile_sha256": self.source_keyfile_sha256,
+            "copied_keyfile_sha256": self.copied_keyfile_sha256,
+            "private_material_reported": False,
+            "ok": True,
+        }
+
+
+def _canonical_profile_hash(profile: Mapping[str, Any]) -> str:
+    canon = json.dumps(
+        dict(profile),
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+
+def _units_to_reputation_text(units: int) -> str:
+    dec = Decimal(int(units)) / Decimal(1000)
+    normalized = format(dec.normalize(), "f")
+    if "." in normalized:
+        normalized = normalized.rstrip("0").rstrip(".")
+    return normalized or "0"
+
+
+def _read_ledger_bootstrap_profile(
+    database: Path,
+) -> tuple[dict[str, Any], str]:
+    con = sqlite3.connect(
+        f"file:{database}?mode=ro",
+        uri=True,
+        timeout=30,
+    )
+    try:
+        row = con.execute(
+            "SELECT state_json FROM ledger_state WHERE id=1;"
+        ).fetchone()
+    finally:
+        con.close()
+
+    if row is None:
+        raise ContractError("ledger_state_missing")
+    try:
+        state = json.loads(str(row[0]))
+    except json.JSONDecodeError as exc:
+        raise ContractError("ledger_state_json_invalid") from exc
+    if not isinstance(state, Mapping):
+        raise ContractError("ledger_state_not_object")
+
+    meta = state.get("meta")
+    if not isinstance(meta, Mapping):
+        raise ContractError("ledger_meta_missing")
+    profile = meta.get("genesis_bootstrap_profile")
+    if not isinstance(profile, Mapping):
+        raise ContractError("ledger_bootstrap_profile_missing")
+    profile_dict = dict(profile)
+
+    required_keys = {
+        "enabled",
+        "mode",
+        "account",
+        "pubkey",
+        "reputation_milli",
+        "storage_capacity_bytes",
+    }
+    if set(profile_dict) != required_keys:
+        raise ContractError(
+            "ledger_bootstrap_profile_keys_invalid:"
+            f"expected={sorted(required_keys)}:"
+            f"actual={sorted(profile_dict)}"
+        )
+
+    stored_hash = str(
+        meta.get("genesis_bootstrap_profile_hash") or ""
+    ).strip()
+    calculated_hash = _canonical_profile_hash(profile_dict)
+    if not stored_hash or stored_hash != calculated_hash:
+        raise ContractError(
+            "ledger_bootstrap_profile_hash_invalid:"
+            f"stored={stored_hash}:calculated={calculated_hash}"
+        )
+    return profile_dict, stored_hash
+
+
+def _read_operator_keyfile(
+    path: Path,
+) -> tuple[str, str, str]:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ContractError("preserved_operator_keyfile_unreadable") from exc
+    if not isinstance(raw, Mapping):
+        raise ContractError("preserved_operator_keyfile_not_object")
+
+    account = str(raw.get("account") or "").strip()
+    public_key = str(raw.get("public_key_hex") or "").strip()
+    private_key = str(raw.get("private_key_hex") or "").strip()
+
+    if not account:
+        raise ContractError("preserved_operator_account_missing")
+    if not public_key:
+        raise ContractError("preserved_operator_public_key_missing")
+    if not private_key:
+        raise ContractError("preserved_operator_private_key_missing")
+    return account, public_key, private_key
+
+
+def prepare_bootstrap_binding(
+    *,
+    database: Path,
+    preserved_keyfile: Path,
+    copied_keyfile: Path,
+) -> BootstrapBinding:
+    profile, profile_hash = _read_ledger_bootstrap_profile(database)
+    key_account, key_public, _key_private = _read_operator_keyfile(
+        preserved_keyfile
+    )
+
+    if profile.get("enabled") is not True:
+        raise ContractError("ledger_bootstrap_profile_not_enabled")
+    if str(profile.get("mode") or "") != "explicit":
+        raise ContractError(
+            "ledger_bootstrap_profile_mode_invalid:"
+            + str(profile.get("mode"))
+        )
+
+    profile_account = str(profile.get("account") or "").strip()
+    profile_public = str(profile.get("pubkey") or "").strip()
+    if profile_account != key_account:
+        raise ContractError(
+            "operator_account_profile_mismatch:"
+            f"profile={profile_account}:keyfile={key_account}"
+        )
+    if profile_public != key_public:
+        raise ContractError(
+            "operator_public_key_profile_mismatch:"
+            f"profile_sha256="
+            f"{hashlib.sha256(profile_public.encode()).hexdigest()}:"
+            f"keyfile_sha256="
+            f"{hashlib.sha256(key_public.encode()).hexdigest()}"
+        )
+
+    reputation_units = int(profile.get("reputation_milli") or 0)
+    storage_capacity = int(
+        profile.get("storage_capacity_bytes") or 0
+    )
+    if reputation_units < 0:
+        raise ContractError("ledger_bootstrap_reputation_negative")
+    if storage_capacity < 0:
+        raise ContractError("ledger_bootstrap_storage_negative")
+
+    copied_keyfile.parent.mkdir(parents=True, exist_ok=True)
+    if copied_keyfile.exists():
+        raise ContractError(
+            f"copied_operator_keyfile_exists:{copied_keyfile}"
+        )
+    shutil.copyfile(preserved_keyfile, copied_keyfile)
+    os.chmod(copied_keyfile, 0o600)
+
+    source_sha = sha256_file(preserved_keyfile)
+    copied_sha = sha256_file(copied_keyfile)
+    if source_sha != copied_sha:
+        raise ContractError("copied_operator_keyfile_hash_mismatch")
+
+    return BootstrapBinding(
+        account=profile_account,
+        public_key=profile_public,
+        reputation_text=_units_to_reputation_text(
+            reputation_units
+        ),
+        storage_capacity_bytes=storage_capacity,
+        copied_keyfile=copied_keyfile,
+        profile_hash=profile_hash,
+        source_keyfile_sha256=source_sha,
+        copied_keyfile_sha256=copied_sha,
+    )
+
+
 def wait_for_json(
     url: str,
     *,
@@ -297,8 +512,14 @@ def _backend_environment(
     config: ReplayStatusConfig,
     runtime_dir: Path,
     database: Path,
+    bootstrap: BootstrapBinding,
 ) -> dict[str, str]:
-    environment = dict(os.environ)
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("WEALL_")
+        and not key.startswith("GUNICORN_")
+    }
     venv_bin = str(config.python_executable.parent)
     environment.update(
         {
@@ -312,10 +533,26 @@ def _backend_environment(
             "WEALL_NET_LOOP_AUTOSTART": "0",
             "WEALL_BLOCK_LOOP_AUTOSTART": "0",
             "WEALL_PRODUCE_EMPTY_BLOCKS": "0",
+            "WEALL_GENESIS_OPERATOR_KEYFILE": str(
+                bootstrap.copied_keyfile
+            ),
+            "WEALL_GENESIS_MODE": "0",
+            "WEALL_GENESIS_BOOTSTRAP_ENABLE": "1",
+            "WEALL_GENESIS_BOOTSTRAP_ACCOUNT": bootstrap.account,
+            "WEALL_GENESIS_BOOTSTRAP_REPUTATION": (
+                bootstrap.reputation_text
+            ),
+            "WEALL_GENESIS_BOOTSTRAP_STORAGE_CAPACITY_BYTES": str(
+                bootstrap.storage_capacity_bytes
+            ),
+            "WEALL_VALIDATOR_ACCOUNT": bootstrap.account,
+            "WEALL_NODE_ID": bootstrap.account,
             "WEALL_M3_CIVIC_GOVERNANCE_STRICT": "1",
             "WEALL_BALLOT_PROFILE_ID": config.ballot_profile_id,
             "WEALL_BALLOT_PROFILE_ACTIVE": "1",
-            "GUNICORN_BIND": f"{config.backend_host}:{config.backend_port}",
+            "GUNICORN_BIND": (
+                f"{config.backend_host}:{config.backend_port}"
+            ),
         }
     )
     return environment
@@ -336,7 +573,9 @@ def run_replay_status(config: ReplayStatusConfig) -> dict[str, Any]:
     transcript_path = config.output_root / "canonical-transcript.json"
     runtime_dir = config.output_root / "runtime"
     database = runtime_dir / "node1" / "weall.db"
+    copied_operator_keyfile = runtime_dir / "genesis-operator.json"
     snapshot_report_path = config.output_root / "snapshot-report.json"
+    bootstrap_report_path = config.output_root / "bootstrap-binding.json"
     source_report_path = config.output_root / "source-freeze-report.json"
     ballot_report_path = config.output_root / "ballot-profile.json"
     status_report_path = config.output_root / "status-verification.json"
@@ -358,6 +597,16 @@ def run_replay_status(config: ReplayStatusConfig) -> dict[str, Any]:
     snapshot_report = sqlite_backup(config.preserved_database, database)
     atomic_write_json(snapshot_report_path, snapshot_report)
 
+    bootstrap_binding = prepare_bootstrap_binding(
+        database=database,
+        preserved_keyfile=config.preserved_operator_keyfile,
+        copied_keyfile=copied_operator_keyfile,
+    )
+    atomic_write_json(
+        bootstrap_report_path,
+        bootstrap_binding.safe_report(),
+    )
+
     process = None
     process_record = None
     backend_state_after = ""
@@ -371,7 +620,12 @@ def run_replay_status(config: ReplayStatusConfig) -> dict[str, Any]:
                 str(config.backend_dir / "scripts" / "devnet_boot_genesis_node.sh"),
             ],
             cwd=config.backend_dir,
-            env=_backend_environment(config, runtime_dir, database),
+            env=_backend_environment(
+                config,
+                runtime_dir,
+                database,
+                bootstrap_binding,
+            ),
             stdout_path=backend_log,
             record_path=process_record_path,
         )
@@ -447,6 +701,14 @@ def run_replay_status(config: ReplayStatusConfig) -> dict[str, Any]:
         "transcript_sha256": sha256_file(transcript_path),
         "transcript_fingerprint": transcript.fingerprint,
         "database_snapshot": snapshot_report,
+        "bootstrap_binding_report": str(bootstrap_report_path),
+        "bootstrap_profile_hash": bootstrap_binding.profile_hash,
+        "preserved_operator_keyfile_sha256": (
+            bootstrap_binding.source_keyfile_sha256
+        ),
+        "copied_operator_keyfile_sha256": (
+            bootstrap_binding.copied_keyfile_sha256
+        ),
         "backend_url": config.backend_url,
         "backend_process_record": str(process_record_path),
         "backend_log": str(backend_log),
@@ -455,6 +717,8 @@ def run_replay_status(config: ReplayStatusConfig) -> dict[str, Any]:
         "status_verification_report": str(status_report_path),
         "repository_modified": False,
         "preserved_database_modified": False,
+        "preserved_operator_keyfile_modified": False,
+        "private_operator_material_reported": False,
         "ok": True,
     }
     atomic_write_json(final_report_path, final_report)
@@ -468,6 +732,7 @@ def run_replay_status(config: ReplayStatusConfig) -> dict[str, Any]:
             source_report_path,
             transcript_path,
             snapshot_report_path,
+            bootstrap_report_path,
             ballot_report_path,
             status_report_path,
             final_report_path,
@@ -476,6 +741,10 @@ def run_replay_status(config: ReplayStatusConfig) -> dict[str, Any]:
             "backend_state_after": backend_state_after,
             "action_count": len(transcript.actions),
             "negative_attempt_count": len(transcript.negative_attempts),
+            "bootstrap_profile_hash": bootstrap_binding.profile_hash,
+            "operator_keyfile_sha256": (
+                bootstrap_binding.source_keyfile_sha256
+            ),
         },
     )
 
@@ -501,6 +770,7 @@ def config_from_mapping(raw: Mapping[str, Any]) -> ReplayStatusConfig:
         "evidence_commit",
         "evidence_transcript_path",
         "preserved_database",
+        "preserved_operator_keyfile",
         "output_root",
     )
     missing = [key for key in required if key not in raw]
@@ -517,6 +787,9 @@ def config_from_mapping(raw: Mapping[str, Any]) -> ReplayStatusConfig:
         evidence_transcript_path=str(raw["evidence_transcript_path"]),
         preserved_database=Path(
             str(raw["preserved_database"])
+        ).expanduser().resolve(),
+        preserved_operator_keyfile=Path(
+            str(raw["preserved_operator_keyfile"])
         ).expanduser().resolve(),
         output_root=Path(str(raw["output_root"])).expanduser().resolve(),
         backend_host=str(raw.get("backend_host") or "127.0.0.1"),
