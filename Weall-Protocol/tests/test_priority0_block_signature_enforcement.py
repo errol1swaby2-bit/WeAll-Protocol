@@ -40,9 +40,12 @@ def _executor(tmp_path: Path, name: str) -> WeAllExecutor:
 
 
 def _require_block_signatures(executor: WeAllExecutor) -> None:
-    params = executor.state.setdefault("params", {})
+    state = executor.read_state()
+    params = state.setdefault("params", {})
     assert isinstance(params, dict)
     params["block_tx_signature_policy"] = "required"
+    executor.state = state
+    executor._ledger_store.write(state)
 
 
 def test_block_admission_rejects_unsigned_non_system_tx() -> None:

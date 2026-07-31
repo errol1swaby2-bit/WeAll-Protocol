@@ -2861,7 +2861,7 @@
       ],
       "path": "generated/b539_b543_production_path_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "e1f4dd50056489dda07b0a2874cbcdc33315e08f5e93db31746ba82ce5ad74f3",
+      "sha256": "97e366b007fdfa1a0bd96b2ef52007d4a43508a3ab9fac26c1305e911a9312c9",
       "source_id": "SRC-53061E3DE6083DDC"
     },
     {
@@ -2889,7 +2889,7 @@
       ],
       "path": "generated/b549_b553_controlled_testnet_candidate_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "54c9c4c98a87ca4cdee0ba1a8abf10e3c484747d324dcc4f98083265a9826b82",
+      "sha256": "5da1ce316dda95e3ac6eb43422ae844364ac31bca2b4641f188bb832d2366f3f",
       "source_id": "SRC-0524901BF4D5FCD1"
     },
     {
@@ -21848,7 +21848,7 @@
       ],
       "path": "tests/test_priority0_block_signature_enforcement.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "92e991ce6d937775df96edf82cb43fb1651bb1f24d6a55e3c1e6152e387aa2e6",
+      "sha256": "64cb7689b3bd160887c4bf8ffb2c986757880802ca47cf7b35246abffed27d88",
       "source_id": "SRC-9434057E63713637"
     },
     {
