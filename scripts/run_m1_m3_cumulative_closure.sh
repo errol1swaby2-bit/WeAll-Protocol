@@ -70,10 +70,44 @@ run_web() { (cd "${WEB}" && "$@"); }
 
 run_gate "consensus profile manifest" "source/consensus-profile.log" run_backend python scripts/check_consensus_profile_manifest.py
 run_gate "Spec-M1 v2 derivatives" "source/v2-derivatives.log" run_backend python scripts/compile_v2_spec.py --check
-run_gate "M2 requirement traceability" "source/m2-traceability.log" python3 "${ROOT}/scripts/check_m2_requirement_traceability.py"
-run_gate "M3 requirement traceability" "source/m3-traceability.log" python3 "${ROOT}/scripts/check_m3_requirement_traceability.py"
+run_gate "M2 requirement traceability" "source/m2-traceability.log" run_backend python scripts/check_m2_requirement_traceability.py
 run_gate "historical M2/M3 evidence pairs" "historical/verification.log" bash "${ROOT}/scripts/restore_m2_m3_evidence_from_git.sh" --verify-only
-run_gate "full backend suite" "source/full-pytest.log" run_backend python -m pytest -q
+
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/weall_m1_m3_cumulative_XXXXXX")"
+HISTORICAL_OVERLAY="${TMP}/historical-current"
+FULL_M2_WORKTREE="${TMP}/m2"
+FULL_M3_WORKTREE="${TMP}/m3"
+cleanup_worktrees() {
+  git -C "${ROOT}" worktree remove --force "${HISTORICAL_OVERLAY}" >/dev/null 2>&1 || true
+  git -C "${ROOT}" worktree remove --force "${FULL_M2_WORKTREE}" >/dev/null 2>&1 || true
+  git -C "${ROOT}" worktree remove --force "${FULL_M3_WORKTREE}" >/dev/null 2>&1 || true
+  rm -rf "${TMP}"
+}
+trap cleanup_worktrees EXIT INT TERM
+
+prepare_historical_overlay() {
+  git -C "${ROOT}" worktree add --detach "${HISTORICAL_OVERLAY}" "${FREEZE}" >/dev/null
+  bash "${HISTORICAL_OVERLAY}/scripts/restore_m2_m3_evidence_from_git.sh" \
+    --destination "${HISTORICAL_OVERLAY}"
+}
+run_historical_backend() {
+  (cd "${HISTORICAL_OVERLAY}/Weall-Protocol" && \
+    PYTHONPATH=src:scripts WEALL_API_BOOT_RUNTIME=0 "$@")
+}
+run_historical_root() {
+  (cd "${HISTORICAL_OVERLAY}" && "$@")
+}
+
+run_gate "historical evidence overlay" "historical/overlay.log" prepare_historical_overlay
+if [[ -d "${HISTORICAL_OVERLAY}/artifacts/m3-closure" ]]; then
+  run_gate "M3 requirement traceability" "source/m3-traceability.log" \
+    run_historical_root python scripts/check_m3_requirement_traceability.py
+  run_gate "full backend suite" "source/full-pytest.log" \
+    run_historical_backend python -m pytest -q
+else
+  run_gate "M3 requirement traceability" "source/m3-traceability.log" false
+  run_gate "full backend suite" "source/full-pytest.log" false
+fi
 run_gate "M1-M3 adversarial matrix" "adversarial/runner.log" env \
   WEALL_M1_M3_ADVERSARIAL_LOG="${ARTIFACT_ROOT}/adversarial/matrix.log" \
   bash "${ROOT}/scripts/run_m1_m3_adversarial_matrix.sh"
@@ -94,16 +128,9 @@ if [[ "${MODE}" == "full" ]]; then
   [[ -n "${WEALL_M3_ACTOR_MANIFEST:-}" && -f "${WEALL_M3_ACTOR_MANIFEST}" ]] || {
     echo "ERROR: --full requires WEALL_M3_ACTOR_MANIFEST" >&2; exit 2;
   }
-  TMP="$(mktemp -d "${TMPDIR:-/tmp}/weall_m1_m3_full_XXXXXX")"
-  cleanup_worktrees() {
-    git -C "${ROOT}" worktree remove --force "${TMP}/m2" >/dev/null 2>&1 || true
-    git -C "${ROOT}" worktree remove --force "${TMP}/m3" >/dev/null 2>&1 || true
-    rm -rf "${TMP}"
-  }
-  trap cleanup_worktrees EXIT INT TERM
-  git -C "${ROOT}" worktree add --detach "${TMP}/m2" "${FREEZE}" >/dev/null
-  git -C "${ROOT}" worktree add --detach "${TMP}/m3" "${FREEZE}" >/dev/null
-  for worktree in "${TMP}/m2" "${TMP}/m3"; do
+  git -C "${ROOT}" worktree add --detach "${FULL_M2_WORKTREE}" "${FREEZE}" >/dev/null
+  git -C "${ROOT}" worktree add --detach "${FULL_M3_WORKTREE}" "${FREEZE}" >/dev/null
+  for worktree in "${FULL_M2_WORKTREE}" "${FULL_M3_WORKTREE}"; do
     if [[ -n "${VIRTUAL_ENV:-}" ]]; then
       : # inherited by child runners
     elif [[ -d "${ROOT}/.venv" ]]; then
@@ -118,23 +145,24 @@ if [[ "${MODE}" == "full" ]]; then
 
   run_gate "fresh complete M2 closure" "m2/runner.log" env \
     M2_IMPLEMENTATION_FREEZE_COMMIT="${FREEZE}" \
-    WEALL_M2_ARTIFACT_ROOT="${TMP}/m2/artifacts/m2-closure" \
-    bash "${TMP}/m2/scripts/run_m2_complete_closure.sh"
-  if [[ -d "${TMP}/m2/artifacts/m2-closure" ]]; then
-    cp -a "${TMP}/m2/artifacts/m2-closure/." "${ARTIFACT_ROOT}/m2/"
+    WEALL_M2_ARTIFACT_ROOT="${FULL_M2_WORKTREE}/artifacts/m2-closure" \
+    bash "${FULL_M2_WORKTREE}/scripts/run_m2_complete_closure.sh"
+  if [[ -d "${FULL_M2_WORKTREE}/artifacts/m2-closure" ]]; then
+    cp -a "${FULL_M2_WORKTREE}/artifacts/m2-closure/." "${ARTIFACT_ROOT}/m2/"
   fi
 
   run_gate "fresh complete M3 closure" "m3/runner.log" env \
     M3_IMPLEMENTATION_FREEZE_COMMIT="${FREEZE}" \
     WEALL_M3_ACTOR_MANIFEST="${WEALL_M3_ACTOR_MANIFEST}" \
-    WEALL_M3_EVIDENCE_DIR="${TMP}/m3/artifacts/m3-closure" \
-    bash "${TMP}/m3/scripts/run_m3_complete_closure.sh"
-  if [[ -d "${TMP}/m3/artifacts/m3-closure" ]]; then
-    cp -a "${TMP}/m3/artifacts/m3-closure/." "${ARTIFACT_ROOT}/m3/"
+    WEALL_M3_EVIDENCE_DIR="${FULL_M3_WORKTREE}/artifacts/m3-closure" \
+    bash "${FULL_M3_WORKTREE}/scripts/run_m3_complete_closure.sh"
+  if [[ -d "${FULL_M3_WORKTREE}/artifacts/m3-closure" ]]; then
+    cp -a "${FULL_M3_WORKTREE}/artifacts/m3-closure/." "${ARTIFACT_ROOT}/m3/"
   fi
-  cleanup_worktrees
-  trap - EXIT INT TERM
 fi
+
+cleanup_worktrees
+trap - EXIT INT TERM
 
 if [[ ${FAILURES} -ne 0 ]]; then
   echo "M1-M3 cumulative closure FAILED: ${FAILURES} gate(s) failed" >&2

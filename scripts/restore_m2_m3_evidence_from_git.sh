@@ -47,29 +47,14 @@ done
   echo "ERROR: M3 evidence commit is not the direct child of the declared freeze" >&2; exit 1;
 }
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/weall_historical_evidence_XXXXXX")"
-cleanup() {
-  git -C "${ROOT}" worktree remove --force "${TMP}/m2" >/dev/null 2>&1 || true
-  git -C "${ROOT}" worktree remove --force "${TMP}/m3" >/dev/null 2>&1 || true
-  rm -rf "${TMP}"
-}
-trap cleanup EXIT INT TERM
-
-git -C "${ROOT}" worktree add --detach "${TMP}/m2" "${M2_EVIDENCE}" >/dev/null
-git -C "${ROOT}" worktree add --detach "${TMP}/m3" "${M3_EVIDENCE}" >/dev/null
-
-(
-  cd "${TMP}/m2"
-  python3 scripts/check_m2_evidence_manifest.py \
-    --mode commit \
-    --freeze-commit "${M2_FREEZE}" \
-    --commit "${M2_EVIDENCE}"
-)
-(
-  cd "${TMP}/m3"
-  M3_IMPLEMENTATION_FREEZE_COMMIT="${M3_FREEZE}" \
-    bash scripts/check_m3_evidence_only_commit.sh
-)
+python3 "${ROOT}/scripts/check_m2_evidence_manifest.py" \
+  --mode commit \
+  --freeze-commit "${M2_FREEZE}" \
+  --commit "${M2_EVIDENCE}"
+python3 "${ROOT}/scripts/check_m3_evidence_only_commit.py" \
+  --mode commit \
+  --freeze-commit "${M3_FREEZE}" \
+  --commit "${M3_EVIDENCE}"
 
 if [[ "${VERIFY_ONLY}" == "1" ]]; then
   echo "OK: historical M2 and M3 evidence pairs verified"
