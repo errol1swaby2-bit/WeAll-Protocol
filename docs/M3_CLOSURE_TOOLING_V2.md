@@ -78,3 +78,21 @@ Run with:
 scripts/run_m3_closure_v2.sh verify-replay-status \
   --config /absolute/path/replay-status-config.json
 ```
+
+
+## Complete historical evidence taxonomy
+
+The immutable M3 transcript contains four evidence classes:
+
+- `direct_transaction`: a persisted transaction verified by transaction status,
+  type, signer, and terminal state;
+- `deterministic_system_receipt`: a persisted `SYSTEM` transaction verified by
+  status, type, signer, and its recorded state height;
+- `acceptance_embedded_attendance`: a typed evidence view sharing the persisted
+  juror-accept transaction with its paired acceptance record;
+- `inline_system_transition`: a synthetic evidence identifier verified through
+  the persisted trigger transaction and trigger height.
+
+The tooling installation gate validates the actual immutable 62-action
+historical transcript and requires the complete count contract before a live
+backend may start.

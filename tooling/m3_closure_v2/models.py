@@ -12,6 +12,7 @@ from .util import canonical_json_sha256
 
 class EvidenceKind(str, Enum):
     DIRECT_TRANSACTION = "direct_transaction"
+    DETERMINISTIC_SYSTEM_RECEIPT = "deterministic_system_receipt"
     INLINE_SYSTEM_TRANSITION = "inline_system_transition"
     ACCEPTANCE_EMBEDDED_ATTENDANCE = "acceptance_embedded_attendance"
 
@@ -72,6 +73,25 @@ class EmbeddedAttendanceAction:
 
 
 @dataclass(frozen=True)
+class DeterministicSystemReceiptAction:
+    index: int
+    label: str
+    role: str
+    account: str
+    tx_type: str
+    tx_id: str
+    subject_id: str
+    status: str
+    state_height: int
+    evidence_path: str
+    evidence_kind: EvidenceKind = EvidenceKind.DETERMINISTIC_SYSTEM_RECEIPT
+
+    @property
+    def status_query_tx_id(self) -> str:
+        return self.tx_id
+
+
+@dataclass(frozen=True)
 class InlineSystemTransitionAction:
     index: int
     label: str
@@ -93,6 +113,7 @@ class InlineSystemTransitionAction:
 
 EvidenceAction = (
     DirectTransactionAction
+    | DeterministicSystemReceiptAction
     | EmbeddedAttendanceAction
     | InlineSystemTransitionAction
 )
@@ -132,7 +153,17 @@ class Transcript:
                                 "state_height": action.state_height,
                             }
                             if isinstance(action, InlineSystemTransitionAction)
-                            else {}
+                            else (
+                                {
+                                    "state_height": action.state_height,
+                                    "evidence_path": action.evidence_path,
+                                }
+                                if isinstance(
+                                    action,
+                                    DeterministicSystemReceiptAction,
+                                )
+                                else {}
+                            )
                         ),
                     }
                     for action in self.actions
@@ -179,6 +210,33 @@ def parse_action(raw: Mapping[str, Any], index: int) -> EvidenceAction:
         "subject_id": subject_id,
         "status": status,
     }
+
+    if kind is EvidenceKind.DETERMINISTIC_SYSTEM_RECEIPT:
+        state_height = _required_int(raw, "state_height", index)
+        evidence_path = _required_text(raw, "evidence_path", index)
+
+        if role != "system_scheduler":
+            raise ContractError(
+                f"action[{index}].system_receipt_role_invalid:{role}"
+            )
+        if account != "SYSTEM":
+            raise ContractError(
+                f"action[{index}].system_receipt_account_invalid:{account}"
+            )
+        if not tx_id.startswith("tx:"):
+            raise ContractError(
+                f"action[{index}].system_receipt_tx_id_invalid:{tx_id}"
+            )
+        if state_height < 0:
+            raise ContractError(
+                f"action[{index}].system_receipt_height_invalid:{state_height}"
+            )
+
+        return DeterministicSystemReceiptAction(
+            **common,
+            state_height=state_height,
+            evidence_path=evidence_path,
+        )
 
     if kind is EvidenceKind.INLINE_SYSTEM_TRANSITION:
         trigger_tx_id = _required_text(raw, "trigger_tx_id", index)

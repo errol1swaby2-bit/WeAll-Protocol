@@ -7,6 +7,7 @@ import pytest
 
 from m3_closure_v2.errors import ContractError
 from m3_closure_v2.models import (
+    DeterministicSystemReceiptAction,
     DirectTransactionAction,
     InlineSystemTransitionAction,
     parse_transcript,
@@ -87,6 +88,60 @@ def test_inline_identifier_must_bind_trigger_and_type(tmp_path: Path) -> None:
                         "trigger_tx_id": trigger,
                         "trigger_included_height": 935,
                         "state_height": 934,
+                    }
+                ],
+            )
+        )
+
+
+def test_parse_deterministic_system_receipt(tmp_path: Path) -> None:
+    receipt_tx = "tx:" + "d" * 64
+    transcript = parse_transcript(
+        _write_transcript(
+            tmp_path / "receipt.json",
+            [
+                {
+                    "label": "appeal_final_receipt",
+                    "role": "system_scheduler",
+                    "account": "SYSTEM",
+                    "tx_type": "DISPUTE_FINAL_RECEIPT",
+                    "tx_id": receipt_tx,
+                    "subject_id": "dispute:SYSTEM:0",
+                    "status": "confirmed",
+                    "evidence_kind": "deterministic_system_receipt",
+                    "evidence_path": "/private/evidence/receipt.json",
+                    "state_height": 952,
+                }
+            ],
+        )
+    )
+
+    action = transcript.actions[0]
+    assert isinstance(action, DeterministicSystemReceiptAction)
+    assert action.status_query_tx_id == receipt_tx
+    assert action.state_height == 952
+    assert action.evidence_path == "/private/evidence/receipt.json"
+
+
+def test_system_receipt_requires_system_scheduler_identity(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ContractError, match="system_receipt_account_invalid"):
+        parse_transcript(
+            _write_transcript(
+                tmp_path / "bad-receipt.json",
+                [
+                    {
+                        "label": "appeal_final_receipt",
+                        "role": "system_scheduler",
+                        "account": "@not-system",
+                        "tx_type": "DISPUTE_FINAL_RECEIPT",
+                        "tx_id": "tx:" + "d" * 64,
+                        "subject_id": "dispute:SYSTEM:0",
+                        "status": "confirmed",
+                        "evidence_kind": "deterministic_system_receipt",
+                        "evidence_path": "/private/evidence/receipt.json",
+                        "state_height": 952,
                     }
                 ],
             )

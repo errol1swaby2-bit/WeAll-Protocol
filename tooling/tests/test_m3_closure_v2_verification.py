@@ -80,3 +80,54 @@ def test_inline_uses_trigger_status_not_synthetic_id(tmp_path: Path) -> None:
     assert summary.inline_action_count == 1
     assert summary.direct_action_count == 1
     assert not any("inline%3A" in call for call in fake.calls)
+
+
+def test_deterministic_system_receipt_uses_persisted_status_and_height(
+    tmp_path: Path,
+) -> None:
+    receipt_tx = "tx:" + "d" * 64
+    transcript_path = tmp_path / "receipt-transcript.json"
+    transcript_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "implementation_freeze_commit": "c" * 40,
+                "chain_id": "weall-test",
+                "actions": [
+                    {
+                        "label": "appeal_final_receipt",
+                        "role": "system_scheduler",
+                        "account": "SYSTEM",
+                        "tx_type": "DISPUTE_FINAL_RECEIPT",
+                        "tx_id": receipt_tx,
+                        "subject_id": "dispute:SYSTEM:0",
+                        "status": "confirmed",
+                        "evidence_kind": "deterministic_system_receipt",
+                        "evidence_path": "/private/evidence/receipt.json",
+                        "state_height": 952,
+                    }
+                ],
+                "negative_attempts": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    transcript = parse_transcript(transcript_path)
+    fake = FakeClient(
+        {
+            "/v1/chain/identity": {"chain_id": "weall-test"},
+            f"/v1/tx/status/{receipt_tx.replace(':', '%3A')}": {
+                "status": "confirmed",
+                "tx_type": "DISPUTE_FINAL_RECEIPT",
+                "signer": "SYSTEM",
+                "height": 952,
+            },
+        }
+    )
+
+    summary = verify_transcript_statuses(transcript, fake)  # type: ignore[arg-type]
+
+    assert summary.deterministic_receipt_count == 1
+    assert summary.direct_action_count == 0
+    assert summary.inline_action_count == 0
+    assert summary.records[0]["evidence_kind"] == "deterministic_system_receipt"

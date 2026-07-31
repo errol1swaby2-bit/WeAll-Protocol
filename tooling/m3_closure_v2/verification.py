@@ -7,6 +7,7 @@ from typing import Any
 from .errors import ContractError
 from .http_client import RateLimitedJsonClient
 from .models import (
+    DeterministicSystemReceiptAction,
     DirectTransactionAction,
     EmbeddedAttendanceAction,
     InlineSystemTransitionAction,
@@ -21,6 +22,7 @@ class VerificationSummary:
     chain_id: str
     action_count: int
     direct_action_count: int
+    deterministic_receipt_count: int
     embedded_action_count: int
     inline_action_count: int
     unique_status_query_count: int
@@ -33,6 +35,7 @@ class VerificationSummary:
             "chain_id": self.chain_id,
             "action_count": self.action_count,
             "direct_action_count": self.direct_action_count,
+            "deterministic_receipt_count": self.deterministic_receipt_count,
             "embedded_action_count": self.embedded_action_count,
             "inline_action_count": self.inline_action_count,
             "unique_status_query_count": self.unique_status_query_count,
@@ -70,6 +73,7 @@ def verify_transcript_statuses(
     cache: dict[str, dict[str, Any]] = {}
     records: list[dict[str, Any]] = []
     direct_count = 0
+    deterministic_receipt_count = 0
     embedded_count = 0
     inline_count = 0
 
@@ -121,7 +125,15 @@ def verify_transcript_statuses(
                 f"expected={action.account}:actual={signer}"
             )
 
-        if isinstance(action, EmbeddedAttendanceAction):
+        if isinstance(action, DeterministicSystemReceiptAction):
+            deterministic_receipt_count += 1
+            actual_height = int(status.get("height") or 0)
+            if actual_height != action.state_height:
+                raise ContractError(
+                    f"system_receipt_height_mismatch:index={action.index}:"
+                    f"expected={action.state_height}:actual={actual_height}"
+                )
+        elif isinstance(action, EmbeddedAttendanceAction):
             embedded_count += 1
         elif isinstance(action, DirectTransactionAction):
             direct_count += 1
@@ -146,6 +158,7 @@ def verify_transcript_statuses(
         chain_id=observed_chain,
         action_count=len(transcript.actions),
         direct_action_count=direct_count,
+        deterministic_receipt_count=deterministic_receipt_count,
         embedded_action_count=embedded_count,
         inline_action_count=inline_count,
         unique_status_query_count=len(cache),
