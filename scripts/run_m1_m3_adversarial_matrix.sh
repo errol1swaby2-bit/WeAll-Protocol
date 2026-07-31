@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND="${ROOT}/Weall-Protocol"
-OUT="${WEALL_M1_M3_ADVERSARIAL_LOG:-${ROOT}/artifacts/m1-m3-integrated/adversarial/matrix.log}"
+OUT="${WEALL_M1_M3_ADVERSARIAL_LOG:-${TMPDIR:-/tmp}/weall_m1_m3_adversarial_matrix_${$}.log}"
 mkdir -p "$(dirname "${OUT}")"
 
 TESTS=(
