@@ -11,8 +11,11 @@ evidence-only closure commit.
 - **Rate-limit safety:** live status verification is sequential by default,
   observes `Retry-After`, applies bounded exponential backoff, and records each
   request attempt.
-- **Deterministic process ownership:** process records bind a PID to the exact
-  `/proc/<pid>/cmdline` hash before the harness may signal a process group.
+- **Deterministic process ownership:** process records bind PID, kernel boot ID,
+  process start-time ticks, process group, session, and UID before the harness
+  may signal a process group. Initial command line, executable, and working
+  directory are retained as provenance. Legitimate `exec` transitions therefore
+  remain owned while stale records and PID reuse fail closed.
 - **Resumable stages:** every passed stage has a hashed receipt bound to its
   inputs and output-file hashes.
 - **Explicit paths:** closure inputs and outputs are arguments or manifest
