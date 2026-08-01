@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "2e7ff8750ce77d128aa710fbfc29b9699c082eb042eefb6926b1fe9abba84ede"
+    "source_tree_digest": "e556da5710864b6e13a930219f0beb11a816cc50a5dcd005f3053ab6456358c4"
   },
   "rows": [
     {
@@ -167,7 +167,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "9d06a553475ec70fabd9e1c803ce7786a24df35d55c98c07c41a437bd4880841",
+      "sha256": "95cf50311ca320d82717c406c6617ba507bf53a1fab24f971b001efcc556fd2a",
       "stable_id": "EVD-224E96B1E6D9984E",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -321,7 +321,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "f200647381d28979899ed40eb77d111337aecae57468ce77b5ba44f9cb4aef0e",
+      "sha256": "664813d446bac2d78f7d06332af079395e04f7fd10e847b51d7440fd3e9c672c",
       "stable_id": "EVD-4F9C5188B5C90E01",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -1091,7 +1091,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "337d958f0edb9c53045bacad15527a9c5f20edec4aed43192e2c655ed8acad53",
+      "sha256": "b2aa8e533a4f48d44716c5eaf48f245483b688cbf3cca01b44808d37b2af9e1a",
       "stable_id": "EVD-F47E2373CB956305",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -1175,7 +1175,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": false,
       "reviewer": "automated CI and maintainer review",
-      "sha256": "32930a4cb4b6f82da9c4893309c8e4fa300d4ec8a2df7557e2062afc28fbb212",
+      "sha256": "d2c108d7ce33ed824a6e968f2d9a453e95b68fc0ddb1871c22beb063c3743590",
       "stable_id": "EVD-W1-COMPILER-TESTS",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."

@@ -1,5 +1,5 @@
 {
-  "count": 510,
+  "count": 512,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "2e7ff8750ce77d128aa710fbfc29b9699c082eb042eefb6926b1fe9abba84ede"
+    "source_tree_digest": "e556da5710864b6e13a930219f0beb11a816cc50a5dcd005f3053ab6456358c4"
   },
   "rows": [
     {
@@ -2712,6 +2712,26 @@
         "TX-2624",
         "TX-2625",
         "TX-2626"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "forbidden",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "membership_decision_not_required",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-19BDE198BCE5D86A",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1705",
+        "TX-1714"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"
@@ -10494,6 +10514,26 @@
       "transactions": [
         "TX-0321",
         "TX-0322"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
+      "code": "not_found",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "membership_request_not_found",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-61D1E7F3A520E066",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-1705",
+        "TX-1714"
       ],
       "vector_ids": [
         "VEC-W1-COMPILER"

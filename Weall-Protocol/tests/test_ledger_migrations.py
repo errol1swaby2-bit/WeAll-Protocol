@@ -113,3 +113,35 @@ def test_future_state_version_is_rejected() -> None:
     raw["state_version"] = CURRENT_STATE_VERSION + 1
     with pytest.raises(ValueError):
         migrate_state_dict(raw)
+
+
+def test_successful_migration_does_not_mutate_input() -> None:
+    raw = {"height": "7", "accounts": {"alice": {"nonce": "2"}}}
+    before = copy.deepcopy(raw)
+
+    migrated = migrate_state_dict(raw)
+
+    assert raw == before
+    assert migrated is not raw
+    assert migrated["height"] == 7
+    assert migrated["accounts"]["alice"]["nonce"] == 2
+
+
+def test_invalid_declared_state_version_is_rejected_without_mutation() -> None:
+    raw = {"state_version": "corrupt", "height": 9}
+    before = copy.deepcopy(raw)
+
+    with pytest.raises(ValueError, match="state_version"):
+        migrate_state_dict(raw)
+
+    assert raw == before
+
+
+def test_boolean_state_version_is_rejected_without_mutation() -> None:
+    raw = {"state_version": True, "height": 9}
+    before = copy.deepcopy(raw)
+
+    with pytest.raises(ValueError, match="not bool"):
+        migrate_state_dict(raw)
+
+    assert raw == before

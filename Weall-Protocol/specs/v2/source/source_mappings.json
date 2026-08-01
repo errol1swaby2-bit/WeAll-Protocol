@@ -1479,6 +1479,16 @@
         "evidence"
       ],
       "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_ruff_regressions.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
       "path": "scripts/check_tx_canon_artifacts.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"

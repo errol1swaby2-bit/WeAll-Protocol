@@ -54,12 +54,12 @@ def test_group_join_route_accepts_existing_public_group_without_500(monkeypatch)
     monkeypatch.setattr(groups_routes, "_snapshot", lambda request: state)
     monkeypatch.setattr(groups_routes, "require_account_session", lambda request, st: "@alice")
 
-    req = groups_routes.GroupJoinLeaveRequest(group_id="g:public")
+    req = groups_routes.GroupJoinLeaveRequest(group_id="g:public", message="Please approve")
     result = groups_routes.v1_group_join(req, _DummyRequest())
 
     assert result.ok is True
     assert result.tx.tx_type == "GROUP_MEMBERSHIP_REQUEST"
-    assert result.tx.payload["group_id"] == "g:public"
+    assert result.tx.payload == {"group_id": "g:public", "note": "Please approve"}
 
 
 def test_group_membership_status_reports_member_and_pending_states(monkeypatch) -> None:

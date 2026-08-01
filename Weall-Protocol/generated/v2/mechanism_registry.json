@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "2e7ff8750ce77d128aa710fbfc29b9699c082eb042eefb6926b1fe9abba84ede"
+    "source_tree_digest": "e556da5710864b6e13a930219f0beb11a816cc50a5dcd005f3053ab6456358c4"
   },
   "rows": [
     {
@@ -3623,6 +3623,7 @@
         "scripts/check_m2_requirement_traceability.py",
         "scripts/check_public_testnet_seed_registry_rotation.py",
         "scripts/check_reviewer_truth_boundaries.py",
+        "scripts/check_ruff_regressions.py",
         "scripts/check_tx_canon_artifacts.py",
         "scripts/check_v15_public_readiness_artifacts.py",
         "scripts/check_v2_spec_clean_checkout.py",

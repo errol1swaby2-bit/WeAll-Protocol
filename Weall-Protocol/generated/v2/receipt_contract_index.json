@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "2e7ff8750ce77d128aa710fbfc29b9699c082eb042eefb6926b1fe9abba84ede"
+    "source_tree_digest": "e556da5710864b6e13a930219f0beb11a816cc50a5dcd005f3053ab6456358c4"
   },
   "rows": [
     {
@@ -3296,6 +3296,7 @@
       "fields": [
         "applied",
         "group_id",
+        "membership_mode",
         "treasury_id"
       ],
       "kind": "user_transaction_apply_result",
@@ -3381,6 +3382,7 @@
         "deduped",
         "group_id",
         "membership",
+        "membership_mode",
         "read_visibility"
       ],
       "kind": "user_transaction_apply_result",
@@ -3402,7 +3404,9 @@
         "account",
         "applied",
         "decision",
-        "group_id"
+        "group_id",
+        "membership_mode",
+        "request_consumed"
       ],
       "kind": "user_transaction_apply_result",
       "parent": null,
@@ -3595,6 +3599,7 @@
         "end_height",
         "group_id",
         "membership",
+        "membership_mode",
         "n_ballots",
         "n_candidates",
         "n_ranked",
@@ -3602,6 +3607,7 @@
         "n_voters",
         "public_ballot_disclosure",
         "read_visibility",
+        "request_consumed",
         "role",
         "seats",
         "signer",

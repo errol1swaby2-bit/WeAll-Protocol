@@ -45,6 +45,29 @@ def _as_int(v: Any, default: int = 0) -> int:
         return int(default)
 
 
+_GROUP_MEMBERSHIP_MODES = frozenset({"open", "approval_required"})
+
+
+def _normalize_membership_mode(value: Any, *, missing_default: str = "open") -> str:
+    mode = _as_str(value).strip().lower() or missing_default
+    if mode not in _GROUP_MEMBERSHIP_MODES:
+        raise GroupsApplyError(
+            "invalid_state",
+            "unsupported_group_membership_mode",
+            {"membership_mode": mode},
+        )
+    return mode
+
+
+def _group_membership_mode(group: Json) -> str:
+    value = group.get("membership_mode")
+    if value in (None, ""):
+        meta = group.get("meta")
+        if isinstance(meta, dict):
+            value = meta.get("membership_mode")
+    return _normalize_membership_mode(value)
+
+
 def _same_journal_target(a: Any, b: Any) -> bool:
     return getattr(a, "_target", a) is getattr(b, "_target", b)
 
@@ -541,7 +564,9 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
             ("treasury_wallets", treasury_id),
         )
 
+    membership_mode = _normalize_membership_mode(payload.get("membership_mode"))
     public_meta = dict(payload)
+    public_meta["membership_mode"] = membership_mode
     public_meta["read_visibility"] = "public"
     public_meta["visibility"] = "public"
     public_meta["public_only"] = True
@@ -558,11 +583,16 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
             "visibility": "public",
             "public_only": True,
             "permissions": _group_permissions_from_payload(payload),
+            "membership_mode": membership_mode,
             "treasury_id": treasury_id,
             "signers": signers,
             "threshold": int(threshold),
-            "moderators": [],
+            # GROUP_MEMBERSHIP_DECIDE is canonically gated by GroupModerator.
+            # The creator receives initial explicit authority so an
+            # approval-required group can decide its first request.
+            "moderators": list(signers),
             "emissaries": [],
+            "membership_requests": {},
             "members": {
                 creator: {"account": creator, "joined_at_nonce": int(env.nonce), "role": "creator"}
             }
@@ -571,7 +601,12 @@ def _apply_group_create(state: Json, env: TxEnvelope) -> Json:
         },
         ("groups_by_id", group_id),
     )
-    return {"applied": "GROUP_CREATE", "group_id": group_id, "treasury_id": treasury_id}
+    return {
+        "applied": "GROUP_CREATE",
+        "group_id": group_id,
+        "treasury_id": treasury_id,
+        "membership_mode": membership_mode,
+    }
 
 
 def _apply_group_update(state: Json, env: TxEnvelope) -> Json:
@@ -688,25 +723,69 @@ def _apply_group_membership_request(state: Json, env: TxEnvelope) -> Json:
             "deduped": True,
         }
 
-    # Group membership may gate participation, but never read visibility.  The
-    # public-only default keeps join semantics simple and deterministic.
-    members[account] = {
-        "joined_at_nonce": int(env.nonce),
-        "joined_via": "request_auto_accept",
-        "role": "member",
-    }
-    g["members"] = members
+    membership_mode = _group_membership_mode(g)
+    # Persist the deterministic compatibility interpretation for legacy groups
+    # that predate the explicit field.
+    g["membership_mode"] = membership_mode
+    meta["membership_mode"] = membership_mode
+    g["meta"] = meta
+
+    if membership_mode == "open":
+        members[account] = {
+            "account": account,
+            "joined_at_nonce": int(env.nonce),
+            "joined_via": "request_auto_accept",
+            "role": "member",
+        }
+        g["members"] = members
+        reqs = g.get("membership_requests")
+        if isinstance(reqs, dict) and account in reqs:
+            reqs.pop(account, None)
+            g["membership_requests"] = reqs
+        groups[group_id] = g
+        return {
+            "applied": "GROUP_MEMBERSHIP_REQUEST",
+            "group_id": group_id,
+            "membership": "accepted",
+            "membership_mode": membership_mode,
+            "account": account,
+            "auto_accepted": True,
+            "read_visibility": "public",
+        }
+
     reqs = g.get("membership_requests")
-    if isinstance(reqs, dict) and account in reqs:
-        reqs.pop(account, None)
-        g["membership_requests"] = reqs
+    if not isinstance(reqs, dict):
+        reqs = {}
+    existing = reqs.get(account)
+    if isinstance(existing, dict):
+        return {
+            "applied": "GROUP_MEMBERSHIP_REQUEST",
+            "group_id": group_id,
+            "membership": "pending",
+            "membership_mode": membership_mode,
+            "account": account,
+            "deduped": True,
+            "read_visibility": "public",
+        }
+
+    note = _as_str(payload.get("note")).strip()
+    reqs[account] = {
+        "account": account,
+        "requested_at_nonce": int(env.nonce),
+        "requested_by": account,
+        "status": "pending",
+        **({"note": note} if note else {}),
+    }
+    g["membership_requests"] = reqs
+    g["members"] = members
     groups[group_id] = g
     return {
         "applied": "GROUP_MEMBERSHIP_REQUEST",
         "group_id": group_id,
-        "membership": "accepted",
+        "membership": "pending",
+        "membership_mode": membership_mode,
         "account": account,
-        "auto_accepted": True,
+        "auto_accepted": False,
         "read_visibility": "public",
     }
 
@@ -724,19 +803,40 @@ def _apply_group_membership_decide(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(g, dict):
         raise GroupsApplyError("not_found", "group_not_found", {"group_id": group_id})
 
+    membership_mode = _group_membership_mode(g)
+    if membership_mode != "approval_required":
+        raise GroupsApplyError(
+            "forbidden",
+            "membership_decision_not_required",
+            {"group_id": group_id, "membership_mode": membership_mode},
+        )
+
     reqs = g.get("membership_requests")
     if not isinstance(reqs, dict):
         reqs = {}
+    request_record = reqs.get(account)
+    if not isinstance(request_record, dict):
+        raise GroupsApplyError(
+            "not_found",
+            "membership_request_not_found",
+            {"group_id": group_id, "account": account},
+        )
 
     if decision == "accept":
         mem = g.get("members")
         if not isinstance(mem, dict):
             mem = {}
-        mem[account] = {"joined_at_nonce": int(env.nonce)}
+        mem[account] = {
+            "account": account,
+            "joined_at_nonce": int(env.nonce),
+            "joined_via": "moderator_accept",
+            "requested_at_nonce": _as_int(request_record.get("requested_at_nonce"), 0),
+            "decided_by": _as_str(env.signer).strip(),
+            "role": "member",
+        }
         g["members"] = mem
 
-    if account in reqs:
-        reqs.pop(account, None)
+    reqs.pop(account, None)
     g["membership_requests"] = reqs
     groups[group_id] = g
     return {
@@ -744,6 +844,8 @@ def _apply_group_membership_decide(state: Json, env: TxEnvelope) -> Json:
         "group_id": group_id,
         "account": account,
         "decision": decision,
+        "membership_mode": membership_mode,
+        "request_consumed": True,
     }
 
 

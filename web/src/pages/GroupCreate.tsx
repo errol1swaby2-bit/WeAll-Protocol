@@ -34,6 +34,7 @@ export default function GroupCreate(): JSX.Element {
   const base = useMemo(() => getApiBaseUrl(), []);
   const [createName, setCreateName] = useState<string>("");
   const [createDesc, setCreateDesc] = useState<string>("");
+  const [membershipMode, setMembershipMode] = useState<"open" | "approval_required">("approval_required");
   const [acctState, setAcctState] = useState<any | null>(null);
   const [busy, setBusy] = useState<boolean>(false);
   const [err, setErr] = useState<{ msg: string; details: any } | null>(null);
@@ -114,6 +115,7 @@ export default function GroupCreate(): JSX.Element {
             payload: {
               group_id,
               charter: description ? `${name}\n\n${description}` : name,
+              membership_mode: membershipMode,
             },
             parent: null,
             base,
@@ -273,6 +275,20 @@ export default function GroupCreate(): JSX.Element {
               rows={6}
               placeholder="Describe the purpose and scope of the group."
             />
+          </label>
+
+          <label className="fieldLabel">
+            Membership approval
+            <select
+              value={membershipMode}
+              onChange={(e) => setMembershipMode(e.target.value as "open" | "approval_required")}
+            >
+              <option value="approval_required">Approval required</option>
+              <option value="open">Open membership</option>
+            </select>
+            <span className="fieldHint">
+              Group content remains publicly readable in both modes. This setting controls participation membership only.
+            </span>
           </label>
 
           <div className="feedMediaCard">

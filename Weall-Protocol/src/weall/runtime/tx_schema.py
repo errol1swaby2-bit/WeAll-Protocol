@@ -1106,6 +1106,15 @@ class _PublicGroupPermissionsPayload(_StrictModel):
 class GroupCreatePayload(_PublicGroupPermissionsPayload):
     group_id: str = Field(..., min_length=1)
     charter: str | None = None
+    membership_mode: str = Field(default="open", min_length=1)
+
+    @model_validator(mode="after")
+    def _membership_mode_supported(self):
+        mode = str(self.membership_mode or "open").strip().lower()
+        if mode not in {"open", "approval_required"}:
+            raise ValueError("UNSUPPORTED_GROUP_MEMBERSHIP_MODE")
+        self.membership_mode = mode
+        return self
 
 
 class GroupUpdatePayload(_PublicGroupPermissionsPayload):

@@ -533,7 +533,7 @@ def v1_group_join(req: GroupJoinLeaveRequest, request: Request) -> TxSkeletonRes
 
     payload: dict[str, Any] = {"group_id": group_id}
     if req.message is not None and str(req.message).strip():
-        payload["message"] = str(req.message).strip()
+        payload["note"] = str(req.message).strip()
 
     return TxSkeletonResponse(
         ok=True,

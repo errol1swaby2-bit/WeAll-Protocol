@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "2e7ff8750ce77d128aa710fbfc29b9699c082eb042eefb6926b1fe9abba84ede"
+    "source_tree_digest": "e556da5710864b6e13a930219f0beb11a816cc50a5dcd005f3053ab6456358c4"
   },
   "required_fields": [
     "stable_id",
@@ -7237,6 +7237,7 @@
         "tests/test_group_emissary_elections_stv.py",
         "tests/test_group_governance_contract.py",
         "tests/test_group_join_route_and_membership_status.py",
+        "tests/test_group_membership_approval_contract.py",
         "tests/test_group_membership_public_autojoin.py",
         "tests/test_group_policy_transition_safety.py",
         "tests/test_group_scoped_posting_authority.py",
@@ -8190,6 +8191,7 @@
         "tests/test_governance_no_creator_fallback_for_executable_prod.py",
         "tests/test_group_governance_contract.py",
         "tests/test_group_join_route_and_membership_status.py",
+        "tests/test_group_membership_public_autojoin.py",
         "tests/test_group_treasury_transition_safety.py",
         "tests/test_health_helper_route.py",
         "tests/test_helper_assembly_gate.py",

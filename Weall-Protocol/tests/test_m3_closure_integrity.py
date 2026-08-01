@@ -15,7 +15,7 @@ def _read(path: str) -> str:
 
 def test_traceability_rejects_missing_referenced_paths() -> None:
     proc = subprocess.run(
-        [sys.executable, "scripts/check_m3_requirement_traceability.py"],
+        [sys.executable, "scripts/check_m3_requirement_traceability.py", "--source-only"],
         cwd=ROOT,
         text=True,
         stdout=subprocess.PIPE,

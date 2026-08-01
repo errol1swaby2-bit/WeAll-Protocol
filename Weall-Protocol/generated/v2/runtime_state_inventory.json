@@ -1,5 +1,5 @@
 {
-  "count": 1109,
+  "count": 1112,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "2e7ff8750ce77d128aa710fbfc29b9699c082eb042eefb6926b1fe9abba84ede"
+    "source_tree_digest": "e556da5710864b6e13a930219f0beb11a816cc50a5dcd005f3053ab6456358c4"
   },
   "rows": [
     {
@@ -16540,6 +16540,51 @@
     },
     {
       "creation_contracts": [
+        "TX-1700",
+        "TX-1704",
+        "TX-1714"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#_apply_group_create",
+        "src/weall/runtime/apply/groups.py#_apply_group_membership_request",
+        "src/weall/runtime/apply/groups.py#apply_groups"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-1700",
+        "TX-1714"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-0CBF73C7F7AA0334",
+      "state_key_or_namespace": "membership_mode",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1700",
+        "TX-1704",
+        "TX-1714"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1700",
+        "TX-1704",
+        "TX-1714"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-1704",
         "TX-1705",
         "TX-1714"
@@ -16669,6 +16714,35 @@
         "TX-1714",
         "TX-2506"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-1704",
+        "TX-1714"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-2FAE0AA965115180",
+      "state_key_or_namespace": "note",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -16909,6 +16983,35 @@
       "source": "src/weall/runtime/apply/groups.py",
       "stable_id": "STATE-D7849419FACA270F",
       "state_key_or_namespace": "reason",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-1705",
+        "TX-1714"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-F61B9DC3B467E9D0",
+      "state_key_or_namespace": "requested_at_nonce",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",

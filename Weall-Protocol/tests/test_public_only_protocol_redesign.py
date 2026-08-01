@@ -284,6 +284,38 @@ def test_api_contract_does_not_advertise_removed_communication_routes() -> None:
     assert "GET /v1/activity/notices" in route_keys
 
 
+def test_public_only_generator_help_and_json_modes_do_not_mutate_artifact() -> None:
+    import hashlib
+    import subprocess
+    import sys
+
+    script = ROOT / "scripts" / "gen_public_only_protocol_audit_v1_5.py"
+    artifact = ROOT / "generated" / "public_only_protocol_audit_v1_5.json"
+    before = hashlib.sha256(artifact.read_bytes()).hexdigest()
+
+    help_result = subprocess.run(
+        [sys.executable, str(script), "--help"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert help_result.returncode == 0
+    assert "--check" in help_result.stdout
+    assert hashlib.sha256(artifact.read_bytes()).hexdigest() == before
+
+    json_result = subprocess.run(
+        [sys.executable, str(script), "--json"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert json_result.returncode == 0
+    assert json.loads(json_result.stdout)["schema"] == "weall.public_only_protocol_audit.v1_5"
+    assert hashlib.sha256(artifact.read_bytes()).hexdigest() == before
+
+
 def test_public_only_generator_scans_relative_paths_not_absolute_tmp_parts() -> None:
     import importlib.util
 

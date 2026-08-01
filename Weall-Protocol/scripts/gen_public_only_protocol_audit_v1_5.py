@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -224,16 +225,31 @@ def build_payload() -> dict[str, object]:
     }
 
 
-def main() -> int:
-    OUT.parent.mkdir(parents=True, exist_ok=True)
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Generate/check the v1.5 public-only protocol audit artifact."
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="fail if the tracked artifact is missing or stale"
+    )
+    parser.add_argument(
+        "--json", action="store_true", help="print the deterministic payload without writing"
+    )
+    args = parser.parse_args(argv)
+
     payload = build_payload()
     rendered = json.dumps(payload, indent=2, sort_keys=True) + "\n"
-    if "--check" in sys.argv:
+    if args.json:
+        print(rendered, end="")
+        return 0
+    if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != rendered:
             print(f"{OUT.relative_to(ROOT)} is stale; rerun generator", file=sys.stderr)
             return 1
         print(f"OK: {OUT.relative_to(ROOT)} is current ({payload['inventory_hit_count']} hits)")
         return 0
+
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(rendered, encoding="utf-8")
     print(f"wrote {OUT.relative_to(ROOT)}")
     return 0
