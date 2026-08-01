@@ -187,3 +187,29 @@ def test_m3_evidence_only_checker_binds_direct_child_and_all_gates() -> None:
         assert marker in contract
     assert "--cached" in wrapper
     assert "M3_IMPLEMENTATION_FREEZE_COMMIT" in wrapper
+
+
+def test_m3_formal_wrappers_supply_actor_validator_output_contract() -> None:
+    wrappers = (
+        REPO_ROOT / "scripts/run_m3_formal_journey.sh",
+        REPO_ROOT / "scripts/build_m1_m3_evidence.sh",
+    )
+
+    for wrapper in wrappers:
+        source = wrapper.read_text(encoding="utf-8")
+
+        for marker in (
+            "validate_m3_actor_manifest.py",
+            "--implementation-freeze",
+            "--out-public-manifest",
+            "--out-transcript",
+            "m13_make_tmp",
+            "trap cleanup_validation EXIT INT TERM",
+            "test -s \"$PUBLIC_MANIFEST\"",
+            "test -s \"$PUBLIC_TRANSCRIPT\"",
+        ):
+            assert marker in source, f"{wrapper}: missing {marker}"
+
+        assert source.index("--out-public-manifest") < source.index(
+            "--out-transcript"
+        )
