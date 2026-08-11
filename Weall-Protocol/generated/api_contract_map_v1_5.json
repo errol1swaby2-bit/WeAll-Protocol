@@ -1288,7 +1288,7 @@
       "route_id": "e91e45e57720669a",
       "route_path_without_v1_prefix": "/health",
       "source": "src/weall/api/routes_public_parts/health.py",
-      "source_lineno": 416,
+      "source_lineno": 437,
       "summary": "",
       "tags": [
         "health"
@@ -1310,7 +1310,7 @@
       "route_id": "36912f0eca7b3e4f",
       "route_path_without_v1_prefix": "/healthz",
       "source": "src/weall/api/routes_public_parts/health.py",
-      "source_lineno": 486,
+      "source_lineno": 508,
       "summary": "",
       "tags": [
         "health"
@@ -1332,7 +1332,7 @@
       "route_id": "7e0168551ec6ee18",
       "route_path_without_v1_prefix": "/media/gateway/{cid}",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 963,
+      "source_lineno": 1008,
       "summary": "",
       "tags": [
         "media"
@@ -1354,7 +1354,7 @@
       "route_id": "cadbf68bef5b5fe6",
       "route_path_without_v1_prefix": "/media/providers/{cid}",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1048,
+      "source_lineno": 1093,
       "summary": "",
       "tags": [
         "media"
@@ -1376,7 +1376,7 @@
       "route_id": "9a608cf28efe7a5c",
       "route_path_without_v1_prefix": "/media/proxy/{cid}",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1075,
+      "source_lineno": 1120,
       "summary": "",
       "tags": [
         "media"
@@ -1398,7 +1398,7 @@
       "route_id": "d0df8bdb322de2c4",
       "route_path_without_v1_prefix": "/media/resolve",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1007,
+      "source_lineno": 1052,
       "summary": "",
       "tags": [
         "media"
@@ -1420,7 +1420,7 @@
       "route_id": "6a2237f4d93c6118",
       "route_path_without_v1_prefix": "/media/status/{cid}",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 977,
+      "source_lineno": 1022,
       "summary": "",
       "tags": [
         "media"
@@ -1442,7 +1442,7 @@
       "route_id": "2e293b3f11ba3afb",
       "route_path_without_v1_prefix": "/media/upload",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 799,
+      "source_lineno": 844,
       "summary": "",
       "tags": [
         "media"
@@ -1530,7 +1530,7 @@
       "route_id": "a3a0657ba2838cd6",
       "route_path_without_v1_prefix": "/net/relay/ack",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 223,
+      "source_lineno": 231,
       "summary": "",
       "tags": [
         "net_relay"
@@ -1552,7 +1552,7 @@
       "route_id": "a1b09d43ddf38a0f",
       "route_path_without_v1_prefix": "/net/relay/fetch",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 180,
+      "source_lineno": 184,
       "summary": "",
       "tags": [
         "net_relay"
@@ -1574,7 +1574,7 @@
       "route_id": "7cb67affd694e007",
       "route_path_without_v1_prefix": "/net/relay/fetch",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 193,
+      "source_lineno": 199,
       "summary": "",
       "tags": [
         "net_relay"
@@ -1596,7 +1596,7 @@
       "route_id": "599b490035314cf7",
       "route_path_without_v1_prefix": "/net/relay/status",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 140,
+      "source_lineno": 144,
       "summary": "",
       "tags": [
         "net_relay"
@@ -1618,7 +1618,7 @@
       "route_id": "55da96d0fcf4d3bb",
       "route_path_without_v1_prefix": "/net/relay/submit",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 164,
+      "source_lineno": 168,
       "summary": "",
       "tags": [
         "net_relay"
@@ -1640,7 +1640,7 @@
       "route_id": "d60356d9fdddfe58",
       "route_path_without_v1_prefix": "/net/self",
       "source": "src/weall/api/routes_public_parts/net_self.py",
-      "source_lineno": 269,
+      "source_lineno": 300,
       "summary": "",
       "tags": [
         "net_self"
@@ -2718,7 +2718,7 @@
       "route_id": "64443de16ddcc57b",
       "route_path_without_v1_prefix": "/readyz",
       "source": "src/weall/api/routes_public_parts/health.py",
-      "source_lineno": 481,
+      "source_lineno": 503,
       "summary": "",
       "tags": [
         "health"

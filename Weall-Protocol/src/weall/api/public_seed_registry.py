@@ -14,7 +14,6 @@ from weall.api.config import normalize_base_url
 from weall.crypto.sig import verify_signature_for_profile
 from weall.crypto.signature_profiles import (
     PQ_MLDSA_V1,
-    mode_requires_explicit_sig_profile,
     normalize_signature_profile_id,
     profile_allowed_for_context,
 )
@@ -52,9 +51,7 @@ def public_testnet_allow_local() -> bool:
     if env_truthy("WEALL_PUBLIC_TESTNET_ALLOW_LOCAL", False):
         return True
     mode = str(os.environ.get("WEALL_MODE") or "").strip().lower()
-    if mode in {"dev", "test", "local", "ci"}:
-        return True
-    return bool(os.environ.get("PYTEST_CURRENT_TEST"))
+    return mode in {"dev", "test", "local", "ci"}
 
 
 def public_seed_registry_path(default_path: str | None = None) -> str | None:
@@ -174,7 +171,9 @@ def _trust_root_registry_mirror_urls() -> list[str]:
 
     # Backward-compatible legacy keys. They remain generic URL candidates, not
     # named-provider dependencies.
-    out.extend(_trust_root_list("seed_registry_urls", "seed_registry_url", "registry_urls", "registry_url"))
+    out.extend(
+        _trust_root_list("seed_registry_urls", "seed_registry_url", "registry_urls", "registry_url")
+    )
     return out
 
 
@@ -291,12 +290,19 @@ def public_seed_registry_default_path() -> str | None:
 def expected_public_commitments_from_env() -> Json:
     return {
         "network_id": str(os.environ.get("WEALL_PUBLIC_TESTNET_NETWORK_ID") or "").strip(),
-        "chain_id": str(os.environ.get("WEALL_EXPECTED_CHAIN_ID") or os.environ.get("WEALL_CHAIN_ID") or "").strip(),
-        "genesis_hash": str(os.environ.get("WEALL_EXPECTED_GENESIS_HASH") or os.environ.get("WEALL_GENESIS_HASH") or "").strip(),
-        "protocol_profile_hash": str(os.environ.get("WEALL_EXPECTED_PROTOCOL_PROFILE_HASH") or "").strip(),
+        "chain_id": str(
+            os.environ.get("WEALL_EXPECTED_CHAIN_ID") or os.environ.get("WEALL_CHAIN_ID") or ""
+        ).strip(),
+        "genesis_hash": str(
+            os.environ.get("WEALL_EXPECTED_GENESIS_HASH")
+            or os.environ.get("WEALL_GENESIS_HASH")
+            or ""
+        ).strip(),
+        "protocol_profile_hash": str(
+            os.environ.get("WEALL_EXPECTED_PROTOCOL_PROFILE_HASH") or ""
+        ).strip(),
         "tx_index_hash": str(os.environ.get("WEALL_EXPECTED_TX_INDEX_HASH") or "").strip(),
     }
-
 
 
 _PLACEHOLDER_MARKERS = (
@@ -307,8 +313,6 @@ _PLACEHOLDER_MARKERS = (
     "@validator-account-id",
     "validator-node-public-key",
 )
-
-
 
 
 def public_seed_trust_root_commitments() -> Json:
@@ -386,15 +390,28 @@ def _reject_public_launch_placeholders(data: Json) -> None:
     if isinstance(nodes, list):
         for idx, node in enumerate(nodes):
             if isinstance(node, dict):
-                _reject_placeholder_value(f"nodes_{idx}_base_url", node.get("base_url") or node.get("api_base_url") or node.get("url"))
+                _reject_placeholder_value(
+                    f"nodes_{idx}_base_url",
+                    node.get("base_url") or node.get("api_base_url") or node.get("url"),
+                )
     endpoints = data.get("validator_endpoints") or []
     if isinstance(endpoints, list):
         for idx, endpoint in enumerate(endpoints):
             if not isinstance(endpoint, dict):
                 continue
-            for key in ("account_id", "node_pubkey", "node_public_key", "api_base_url", "base_url", "p2p_url", "signature", "signer"):
+            for key in (
+                "account_id",
+                "node_pubkey",
+                "node_public_key",
+                "api_base_url",
+                "base_url",
+                "p2p_url",
+                "signature",
+                "signer",
+            ):
                 if key in endpoint:
                     _reject_placeholder_value(f"validator_endpoints_{idx}_{key}", endpoint.get(key))
+
 
 def _env_list(name: str) -> list[str]:
     raw = str(os.environ.get(name) or "").strip()
@@ -432,6 +449,7 @@ def _registry_signer_pins() -> set[str]:
     )
     return {_safe_str(pin) for pin in pins if _safe_str(pin)}
 
+
 def _trust_root_allowed_signature_profiles() -> list[str]:
     try:
         roots = load_public_seed_trust_roots()
@@ -439,9 +457,15 @@ def _trust_root_allowed_signature_profiles() -> list[str]:
         raise
     except Exception as exc:
         raise PublicSeedRegistryError("public_seed_trust_roots_read_failed") from exc
-    raw = roots.get("allowed_signature_profiles") or roots.get("seed_registry_allowed_signature_profiles")
+    raw = roots.get("allowed_signature_profiles") or roots.get(
+        "seed_registry_allowed_signature_profiles"
+    )
     if isinstance(raw, list):
-        return [normalize_signature_profile_id(item) for item in raw if normalize_signature_profile_id(item)]
+        return [
+            normalize_signature_profile_id(item)
+            for item in raw
+            if normalize_signature_profile_id(item)
+        ]
     value = normalize_signature_profile_id(raw)
     return [value] if value else []
 
@@ -453,7 +477,6 @@ def _seed_registry_profile_allowed(profile: str) -> bool:
     return profile == PQ_MLDSA_V1
 
 
-
 def _pinned_registry_signer_required() -> bool:
     raw = os.environ.get("WEALL_PUBLIC_TESTNET_REQUIRE_PINNED_REGISTRY_SIGNER")
     if raw is not None:
@@ -463,7 +486,9 @@ def _pinned_registry_signer_required() -> bool:
 
 
 def _canonical_json_bytes(data: Any) -> bytes:
-    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def _without_keys(value: Any, omit: set[str]) -> Any:
@@ -524,7 +549,13 @@ def _verify_registry_signature(data: Json) -> Json:
         if _signature_required():
             missing = "seed_registry_signer" if not signer else "seed_registry_signature"
             raise PublicSeedRegistryError(f"public_seed_registry_missing_{missing}")
-        return {"required": False, "verified": False, "signer": signer, "sig_profile": profile, "trust": "unsigned_local_rehearsal"}
+        return {
+            "required": False,
+            "verified": False,
+            "signer": signer,
+            "sig_profile": profile,
+            "trust": "unsigned_local_rehearsal",
+        }
 
     ok = verify_signature_for_profile(
         sig_profile=profile,
@@ -546,6 +577,7 @@ def _verify_registry_signature(data: Json) -> Json:
         "sig_profile": profile,
         "trust": "pinned" if pins else "self_declared_local_rehearsal",
     }
+
 
 def _safe_str(value: Any) -> str:
     try:
@@ -658,11 +690,29 @@ def _verify_validator_endpoint_signature(raw: Json, *, commitments: Json) -> Jso
         profile = PQ_MLDSA_V1
     requested_verified = bool(raw.get("verified") is True or raw.get("signed") is True or sig)
     if not _seed_registry_profile_allowed(profile):
-        return {"verified": False, "signed": False, "error": "validator_endpoint_signature_profile_not_allowed", "signer": signer, "sig_profile": profile}
+        return {
+            "verified": False,
+            "signed": False,
+            "error": "validator_endpoint_signature_profile_not_allowed",
+            "signer": signer,
+            "sig_profile": profile,
+        }
     if not signer or not sig:
         if requested_verified or _signature_required():
-            return {"verified": False, "signed": False, "error": "validator_endpoint_signature_missing", "signer": signer, "sig_profile": profile}
-        return {"verified": False, "signed": False, "error": "validator_endpoint_unsigned_hint", "signer": signer, "sig_profile": profile}
+            return {
+                "verified": False,
+                "signed": False,
+                "error": "validator_endpoint_signature_missing",
+                "signer": signer,
+                "sig_profile": profile,
+            }
+        return {
+            "verified": False,
+            "signed": False,
+            "error": "validator_endpoint_unsigned_hint",
+            "signer": signer,
+            "sig_profile": profile,
+        }
     ok = verify_signature_for_profile(
         sig_profile=profile,
         message=validator_endpoint_signature_payload(raw, commitments=commitments),
@@ -677,12 +727,15 @@ def _verify_validator_endpoint_signature(raw: Json, *, commitments: Json) -> Jso
         "sig_profile": profile,
     }
 
+
 def _normalize_validator_endpoint(raw: Any, *, allow_local: bool, commitments: Json) -> Json | None:
     if not isinstance(raw, dict):
         raise PublicSeedRegistryError("public_validator_endpoint_not_object")
     account_id = _safe_str(raw.get("account_id") or raw.get("validator") or raw.get("account"))
     node_pubkey = _safe_str(raw.get("node_pubkey") or raw.get("node_public_key"))
-    api_raw = _safe_str(raw.get("api_base_url") or raw.get("base_url") or raw.get("api_base") or raw.get("url"))
+    api_raw = _safe_str(
+        raw.get("api_base_url") or raw.get("base_url") or raw.get("api_base") or raw.get("url")
+    )
     p2p_raw = _safe_str(raw.get("p2p_url") or raw.get("peer_url") or raw.get("addr"))
     if not account_id and not node_pubkey:
         raise PublicSeedRegistryError("public_validator_endpoint_missing_identity")
@@ -712,20 +765,30 @@ def _normalize_validator_endpoint(raw: Any, *, allow_local: bool, commitments: J
         raise PublicSeedRegistryError("public_validator_endpoint_missing_url")
     verification = _verify_validator_endpoint_signature(raw, commitments=commitments)
     if _signature_required() and not bool(verification.get("verified")):
-        raise PublicSeedRegistryError(str(verification.get("error") or "public_validator_endpoint_bad_signature"))
+        raise PublicSeedRegistryError(
+            str(verification.get("error") or "public_validator_endpoint_bad_signature")
+        )
     return {
         "account_id": account_id,
         "node_pubkey": node_pubkey,
         "api_base_url": api_base_url,
         "p2p_url": p2p_url,
-        "endpoint_source": _safe_str(raw.get("endpoint_source") or raw.get("source") or "public_seed_registry"),
+        "endpoint_source": _safe_str(
+            raw.get("endpoint_source") or raw.get("source") or "public_seed_registry"
+        ),
         "last_seen_ms": int(raw.get("last_seen_ms") or raw.get("proof_timestamp_ms") or 0),
         "proof_timestamp_ms": int(raw.get("proof_timestamp_ms") or raw.get("last_seen_ms") or 0),
         "verified": bool(verification.get("verified")),
         "signed": bool(verification.get("signed")),
         "signature": _safe_str(raw.get("signature")),
-        "sig_profile": _safe_str(verification.get("sig_profile") or raw.get("sig_profile") or raw.get("signature_profile")),
-        "signer": _safe_str(verification.get("signer") or raw.get("signer") or raw.get("seed_registry_signer")),
+        "sig_profile": _safe_str(
+            verification.get("sig_profile")
+            or raw.get("sig_profile")
+            or raw.get("signature_profile")
+        ),
+        "signer": _safe_str(
+            verification.get("signer") or raw.get("signer") or raw.get("seed_registry_signer")
+        ),
         "signature_error": _safe_str(verification.get("error")),
     }
 
@@ -739,7 +802,9 @@ def _normalize_nodes(raw_nodes: Any, *, allow_local: bool) -> list[Json]:
     for raw in raw_nodes:
         if not isinstance(raw, dict):
             raise PublicSeedRegistryError("public_seed_registry_node_not_object")
-        base_raw = _safe_str(raw.get("base_url") or raw.get("api_base_url") or raw.get("api_base") or raw.get("url"))
+        base_raw = _safe_str(
+            raw.get("base_url") or raw.get("api_base_url") or raw.get("api_base") or raw.get("url")
+        )
         if not base_raw:
             raise PublicSeedRegistryError("public_seed_registry_node_missing_base_url")
         try:
@@ -753,7 +818,9 @@ def _normalize_nodes(raw_nodes: Any, *, allow_local: bool) -> list[Json]:
                 "region": _safe_str(raw.get("region")),
                 "weight": int(raw.get("weight") or 0),
                 "verified": bool(raw.get("verified") is True or _safe_str(raw.get("signature"))),
-                "endpoint_source": _safe_str(raw.get("endpoint_source") or raw.get("source") or "public_seed_registry"),
+                "endpoint_source": _safe_str(
+                    raw.get("endpoint_source") or raw.get("source") or "public_seed_registry"
+                ),
             }
         )
     return out
@@ -838,7 +905,10 @@ def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
         if isinstance(item, dict)
     ]
 
-    policy = _safe_str(data.get("active_validator_endpoint_policy") or "verified_or_hint") or "verified_or_hint"
+    policy = (
+        _safe_str(data.get("active_validator_endpoint_policy") or "verified_or_hint")
+        or "verified_or_hint"
+    )
     if policy not in {"verified_only", "verified_or_hint", "hints_only"}:
         raise PublicSeedRegistryError("public_seed_registry_bad_active_validator_endpoint_policy")
 
@@ -854,7 +924,11 @@ def normalize_public_seed_registry(data: Json, *, allow_local: bool) -> Json:
         "seed_api_urls": seed_api_urls,
         "seed_p2p_urls": seed_p2p_urls,
         "seed_registry_signature": _safe_str(data.get("seed_registry_signature")),
-        "seed_registry_sig_profile": _safe_str(data.get("seed_registry_sig_profile") or data.get("sig_profile") or data.get("seed_registry_signature_profile")),
+        "seed_registry_sig_profile": _safe_str(
+            data.get("seed_registry_sig_profile")
+            or data.get("sig_profile")
+            or data.get("seed_registry_signature_profile")
+        ),
         "seed_registry_signer": _safe_str(data.get("seed_registry_signer")),
         "seed_registry_signature_status": signature_status,
         "active_validator_endpoint_policy": policy,
@@ -899,7 +973,9 @@ def _load_public_seed_registry_remote(url: str, *, allow_local: bool) -> Json:
     out = normalize_public_seed_registry(data, allow_local=allow_local)
     out["registry_source_kind"] = "remote_url"
     out["registry_source"] = normalized
-    out["registry_source_provider"] = "generic_https" if urlparse(normalized).scheme == "https" else "local_http_rehearsal"
+    out["registry_source_provider"] = (
+        "generic_https" if urlparse(normalized).scheme == "https" else "local_http_rehearsal"
+    )
     out["provider_authority"] = False
     out["registry_mirror_attempts"] = [
         {
@@ -1068,7 +1144,9 @@ def verified_tx_upstreams_from_registry(registry: Json) -> list[str]:
     return out
 
 
-def verified_peer_uris_from_registry(registry: Json, *, include_seeds: bool = True, include_validators: bool = True) -> list[str]:
+def verified_peer_uris_from_registry(
+    registry: Json, *, include_seeds: bool = True, include_validators: bool = True
+) -> list[str]:
     """Return P2P peer URIs that are safe for public observer auto-dial.
 
     Seed P2P URLs are trusted only because the registry itself is verified or is

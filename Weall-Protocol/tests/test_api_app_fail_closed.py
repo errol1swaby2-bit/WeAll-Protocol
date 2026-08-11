@@ -5,7 +5,9 @@ from fastapi.testclient import TestClient
 
 
 class _FakeExecutor:
-    def __init__(self, *, chain_id: str, mempool: object | None, attestation_pool: object | None) -> None:
+    def __init__(
+        self, *, chain_id: str, mempool: object | None, attestation_pool: object | None
+    ) -> None:
         self.chain_id = chain_id
         self.mempool = mempool
         self.attestation_pool = attestation_pool
@@ -33,11 +35,11 @@ def test_prod_block_loop_autostart_fails_closed_when_start_returns_false(
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
-    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
+    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "1")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "0")
 
-    ex = _FakeExecutor(chain_id="weall-test", mempool=object(), attestation_pool=object())
+    ex = _FakeExecutor(chain_id="weall-prod", mempool=object(), attestation_pool=object())
     monkeypatch.setattr(api_app, "build_executor", lambda: ex)
     monkeypatch.setattr(api_app, "BlockProducerLoop", _FakeBlockLoop)
 
@@ -53,11 +55,11 @@ def test_prod_net_loop_autostart_fails_closed_when_start_returns_false(
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
-    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
+    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "0")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "1")
 
-    ex = _FakeExecutor(chain_id="weall-test", mempool=object(), attestation_pool=object())
+    ex = _FakeExecutor(chain_id="weall-prod", mempool=object(), attestation_pool=object())
     monkeypatch.setattr(api_app, "build_executor", lambda: ex)
     monkeypatch.setattr(api_app, "NetMeshLoop", _FakeNetLoop)
 
@@ -71,11 +73,11 @@ def test_prod_runtime_boot_attaches_executor_state(monkeypatch: pytest.MonkeyPat
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
-    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
+    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "0")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "0")
 
-    ex = _FakeExecutor(chain_id="weall-test", mempool=object(), attestation_pool=object())
+    ex = _FakeExecutor(chain_id="weall-prod", mempool=object(), attestation_pool=object())
     monkeypatch.setattr(api_app, "build_executor", lambda: ex)
 
     app = api_app.create_app(boot_runtime=True)
@@ -88,11 +90,11 @@ def test_prod_block_loop_autostart_fails_closed_when_runtime_dependencies_missin
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
-    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
+    monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "1")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "0")
 
-    ex = _FakeExecutor(chain_id="weall-test", mempool=object(), attestation_pool=None)
+    ex = _FakeExecutor(chain_id="weall-prod", mempool=object(), attestation_pool=None)
     monkeypatch.setattr(api_app, "build_executor", lambda: ex)
 
     app = api_app.create_app(boot_runtime=True)

@@ -55,6 +55,7 @@ def test_block_commit_failpoint_before_ledger_state_preserves_atomicity(
     blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=1, allow_empty=False)
     assert err == ""
 
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_TEST_FAILPOINTS", "block_commit_before_ledger_state")
     meta = ex.commit_block_candidate(
         block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids
@@ -95,6 +96,7 @@ def test_bft_finalized_frontier_failpoint_does_not_partially_persist(
     b3 = _build_committed_block(ex, force_ts_ms=3_000)
     assert str(ex._bft.finalized_block_id or "") == ""
 
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_TEST_FAILPOINTS", "bft_finalized_frontier_advanced")
     qc = _make_qc(
         chain_id="priority3-bft",
@@ -139,6 +141,7 @@ ex.bft_set_view(9)
     env["PYTHONPATH"] = str(root / "src")
     env["DB_PATH"] = db_path
     env["TX_INDEX"] = str(root / "generated" / "tx_index.json")
+    env["WEALL_MODE"] = "test"
     env["WEALL_TEST_FAILPOINTS"] = "bft_state_before_persist"
     env["WEALL_TEST_FAILPOINT_ACTION"] = "exit"
     env["WEALL_TEST_FAILPOINT_MARKER_DIR"] = marker_dir

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from hashlib import sha256
-import json
-from typing import Any, Dict, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from typing import Any
 
-from .helper_planner import HelperPlan, build_helper_plan, canonicalize_txs, stable_tx_id
 from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed
-from .helper_receipts import HelperReceipt, sign_helper_receipt, verify_helper_receipt
-
+from weall.runtime.helper_planner import (
+    HelperPlan,
+    build_helper_plan,
+    canonicalize_txs,
+    stable_tx_id,
+)
+from weall.runtime.helper_receipts import HelperReceipt, sign_helper_receipt, verify_helper_receipt
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 
 def _sha256_hex(value: Any) -> str:
@@ -24,7 +29,7 @@ class LaneExecutionResult:
     ordered_tx_ids: tuple[str, ...]
     input_state_hash: str
     output_state_hash: str
-    post_state: Dict[str, Any]
+    post_state: dict[str, Any]
     helper_id: str
     receipt: HelperReceipt
     plan_id: str = ""
@@ -52,7 +57,10 @@ class HelperExecutor:
     ):
         if legacy_receipt_secret_mode:
             raise ValueError("helper receipt shared-secret mode has been removed")
-        self.helper_signing_material = {str(k): self._normalize_helper_material(v) for k, v in dict(helper_signing_material).items()}
+        self.helper_signing_material = {
+            str(k): self._normalize_helper_material(v)
+            for k, v in dict(helper_signing_material).items()
+        }
         self.helper_pubkeys = {str(k): str(v) for k, v in dict(helper_pubkeys or {}).items()}
         derived: dict[str, str] = {}
         for helper_id, material in self.helper_signing_material.items():
@@ -65,11 +73,11 @@ class HelperExecutor:
         raw = str(value or "").strip()
         try:
             data = bytes.fromhex(raw)
-            if len(data) == 32:
-                return raw.lower()
-        except Exception:
-            pass
-        return sha256(("weall-helper-pq-material:" + raw).encode("utf-8")).hexdigest()
+        except ValueError as exc:
+            raise ValueError("helper signing material must be a 32-byte hex ML-DSA seed") from exc
+        if len(data) != 32:
+            raise ValueError("helper signing material must be a 32-byte hex ML-DSA seed")
+        return raw.lower()
 
     def plan(
         self,
@@ -90,7 +98,7 @@ class HelperExecutor:
             txs=txs,
         )
 
-    def _apply_tx(self, state: Dict[str, Any], tx: Mapping[str, Any]) -> Dict[str, Any]:
+    def _apply_tx(self, state: dict[str, Any], tx: Mapping[str, Any]) -> dict[str, Any]:
         new_state = json.loads(_canon_json(state))
         balances = dict(new_state.get("balances", {}))
         nonces = dict(new_state.get("nonces", {}))
@@ -133,7 +141,7 @@ class HelperExecutor:
         ordered_tx_ids = tuple(stable_tx_id(tx) for tx in ordered)
         input_state_hash = _sha256_hex(state)
 
-        post_state: Dict[str, Any] = json.loads(_canon_json(state))
+        post_state: dict[str, Any] = json.loads(_canon_json(state))
         for tx in ordered:
             post_state = self._apply_tx(post_state, tx)
 
@@ -198,7 +206,7 @@ class HelperExecutor:
         lane_results: Sequence[LaneExecutionResult],
         *,
         base_state: Mapping[str, Any],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         merged = json.loads(_canon_json(base_state))
         merged_balances = dict(merged.get("balances", {}))
         merged_nonces = dict(merged.get("nonces", {}))

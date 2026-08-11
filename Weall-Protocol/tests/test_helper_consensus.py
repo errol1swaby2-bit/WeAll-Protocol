@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from weall.runtime.helper_executor import HelperExecutionError, HelperExecutor
 from weall.runtime.helper_planner import build_helper_plan, normalize_validators, validator_set_hash
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
+from weall.testing.helper_executor import HelperExecutionError, HelperExecutor
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
@@ -30,8 +30,22 @@ def _executor() -> HelperExecutor:
 
 def _txs() -> list[dict]:
     return [
-        {"tx_id": "tx-2", "received_ms": 20, "signer": "bob", "nonce": 1, "delta": 7, "conflict_keys": ["acct:bob"]},
-        {"tx_id": "tx-1", "received_ms": 10, "signer": "alice", "nonce": 1, "delta": 5, "conflict_keys": ["acct:alice"]},
+        {
+            "tx_id": "tx-2",
+            "received_ms": 20,
+            "signer": "bob",
+            "nonce": 1,
+            "delta": 7,
+            "conflict_keys": ["acct:bob"],
+        },
+        {
+            "tx_id": "tx-1",
+            "received_ms": 10,
+            "signer": "alice",
+            "nonce": 1,
+            "delta": 5,
+            "conflict_keys": ["acct:alice"],
+        },
     ]
 
 

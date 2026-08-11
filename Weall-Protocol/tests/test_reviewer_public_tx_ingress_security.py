@@ -1,20 +1,21 @@
 from __future__ import annotations
 
-from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-from fastapi.testclient import TestClient
 from pathlib import Path
+
 import pytest
+from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
+from fastapi.testclient import TestClient
 
 from weall.api.app import app
-from weall.runtime.executor import WeAllExecutor
 from weall.crypto.sig import sign_tx_envelope_dict
+from weall.runtime.executor import WeAllExecutor
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture()
-def client_with_executor(tmp_path: Path) -> TestClient:
+def client_with_executor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    monkeypatch.setenv("WEALL_MODE", "prod")
     previous = getattr(app.state, "executor", None)
     ex = WeAllExecutor(
         db_path=str(tmp_path / "weall.db"),
@@ -47,16 +48,18 @@ def _account_register_tx(
     return sign_tx_envelope_dict(tx=tx, privkey=seed.hex()), pubkey
 
 
-def test_public_tx_submit_rejects_wrong_chain_id_before_signature(client_with_executor: TestClient) -> None:
+def test_public_tx_submit_rejects_wrong_chain_id_before_signature(
+    client_with_executor: TestClient,
+) -> None:
     r = client_with_executor.post(
-            "/v1/tx/submit",
-            json={
-                "tx_type": "ACCOUNT_REGISTER",
-                "signer": "@wrong-chain",
-                "nonce": 1,
-                "chain_id": "not-this-chain",
-                "payload": {"pubkey": "a" * 64},
-            },
+        "/v1/tx/submit",
+        json={
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@wrong-chain",
+            "nonce": 1,
+            "chain_id": "not-this-chain",
+            "payload": {"pubkey": "a" * 64},
+        },
     )
 
     assert r.status_code == 403
@@ -65,17 +68,19 @@ def test_public_tx_submit_rejects_wrong_chain_id_before_signature(client_with_ex
     assert body["error"]["code"] == "chain_id_mismatch"
 
 
-def test_public_tx_submit_rejects_missing_signature_in_prod_default(client_with_executor: TestClient) -> None:
+def test_public_tx_submit_rejects_missing_signature_in_prod_default(
+    client_with_executor: TestClient,
+) -> None:
     r = client_with_executor.post(
-            "/v1/tx/submit",
-            json={
-                "tx_type": "ACCOUNT_REGISTER",
-                "signer": "@missing-sig",
-                "nonce": 1,
-                "chain_id": "weall-dev",
-                "payload": {"pubkey": "b" * 64},
-            },
-        )
+        "/v1/tx/submit",
+        json={
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@missing_sig",
+            "nonce": 1,
+            "chain_id": "weall-dev",
+            "payload": {"pubkey": "b" * 64},
+        },
+    )
 
     assert r.status_code == 403
     body = r.json()
@@ -83,18 +88,20 @@ def test_public_tx_submit_rejects_missing_signature_in_prod_default(client_with_
     assert body["error"]["code"] == "missing_sig"
 
 
-def test_public_tx_submit_rejects_system_signer_even_with_schema_valid_user_tx(client_with_executor: TestClient) -> None:
+def test_public_tx_submit_rejects_system_signer_even_with_schema_valid_user_tx(
+    client_with_executor: TestClient,
+) -> None:
     r = client_with_executor.post(
-            "/v1/tx/submit",
-            json={
-                "tx_type": "ACCOUNT_REGISTER",
-                "signer": "SYSTEM",
-                "nonce": 1,
-                "chain_id": "weall-dev",
-                "payload": {"pubkey": "c" * 64},
-                "sig": "00",
-            },
-        )
+        "/v1/tx/submit",
+        json={
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "SYSTEM",
+            "nonce": 1,
+            "chain_id": "weall-dev",
+            "payload": {"pubkey": "c" * 64},
+            "sig": "00",
+        },
+    )
 
     assert r.status_code == 403
     body = r.json()
@@ -102,8 +109,10 @@ def test_public_tx_submit_rejects_system_signer_even_with_schema_valid_user_tx(c
     assert body["error"]["code"] == "system_tx_forbidden"
 
 
-def test_public_tx_submit_accepts_signed_account_register_then_status_is_explicit(client_with_executor: TestClient) -> None:
-    tx, _pubkey = _account_register_tx("@reviewer-ingress-signed")
+def test_public_tx_submit_accepts_signed_account_register_then_status_is_explicit(
+    client_with_executor: TestClient,
+) -> None:
+    tx, _pubkey = _account_register_tx("@reviewer_ingress_signed")
     r = client_with_executor.post("/v1/tx/submit", json=tx)
     assert r.status_code == 200, r.text
     body = r.json()

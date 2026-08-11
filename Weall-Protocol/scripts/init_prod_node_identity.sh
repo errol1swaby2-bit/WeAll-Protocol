@@ -12,6 +12,34 @@ PRIV_PATH="${WEALL_NODE_PRIVKEY_FILE:-${REPO_ROOT}/secrets/weall_node_privkey}"
 PUB_PATH="${WEALL_NODE_PUBKEY_FILE:-${REPO_ROOT}/secrets/weall_node_pubkey}"
 GENERATOR="${REPO_ROOT}/scripts/genesis_generate_node_key.py"
 
+resolve_python() {
+  local candidate="${WEALL_PYTHON:-}"
+  if [[ -n "${candidate}" ]]; then
+    if [[ -x "${candidate}" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+    candidate="$(command -v "${candidate}" 2>/dev/null || true)"
+    if [[ -n "${candidate}" && -x "${candidate}" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+    echo "ERROR: WEALL_PYTHON does not resolve to an executable interpreter." >&2
+    return 2
+  fi
+
+  candidate="$(command -v python3 2>/dev/null || true)"
+  if [[ -n "${candidate}" && -x "${candidate}" ]]; then
+    printf '%s\n' "${candidate}"
+    return 0
+  fi
+
+  echo "ERROR: no usable Python interpreter found; set WEALL_PYTHON explicitly." >&2
+  return 2
+}
+
+PYTHON_BIN="$(resolve_python)"
+
 usage() {
   cat <<'EOF'
 Usage: bash scripts/init_prod_node_identity.sh [--emit-shell-env]
@@ -49,7 +77,7 @@ if [[ ! -e "${PRIV_PATH}" && ! -e "${PUB_PATH}" ]]; then
     echo "Create the custom keypair explicitly, or unset WEALL_NODE_PRIVKEY_FILE/WEALL_NODE_PUBKEY_FILE and rerun." >&2
     exit 2
   fi
-  python3 "${GENERATOR}" >/dev/null
+  "${PYTHON_BIN}" "${GENERATOR}" >/dev/null
 fi
 
 if [[ ! -s "${PRIV_PATH}" ]]; then

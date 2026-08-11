@@ -16,8 +16,8 @@ Json = dict[str, Any]
 
 
 def _mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -210,7 +210,11 @@ class StateSyncService:
         default_finalized = bool(self.enforce_finalized_anchor)
         if not default_finalized:
             mode = str(os.environ.get("WEALL_MODE") or "").strip().lower()
-            bft_enabled = bool(self.bft_enabled) if self.bft_enabled is not None else _env_bool("WEALL_BFT_ENABLED", False)
+            bft_enabled = (
+                bool(self.bft_enabled)
+                if self.bft_enabled is not None
+                else _env_bool("WEALL_BFT_ENABLED", False)
+            )
             default_finalized = bool(mode == "prod" and bft_enabled)
         self.enforce_finalized_anchor = _finalized_anchor_env(default_finalized)
 
@@ -504,7 +508,9 @@ class StateSyncService:
             last_bid: str = ""
             last_parent_id: str = ""
             response_height = int(resp.height or 0)
-            trusted_height = _as_int(trusted_anchor.get("height"), 0) if trusted_anchor is not None else 0
+            trusted_height = (
+                _as_int(trusted_anchor.get("height"), 0) if trusted_anchor is not None else 0
+            )
             for blk in resp.blocks:
                 if not isinstance(blk, dict):
                     raise StateSyncVerifyError("block_not_object")

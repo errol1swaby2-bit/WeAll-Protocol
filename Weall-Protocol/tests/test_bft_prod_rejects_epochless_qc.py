@@ -14,6 +14,7 @@ def _seed_validator_set(
     st = ex.state
     st.setdefault("roles", {}).setdefault("validators", {})["active_set"] = list(validators)
     c = st.setdefault("consensus", {})
+    c.setdefault("phase", {})["current"] = "bft_active"
     c.setdefault("validators", {}).setdefault("registry", {})
     for v in validators:
         c["validators"]["registry"].setdefault(v, {})["pubkey"] = pubs[v]
@@ -80,7 +81,7 @@ def _make_epochless_qc(
 
 
 def test_prod_rejects_epochless_qc_when_epoch_is_set(tmp_path: Path, monkeypatch) -> None:
-    # Default mode is production in this test environment.
+    monkeypatch.setenv("WEALL_MODE", "prod")
     tx_index_path = str(Path("generated/tx_index.json"))
     ex = WeAllExecutor(
         db_path=str(tmp_path / "node.db"),

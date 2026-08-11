@@ -50,6 +50,7 @@ def test_status_and_readyz_remain_durable_after_failed_commit_restart(
     blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=1, allow_empty=False)
     assert err == ""
 
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_TEST_FAILPOINTS", "block_commit_after_ledger_state")
     meta = ex.commit_block_candidate(
         block=blk,

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import ipaddress
 import os
-from urllib.parse import urlparse
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Request
 
@@ -21,8 +21,8 @@ class NetSelfStateError(RuntimeError):
 
 
 def _runtime_mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -131,10 +131,17 @@ def _nat_traversal_report(
     validator_intent = (
         _env_bool("WEALL_VALIDATOR_SIGNING_ENABLED", False)
         or _env_bool("WEALL_BFT_ENABLED", False)
-        or (_env_str("WEALL_NODE_LIFECYCLE_STATE", "").strip().lower() in {"validator", "production_validator", "validator_candidate"})
+        or (
+            _env_str("WEALL_NODE_LIFECYCLE_STATE", "").strip().lower()
+            in {"validator", "production_validator", "validator_candidate"}
+        )
     )
-    seed_intent = _env_bool("WEALL_PUBLIC_TESTNET_SEED_NODE", False) or _env_bool("WEALL_SEED_NODE", False)
-    inbound_required = _env_bool("WEALL_NET_INBOUND_REQUIRED", bool(seed_intent or validator_intent))
+    seed_intent = _env_bool("WEALL_PUBLIC_TESTNET_SEED_NODE", False) or _env_bool(
+        "WEALL_SEED_NODE", False
+    )
+    inbound_required = _env_bool(
+        "WEALL_NET_INBOUND_REQUIRED", bool(seed_intent or validator_intent)
+    )
 
     adv = _advertise_uri_status(advertise_uri)
     relay_urls = _split_csv(_env_str("WEALL_NET_RELAY_URLS", ""))
@@ -142,7 +149,12 @@ def _nat_traversal_report(
     relay_pubkeys_raw = _env_str("WEALL_NET_RELAY_RECIPIENT_PUBKEYS", "").strip()
     relay_client_enabled = _env_bool("WEALL_NET_RELAY_CLIENT_ENABLED", False)
     relay_server_enabled = _env_bool("WEALL_NET_RELAY_ENABLED", False)
-    relay_ready = bool(relay_client_enabled and relay_urls and (relay_recipients or not public_testnet) and relay_pubkeys_raw)
+    relay_ready = bool(
+        relay_client_enabled
+        and relay_urls
+        and (relay_recipients or not public_testnet)
+        and relay_pubkeys_raw
+    )
 
     bind_kind = _host_kind(bind_host)
     inbound_public_claim = bool(adv.get("dialable_public_claim"))
@@ -162,22 +174,41 @@ def _nat_traversal_report(
     actions: list[str] = []
     if inbound_required and not inbound_public_claim:
         warnings.append("inbound_required_without_public_advertise_uri")
-        actions.append("Set WEALL_NET_ADVERTISE_URI=tcp://<public-host-or-dns>:<p2p-port> or run this node as relay-only observer instead of seed/validator.")
-    if public_testnet and not inbound_public_claim and not relay_client_enabled and not relay_server_enabled:
+        actions.append(
+            "Set WEALL_NET_ADVERTISE_URI=tcp://<public-host-or-dns>:<p2p-port> or run this node as relay-only observer instead of seed/validator."
+        )
+    if (
+        public_testnet
+        and not inbound_public_claim
+        and not relay_client_enabled
+        and not relay_server_enabled
+    ):
         warnings.append("public_testnet_no_public_advertise_or_relay")
-        actions.append("For a firewalled observer, enable WEALL_NET_RELAY_CLIENT_ENABLED=1 with WEALL_NET_RELAY_URLS and recipient pubkey binding.")
+        actions.append(
+            "For a firewalled observer, enable WEALL_NET_RELAY_CLIENT_ENABLED=1 with WEALL_NET_RELAY_URLS and recipient pubkey binding."
+        )
     if relay_client_enabled and not relay_urls:
         warnings.append("relay_client_enabled_without_urls")
         actions.append("Set WEALL_NET_RELAY_URLS to one or more HTTPS relay/base API URLs.")
     if relay_client_enabled and not relay_pubkeys_raw and _is_prod():
         warnings.append("relay_client_missing_recipient_pubkey_binding")
-        actions.append("Set WEALL_NET_RELAY_RECIPIENT_PUBKEYS so relay fetches are recipient-key bound.")
+        actions.append(
+            "Set WEALL_NET_RELAY_RECIPIENT_PUBKEYS so relay fetches are recipient-key bound."
+        )
     if adv.get("configured") and not inbound_public_claim:
         warnings.append(f"advertise_uri_not_public:{adv.get('status')}")
-        actions.append("Do not publish loopback, private, or unspecified advertise URIs in public seed/validator records.")
-    if connected_peers == 0 and established_sessions == 0 and (public_testnet or relay_client_enabled or inbound_public_claim):
+        actions.append(
+            "Do not publish loopback, private, or unspecified advertise URIs in public seed/validator records."
+        )
+    if (
+        connected_peers == 0
+        and established_sessions == 0
+        and (public_testnet or relay_client_enabled or inbound_public_claim)
+    ):
         warnings.append("no_established_mesh_peers")
-        actions.append("Check seed reachability, outbound firewall, P2P port forwarding, TLS certificate/reverse proxy, and relay status.")
+        actions.append(
+            "Check seed reachability, outbound firewall, P2P port forwarding, TLS certificate/reverse proxy, and relay status."
+        )
 
     return {
         "mode": mode,
@@ -410,7 +441,9 @@ def v1_net_self(request: Request) -> dict[str, object]:
         bind_port=int(bind_port),
         advertise_uri=advertise_uri,
         connected_peers=connected_peers if isinstance(connected_peers, int) else None,
-        established_sessions=established_sessions if isinstance(established_sessions, int) else None,
+        established_sessions=established_sessions
+        if isinstance(established_sessions, int)
+        else None,
     )
     for warning in nat.get("warnings", []):
         if isinstance(warning, str) and warning not in warnings:

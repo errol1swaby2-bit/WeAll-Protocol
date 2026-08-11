@@ -16,6 +16,7 @@ from weall.runtime.chain_config import (
     production_bootstrap_issues,
     production_bootstrap_report,
 )
+from weall.testing.prod_fixtures import write_strict_prod_chain_manifest
 
 
 class _FakePool:
@@ -35,8 +36,6 @@ class _FakeExecutor:
         self._schema_version_cached = "1"
         self._bft_enabled = True
 
-    def read_state(self):
-        return self.snapshot()
     def snapshot(self) -> dict[str, object]:
         return {
             "chain_id": "weall-prod",
@@ -67,12 +66,18 @@ class _FakeNetNode:
 def _cfg(tmp_path: Path) -> ChainConfig:
     tx_index = tmp_path / "tx_index.json"
     tx_index.write_text("{}", encoding="utf-8")
+    manifest = write_strict_prod_chain_manifest(
+        tmp_path / "strict-prod-chain-manifest.json",
+        chain_id="weall-prod",
+        tx_index_path=tx_index,
+    )
     return ChainConfig(
         chain_id="weall-prod",
         node_id="node-1",
         mode="prod",
         db_path=str(tmp_path / "data" / "weall.db"),
         tx_index_path=str(tx_index),
+        chain_manifest_path=str(manifest),
         block_interval_ms=600_000,
         max_txs_per_block=1000,
         block_reward=0,
@@ -149,6 +154,11 @@ def test_bootstrap_bundle_builder_and_verifier_round_trip(
     db_path = tmp_path / "data" / "weall.db"
     tx_index_path = tmp_path / "tx_index.json"
     tx_index_path.write_text("{}", encoding="utf-8")
+    manifest_path = write_strict_prod_chain_manifest(
+        tmp_path / "strict-prod-chain-manifest.json",
+        chain_id="weall-prod",
+        tx_index_path=tx_index_path,
+    )
     cfg_path.write_text(
         json.dumps(
             {
@@ -157,6 +167,7 @@ def test_bootstrap_bundle_builder_and_verifier_round_trip(
                 "mode": "prod",
                 "db_path": str(db_path),
                 "tx_index_path": str(tx_index_path),
+                "chain_manifest_path": str(manifest_path),
                 "block_interval_ms": 600000,
                 "max_txs_per_block": 1000,
                 "block_reward": 0,
@@ -189,6 +200,8 @@ def test_bootstrap_bundle_builder_and_verifier_round_trip(
     cmd_env = {
         **dict(os.environ),
         "WEALL_CHAIN_CONFIG_PATH": str(cfg_path),
+        "WEALL_CHAIN_MANIFEST_PATH": str(manifest_path),
+        "WEALL_REQUIRE_CHAIN_MANIFEST": "1",
         "WEALL_MODE": "prod",
         "WEALL_NET_ENABLED": "1",
         "WEALL_BFT_ENABLED": "1",
@@ -244,6 +257,11 @@ def test_status_operator_exposes_bootstrap_report(
     _set_prod_env(monkeypatch)
     tx_index = tmp_path / "tx_index.json"
     tx_index.write_text("{}", encoding="utf-8")
+    manifest_path = write_strict_prod_chain_manifest(
+        tmp_path / "strict-prod-chain-manifest.json",
+        chain_id="weall-prod",
+        tx_index_path=tx_index,
+    )
     cfg_path = tmp_path / "prod.chain.json"
     cfg_path.write_text(
         json.dumps(
@@ -253,6 +271,7 @@ def test_status_operator_exposes_bootstrap_report(
                 "mode": "prod",
                 "db_path": str(tmp_path / "data" / "weall.db"),
                 "tx_index_path": str(tx_index),
+                "chain_manifest_path": str(manifest_path),
                 "block_interval_ms": 600000,
                 "max_txs_per_block": 1000,
                 "block_reward": 0,
@@ -265,6 +284,8 @@ def test_status_operator_exposes_bootstrap_report(
         encoding="utf-8",
     )
     monkeypatch.setenv("WEALL_CHAIN_CONFIG_PATH", str(cfg_path))
+    monkeypatch.setenv("WEALL_CHAIN_MANIFEST_PATH", str(manifest_path))
+    monkeypatch.setenv("WEALL_REQUIRE_CHAIN_MANIFEST", "1")
     app = create_app(boot_runtime=False)
     app.state.executor = _FakeExecutor()
     app.state.net_node = _FakeNetNode()

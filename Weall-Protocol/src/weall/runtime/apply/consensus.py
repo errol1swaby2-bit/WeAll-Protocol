@@ -52,6 +52,26 @@ class ConsensusApplyError(RuntimeError):
     details: dict[str, Any]
 
 
+def _require_dict_invariant(value: Any, *, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ConsensusApplyError(
+            "invalid_state",
+            "state_invariant_violation",
+            {"field": field, "expected": "dict", "actual": type(value).__name__},
+        )
+    return value
+
+
+def _require_list_invariant(value: Any, *, field: str) -> list[Any]:
+    if not isinstance(value, list):
+        raise ConsensusApplyError(
+            "invalid_state",
+            "state_invariant_violation",
+            {"field": field, "expected": "list", "actual": type(value).__name__},
+        )
+    return value
+
+
 def _as_dict(v: Any) -> dict[str, Any]:
     return v if isinstance(v, dict) else {}
 
@@ -276,7 +296,7 @@ def _record_phase_transition(
     phase["current"] = next_phase
     if current != next_phase:
         history = phase.get("history")
-        assert isinstance(history, list)
+        history = _require_list_invariant(history, field="history")
         history.append(
             {
                 "from": current,
@@ -310,7 +330,7 @@ def _ensure_consensus_validator_registry(state: Json) -> Json:
 def _registry_record(state: Json, account: str) -> Json:
     vroot = _ensure_validators_root(state)
     reg = vroot.get("registry")
-    assert isinstance(reg, dict)
+    reg = _require_dict_invariant(reg, field="reg")
     rec = reg.get(account)
     if not isinstance(rec, dict):
         rec = {"account": account}
@@ -322,7 +342,7 @@ def _sync_validator_registry_membership(state: Json) -> None:
     active = set(_ensure_roles_validators_active_set(state))
     vroot = _ensure_validators_root(state)
     reg = vroot.get("registry")
-    assert isinstance(reg, dict)
+    reg = _require_dict_invariant(reg, field="reg")
     creg = _ensure_consensus_validator_registry(state)
     c = _ensure_consensus(state)
     vs = c.get("validator_set") if isinstance(c.get("validator_set"), dict) else {}
@@ -343,11 +363,23 @@ def _sync_validator_registry_membership(state: Json) -> None:
             rec["active"] = False
             status = _as_str(rec.get("status") or "")
             effective_epoch = _as_int(rec.get("effective_epoch"), 0)
-            if status == "pending_activation" and approved_epoch > 0 and current_epoch >= approved_epoch:
+            if (
+                status == "pending_activation"
+                and approved_epoch > 0
+                and current_epoch >= approved_epoch
+            ):
                 rec["status"] = "observer"
-            elif status == "pending_suspension" and effective_epoch > 0 and current_epoch >= effective_epoch:
+            elif (
+                status == "pending_suspension"
+                and effective_epoch > 0
+                and current_epoch >= effective_epoch
+            ):
                 rec["status"] = "suspended"
-            elif status == "pending_removal" and effective_epoch > 0 and current_epoch >= effective_epoch:
+            elif (
+                status == "pending_removal"
+                and effective_epoch > 0
+                and current_epoch >= effective_epoch
+            ):
                 rec["status"] = "removed"
             elif not status:
                 rec["status"] = "observer"
@@ -383,7 +415,7 @@ def _apply_validator_register(state: Json, env: TxEnvelope) -> Json:
 
     vroot = _ensure_validators_root(state)
     reg = vroot.get("registry")
-    assert isinstance(reg, dict)
+    reg = _require_dict_invariant(reg, field="reg")
 
     existed = account in reg
     prior = reg.get(account) if isinstance(reg.get(account), dict) else {}
@@ -391,7 +423,9 @@ def _apply_validator_register(state: Json, env: TxEnvelope) -> Json:
         "account": account,
         "pubkey": pubkey,
         "node_id": _as_str(payload.get("node_id") or prior.get("node_id") or ""),
-        "endpoints": list(payload.get("endpoints")) if isinstance(payload.get("endpoints"), list) else ([] if not _as_str(payload.get("endpoint")) else [_as_str(payload.get("endpoint"))]),
+        "endpoints": list(payload.get("endpoints"))
+        if isinstance(payload.get("endpoints"), list)
+        else ([] if not _as_str(payload.get("endpoint")) else [_as_str(payload.get("endpoint"))]),
         # Registration alone must not activate consensus power. Activation is
         # handled separately via deterministic validator-set updates.
         "status": _as_str(prior.get("status") or "observer") or "observer",
@@ -414,7 +448,6 @@ def _apply_validator_register(state: Json, env: TxEnvelope) -> Json:
     }
 
 
-
 def _bool_param(state: Json, key: str, default: bool = False) -> bool:
     raw = _get_params(state).get(key)
     if raw is None:
@@ -425,7 +458,9 @@ def _bool_param(state: Json, key: str, default: bool = False) -> bool:
 
 
 def _active_candidate_node_pubkey(state: Json, account: str, node_id: str) -> str:
-    keys = list(active_node_pubkeys_for_account(_as_dict(_as_dict(state.get("accounts")).get(account))))
+    keys = list(
+        active_node_pubkeys_for_account(_as_dict(_as_dict(state.get("accounts")).get(account)))
+    )
     if node_id and node_id in keys:
         return node_id
     if len(keys) == 1:
@@ -460,7 +495,10 @@ def _enforce_validator_candidate_lifecycle_gate(
             {"account": account, "node_id": node_id},
         )
 
-    if _bool_param(state, "validator_candidate_node_id_must_match_node_pubkey", True) and node_id != node_pubkey:
+    if (
+        _bool_param(state, "validator_candidate_node_id_must_match_node_pubkey", True)
+        and node_id != node_pubkey
+    ):
         raise ConsensusApplyError(
             "forbidden",
             "validator_candidate_node_id_must_match_registered_node_pubkey",
@@ -489,6 +527,7 @@ def _enforce_validator_candidate_lifecycle_gate(
             {"account": account, "candidate_pubkey": pubkey, "readiness_bft_pubkey": bft_pubkey},
         )
 
+
 def _apply_validator_candidate_register(state: Json, env: TxEnvelope) -> Json:
     _ensure_roles_validators_active_set(state)
     payload = _as_dict(env.payload)
@@ -497,11 +536,17 @@ def _apply_validator_candidate_register(state: Json, env: TxEnvelope) -> Json:
     node_id = _as_str(payload.get("node_id"))
     endpoints_raw = payload.get("endpoints")
     endpoint = _as_str(payload.get("endpoint"))
-    endpoints = [_as_str(x) for x in endpoints_raw if _as_str(x)] if isinstance(endpoints_raw, list) else ([] if not endpoint else [endpoint])
+    endpoints = (
+        [_as_str(x) for x in endpoints_raw if _as_str(x)]
+        if isinstance(endpoints_raw, list)
+        else ([] if not endpoint else [endpoint])
+    )
     metadata_hash = _as_str(payload.get("metadata_hash"))
 
     if not account:
-        raise ConsensusApplyError("invalid_payload", "missing_signer_account", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "invalid_payload", "missing_signer_account", {"tx_type": env.tx_type}
+        )
     if not pubkey:
         raise ConsensusApplyError("invalid_payload", "missing_pubkey", {"tx_type": env.tx_type})
     if not node_id:
@@ -518,7 +563,10 @@ def _apply_validator_candidate_register(state: Json, env: TxEnvelope) -> Json:
 
     rec = _validator_registry_lifecycle_record(state, account)
     status = _as_str(rec.get("status") or "observer")
-    if status in {"pending_activation", "active", "suspended"} and _as_str(rec.get("pubkey") or pubkey) != pubkey:
+    if (
+        status in {"pending_activation", "active", "suspended"}
+        and _as_str(rec.get("pubkey") or pubkey) != pubkey
+    ):
         raise ConsensusApplyError(
             "forbidden",
             "validator_record_conflict",
@@ -553,7 +601,9 @@ def _apply_validator_candidate_register(state: Json, env: TxEnvelope) -> Json:
 def _apply_validator_candidate_approve(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     if not env.parent:
-        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type}
+        )
 
     payload = _as_dict(env.payload)
     account = _as_str(payload.get("account"))
@@ -561,17 +611,25 @@ def _apply_validator_candidate_approve(state: Json, env: TxEnvelope) -> Json:
     if not account:
         raise ConsensusApplyError("invalid_payload", "missing_account", {"tx_type": env.tx_type})
     if activate_at_epoch <= 0:
-        raise ConsensusApplyError("invalid_payload", "missing_activate_at_epoch", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "invalid_payload", "missing_activate_at_epoch", {"tx_type": env.tx_type}
+        )
 
     rec = _validator_registry_lifecycle_record(state, account)
     pubkey = _as_str(rec.get("pubkey") or payload.get("pubkey") or "")
     if not pubkey:
-        raise ConsensusApplyError("invalid_payload", "candidate_missing_pubkey", {"account": account})
+        raise ConsensusApplyError(
+            "invalid_payload", "candidate_missing_pubkey", {"account": account}
+        )
     status = _as_str(rec.get("status") or "")
     if status not in {"candidate", "observer", "pending_activation"}:
-        raise ConsensusApplyError("forbidden", "validator_not_candidate", {"account": account, "status": status})
+        raise ConsensusApplyError(
+            "forbidden", "validator_not_candidate", {"account": account, "status": status}
+        )
 
-    current_active = canonicalize_account_set(_ensure_roles_validators_active_set(state) + [account])
+    current_active = canonicalize_account_set(
+        _ensure_roles_validators_active_set(state) + [account]
+    )
     set_hash = _set_pending_validator_set(
         state,
         active_set=current_active,
@@ -600,7 +658,9 @@ def _apply_validator_candidate_approve(state: Json, env: TxEnvelope) -> Json:
 def _apply_validator_suspend(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     if not env.parent:
-        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type}
+        )
 
     payload = _as_dict(env.payload)
     account = _as_str(payload.get("account"))
@@ -609,7 +669,9 @@ def _apply_validator_suspend(state: Json, env: TxEnvelope) -> Json:
     if not account:
         raise ConsensusApplyError("invalid_payload", "missing_account", {"tx_type": env.tx_type})
     if effective_epoch <= 0:
-        raise ConsensusApplyError("invalid_payload", "missing_effective_epoch", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "invalid_payload", "missing_effective_epoch", {"tx_type": env.tx_type}
+        )
 
     rec = _validator_registry_lifecycle_record(state, account)
     rec["suspension"] = {
@@ -628,7 +690,9 @@ def _apply_validator_suspend(state: Json, env: TxEnvelope) -> Json:
             "effective_epoch": int(effective_epoch),
         }
 
-    next_active = canonicalize_account_set([acct for acct in current_active if _as_str(acct) != account])
+    next_active = canonicalize_account_set(
+        [acct for acct in current_active if _as_str(acct) != account]
+    )
     set_hash = _set_pending_validator_set(
         state,
         active_set=next_active,
@@ -649,7 +713,9 @@ def _apply_validator_suspend(state: Json, env: TxEnvelope) -> Json:
 def _apply_validator_remove(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     if not env.parent:
-        raise ConsensusApplyError("forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "forbidden", "receipt_only_requires_parent", {"tx_type": env.tx_type}
+        )
 
     payload = _as_dict(env.payload)
     account = _as_str(payload.get("account"))
@@ -658,7 +724,9 @@ def _apply_validator_remove(state: Json, env: TxEnvelope) -> Json:
     if not account:
         raise ConsensusApplyError("invalid_payload", "missing_account", {"tx_type": env.tx_type})
     if effective_epoch <= 0:
-        raise ConsensusApplyError("invalid_payload", "missing_effective_epoch", {"tx_type": env.tx_type})
+        raise ConsensusApplyError(
+            "invalid_payload", "missing_effective_epoch", {"tx_type": env.tx_type}
+        )
 
     rec = _validator_registry_lifecycle_record(state, account)
     rec["removal"] = {
@@ -677,7 +745,9 @@ def _apply_validator_remove(state: Json, env: TxEnvelope) -> Json:
             "effective_epoch": int(effective_epoch),
         }
 
-    next_active = canonicalize_account_set([acct for acct in current_active if _as_str(acct) != account])
+    next_active = canonicalize_account_set(
+        [acct for acct in current_active if _as_str(acct) != account]
+    )
     set_hash = _set_pending_validator_set(
         state,
         active_set=next_active,
@@ -711,7 +781,7 @@ def _apply_validator_deregister(state: Json, env: TxEnvelope) -> Json:
 
     vroot = _ensure_validators_root(state)
     reg = vroot.get("registry")
-    assert isinstance(reg, dict)
+    reg = _require_dict_invariant(reg, field="reg")
 
     existed = account in reg
     if account in reg:
@@ -820,7 +890,7 @@ def _set_pending_validator_set(
     c["validator_set"] = vs
     pending_accounts = set(canonical_active_set)
     reg = _ensure_validators_root(state).get("registry")
-    assert isinstance(reg, dict)
+    reg = _require_dict_invariant(reg, field="reg")
     current_active = set(_ensure_roles_validators_active_set(state))
     for acct in pending_accounts - current_active:
         rec = _validator_registry_lifecycle_record(state, acct)
@@ -848,7 +918,7 @@ def _activate_pending_validator_set_for_epoch(state: Json, epoch: int) -> Json |
     _bump_validator_epoch(state, out)
     c = _ensure_consensus(state)
     vs = c.get("validator_set")
-    assert isinstance(vs, dict)
+    vs = _require_dict_invariant(vs, field="vs")
     pending_phase = (
         normalize_consensus_phase(pending.get("phase"), validator_count=len(out))
         if _as_str(pending.get("phase"))
@@ -928,7 +998,7 @@ def _apply_validator_set_update(state: Json, env: TxEnvelope) -> Json:
     _bump_validator_epoch(state, out)
     c = _ensure_consensus(state)
     vs = c.get("validator_set")
-    assert isinstance(vs, dict)
+    vs = _require_dict_invariant(vs, field="vs")
     consensus_phase = _phase_for_active_set(out)
     _record_phase_transition(
         state,
@@ -968,7 +1038,9 @@ def _apply_validator_heartbeat(state: Json, env: TxEnvelope) -> Json:
     if ts_ms <= 0:
         raise ConsensusApplyError("invalid_payload", "missing_ts_ms", {"tx_type": env.tx_type})
 
-    active_node_pubkeys = set(active_node_pubkeys_for_account(_as_dict(_as_dict(state.get("accounts")).get(account))))
+    active_node_pubkeys = set(
+        active_node_pubkeys_for_account(_as_dict(_as_dict(state.get("accounts")).get(account)))
+    )
     if active_node_pubkeys and node_id not in active_node_pubkeys:
         raise ConsensusApplyError(
             "forbidden",
@@ -978,7 +1050,7 @@ def _apply_validator_heartbeat(state: Json, env: TxEnvelope) -> Json:
 
     vroot = _ensure_validators_root(state)
     hb = vroot.get("last_heartbeat_ms")
-    assert isinstance(hb, dict)
+    hb = _require_dict_invariant(hb, field="hb")
     hb[account] = int(ts_ms)
     vroot["last_heartbeat_ms"] = hb
 
@@ -988,7 +1060,12 @@ def _apply_validator_heartbeat(state: Json, env: TxEnvelope) -> Json:
     node_hb[node_id] = {"account": account, "ts_ms": int(ts_ms)}
     vroot["last_heartbeat_by_node"] = node_hb
 
-    return {"applied": "VALIDATOR_HEARTBEAT", "account": account, "node_id": node_id, "ts_ms": int(ts_ms)}
+    return {
+        "applied": "VALIDATOR_HEARTBEAT",
+        "account": account,
+        "node_id": node_id,
+        "ts_ms": int(ts_ms),
+    }
 
 
 def _apply_validator_performance_report(state: Json, env: TxEnvelope) -> Json:
@@ -1002,7 +1079,7 @@ def _apply_validator_performance_report(state: Json, env: TxEnvelope) -> Json:
 
     vroot = _ensure_validators_root(state)
     reports = vroot.get("performance_reports")
-    assert isinstance(reports, list)
+    reports = _require_list_invariant(reports, field="reports")
 
     rec = {
         "account": account,
@@ -1055,7 +1132,7 @@ def _apply_block_propose(state: Json, env: TxEnvelope) -> Json:
 
     c = _ensure_consensus(state)
     blocks = c.get("blocks_by_id")
-    assert isinstance(blocks, dict)
+    blocks = _require_dict_invariant(blocks, field="blocks")
 
     existed = block_id in blocks
     blocks[block_id] = {
@@ -1120,7 +1197,7 @@ def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
     if height > 0:
         c = _ensure_consensus(state)
         av = c.get("attestations_by_validator")
-        assert isinstance(av, dict)
+        av = _require_dict_invariant(av, field="av")
 
         per_v = av.get(validator)
         if not isinstance(per_v, dict):
@@ -1131,7 +1208,7 @@ def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
             sid = f"equivocation:{validator}:{int(height)}:{int(rnd)}"
             sl = _ensure_slashing_root(state)
             execs = sl.get("executions")
-            assert isinstance(execs, dict)
+            execs = _require_dict_invariant(execs, field="execs")
 
             if sid not in execs:
                 execs[sid] = {
@@ -1146,7 +1223,7 @@ def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
                     "payload": payload,
                 }
                 ev = sl.get("events")
-                assert isinstance(ev, list)
+                ev = _require_list_invariant(ev, field="ev")
                 ev.append({"tx_type": "SLASH_EXECUTE", "slash_id": sid, "type": "equivocation"})
                 sl["events"] = ev
                 sl["executions"] = execs
@@ -1452,7 +1529,7 @@ def _apply_slash_propose(state: Json, env: TxEnvelope) -> Json:
 
     sl = _ensure_slashing_root(state)
     props = sl.get("proposals")
-    assert isinstance(props, dict)
+    props = _require_dict_invariant(props, field="props")
 
     existed = slash_id in props
     props[slash_id] = {
@@ -1478,7 +1555,7 @@ def _apply_slash_vote(state: Json, env: TxEnvelope) -> Json:
 
     sl = _ensure_slashing_root(state)
     votes = sl.get("votes")
-    assert isinstance(votes, dict)
+    votes = _require_dict_invariant(votes, field="votes")
 
     per = votes.get(slash_id)
     if not isinstance(per, dict):
@@ -1529,7 +1606,7 @@ def _record_slash_accountability(
 
     vroot = _ensure_validators_root(state)
     reg = vroot.get("registry")
-    assert isinstance(reg, dict)
+    reg = _require_dict_invariant(reg, field="reg")
     rec = reg.get(account)
     if not isinstance(rec, dict):
         rec = {"account": account, "status": "unknown", "active": False}
@@ -1591,7 +1668,9 @@ def _record_slash_accountability(
         accountability["suspension_queue_id"] = suspension_queue_id
     rec["accountability"] = accountability
     rec["accountability_status"] = "slashed_non_economic"
-    rec["status"] = "pending_suspension" if target_is_active else _as_str(rec.get("status") or "unknown")
+    rec["status"] = (
+        "pending_suspension" if target_is_active else _as_str(rec.get("status") or "unknown")
+    )
     reg[account] = rec
     vroot["registry"] = reg
 
@@ -1625,7 +1704,7 @@ def _apply_slash_execute(state: Json, env: TxEnvelope) -> Json:
 
     sl = _ensure_slashing_root(state)
     execs = sl.get("executions")
-    assert isinstance(execs, dict)
+    execs = _require_dict_invariant(execs, field="execs")
 
     existed = slash_id in execs
     if not existed:
@@ -1639,7 +1718,7 @@ def _apply_slash_execute(state: Json, env: TxEnvelope) -> Json:
         sl["executions"] = execs
 
         ev = sl.get("events")
-        assert isinstance(ev, list)
+        ev = _require_list_invariant(ev, field="ev")
         ev.append(
             {"tx_type": "SLASH_EXECUTE", "slash_id": slash_id, "account": account, "reason": reason}
         )
@@ -1666,7 +1745,7 @@ def _apply_slash_legacy(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
     sl = _ensure_slashing_root(state)
     ev = sl.get("events")
-    assert isinstance(ev, list)
+    ev = _require_list_invariant(ev, field="ev")
     ev.append({"tx_type": "SLASH", "payload": payload})
     sl["events"] = ev
     return {"applied": "SLASH", "legacy": True}

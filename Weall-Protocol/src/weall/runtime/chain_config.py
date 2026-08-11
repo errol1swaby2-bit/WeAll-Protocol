@@ -5,25 +5,23 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-from weall.ledger.constants import TARGET_BLOCK_INTERVAL_SECONDS
-from weall.runtime.json_tools import canonical_json_str
-
-DEFAULT_CHAIN_BLOCK_INTERVAL_MS = int(TARGET_BLOCK_INTERVAL_SECONDS) * 1000
-
 from urllib.parse import urlparse
 
-Json = dict[str, Any]
+from weall.ledger.constants import TARGET_BLOCK_INTERVAL_SECONDS
 from weall.runtime.chain_manifest import (
-    active_chain_manifest_path,
     chain_manifest_issues,
     chain_manifest_status,
     load_chain_manifest,
 )
+from weall.runtime.json_tools import canonical_json_str
 from weall.runtime.protocol_profile import (
     PRODUCTION_CONSENSUS_PROFILE,
     production_consensus_env_audit,
 )
+
+DEFAULT_CHAIN_BLOCK_INTERVAL_MS = int(TARGET_BLOCK_INTERVAL_SECONDS) * 1000
+
+Json = dict[str, Any]
 
 
 def _repo_root() -> Path:
@@ -256,17 +254,13 @@ def _node_identity_source_report() -> Json:
     }
 
 
-
-
 _PRODUCTION_ROLELESS_JUROR_FLAG_KEYS = (
     "allow_case_scoped_juror_without_role",
     "poh_allow_case_scoped_juror_without_role",
     "bootstrap_allow_case_scoped_juror_without_role",
 )
 
-_PRODUCTION_DEMO_REVIEW_FLAG_KEYS = (
-    "seeded_demo_review_fallback",
-)
+_PRODUCTION_DEMO_REVIEW_FLAG_KEYS = ("seeded_demo_review_fallback",)
 
 
 def _param_truthy(value: Any) -> bool:
@@ -336,7 +330,12 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
     elif not _json_file_is_object(str(tx_index_path)):
         issues.append(f"tx_index_path must be a valid JSON object file: {str(tx_index_path)!r}")
 
-    explicit_manifest_path = str(getattr(cfg, "chain_manifest_path", "") or os.environ.get("WEALL_CHAIN_MANIFEST_PATH", "") or os.environ.get("WEALL_CHAIN_MANIFEST", "") or "").strip()
+    explicit_manifest_path = str(
+        getattr(cfg, "chain_manifest_path", "")
+        or os.environ.get("WEALL_CHAIN_MANIFEST_PATH", "")
+        or os.environ.get("WEALL_CHAIN_MANIFEST", "")
+        or ""
+    ).strip()
     explicit_manifest_required = os.environ.get("WEALL_REQUIRE_CHAIN_MANIFEST") is not None
     default_manifest_required = bool(explicit_manifest_path)
     chain_manifest_required, chain_manifest_required_invalid = _env_bool_status(
@@ -348,18 +347,25 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
         issues.append("WEALL_REQUIRE_CHAIN_MANIFEST must remain enabled in production")
     manifest = None
     try:
-        manifest = load_chain_manifest(path=explicit_manifest_path or None, required=bool(chain_manifest_required), mode=mode)
+        manifest = load_chain_manifest(
+            path=explicit_manifest_path or None, required=bool(chain_manifest_required), mode=mode
+        )
     except Exception as exc:
         issues.append(f"chain_manifest_load_failed:{exc}")
     if manifest is not None:
-        issues.extend([f"chain_manifest:{reason}" for reason in chain_manifest_issues(
-            manifest=manifest,
-            chain_id=str(cfg.chain_id or ""),
-            mode=mode,
-            tx_index_path=str(tx_index_path),
-            schema_version="",
-            strict=bool(chain_manifest_required),
-        )])
+        issues.extend(
+            [
+                f"chain_manifest:{reason}"
+                for reason in chain_manifest_issues(
+                    manifest=manifest,
+                    chain_id=str(cfg.chain_id or ""),
+                    mode=mode,
+                    tx_index_path=str(tx_index_path),
+                    schema_version="",
+                    strict=bool(chain_manifest_required),
+                )
+            ]
+        )
 
     from weall.runtime.bootstrap_manifest import read_db_state as _read_db_state_for_param_safety
 
@@ -375,7 +381,9 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
     validator_signing_enabled, validator_signing_enabled_invalid = _env_bool_status(
         "WEALL_VALIDATOR_SIGNING_ENABLED", False
     )
-    requested_lifecycle = str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE", "") or "").strip().lower()
+    requested_lifecycle = (
+        str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE", "") or "").strip().lower()
+    )
     requested_roles = set(_csv_values("WEALL_SERVICE_ROLES"))
     validator_role_requested = bool("validator" in requested_roles)
     production_validator_intent = bool(
@@ -543,13 +551,11 @@ def production_bootstrap_issues(cfg: ChainConfig) -> list[str]:
         )
 
     from weall.runtime.bootstrap_manifest import (
-        read_db_state,
         release_manifest_path,
         release_pubkey,
         signed_manifest_required,
         verify_local_manifest,
     )
-    from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 
     manifest_required = signed_manifest_required(
         mode=mode, network_enabled=bool(net_enabled), bft_enabled=bool(bft_enabled)
@@ -609,13 +615,11 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
     net_enabled, net_enabled_invalid = _env_bool_status("WEALL_NET_ENABLED", False)
     bft_enabled, bft_enabled_invalid = _env_bool_status("WEALL_BFT_ENABLED", False)
     from weall.runtime.bootstrap_manifest import (
-        read_db_state,
         release_manifest_path,
         release_pubkey,
         signed_manifest_required,
         verify_local_manifest,
     )
-    from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 
     manifest_required = signed_manifest_required(
         mode=str(cfg.mode or "").strip().lower(),
@@ -625,15 +629,34 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
     manifest_path_raw = release_manifest_path()
     manifest_pubkey = release_pubkey()
     manifest_report = None
+
+    from weall.runtime.bootstrap_manifest import read_db_state
+    from weall.runtime.runtime_authority import authority_contract_from_lifecycle
+
     local_state, _local_meta = read_db_state(cfg.db_path)
     local_state_meta = local_state.get("meta") if isinstance(local_state.get("meta"), dict) else {}
-    local_lifecycle = local_state_meta.get("node_lifecycle") if isinstance(local_state_meta.get("node_lifecycle"), dict) else {}
+    local_lifecycle = (
+        local_state_meta.get("node_lifecycle")
+        if isinstance(local_state_meta.get("node_lifecycle"), dict)
+        else {}
+    )
     authority_contract = authority_contract_from_lifecycle(local_lifecycle, source="runtime")
     authority_contract_source = str(authority_contract.get("contract_source") or "runtime")
-    explicit_chain_manifest_path = str(getattr(cfg, "chain_manifest_path", "") or os.environ.get("WEALL_CHAIN_MANIFEST_PATH", "") or os.environ.get("WEALL_CHAIN_MANIFEST", "") or "").strip()
-    chain_manifest_required, _chain_manifest_required_invalid = _env_bool_status("WEALL_REQUIRE_CHAIN_MANIFEST", bool(explicit_chain_manifest_path))
+    explicit_chain_manifest_path = str(
+        getattr(cfg, "chain_manifest_path", "")
+        or os.environ.get("WEALL_CHAIN_MANIFEST_PATH", "")
+        or os.environ.get("WEALL_CHAIN_MANIFEST", "")
+        or ""
+    ).strip()
+    chain_manifest_required, _chain_manifest_required_invalid = _env_bool_status(
+        "WEALL_REQUIRE_CHAIN_MANIFEST", bool(explicit_chain_manifest_path)
+    )
     try:
-        chain_manifest = load_chain_manifest(path=explicit_chain_manifest_path or None, required=bool(chain_manifest_required), mode=str(cfg.mode or "").strip().lower())
+        chain_manifest = load_chain_manifest(
+            path=explicit_chain_manifest_path or None,
+            required=bool(chain_manifest_required),
+            mode=str(cfg.mode or "").strip().lower(),
+        )
     except Exception:
         chain_manifest = None
     chain_manifest_report = chain_manifest_status(
@@ -696,12 +719,30 @@ def production_bootstrap_report(cfg: ChainConfig) -> Json:
             "issues": chain_param_safety_issues,
         },
         "release_manifest_authority_contract": (
-            (manifest_report.get("compatibility_contract", {}).get("local", {}).get("authority_contract") if isinstance(manifest_report, dict) else {})
+            (
+                manifest_report.get("compatibility_contract", {})
+                .get("local", {})
+                .get("authority_contract")
+                if isinstance(manifest_report, dict)
+                else {}
+            )
             if isinstance(manifest_report, dict)
             else {}
         ),
         "release_manifest_authority_contract_source": (
-            str(((manifest_report.get("compatibility_contract", {}).get("local", {}).get("authority_contract") or {}) if isinstance(manifest_report, dict) else {}).get("contract_source") or "runtime")
+            str(
+                (
+                    (
+                        manifest_report.get("compatibility_contract", {})
+                        .get("local", {})
+                        .get("authority_contract")
+                        or {}
+                    )
+                    if isinstance(manifest_report, dict)
+                    else {}
+                ).get("contract_source")
+                or "runtime"
+            )
         ),
         "observer_first_recommended": True,
         "recommended_join_mode": "observer_first_then_verify_then_enable_bft_signing",
@@ -751,7 +792,9 @@ def validate_runtime_env() -> None:
     validator_signing_enabled, validator_signing_enabled_invalid = _env_bool_status(
         "WEALL_VALIDATOR_SIGNING_ENABLED", False
     )
-    requested_lifecycle = str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE", "") or "").strip().lower()
+    requested_lifecycle = (
+        str(os.environ.get("WEALL_NODE_LIFECYCLE_STATE", "") or "").strip().lower()
+    )
     requested_roles = set(_csv_values("WEALL_SERVICE_ROLES"))
     production_validator_intent = bool(
         requested_lifecycle == "production_service" and "validator" in requested_roles
@@ -772,7 +815,9 @@ def validate_runtime_env() -> None:
             "mixed posture is not allowed in production: "
             "WEALL_OBSERVER_MODE=1 with WEALL_VALIDATOR_SIGNING_ENABLED=1"
         )
-    if (production_validator_intent or (validator_signing_enabled and not observer_mode)) and not bft_enabled:
+    if (
+        production_validator_intent or (validator_signing_enabled and not observer_mode)
+    ) and not bft_enabled:
         issues.append(
             "production validator intent requires WEALL_BFT_ENABLED=1; "
             "use WEALL_OBSERVER_MODE=1 without validator signing for observer-first production startup"
@@ -848,26 +893,13 @@ def _read_json_file(path: Path) -> Json:
     return data
 
 
-
-def _pytest_prod_fixture_uses_noncanonical_chain() -> bool:
-    if not os.environ.get("PYTEST_CURRENT_TEST"):
-        return False
-    chain_id = str(os.environ.get("WEALL_CHAIN_ID", "") or "").strip()
-    if not chain_id:
-        return True
-    return chain_id not in {"weall-prod", "weall-main", "weall-genesis"}
-
-
 def _env_chain_manifest_required() -> bool:
     mode = _runtime_mode_from_env()
     explicit = os.environ.get("WEALL_REQUIRE_CHAIN_MANIFEST") is not None
     # Production must remain pinned to an explicit or default chain manifest even
     # when an operator supplies a custom WEALL_CHAIN_CONFIG_PATH. Otherwise a
-    # prod-like boot can silently drift onto an unreviewed chain profile. Pytest
-    # keeps its historical non-canonical prod fixtures opt-out so existing
-    # startup-order tests can still exercise config validation without becoming
-    # production chain-identity tests.
-    default_required = bool(mode == "prod" and not _pytest_prod_fixture_uses_noncanonical_chain())
+    # prod-like boot can silently drift onto an unreviewed chain profile.
+    default_required = bool(mode == "prod")
     required, invalid = _env_bool_status("WEALL_REQUIRE_CHAIN_MANIFEST", default_required)
     if invalid and mode == "prod":
         raise ValueError("invalid_boolean_env:WEALL_REQUIRE_CHAIN_MANIFEST")
@@ -879,7 +911,9 @@ def _env_chain_manifest_required() -> bool:
 def load_chain_config(path: str | None = None) -> ChainConfig:
     env_path = os.environ.get("WEALL_CHAIN_CONFIG_PATH", "").strip()
     mode_hint = _runtime_mode_from_env()
-    default_config_path = "./configs/prod.chain.json" if mode_hint == "prod" else "./configs/dev.chain.json"
+    default_config_path = (
+        "./configs/prod.chain.json" if mode_hint == "prod" else "./configs/dev.chain.json"
+    )
     chosen = path or env_path or default_config_path
     resolved = _resolve_chain_config_path(chosen)
     if resolved.is_file():
@@ -893,7 +927,12 @@ def load_chain_config(path: str | None = None) -> ChainConfig:
         payload = {}
 
     raw_mode = _as_str(payload.get("mode"), mode_hint or "dev").strip().lower()
-    manifest = load_chain_manifest(required=_env_chain_manifest_required(), mode=raw_mode)
+    configured_manifest_path = _as_str(payload.get("chain_manifest_path"), "").strip()
+    manifest = load_chain_manifest(
+        path=configured_manifest_path or None,
+        required=_env_chain_manifest_required(),
+        mode=raw_mode,
+    )
     manifest_chain_id = manifest.chain_id if manifest is not None else ""
     manifest_profile = manifest.profile if manifest is not None else ""
 
@@ -910,8 +949,12 @@ def load_chain_config(path: str | None = None) -> ChainConfig:
         node_id=_as_str(env_node_id or payload.get("node_id"), "node-1"),
         mode=_as_str(payload.get("mode"), raw_mode or "dev"),
         db_path=_as_str(env_db_path or payload.get("db_path"), "./data/weall.db"),
-        tx_index_path=_as_str(env_tx_index_path or payload.get("tx_index_path"), "./generated/tx_index.json"),
-        block_interval_ms=_as_int(payload.get("block_interval_ms"), DEFAULT_CHAIN_BLOCK_INTERVAL_MS),
+        tx_index_path=_as_str(
+            env_tx_index_path or payload.get("tx_index_path"), "./generated/tx_index.json"
+        ),
+        block_interval_ms=_as_int(
+            payload.get("block_interval_ms"), DEFAULT_CHAIN_BLOCK_INTERVAL_MS
+        ),
         max_txs_per_block=_as_int(payload.get("max_txs_per_block"), 1000),
         block_reward=_as_int(payload.get("block_reward"), 0),
         api_host=_as_str(env_api_host or payload.get("api_host"), "127.0.0.1"),

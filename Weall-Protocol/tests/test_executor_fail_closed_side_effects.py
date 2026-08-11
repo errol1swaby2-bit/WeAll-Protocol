@@ -6,6 +6,7 @@ import pytest
 
 import weall.runtime.executor as executor_mod
 from weall.runtime.executor import WeAllExecutor
+from weall.testing.prod_fixtures import next_constitutional_block_time_ms
 
 
 def _mk_executor(tmp_path: Path) -> WeAllExecutor:
@@ -72,17 +73,18 @@ def test_prod_apply_block_fails_closed_on_poh_scheduler_error(
 
     monkeypatch.setattr(executor_mod, "schedule_poh_tier2_system_txs", boom)
 
+    ts_ms = next_constitutional_block_time_ms(ex)
     meta = ex.apply_block(
         {
             "header": {
                 "chain_id": "weall-test",
                 "height": 1,
                 "prev_block_hash": "",
-                "block_ts_ms": max(1, ex.chain_time_floor_ms()),
+                "block_ts_ms": ts_ms,
                 "receipts_root": "0" * 64,
             },
             "height": 1,
-            "block_ts_ms": max(1, ex.chain_time_floor_ms()),
+            "block_ts_ms": ts_ms,
             "txs": [],
         }
     )
@@ -91,8 +93,13 @@ def test_prod_apply_block_fails_closed_on_poh_scheduler_error(
     assert meta.error == "bad_block:poh_schedule_failed:RuntimeError"
 
 
-def test_prod_apply_block_fails_closed_on_corrupt_system_queue(tmp_path: Path) -> None:
+def test_prod_apply_block_fails_closed_on_corrupt_system_queue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _mk_executor(tmp_path)
+
+    ts_ms = next_constitutional_block_time_ms(ex)
     ex.state["system_queue"] = ["corrupt"]
 
     meta = ex.apply_block(
@@ -101,11 +108,11 @@ def test_prod_apply_block_fails_closed_on_corrupt_system_queue(tmp_path: Path) -
                 "chain_id": "weall-test",
                 "height": 1,
                 "prev_block_hash": "",
-                "block_ts_ms": max(1, ex.chain_time_floor_ms()),
+                "block_ts_ms": ts_ms,
                 "receipts_root": "0" * 64,
             },
             "height": 1,
-            "block_ts_ms": max(1, ex.chain_time_floor_ms()),
+            "block_ts_ms": ts_ms,
             "txs": [],
         }
     )

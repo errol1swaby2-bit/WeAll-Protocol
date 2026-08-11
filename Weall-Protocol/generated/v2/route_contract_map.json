@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "59a5d4aa15b11961970625925ae3e444c10bff0225adb27b9547cb6bd6f6fd2e"
+    "source_tree_digest": "a11eafd4b645d52e94e54dd95a998d866c4f8f9bf0f55826e9028804db26093c"
   },
   "required_fields": [
     "stable_id",
@@ -730,10 +730,18 @@
         "tests/test_constitutional_procedure_clock.py",
         "tests/test_devnet_cross_node_convergence.py",
         "tests/test_docker_chain_manifest.py",
+        "tests/test_engineering_integrity_shortcut_closure.py",
         "tests/test_external_observer_controlled_devnet_rehearsal.py",
         "tests/test_external_observer_runbook.py",
+        "tests/test_handshake_and_preflight_genesis_bootstrap_contract.py",
         "tests/test_m2_chain_manifest_closure_gates.py",
         "tests/test_observer_reconciliation_and_bounded_details.py",
+        "tests/test_priority11_bootstrap_incident_lane_integration.py",
+        "tests/test_priority1_signed_manifest.py",
+        "tests/test_priority4_bootstrap_safety.py",
+        "tests/test_priority4_public_validator_preflight.py",
+        "tests/test_production_bootstrap_network.py",
+        "tests/test_production_bootstrap_profile.py",
         "tests/test_production_manifest_trust_root.py",
         "tests/test_production_p0_p1_safety.py",
         "tests/test_runtime_config_env_precedence.py",
@@ -2817,7 +2825,7 @@
       ],
       "implementation_source": {
         "function": "health",
-        "line": 416,
+        "line": 437,
         "path": "src/weall/api/routes_public_parts/health.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2838,7 +2846,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "d4692f99f0ada452d7de46249e203bd780a76e7ebbc532e5115122a6e9a407a0",
+        "review_digest": "5b35ef3feedf81fb36fd7cd04a4b9e21757c485b7fa38654891667c33e932aeb",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -2885,7 +2893,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "healthz",
-        "line": 486,
+        "line": 508,
         "path": "src/weall/api/routes_public_parts/health.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2906,7 +2914,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "9e665b61627cd87353d8006a8ca273288dfa3fd106f279be70e350ccf22523ce",
+        "review_digest": "02f9c95362d961c373e787d578aff76a59428d2014923b844ca592b00f0c08aa",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -2931,7 +2939,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_media_gateway",
-        "line": 963,
+        "line": 1008,
         "path": "src/weall/api/routes_public_parts/media.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2952,7 +2960,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "a2ccc61c83690a99f836e638c9df20d26e78a404714755be516d4e02d18a2b9e",
+        "review_digest": "3d5e98ac37d81fc9e641e30376fa08cf6acee2adcf9e40659c19bb6513236b4a",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -2977,7 +2985,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_media_providers",
-        "line": 1048,
+        "line": 1093,
         "path": "src/weall/api/routes_public_parts/media.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2998,7 +3006,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "38edc14f9a37da1da22f61e659a3f5dcacd4a751ad6480282c18ea7af02a9983",
+        "review_digest": "66f5cde113632e55f3f7c534dd3b40e99c27338757196371f387abe76e210a83",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3024,7 +3032,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_media_proxy",
-        "line": 1075,
+        "line": 1120,
         "path": "src/weall/api/routes_public_parts/media.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3045,7 +3053,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "eea8e86e6eb76bb0ccd3c71e7b8b6d2393593199c224232d9a4739fd9d6505a7",
+        "review_digest": "7344984b735d4d8cce822340967709edf4eecfae14ef9bdcdf921f136d9eccbd",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3075,7 +3083,7 @@
       ],
       "implementation_source": {
         "function": "v1_media_resolve",
-        "line": 1007,
+        "line": 1052,
         "path": "src/weall/api/routes_public_parts/media.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3096,7 +3104,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "cd7b14c88085c3d1182d661ca0a8e1d3e7fddbefcc6c3a1411fb4ce973f56a68",
+        "review_digest": "8c4a5b1fd384cd8c7f027e7222a8dc9033e8f15e5332830ee5c483370941b1b6",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3123,7 +3131,7 @@
       ],
       "implementation_source": {
         "function": "v1_media_status",
-        "line": 977,
+        "line": 1022,
         "path": "src/weall/api/routes_public_parts/media.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3144,7 +3152,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "284a001c780be72de28994c41860acdbdb0de411499722c73bc9da8af33f088b",
+        "review_digest": "e61ca0bd11cd5946910b525b0ef0de41a47b5e3f5c13db713d1f5000410e68fd",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3178,7 +3186,7 @@
       ],
       "implementation_source": {
         "function": "v1_media_upload",
-        "line": 799,
+        "line": 844,
         "path": "src/weall/api/routes_public_parts/media.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -3199,7 +3207,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "89b794621f90f4ccbd738c1662c0714dc40483f69a60423aa426c1e1fea9d2a9",
+        "review_digest": "b5e29b6cd418d2705fb7ee22bd861b75c33c62722cc7a2f01ec4ff69fd183515",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3374,7 +3382,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_net_relay_ack",
-        "line": 223,
+        "line": 231,
         "path": "src/weall/api/routes_public_parts/net_relay.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3395,7 +3403,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "522733cfb35668f49d680ef004e9de020f2df622bbe3f9c20c5c30aeabcee214",
+        "review_digest": "cd1fe4a9f9df2793cd00a39ab4c740fc25278ba5def52da7277cd8ae877c2524",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3421,7 +3429,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_net_relay_fetch_legacy",
-        "line": 180,
+        "line": 184,
         "path": "src/weall/api/routes_public_parts/net_relay.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3442,7 +3450,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "af7b896662f223a08dd8ce10c94d27b217495fbcbeb5da8661f6f3c127cc2072",
+        "review_digest": "ea9beb3cd0a02cb9b00f51ce90af74a660dce2002de05d4332e6aa65ad922b56",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3470,7 +3478,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_net_relay_fetch",
-        "line": 193,
+        "line": 199,
         "path": "src/weall/api/routes_public_parts/net_relay.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3491,7 +3499,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "b7ccde9871ad7f573df463ae50df630c458c11dbcd018ffcd35c0b9c6fe06dd2",
+        "review_digest": "43d57cf0beafdc22de489bbad42df2ed435bb7289deb396296616a1b5e8f919d",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3519,7 +3527,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_net_relay_status",
-        "line": 140,
+        "line": 144,
         "path": "src/weall/api/routes_public_parts/net_relay.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3540,7 +3548,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "f423a9ded87fcb82225bc313713c64a0172abf65a6d1b659d7260971f851c29e",
+        "review_digest": "328aceb86e543f79b3ea8f7ed41e4372ed41f84efb20bce18aeaade66f5601ec",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3568,7 +3576,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_net_relay_submit",
-        "line": 164,
+        "line": 168,
         "path": "src/weall/api/routes_public_parts/net_relay.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3589,7 +3597,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "f28c9a9f99a835cbc1da805e47baa54caf80fcced6ee0fd0dde3e9797aa1a893",
+        "review_digest": "4185c7464f91c336cb7dea77bbe4d724df81b89de658f1d0229b7a66c2eb8d46",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3618,7 +3626,7 @@
       ],
       "implementation_source": {
         "function": "v1_net_self",
-        "line": 269,
+        "line": 300,
         "path": "src/weall/api/routes_public_parts/net_self.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3639,7 +3647,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "3d40e33aabaea2f80b3d286a39639f9936e60cfa0e4f4969832d8817426614b7",
+        "review_digest": "c97f909cc74163659b9ff5e833462868773567243da03f9b6b80337cc4a43187",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3671,7 +3679,7 @@
       ],
       "implementation_source": {
         "function": "v1_nodes",
-        "line": 486,
+        "line": 512,
         "path": "src/weall/api/routes_nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3692,7 +3700,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "6bafa75f330cb0bbbc6743ab675fb3958cb5205d976e2fc79737155171a7276d",
+        "review_digest": "6eaee75173a6889752400678093136e4f3e79ce1f7a3d10f1a890db84ef2cbdb",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3805,7 +3813,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_nodes_known",
-        "line": 506,
+        "line": 532,
         "path": "src/weall/api/routes_nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3826,7 +3834,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "ca147a73a64f0e5a15dfb6d1ceeeb948586000603fb4a6b7139b989291a4609c",
+        "review_digest": "c1c66989ef5743268d66c515c7bcd315b3db8197aa4003c736d707656482a543",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -3906,7 +3914,7 @@
       ],
       "implementation_source": {
         "function": "v1_nodes_seeds",
-        "line": 500,
+        "line": 526,
         "path": "src/weall/api/routes_nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3927,7 +3935,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "4992b58604f86675fd58712ff491def9f92e8acc1add1f1e69534c658272098f",
+        "review_digest": "bb8205f0acf0a8630410a3201fb3a5727839e8d9c1c4c8b9a586e8a5292df92a",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -4022,7 +4030,7 @@
       ],
       "implementation_source": {
         "function": "v1_nodes_validators",
-        "line": 515,
+        "line": 541,
         "path": "src/weall/api/routes_nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4043,7 +4051,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "a40b6b910fbbfe20f278956a608545a601f0e824374053fed2bcaa8f7eddcfe7",
+        "review_digest": "774d956908aff2ddd5df02e517c357a1fa50dd41da7c1a8af43ffc7e9ddcd68c",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -6245,7 +6253,7 @@
       ],
       "implementation_source": {
         "function": "readyz",
-        "line": 481,
+        "line": 503,
         "path": "src/weall/api/routes_public_parts/health.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6266,7 +6274,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "7fef349057476f6aeac81689749e5ebb15e8b703a7f4b347ea8ce8cbc5756a08",
+        "review_digest": "1e4f3feeedd980700476890b6f5118ceeae83084079aa2d96fe6f92bb4eca395",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7163,6 +7171,7 @@
         "tests/test_economics_activation_requires_hardened_governance_electorate.py",
         "tests/test_economics_block_p2p_implementation.py",
         "tests/test_economics_canon_apply_alignment.py",
+        "tests/test_engineering_integrity_shortcut_closure.py",
         "tests/test_epoch_blocks_per_epoch.py",
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
@@ -7192,6 +7201,7 @@
         "tests/test_feed_persists_order_after_restart_api.py",
         "tests/test_fetch_canonical_identity.py",
         "tests/test_fetch_descriptor_identity_resolution.py",
+        "tests/test_final_ai_shortcut_hardening.py",
         "tests/test_finality_block_attest.py",
         "tests/test_finality_testnet_self_attest.py",
         "tests/test_finality_threshold_multi_validators.py",
@@ -7276,7 +7286,6 @@
         "tests/test_helper_execution_root_commitment.py",
         "tests/test_helper_executor_integration.py",
         "tests/test_helper_executor_metadata_plan.py",
-        "tests/test_helper_executor_plan_binding.py",
         "tests/test_helper_expired_window_rejects_without_manual_close.py",
         "tests/test_helper_fallback_equivalence.py",
         "tests/test_helper_ingress_budget.py",

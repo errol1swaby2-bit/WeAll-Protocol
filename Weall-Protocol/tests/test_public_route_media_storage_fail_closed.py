@@ -16,8 +16,7 @@ def test_common_invalid_http_json_limit_fails_closed_in_prod(
 
 
 def test_common_invalid_http_json_limit_falls_back_in_test(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("WEALL_MODE", raising=False)
-    monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests::x")
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_MAX_HTTP_TX_BYTES", "NaN")
     mod = importlib.import_module("weall.api.routes_public_parts.common")
     assert mod._env_int("WEALL_MAX_HTTP_TX_BYTES", 256 * 1024) == 256 * 1024
@@ -62,8 +61,7 @@ def test_partition_config_invalid_cap_env_fails_closed_in_prod(
 
 
 def test_partition_config_invalid_env_falls_back_in_test(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("WEALL_MODE", raising=False)
-    monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests::x")
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_IPFS_PARTITION_CAP_BYTES", "NaN")
     mod = importlib.import_module("weall.storage.ipfs_partition")
     path, cap, reserve = mod.read_partition_config()

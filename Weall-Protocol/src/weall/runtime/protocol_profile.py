@@ -133,8 +133,8 @@ def _mode() -> str:
     explicit = os.environ.get("WEALL_MODE")
     if explicit is not None:
         return str(explicit or "prod").strip().lower() or "prod"
-    if os.environ.get("PYTEST_CURRENT_TEST"):
-        return "test"
+    # Tests explicitly configure WEALL_MODE=test; production code does not infer
+    # posture from process/test-runner state.
     if str(os.environ.get("WEALL_UNSAFE_DEV") or "").strip() == "1":
         return "testnet"
     return "prod"

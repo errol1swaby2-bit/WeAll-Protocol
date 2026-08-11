@@ -21,9 +21,9 @@ import sys
 import time
 from dataclasses import dataclass
 
-from weall.runtime.executor_boot import build_executor
 from weall.runtime.chain_manifest import load_chain_manifest
 from weall.runtime.constitutional_clock import policy_from_manifest
+from weall.runtime.executor_boot import build_executor
 
 
 class ProducerLifecycleError(RuntimeError):
@@ -38,9 +38,9 @@ class ProducerConfig:
 
 
 def _mode() -> str:
-    # Mirror other runtime modules: tests default to non-prod unless explicitly pinned.
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit rather than inferred from a test runner.
+    # Tests configure WEALL_MODE=test in tests/conftest.py.
+    # Production remains the default when WEALL_MODE is absent.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 

@@ -8,7 +8,8 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
-
+import time
+from typing import Any
 
 from weall.runtime.executor import (
     ExecutorMeta,
@@ -22,6 +23,10 @@ from weall.runtime.executor import (
     os,
     prune_emitted_system_queue,
 )
+from weall.runtime.failpoints import failpoints_enabled
+
+Json = dict[str, Any]
+
 
 def commit_block_candidate(
     self,
@@ -111,30 +116,30 @@ def commit_block_candidate(
                 (str(block_id), str(block2.get("block_hash") or ""), int(height), int(now)),
             )
 
-            # TEST-ONLY crash hook: give tests a window to SIGKILL this process
-            marker = os.environ.get("WEALL_TEST_MARKER_PATH", "").strip()
-            if marker:
+            # Legacy crash-window controls remain available only in explicit
+            # non-production modes.  In production these environment variables
+            # are inert.
+            if failpoints_enabled():
+                marker = os.environ.get("WEALL_TEST_MARKER_PATH", "").strip()
+                if marker:
+                    try:
+                        Path(marker).parent.mkdir(parents=True, exist_ok=True)
+                        Path(marker).write_text("ready\n")
+                    except Exception:
+                        pass
                 try:
-                    Path(marker).parent.mkdir(parents=True, exist_ok=True)
-                    Path(marker).write_text("ready\n")
+                    sleep_ms = int(os.environ.get("WEALL_TEST_SLEEP_AFTER_BLOCK_INSERT_MS", "0"))
                 except Exception:
-                    pass
-            # after the block insert but before ledger_state is updated.
-            try:
-                sleep_ms = int(os.environ.get("WEALL_TEST_SLEEP_AFTER_BLOCK_INSERT_MS", "0"))
-            except Exception:
-                sleep_ms = 0
-            if sleep_ms > 0:
-                time.sleep(sleep_ms / 1000.0)
+                    sleep_ms = 0
+                if sleep_ms > 0:
+                    time.sleep(sleep_ms / 1000.0)
 
-            # TEST-ONLY fail hook: simulate an exception after the block row is inserted
-            # but before mempool cleanup + ledger_state write.
-            if os.environ.get("WEALL_TEST_FAIL_AFTER_BLOCK_INSERT", "").strip().lower() in {
-                "1",
-                "true",
-                "yes",
-            }:
-                raise RuntimeError("test_fail_after_block_insert")
+                if os.environ.get("WEALL_TEST_FAIL_AFTER_BLOCK_INSERT", "").strip().lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                }:
+                    raise RuntimeError("test_fail_after_block_insert")
 
             maybe_trigger_failpoint("block_commit_after_block_insert")
 
@@ -185,9 +190,7 @@ def commit_block_candidate(
             maybe_trigger_failpoint("block_commit_after_ledger_state")
 
         previous_epoch = self._current_validator_epoch()
-        previous_set_hash = (
-            self._current_validator_set_hash() if int(previous_epoch) > 0 else ""
-        )
+        previous_set_hash = self._current_validator_set_hash() if int(previous_epoch) > 0 else ""
         self.state = new_state
         self._bft.load_from_state(self.state)
         self._cache_known_block_hash(str(block_id), str(block2.get("block_hash") or ""))
@@ -204,7 +207,4 @@ def commit_block_candidate(
             applied_count=len(applied_ids),
         )
     except Exception as e:
-        return ExecutorMeta(
-            ok=False, error=_format_commit_failure(e), height=0, block_id=""
-        )
-
+        return ExecutorMeta(ok=False, error=_format_commit_failure(e), height=0, block_id="")

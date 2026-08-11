@@ -3,17 +3,17 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import json
 import ipaddress
+import json
 import mimetypes
 import os
-from pathlib import Path
 import re
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Request, UploadFile
@@ -31,8 +31,8 @@ router = APIRouter()
 
 
 def _mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -90,7 +90,9 @@ def _request_has_media_operator_auth(request: Request) -> bool:
     # operator-authorized.  Browser apps and unrelated local processes should
     # not learn raw provider topology unless they present an operator token.
     default_local_exempt = _mode() != "prod"
-    if _request_is_loopback(request) and not _env_bool("WEALL_MEDIA_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL", not default_local_exempt):
+    if _request_is_loopback(request) and not _env_bool(
+        "WEALL_MEDIA_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL", not default_local_exempt
+    ):
         return True
     want = _media_operator_token()
     if not want:
@@ -302,7 +304,13 @@ def _provider_urls_from_state(st: dict[str, Any] | None, cid: str) -> list[str]:
 
     for bucket_name in ("pin_confirms", "pins", "providers"):
         bucket = storage.get(bucket_name)
-        iterable = bucket.values() if isinstance(bucket, dict) else bucket if isinstance(bucket, list) else []
+        iterable = (
+            bucket.values()
+            if isinstance(bucket, dict)
+            else bucket
+            if isinstance(bucket, list)
+            else []
+        )
         for rec in iterable:
             if not isinstance(rec, dict):
                 continue
@@ -319,7 +327,9 @@ def _provider_urls_from_state(st: dict[str, Any] | None, cid: str) -> list[str]:
 
 def _media_provider_urls(cid: str, st: dict[str, Any] | None = None) -> list[str]:
     out: list[str] = []
-    for url in _provider_urls_from_env(cid) + _provider_urls_from_state(st, cid) + [ipfs_gateway_url(cid)]:
+    for url in (
+        _provider_urls_from_env(cid) + _provider_urls_from_state(st, cid) + [ipfs_gateway_url(cid)]
+    ):
         if url and url not in out:
             out.append(url)
     return out
@@ -331,7 +341,9 @@ def _expected_sha256_for_cid(st: dict[str, Any] | None, cid: str) -> str:
         if not isinstance(raw, dict):
             continue
         payload = raw.get("payload") if isinstance(raw.get("payload"), dict) else {}
-        rec_cid = str(raw.get("cid") or payload.get("cid") or payload.get("upload_ref") or "").strip()
+        rec_cid = str(
+            raw.get("cid") or payload.get("cid") or payload.get("upload_ref") or ""
+        ).strip()
         if rec_cid != cid:
             continue
         for key in ("sha256", "content_sha256", "bytes_sha256", "digest_sha256"):
@@ -387,17 +399,20 @@ def _verify_cached_media_bytes(*, cid: str, path: Path, st: dict[str, Any] | Non
     return verification
 
 
-
 def _media_mime_for_cid(st: dict[str, Any] | None, cid: str) -> str:
     media = _content_media_index(st or {}) if isinstance(st, dict) else {}
     for _mid, raw in media.items():
         if not isinstance(raw, dict):
             continue
         payload = raw.get("payload") if isinstance(raw.get("payload"), dict) else {}
-        rec_cid = str(raw.get("cid") or payload.get("cid") or payload.get("upload_ref") or "").strip()
+        rec_cid = str(
+            raw.get("cid") or payload.get("cid") or payload.get("upload_ref") or ""
+        ).strip()
         if rec_cid != cid:
             continue
-        mime = str(payload.get("mime") or payload.get("mime_type") or payload.get("content_type") or "").strip()
+        mime = str(
+            payload.get("mime") or payload.get("mime_type") or payload.get("content_type") or ""
+        ).strip()
         if mime:
             return mime
     return "application/octet-stream"
@@ -421,7 +436,12 @@ def _parse_single_range_header(range_header: str, *, file_size: int) -> tuple[in
             {"range": raw},
         )
     if file_size <= 0:
-        raise ApiError(416, "media_range_not_satisfiable", "media range is not satisfiable", {"range": raw, "size": int(file_size)})
+        raise ApiError(
+            416,
+            "media_range_not_satisfiable",
+            "media range is not satisfiable",
+            {"range": raw, "size": int(file_size)},
+        )
     if "-" not in spec:
         raise ApiError.bad_request("media_range_invalid", "invalid byte range", {"range": raw})
     start_raw, end_raw = spec.split("-", 1)
@@ -443,10 +463,17 @@ def _parse_single_range_header(range_header: str, *, file_size: int) -> tuple[in
             if end < start:
                 raise ValueError("range end before start")
     except ValueError as exc:
-        raise ApiError.bad_request("media_range_invalid", "invalid byte range", {"range": raw}) from exc
+        raise ApiError.bad_request(
+            "media_range_invalid", "invalid byte range", {"range": raw}
+        ) from exc
 
     if start >= file_size:
-        raise ApiError(416, "media_range_not_satisfiable", "media range is not satisfiable", {"range": raw, "size": int(file_size)})
+        raise ApiError(
+            416,
+            "media_range_not_satisfiable",
+            "media range is not satisfiable",
+            {"range": raw, "size": int(file_size)},
+        )
     end = min(end, file_size - 1)
     return int(start), int(end)
 
@@ -503,7 +530,10 @@ def _media_file_response(
         headers=headers,
     )
 
-def _copy_provider_to_cache(*, cid: str, dest: Path, max_bytes: int, timeout_s: int, st: dict[str, Any] | None = None) -> tuple[int, str, str]:
+
+def _copy_provider_to_cache(
+    *, cid: str, dest: Path, max_bytes: int, timeout_s: int, st: dict[str, Any] | None = None
+) -> tuple[int, str, str]:
     providers = _media_provider_urls(cid, st)
     tmp = dest.with_suffix(".tmp")
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -515,7 +545,9 @@ def _copy_provider_to_cache(*, cid: str, dest: Path, max_bytes: int, timeout_s: 
                 tmp.unlink()
             except Exception:
                 pass
-        req = urllib.request.Request(url, headers={"Accept": "*/*", "User-Agent": "WeAllObserverMediaProxy/1"})
+        req = urllib.request.Request(
+            url, headers={"Accept": "*/*", "User-Agent": "WeAllObserverMediaProxy/1"}
+        )
         try:
             with urllib.request.urlopen(req, timeout=max(1, int(timeout_s))) as resp:  # noqa: S310 - configured gateway/provider URL
                 content_length = resp.headers.get("Content-Length")
@@ -525,7 +557,11 @@ def _copy_provider_to_cache(*, cid: str, dest: Path, max_bytes: int, timeout_s: 
                             raise ApiError.payload_too_large(
                                 "media_too_large",
                                 "media exceeds local observer fetch budget",
-                                {"cid": cid, "bytes": int(content_length), "max_bytes": int(max_bytes)},
+                                {
+                                    "cid": cid,
+                                    "bytes": int(content_length),
+                                    "max_bytes": int(max_bytes),
+                                },
                             )
                     except ApiError:
                         raise
@@ -578,7 +614,11 @@ def _copy_provider_to_cache(*, cid: str, dest: Path, max_bytes: int, timeout_s: 
                 pass
             # Verification failures should not poison the cache. Try the next
             # provider if one exists, otherwise surface the fail-closed error.
-            if "media_byte_hash" in str(exc) or "media_cid_multihash" in str(exc) or "media_integrity_verification" in str(exc):
+            if (
+                "media_byte_hash" in str(exc)
+                or "media_cid_multihash" in str(exc)
+                or "media_integrity_verification" in str(exc)
+            ):
                 continue
             raise
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
@@ -595,6 +635,7 @@ def _copy_provider_to_cache(*, cid: str, dest: Path, max_bytes: int, timeout_s: 
         {"cid": cid, "providers": _provider_diagnostics(providers), "reason": last_error},
     )
 
+
 def _content_media_index(st: dict[str, Any]) -> dict[str, Any]:
     content = st.get("content")
     if not isinstance(content, dict):
@@ -610,15 +651,20 @@ def _media_summary(media_id: str, rec: Any) -> dict[str, Any]:
     return {
         "media_id": media_id,
         "cid": cid,
-        "mime": str(payload.get("mime") or payload.get("mime_type") or payload.get("content_type") or "").strip(),
+        "mime": str(
+            payload.get("mime") or payload.get("mime_type") or payload.get("content_type") or ""
+        ).strip(),
         "name": str(payload.get("name") or payload.get("filename") or media_id).strip(),
         "kind": str(obj.get("kind") or payload.get("kind") or "").strip(),
-        "bytes": int(payload.get("size") or payload.get("size_bytes") or 0) if str(payload.get("size") or payload.get("size_bytes") or "0").isdigit() else 0,
+        "bytes": int(payload.get("size") or payload.get("size_bytes") or 0)
+        if str(payload.get("size") or payload.get("size_bytes") or "0").isdigit()
+        else 0,
         "declared_by": str(obj.get("declared_by") or "").strip(),
         "declared_at_nonce": obj.get("declared_at_nonce"),
         "load_policy": "viewport",
         "fetch_path": f"/v1/media/proxy/{cid}" if cid else "",
     }
+
 
 def _sanitize_filename(name: str) -> str:
     name = (name or "").strip()
@@ -657,8 +703,6 @@ def _next_account_nonce(st: dict[str, Any], account: str) -> int:
     return 1
 
 
-
-
 def _sha256_upload_file(upload: UploadFile, *, max_bytes: int) -> str:
     """Compute a file-byte sha256 without keeping the full upload in RAM."""
     digest = hashlib.sha256()
@@ -686,6 +730,7 @@ def _sha256_upload_file(upload: UploadFile, *, max_bytes: int) -> str:
     except Exception:
         pass
     return digest.hexdigest()
+
 
 def _file_size(upload: UploadFile) -> int:
     """
@@ -1136,7 +1181,9 @@ def v1_media_proxy(request: Request, cid: str):
             {"cid": normalized_cid, "max_inflight": int(inflight)},
         )
     try:
-        _bytes, provider, verification = _copy_provider_to_cache(cid=normalized_cid, dest=path, max_bytes=max_bytes, timeout_s=timeout_s, st=st)
+        _bytes, provider, verification = _copy_provider_to_cache(
+            cid=normalized_cid, dest=path, max_bytes=max_bytes, timeout_s=timeout_s, st=st
+        )
     finally:
         sem.release()
 

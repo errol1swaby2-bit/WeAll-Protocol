@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
 from weall.runtime.executor import WeAllExecutor
+from weall.testing.prod_fixtures import seed_prod_validator_quorum
 
 
 def _write_min_tx_index(path: Path) -> None:
@@ -32,6 +33,7 @@ def test_status_surfaces_persisted_startup_posture_after_unclean_restart(
         chain_id="weall-test",
         tx_index_path=str(tx_index_path),
     )
+    seed_prod_validator_quorum(ex1, local_account="@v1")
     assert ex1.validator_signing_enabled() is True
     assert ex1.observer_mode() is False
 

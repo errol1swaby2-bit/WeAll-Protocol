@@ -298,6 +298,14 @@ def build_block_candidate(
             }
         )
 
+    # Validate the replicated queue before scheduler/emitter work so malformed
+    # queue state fails closed with stable error precedence.
+    try:
+        build_system_queue_lookup(self.state)
+    except Exception as exc:
+        if _consensus_fail_closed():
+            return None, None, [], [], f"system_emitter_pre_failed:{type(exc).__name__}"
+
     # Phase: schedule PoH system txs. These mutate consensus-visible state
     # before candidate tx admission, so production must fail closed here the
     # same way follower-side replay does.
@@ -576,8 +584,8 @@ def build_block_candidate(
     # Phase gates (e.g. Genesis economic lock) use state["time"] (seconds).
     try:
         working["time"] = int(int(ts_ms) // 1000)
-    except Exception:
-        pass
+    except Exception as exc:
+        return None, None, [], invalid_ids, f"chain_time_update_failed:{type(exc).__name__}"
     if bool(clock_policy.enabled):
         try:
             meta_clock = working.get("meta") if isinstance(working.get("meta"), dict) else {}
@@ -585,8 +593,14 @@ def build_block_candidate(
                 clock_policy, current_height=constitutional_procedure_height(working)
             )
             working["meta"] = meta_clock
-        except Exception:
-            pass
+        except Exception as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"constitutional_clock_update_failed:{type(exc).__name__}",
+            )
 
     # ------------------------------------------------------------
     # Verifiable randomness ("sig-VRF")
@@ -616,18 +630,10 @@ def build_block_candidate(
                 working["rand"] = rand
             rand["vrf"] = {"height": int(new_height), **(vrf if isinstance(vrf, dict) else {})}
         elif require_vrf:
-            # Unit/integration tests often instantiate a prod-mode executor
-            # directly to exercise unrelated persistence, nonce, replay,
-            # and apply-block invariants.  Keep production fail-closed for
-            # real network/BFT/signing/block-loop postures, while allowing
-            # pytest-local, non-network fixtures to continue producing
-            # deterministic local blocks without carrying node keys.
-            if not self._pytest_local_missing_vrf_allowed():
-                return None, None, [], invalid_ids, "vrf_missing_node_key"
+            return None, None, [], invalid_ids, "vrf_missing_node_key"
     except Exception:
         if require_vrf:
-            if not self._pytest_local_missing_vrf_allowed():
-                return None, None, [], invalid_ids, "vrf_generate_failed"
+            return None, None, [], invalid_ids, "vrf_generate_failed"
 
     helper_execution = self._build_helper_execution_metadata(
         applied_envs=applied_envs,

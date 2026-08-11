@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-from weall.runtime.chain_config import load_chain_config, production_bootstrap_issues
+from weall.runtime.chain_config import load_chain_config
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.protocol_profile import runtime_vrf_required
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -47,7 +45,7 @@ def test_nonprod_runtime_vrf_default_is_off_but_can_opt_in(monkeypatch: pytest.M
     assert runtime_vrf_required() is True
 
 
-def test_pytest_local_prod_fixture_can_build_without_vrf_when_not_networked(
+def test_prod_fixture_without_vrf_keys_fails_closed_even_under_pytest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -63,17 +61,21 @@ def test_pytest_local_prod_fixture_can_build_without_vrf_when_not_networked(
         chain_id="fixture-prod",
         tx_index_path=str(ROOT / "generated/tx_index.json"),
     )
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@alice",
-            "nonce": 1,
-            "payload": {"pubkey": "k:@alice"},
-        }
-    )["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@alice",
+                "nonce": 1,
+                "payload": {"pubkey": "k:@alice"},
+            }
+        )["ok"]
+        is True
+    )
 
     meta = ex.produce_block(max_txs=1)
-    assert meta.ok is True
+    assert meta.ok is False
+    assert meta.error == "vrf_missing_node_key"
 
 
 def test_pytest_local_prod_fixture_still_fails_closed_when_networked(

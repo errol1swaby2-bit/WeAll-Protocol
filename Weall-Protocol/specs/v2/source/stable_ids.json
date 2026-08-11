@@ -30264,6 +30264,13 @@
       "kind": "failure",
       "stable_id": "FAIL-0DFDC9B70AE72C82",
       "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:state_invariant_violation",
+      "kind": "failure",
+      "stable_id": "FAIL-B940AB36E4D5C16B",
+      "status": "active"
     }
   ],
   "reuse_forbidden": true,

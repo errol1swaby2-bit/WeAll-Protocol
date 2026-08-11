@@ -14,8 +14,9 @@ import sqlite3
 import time
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from weall.runtime.sqlite_db import derive_aux_db_path
 from weall.util.ipfs_cid import validate_ipfs_cid
@@ -28,8 +29,8 @@ _DEFAULT_MAX_ATTEMPTS = 12
 
 
 def _mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -317,7 +318,9 @@ class IpfsPinWorker:
             return True
         return self.operator_account in {str(item).strip() for item in targets}
 
-    def _mark_job(self, job_id: int, *, status: str, attempts: int | None = None, error: str = "") -> None:
+    def _mark_job(
+        self, job_id: int, *, status: str, attempts: int | None = None, error: str = ""
+    ) -> None:
         now = _now_ms()
 
         def _write(con: sqlite3.Connection) -> None:

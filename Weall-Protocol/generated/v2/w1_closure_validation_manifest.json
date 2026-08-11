@@ -68,7 +68,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "59a5d4aa15b11961970625925ae3e444c10bff0225adb27b9547cb6bd6f6fd2e"
+    "source_tree_digest": "a11eafd4b645d52e94e54dd95a998d866c4f8f9bf0f55826e9028804db26093c"
   },
   "provenance_binding": {
     "binding_policy": "PASS_NON_CIRCULAR_TWO_COMMIT_BINDING",
@@ -89,7 +89,7 @@
   "stable_id_history": {
     "baseline_active": 3889,
     "baseline_tombstones": 1,
-    "current_active": 4126,
+    "current_active": 4127,
     "current_tombstones": 1,
     "validation_result": "PASS_APPEND_ONLY_STABLE_ID_HISTORY"
   },

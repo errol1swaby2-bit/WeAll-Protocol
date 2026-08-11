@@ -18,8 +18,8 @@ class ValidatorAttesterError(RuntimeError):
 
 
 def _mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -93,8 +93,6 @@ def _validate_startup_args(
         raise ValidatorAttesterError("attester_invalid_sig_encoding")
 
 
-
-
 def _read_head_status(producer_url: str) -> Json:
     """Read the current chain head from /v1/status, falling back only in non-prod.
 
@@ -106,9 +104,7 @@ def _read_head_status(producer_url: str) -> Json:
     if status.get("ok"):
         return status
     if _mode() == "prod":
-        raise ValidatorAttesterError(
-            f"attester_status_failed:{status.get('error') or 'unknown'}"
-        )
+        raise ValidatorAttesterError(f"attester_status_failed:{status.get('error') or 'unknown'}")
     snap = _http_json("GET", f"{producer_url}/v1/state/snapshot")
     if not snap.get("ok"):
         raise ValidatorAttesterError(

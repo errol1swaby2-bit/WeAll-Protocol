@@ -9,19 +9,20 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
+from weall.api.public_seed_registry import public_testnet_enabled
 from weall.net.codec import decode_message, encode_message
-from weall.net.handshake import (
-    HandshakeConfig,
-    HandshakeRejected,
-    HandshakeState,
-    begin_outbound_handshake,
-)
 from weall.net.gossip import (
     PeerAddrGossipConfig,
     filter_peer_addr_records,
     is_supported_peer_uri,
     make_peer_addr_record,
     normalize_peer_uri,
+)
+from weall.net.handshake import (
+    HandshakeConfig,
+    HandshakeRejected,
+    HandshakeState,
+    begin_outbound_handshake,
 )
 from weall.net.messages import (
     BftProposalMsg,
@@ -45,7 +46,6 @@ from weall.net.transport import Connection, PeerAddr, Transport, WirePacket
 from weall.net.transport_memory import InMemoryTransport
 from weall.net.transport_tcp import TcpTransport
 from weall.net.transport_tls import TlsTransport
-from weall.api.public_seed_registry import public_testnet_enabled
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
 from weall.runtime.protocol_profile import (
     active_consensus_profile,
@@ -76,8 +76,8 @@ def _env_int(key: str, default: int = 0) -> int:
         return int(str(v).strip() or str(default))
     except Exception as exc:
         mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
-        if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-            mode = "test"
+        # Runtime posture is explicit; tests configure WEALL_MODE in the harness.
+        # No process/test-runner detection is permitted here.
         if mode == "prod":
             raise ValueError(f"invalid_integer_env:{key}") from exc
         return int(default)
@@ -255,8 +255,8 @@ def _make_transport(cfg: NetConfig) -> Transport:
         )
 
     mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        mode = "test"
+    # Runtime posture is explicit; tests configure WEALL_MODE in the harness.
+    # No process/test-runner detection is permitted here.
     if mode == "prod" and str(os.environ.get("WEALL_NET_TRANSPORT") or "").strip():
         raise RuntimeError("invalid_net_transport")
     return InMemoryTransport()
@@ -576,7 +576,6 @@ class NetNode:
             return ""
         return _canonical_validator_set_hash(vals)
 
-
     def _handshake_genesis_bootstrap_profile(self) -> Json:
         ledger = self._get_ledger() or {}
         meta = ledger.get("meta") if isinstance(ledger, dict) else {}
@@ -587,7 +586,6 @@ class NetNode:
         return {}
 
     def _handshake_genesis_bootstrap_profile_hash(self) -> str:
-        profile = self._handshake_genesis_bootstrap_profile()
         ledger = self._get_ledger() or {}
         meta = ledger.get("meta") if isinstance(ledger, dict) else {}
         if isinstance(meta, dict):

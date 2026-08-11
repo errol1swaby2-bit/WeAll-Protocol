@@ -3,7 +3,7 @@
     "api": 102,
     "launch_readiness": 32,
     "runtime": 7,
-    "runtime_apply": 70
+    "runtime_apply": 73
   },
   "codes": [
     {
@@ -436,7 +436,7 @@
       "http_status": 400,
       "sample_reason": "invalid relay fetch body",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 202
+      "source_lineno": 210
     },
     {
       "code": "bad_request",
@@ -508,7 +508,7 @@
       "http_status": 403,
       "sample_reason": "account is banned",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 270
+      "source_lineno": 272
     },
     {
       "code": "chain_id_mismatch",
@@ -571,7 +571,7 @@
       "http_status": null,
       "sample_reason": "upgrade_already_scheduled",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 311
+      "source_lineno": 337
     },
     {
       "code": "conflict",
@@ -616,7 +616,7 @@
       "http_status": null,
       "sample_reason": "exception",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 349
+      "source_lineno": 355
     },
     {
       "code": "duplicate",
@@ -661,7 +661,7 @@
       "http_status": 403,
       "sample_reason": "Account state unavailable",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 634
+      "source_lineno": 680
     },
     {
       "code": "forbidden",
@@ -706,7 +706,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 59
+      "source_lineno": 79
     },
     {
       "code": "forbidden",
@@ -715,7 +715,7 @@
       "http_status": null,
       "sample_reason": "account_recovery_restriction_active",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 217
+      "source_lineno": 223
     },
     {
       "code": "forbidden",
@@ -733,7 +733,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 131
+      "source_lineno": 151
     },
     {
       "code": "forbidden",
@@ -805,7 +805,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 87
+      "source_lineno": 107
     },
     {
       "code": "forbidden",
@@ -814,7 +814,7 @@
       "http_status": null,
       "sample_reason": "system_only",
       "source": "src/weall/runtime/apply/reputation.py",
-      "source_lineno": 88
+      "source_lineno": 108
     },
     {
       "code": "forbidden",
@@ -877,7 +877,7 @@
       "http_status": 403,
       "sample_reason": "PoH Tier 2 / Live Verified Human is required to create/edit/delete posts",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 324
+      "source_lineno": 326
     },
     {
       "code": "insufficient_storage",
@@ -886,7 +886,7 @@
       "http_status": 403,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 848
+      "source_lineno": 893
     },
     {
       "code": "insufficient_tier",
@@ -913,7 +913,7 @@
       "http_status": null,
       "sample_reason": "bad_proposer",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 1075
+      "source_lineno": 1152
     },
     {
       "code": "invalid_payload",
@@ -922,7 +922,7 @@
       "http_status": 400,
       "sample_reason": "missing signer",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 253
+      "source_lineno": 255
     },
     {
       "code": "invalid_payload",
@@ -949,7 +949,7 @@
       "http_status": null,
       "sample_reason": "empty_file",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 831
+      "source_lineno": 876
     },
     {
       "code": "invalid_payload",
@@ -967,7 +967,7 @@
       "http_status": null,
       "sample_reason": "bft_activation_requires_minimum_validator_count",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 257
+      "source_lineno": 277
     },
     {
       "code": "invalid_payload",
@@ -1039,7 +1039,7 @@
       "http_status": null,
       "sample_reason": "missing_upgrade_target_version",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 294
+      "source_lineno": 320
     },
     {
       "code": "invalid_payload",
@@ -1048,7 +1048,7 @@
       "http_status": null,
       "sample_reason": "missing_account_id",
       "source": "src/weall/runtime/apply/reputation.py",
-      "source_lineno": 341
+      "source_lineno": 371
     },
     {
       "code": "invalid_payload",
@@ -1102,7 +1102,7 @@
       "http_status": 400,
       "sample_reason": "signer does not match required account id format",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 256
+      "source_lineno": 258
     },
     {
       "code": "invalid_state",
@@ -1136,9 +1136,9 @@
       "domain": "runtime_apply",
       "family": "ApplyError",
       "http_status": null,
-      "sample_reason": "live_session_commitment_missing",
+      "sample_reason": "state_invariant_violation",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 398
+      "source_lineno": 57
     },
     {
       "code": "invalid_state",
@@ -1147,6 +1147,15 @@
       "http_status": null,
       "sample_reason": "gate_engine_unavailable",
       "source": "src/weall/runtime/gates.py",
+      "source_lineno": 57
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "ConsensusApplyError",
+      "http_status": null,
+      "sample_reason": "state_invariant_violation",
+      "source": "src/weall/runtime/apply/consensus.py",
       "source_lineno": 57
     },
     {
@@ -1166,6 +1175,24 @@
       "sample_reason": "unsupported_group_membership_mode",
       "source": "src/weall/runtime/apply/groups.py",
       "source_lineno": 54
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "ProtocolApplyError",
+      "http_status": null,
+      "sample_reason": "state_invariant_violation",
+      "source": "src/weall/runtime/apply/protocol.py",
+      "source_lineno": 72
+    },
+    {
+      "code": "invalid_state",
+      "domain": "runtime_apply",
+      "family": "ReputationApplyError",
+      "http_status": null,
+      "sample_reason": "state_invariant_violation",
+      "source": "src/weall/runtime/apply/reputation.py",
+      "source_lineno": 73
     },
     {
       "code": "invalid_state",
@@ -1228,7 +1255,7 @@
       "http_status": null,
       "sample_reason": "bad_commitment_format",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 82
+      "source_lineno": 102
     },
     {
       "code": "invalid_tx",
@@ -1246,7 +1273,7 @@
       "http_status": null,
       "sample_reason": "noncanonical_tx_type",
       "source": "src/weall/runtime/domain_dispatch.py",
-      "source_lineno": 238
+      "source_lineno": 244
     },
     {
       "code": "invalid_tx",
@@ -1273,7 +1300,7 @@
       "http_status": 400,
       "sample_reason": "",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 864
+      "source_lineno": 909
     },
     {
       "code": "ipfs_error",
@@ -1300,7 +1327,7 @@
       "http_status": null,
       "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
       "source": "src/weall/api/routes_nodes.py",
-      "source_lineno": 492
+      "source_lineno": 518
     },
     {
       "code": "legacy_endpoint_removed",
@@ -1309,7 +1336,7 @@
       "http_status": null,
       "sample_reason": "direct media gateway redirect has been removed; use /v1/media/proxy/{cid}",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 969
+      "source_lineno": 1014
     },
     {
       "code": "legacy_endpoint_removed",
@@ -1318,7 +1345,7 @@
       "http_status": null,
       "sample_reason": "unsigned relay fetch has been removed; use POST /v1/net/relay/fetch with a signed access_request",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 185
+      "source_lineno": 191
     },
     {
       "code": "legacy_endpoint_removed",
@@ -1345,7 +1372,7 @@
       "http_status": 403,
       "sample_reason": "account is locked",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 272
+      "source_lineno": 274
     },
     {
       "code": "login_proof_stale",
@@ -1363,7 +1390,7 @@
       "http_status": 400,
       "sample_reason": "media bytes did not match committed sha256",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 352
+      "source_lineno": 364
     },
     {
       "code": "media_cid_multihash_mismatch",
@@ -1372,7 +1399,7 @@
       "http_status": 400,
       "sample_reason": "media bytes did not match CID multihash",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 368
+      "source_lineno": 380
     },
     {
       "code": "media_fetch_busy",
@@ -1381,7 +1408,7 @@
       "http_status": 429,
       "sample_reason": "observer media fetch budget is busy",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1133
+      "source_lineno": 1178
     },
     {
       "code": "media_integrity_verification_unavailable",
@@ -1390,7 +1417,7 @@
       "http_status": 400,
       "sample_reason": "media requires committed sha256 or a CID format this observer can verify directly",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 380
+      "source_lineno": 392
     },
     {
       "code": "media_not_cached",
@@ -1399,7 +1426,7 @@
       "http_status": 404,
       "sample_reason": "media is not cached on this observer",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1124
+      "source_lineno": 1169
     },
     {
       "code": "media_provider_unavailable",
@@ -1408,7 +1435,7 @@
       "http_status": 400,
       "sample_reason": "media provider unavailable or failed verification",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 592
+      "source_lineno": 632
     },
     {
       "code": "media_range_invalid",
@@ -1417,7 +1444,7 @@
       "http_status": 400,
       "sample_reason": "only byte range requests are supported",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 411
+      "source_lineno": 426
     },
     {
       "code": "media_too_large",
@@ -1426,7 +1453,7 @@
       "http_status": 413,
       "sample_reason": "media exceeds local observer fetch budget",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 525
+      "source_lineno": 557
     },
     {
       "code": "media_unverified_redirect_forbidden",
@@ -1435,7 +1462,7 @@
       "http_status": 403,
       "sample_reason": "media proxy cache-disabled redirect bypasses observer integrity verification",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 1097
+      "source_lineno": 1142
     },
     {
       "code": "missing_chain_id",
@@ -1543,7 +1570,7 @@
       "http_status": 404,
       "sample_reason": "Not Found",
       "source": "src/weall/api/routes_public_parts/net_relay.py",
-      "source_lineno": 136
+      "source_lineno": 140
     },
     {
       "code": "not_found",
@@ -1570,7 +1597,7 @@
       "http_status": null,
       "sample_reason": "reviewer_collusion_suspicion_not_found",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 1387
+      "source_lineno": 1407
     },
     {
       "code": "not_found",
@@ -1633,7 +1660,7 @@
       "http_status": null,
       "sample_reason": "upgrade_not_declared",
       "source": "src/weall/runtime/apply/protocol.py",
-      "source_lineno": 380
+      "source_lineno": 407
     },
     {
       "code": "not_found",
@@ -1696,7 +1723,7 @@
       "http_status": 403,
       "sample_reason": "signer account is not registered",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 266
+      "source_lineno": 268
     },
     {
       "code": "not_validator",
@@ -1705,7 +1732,7 @@
       "http_status": 403,
       "sample_reason": "signer is not in the active validator set",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 347
+      "source_lineno": 349
     },
     {
       "code": "observer_edge_mempool_submit_disabled",
@@ -1741,7 +1768,7 @@
       "http_status": 413,
       "sample_reason": "media upload exceeds local observer byte budget",
       "source": "src/weall/api/routes_public_parts/media.py",
-      "source_lineno": 678
+      "source_lineno": 722
     },
     {
       "code": "post_required",
@@ -1858,7 +1885,7 @@
       "http_status": 403,
       "sample_reason": "SYSTEM-signed txs are not accepted via public submission endpoints",
       "source": "src/weall/api/routes_public_parts/common.py",
-      "source_lineno": 290
+      "source_lineno": 292
     },
     {
       "code": "system_tx_forbidden",
@@ -1906,7 +1933,7 @@
       "source_lineno": 133
     }
   ],
-  "entry_count": 211,
+  "entry_count": 214,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",

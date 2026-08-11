@@ -60,6 +60,7 @@ assert meta.ok is True
     env["PYTHONPATH"] = str(root / "src")
     env["DB_PATH"] = db_path
     env["TX_INDEX"] = tx_index_path
+    env["WEALL_MODE"] = "test"
     env["WEALL_TEST_SLEEP_AFTER_BLOCK_INSERT_MS"] = "5000"
     marker = str(tmp_path / "child_ready.marker")
     env["WEALL_TEST_MARKER_PATH"] = marker

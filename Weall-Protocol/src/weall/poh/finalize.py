@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
-from weall.poh.apply import canonical_metadata_cid_placeholder, deterministic_token_id
+from weall.poh.apply import canonical_metadata_reference, deterministic_token_id
 
 Json = dict[str, Any]
 
@@ -178,7 +178,8 @@ def _mint_gate_nft(
         "minted_height": int(height),
         "minted_ts": ts,
         "source_id": source_id,
-        "metadata": {"cid": canonical_metadata_cid_placeholder(tier=int(tier))},
+        # ``cid`` is a legacy state key; the value is a deterministic metadata reference.
+        "metadata": {"cid": canonical_metadata_reference(tier=int(tier))},
         "banned": False,
         "banned_height": None,
         "banned_ts": None,
@@ -222,7 +223,8 @@ def _ban_gate_nft(
             "minted_height": None,
             "minted_ts": None,
             "source_id": source_id,
-            "metadata": {"cid": canonical_metadata_cid_placeholder(tier=int(tier))},
+            # ``cid`` is a legacy state key; the value is a deterministic metadata reference.
+            "metadata": {"cid": canonical_metadata_reference(tier=int(tier))},
             "banned": False,
             "banned_height": None,
             "banned_ts": None,

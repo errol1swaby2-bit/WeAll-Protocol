@@ -8,11 +8,25 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.crypto.sig import sign_signature_for_profile
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    default_signature_profile_for_mode,
+    normalize_signature_profile_id,
+)
+from weall.runtime import bft_artifact_cache as _bft_artifact_cache
+from weall.runtime import bft_diagnostics as _bft_diagnostics
+from weall.runtime import bft_fetch_requests as _bft_fetch_requests
+from weall.runtime import bft_outbound as _bft_outbound
+from weall.runtime import bft_pending_frontier as _bft_pending_frontier
+from weall.runtime import bft_votecheck as _bft_votecheck
+from weall.runtime.bft_hotstuff import validator_set_hash
 from weall.runtime.executor import (
     BFT_MIN_VALIDATORS,
+    CONSENSUS_PHASE_BFT_ACTIVE,
     BftTimeout,
     BftVote,
-    CONSENSUS_PHASE_BFT_ACTIVE,
+    ExecutorMeta,
     Json,
     QuorumCert,
     _bounded_put,
@@ -36,21 +50,6 @@ from weall.runtime.executor import (
     verify_proposal_json,
     verify_qc,
 )
-
-from weall.runtime.bft_hotstuff import validator_set_hash
-from weall.crypto.sig import sign_signature_for_profile
-from weall.crypto.signature_profiles import (
-    PQ_MLDSA_V1,
-    default_signature_profile_for_mode,
-    normalize_signature_profile_id,
-)
-
-from weall.runtime import bft_artifact_cache as _bft_artifact_cache
-from weall.runtime import bft_diagnostics as _bft_diagnostics
-from weall.runtime import bft_fetch_requests as _bft_fetch_requests
-from weall.runtime import bft_outbound as _bft_outbound
-from weall.runtime import bft_pending_frontier as _bft_pending_frontier
-from weall.runtime import bft_votecheck as _bft_votecheck
 
 
 def _restore_bft_restart_hints(self, *args, **kwargs):
@@ -184,9 +183,7 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
     # Canonicalize network proposal shape: accept either a raw block dict
     # or an envelope {view, proposer, block, justify_qc}.
     try:
-        raw_block = (
-            proposal.get("block") if isinstance(proposal.get("block"), dict) else proposal
-        )
+        raw_block = proposal.get("block") if isinstance(proposal.get("block"), dict) else proposal
         proposal2 = dict(raw_block)
         embedded_qc = proposal2.get("qc") if isinstance(proposal2.get("qc"), dict) else None
         original_block_id = str(proposal2.get("block_id") or "").strip()
@@ -236,9 +233,7 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
         proposal2["block_id"] = bid
 
     try:
-        view = int(
-            proposal2.get("view") or proposal2.get("bft_view") or proposal.get("view") or 0
-        )
+        view = int(proposal2.get("view") or proposal2.get("bft_view") or proposal.get("view") or 0)
     except Exception:
         view = 0
     proposal2["view"] = int(view)
@@ -281,7 +276,11 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
                 block_hash=block_hash,
                 parent_id=parent_id,
             )
-            if isinstance(votej, dict) and votej and self._bft.record_local_vote(view=view, block_id=bid):
+            if (
+                isinstance(votej, dict)
+                and votej
+                and self._bft.record_local_vote(view=view, block_id=bid)
+            ):
                 self._bft.last_progress_ms = _now_ms()
                 self._persist_bft_state()
                 self._bft_enqueue_outbound("vote", votej)
@@ -387,7 +386,9 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
     # while preserving non-production paths when signature verification is disabled.
     has_proposal_sig = bool(str(proposal2.get("proposer_sig") or "").strip())
     has_proposal_pub = bool(str(proposal2.get("proposer_pubkey") or "").strip())
-    if not local_nonprod_qcless_self_proposal and (require_sig or has_proposal_sig or has_proposal_pub):
+    if not local_nonprod_qcless_self_proposal and (
+        require_sig or has_proposal_sig or has_proposal_pub
+    ):
         if not verify_proposal_json(
             proposal=proposal2,
             validators=validators,
@@ -444,7 +445,9 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
     if not _env_bool("WEALL_AUTOVOTE", False):
         return None
 
-    if not local_nonprod_qcless_self_proposal and not self._validate_remote_proposal_for_vote(proposal2):
+    if not local_nonprod_qcless_self_proposal and not self._validate_remote_proposal_for_vote(
+        proposal2
+    ):
         return None
 
     self._bft.bump_view(view)
@@ -463,9 +466,7 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
         "prev_block_id": parent_id,
         "block_ts_ms": _safe_int(
             (
-                (proposal2.get("header") or {})
-                if isinstance(proposal2.get("header"), dict)
-                else {}
+                (proposal2.get("header") or {}) if isinstance(proposal2.get("header"), dict) else {}
             ).get("block_ts_ms")
             or proposal2.get("block_ts_ms"),
             0,
@@ -514,10 +515,12 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
     self._bft_enqueue_outbound("vote", votej)
     return votej
 
+
 def bft_on_vote(self, vote: Json) -> Json | None:
     """Handle a vote and return a QC JSON if one was formed."""
     qc = self.bft_handle_vote(vote)
     return qc.to_json() if qc is not None else None
+
 
 def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
     """Handle a QC and commit if it refers to a known block."""
@@ -545,9 +548,7 @@ def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
     if meta is not None:
         return meta
 
-    resolved_bid, blk = self._resolve_pending_block_identity(
-        block_id=bid, block_hash=block_hash
-    )
+    resolved_bid, blk = self._resolve_pending_block_identity(block_id=bid, block_hash=block_hash)
     if not isinstance(blk, dict):
         self._put_pending_missing_qc(qc.to_json())
         self.bft_try_apply_pending_remote_blocks()
@@ -564,10 +565,12 @@ def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
         return metas[-1]
     return None
 
+
 def bft_on_timeout(self, timeoutj: Json) -> Json | None:
     """Handle a timeout and return a QC JSON if one was formed."""
     qc = self.bft_handle_timeout(timeoutj)
     return qc.to_json() if qc is not None else None
+
 
 def bft_drive_timeouts(self, now_ms: int) -> list[Json]:
     """Return any timeout messages we should broadcast."""
@@ -587,6 +590,7 @@ def bft_drive_timeouts(self, now_ms: int) -> list[Json]:
         return [t] if isinstance(t, dict) else []
     except Exception:
         return []
+
 
 def _active_validators(self) -> list[str]:
     """Return the consensus validator set, with role-set fallback only for legacy states.
@@ -626,6 +630,7 @@ def _active_validators(self) -> list[str]:
             return normalize_validators(out2)
     return []
 
+
 def _validator_pubkeys(self) -> dict[str, str]:
     out: dict[str, str] = {}
     c = self.state.get("consensus")
@@ -640,7 +645,9 @@ def _validator_pubkeys(self) -> dict[str, str]:
     for acct, rec in reg.items():
         if not isinstance(rec, dict):
             continue
-        profile = normalize_signature_profile_id(rec.get("sig_profile") or rec.get("signature_profile"))
+        profile = normalize_signature_profile_id(
+            rec.get("sig_profile") or rec.get("signature_profile")
+        )
         pk = str(rec.get("pubkey") or "").strip()
         if profile == PQ_MLDSA_V1:
             pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
@@ -648,6 +655,7 @@ def _validator_pubkeys(self) -> dict[str, str]:
         if pk:
             out[str(acct).strip()] = pk
     return out
+
 
 def _validator_signature_profiles(self) -> dict[str, str]:
     out: dict[str, str] = {}
@@ -663,7 +671,9 @@ def _validator_signature_profiles(self) -> dict[str, str]:
     for acct, rec in reg.items():
         if not isinstance(rec, dict):
             continue
-        profile = normalize_signature_profile_id(rec.get("sig_profile") or rec.get("signature_profile"))
+        profile = normalize_signature_profile_id(
+            rec.get("sig_profile") or rec.get("signature_profile")
+        )
         if not profile:
             profile = PQ_MLDSA_V1
         out[str(acct).strip()] = profile
@@ -696,6 +706,7 @@ def _current_validator_epoch(self) -> int:
                 return cur2
     return 0
 
+
 def _current_validator_set_hash(self) -> str:
     c = self.state.get("consensus")
     if isinstance(c, dict):
@@ -706,6 +717,7 @@ def _current_validator_set_hash(self) -> str:
                 return have
     vals = normalize_validators(self._active_validators())
     return validator_set_hash(vals) if vals else ""
+
 
 def _current_consensus_phase(self) -> str:
     c = self.state.get("consensus")
@@ -725,13 +737,22 @@ def _current_consensus_phase(self) -> str:
         return CONSENSUS_PHASE_BFT_ACTIVE
     return normalize_consensus_phase("", validator_count=active_count)
 
+
 def _bft_phase_allows_artifact_processing(self) -> bool:
-    # Pre-phase legacy/dev/test states still rely on BFT artifacts, so only the
-    # explicit committed bootstrap phases in production suppress vote/timeout/QC
-    # processing. Non-production modes retain their historical behavior.
-    if _mode() != "prod":
-        return True
-    return self._current_consensus_phase() == CONSENSUS_PHASE_BFT_ACTIVE
+    c = self.state.get("consensus")
+    committed_phase = ""
+    if isinstance(c, dict):
+        phase_root = c.get("phase")
+        if isinstance(phase_root, dict):
+            committed_phase = str(phase_root.get("current") or "").strip()
+
+    # Explicit committed phase is authoritative in every mode. Legacy
+    # non-production states that predate consensus.phase.current retain their
+    # historical BFT behavior; production remains fail-closed.
+    if committed_phase:
+        return self._current_consensus_phase() == CONSENSUS_PHASE_BFT_ACTIVE
+    return _mode() != "prod"
+
 
 def _pending_consensus_phase(self) -> str:
     c = self.state.get("consensus")
@@ -762,9 +783,23 @@ def _pending_consensus_phase(self) -> str:
         return ""
     return normalize_consensus_phase(pending_phase, validator_count=active_count)
 
+
 def _bft_payload_phase_matches_current_security_model(self, payload: Json) -> bool:
     if not isinstance(payload, dict):
         return False
+
+    c = self.state.get("consensus")
+    committed_phase = ""
+    if isinstance(c, dict):
+        phase_root = c.get("phase")
+        if isinstance(phase_root, dict):
+            committed_phase = str(phase_root.get("current") or "").strip()
+
+    # Legacy non-production states/tests may predate the committed phase field.
+    # Preserve that compatibility only when no authoritative phase exists.
+    if not committed_phase:
+        return _mode() != "prod"
+
     payload_phase = str(payload.get("consensus_phase") or "").strip()
     current_phase = self._current_consensus_phase()
     if payload_phase:
@@ -773,11 +808,8 @@ def _bft_payload_phase_matches_current_security_model(self, payload: Json) -> bo
         )
         if normalized_payload_phase != current_phase:
             return False
-    if _mode() != "prod":
-        return True
-    if current_phase != CONSENSUS_PHASE_BFT_ACTIVE:
-        return False
-    return True
+    return current_phase == CONSENSUS_PHASE_BFT_ACTIVE
+
 
 def _bft_payload_phase_is_cache_compatible(self, payload: Json) -> bool:
     """Return True when a pending artifact may be cached for diagnostics/lookups.
@@ -800,15 +832,18 @@ def _bft_payload_phase_is_cache_compatible(self, payload: Json) -> bool:
     )
     return normalized_payload_phase == current_phase
 
+
 def _validator_epoch(self) -> tuple[int, str]:
     """Back-compat helper used by existing tests/batches."""
     return (self._current_validator_epoch(), self._current_validator_set_hash())
+
 
 def _bft_strict_epoch_binding_enabled(self) -> bool:
     raw = os.environ.get("WEALL_BFT_STRICT_EPOCH_BINDING")
     if raw is not None:
         return str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}
     return (os.environ.get("WEALL_MODE") or "prod").strip().lower() == "prod"
+
 
 def _bft_epoch_binding_matches(self, payload: Json) -> bool:
     if not isinstance(payload, dict):
@@ -831,8 +866,11 @@ def _bft_epoch_binding_matches(self, payload: Json) -> bool:
         return False
     return True
 
+
 def _prune_pending_bft_artifacts_on_local_validator_transition(self, *args, **kwargs):
-    return _bft_pending_frontier._prune_pending_bft_artifacts_on_local_validator_transition(self, *args, **kwargs)
+    return _bft_pending_frontier._prune_pending_bft_artifacts_on_local_validator_transition(
+        self, *args, **kwargs
+    )
 
 
 def _local_validator_account(self) -> str:
@@ -856,6 +894,7 @@ def _local_validator_account(self) -> str:
             return local
     return ""
 
+
 def _local_validator_identity(self) -> tuple[str, str, str]:
     signer = self._local_validator_account()
     pubkey = str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
@@ -866,6 +905,7 @@ def _local_validator_identity(self) -> tuple[str, str, str]:
     if expected and expected != pubkey:
         return ("", "", "")
     return (signer, pubkey, privkey)
+
 
 def _cache_known_block_hash(self, *args, **kwargs):
     return _bft_pending_frontier._cache_known_block_hash(self, *args, **kwargs)
@@ -1028,7 +1068,9 @@ def bft_try_apply_pending_remote_blocks(self, *args, **kwargs):
 
 
 def _bft_try_apply_pending_remote_blocks_followup(self, *args, **kwargs):
-    return _bft_pending_frontier._bft_try_apply_pending_remote_blocks_followup(self, *args, **kwargs)
+    return _bft_pending_frontier._bft_try_apply_pending_remote_blocks_followup(
+        self, *args, **kwargs
+    )
 
 
 def _committed_chain_recent_timestamps_ms(self, *, limit: int = 11) -> list[int]:
@@ -1052,16 +1094,19 @@ def _committed_chain_recent_timestamps_ms(self, *, limit: int = 11) -> list[int]
     except Exception:
         return []
 
+
 def committed_chain_median_time_past_ms(self, *, limit: int = 11) -> int:
     vals = sorted(self._committed_chain_recent_timestamps_ms(limit=limit))
     if not vals:
         return _safe_int(self.state.get("tip_ts_ms") or self.state.get("last_block_ts_ms"), 0)
     return int(vals[len(vals) // 2])
 
+
 def chain_time_floor_ms(self) -> int:
     tip_ts_ms = _safe_int(self.state.get("tip_ts_ms") or self.state.get("last_block_ts_ms"), 0)
     mtp_ms = self.committed_chain_median_time_past_ms()
     return max(int(tip_ts_ms), int(mtp_ms))
+
 
 def bft_diagnostics(self, *args, **kwargs):
     return _bft_diagnostics.bft_diagnostics(self, *args, **kwargs)
@@ -1121,6 +1166,7 @@ def bft_set_view(self, view: int) -> None:
     if requested > current:
         self._bft.view = requested
     self._persist_bft_state()
+
 
 def _prune_bft_liveness_caches_for_current_epoch(self) -> None:
     local_epoch = int(self._current_validator_epoch())
@@ -1206,6 +1252,7 @@ def _prune_bft_liveness_caches_for_current_epoch(self) -> None:
     except Exception:
         pass
 
+
 def _persist_bft_state(self) -> None:
     self._prune_bft_liveness_caches_for_current_epoch()
     self.state["bft"] = self._bft.export_state()
@@ -1217,6 +1264,7 @@ def _persist_bft_state(self) -> None:
         view=int(self._bft.view),
         finalized_block_id=str(self._bft.finalized_block_id or ""),
     )
+
 
 def bft_verify_qc_json(self, qcj: Json) -> QuorumCert | None:
     if not self._bft_phase_allows_artifact_processing():
@@ -1235,6 +1283,7 @@ def bft_verify_qc_json(self, qcj: Json) -> QuorumCert | None:
     if not verify_qc(qc=qc, validators=validators, validator_pubkeys=vpub):
         return None
     return qc
+
 
 def bft_handle_qc(self, qcj: Json) -> bool:
     qc = self.bft_verify_qc_json(qcj)
@@ -1256,6 +1305,7 @@ def bft_handle_qc(self, qcj: Json) -> bool:
     )
     return True
 
+
 def _bft_best_justify_qc_json(self) -> Json | None:
     if self._bft.high_qc is not None:
         return self._bft.high_qc.to_json()
@@ -1272,6 +1322,7 @@ def _bft_best_justify_qc_json(self) -> Json | None:
         if qc is not None:
             return qc.to_json()
     return None
+
 
 def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
     if not self._validator_signing_permitted():
@@ -1338,7 +1389,11 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         blk["sig_profile"] = sig_profile
         blk["proposer_pubkey"] = proposer_pubkey
         blk["proposer_sig_profile"] = sig_profile
-        blk["proposer_signature"] = {"alg": "ML-DSA", "pubkey": proposer_pubkey, "sig_profile": sig_profile}
+        blk["proposer_signature"] = {
+            "alg": "ML-DSA",
+            "pubkey": proposer_pubkey,
+            "sig_profile": sig_profile,
+        }
         blk["proposer_sig"] = sign_signature_for_profile(
             sig_profile=sig_profile, message=msg, privkey=proposer_privkey, encoding="hex"
         )
@@ -1364,6 +1419,7 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         )
         self._index_pending_candidate(blk)
     return blk
+
 
 def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
     if not isinstance(vote_json, dict):
@@ -1395,7 +1451,9 @@ def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
         signer=str(vote_json.get("signer") or "").strip(),
         pubkey=str(vote_json.get("pubkey") or "").strip(),
         sig=str(vote_json.get("sig") or "").strip(),
-        sig_profile=normalize_signature_profile_id(vote_json.get("sig_profile") or vote_json.get("signature_profile")),
+        sig_profile=normalize_signature_profile_id(
+            vote_json.get("sig_profile") or vote_json.get("signature_profile")
+        ),
         validator_epoch=int(vote_json.get("validator_epoch") or 0),
         validator_set_hash=str(vote_json.get("validator_set_hash") or "").strip(),
     )
@@ -1417,6 +1475,7 @@ def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
     self._persist_bft_state()
     return qc
 
+
 def bft_commit_if_ready(self, qc: QuorumCert) -> ExecutorMeta | None:
     validators = self._active_validators()
     vpub = self._validator_pubkeys()
@@ -1430,6 +1489,7 @@ def bft_commit_if_ready(self, qc: QuorumCert) -> ExecutorMeta | None:
         return metas[-1]
     self._persist_bft_state()
     return None
+
 
 def bft_make_vote_for_block(
     self, *, view: int, block_id: str, block_hash: str, parent_id: str
@@ -1457,7 +1517,9 @@ def bft_make_vote_for_block(
         validator_set_hash=validator_set_hash,
         sig_profile=sig_profile,
     )
-    sig = sign_signature_for_profile(sig_profile=sig_profile, message=msg, privkey=privkey, encoding="hex")
+    sig = sign_signature_for_profile(
+        sig_profile=sig_profile, message=msg, privkey=privkey, encoding="hex"
+    )
 
     vote = BftVote(
         chain_id=self.chain_id,
@@ -1475,6 +1537,7 @@ def bft_make_vote_for_block(
     out = vote.to_json()
     out["consensus_phase"] = self._current_consensus_phase()
     return out
+
 
 def bft_make_timeout(self, *, view: int) -> Json | None:
     if not self._validator_signing_permitted():
@@ -1502,7 +1565,9 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
         validator_set_hash=validator_set_hash,
         sig_profile=sig_profile,
     )
-    sig = sign_signature_for_profile(sig_profile=sig_profile, message=msg, privkey=privkey, encoding="hex")
+    sig = sign_signature_for_profile(
+        sig_profile=sig_profile, message=msg, privkey=privkey, encoding="hex"
+    )
     self._bft.note_timeout_emitted(view=int(view))
     tmo = BftTimeout(
         chain_id=self.chain_id,
@@ -1525,6 +1590,7 @@ def bft_make_timeout(self, *, view: int) -> Json | None:
     )
     self._bft_enqueue_outbound("timeout", tjson)
     return tjson
+
 
 def bft_handle_timeout(self, timeout_json: Json) -> int | None:
     if not isinstance(timeout_json, dict):
@@ -1554,7 +1620,9 @@ def bft_handle_timeout(self, timeout_json: Json) -> int | None:
         signer=str(timeout_json.get("signer") or "").strip(),
         pubkey=str(timeout_json.get("pubkey") or "").strip(),
         sig=str(timeout_json.get("sig") or "").strip(),
-        sig_profile=normalize_signature_profile_id(timeout_json.get("sig_profile") or timeout_json.get("signature_profile")),
+        sig_profile=normalize_signature_profile_id(
+            timeout_json.get("sig_profile") or timeout_json.get("signature_profile")
+        ),
         validator_epoch=int(timeout_json.get("validator_epoch") or 0),
         validator_set_hash=str(timeout_json.get("validator_set_hash") or "").strip(),
     )
@@ -1570,6 +1638,7 @@ def bft_handle_timeout(self, timeout_json: Json) -> int | None:
 
     self._persist_bft_state()
     return None
+
 
 def bft_timeout_check(self) -> Json | None:
     timeout_ms = int(self._bft.pacemaker_timeout_ms())
@@ -1588,4 +1657,3 @@ def bft_timeout_check(self) -> Json | None:
         return None
     self.bft_handle_timeout(tmo)
     return tmo
-

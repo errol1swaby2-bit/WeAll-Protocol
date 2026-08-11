@@ -1003,11 +1003,6 @@ class WeAllExecutor:
 
         return _impl._effective_signing_block_reason(self)
 
-    def _pytest_local_missing_vrf_allowed(self) -> bool:
-        from weall.runtime import runtime_posture as _impl
-
-        return _impl._pytest_local_missing_vrf_allowed(self)
-
     def _explicit_validator_signing_override(self) -> bool:
         from weall.runtime import runtime_posture as _impl
 

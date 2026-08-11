@@ -5,6 +5,11 @@ from pathlib import Path
 
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
+from weall.testing.prod_fixtures import (
+    install_prod_node_keys,
+    next_constitutional_block_time_ms,
+    seed_active_validator,
+)
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
@@ -46,17 +51,22 @@ def _submit_signed_register(ex: WeAllExecutor, signer: str = "@freshuser") -> No
     assert sub["ok"] is True
 
 
-def test_apply_block_restores_leader_mempool_selection_marker_byte_for_byte(tmp_path: Path, monkeypatch) -> None:
+def test_apply_block_restores_leader_mempool_selection_marker_byte_for_byte(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_MEMPOOL_SELECTION_POLICY", "canonical")
+    node_pub, _ = install_prod_node_keys(monkeypatch, label="mempool-selection-prod")
     leader = _mk_executor(tmp_path, "leader")
     follower = _mk_executor(tmp_path, "follower")
+    seed_active_validator(leader, account="@validator", pubkey=node_pub)
+    seed_active_validator(follower, account="@validator", pubkey=node_pub)
 
     _submit_signed_register(leader)
     block, new_state, applied_ids, invalid_ids, err = leader.build_block_candidate(
         max_txs=10,
         allow_empty=False,
-        force_ts_ms=max(1, leader.chain_time_floor_ms()) + 1,
+        force_ts_ms=next_constitutional_block_time_ms(leader),
     )
     assert err == ""
     assert isinstance(block, dict)

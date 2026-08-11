@@ -34,6 +34,13 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+from weall.api.public_seed_registry import (
+    PublicSeedRegistryError,
+    load_public_seed_registry,
+    public_seed_registry_path,
+    public_testnet_enabled,
+    verified_peer_uris_from_registry,
+)
 from weall.ledger.state import LedgerView
 from weall.net.messages import (
     BftProposalMsg,
@@ -46,6 +53,8 @@ from weall.net.messages import (
     WireMessage,
 )
 from weall.net.net_logging import log_event
+from weall.net.node import NetConfig, NetNode
+from weall.net.peer_list_store import PeerListStore
 from weall.net.relay import (
     RelayConfig,
     RelayEnvelopeError,
@@ -54,17 +63,8 @@ from weall.net.relay import (
     make_relay_envelope,
     validate_relay_envelope,
 )
-from weall.net.node import NetConfig, NetNode
-from weall.net.peer_list_store import PeerListStore
 from weall.net.state_sync import StateSyncService
 from weall.net.transport import PeerAddr
-from weall.api.public_seed_registry import (
-    PublicSeedRegistryError,
-    load_public_seed_registry,
-    public_seed_registry_path,
-    public_testnet_enabled,
-    verified_peer_uris_from_registry,
-)
 from weall.runtime.mempool import compute_tx_id
 from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
@@ -151,8 +151,8 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -205,7 +205,9 @@ def _seed_net_self_url(seed: str) -> str:
     return f"{s}/v1/net/self"
 
 
-def _http_get_json(url: str, *, timeout_s: float = 2.0, headers: dict[str, str] | None = None) -> Json | None:
+def _http_get_json(
+    url: str, *, timeout_s: float = 2.0, headers: dict[str, str] | None = None
+) -> Json | None:
     if not url:
         return None
     try:
@@ -418,7 +420,9 @@ class NetMeshLoop:
         if public_testnet_enabled():
             try:
                 registry = load_public_seed_registry(public_seed_registry_path())
-                self._seed_nodes.extend(str(url) for url in registry.get("seed_api_urls", []) if str(url).strip())
+                self._seed_nodes.extend(
+                    str(url) for url in registry.get("seed_api_urls", []) if str(url).strip()
+                )
             except PublicSeedRegistryError as exc:
                 if _is_prod():
                     raise NetStartupError(str(exc) or "public_seed_registry_error") from exc
@@ -432,10 +436,13 @@ class NetMeshLoop:
         # Public observers need discovery to self-heal after seed/validator endpoint
         # churn. A zero value preserves the old one-shot behavior outside public
         # testnet unless explicitly configured.
-        self._seed_discovery_refresh_ms = max(0, _env_int(
-            "WEALL_SEED_DISCOVERY_REFRESH_MS",
-            60_000 if public_testnet_enabled() else 0,
-        ))
+        self._seed_discovery_refresh_ms = max(
+            0,
+            _env_int(
+                "WEALL_SEED_DISCOVERY_REFRESH_MS",
+                60_000 if public_testnet_enabled() else 0,
+            ),
+        )
         self._last_seed_discover_ms = 0
         self._seed_discovery_last_ok = False
         self._seed_discovery_last_learned = 0
@@ -467,7 +474,11 @@ class NetMeshLoop:
         )
         self._last_addr_gossip_ms = 0
 
-        self._bft_enabled = bool(effective_bft_enabled(executor=self._executor, default=_env_bool("WEALL_BFT_ENABLED", False)))
+        self._bft_enabled = bool(
+            effective_bft_enabled(
+                executor=self._executor, default=_env_bool("WEALL_BFT_ENABLED", False)
+            )
+        )
 
         self._bft_msg_seen: dict[str, int] = {}
         self._bft_msg_seen_ttl_ms: int = max(250, _env_int("WEALL_BFT_MSG_DEDUPE_TTL_MS", 10_000))
@@ -505,15 +516,23 @@ class NetMeshLoop:
         # Relays are transport-only mailboxes; relayed messages still pass normal
         # tx/BFT admission when consumed. Disabled by default.
         self._relay_client_enabled = _env_bool("WEALL_NET_RELAY_CLIENT_ENABLED", False)
-        self._relay_urls = [u.rstrip("/") for u in _split_csv(os.environ.get("WEALL_NET_RELAY_URLS", "")) if u.strip()]
+        self._relay_urls = [
+            u.rstrip("/")
+            for u in _split_csv(os.environ.get("WEALL_NET_RELAY_URLS", ""))
+            if u.strip()
+        ]
         self._relay_recipients = _split_csv(os.environ.get("WEALL_NET_RELAY_RECIPIENTS", ""))
         self._relay_poll_ms = max(250, _env_int("WEALL_NET_RELAY_POLL_MS", 1_000))
         self._relay_fetch_limit = max(1, _env_int("WEALL_NET_RELAY_CLIENT_FETCH_LIMIT", 50))
-        self._relay_timeout_s = max(0.25, float(_env_int("WEALL_NET_RELAY_TIMEOUT_MS", 2_000)) / 1000.0)
+        self._relay_timeout_s = max(
+            0.25, float(_env_int("WEALL_NET_RELAY_TIMEOUT_MS", 2_000)) / 1000.0
+        )
         self._relay_ttl_ms = max(1_000, _env_int("WEALL_NET_RELAY_ENVELOPE_TTL_MS", 60_000))
         self._relay_last_poll_ms = 0
         self._relay_seen: dict[str, int] = {}
-        self._relay_seen_ttl_ms = max(10_000, _env_int("WEALL_NET_RELAY_DEDUPE_TTL_MS", 10 * 60 * 1000))
+        self._relay_seen_ttl_ms = max(
+            10_000, _env_int("WEALL_NET_RELAY_DEDUPE_TTL_MS", 10 * 60 * 1000)
+        )
         self._relay_seen_max = max(128, _env_int("WEALL_NET_RELAY_DEDUPE_MAX", 16_384))
         self._relay_nonce = 0
         if self._relay_client_enabled and _is_prod():
@@ -521,7 +540,9 @@ class NetMeshLoop:
                 raise NetStartupError("net_relay_client_enabled_without_urls")
             if not (os.environ.get("WEALL_NODE_PUBKEY") or os.environ.get("WEALL_IDENTITY_PUBKEY")):
                 raise NetStartupError("net_relay_client_missing_pubkey")
-            if not (os.environ.get("WEALL_NODE_PRIVKEY") or os.environ.get("WEALL_IDENTITY_PRIVKEY")):
+            if not (
+                os.environ.get("WEALL_NODE_PRIVKEY") or os.environ.get("WEALL_IDENTITY_PRIVKEY")
+            ):
                 raise NetStartupError("net_relay_client_missing_privkey")
 
     def _state_snapshot(self) -> Json:
@@ -651,7 +672,13 @@ class NetMeshLoop:
                 self._seed_discovery_last_ok = True
                 self._seed_discovery_last_learned = len(learned)
                 try:
-                    log_event(_LOG, "net_seed_discovery", learned=learned, count=len(learned), refresh=bool(force))
+                    log_event(
+                        _LOG,
+                        "net_seed_discovery",
+                        learned=learned,
+                        count=len(learned),
+                        refresh=bool(force),
+                    )
                 except Exception:
                     pass
             except Exception:
@@ -906,8 +933,12 @@ class NetMeshLoop:
         )
 
     def _relay_identity(self) -> tuple[str, str]:
-        pub = (os.environ.get("WEALL_NODE_PUBKEY") or os.environ.get("WEALL_IDENTITY_PUBKEY") or "").strip()
-        priv = (os.environ.get("WEALL_NODE_PRIVKEY") or os.environ.get("WEALL_IDENTITY_PRIVKEY") or "").strip()
+        pub = (
+            os.environ.get("WEALL_NODE_PUBKEY") or os.environ.get("WEALL_IDENTITY_PUBKEY") or ""
+        ).strip()
+        priv = (
+            os.environ.get("WEALL_NODE_PRIVKEY") or os.environ.get("WEALL_IDENTITY_PRIVKEY") or ""
+        ).strip()
         return pub, priv
 
     def _relay_next_nonce(self) -> str:
@@ -938,7 +969,9 @@ class NetMeshLoop:
             return rid.lower()
         return ""
 
-    def _relay_submit_message(self, msg: WireMessage, *, recipients: list[str] | tuple[str, ...] | None = None) -> None:
+    def _relay_submit_message(
+        self, msg: WireMessage, *, recipients: list[str] | tuple[str, ...] | None = None
+    ) -> None:
         if not self._relay_client_enabled or self.node is None or not self._relay_urls:
             return
         cfg = self._relay_cfg()
@@ -949,7 +982,11 @@ class NetMeshLoop:
             if _is_prod():
                 raise NetStartupError("net_relay_client_missing_identity")
             return
-        targets = [str(x or "").strip() for x in list(recipients or self._relay_recipients or []) if str(x or "").strip()]
+        targets = [
+            str(x or "").strip()
+            for x in list(recipients or self._relay_recipients or [])
+            if str(x or "").strip()
+        ]
         if not targets:
             return
         sender = str(getattr(self.node.cfg, "peer_id", "") or "local").strip() or "local"
@@ -976,9 +1013,15 @@ class NetMeshLoop:
                     raise NetLoopRuntimeError("relay_envelope_build_failed") from e
                 continue
             for base in list(self._relay_urls):
-                _http_post_json(f"{base}/v1/net/relay/submit", {"envelope": env}, timeout_s=float(self._relay_timeout_s))
+                _http_post_json(
+                    f"{base}/v1/net/relay/submit",
+                    {"envelope": env},
+                    timeout_s=float(self._relay_timeout_s),
+                )
 
-    def _relay_access_request(self, request_type: str, peer_id: str, *, relay_ids: list[str] | None = None) -> Json | None:
+    def _relay_access_request(
+        self, request_type: str, peer_id: str, *, relay_ids: list[str] | None = None
+    ) -> Json | None:
         cfg = self._relay_cfg()
         if cfg is None:
             return None
@@ -1907,7 +1950,8 @@ class NetMeshLoop:
     # ----------------------------
 
     def _mk_header(self, *, mtype: MsgType) -> WireHeader:
-        assert self.node is not None
+        if self.node is None:
+            raise NetLoopRuntimeError("node_unavailable_for_wire_header")
         cfg = self.node.cfg
         return WireHeader(
             type=mtype,

@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
+
 from weall.runtime.json_tools import canonical_json_str
 
 Json = dict[str, Any]
@@ -123,23 +125,6 @@ def _truthy_env(name: str, default: str = "0") -> bool:
     }
 
 
-def _pytest_prod_fixture_uses_noncanonical_chain() -> bool:
-    """Return true for pytest-local prod fixtures that intentionally use
-    throwaway chain IDs/configs.
-
-    Real production starts still get the checked-in production manifest by
-    default.  Several older fail-closed API/config tests run with
-    WEALL_MODE=prod and WEALL_CHAIN_ID=weall-test only to exercise startup
-    ordering; they are not production chain-identity tests.
-    """
-    if not os.environ.get("PYTEST_CURRENT_TEST"):
-        return False
-    chain_id = str(os.environ.get("WEALL_CHAIN_ID", "") or "").strip()
-    if not chain_id:
-        return True
-    return chain_id not in {"weall-prod", "weall-main", "weall-genesis"}
-
-
 def active_chain_manifest_path(*, mode: str | None = None, explicit_only: bool = False) -> str:
     explicit = _env_manifest_path()
     if explicit:
@@ -153,16 +138,15 @@ def active_chain_manifest_path(*, mode: str | None = None, explicit_only: bool =
         # operator bypasses the shell wrappers and imports/boots the Python app
         # directly.  The checked-in canonical genesis manifest is safe to use as
         # the implicit production default for the default production config.
-        # Explicit custom chain-config files and pytest-local non-canonical prod
-        # fixtures must provide their own manifest path when they want manifest
-        # validation.
+        # Explicit custom chain-config files must provide their own manifest path
+        # when they want a non-default chain identity.
         if str(os.environ.get("WEALL_CHAIN_CONFIG_PATH", "") or "").strip():
-            return ""
-        if _pytest_prod_fixture_uses_noncanonical_chain() and not _truthy_env("WEALL_REQUIRE_CHAIN_MANIFEST"):
             return ""
         return default_chain_manifest_path_for_mode(normalized_mode)
 
-    if _truthy_env("WEALL_USE_DEFAULT_CHAIN_MANIFEST") or _truthy_env("WEALL_REQUIRE_CHAIN_MANIFEST"):
+    if _truthy_env("WEALL_USE_DEFAULT_CHAIN_MANIFEST") or _truthy_env(
+        "WEALL_REQUIRE_CHAIN_MANIFEST"
+    ):
         return default_chain_manifest_path_for_mode(mode)
     return ""
 
@@ -228,12 +212,44 @@ def load_chain_manifest(
         genesis_state_root=str(obj.get("genesis_state_root") or "").strip().lower(),
         tx_index_hash=str(obj.get("tx_index_hash") or "").strip().lower(),
         protocol_profile_hash=str(obj.get("protocol_profile_hash") or "").strip().lower(),
-        constitution_version=str(obj.get("constitution_version") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("version") or "").strip(),
-        constitution_hash=str(obj.get("constitution_hash") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("hash") or "").strip().lower(),
-        constitution_traceability_hash=str(obj.get("constitution_traceability_hash") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("traceability_hash") or "").strip().lower(),
-        constitution_document_path=str(obj.get("constitution_document_path") or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get("document_path") or "").strip(),
+        constitution_version=str(
+            obj.get("constitution_version")
+            or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get(
+                "version"
+            )
+            or ""
+        ).strip(),
+        constitution_hash=str(
+            obj.get("constitution_hash")
+            or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get(
+                "hash"
+            )
+            or ""
+        )
+        .strip()
+        .lower(),
+        constitution_traceability_hash=str(
+            obj.get("constitution_traceability_hash")
+            or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get(
+                "traceability_hash"
+            )
+            or ""
+        )
+        .strip()
+        .lower(),
+        constitution_document_path=str(
+            obj.get("constitution_document_path")
+            or (obj.get("constitution") if isinstance(obj.get("constitution"), dict) else {}).get(
+                "document_path"
+            )
+            or ""
+        ).strip(),
         genesis_time_ms=_safe_int(obj.get("genesis_time_ms"), 0),
-        constitutional_clock=dict(obj.get("constitutional_clock") if isinstance(obj.get("constitutional_clock"), dict) else {}),
+        constitutional_clock=dict(
+            obj.get("constitutional_clock")
+            if isinstance(obj.get("constitutional_clock"), dict)
+            else {}
+        ),
         authority_snapshot_version=_safe_int(obj.get("authority_snapshot_version"), 1),
         trusted_authority_pubkeys=_normalized_pubkeys(obj),
         raw=dict(obj),
@@ -360,7 +376,9 @@ def chain_manifest_issues(
         profile_required = _manifest_strict_profile_required(manifest)
         if profile_required and is_placeholder(manifest.protocol_profile_hash):
             issues.append("chain_manifest_protocol_profile_hash_unpinned")
-        elif manifest.protocol_profile_hash and not _is_hex_string(manifest.protocol_profile_hash, length=64):
+        elif manifest.protocol_profile_hash and not _is_hex_string(
+            manifest.protocol_profile_hash, length=64
+        ):
             issues.append("chain_manifest_protocol_profile_hash_invalid")
 
         if is_placeholder(manifest.constitution_version):
@@ -369,10 +387,14 @@ def chain_manifest_issues(
             issues.append("chain_manifest_constitution_hash_unpinned")
         elif not _is_hex_string(manifest.constitution_hash, length=64):
             issues.append("chain_manifest_constitution_hash_invalid")
-        if manifest.constitution_traceability_hash and not _is_hex_string(manifest.constitution_traceability_hash, length=64):
+        if manifest.constitution_traceability_hash and not _is_hex_string(
+            manifest.constitution_traceability_hash, length=64
+        ):
             issues.append("chain_manifest_constitution_traceability_hash_invalid")
 
-        clock = manifest.constitutional_clock if isinstance(manifest.constitutional_clock, dict) else {}
+        clock = (
+            manifest.constitutional_clock if isinstance(manifest.constitutional_clock, dict) else {}
+        )
         if profile_required:
             if not clock:
                 issues.append("chain_manifest_constitutional_clock_missing")
@@ -387,7 +409,10 @@ def chain_manifest_issues(
                     issues.append("chain_manifest_constitutional_clock_empty_blocks_disabled")
                 if str(clock.get("procedure_time_source") or "") != "finalized_block_height":
                     issues.append("chain_manifest_constitutional_clock_source_invalid")
-                if str(clock.get("block_time_derivation") or "") != "genesis_time_plus_height_times_interval":
+                if (
+                    str(clock.get("block_time_derivation") or "")
+                    != "genesis_time_plus_height_times_interval"
+                ):
                     issues.append("chain_manifest_constitutional_clock_derivation_invalid")
                 if not bool(clock.get("no_fast_forward", True)):
                     issues.append("chain_manifest_constitutional_clock_fast_forward_allowed")
@@ -438,7 +463,9 @@ def chain_manifest_status(
             actual_hash = ""
         out["actual_tx_index_hash"] = actual_hash
         out["tx_index_hash_matches"] = bool(
-            actual_hash and manifest.tx_index_hash and actual_hash.lower() == manifest.tx_index_hash.lower()
+            actual_hash
+            and manifest.tx_index_hash
+            and actual_hash.lower() == manifest.tx_index_hash.lower()
         )
     if manifest is not None and state_root:
         out["state_root_matches_manifest_genesis"] = bool(

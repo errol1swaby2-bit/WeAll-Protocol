@@ -26,9 +26,34 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-for cmd in git python3 node npm; do
+for cmd in git node npm; do
   command -v "${cmd}" >/dev/null 2>&1 || { echo "ERROR: missing command: ${cmd}" >&2; exit 2; }
 done
+
+resolve_python() {
+  if [[ -n "${WEALL_PYTHON:-}" ]]; then
+    printf '%s\n' "${WEALL_PYTHON}"
+    return
+  fi
+  if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
+    printf '%s\n' "${VIRTUAL_ENV}/bin/python"
+    return
+  fi
+  if [[ -x "${HOME}/.venvs/weall-protocol/bin/python" ]]; then
+    printf '%s\n' "${HOME}/.venvs/weall-protocol/bin/python"
+    return
+  fi
+  command -v python3
+}
+
+PYTHON_BIN="$(resolve_python)"
+[[ -n "${PYTHON_BIN}" && -x "${PYTHON_BIN}" ]] || {
+  echo "ERROR: no usable Python interpreter found" >&2
+  exit 2
+}
+export WEALL_PYTHON="${PYTHON_BIN}"
+echo "[M1-M3] python=${PYTHON_BIN}"
+"${PYTHON_BIN}" --version
 
 FREEZE="${M1_M3_IMPLEMENTATION_FREEZE_COMMIT:-$(git -C "${ROOT}" rev-parse HEAD)}"
 FREEZE="$(git -C "${ROOT}" rev-parse "${FREEZE}^{commit}")"
@@ -68,17 +93,19 @@ run_gate() {
 run_backend() { (cd "${BACKEND}" && PYTHONPATH=src:scripts WEALL_API_BOOT_RUNTIME=0 "$@"); }
 run_web() { (cd "${WEB}" && "$@"); }
 
-run_gate "consensus profile manifest" "source/consensus-profile.log" run_backend python scripts/check_consensus_profile_manifest.py
-run_gate "Spec-M1 v2 derivatives" "source/v2-derivatives.log" run_backend python scripts/compile_v2_spec.py --check
-run_gate "M2 requirement traceability" "source/m2-traceability.log" run_backend python scripts/check_m2_requirement_traceability.py
+run_gate "consensus profile manifest" "source/consensus-profile.log" run_backend "${PYTHON_BIN}" scripts/check_consensus_profile_manifest.py
+run_gate "Spec-M1 v2 derivatives" "source/v2-derivatives.log" run_backend "${PYTHON_BIN}" scripts/compile_v2_spec.py --check
+run_gate "M2 requirement traceability" "source/m2-traceability.log" run_backend "${PYTHON_BIN}" scripts/check_m2_requirement_traceability.py
 run_gate "historical M2/M3 evidence pairs" "historical/verification.log" bash "${ROOT}/scripts/restore_m2_m3_evidence_from_git.sh" --verify-only
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/weall_m1_m3_cumulative_XXXXXX")"
 HISTORICAL_OVERLAY="${TMP}/historical-current"
+SOURCE_TEST_WORKTREE="${TMP}/source-test"
 FULL_M2_WORKTREE="${TMP}/m2"
 FULL_M3_WORKTREE="${TMP}/m3"
 cleanup_worktrees() {
   git -C "${ROOT}" worktree remove --force "${HISTORICAL_OVERLAY}" >/dev/null 2>&1 || true
+  git -C "${ROOT}" worktree remove --force "${SOURCE_TEST_WORKTREE}" >/dev/null 2>&1 || true
   git -C "${ROOT}" worktree remove --force "${FULL_M2_WORKTREE}" >/dev/null 2>&1 || true
   git -C "${ROOT}" worktree remove --force "${FULL_M3_WORKTREE}" >/dev/null 2>&1 || true
   rm -rf "${TMP}"
@@ -97,13 +124,29 @@ run_historical_backend() {
 run_historical_root() {
   (cd "${HISTORICAL_OVERLAY}" && "$@")
 }
+prepare_source_test_worktree() {
+  git -C "${ROOT}" worktree add --detach "${SOURCE_TEST_WORKTREE}" "${FREEZE}" >/dev/null
+}
+run_source_backend() {
+  (cd "${SOURCE_TEST_WORKTREE}/Weall-Protocol" &&     PYTHONPATH=src:scripts WEALL_API_BOOT_RUNTIME=0 "$@")
+}
 
 run_gate "historical evidence overlay" "historical/overlay.log" prepare_historical_overlay
 if [[ -d "${HISTORICAL_OVERLAY}/artifacts/m3-closure" ]]; then
+  # Historical evidence validity is checked separately above. In source-only
+  # mode, current M3 source readiness must be evaluated against the current
+  # implementation snapshot, not by requiring current rows to claim formal
+  # closure against restored historical evidence.
   run_gate "M3 requirement traceability" "source/m3-traceability.log" \
-    run_historical_root python scripts/check_m3_requirement_traceability.py
-  run_gate "full backend suite" "source/full-pytest.log" \
-    run_historical_backend python -m pytest -q
+    "${PYTHON_BIN}" "${ROOT}/scripts/check_m3_requirement_traceability.py" --source-only
+  run_gate "clean current-source backend worktree" "source/source-test-worktree.log" \
+    prepare_source_test_worktree
+  if [[ -d "${SOURCE_TEST_WORKTREE}/Weall-Protocol" ]]; then
+    run_gate "full backend suite" "source/full-pytest.log" \
+      run_source_backend "${PYTHON_BIN}" -m pytest -q
+  else
+    run_gate "full backend suite" "source/full-pytest.log" false
+  fi
 else
   run_gate "M3 requirement traceability" "source/m3-traceability.log" false
   run_gate "full backend suite" "source/full-pytest.log" false
@@ -119,7 +162,7 @@ run_gate "frontend typecheck" "frontend/typecheck.log" run_web npm run typecheck
 run_gate "frontend production build" "frontend/build.log" run_web npm run build
 run_gate "frontend production safety" "frontend/production-safety.log" run_web npm run production-safety-check
 run_gate "frontend custody cryptographic source" "frontend/account-custody-crypto.log" run_web npm run test:account-custody-crypto-source
-run_gate "reproducible environment capture" "environment/capture.log" python3 \
+run_gate "reproducible environment capture" "environment/capture.log" "${PYTHON_BIN}" \
   "${ROOT}/scripts/capture_m1_m3_reproducible_environment.py" \
   --freeze-commit "${FREEZE}" \
   --out "${ARTIFACT_ROOT}/environment/reproducible-environment.json"
@@ -169,7 +212,7 @@ if [[ ${FAILURES} -ne 0 ]]; then
   exit 1
 fi
 
-python3 "${ROOT}/scripts/build_m1_m3_integrated_manifest.py" \
+"${PYTHON_BIN}" "${ROOT}/scripts/build_m1_m3_integrated_manifest.py" \
   --artifact-root "${ARTIFACT_ROOT#${ROOT}/}" \
   --freeze-commit "${FREEZE}" \
   --mode "${MODE}"

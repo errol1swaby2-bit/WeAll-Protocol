@@ -5,12 +5,6 @@ from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import BftVote, canonical_vote_message, leader_for_view
@@ -479,6 +473,7 @@ def test_crash_mid_commit_preserves_vote_safety_across_restart(
     blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=1, allow_empty=False)
     assert err == ""
 
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_TEST_FAIL_AFTER_BLOCK_INSERT", "1")
     meta = ex.commit_block_candidate(
         block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids

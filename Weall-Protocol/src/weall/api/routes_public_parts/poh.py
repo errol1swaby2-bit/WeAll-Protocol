@@ -36,8 +36,8 @@ _ALLOWED_FALSE = {"0", "false", "no", "n", "off"}
 
 
 def _is_prod() -> bool:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return False
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return (str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod") == "prod"
 
 

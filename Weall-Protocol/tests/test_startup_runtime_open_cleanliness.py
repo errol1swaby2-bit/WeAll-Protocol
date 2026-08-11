@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from weall.runtime.executor import WeAllExecutor
+from weall.testing.prod_fixtures import seed_prod_validator_quorum
 
 
 def _write_min_tx_index(path: Path) -> None:
@@ -27,6 +28,7 @@ def test_runtime_open_tracks_previous_shutdown_cleanliness(tmp_path: Path, monke
         chain_id="weall-test",
         tx_index_path=str(tx_index_path),
     )
+    seed_prod_validator_quorum(ex1, local_account="@v1")
     state1 = ex1.read_state()
     assert ex1.validator_signing_enabled() is True
     assert ex1.observer_mode() is False

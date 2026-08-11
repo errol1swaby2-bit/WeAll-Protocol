@@ -1,5 +1,5 @@
 {
-  "count": 512,
+  "count": 513,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "59a5d4aa15b11961970625925ae3e444c10bff0225adb27b9547cb6bd6f6fd2e"
+    "source_tree_digest": "a11eafd4b645d52e94e54dd95a998d866c4f8f9bf0f55826e9028804db26093c"
   },
   "rows": [
     {
@@ -7372,6 +7372,43 @@
     },
     {
       "category": "canonical_transaction",
+      "code": "invalid_state",
+      "http_mapping": null,
+      "primary_mechanism_id": "M-012",
+      "reason_or_contract": "state_invariant_violation",
+      "retryable": false,
+      "routes": [],
+      "severity": "request_or_transaction_rejection",
+      "stable_id": "FAIL-B940AB36E4D5C16B",
+      "state_mutation_guarantee": "no_partial_canonical_state_on_failure",
+      "status": "current_partial",
+      "transactions": [
+        "TX-0410",
+        "TX-0411",
+        "TX-0412",
+        "TX-0413",
+        "TX-0600",
+        "TX-0603",
+        "TX-0604",
+        "TX-0605",
+        "TX-0606",
+        "TX-0607",
+        "TX-0611",
+        "TX-0612",
+        "TX-0613",
+        "TX-0900",
+        "TX-0902",
+        "TX-0903",
+        "TX-0904",
+        "TX-0905",
+        "TX-1800"
+      ],
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ]
+    },
+    {
+      "category": "canonical_transaction",
       "code": "invalid_tx",
       "http_mapping": null,
       "primary_mechanism_id": "M-012",
@@ -10866,7 +10903,6 @@
         "TX-0407",
         "TX-0408",
         "TX-0409",
-        "TX-0611",
         "TX-0700",
         "TX-1200",
         "TX-1600",

@@ -13,6 +13,7 @@ from weall.runtime.executor import (
     WeAllExecutor,
 )
 from weall.runtime.protocol_profile import REPUTATION_SCALE, validate_runtime_consensus_profile
+from weall.testing.prod_fixtures import seed_prod_validator_quorum
 
 
 def _repo_root() -> Path:
@@ -72,6 +73,8 @@ def test_prod_restart_warns_but_allows_modest_tip_ahead_of_local_clock(
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
     ex = _make_executor(tmp_path, node_id="@n1", chain_id="clock-ahead")
+    monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@n1")
+    seed_prod_validator_quorum(ex, local_account="@n1")
     ex.mark_clean_shutdown()
     st = ex.read_state()
     import time

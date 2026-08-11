@@ -3,12 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.runtime.executor import WeAllExecutor
 
@@ -33,6 +27,7 @@ def _seed_validator_set(
     st["roles"].setdefault("validators", {})
     st["roles"]["validators"]["active_set"] = list(validators)
     st.setdefault("consensus", {})
+    st["consensus"].setdefault("phase", {})["current"] = "bft_active"
     st["consensus"].setdefault("validators", {})
     st["consensus"]["validators"].setdefault("registry", {})
     st["consensus"].setdefault("epochs", {})

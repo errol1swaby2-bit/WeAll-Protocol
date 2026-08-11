@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,7 +71,6 @@ def test_release_tree_rejects_local_runtime_artifacts(tmp_path: Path) -> None:
     assert "runtime data directories" in result.stdout or "SQLite WAL files" in result.stdout
 
 
-
 def test_release_tree_rejects_outer_web_typescript_build_artifact(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)
     outer = tree.parent
@@ -84,7 +84,6 @@ def test_release_tree_rejects_outer_web_typescript_build_artifact(tmp_path: Path
     assert "outer web TypeScript build info files" in result.stdout
 
 
-
 def test_release_hygiene_rejects_tracked_ignored_runtime_cache(tmp_path: Path) -> None:
     outer = tmp_path / "outer"
     backend = outer / "Weall-Protocol"
@@ -93,7 +92,10 @@ def test_release_hygiene_rejects_tracked_ignored_runtime_cache(tmp_path: Path) -
     backend_scripts.mkdir(parents=True)
     root_scripts.mkdir(parents=True)
 
-    shutil.copy2(ROOT / "scripts/check_release_hygiene_v1_5.py", backend_scripts / "check_release_hygiene_v1_5.py")
+    shutil.copy2(
+        ROOT / "scripts/check_release_hygiene_v1_5.py",
+        backend_scripts / "check_release_hygiene_v1_5.py",
+    )
     required = [
         root_scripts / "run_clean_clone_go_gate_v1_5.sh",
         root_scripts / "run_frontend_contract_check_with_backend.sh",
@@ -110,15 +112,35 @@ def test_release_hygiene_rejects_tracked_ignored_runtime_cache(tmp_path: Path) -
     cache_file.parent.mkdir(parents=True)
     cache_file.write_text("runtime cache must not be tracked\n", encoding="utf-8")
 
-    subprocess.run(["git", "init"], cwd=outer, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True)
+    subprocess.run(
+        ["git", "init"],
+        cwd=outer,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=True,
+    )
     subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=outer, check=True)
     subprocess.run(["git", "config", "user.name", "Test"], cwd=outer, check=True)
-    subprocess.run(["git", "add", ".gitignore", "scripts", "Weall-Protocol/scripts"], cwd=outer, check=True)
-    subprocess.run(["git", "add", "-f", "Weall-Protocol/.weall-media-cache/aa/cached.bin"], cwd=outer, check=True)
-    subprocess.run(["git", "commit", "-m", "fixture"], cwd=outer, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=True)
+    subprocess.run(
+        ["git", "add", ".gitignore", "scripts", "Weall-Protocol/scripts"], cwd=outer, check=True
+    )
+    subprocess.run(
+        ["git", "add", "-f", "Weall-Protocol/.weall-media-cache/aa/cached.bin"],
+        cwd=outer,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "fixture"],
+        cwd=outer,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=True,
+    )
 
     result = subprocess.run(
-        ["python", "scripts/check_release_hygiene_v1_5.py"],
+        [sys.executable, "scripts/check_release_hygiene_v1_5.py"],
         cwd=backend,
         text=True,
         stdout=subprocess.PIPE,
@@ -127,7 +149,10 @@ def test_release_hygiene_rejects_tracked_ignored_runtime_cache(tmp_path: Path) -
     )
 
     assert result.returncode != 0
-    assert "tracked_runtime_artifact:Weall-Protocol/.weall-media-cache/aa/cached.bin" in result.stdout
+    assert (
+        "tracked_runtime_artifact:Weall-Protocol/.weall-media-cache/aa/cached.bin" in result.stdout
+    )
+
 
 def test_secret_guard_scans_export_tree_when_git_metadata_absent(tmp_path: Path) -> None:
     tree = _make_minimal_release_tree(tmp_path)

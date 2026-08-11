@@ -194,20 +194,26 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
                     )
     except ApplyError:
         raise
-    except Exception:
-        # Fail-safe: if parsing fails, do not block apply.
-        # But NEVER be silent: surface via metric + log so operators can
-        # detect that a guardrail is not applying.
+    except Exception as exc:
+        # Consensus-visible authority gates must fail closed.  If canonical
+        # state cannot be parsed, continuing would make authorization depend
+        # on incidental parser/runtime behavior and could admit a transaction
+        # that other nodes reject.
         try:
             inc_counter("apply_guard_parse_fail_total", 1)
         except Exception:
             pass
         try:
-            _LOG.warning(
+            _LOG.error(
                 "apply-time guard parse failed for bootstrap founder expiry gate", exc_info=True
             )
         except Exception:
             pass
+        raise ApplyError(
+            "gate_denied",
+            "bootstrap_founder_guard_state_invalid",
+            {"error_type": type(exc).__name__},
+        ) from exc
 
     t = _tx_type(env)
 

@@ -164,7 +164,7 @@ def _reward_recipients(state: Json, proposer: str) -> dict[str, list[str]]:
 
 
 def compute_fee_total_from_receipts(receipts: list[Json]) -> int:
-    """Temporary: sum receipts with applied == 'FEE_PAY'."""
+    """Deterministically sum non-negative ``FEE_PAY`` receipt amounts."""
     total = 0
     for r in receipts or []:
         if not isinstance(r, dict):

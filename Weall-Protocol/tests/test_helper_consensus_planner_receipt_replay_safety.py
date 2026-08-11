@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from weall.runtime.helper_executor import HelperExecutionError, HelperExecutor
 from weall.runtime.helper_planner import (
     build_helper_plan,
     normalize_validators,
@@ -10,6 +9,7 @@ from weall.runtime.helper_planner import (
     validator_set_hash,
 )
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
+from weall.testing.helper_executor import HelperExecutionError, HelperExecutor
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
 

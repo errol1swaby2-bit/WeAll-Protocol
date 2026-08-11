@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
 
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.executor import WeAllExecutor
@@ -92,6 +92,7 @@ def _submit_and_commit(ex: WeAllExecutor, tx: dict) -> str:
 
 def test_prod_node_identity_initializer_creates_once_and_emits_exports(tmp_path: Path) -> None:
     env = os.environ.copy()
+    env["WEALL_PYTHON"] = sys.executable
     env["WEALL_NODE_PRIVKEY_FILE"] = str(tmp_path / "custom-node.priv")
     env["WEALL_NODE_PUBKEY_FILE"] = str(tmp_path / "custom-node.pub")
 
@@ -100,8 +101,7 @@ def test_prod_node_identity_initializer_creates_once_and_emits_exports(tmp_path:
         cwd=str(ROOT),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert custom_missing.returncode != 0
@@ -126,8 +126,7 @@ def test_prod_node_identity_initializer_creates_once_and_emits_exports(tmp_path:
         cwd=str(isolated_root),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert created.returncode == 0, created.stderr + created.stdout
@@ -141,8 +140,7 @@ def test_prod_node_identity_initializer_creates_once_and_emits_exports(tmp_path:
         cwd=str(isolated_root),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert reused.returncode == 0, reused.stderr + reused.stdout
@@ -151,13 +149,18 @@ def test_prod_node_identity_initializer_creates_once_and_emits_exports(tmp_path:
 
 def test_controlled_devnet_full_onboarding_proves_node2_convergence() -> None:
     script = DEVNET_FULL.read_text(encoding="utf-8")
-    assert 'WEALL_NODE2_BLOCK_LOOP_AUTOSTART:-0' in script
+    assert "WEALL_NODE2_BLOCK_LOOP_AUTOSTART:-0" in script
     assert 'bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"' in script
-    assert 'bash ./scripts/devnet_compare_state_roots.sh' in script
-    assert '|| true' not in script.split('echo "==> Comparing state roots after native async Tier-1 onboarding"', 1)[1].split('fi', 1)[0]
+    assert "bash ./scripts/devnet_compare_state_roots.sh" in script
+    assert (
+        "|| true"
+        not in script.split(
+            'echo "==> Comparing state roots after native async Tier-1 onboarding"', 1
+        )[1].split("fi", 1)[0]
+    )
     assert 'node2_convergence_tx_id="$(_submit_node2_convergence_tx "${ACCOUNT}")"' in script
-    assert 'WEALL_NODE2_CONVERGENCE_TX_TYPE:-FOLLOW_SET' in script
-    assert 'unsupported WEALL_NODE2_CONVERGENCE_TX_TYPE' in script
+    assert "WEALL_NODE2_CONVERGENCE_TX_TYPE:-FOLLOW_SET" in script
+    assert "unsupported WEALL_NODE2_CONVERGENCE_TX_TYPE" in script
 
 
 def test_genesis_accepts_multiple_external_observer_users_with_isolated_nonces(
@@ -288,7 +291,9 @@ def test_genesis_accepts_multiple_external_observer_users_with_isolated_nonces(
         assert acct["poh_tier"] == 0
         assert acct["devices"]["by_id"][f"node:observer_user_{idx}"]["pubkey"] == user["node_pub"]
         assert state["peers"]["ads"][account]["peer_id"] == f"node:observer_user_{idx}"
-        assert state["poh"]["async_cases"][f"pohasync:observer_user_{idx}:1"]["account_id"] == account
+        assert (
+            state["poh"]["async_cases"][f"pohasync:observer_user_{idx}:1"]["account_id"] == account
+        )
 
     assert len(all_tx_ids) == 21
     assert len(set(all_tx_ids)) == len(all_tx_ids)

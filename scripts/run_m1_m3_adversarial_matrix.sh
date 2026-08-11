@@ -6,6 +6,22 @@ BACKEND="${ROOT}/Weall-Protocol"
 OUT="${WEALL_M1_M3_ADVERSARIAL_LOG:-${TMPDIR:-/tmp}/weall_m1_m3_adversarial_matrix_${$}.log}"
 mkdir -p "$(dirname "${OUT}")"
 
+PYTHON_BIN="${WEALL_PYTHON:-}"
+if [[ -z "${PYTHON_BIN}" ]]; then
+  if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
+    PYTHON_BIN="${VIRTUAL_ENV}/bin/python"
+  elif [[ -x "${HOME}/.venvs/weall-protocol/bin/python" ]]; then
+    PYTHON_BIN="${HOME}/.venvs/weall-protocol/bin/python"
+  else
+    PYTHON_BIN="$(command -v python3)"
+  fi
+fi
+[[ -n "${PYTHON_BIN}" && -x "${PYTHON_BIN}" ]] || {
+  echo "ERROR: no usable Python interpreter found" >&2
+  exit 2
+}
+echo "[M1-M3 adversarial] python=${PYTHON_BIN}"
+
 TESTS=(
   tests/test_consensus_signature_policy_pinning.py
   tests/test_consensus_profile_manifest.py
@@ -29,7 +45,7 @@ done
   cd "${BACKEND}"
   export PYTHONPATH=src:scripts
   export WEALL_API_BOOT_RUNTIME=0
-  python -m pytest -q "${TESTS[@]}"
+  "${PYTHON_BIN}" -m pytest -q "${TESTS[@]}"
 ) 2>&1 | tee "${OUT}"
 
 echo "OK: M1-M3 adversarial matrix passed"

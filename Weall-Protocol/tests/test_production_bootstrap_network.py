@@ -5,17 +5,24 @@ from pathlib import Path
 import pytest
 
 from weall.runtime.chain_config import ChainConfig, production_bootstrap_issues
+from weall.testing.prod_fixtures import write_strict_prod_chain_manifest
 
 
 def _cfg(tmp_path: Path) -> ChainConfig:
     tx_index = tmp_path / "tx_index.json"
     tx_index.write_text("{}", encoding="utf-8")
+    manifest = write_strict_prod_chain_manifest(
+        tmp_path / "strict-prod-chain-manifest.json",
+        chain_id="weall-prod",
+        tx_index_path=tx_index,
+    )
     return ChainConfig(
         chain_id="weall-prod",
         node_id="node-1",
         mode="prod",
         db_path=str(tmp_path / "data" / "weall.db"),
         tx_index_path=str(tx_index),
+        chain_manifest_path=str(manifest),
         block_interval_ms=600_000,
         max_txs_per_block=1000,
         block_reward=0,

@@ -26,10 +26,12 @@ def deterministic_token_id(*, chain_id: str, owner: str, tier: int, source_id: s
     return _sha256_hex(payload)
 
 
-def canonical_metadata_cid_placeholder(*, tier: int) -> str:
-    """
-    Placeholder hook: you can later swap to real IPFS CID generation.
-    For now we store a deterministic metadata "fingerprint" to keep state stable.
+def canonical_metadata_reference(*, tier: int) -> str:
+    """Return the deterministic PoF metadata reference used by legacy state.
+
+    This value is intentionally not an IPFS CID. The exact ``meta:<hex>``
+    representation is retained for state/replay compatibility until a
+    separately versioned metadata-address migration is activated.
     """
     obj = {"kind": "pof_gate_nft", "tier": int(tier)}
     b = json.dumps(obj, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -86,7 +88,7 @@ def apply_pof_nft_mint(
         }
 
     # Create token record
-    meta_cid = canonical_metadata_cid_placeholder(tier=int(tier))
+    meta_cid = canonical_metadata_reference(tier=int(tier))
     tokens[token_id] = {
         "token_id": token_id,
         "owner": owner,
@@ -94,6 +96,7 @@ def apply_pof_nft_mint(
         "minted_height": int(height),
         "minted_ts": ts,
         "source_id": source_id,
+        # ``cid`` is a legacy state key; the value is a deterministic metadata reference.
         "metadata": {"cid": meta_cid},
         "banned": False,
         "banned_height": None,

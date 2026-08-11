@@ -220,6 +220,19 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             return str(obj.get("phase") or "").strip().lower()
         return queue_item_phase(working, queue_id)
 
+    # Validate the replicated queue before scheduler/emitter work so malformed
+    # queue state fails closed before unrelated commitment mismatches.
+    try:
+        build_system_queue_lookup(self.state)
+    except Exception as exc:
+        if _consensus_fail_closed():
+            return ExecutorMeta(
+                ok=False,
+                error=f"bad_block:system_emitter_pre_failed:{type(exc).__name__}",
+                height=0,
+                block_id="",
+            )
+
     # Production path: pre schedulers + pre emitter side-effects.
     try:
         _run_poh_schedulers()
@@ -536,6 +549,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     working["height"] = int(height)
     working["tip"] = str(block_id)
     working["time"] = int(int(ts_ms) // 1000)
+    if bool(clock_policy.enabled):
+        # Mirror leader candidate construction after advancing the working tip.
+        commit_clock_policy_to_state(working, clock_policy)
 
     have_rr = str(header.get("receipts_root") or "").strip()
     if not have_rr:
@@ -604,11 +620,8 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             working["rand"] = rand
         rand["vrf"] = {"height": int(height), **vrf_any}
     else:
-        # If required, reject blocks without VRF.  A narrow pytest-only
-        # compatibility allowance mirrors block construction for local
-        # persistence/replay fixtures that run in prod mode without network,
-        # BFT, validator signing, or loop autostart.
-        if runtime_vrf_required() and not self._pytest_local_missing_vrf_allowed():
+        # Required VRF is a protocol rule, not a test-environment preference.
+        if runtime_vrf_required():
             return ExecutorMeta(ok=False, error="bad_block:vrf:missing", height=0, block_id="")
 
     helper_execution_for_root = block2.get("helper_execution")

@@ -7,6 +7,7 @@ import pytest
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.tx_admission import admit_tx
+from weall.testing.prod_fixtures import install_prod_node_keys, seed_active_validator
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
@@ -49,7 +50,9 @@ def test_prod_http_admission_rejects_unsigned_tx_and_executor_keeps_local_fixtur
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    node_pub, _ = install_prod_node_keys(monkeypatch, label="candidate-prod-node")
     ex = _executor(tmp_path, "prod-node", chain_id="candidate-prod")
+    seed_active_validator(ex, account="@validator", pubkey=node_pub)
 
     unsigned = {
         "tx_type": "ACCOUNT_REGISTER",

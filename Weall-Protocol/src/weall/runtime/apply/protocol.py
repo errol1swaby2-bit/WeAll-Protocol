@@ -67,6 +67,26 @@ class ProtocolApplyError(RuntimeError):
         return f"{self.code}:{self.reason}:{self.details}"
 
 
+def _require_dict_invariant(value: Any, *, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ProtocolApplyError(
+            "invalid_state",
+            "state_invariant_violation",
+            {"field": field, "expected": "dict", "actual": type(value).__name__},
+        )
+    return value
+
+
+def _require_list_invariant(value: Any, *, field: str) -> list[Any]:
+    if not isinstance(value, list):
+        raise ProtocolApplyError(
+            "invalid_state",
+            "state_invariant_violation",
+            {"field": field, "expected": "list", "actual": type(value).__name__},
+        )
+    return value
+
+
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
@@ -89,7 +109,9 @@ def _require_system_env(env: TxEnvelope) -> None:
 
 def _parent_ref(env: TxEnvelope) -> str:
     payload = _as_dict(getattr(env, "payload", None))
-    return _as_str(getattr(env, "parent", None)).strip() or _as_str(payload.get("_parent_ref")).strip()
+    return (
+        _as_str(getattr(env, "parent", None)).strip() or _as_str(payload.get("_parent_ref")).strip()
+    )
 
 
 def _require_parent_ref(env: TxEnvelope) -> str:
@@ -151,7 +173,9 @@ def _requested_activation_height(state: Json, payload: Json, env: TxEnvelope | N
     return current_height + _activation_delay_blocks(state, payload)
 
 
-def _validate_activation_height(state: Json, payload: Json, *, upgrade_id: str, env: TxEnvelope | None = None) -> int:
+def _validate_activation_height(
+    state: Json, payload: Json, *, upgrade_id: str, env: TxEnvelope | None = None
+) -> int:
     activation_height = _requested_activation_height(state, payload, env)
     current_height = _height_now(state, env)
     if activation_height <= current_height:
@@ -204,7 +228,9 @@ def _validate_target_supported(state: Json, *, target_version: str, upgrade_id: 
     return {
         "target_version": target_version,
         "supported_targets_configured": bool(supported),
-        "target_supported_by_local_config": bool(target_version in supported) if supported else None,
+        "target_supported_by_local_config": bool(target_version in supported)
+        if supported
+        else None,
     }
 
 
@@ -301,7 +327,7 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
 
     proto = _ensure_protocol(state)
     upgrades = proto["upgrades"]
-    assert isinstance(upgrades, dict)
+    upgrades = _require_dict_invariant(upgrades, field="upgrades")
 
     rec = upgrades.get(uid)
     if isinstance(rec, dict):
@@ -323,7 +349,8 @@ def _apply_protocol_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
                 "deduped": True,
                 "target_support": dict(_as_dict(rec.get("target_support"))),
                 "record_only_boundary": dict(_as_dict(rec.get("record_only_boundary"))),
-                "governance_parent_ref": _as_str(rec.get("governance_parent_ref")).strip() or parent_ref,
+                "governance_parent_ref": _as_str(rec.get("governance_parent_ref")).strip()
+                or parent_ref,
             }
         raise ProtocolApplyError(
             "conflict",
@@ -373,7 +400,7 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
 
     proto = _ensure_protocol(state)
     upgrades = proto["upgrades"]
-    assert isinstance(upgrades, dict)
+    upgrades = _require_dict_invariant(upgrades, field="upgrades")
 
     rec = upgrades.get(uid)
     if not isinstance(rec, dict):
@@ -395,8 +422,14 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
                 },
             )
         requested_activation_height = _as_int(payload.get("activation_height"), 0)
-        existing_activation_height = _as_int(rec.get("activation_height") or activation_record.get("activation_height"), 0)
-        if requested_activation_height > 0 and existing_activation_height > 0 and requested_activation_height != existing_activation_height:
+        existing_activation_height = _as_int(
+            rec.get("activation_height") or activation_record.get("activation_height"), 0
+        )
+        if (
+            requested_activation_height > 0
+            and existing_activation_height > 0
+            and requested_activation_height != existing_activation_height
+        ):
             raise ProtocolApplyError(
                 "conflict",
                 "upgrade_duplicate_activation_conflict",
@@ -406,14 +439,17 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
                     "requested_activation_height": int(requested_activation_height),
                 },
             )
-        boundary = _record_only_boundary(_as_dict(rec.get("activate_payload") or rec.get("payload")))
+        boundary = _record_only_boundary(
+            _as_dict(rec.get("activate_payload") or rec.get("payload"))
+        )
         return {
             "applied": "PROTOCOL_UPGRADE_ACTIVATE",
             "upgrade_id": uid,
             "deduped": True,
             "governance_activation_record": activation_record,
             "record_only_boundary": boundary,
-            "governance_parent_ref": _as_str(rec.get("activation_parent_ref")).strip() or parent_ref,
+            "governance_parent_ref": _as_str(rec.get("activation_parent_ref")).strip()
+            or parent_ref,
         }
 
     declared_version = _as_str(rec.get("target_version") or rec.get("version")).strip()
@@ -428,7 +464,11 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
         raise ProtocolApplyError(
             "conflict",
             "upgrade_activation_target_mismatch",
-            {"upgrade_id": uid, "declared_target_version": declared_version, "activation_target_version": version},
+            {
+                "upgrade_id": uid,
+                "declared_target_version": declared_version,
+                "activation_target_version": version,
+            },
         )
     target_support = _validate_target_supported(state, target_version=version, upgrade_id=uid)
     activation_height = _validate_activation_height(state, payload, upgrade_id=uid, env=env)
@@ -495,7 +535,6 @@ def _apply_protocol_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
     }
 
 
-
 # ---------------------------------------------------------------------------
 # Constitution upgrade record-only governance path
 # ---------------------------------------------------------------------------
@@ -526,7 +565,9 @@ def _ensure_constitution(state: Json) -> Json:
 
 
 def _constitution_id(payload: Json, env: TxEnvelope) -> str:
-    cid = _as_str(payload.get("constitution_id") or payload.get("upgrade_id") or payload.get("id")).strip()
+    cid = _as_str(
+        payload.get("constitution_id") or payload.get("upgrade_id") or payload.get("id")
+    ).strip()
     if cid:
         return cid
     return f"constitution:{env.signer}:{int(env.nonce)}"
@@ -645,18 +686,30 @@ def _apply_constitution_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
     cid = _constitution_id(payload, env)
     version = _target_constitution_version(payload)
     if not version:
-        raise ProtocolApplyError("invalid_payload", "missing_constitution_version", {"constitution_id": cid})
+        raise ProtocolApplyError(
+            "invalid_payload", "missing_constitution_version", {"constitution_id": cid}
+        )
     _validate_constitution_payload_public(payload, constitution_id=cid)
-    document_hash = _validate_constitution_hash(_hash_value(payload, "document_hash", "hash"), field="document_hash", constitution_id=cid)
-    traceability_hash = _validate_constitution_hash(_hash_value(payload, "traceability_hash"), field="traceability_hash", constitution_id=cid)
+    document_hash = _validate_constitution_hash(
+        _hash_value(payload, "document_hash", "hash"), field="document_hash", constitution_id=cid
+    )
+    traceability_hash = _validate_constitution_hash(
+        _hash_value(payload, "traceability_hash"), field="traceability_hash", constitution_id=cid
+    )
 
     constitution = _ensure_constitution(state)
     upgrades = constitution["upgrades"]
-    assert isinstance(upgrades, dict)
+    upgrades = _require_dict_invariant(upgrades, field="upgrades")
     existing = upgrades.get(cid)
     if isinstance(existing, dict):
-        if _as_str(existing.get("status")).strip().lower() in {"scheduled", "effective", "activated"}:
-            raise ProtocolApplyError("conflict", "constitution_upgrade_already_scheduled", {"constitution_id": cid})
+        if _as_str(existing.get("status")).strip().lower() in {
+            "scheduled",
+            "effective",
+            "activated",
+        }:
+            raise ProtocolApplyError(
+                "conflict", "constitution_upgrade_already_scheduled", {"constitution_id": cid}
+            )
         if (
             _as_str(existing.get("version")).strip() == version
             and _as_str(existing.get("document_hash")).strip() == document_hash
@@ -669,7 +722,9 @@ def _apply_constitution_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
                 "deduped": True,
                 "record_only_boundary": dict(_as_dict(existing.get("record_only_boundary"))),
             }
-        raise ProtocolApplyError("conflict", "constitution_upgrade_already_declared", {"constitution_id": cid})
+        raise ProtocolApplyError(
+            "conflict", "constitution_upgrade_already_declared", {"constitution_id": cid}
+        )
 
     rec = {
         "constitution_id": cid,
@@ -687,7 +742,12 @@ def _apply_constitution_upgrade_declare(state: Json, env: TxEnvelope) -> Json:
         "record_only_boundary": _constitution_record_only_boundary(payload),
     }
     upgrades[cid] = rec
-    return {"applied": "CONSTITUTION_UPGRADE_DECLARE", "constitution_id": cid, "version": version, "record_only_boundary": rec["record_only_boundary"]}
+    return {
+        "applied": "CONSTITUTION_UPGRADE_DECLARE",
+        "constitution_id": cid,
+        "version": version,
+        "record_only_boundary": rec["record_only_boundary"],
+    }
 
 
 def _apply_constitution_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
@@ -698,37 +758,65 @@ def _apply_constitution_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
     _validate_constitution_payload_public(payload, constitution_id=cid)
     constitution = _ensure_constitution(state)
     upgrades = constitution["upgrades"]
-    assert isinstance(upgrades, dict)
+    upgrades = _require_dict_invariant(upgrades, field="upgrades")
     rec = upgrades.get(cid)
     if not isinstance(rec, dict):
-        raise ProtocolApplyError("not_found", "constitution_upgrade_not_declared", {"constitution_id": cid})
+        raise ProtocolApplyError(
+            "not_found", "constitution_upgrade_not_declared", {"constitution_id": cid}
+        )
     if _as_str(rec.get("status")).strip().lower() in {"scheduled", "effective", "activated"}:
         requested_activation_height = _as_int(payload.get("activation_height"), 0)
         existing_activation_height = _as_int(rec.get("activation_height"), 0)
-        if requested_activation_height > 0 and existing_activation_height > 0 and requested_activation_height != existing_activation_height:
+        if (
+            requested_activation_height > 0
+            and existing_activation_height > 0
+            and requested_activation_height != existing_activation_height
+        ):
             raise ProtocolApplyError(
                 "conflict",
                 "constitution_duplicate_activation_conflict",
-                {"constitution_id": cid, "activation_height": existing_activation_height, "requested_activation_height": requested_activation_height},
+                {
+                    "constitution_id": cid,
+                    "activation_height": existing_activation_height,
+                    "requested_activation_height": requested_activation_height,
+                },
             )
         return {
             "applied": "CONSTITUTION_UPGRADE_ACTIVATE",
             "constitution_id": cid,
             "deduped": True,
-            "governance_activation_record": dict(_as_dict(_as_dict(constitution.get("scheduled_upgrades")).get(cid)) or rec),
+            "governance_activation_record": dict(
+                _as_dict(_as_dict(constitution.get("scheduled_upgrades")).get(cid)) or rec
+            ),
         }
 
     version = _target_constitution_version(payload) or _as_str(rec.get("version")).strip()
     if version != _as_str(rec.get("version")).strip():
-        raise ProtocolApplyError("conflict", "constitution_activation_version_mismatch", {"constitution_id": cid})
+        raise ProtocolApplyError(
+            "conflict", "constitution_activation_version_mismatch", {"constitution_id": cid}
+        )
     if payload.get("document_hash"):
-        requested_doc_hash = _validate_constitution_hash(_as_str(payload.get("document_hash")), field="document_hash", constitution_id=cid)
+        requested_doc_hash = _validate_constitution_hash(
+            _as_str(payload.get("document_hash")), field="document_hash", constitution_id=cid
+        )
         if requested_doc_hash != _as_str(rec.get("document_hash")).strip():
-            raise ProtocolApplyError("conflict", "constitution_activation_document_hash_mismatch", {"constitution_id": cid})
+            raise ProtocolApplyError(
+                "conflict",
+                "constitution_activation_document_hash_mismatch",
+                {"constitution_id": cid},
+            )
     if payload.get("traceability_hash"):
-        requested_trace_hash = _validate_constitution_hash(_as_str(payload.get("traceability_hash")), field="traceability_hash", constitution_id=cid)
+        requested_trace_hash = _validate_constitution_hash(
+            _as_str(payload.get("traceability_hash")),
+            field="traceability_hash",
+            constitution_id=cid,
+        )
         if requested_trace_hash != _as_str(rec.get("traceability_hash")).strip():
-            raise ProtocolApplyError("conflict", "constitution_activation_traceability_hash_mismatch", {"constitution_id": cid})
+            raise ProtocolApplyError(
+                "conflict",
+                "constitution_activation_traceability_hash_mismatch",
+                {"constitution_id": cid},
+            )
 
     activation_height = _validate_activation_height(state, payload, upgrade_id=cid, env=env)
     boundary = _constitution_record_only_boundary(payload)
@@ -755,10 +843,21 @@ def _apply_constitution_upgrade_activate(state: Json, env: TxEnvelope) -> Json:
     constitution["scheduled_upgrades"] = dict(_as_dict(constitution.get("scheduled_upgrades")))
     constitution["scheduled_upgrades"][cid] = dict(activation_record)
     constitution["governance_activation_record"] = dict(activation_record)
-    return {"applied": "CONSTITUTION_UPGRADE_ACTIVATE", "constitution_id": cid, "activation_height": int(activation_height), "governance_activation_record": dict(activation_record), "record_only_boundary": boundary}
+    return {
+        "applied": "CONSTITUTION_UPGRADE_ACTIVATE",
+        "constitution_id": cid,
+        "activation_height": int(activation_height),
+        "governance_activation_record": dict(activation_record),
+        "record_only_boundary": boundary,
+    }
 
 
-PROTOCOL_TX_TYPES = {"PROTOCOL_UPGRADE_DECLARE", "PROTOCOL_UPGRADE_ACTIVATE", "CONSTITUTION_UPGRADE_DECLARE", "CONSTITUTION_UPGRADE_ACTIVATE"}
+PROTOCOL_TX_TYPES = {
+    "PROTOCOL_UPGRADE_DECLARE",
+    "PROTOCOL_UPGRADE_ACTIVATE",
+    "CONSTITUTION_UPGRADE_DECLARE",
+    "CONSTITUTION_UPGRADE_ACTIVATE",
+}
 
 
 def apply_protocol(state: Json, env: TxEnvelope) -> Json | None:

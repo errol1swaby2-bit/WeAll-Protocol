@@ -22,6 +22,7 @@ def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_
     should no longer prevent startup, but it must leave clear diagnostics and block
     automatic validator signing until an operator verifies the node.
     """
+    monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
 
@@ -54,7 +55,9 @@ def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_
     st1["tip_ts_ms"] = int(time.time() * 1000) + 10_000_000_000
     ex._ledger_store.write_state_snapshot(st1)  # type: ignore[attr-defined]
 
+    monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_UNSAFE_DEV", raising=False)
+    monkeypatch.delenv("WEALL_SIGVERIFY", raising=False)
     ex2 = WeAllExecutor(
         db_path=db_path, node_id="@alice", chain_id="ts-policy", tx_index_path=tx_index_path
     )

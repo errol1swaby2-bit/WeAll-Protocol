@@ -12,12 +12,6 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import (
@@ -90,6 +84,7 @@ def _seed_validator_set(
     st["roles"].setdefault("validators", {})
     st["roles"]["validators"]["active_set"] = list(validators)
     st.setdefault("consensus", {})
+    st["consensus"].setdefault("phase", {})["current"] = "bft_active"
     st["consensus"].setdefault("validators", {})
     st["consensus"]["validators"].setdefault("registry", {})
     st["consensus"].setdefault("epochs", {})
@@ -1263,6 +1258,7 @@ def _seed_validator_set_full(
     st.setdefault("validators", {})
     st["validators"].setdefault("registry", {})
     st.setdefault("consensus", {})
+    st["consensus"].setdefault("phase", {})["current"] = "bft_active"
     st["consensus"].setdefault("validators", {})
     st["consensus"]["validators"].setdefault("registry", {})
     st["consensus"].setdefault("epochs", {})

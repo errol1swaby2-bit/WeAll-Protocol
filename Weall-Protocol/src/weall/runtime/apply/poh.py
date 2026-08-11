@@ -52,6 +52,26 @@ _COMMITMENT_RE = re.compile(
 )
 
 
+def _require_dict_invariant(value: Any, *, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ApplyError(
+            "invalid_state",
+            "state_invariant_violation",
+            {"field": field, "expected": "dict", "actual": type(value).__name__},
+        )
+    return value
+
+
+def _require_list_invariant(value: Any, *, field: str) -> list[Any]:
+    if not isinstance(value, list):
+        raise ApplyError(
+            "invalid_state",
+            "state_invariant_violation",
+            {"field": field, "expected": "list", "actual": type(value).__name__},
+        )
+    return value
+
+
 def _require_system_tx(env: Any, tx_type: str) -> None:
     """Require a scheduler/system-owned tx envelope for PoH lifecycle actions."""
 
@@ -534,9 +554,9 @@ def _record_reverification_required(
 ) -> Json:
     root = _reverification_root(state)
     by_account = root.get("by_account")
-    assert isinstance(by_account, dict)
+    by_account = _require_dict_invariant(by_account, field="by_account")
     events = root.get("events")
-    assert isinstance(events, list)
+    events = _require_list_invariant(events, field="events")
 
     height = int(state.get("height") or 0)
     rec = by_account.get(account_id)
@@ -584,9 +604,9 @@ def _mark_reverification_completed(
 
     root = _reverification_root(state)
     by_account = root.get("by_account")
-    assert isinstance(by_account, dict)
+    by_account = _require_dict_invariant(by_account, field="by_account")
     events = root.get("events")
-    assert isinstance(events, list)
+    events = _require_list_invariant(events, field="events")
 
     rec = by_account.get(account_id)
     if not isinstance(rec, dict):

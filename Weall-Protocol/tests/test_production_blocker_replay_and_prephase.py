@@ -7,6 +7,11 @@ import pytest
 
 from weall.crypto.sig import canonical_tx_message
 from weall.runtime.executor import WeAllExecutor
+from weall.testing.prod_fixtures import (
+    install_prod_node_keys,
+    next_constitutional_block_time_ms,
+    seed_active_validator,
+)
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
@@ -51,15 +56,18 @@ def test_prod_local_block_replays_on_fresh_node_byte_for_byte(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    node_pub, _ = install_prod_node_keys(monkeypatch, label="production-replay-node")
     leader = _mk_executor(tmp_path, "leader")
     follower = _mk_executor(tmp_path, "follower")
+    seed_active_validator(leader, account="@validator", pubkey=node_pub)
+    seed_active_validator(follower, account="@validator", pubkey=node_pub)
 
     _submit_signed_register(leader)
 
     block, new_state, applied_ids, invalid_ids, err = leader.build_block_candidate(
         max_txs=10,
         allow_empty=False,
-        force_ts_ms=max(1, leader.chain_time_floor_ms()) + 1,
+        force_ts_ms=next_constitutional_block_time_ms(leader),
     )
     assert err == ""
     assert isinstance(block, dict)
@@ -88,13 +96,16 @@ def test_prod_build_block_candidate_fails_closed_on_corrupt_system_queue_pre_pha
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    install_prod_node_keys(monkeypatch, label="production-corrupt-queue")
     ex = _mk_executor(tmp_path, "leader")
+
+    ts_ms = next_constitutional_block_time_ms(ex)
     ex.state["system_queue"] = ["corrupt"]
 
     block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(
         max_txs=0,
         allow_empty=True,
-        force_ts_ms=max(1, ex.chain_time_floor_ms()) + 1,
+        force_ts_ms=ts_ms,
     )
 
     assert block is None
@@ -108,6 +119,7 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    install_prod_node_keys(monkeypatch, label="production-corrupt-poh")
     ex_a = _mk_executor(tmp_path, "node-a", chain_id="prod-blocker-batch1-poh")
     ex_b = _mk_executor(tmp_path, "node-b", chain_id="prod-blocker-batch1-poh")
 
@@ -118,7 +130,7 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
     ex_a.state["poh"] = copy.deepcopy(corrupt_poh)
     ex_b.state["poh"] = copy.deepcopy(corrupt_poh)
 
-    ts_ms = max(1, ex_a.chain_time_floor_ms()) + 1
+    ts_ms = next_constitutional_block_time_ms(ex_a)
     blk_a, st_a, applied_a, invalid_a, err_a = ex_a.build_block_candidate(
         max_txs=0,
         allow_empty=True,
@@ -152,4 +164,21 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
             "evidence_lifecycle": {"by_evidence": {}, "receipts": []},
         }
     )
-    assert blk_a == blk_b
+    # ML-DSA signatures are randomized, so independent sig-VRF proofs and
+    # resulting block hashes need not be byte-identical. The deterministic
+    # consensus payload and block_id must remain identical.
+    assert blk_a["block_id"] == blk_b["block_id"]
+    assert blk_a["height"] == blk_b["height"]
+    assert blk_a["prev_block_id"] == blk_b["prev_block_id"]
+    assert blk_a["prev_block_hash"] == blk_b["prev_block_hash"]
+    assert blk_a["block_ts_ms"] == blk_b["block_ts_ms"]
+    assert blk_a["txs"] == blk_b["txs"]
+    assert blk_a["receipts"] == blk_b["receipts"]
+    header_a = dict(blk_a["header"])
+    header_b = dict(blk_b["header"])
+    # state_root commits the randomized sig-VRF record, so it is intentionally
+    # candidate-specific alongside the VRF record and final block hash.
+    for candidate_header in (header_a, header_b):
+        candidate_header.pop("vrf", None)
+        candidate_header.pop("state_root", None)
+    assert header_a == header_b

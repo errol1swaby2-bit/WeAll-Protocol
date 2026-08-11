@@ -14,6 +14,7 @@ from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
 from weall.runtime.tx_id import compute_tx_id
+from weall.testing.prod_fixtures import next_constitutional_block_time_ms
 from weall.testing.sigtools import deterministic_mldsa_keypair
 from weall.tx.canon import load_tx_index_json
 
@@ -118,17 +119,18 @@ def test_apply_block_rejects_forged_block_with_signature_removed(
         }
     ]
     receipts_root = compute_receipts_root(receipts=receipts)
+    ts_ms = next_constitutional_block_time_ms(follower)
     block_id = compute_block_id(
         chain_id="sig-enforce",
         height=1,
         prev_block_id="",
         prev_block_hash="",
-        ts_ms=1,
+        ts_ms=ts_ms,
         node_id="leader",
         tx_ids=[tx_id],
         receipts_root=receipts_root,
     )
-    working["blocks"] = {block_id: {"height": 1, "prev_block_id": "", "block_ts_ms": 1}}
+    working["blocks"] = {block_id: {"height": 1, "prev_block_id": "", "block_ts_ms": ts_ms}}
     working["height"] = 1
     working["tip"] = block_id
     working["time"] = 0
@@ -137,7 +139,7 @@ def test_apply_block_rejects_forged_block_with_signature_removed(
         chain_id="sig-enforce",
         height=1,
         prev_block_hash="",
-        block_ts_ms=1,
+        block_ts_ms=ts_ms,
         tx_ids=[tx_id],
         receipts_root=receipts_root,
         state_root=state_root,
@@ -190,12 +192,13 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
         payload={"pubkey": pub},
     )
     signed["tx_id"] = tx_id
+    ts_ms = next_constitutional_block_time_ms(follower)
 
     header = make_block_header(
         chain_id="sig-enforce",
         height=1,
         prev_block_hash="",
-        block_ts_ms=1,
+        block_ts_ms=ts_ms,
         tx_ids=[tx_id],
         receipts_root="",
         state_root="",
@@ -205,7 +208,7 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
         height=1,
         prev_block_id="",
         prev_block_hash="",
-        ts_ms=1,
+        ts_ms=ts_ms,
         node_id="leader",
         tx_ids=[tx_id],
         receipts_root="",

@@ -76,9 +76,9 @@ def _env_bool(name: str, default: bool) -> bool:
 
 
 def _mode() -> str:
-    # Mirror node.py: tests default to a non-prod posture unless explicitly set.
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit rather than inferred from a test runner.
+    # Tests configure WEALL_MODE=test in tests/conftest.py.
+    # Production remains the default when WEALL_MODE is absent.
     return str(os.environ.get("WEALL_MODE", "prod")).strip().lower() or "prod"
 
 

@@ -16,8 +16,8 @@ Json = dict[str, Any]
 
 
 def _runtime_mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -113,8 +113,12 @@ def _relay_cfg(request: Request) -> RelayConfig:
         max_fetch_limit=max(1, _env_int("WEALL_NET_RELAY_FETCH_LIMIT", 100)),
         allow_broadcast_recipient=_env_bool("WEALL_NET_RELAY_ALLOW_BROADCAST", False),
         max_access_ttl_ms=max(1000, _env_int("WEALL_NET_RELAY_MAX_ACCESS_TTL_MS", 60 * 1000)),
-        allow_unbound_recipient_fetch=(False if _is_prod() else _env_bool("WEALL_NET_RELAY_ALLOW_UNBOUND_FETCH", True)),
-        require_recipient_pubkey=(_is_prod() or _env_bool("WEALL_NET_RELAY_REQUIRE_RECIPIENT_PUBKEY", False)),
+        allow_unbound_recipient_fetch=(
+            False if _is_prod() else _env_bool("WEALL_NET_RELAY_ALLOW_UNBOUND_FETCH", True)
+        ),
+        require_recipient_pubkey=(
+            _is_prod() or _env_bool("WEALL_NET_RELAY_REQUIRE_RECIPIENT_PUBKEY", False)
+        ),
     )
 
 
@@ -177,7 +181,9 @@ async def v1_net_relay_submit(request: Request) -> Json:
 
 
 @router.get("/net/relay/fetch")
-def v1_net_relay_fetch_legacy(request: Request, recipient_peer_id: str = "", limit: int = 100) -> Json:
+def v1_net_relay_fetch_legacy(
+    request: Request, recipient_peer_id: str = "", limit: int = 100
+) -> Json:
     """Removed unsigned relay fetch endpoint.
 
     Direct relay access is POST-only and recipient-signed.
@@ -197,7 +203,9 @@ async def v1_net_relay_fetch(request: Request) -> Json:
         max_bytes_env="WEALL_NET_RELAY_HTTP_MAX_BYTES",
         default_max_bytes=128 * 1024,
     )
-    access_request = body.get("access_request") if isinstance(body, dict) and "access_request" in body else body
+    access_request = (
+        body.get("access_request") if isinstance(body, dict) and "access_request" in body else body
+    )
     if not isinstance(access_request, dict):
         raise ApiError.bad_request("bad_request", "invalid relay fetch body", {})
     try:
@@ -244,7 +252,12 @@ async def v1_net_relay_ack(request: Request) -> Json:
             )
         except RelayEnvelopeError as exc:
             raise ApiError.bad_request(str(exc.code), "invalid relay ack", {}) from exc
-        return {"ok": True, "acked": int(deleted), "authority": "transport_only", "legacy_unsigned_ack": True}
+        return {
+            "ok": True,
+            "acked": int(deleted),
+            "authority": "transport_only",
+            "legacy_unsigned_ack": True,
+        }
     try:
         deleted = _relay_spool(request).ack_authorized(
             access_request=access_request,
@@ -252,4 +265,9 @@ async def v1_net_relay_ack(request: Request) -> Json:
         )
     except RelayEnvelopeError as exc:
         raise ApiError.bad_request(str(exc.code), "invalid relay ack", {}) from exc
-    return {"ok": True, "acked": int(deleted), "authority": "transport_only", "recipient_authenticated": True}
+    return {
+        "ok": True,
+        "acked": int(deleted),
+        "authority": "transport_only",
+        "recipient_authenticated": True,
+    }
