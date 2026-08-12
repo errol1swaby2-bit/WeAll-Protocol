@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_artifact_cache.py)."""
 
+from typing import Any
+
 from weall.runtime.executor import (
     OrderedDict,
     _bounded_put,
@@ -11,6 +13,8 @@ from weall.runtime.executor import (
     hashlib,
     os,
 )
+
+Json = dict[str, Any]
 
 def _ensure_recent_bft_artifact_caches(self) -> None:
     if not hasattr(self, "_max_recent_bft_proposals"):

@@ -31,11 +31,13 @@ class _FakeNetLoop:
 
 def test_prod_block_loop_autostart_fails_closed_when_start_returns_false(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "weall.db"))
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "1")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "0")
 
@@ -51,11 +53,13 @@ def test_prod_block_loop_autostart_fails_closed_when_start_returns_false(
 
 def test_prod_net_loop_autostart_fails_closed_when_start_returns_false(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "weall.db"))
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "0")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "1")
 
@@ -69,11 +73,15 @@ def test_prod_net_loop_autostart_fails_closed_when_start_returns_false(
             pass
 
 
-def test_prod_runtime_boot_attaches_executor_state(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_runtime_boot_attaches_executor_state(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "weall.db"))
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "0")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "0")
 
@@ -86,11 +94,13 @@ def test_prod_runtime_boot_attaches_executor_state(monkeypatch: pytest.MonkeyPat
 
 def test_prod_block_loop_autostart_fails_closed_when_runtime_dependencies_missing(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "weall.db"))
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "1")
     monkeypatch.setenv("WEALL_NET_LOOP_AUTOSTART", "0")
 

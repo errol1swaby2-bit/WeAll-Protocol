@@ -26,6 +26,7 @@ def test_status_surfaces_profile_compatibility_and_config_summary(tmp_path: Path
     monkeypatch.setenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", "0")
 
     db_path = tmp_path / "weall.db"
+    monkeypatch.setenv("WEALL_DB_PATH", str(db_path))
     tx_index_path = tmp_path / "tx_index.json"
     _write_min_tx_index(tx_index_path)
 

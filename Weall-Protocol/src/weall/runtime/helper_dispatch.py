@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 import json
-from typing import Any
+from typing import Any, Protocol
 from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from weall.runtime.helper_certificates import (
@@ -80,6 +80,12 @@ class HelperBudgetDecision:
     lane_id: str
 
 
+class _HelperRateBudgetLike(Protocol):
+    per_helper_per_window: int
+    per_plan_total: int
+    window_ms: int
+
+
 class _DefaultBudget:
     def __init__(self) -> None:
         self.per_helper_per_window = 64
@@ -97,7 +103,7 @@ class HelperCertificateStore:
         journal: HelperLaneJournal | None = None,
         helper_timeout_ms: int | None = None,
         max_inflight_lanes: int | None = None,
-        budget: HelperRateBudget | None = None,
+        budget: _HelperRateBudgetLike | None = None,
         plan_timeout_ms: int | None = None,
     ) -> None:
         self.context = context

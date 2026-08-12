@@ -1412,7 +1412,7 @@ def _tx_index_lookup(request: Request, tx_id: str) -> Json | None:
     try:
         with db.connection() as con:
             row = con.execute(
-                "SELECT tx_id, height, block_id, tx_type, signer, included_ts_ms FROM tx_index WHERE tx_id=? LIMIT 1;",
+                "SELECT tx_id, height, block_id, tx_type, signer, ok, included_ts_ms FROM tx_index WHERE tx_id=? LIMIT 1;",
                 (t,),
             ).fetchone()
             if row is None:
@@ -1423,21 +1423,19 @@ def _tx_index_lookup(request: Request, tx_id: str) -> Json | None:
                 "block_id": str(row["block_id"]),
                 "tx_type": str(row["tx_type"]),
                 "signer": str(row["signer"]),
+                "apply_ok": bool(row["ok"]),
                 "included_ts_ms": int(row["included_ts_ms"]),
             }
     except Exception:
         return None
 
 
-def _tx_block_lookup(request: Request, tx_id: str, limit_blocks: int = 256) -> Json | None:
+def _tx_block_lookup(
+    request: Request, tx_id: str, limit_blocks: int = 256, block_id_hint: str = ""
+) -> Json | None:
     """
     Fallback lookup for confirmed txs by scanning persisted blocks.
 
-    Why this exists:
-      - The status endpoint should not return "unknown" for a tx that is already
-        committed in a block, even if tx_index rows are missing or delayed.
-      - This keeps user-facing tx status usable while tx_index persistence is
-        being hardened in the executor path.
     """
     mp = _safe_mempool(request)
     db = getattr(mp, "db", None)
@@ -1453,15 +1451,27 @@ def _tx_block_lookup(request: Request, tx_id: str, limit_blocks: int = 256) -> J
 
     try:
         with db.connection() as con:
-            rows = con.execute(
-                """
-                SELECT height, block_id, block_json, created_ts_ms
-                FROM blocks
-                ORDER BY height DESC
-                LIMIT ?;
-                """,
-                (int(limit_blocks),),
-            ).fetchall()
+            hint = str(block_id_hint or "").strip()
+            if hint:
+                rows = con.execute(
+                    """
+                    SELECT height, block_id, block_json, created_ts_ms
+                    FROM blocks
+                    WHERE block_id=?
+                    LIMIT 1;
+                    """,
+                    (hint,),
+                ).fetchall()
+            else:
+                rows = con.execute(
+                    """
+                    SELECT height, block_id, block_json, created_ts_ms
+                    FROM blocks
+                    ORDER BY height DESC
+                    LIMIT ?;
+                    """,
+                    (int(limit_blocks),),
+                ).fetchall()
     except Exception:
         return None
 
@@ -1498,6 +1508,10 @@ def _tx_block_lookup(request: Request, tx_id: str, limit_blocks: int = 256) -> J
                             "tx_type": str(receipt.get("tx_type") or ""),
                             "signer": str(receipt.get("signer") or ""),
                             "included_ts_ms": included_ts_ms,
+                            "receipt_ok": bool(receipt.get("ok")),
+                            "receipt_code": str(receipt.get("code") or ""),
+                            "receipt_reason": str(receipt.get("reason") or ""),
+                            "receipt_details": receipt.get("details"),
                         }
 
             # Header tx_ids are consensus-visible committed tx IDs. Some
@@ -1817,15 +1831,12 @@ def observer_edge_reconcile_tx(request: Request, tx_id: str) -> Json:
 
 @router.get("/tx/status/{tx_id}")
 def tx_status(request: Request, tx_id: str) -> Json:
-    """Return tx status.
+    """Return the public lifecycle status for a signed transaction.
 
-    Status values:
-      - confirmed: tx included in a persisted block
-      - pending: tx present in mempool
-      - unknown: not known (or expired and not indexed)
-
-    Returns:
-      { ok, tx_id, status, height?, block_id?, included_ts_ms? }
+    ``confirmed`` means the transaction was included and applied successfully.
+    ``rejected`` means it was included in a persisted block but its deterministic
+    apply receipt has ``ok=false``. ``pending`` means it remains in mempool;
+    ``unknown`` means it is not currently known or indexed.
     """
     t = str(tx_id or "").strip()
     if not t:
@@ -1835,6 +1846,27 @@ def tx_status(request: Request, tx_id: str) -> Json:
 
     idx = _tx_index_lookup(request, t)
     if isinstance(idx, dict):
+        if idx.get("apply_ok") is False:
+            receipt = _tx_block_lookup(
+                request, t, block_id_hint=str(idx.get("block_id") or "")
+            ) or {}
+            return {
+                "ok": True,
+                "tx_id": t,
+                "status": "rejected",
+                "source": "committed_apply_receipt",
+                "height": int(idx.get("height") or receipt.get("height") or 0),
+                "block_id": str(idx.get("block_id") or receipt.get("block_id") or ""),
+                "included_ts_ms": int(idx.get("included_ts_ms") or receipt.get("included_ts_ms") or 0),
+                "local_state_synced": True,
+                "apply_ok": False,
+                "code": str(receipt.get("receipt_code") or "apply_rejected"),
+                "reason": str(receipt.get("receipt_reason") or "receipt_details_unavailable"),
+                "details": receipt.get("receipt_details"),
+                "tx_type": str(idx.get("tx_type") or receipt.get("tx_type") or ""),
+                "signer": str(idx.get("signer") or receipt.get("signer") or ""),
+                "outbound_propagation": outbound or {},
+            }
         if outbound:
             reconciled = _reconcile_tx_queue_confirmation(t)
             if isinstance(reconciled, dict):
@@ -1853,6 +1885,7 @@ def tx_status(request: Request, tx_id: str) -> Json:
                 "block_id": str(idx.get("block_id") or ""),
                 "included_ts_ms": int(idx.get("included_ts_ms") or 0),
                 "local_state_synced": local_synced,
+                "apply_ok": True,
                 "tx_type": str(idx.get("tx_type") or ""),
                 "signer": str(idx.get("signer") or ""),
                 "outbound_propagation": outbound or {},
@@ -1865,17 +1898,34 @@ def tx_status(request: Request, tx_id: str) -> Json:
             "block_id": str(idx.get("block_id") or ""),
             "included_ts_ms": int(idx.get("included_ts_ms") or 0),
             "local_state_synced": True,
+            "apply_ok": True,
             "tx_type": str(idx.get("tx_type") or ""),
             "signer": str(idx.get("signer") or ""),
             "outbound_propagation": {},
         }
 
     # Confirmed chain state is authoritative over stale mempool residency; observer reconciliation can prove upstream confirmation.
-    # A tx may remain visible in mempool after block production in controlled
-    # devnet paths; status must still report the committed block so observer
-    # reconciliation can prove upstream confirmation before local sync.
+    # A persisted block receipt also carries the authoritative apply success/failure result.
     blk = _tx_block_lookup(request, t)
     if isinstance(blk, dict):
+        if blk.get("receipt_ok") is False:
+            return {
+                "ok": True,
+                "tx_id": t,
+                "status": "rejected",
+                "source": "committed_apply_receipt",
+                "height": int(blk.get("height") or 0),
+                "block_id": str(blk.get("block_id") or ""),
+                "included_ts_ms": int(blk.get("included_ts_ms") or 0),
+                "local_state_synced": True,
+                "apply_ok": False,
+                "code": str(blk.get("receipt_code") or "apply_rejected"),
+                "reason": str(blk.get("receipt_reason") or "receipt_details_unavailable"),
+                "details": blk.get("receipt_details"),
+                "tx_type": str(blk.get("tx_type") or ""),
+                "signer": str(blk.get("signer") or ""),
+                "outbound_propagation": outbound or {},
+            }
         return {
             "ok": True,
             "tx_id": t,
@@ -1884,6 +1934,7 @@ def tx_status(request: Request, tx_id: str) -> Json:
             "block_id": str(blk.get("block_id") or ""),
             "included_ts_ms": int(blk.get("included_ts_ms") or 0),
             "local_state_synced": True,
+            "apply_ok": True if "receipt_ok" in blk else None,
             "tx_type": str(blk.get("tx_type") or ""),
             "signer": str(blk.get("signer") or ""),
             "outbound_propagation": outbound or {},

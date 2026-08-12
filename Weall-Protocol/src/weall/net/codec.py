@@ -44,22 +44,22 @@ class WireEncodeError(RuntimeError):
         self.code = code
 
 
-AnyWireMsg = (
-    PeerHello,
-    PeerHelloAck,
-    PeerGetAddrMsg,
-    PeerAddrMsg,
-    TxEnvelopeMsg,
-    BlockProposalMsg,
-    BlockVoteMsg,
-    BftProposalMsg,
-    BftVoteMsg,
-    BftQcMsg,
-    BftTimeoutMsg,
-    StateSyncRequestMsg,
-    StateSyncResponseMsg,
-    PingMsg,
-    PongMsg,
+type AnyWireMsg = (
+    PeerHello
+    | PeerHelloAck
+    | PeerGetAddrMsg
+    | PeerAddrMsg
+    | TxEnvelopeMsg
+    | BlockProposalMsg
+    | BlockVoteMsg
+    | BftProposalMsg
+    | BftVoteMsg
+    | BftQcMsg
+    | BftTimeoutMsg
+    | StateSyncRequestMsg
+    | StateSyncResponseMsg
+    | PingMsg
+    | PongMsg
 )
 
 

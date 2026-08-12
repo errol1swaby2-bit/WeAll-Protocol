@@ -69,19 +69,23 @@ System-produced transitions use `role: "system_scheduler"` and `account: "SYSTEM
 
 Negative attempts are executed live by independent browser contexts after the gate confirms that:
 
-- the negative group exists;
-- the negative dispute remains in an active review stage and targets the conflicted actor;
+- the negative group exists and the group-write actor is a Tier-2 reviewer who is not a member;
+- the negative dispute remains in an active review stage and the chosen nonselected reviewer is actually outside its assigned panel/substitute set;
+- a distinct negative appeal dispute is resolved but remains in `appeal_window`, with the author as affected target owner;
 - the negative proposal remains in an active voting stage.
 
-Each negative attempt must include `label`, `role`, `account`, `tx_type`, `payload`, `subject_id`, and the exact `expected_error_code`. Duplicate, replacement, and revoke attempts also require `precondition_tx_id`, which must reference a confirmed prior ballot by the same actor against the same active subject.
+Each negative attempt must include `label`, `role`, `account`, `tx_type`, `payload`, `subject_id`, exact `expected_error_code`, exact `expected_error_reason`, and `expected_rejection_layer` (`admission` or `apply`). Duplicate, replacement, and revoke attempts that prove prior-ballot immutability also require `precondition_tx_id`, which must reference a confirmed prior ballot by the same actor against the same active subject.
+
+Admission-layer negatives must fail before `/v1/tx/submit` admits the envelope. Apply-layer negatives must be admitted as signed canonical transactions, included in a persisted block, and then surface through `/v1/tx/status/{tx_id}` as `status: rejected`, `apply_ok: false`, with the exact deterministic receipt `code` and `reason`. HTTP acceptance into mempool is not semantic success.
 
 The fixed negative contract proves:
 
-- nonmember group writing is rejected;
-- nonselected and conflicted dispute voting are rejected;
-- ineligible governance voting is rejected;
-- governance duplicate, replacement, and revoke attempts are rejected;
-- dispute duplicate, replacement, and nonexistent revoke attempts are rejected.
+- a Tier-2 nonmember cannot write to a group without group authority;
+- nonselected and conflicted dispute voting fail at the public `Juror` admission gate;
+- a Tier-0 governance voter fails at the public `Tier2+` admission gate;
+- governance duplicate, replacement, and revoke attempts are block-backed apply rejections;
+- dispute duplicate and replacement ballots are block-backed apply rejections, while the nonexistent revoke tx type is rejected as noncanonical at admission;
+- a nonowner appeal against a distinct dispute in `appeal_window` is rejected by the target-owner authority check.
 
 The transcript is public evidence and must contain no private keys, recovery material, session tokens, cookies, authorization headers, or browser storage-state contents.
 

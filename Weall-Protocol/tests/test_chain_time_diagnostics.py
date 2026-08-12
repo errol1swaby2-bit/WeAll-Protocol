@@ -64,6 +64,7 @@ def test_bft_diagnostics_expose_chain_time_floor_and_median(monkeypatch, tmp_pat
 
 
 def test_status_operator_exposes_timestamp_rule(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "status-weall.db"))
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     ex = _make_executor(tmp_path, node_id="@validator-1", chain_id="chain-time-status")

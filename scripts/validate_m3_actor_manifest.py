@@ -14,6 +14,8 @@ from m3_evidence_contract import (
     EMBEDDED_ATTENDANCE_EVIDENCE_KIND,
     EMBEDDED_ATTENDANCE_LABELS,
     EXPECTED_NEGATIVE_ERROR_CODES,
+    EXPECTED_NEGATIVE_ERROR_REASONS,
+    EXPECTED_NEGATIVE_REJECTION_LAYERS,
     INLINE_SYSTEM_ACTION_LABELS,
     INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND,
     MIN_REVIEWERS_PER_PANEL_POOL,
@@ -142,6 +144,7 @@ def main() -> int:
         "negative_post_id",
         "negative_group_id",
         "negative_dispute_id",
+        "negative_appeal_dispute_id",
         "negative_proposal_id",
     ):
         journey_public[field] = _required_text(journey.get(field), f"journey.{field}")
@@ -223,6 +226,20 @@ def main() -> int:
             raise SystemExit(f"m3_actor_negative_tx_type_invalid:{label}:{tx_type}")
         if error_code != EXPECTED_NEGATIVE_ERROR_CODES[label]:
             raise SystemExit(f"m3_actor_negative_error_code_invalid:{label}:{error_code}")
+        error_reason = _required_text(
+            raw.get("expected_error_reason"),
+            f"negative_attempts[{index}].expected_error_reason",
+        )
+        if error_reason != EXPECTED_NEGATIVE_ERROR_REASONS[label]:
+            raise SystemExit(f"m3_actor_negative_error_reason_invalid:{label}:{error_reason}")
+        rejection_layer = _required_text(
+            raw.get("expected_rejection_layer"),
+            f"negative_attempts[{index}].expected_rejection_layer",
+        )
+        if rejection_layer != EXPECTED_NEGATIVE_REJECTION_LAYERS[label]:
+            raise SystemExit(
+                f"m3_actor_negative_rejection_layer_invalid:{label}:{rejection_layer}"
+            )
         if not isinstance(raw.get("payload"), dict):
             raise SystemExit(f"m3_actor_negative_payload_invalid:{label}")
         if account not in accounts or role not in roles:

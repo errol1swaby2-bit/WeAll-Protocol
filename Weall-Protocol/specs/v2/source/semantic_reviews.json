@@ -69,13 +69,13 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "account_nonce_status",
-        "line": 1761,
+        "line": 1775,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "independent_review": false,
-      "review_digest": "5dd20207bb4cd7a941b2f1e8d207a2333eb147ec09dc94ce41618be724f30373",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
+      "review_digest": "2081fb34ccb90dda9645291eebbfec47d2f34772b8ae9e8b8b1ccb3dc9c61ca4",
+      "review_method": "implementation_line_rebound_after_tx_status_truth_fix",
+      "reviewed_at": "2026-08-12T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "GET /v1/accounts/{account}/nonce",
       "stable_id": "ROUTE-0BD5EE28997BB4D9"
@@ -1253,13 +1253,13 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "observer_edge_reconcile_tx",
-        "line": 1806,
+        "line": 1820,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "independent_review": false,
-      "review_digest": "b77d51b507e5653bc46490438bc7df1b38ee675d145e63e720d39e9db7eed1eb",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
+      "review_digest": "d77ed4fab73af935bbad98a14b465ebb9156cc48ffc7ba949e93b0361ae9f1fd",
+      "review_method": "implementation_line_rebound_after_tx_status_truth_fix",
+      "reviewed_at": "2026-08-12T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "POST /v1/observer/edge/reconcile/{tx_id}",
       "stable_id": "ROUTE-48A063F30FEFE580"
@@ -1269,13 +1269,13 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "observer_edge_status",
-        "line": 1774,
+        "line": 1788,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "independent_review": false,
-      "review_digest": "eadd31e976cbb2828c9a24fa841c6840b921c3994596194a4066c522c21d5282",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
+      "review_digest": "2929d5a11674aa09b8d2cdd541675094b6e4df789409b78e4d2f7794bf282ed5",
+      "review_method": "implementation_line_rebound_after_tx_status_truth_fix",
+      "reviewed_at": "2026-08-12T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "GET /v1/observer/edge/status",
       "stable_id": "ROUTE-FE4732AB433B12C8"
@@ -1285,13 +1285,13 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "observer_edge_tx_queue_drain",
-        "line": 1798,
+        "line": 1812,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "independent_review": false,
-      "review_digest": "6e309fe4d0ef70491419d4a1d3bf0526e5455235c217377cadf2f17bf5140adc",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
+      "review_digest": "995b7dd1aba5f3aa58ce9aaecb6f693a67f14c2cdd385479f65b7ab73af10c7f",
+      "review_method": "implementation_line_rebound_after_tx_status_truth_fix",
+      "reviewed_at": "2026-08-12T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "POST /v1/observer/edge/tx-queue/drain",
       "stable_id": "ROUTE-3DC8E6ED304A1607"
@@ -2485,13 +2485,13 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "tx_catalog",
-        "line": 1977,
+        "line": 2028,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "independent_review": false,
-      "review_digest": "ad0c85888e3ff9ce5eac627e0fb48b31f3bd43fac34906d9c54fe5054beeccb3",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
+      "review_digest": "c448f5312a38be1735bcf07f296f3d3bae39b5a197bf8ee1c3af5bd90ca223ad",
+      "review_method": "implementation_line_rebound_after_tx_status_truth_fix",
+      "reviewed_at": "2026-08-12T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "GET /v1/tx/catalog",
       "stable_id": "ROUTE-B81383D6C92F2A06"
@@ -2501,13 +2501,13 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "tx_status",
-        "line": 1819,
+        "line": 1833,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "independent_review": false,
-      "review_digest": "d3c630214fbc7ef14a996e2305d1581e15f36fe0a4ec1d32f6ddcabafa336895",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
+      "review_digest": "03459b66ee25fd1931cb6b3c651332f22f60af9743b18fd29be5a5e971e75d8c",
+      "review_method": "maintainer_semantic_revalidation_apply_rejection_status_truth",
+      "reviewed_at": "2026-08-12T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "GET /v1/tx/status/{tx_id}",
       "stable_id": "ROUTE-A3D2344F33C6912D"
@@ -2517,13 +2517,13 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "tx_submit",
-        "line": 1576,
+        "line": 1590,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "independent_review": false,
-      "review_digest": "c7657a10230baa10f33cebef0fd6698861b9bb48c2364c568423d6a29ee7d3bb",
-      "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
+      "review_digest": "2ba5b48d06160546eb4144895b9694d370741dc1856b651d0a2f27f76af41705",
+      "review_method": "implementation_line_rebound_after_tx_status_truth_fix",
+      "reviewed_at": "2026-08-12T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "route_key": "POST /v1/tx/submit",
       "stable_id": "ROUTE-C6A91D2143954D6D"

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_outbound.py)."""
 
+from typing import Any
+
 from weall.runtime.executor import (
     Json,
     _canon_json,

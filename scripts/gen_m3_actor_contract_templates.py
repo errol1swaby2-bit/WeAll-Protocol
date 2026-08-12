@@ -62,6 +62,7 @@ def main() -> int:
     parser.add_argument("--negative-post-id", default="post:m3:negative")
     parser.add_argument("--negative-group-id", default="group:m3:negative")
     parser.add_argument("--negative-dispute-id", default="dispute:m3:negative")
+    parser.add_argument("--negative-appeal-dispute-id", default="dispute:m3:negative-appeal")
     parser.add_argument("--negative-proposal-id", default="proposal:m3:negative")
     args = parser.parse_args()
 
@@ -84,6 +85,7 @@ def main() -> int:
         "negative_post_id": args.negative_post_id,
         "negative_group_id": args.negative_group_id,
         "negative_dispute_id": args.negative_dispute_id,
+        "negative_appeal_dispute_id": args.negative_appeal_dispute_id,
         "negative_proposal_id": args.negative_proposal_id,
     }
 
@@ -235,8 +237,8 @@ def main() -> int:
     negatives = [
         negative(
             "nonmember_group_write_rejected",
-            "nonmember_ineligible",
-            "@m3_outsider",
+            f"{APPEAL_REVIEWER_ROLE_PREFIX}09",
+            "@m3_appeal_09",
             journey["negative_group_id"],
             {"post_id": "post:m3:forbidden", "body": "must fail", "group_id": journey["negative_group_id"]},
         ),
@@ -265,9 +267,9 @@ def main() -> int:
             "nonowner_appeal_rejected",
             "member_reporter_voter",
             "@m3_member",
-            journey["dispute_id"],
+            journey["negative_appeal_dispute_id"],
             {
-                "dispute_id": journey["dispute_id"],
+                "dispute_id": journey["negative_appeal_dispute_id"],
                 "reason": "The reporter is not the affected target owner.",
                 "note": "M3 controlled-testnet negative appeal-authority attempt.",
             },

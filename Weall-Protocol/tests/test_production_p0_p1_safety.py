@@ -31,9 +31,13 @@ def _write_empty_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_prod_direct_config_loads_default_chain_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_direct_config_loads_default_chain_manifest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "weall.db"))
     monkeypatch.delenv("WEALL_REQUIRE_CHAIN_MANIFEST", raising=False)
     monkeypatch.delenv("WEALL_CHAIN_MANIFEST_PATH", raising=False)
     monkeypatch.delenv("WEALL_CHAIN_MANIFEST", raising=False)

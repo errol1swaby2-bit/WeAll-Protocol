@@ -82,17 +82,6 @@ def _signing_material(unsigned: Mapping[str, Any]) -> bytes:
     return _canon_json(dict(unsigned)).encode("utf-8")
 
 
-def _pq_seed_from_helper_material(value: Any) -> str:
-    raw = str(value or "").strip()
-    try:
-        data = bytes.fromhex(raw)
-        if len(data) == 32:
-            return raw.lower()
-    except Exception:
-        pass
-    return sha256(("weall-helper-pq-material:" + raw).encode("utf-8")).hexdigest()
-
-
 def sign_helper_receipt(
     *,
     chain_id: str,
@@ -129,8 +118,8 @@ def sign_helper_receipt(
         "sig_profile": profile,
     }
     payload = _signing_material(unsigned)
-    if privkey is None and receipt_secret is not None:
-        privkey = _pq_seed_from_helper_material(receipt_secret)
+    if receipt_secret is not None or allow_legacy_receipt_secret:
+        raise ValueError("helper receipt shared-secret mode has been removed")
     if privkey is None:
         raise ValueError("helper receipt signing requires pq-mldsa-v1 privkey")
     if profile != PQ_MLDSA_V1:

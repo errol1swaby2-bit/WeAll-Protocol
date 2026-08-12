@@ -22,7 +22,7 @@ def test_helper_plan_window_closed_rejects_late_artifacts() -> None:
         lane_tx_ids=("t1",),
         descriptor_hash="d1",
         plan_id="plan-1",
-        receipt_secret="secret",
+        privkey=("01" * 32),
         issued_ms=1200,
     )
     decision = store.accept_certificate(cert, now_ms=1200)

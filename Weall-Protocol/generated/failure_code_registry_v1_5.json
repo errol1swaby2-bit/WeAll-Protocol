@@ -238,7 +238,7 @@
       "http_status": 502,
       "sample_reason": "public observer has no verified tx upstream for required propagation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1677
+      "source_lineno": 1691
     },
     {
       "code": "SIGNATURE_PROFILE_MISSING",
@@ -499,7 +499,7 @@
       "http_status": 403,
       "sample_reason": "signature verification failed",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1651
+      "source_lineno": 1665
     },
     {
       "code": "banned",
@@ -1237,7 +1237,7 @@
       "http_status": 400,
       "sample_reason": "tx envelope failed schema validation",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1601
+      "source_lineno": 1615
     },
     {
       "code": "invalid_tx",
@@ -1534,7 +1534,7 @@
       "http_status": 403,
       "sample_reason": "signature is required for public tx submission",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1643
+      "source_lineno": 1657
     },
     {
       "code": "not_found",
@@ -1804,7 +1804,7 @@
       "http_status": 403,
       "sample_reason": "block receipts cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1629
+      "source_lineno": 1643
     },
     {
       "code": "relay_not_ready",
@@ -1912,7 +1912,7 @@
       "http_status": 403,
       "sample_reason": "system-only txs cannot be submitted through the public tx endpoint",
       "source": "src/weall/api/routes_public_parts/tx.py",
-      "source_lineno": 1618
+      "source_lineno": 1632
     },
     {
       "code": "tx_unimplemented",

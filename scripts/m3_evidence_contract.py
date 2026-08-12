@@ -269,30 +269,45 @@ NEGATIVE_TX_TYPES = {
 }
 
 EXPECTED_NEGATIVE_ERROR_CODES = {
-    "nonmember_group_write_rejected": "group_post_authority_required",
-    "nonselected_reviewer_vote_rejected": "juror_not_assigned",
-    "conflicted_reviewer_vote_rejected": "juror_conflict_target_owner",
-    # Public signed ingress enforces the GOV_VOTE_CAST Tier2+ subject gate
-    # before a transaction can enter consensus. The deeper apply-time
-    # governance_vote_requires_active_round_member guard remains defense in
-    # depth and is covered by runtime tests, but it is not the public-path
-    # rejection surfaced by the controlled-testnet signed journey.
+    "nonmember_group_write_rejected": "forbidden",
+    "nonselected_reviewer_vote_rejected": "gate_denied",
+    "conflicted_reviewer_vote_rejected": "gate_denied",
     "ineligible_governance_vote_rejected": "gate_denied",
+    "duplicate_governance_vote_rejected": "conflict",
+    "replacement_governance_vote_rejected": "conflict",
+    "governance_revoke_rejected": "forbidden",
+    "duplicate_dispute_ballot_rejected": "conflict",
+    "replacement_dispute_ballot_rejected": "conflict",
+    "dispute_revoke_rejected": "invalid_tx",
+    "nonowner_appeal_rejected": "forbidden",
+}
+
+EXPECTED_NEGATIVE_ERROR_REASONS = {
+    "nonmember_group_write_rejected": "group_post_authority_required",
+    "nonselected_reviewer_vote_rejected": "gate:Juror",
+    "conflicted_reviewer_vote_rejected": "gate:Juror",
+    "ineligible_governance_vote_rejected": "gate:Tier2+",
     "duplicate_governance_vote_rejected": "ballot_already_final",
     "replacement_governance_vote_rejected": "ballot_already_final",
     "governance_revoke_rejected": "ballot_revocation_forbidden",
     "duplicate_dispute_ballot_rejected": "dispute_ballot_already_final",
     "replacement_dispute_ballot_rejected": "dispute_ballot_already_final",
-    "dispute_revoke_rejected": "unknown_tx_type",
+    "dispute_revoke_rejected": "noncanonical_tx_type",
     "nonowner_appeal_rejected": "appeal_not_target_owner",
 }
 
-EXPECTED_NEGATIVE_ERROR_REASONS = {
-    "ineligible_governance_vote_rejected": "gate:Tier2+",
-}
-
 EXPECTED_NEGATIVE_REJECTION_LAYERS = {
+    "nonmember_group_write_rejected": "apply",
+    "nonselected_reviewer_vote_rejected": "admission",
+    "conflicted_reviewer_vote_rejected": "admission",
     "ineligible_governance_vote_rejected": "admission",
+    "duplicate_governance_vote_rejected": "apply",
+    "replacement_governance_vote_rejected": "apply",
+    "governance_revoke_rejected": "apply",
+    "duplicate_dispute_ballot_rejected": "apply",
+    "replacement_dispute_ballot_rejected": "apply",
+    "dispute_revoke_rejected": "admission",
+    "nonowner_appeal_rejected": "apply",
 }
 
 REQUIRED_HUMAN_ROLES = {
@@ -349,7 +364,9 @@ def role_allowed_for_action(label: str, role: str, account: str) -> bool:
 
 def role_allowed_for_negative(label: str, role: str) -> bool:
     if label == "nonmember_group_write_rejected":
-        return role == "nonmember_ineligible"
+        return role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX) or role.startswith(
+            APPEAL_REVIEWER_ROLE_PREFIX
+        )
     if label == "conflicted_reviewer_vote_rejected":
         return role in {"author_proposer", "member_reporter_voter"}
     if label == "ineligible_governance_vote_rejected":
@@ -555,6 +572,11 @@ def validate_public_actor_transcript(
             raise ValueError(f"actor_manifest_journey_field_missing:{field}")
     if str(journey["negative_dispute_id"]) == str(journey["dispute_id"]):
         raise ValueError("negative_dispute_fixture_not_distinct")
+    if str(journey["negative_appeal_dispute_id"]) in {
+        str(journey["dispute_id"]),
+        str(journey["negative_dispute_id"]),
+    }:
+        raise ValueError("negative_appeal_dispute_fixture_not_distinct")
     if str(journey["negative_proposal_id"]) == str(journey["proposal_id"]):
         raise ValueError("negative_proposal_fixture_not_distinct")
 
@@ -737,7 +759,7 @@ NEGATIVE_SUBJECT_FIELD = {
     "duplicate_dispute_ballot_rejected": "negative_dispute_id",
     "replacement_dispute_ballot_rejected": "negative_dispute_id",
     "dispute_revoke_rejected": "negative_dispute_id",
-    "nonowner_appeal_rejected": "dispute_id",
+    "nonowner_appeal_rejected": "negative_appeal_dispute_id",
 }
 
 PRECONDITION_REQUIRED_NEGATIVES = {

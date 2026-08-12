@@ -1,33 +1,42 @@
-from typing import Dict, Any, List
+from __future__ import annotations
+
+import copy
+from collections.abc import Sequence
+from typing import Any
+
 from weall.runtime.helper_merge import (
-    detect_overlap,
-    apply_lane_deltas,
+    MaterializedLaneResult,
+    merge_materialized_lane_results,
 )
+
+Json = dict[str, Any]
 
 
 def apply_helper_results_if_safe(
-    base_state: Dict[str, Any],
-    lane_results: List[Dict[str, Any]],
-) -> Dict[str, Any]:
+    base_state: Json,
+    lane_results: Sequence[MaterializedLaneResult],
+) -> Json:
+    """Apply verified materialized helper results or fail closed to ``base_state``.
+
+    This wrapper intentionally delegates verification, overlap detection, canonical
+    delta ordering, and merge semantics to the single canonical helper-merge path.
+    Any malformed or serialized lane causes whole-plan fallback because this helper
+    has no transaction executor with which to safely replay rejected lanes.
     """
-    Applies helper lane deltas ONLY if safe.
 
-    Fail-closed:
-    - overlap → fallback (return original state)
-    - invalid structure → fallback
-    """
+    results = list(lane_results or ())
+    if not results:
+        return copy.deepcopy(base_state)
+    if any(not isinstance(item, MaterializedLaneResult) for item in results):
+        return copy.deepcopy(base_state)
 
-    if not lane_results:
-        return base_state
+    outcome = merge_materialized_lane_results(
+        base_state=base_state,
+        lane_results=results,
+    )
+    if outcome.serialized_lane_ids:
+        return copy.deepcopy(base_state)
+    return outcome.merged_state
 
-    # Extract write sets
-    write_sets = [lane.get("writes", {}) for lane in lane_results]
 
-    # --- Overlap detection ---
-    if detect_overlap(write_sets):
-        return base_state  # fallback
-
-    # --- Apply deterministic merge ---
-    new_state = apply_lane_deltas(base_state, lane_results)
-
-    return new_state
+__all__ = ["apply_helper_results_if_safe"]

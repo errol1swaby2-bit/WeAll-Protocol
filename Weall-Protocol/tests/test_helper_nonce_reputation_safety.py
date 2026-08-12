@@ -9,29 +9,30 @@ from weall.runtime.parallel_execution import LanePlan, merge_helper_lane_results
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def test_helper_signature_verification_requires_pubkey_when_no_explicit_secret() -> None:
-    cert = sign_helper_certificate(
-        HelperExecutionCertificate(
-            chain_id="c1",
-            block_height=7,
-            view=9,
-            leader_id="@leader",
-            helper_id="helper-1",
-            validator_epoch=3,
-            validator_set_hash="vset",
-            lane_id="lane-a",
-            tx_ids=("tx1",),
-            tx_order_hash="order",
-            receipts_root="",
-            write_set_hash="",
-            read_set_hash="",
-            lane_delta_hash="",
-            namespace_hash="ns",
-        ),
-        secret="compat-hmac-material",
+def test_helper_shared_secret_signature_compatibility_is_removed() -> None:
+    unsigned = HelperExecutionCertificate(
+        chain_id="c1",
+        block_height=7,
+        view=9,
+        leader_id="@leader",
+        helper_id="helper-1",
+        validator_epoch=3,
+        validator_set_hash="vset",
+        lane_id="lane-a",
+        tx_ids=("tx1",),
+        tx_order_hash="order",
+        receipts_root="",
+        write_set_hash="",
+        read_set_hash="",
+        lane_delta_hash="",
+        namespace_hash="ns",
     )
+    with pytest.raises(ValueError, match="shared-secret mode has been removed"):
+        sign_helper_certificate(unsigned, secret="compat-hmac-material")
+
+    cert = sign_helper_certificate(unsigned, privkey=("02" * 32))
     assert verify_helper_certificate_signature(cert, helper_pubkey=None) is False
-    assert verify_helper_certificate_signature(cert, helper_pubkey=None, secret="compat-hmac-material") is True
+    assert verify_helper_certificate_signature(cert, helper_pubkey=None, secret="compat-hmac-material") is False
 
 
 def test_merge_helper_lane_results_rejects_missing_pubkey_when_signature_enforced() -> None:

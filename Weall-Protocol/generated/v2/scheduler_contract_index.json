@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "95736a1fc73b16c58ba40f6c7ef691dad10b58e4826b624e731c8721cb1876cd"
+    "source_tree_digest": "019a4464fa7cf281da51409633fdba459449a4d9a16d5a8f56a1277a0695145d"
   },
   "rows": [
     {
@@ -3459,7 +3459,7 @@
       "failure_semantics": "typed_scheduler_or_system_transaction_failure",
       "idempotency_contract": "identical_finalized_state_and_height_must_derive_identical_due_work",
       "idempotency_key": "stable_sys_id_plus_due_height_plus_subject_or_parent_identity",
-      "line": 176,
+      "line": 178,
       "name": "sqlite_maintenance_tick",
       "ordering_contract": "canonical_scheduler_pipeline_order_then_stable_identifier_order",
       "primary_mechanism_id": "M-012",
@@ -3479,7 +3479,7 @@
       "failure_semantics": "typed_scheduler_or_system_transaction_failure",
       "idempotency_contract": "identical_finalized_state_and_height_must_derive_identical_due_work",
       "idempotency_key": "stable_sys_id_plus_due_height_plus_subject_or_parent_identity",
-      "line": 91,
+      "line": 93,
       "name": "transition_guardrail_diagnostics",
       "ordering_contract": "canonical_scheduler_pipeline_order_then_stable_identifier_order",
       "primary_mechanism_id": "M-012",

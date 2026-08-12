@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "95736a1fc73b16c58ba40f6c7ef691dad10b58e4826b624e731c8721cb1876cd"
+    "source_tree_digest": "019a4464fa7cf281da51409633fdba459449a4d9a16d5a8f56a1277a0695145d"
   },
   "required_fields": [
     "stable_id",
@@ -10226,6 +10226,7 @@
         "tests/test_poh_eligibility_rules.py",
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_v2_two_tier_migration.py",
+        "tests/test_tx_status_apply_rejection_truth.py",
         "tests/test_validator_threshold_stage_progression.py",
         "tests/test_wallet_treasury_governance_reputation_safety.py"
       ],

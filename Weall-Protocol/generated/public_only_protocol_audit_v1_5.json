@@ -316,6 +316,12 @@
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "tests/test_ai_integrity_runtime_contracts.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "tests/test_async_verification_submission_reviewer_feed.py"
     },
     {
@@ -335,6 +341,18 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "tests/test_group_governance_contract.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_helper_dispatch_and_receipt_safety.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_helper_nonce_reputation_safety.py"
     },
     {
       "category": "tests",
@@ -408,7 +426,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 58,
+  "inventory_hit_count": 61,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

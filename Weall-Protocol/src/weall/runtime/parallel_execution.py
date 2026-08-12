@@ -726,14 +726,6 @@ def verify_block_helper_plan_metadata(
     return True, "ok"
 
 
-def _helper_state_delta_hash_valid(
-    cert: HelperExecutionCertificate, lane_delta_ops: Sequence[Mapping[str, Any]]
-) -> bool:
-    return str(cert.lane_delta_hash or "") == hash_state_delta_ops(
-        tuple(dict(item) for item in lane_delta_ops)
-    )
-
-
 def should_fallback_to_serial(
     *,
     plan: LanePlan,

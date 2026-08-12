@@ -32,6 +32,7 @@ def main() -> int:
     parser.add_argument("--negative-post-id", required=True)
     parser.add_argument("--negative-group-id", required=True)
     parser.add_argument("--negative-dispute-id", required=True)
+    parser.add_argument("--negative-appeal-dispute-id", required=True)
     parser.add_argument("--negative-proposal-id", required=True)
     parser.add_argument("--expected-dispute-stage", default="finalized")
     parser.add_argument("--expected-dispute-outcome", default="")
@@ -82,6 +83,7 @@ def main() -> int:
         "negative_post_id": args.negative_post_id,
         "negative_group_id": args.negative_group_id,
         "negative_dispute_id": args.negative_dispute_id,
+        "negative_appeal_dispute_id": args.negative_appeal_dispute_id,
         "negative_proposal_id": args.negative_proposal_id,
         "transaction_transcript": str(transcript_path),
         "expected_dispute_stage": args.expected_dispute_stage,

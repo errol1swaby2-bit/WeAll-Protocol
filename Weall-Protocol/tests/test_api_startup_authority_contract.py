@@ -11,11 +11,13 @@ class _FakeExecutor(SimpleNamespace):
 
 def test_create_app_boot_runtime_persists_startup_authority_contract(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "weall.db"))
     monkeypatch.setenv("WEALL_BFT_ENABLED", "0")
 
     ex = _FakeExecutor(
@@ -47,11 +49,13 @@ def test_create_app_boot_runtime_persists_startup_authority_contract(
 
 def test_create_app_fails_closed_when_prod_bft_requested_but_not_effective(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "weall.db"))
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator")
@@ -81,11 +85,13 @@ def test_create_app_fails_closed_when_prod_bft_requested_but_not_effective(
 
 def test_startup_authority_gate_runs_before_block_or_net_loop_autostart(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
 ) -> None:
     from weall.api import app as api_app
 
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "weall.db"))
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_VALIDATOR_SIGNING_ENABLED", "1")
     monkeypatch.setenv("WEALL_BLOCK_LOOP_AUTOSTART", "0")

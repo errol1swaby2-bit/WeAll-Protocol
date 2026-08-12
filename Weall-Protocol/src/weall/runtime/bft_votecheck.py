@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_votecheck.py)."""
 
+from typing import Any
+
 from weall.runtime.executor import (
     Path,
     WeAllExecutor,
@@ -14,6 +16,8 @@ from weall.runtime.executor import (
     os,
     verify_block_helper_plan_metadata,
 )
+
+Json = dict[str, Any]
 
 def _votecheck_cache_get(self, block_hash: str) -> bool | None:
     key = str(block_hash or "").strip()

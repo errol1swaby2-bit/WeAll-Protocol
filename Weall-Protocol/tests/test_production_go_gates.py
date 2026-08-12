@@ -198,8 +198,9 @@ def test_assert_production_genesis_rejects_template_placeholders(tmp_path: Path)
     assert "genesis_bootstrap_founder_account_unpinned" in codes
 
 
-def test_operator_status_reports_observer_mode_and_no_local_signing(monkeypatch) -> None:
+def test_operator_status_reports_observer_mode_and_no_local_signing(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "operator-go-gate.db"))
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "observer_onboarding")
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "1")
     monkeypatch.setenv("WEALL_VALIDATOR_SIGNING_ENABLED", "1")
