@@ -10,12 +10,13 @@ from m3_evidence_contract import (
     ACTION_MIN_COUNTS,
     ACTION_TX_TYPES,
     APPEAL_REVIEWER_ROLE_PREFIX,
+    ATTENDANCE_ACCEPTANCE_LABEL,
     EMBEDDED_ATTENDANCE_EVIDENCE_KIND,
     EMBEDDED_ATTENDANCE_LABELS,
-    ATTENDANCE_ACCEPTANCE_LABEL,
     EXPECTED_NEGATIVE_ERROR_CODES,
     EXPECTED_NEGATIVE_ERROR_REASONS,
     EXPECTED_NEGATIVE_REJECTION_LAYERS,
+    INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND,
     MAIN_ACTION_SUBJECT_FIELD,
     NEGATIVE_TX_TYPES,
     ORIGINAL_REVIEWER_ROLE_PREFIX,
@@ -186,6 +187,30 @@ def main() -> int:
         attendance["tx_type"] = "DISPUTE_JUROR_ACCEPT"
         attendance["tx_id"] = matches[0]["tx_id"]
         attendance["evidence_kind"] = EMBEDDED_ATTENDANCE_EVIDENCE_KIND
+
+    # The current runtime resolves the main dispute inline during the
+    # threshold-reaching original-panel ballot. Represent that deterministic
+    # system transition through its real trigger transaction instead of a
+    # nonexistent standalone DISPUTE_RESOLVE tx id.
+    resolution_rows = [
+        item
+        for item in actions
+        if item.get("label") == "dispute_resolution"
+        and item.get("subject_id") == journey["dispute_id"]
+    ]
+    resolution_triggers = [
+        item
+        for item in actions
+        if item.get("label") == "original_panel_ballots"
+        and item.get("subject_id") == journey["dispute_id"]
+    ]
+    if len(resolution_rows) != 1 or len(resolution_triggers) < ACTION_MIN_COUNTS["original_panel_ballots"]:
+        raise SystemExit("m3_template_inline_dispute_resolution_trigger_invalid")
+    resolution = resolution_rows[0]
+    trigger = resolution_triggers[ACTION_MIN_COUNTS["original_panel_ballots"] - 1]
+    resolution["evidence_kind"] = INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND
+    resolution["trigger_tx_id"] = trigger["tx_id"]
+    resolution["tx_id"] = f"inline:{trigger['tx_id']}:DISPUTE_RESOLVE"
 
     def negative(label: str, role: str, account: str, subject: str, payload: dict, prior: str = "") -> dict:
         value = {

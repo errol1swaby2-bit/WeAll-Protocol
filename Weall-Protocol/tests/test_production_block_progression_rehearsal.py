@@ -61,11 +61,14 @@ def test_native_async_uses_genesis_single_reviewer_policy() -> None:
     assert 'verdict="approve"' in native
 
 
-def test_full_onboarding_runs_node2_before_tier2_and_live() -> None:
+def test_full_onboarding_runs_node2_before_canonical_live_compatibility() -> None:
     full = _read("scripts/devnet_full_onboarding_e2e.sh")
     node2_pos = full.index("NODE2_AVAILABLE=0")
-    tier2_pos = full.index('if [[ "${WEALL_DEVNET_RUN_TIER2:-0}" == "1" ]]')
-    live_pos = full.index('if [[ "${WEALL_DEVNET_RUN_LIVE}" == "1" ]]')
+    live_init_pos = full.index('RUN_CANONICAL_LIVE="${WEALL_DEVNET_RUN_LIVE:-0}"')
+    tier2_compat_pos = full.index('if [[ "${WEALL_DEVNET_RUN_TIER2:-0}" == "1" ]]')
+    live_pos = full.index('if [[ "${RUN_CANONICAL_LIVE}" == "1" ]]')
     convergence_pos = full.index('if [[ "${NODE2_AVAILABLE}" == "1" ]]')
-    assert node2_pos < tier2_pos < live_pos < convergence_pos
-    assert "_run_tier2_devnet_flow" in full
+    assert node2_pos < live_init_pos < tier2_compat_pos < live_pos < convergence_pos
+    assert "RUN_CANONICAL_LIVE=1" in full
+    assert "_run_live_devnet_flow" in full
+    assert "_run_tier2_devnet_flow" not in full

@@ -53,14 +53,14 @@ for (const needle of [
 }
 
 for (const needle of [
-  'Review windows, appeal windows, missed-vote outcomes, and finalization must follow backend block heights, not browser wall-clock time.',
+  'Review windows, withdrawal windows, appeal windows, missed-vote outcomes, and finalization must follow backend block heights, not browser wall-clock time.',
   'Reviewer notes and outcomes may be public, but raw PoH/video/government identity evidence must not be exposed through this route.',
 ]) {
   assertIncludes(dispute, needle, 'dispute lifecycle and privacy clarity');
 }
 
 assertIncludes(group, 'Candidate lists, candidate votes, term activation, and term expiration must be public group-governance records', 'group emissary clarity');
-assertIncludes(tx, 'a transaction is not treated as a final public result until the backend reports block inclusion and the local observer has synced that confirmed state.', 'transaction timeline clarity');
+assertIncludes(tx, 'a transaction is not treated as a final public result until the backend reports block inclusion/finality or a terminal rejection and the local observer has synced that confirmed state.', 'transaction timeline clarity');
 assertIncludes(pkg, 'test:step2-ux-clarity-source', 'package script for step 2 source check');
 
 for (const source of [home, node, economics, proposal, dispute, group, tx]) {

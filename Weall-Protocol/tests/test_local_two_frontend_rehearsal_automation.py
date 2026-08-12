@@ -47,6 +47,9 @@ def test_one_command_rehearsal_starts_two_backends_two_frontends_and_reconcile_w
     assert "VITE_WEALL_DEV_BOOTSTRAP_MANIFEST=\"/dev-bootstrap-genesis.json\"" in src
     assert "VITE_WEALL_DEV_PROXY_TARGET=\"${NODE2_API}\"" in src
     assert "VITE_WEALL_DEV_PROXY_TARGET=\"${NODE1_API}\"" in src
+    assert 'RUNTIME_DIR="${WEALL_RUNTIME_DIR:-${DEVNET_DIR}/runtime}"' in src
+    assert 'WEALL_TX_QUEUE_PATH="${TX_QUEUE_PATH}"' in src
+    assert '${REPO_ROOT}/data' not in src
     assert "WEALL_ALLOW_DIRECT_SESSION_MUTATION" not in src
     assert "WEALL_ENABLE_DEMO_SEED_ROUTE=1" not in src
 
@@ -57,5 +60,7 @@ def test_reconcile_loop_uses_operator_tokens_and_never_mutates_consensus_authori
     assert "/v1/observer/edge/reconcile/" in src
     assert "x-weall-observer-operator-token" in src
     assert "x-weall-state-sync-operator-token" in src
+    assert '${REPO_ROOT}/data' not in src
+    assert '${WEALL_DEVNET_DIR:-${REPO_ROOT}/.weall-devnet}/runtime' in src
     assert "VALIDATOR_SIGNING" not in src
     assert "BFT_ENABLED" not in src

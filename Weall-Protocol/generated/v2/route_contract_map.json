@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "a11eafd4b645d52e94e54dd95a998d866c4f8f9bf0f55826e9028804db26093c"
+    "source_tree_digest": "95736a1fc73b16c58ba40f6c7ef691dad10b58e4826b624e731c8721cb1876cd"
   },
   "required_fields": [
     "stable_id",
@@ -5272,6 +5272,7 @@
       },
       "stable_id": "ROUTE-D0BCA1EAA72E3851",
       "tests": [
+        "tests/test_devnet_live_harness.py",
         "tests/test_poh_live_room_presence.py",
         "tests/test_tx_catalog_public_route_contract.py"
       ],
@@ -5473,6 +5474,7 @@
       },
       "stable_id": "ROUTE-2DF8BBDA645F0D99",
       "tests": [
+        "tests/test_devnet_live_harness.py",
         "tests/test_poh_live_room_presence.py"
       ],
       "vector_ids": [
@@ -7375,6 +7377,7 @@
         "tests/test_local_rehearsal_qol_regressions.py",
         "tests/test_local_rehearsal_rate_limit_and_reviewer_status.py",
         "tests/test_local_rehearsal_read_model_and_layout.py",
+        "tests/test_local_two_frontend_rehearsal_automation.py",
         "tests/test_login_recovery_passkey_ux.py",
         "tests/test_m2_account_recovery_and_tier2_lifecycle.py",
         "tests/test_m2_chain_manifest_closure_gates.py",

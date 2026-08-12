@@ -6,13 +6,13 @@ import hmac
 import ipaddress
 import json
 import os
-import time
 import threading
-from pathlib import Path
-from typing import Any
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, Request
 from pydantic import ValidationError
@@ -33,8 +33,8 @@ from weall.api.routes_public_parts.common import (
     _require_registered_signer_for_user_tx,
     _snapshot,
 )
-from weall.ledger.state import LedgerView
 from weall.crypto.sig import strict_tx_sig_domain_enabled
+from weall.ledger.state import LedgerView
 from weall.runtime.mempool import compute_tx_id
 from weall.runtime.sigverify import verify_tx_signature
 from weall.runtime.tx_schema import validate_tx_envelope
@@ -384,7 +384,7 @@ def _tx_queue_path() -> Path:
     raw = str(os.environ.get("WEALL_TX_QUEUE_PATH") or "").strip()
     if raw:
         return Path(raw).expanduser()
-    return Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "observer_tx_queue.json"
+    return (Path(os.environ["WEALL_RUNTIME_DIR"]).expanduser() if os.environ.get("WEALL_RUNTIME_DIR") else Path.home() / ".local" / "share" / "weall" / "runtime") / "observer_tx_queue.json"
 
 
 @contextlib.contextmanager

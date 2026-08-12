@@ -18,6 +18,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_ROOT="$(cd "${REPO_ROOT}/.." && pwd)"
 WEB_ROOT="${WEALL_WEB_ROOT:-${WORKSPACE_ROOT}/web}"
 DEVNET_DIR="${WEALL_DEVNET_DIR:-${REPO_ROOT}/.weall-devnet}"
+RUNTIME_DIR="${WEALL_RUNTIME_DIR:-${DEVNET_DIR}/runtime}"
+TX_QUEUE_PATH="${WEALL_TX_QUEUE_PATH:-${RUNTIME_DIR}/observer_tx_queue.json}"
 LOG_DIR="${WEALL_DEVNET_LOG_DIR:-${DEVNET_DIR}/logs}"
 GENERATED_DIR="${DEVNET_DIR}/generated"
 NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"
@@ -658,7 +660,7 @@ PY
 }
 
 activate_repo_venv
-mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public" "${REPO_ROOT}/data"
+mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public" "${RUNTIME_DIR}"
 
 if _bool_true "${STOP_OLD}"; then
   _stop_existing_rehearsal_processes
@@ -668,7 +670,7 @@ if _bool_true "${RESET}"; then
   echo "==> Resetting local controlled-devnet state"
   _stop_local_ipfs_daemon
   WEALL_DEVNET_DIR="${DEVNET_DIR}" bash scripts/devnet_reset_state.sh
-  rm -f "${REPO_ROOT}/data/observer_tx_queue.json"
+  rm -f "${TX_QUEUE_PATH}" "${TX_QUEUE_PATH}.lock"
   mkdir -p "${LOG_DIR}" "${GENERATED_DIR}" "${DEVNET_DIR}/accounts" "${WEB_ROOT}/public"
 fi
 
@@ -698,6 +700,8 @@ if ! curl -fsS "${NODE1_API}/v1/status" >/dev/null 2>&1; then
   echo "==> Booting genesis backend ${NODE1_API}"
   (
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
+    export WEALL_RUNTIME_DIR="${RUNTIME_DIR}"
+    export WEALL_TX_QUEUE_PATH="${TX_QUEUE_PATH}"
     export WEALL_MODE=devnet
     export WEALL_RUNTIME_PROFILE=controlled_devnet
     export WEALL_CHAIN_ID=weall-controlled-devnet
@@ -757,6 +761,8 @@ if ! curl -fsS "${NODE2_API}/v1/status" >/dev/null 2>&1; then
   echo "==> Booting observer backend ${NODE2_API}"
   (
     export WEALL_DEVNET_DIR="${DEVNET_DIR}"
+    export WEALL_RUNTIME_DIR="${RUNTIME_DIR}"
+    export WEALL_TX_QUEUE_PATH="${TX_QUEUE_PATH}"
     export NODE1_API="${NODE1_API}"
     export WEALL_MODE=devnet
     export WEALL_RUNTIME_PROFILE=controlled_devnet
@@ -838,6 +844,8 @@ if [[ -z "${RECONCILE_PID}" ]]; then
   echo "==> Starting observer reconcile worker"
   (
     export OBSERVER_API="${NODE2_API}"
+    export WEALL_RUNTIME_DIR="${RUNTIME_DIR}"
+    export WEALL_TX_QUEUE_PATH="${TX_QUEUE_PATH}"
     export WEALL_OBSERVER_EDGE_OPERATOR_TOKEN="${OBSERVER_TOKEN}"
     export WEALL_STATE_SYNC_OPERATOR_TOKEN="${SYNC_TOKEN}"
     export WEALL_RECONCILE_POLL_S="${WEALL_RECONCILE_POLL_S:-1}"

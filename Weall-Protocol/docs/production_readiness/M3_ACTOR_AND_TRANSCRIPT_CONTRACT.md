@@ -48,11 +48,13 @@ Every positive action must identify:
 - `label`;
 - `role` and public `account`;
 - canonical `tx_type`;
-- unique `tx_id`;
+- canonical `tx_id` (or a deterministic inline-transition evidence id where explicitly allowed);
 - canonical `subject_id`;
 - `status: "confirmed"`.
 
-The evidence contract binds every label to an allowed transaction type and actor role. The Playwright gate independently fetches every `/v1/tx/status/{tx_id}` record and verifies its terminal status, canonical signer, and transaction type.
+The evidence contract binds every label to an allowed transaction type and actor role. For ordinary actions the Playwright gate independently fetches `/v1/tx/status/{tx_id}` and verifies terminal status, canonical signer, and transaction type.
+
+`DISPUTE_RESOLVE` is intentionally different: the runtime applies it inline in the threshold-reaching `DISPUTE_VOTE_SUBMIT`; no standalone `DISPUTE_RESOLVE` transaction is admitted or indexed for that transition. The `dispute_resolution` transcript row must therefore use `evidence_kind: "inline_system_transition"`, include the confirmed `trigger_tx_id` for the threshold-reaching original-panel ballot, and set `tx_id` to `inline:<trigger_tx_id>:DISPUTE_RESOLVE`. Validation proves the trigger is a confirmed ballot for the same dispute, and the real-stack gate proves the canonical dispute state contains the resulting resolution. A fabricated standalone `DISPUTE_RESOLVE` tx id is invalid evidence.
 
 Required positive labels cover:
 

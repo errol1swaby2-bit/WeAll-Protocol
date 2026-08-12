@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "a11eafd4b645d52e94e54dd95a998d866c4f8f9bf0f55826e9028804db26093c"
+    "source_tree_digest": "95736a1fc73b16c58ba40f6c7ef691dad10b58e4826b624e731c8721cb1876cd"
   },
   "rows": [
     {
@@ -7241,6 +7241,7 @@
         "tests/test_constitutional_procedure_clock.py",
         "tests/test_dispute_followups.py",
         "tests/test_local_rehearsal_qol_regressions.py",
+        "tests/test_m3_closure_integrity.py",
         "tests/test_tx_contract_coverage.py",
         "tests/test_tx_schema_governance_dispute_receipts.py"
       ],

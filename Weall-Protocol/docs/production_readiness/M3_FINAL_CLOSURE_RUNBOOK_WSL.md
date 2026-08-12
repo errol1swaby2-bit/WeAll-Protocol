@@ -147,7 +147,7 @@ main journey:
 4. Member reports the main post.
 5. Nine original reviewers accept, attend, and submit ballots.
 6. The main dispute reaches its required final stage.
-7. Member opens the appeal.
+7. Author (the affected target owner) opens the appeal.
 8. Nine fresh appeal reviewers accept, attend, and submit ballots.
 9. The appeal reaches its required final stage.
 10. Author creates the proposal; member comments.
@@ -167,6 +167,13 @@ transaction types, actors, subject IDs, and chain ID. Keep the exact expected
 negative failure codes from the generated template. Replacement, duplicate,
 and revoke attempts must point to their confirmed prior ballot through
 `precondition_tx_id`.
+
+Do not invent a standalone transaction for main `DISPUTE_RESOLVE`. The current
+runtime commits that resolution inline in the threshold-reaching original-panel
+`DISPUTE_VOTE_SUBMIT`. Preserve the template's `inline_system_transition` row,
+set `trigger_tx_id` to that confirmed ballot, and derive the evidence id exactly
+as `inline:<trigger_tx_id>:DISPUTE_RESOLVE`. The validator and browser gate bind
+that row to the real trigger transaction and canonical resolved dispute state.
 
 ## 7. Build and validate the private manifest
 

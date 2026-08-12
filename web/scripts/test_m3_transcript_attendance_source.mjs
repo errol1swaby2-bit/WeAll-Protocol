@@ -23,6 +23,11 @@ assertIncludes(
 );
 
 assertIncludes(
+  'trigger_tx_id?: string;',
+  "M3 action contract must expose inline system transition trigger binding",
+);
+
+assertIncludes(
   'const EMBEDDED_ATTENDANCE_EVIDENCE_KIND = "acceptance_embedded_attendance";',
   "M3 real-stack gate must use the canonical attendance evidence kind",
 );
@@ -60,6 +65,26 @@ assertIncludes(
 assertIncludes(
   'attendance.subject_id === acceptance.subject_id',
   "M3 real-stack gate must bind attendance to the same dispute",
+);
+
+assertIncludes(
+  'const INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND = "inline_system_transition";',
+  "M3 real-stack gate must recognize inline system transition evidence",
+);
+
+assertIncludes(
+  'expect(action.tx_id).toBe(`inline:${triggerTxId}:${action.tx_type}`);',
+  "M3 real-stack gate must bind the synthetic evidence id to the real trigger tx",
+);
+
+assertIncludes(
+  'expect(trigger.tx_type).toBe("DISPUTE_VOTE_SUBMIT");',
+  "M3 real-stack gate must require the real dispute ballot trigger",
+);
+
+assertIncludes(
+  'expect(dispute.resolved).toBe(true);',
+  "M3 real-stack gate must prove canonical resolved dispute state",
 );
 
 assertNotIncludes(

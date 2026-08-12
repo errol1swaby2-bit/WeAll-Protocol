@@ -25,6 +25,7 @@ type M3Action = {
   subject_id: string;
   status: "confirmed";
   evidence_kind?: string;
+  trigger_tx_id?: string;
 };
 
 type M3NegativeAttempt = {
@@ -76,6 +77,7 @@ const REQUIRED_SINGLETON_ROLES = ["author_proposer", "member_reporter_voter", "n
 const FRONTEND_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
 const TERMINAL_SUCCESS = new Set(["confirmed", "committed", "finalized"]);
 const EMBEDDED_ATTENDANCE_EVIDENCE_KIND = "acceptance_embedded_attendance";
+const INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND = "inline_system_transition";
 
 const ATTENDANCE_ACCEPTANCE_LABEL = new Map<string, string>([
   ["original_panel_attendance", "original_panel_acceptance"],
@@ -325,6 +327,50 @@ test("M3 independent actors complete the signed civic and governance journey", a
 
       priorRecords.push(action);
       seen.set(action.tx_id, priorRecords);
+
+      if (action.evidence_kind === INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND) {
+        expect(action.label).toBe("dispute_resolution");
+        expect(action.tx_type).toBe("DISPUTE_RESOLVE");
+        expect(action.role).toBe("system_scheduler");
+        expect(action.account).toBe("SYSTEM");
+        const triggerTxId = String(action.trigger_tx_id || "").trim();
+        expect(triggerTxId).toMatch(/^tx:/);
+        expect(action.tx_id).toBe(`inline:${triggerTxId}:${action.tx_type}`);
+
+        const triggerRows = transcript.actions.filter((item) => item.tx_id === triggerTxId);
+        expect(triggerRows).toHaveLength(1);
+        const trigger = triggerRows[0];
+        expect(trigger.label).toBe("original_panel_ballots");
+        expect(trigger.tx_type).toBe("DISPUTE_VOTE_SUBMIT");
+        expect(trigger.subject_id).toBe(action.subject_id);
+        expect(trigger.status).toBe("confirmed");
+
+        const triggerStatus = await getJson(
+          request,
+          backend,
+          `/v1/tx/status/${encodeURIComponent(triggerTxId)}`,
+        );
+        expect(
+          TERMINAL_SUCCESS.has(
+            String(triggerStatus.status || triggerStatus.phase || "").toLowerCase(),
+          ),
+          JSON.stringify(triggerStatus),
+        ).toBe(true);
+        expect(String(triggerStatus.tx_type || "")).toBe("DISPUTE_VOTE_SUBMIT");
+        expect(String(triggerStatus.signer || "")).toBe(trigger.account);
+
+        const disputeBody = await getJson(
+          request,
+          backend,
+          `/v1/disputes/${encodeURIComponent(action.subject_id)}`,
+        );
+        const dispute = disputeBody.dispute || disputeBody;
+        expect(dispute.resolved).toBe(true);
+        expect(dispute.resolution).toBeTruthy();
+        expect(String(action.subject_id || "").trim()).not.toBe("");
+        expect(action.status).toBe("confirmed");
+        continue;
+      }
 
       const status = await getJson(
         request,

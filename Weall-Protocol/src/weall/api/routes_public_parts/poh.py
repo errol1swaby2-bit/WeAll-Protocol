@@ -2158,9 +2158,9 @@ def _bridge_payload_for_signal(rec: Json, spec: Json | None = None) -> Json:
 def _webrtc_signal_queue_path() -> Path:
     raw = str(os.environ.get("WEALL_WEBRTC_SIGNAL_QUEUE_PATH") or "").strip()
     if raw:
-        return Path(raw)
+        return Path(raw).expanduser()
     return (
-        Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_tx_queue.json"
+        (Path(os.environ["WEALL_RUNTIME_DIR"]).expanduser() if os.environ.get("WEALL_RUNTIME_DIR") else Path.home() / ".local" / "share" / "weall" / "runtime") / "webrtc_signal_bridge_tx_queue.json"
     )
 
 

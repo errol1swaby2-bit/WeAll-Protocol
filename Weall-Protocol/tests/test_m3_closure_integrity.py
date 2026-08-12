@@ -315,6 +315,23 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
         attendance["tx_id"] = matches[0]["tx_id"]
         attendance["evidence_kind"] = contract.EMBEDDED_ATTENDANCE_EVIDENCE_KIND
 
+    resolution = next(
+        item
+        for item in actions
+        if item["label"] == "dispute_resolution"
+        and item["subject_id"] == journey["dispute_id"]
+    )
+    resolution_triggers = [
+        item
+        for item in actions
+        if item["label"] == "original_panel_ballots"
+        and item["subject_id"] == journey["dispute_id"]
+    ]
+    trigger = resolution_triggers[-1]
+    resolution["evidence_kind"] = contract.INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND
+    resolution["trigger_tx_id"] = trigger["tx_id"]
+    resolution["tx_id"] = f"inline:{trigger['tx_id']}:DISPUTE_RESOLVE"
+
     actions.extend(
         [
             {
@@ -513,6 +530,29 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
     assert original_attendance["tx_id"] == original_acceptance["tx_id"]
     assert original_attendance["tx_type"] == "DISPUTE_JUROR_ACCEPT"
     assert original_attendance["evidence_kind"] == contract.EMBEDDED_ATTENDANCE_EVIDENCE_KIND
+
+    inline_resolution = next(
+        item
+        for item in transcript["actions"]
+        if item["label"] == "dispute_resolution"
+        and item["subject_id"] == journey["dispute_id"]
+    )
+    assert inline_resolution["evidence_kind"] == contract.INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND
+    assert inline_resolution["trigger_tx_id"].startswith("tx-main-")
+    assert inline_resolution["tx_id"] == (
+        f"inline:{inline_resolution['trigger_tx_id']}:DISPUTE_RESOLVE"
+    )
+
+    broken_inline = json.loads(json.dumps(transcript))
+    broken_resolution = next(
+        item for item in broken_inline["actions"] if item["label"] == "dispute_resolution"
+    )
+    broken_resolution["trigger_tx_id"] = "tx-missing-trigger"
+    broken_resolution["tx_id"] = "inline:tx-missing-trigger:DISPUTE_RESOLVE"
+    import pytest
+
+    with pytest.raises(ValueError, match="inline_trigger_missing_or_ambiguous"):
+        contract.validate_public_actor_transcript(manifest, broken_inline, freeze=freeze)
 
     broken_attendance = json.loads(json.dumps(transcript))
     target = next(
