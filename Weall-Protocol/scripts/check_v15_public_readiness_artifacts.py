@@ -212,8 +212,14 @@ def _check_b587_b594_mechanisms() -> list[str]:
         errors.append("b587_b594_testnet_mechanism_completion_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.batch587_594.testnet_mechanism_completion":
         errors.append("B587-B594 mechanism artifact schema mismatch")
-    if payload.get("controlled_testnet_mechanisms_complete") is not True:
-        errors.append("B587-B594 artifact must complete controlled testnet mechanisms")
+    mechanism_ok = bool(payload.get("ok"))
+    if bool(payload.get("controlled_testnet_mechanisms_complete")) != mechanism_ok:
+        errors.append("B587-B594 controlled_testnet_mechanisms_complete must match aggregate ok")
+    if bool(payload.get("controlled_testnet_ready_candidate")) != mechanism_ok:
+        errors.append("B587-B594 controlled_testnet_ready_candidate must match aggregate ok")
+    helper = payload.get("helper_block_path_adversarial") if isinstance(payload.get("helper_block_path_adversarial"), dict) else {}
+    if helper.get("production_block_path_state_root_equivalence_proven") is not True and mechanism_ok:
+        errors.append("B587-B594 must not claim mechanism completion without production helper state-root equivalence proof")
     if payload.get("public_beta_ready") is not False:
         errors.append("B587-B594 artifact must not claim public beta readiness")
     boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
@@ -230,9 +236,11 @@ def _check_controlled_testnet_go_gate() -> list[str]:
         errors.append("controlled testnet go-gate schema mismatch")
     if payload.get("controlled_testnet_go_gate_ready_to_run") is not True:
         q = payload.get("quantum_resistance_readiness_summary") if isinstance(payload.get("quantum_resistance_readiness_summary"), dict) else {}
+        b587 = payload.get("b587_b594_mechanism_completion_summary") if isinstance(payload.get("b587_b594_mechanism_completion_summary"), dict) else {}
         pq_blocked = q.get("real_mldsa_implemented_in_this_environment") is False
-        if not pq_blocked:
-            errors.append("controlled testnet go-gate must be ready to run")
+        mechanism_blocked = b587.get("controlled_testnet_mechanisms_complete") is False
+        if not (pq_blocked or mechanism_blocked):
+            errors.append("controlled testnet go-gate is false without a declared PQ or mechanism-completion blocker")
     if payload.get("public_beta_ready") is not False:
         errors.append("controlled testnet go-gate must not claim public beta readiness")
     boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
@@ -498,8 +506,17 @@ def _check_final_public_observer_controlled_testnet_go_gate() -> list[str]:
         errors.append("final public observer controlled testnet go-gate schema mismatch")
     verdict = payload.get("go_no_go_verdict") if isinstance(payload.get("go_no_go_verdict"), dict) else {}
     controlled_verdict = str(verdict.get("controlled_internal_public_observer_rehearsal_candidate", ""))
-    if controlled_verdict not in {"GO", "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE"}:
+    if controlled_verdict not in {
+        "GO",
+        "NO_GO_MECHANISM_COMPLETION_INCOMPLETE",
+        "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE",
+    }:
         errors.append("final go-gate must give a bounded controlled-rehearsal verdict")
+    if payload.get("controlled_testnet_mechanism_gate_ready") is False:
+        if payload.get("controlled_rehearsal_candidate_ready") is not False:
+            errors.append("final go-gate must not authorize controlled rehearsal candidate when mechanism completion is NO-GO")
+        if controlled_verdict != "NO_GO_MECHANISM_COMPLETION_INCOMPLETE":
+            errors.append("final go-gate must report mechanism-completion NO_GO when the mechanism gate is false")
     for key in ("bounded_public_observer_launch_claim", "public_beta_claim", "public_mainnet_claim", "public_validator_bft_claim"):
         if not str(verdict.get(key, "")).startswith("NO_GO"):
             errors.append(f"final go-gate must keep {key} as NO_GO")
@@ -528,7 +545,12 @@ def _check_release_evidence_manifest() -> list[str]:
         errors.append("release evidence manifest must keep mainnet_ready=false")
     if payload.get("runtime_commit_binding_required") is not True:
         errors.append("release evidence manifest must require runtime commit binding")
+    if payload.get("controlled_testnet_candidate") is not False:
+        errors.append("release evidence manifest must keep controlled_testnet_candidate=false while mechanism completion is NO-GO")
     gates = payload.get("release_evidence_gates") if isinstance(payload.get("release_evidence_gates"), dict) else {}
+    final_gate = gates.get("final_public_observer_controlled_testnet_go_gate") if isinstance(gates.get("final_public_observer_controlled_testnet_go_gate"), dict) else {}
+    if final_gate.get("controlled_rehearsal_candidate_allowed") is not False:
+        errors.append("release evidence manifest must keep controlled_rehearsal_candidate_allowed=false while mechanism completion is NO-GO")
     for key in ("clean_clone_go_gate", "external_validator_operator_transcript", "storage_ipfs_operator_transcript", "legal_compliance_attestation", "rendered_operator_journey", "production_helper_topology_hardening_plan"):
         if key not in gates:
             errors.append(f"release evidence manifest missing gate: {key}")

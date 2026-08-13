@@ -17,7 +17,7 @@ def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     assert report["ok"] is True
     assert report["public_beta_ready"] is False
     assert report["mainnet_ready"] is False
-    assert report["controlled_testnet_candidate"] is True
+    assert report["controlled_testnet_candidate"] is False
     assert report["blocker_count"] == report["blocker_catalog_count"]
     assert report["blocker_catalog_count"] >= 13
     assert report["remaining_blocker_count"] == report["open_blocker_count"]
@@ -129,7 +129,10 @@ def test_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> 
     assert summary["p1_open_count"] == 4
     assert "public_validator_join" in surface["blocked_capabilities"]
     assert "production_helper_execution" in surface["blocked_capabilities"]
-    assert surface["controlled_mechanism_artifact_blockers"] == []
+    assert surface["controlled_mechanism_artifact_blockers"] == [
+        "b587_b594_mechanism_completion"
+    ]
+    assert surface["controlled_testnet_mechanisms_complete"] is False
     upgrade = surface["protocol_upgrade_lifecycle"]
     assert upgrade["activation_clock"] == "block_height"
     assert upgrade["activation_record_only"] is True
@@ -163,6 +166,6 @@ def test_controlled_go_gate_references_public_beta_blockers() -> None:
     assert summary["closed_in_repository_count"] + summary["remaining_blocker_count"] == summary["blocker_catalog_count"]
     assert summary["p0_open_count"] == 4
     assert summary["p1_open_count"] == 4
-    assert payload["controlled_testnet_go_gate_ready_to_run"] is True
-    assert payload["controlled_testnet_candidate"] is True
+    assert payload["controlled_testnet_go_gate_ready_to_run"] is False
+    assert payload["controlled_testnet_candidate"] is False
     assert payload["public_readiness_claim_requires_external_evidence"] is True

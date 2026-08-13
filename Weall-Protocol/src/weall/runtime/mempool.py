@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from typing import Any
 from weall.runtime.runtime_env import safe_int as _safe_int
 from weall.runtime.runtime_time import now_ms as _now_ms
+from weall.runtime.tx_id import (
+    canonical_tx_identity_from_dict,
+    compute_tx_id_from_dict as _compute_protocol_tx_id,
+)
 
 from weall.runtime.sqlite_db import SqliteDB, _canon_json
 
@@ -93,50 +97,19 @@ def _read_selection_policy(name: str = "WEALL_MEMPOOL_SELECTION_POLICY", *, defa
     return normalized
 
 
-def _envelope_for_id(env: Json) -> Json:
-    """Return the subset of an envelope used to derive its tx_id.
+def _envelope_for_id(env: Json, *, chain_id: str) -> Json:
+    """Return exactly the semantic fields committed by the canonical tx ID."""
 
-    We intentionally exclude fields that are:
-      - assigned locally (tx_id/received_ms/expires_ms)
-      - inherently non-deterministic
-
-    This prevents tx_id spoofing/poisoning and avoids hash changes when the node
-    stamps received/expiry times.
-    """
-    out: Json = {}
-    for k, v in env.items():
-        if k in {
-            "tx_id",
-            "received_ms",
-            "expires_ms",
-            # Local mempool metadata. These fields are stamped by the receiving
-            # node for storage/diagnostics and must never affect the canonical
-            # transaction identity or signature domain. Consensus candidate
-            # eligibility is anchored by the persisted height columns below.
-            "mempool_admitted_height",
-            "mempool_expires_height",
-        }:
-            continue
-        out[k] = v
-    return out
+    return canonical_tx_identity_from_dict(str(chain_id), env)
 
 
 def compute_tx_id(env: Json, *, chain_id: str | None = None) -> str:
-    """Compute a deterministic tx_id from envelope content.
+    """Compatibility facade for the single protocol transaction-ID function."""
 
-    Notes:
-      - We incorporate chain_id (if provided) to prevent cross-chain collisions.
-      - We still ignore locally-stamped fields (tx_id/received_ms/expires_ms).
-    """
-    base = _envelope_for_id(env)
-    if chain_id:
-        # Only stamp if the envelope does not already declare a chain_id.
-        # This keeps backward compatibility with callers that already include it.
-        if "chain_id" not in base:
-            base["chain_id"] = str(chain_id)
-    h = hashlib.sha256(_canon_json(base).encode("utf-8")).hexdigest()
-    return f"tx:{h}"
-
+    resolved_chain_id = str(chain_id or "").strip()
+    if not resolved_chain_id:
+        raise ValueError("compute_tx_id requires chain_id")
+    return _compute_protocol_tx_id(resolved_chain_id, env)
 
 def _expires_ms(env: Json, *, fallback_ttl_ms: int) -> int:
     ex = env.get("expires_ms")
@@ -359,7 +332,105 @@ class PersistentMempool:
         self.evict_on_full = _env_bool("WEALL_MEMPOOL_EVICT_ON_FULL", self.evict_on_full)
         self.evict_batch = max(1, _env_int("WEALL_MEMPOOL_EVICT_BATCH", self.evict_batch))
         self._selection_policy = _read_selection_policy()
+        self._migrate_tx_ids_to_canonical()
         self._ensure_nonce_index_ready()
+
+    def _migrate_tx_ids_to_canonical(self) -> None:
+        """Atomically migrate legacy mempool IDs to the protocol canonical form.
+
+        The pre-freeze mempool hashed signature-bearing envelope fields while
+        block admission used a semantic transaction identity.  Startup migration
+        makes persisted pending rows use the same ``tx:<sha256>`` identity as all
+        other subsystems before they can be selected for a block.
+
+        Any malformed row or canonical collision fails closed instead of silently
+        dropping or choosing between persisted transactions.
+        """
+
+        with self.db.write_tx() as con:
+            rows = con.execute(
+                """
+                SELECT tx_id, envelope_json
+                FROM mempool
+                ORDER BY received_ms ASC, tx_id ASC;
+                """
+            ).fetchall()
+            if not rows:
+                return
+
+            planned: list[tuple[str, str, str]] = []
+            canonical_owner: dict[str, str] = {}
+            occupied = {str(row["tx_id"]) for row in rows if row is not None}
+
+            for index, row in enumerate(rows):
+                if row is None:
+                    continue
+                old_tx_id = str(row["tx_id"] or "").strip()
+                try:
+                    env = json.loads(str(row["envelope_json"]))
+                except Exception as exc:
+                    raise ValueError(
+                        f"mempool_tx_id_migration_bad_envelope:{old_tx_id}"
+                    ) from exc
+                if not isinstance(env, dict):
+                    raise ValueError(
+                        f"mempool_tx_id_migration_bad_envelope:{old_tx_id}"
+                    )
+                try:
+                    new_tx_id = compute_tx_id(env, chain_id=self.chain_id)
+                except Exception as exc:
+                    raise ValueError(
+                        f"mempool_tx_id_migration_bad_identity:{old_tx_id}"
+                    ) from exc
+
+                owner = canonical_owner.get(new_tx_id)
+                if owner is not None and owner != old_tx_id:
+                    raise ValueError(
+                        f"mempool_tx_id_migration_conflict:{new_tx_id}:{owner}:{old_tx_id}"
+                    )
+                canonical_owner[new_tx_id] = old_tx_id
+
+                env2 = dict(env)
+                env2["tx_id"] = new_tx_id
+                env_json = _canon_json(env2)
+
+                if old_tx_id == new_tx_id:
+                    con.execute(
+                        "UPDATE mempool SET envelope_json=? WHERE tx_id=?;",
+                        (env_json, old_tx_id),
+                    )
+                    continue
+
+                temp_id = f"__weall_txid_migration__:{index}:{hashlib.sha256((old_tx_id + new_tx_id).encode()).hexdigest()}"
+                if temp_id in occupied or temp_id in canonical_owner:
+                    raise ValueError("mempool_tx_id_migration_temp_collision")
+                occupied.add(temp_id)
+                planned.append((old_tx_id, temp_id, new_tx_id))
+
+            # Move all changing primary keys out of the canonical namespace first,
+            # then install final IDs.  The enclosing SQLite transaction makes the
+            # migration atomic.
+            for old_tx_id, temp_id, _new_tx_id in planned:
+                con.execute(
+                    "UPDATE mempool SET tx_id=? WHERE tx_id=?;",
+                    (temp_id, old_tx_id),
+                )
+
+            for _old_tx_id, temp_id, new_tx_id in planned:
+                row = con.execute(
+                    "SELECT envelope_json FROM mempool WHERE tx_id=? LIMIT 1;",
+                    (temp_id,),
+                ).fetchone()
+                if row is None:
+                    raise ValueError("mempool_tx_id_migration_missing_temp_row")
+                env = json.loads(str(row["envelope_json"]))
+                if not isinstance(env, dict):
+                    raise ValueError("mempool_tx_id_migration_bad_temp_envelope")
+                env["tx_id"] = new_tx_id
+                con.execute(
+                    "UPDATE mempool SET tx_id=?, envelope_json=? WHERE tx_id=?;",
+                    (new_tx_id, _canon_json(env), temp_id),
+                )
 
     def _count_total(self, *, con) -> int:
         row = con.execute("SELECT COUNT(1) AS n FROM mempool;").fetchone()
@@ -611,8 +682,8 @@ class PersistentMempool:
                 existing = _matching_signer_nonce_entry(con=con, signer=signer, nonce=int(nonce))
                 if existing is not None:
                     existing_tx_id, existing_env = existing
-                    existing_base = _canon_json(_envelope_for_id(existing_env))
-                    incoming_base = _canon_json(_envelope_for_id(env))
+                    existing_base = _canon_json(_envelope_for_id(existing_env, chain_id=self.chain_id))
+                    incoming_base = _canon_json(_envelope_for_id(env, chain_id=self.chain_id))
                     if existing_base == incoming_base:
                         env["tx_id"] = existing_tx_id
                         if "received_ms" in existing_env:
@@ -739,8 +810,8 @@ class PersistentMempool:
                     existing_env = json.loads(str(row["envelope_json"]))
                 except Exception:
                     existing_env = {}
-                existing_base = _canon_json(_envelope_for_id(existing_env))
-                incoming_base = _canon_json(_envelope_for_id(env))
+                existing_base = _canon_json(_envelope_for_id(existing_env, chain_id=self.chain_id))
+                incoming_base = _canon_json(_envelope_for_id(env, chain_id=self.chain_id))
                 if existing_base == incoming_base:
                     env["tx_id"] = tx_id
                     if "received_ms" in existing_env:
@@ -917,8 +988,8 @@ class PersistentMempool:
                     if existing is not None:
                         existing_tx_id, existing_env = existing
                         start = time.perf_counter_ns()
-                        existing_base = _canon_json(_envelope_for_id(existing_env))
-                        incoming_base = _canon_json(_envelope_for_id(env))
+                        existing_base = _canon_json(_envelope_for_id(existing_env, chain_id=self.chain_id))
+                        incoming_base = _canon_json(_envelope_for_id(env, chain_id=self.chain_id))
                         if timings is not None:
                             _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
                         if existing_base == incoming_base:
@@ -1069,8 +1140,8 @@ class PersistentMempool:
                     except Exception:
                         existing_env = {}
                     start = time.perf_counter_ns()
-                    existing_base = _canon_json(_envelope_for_id(existing_env))
-                    incoming_base = _canon_json(_envelope_for_id(env))
+                    existing_base = _canon_json(_envelope_for_id(existing_env, chain_id=self.chain_id))
+                    incoming_base = _canon_json(_envelope_for_id(env, chain_id=self.chain_id))
                     if timings is not None:
                         _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
                     if existing_base == incoming_base:

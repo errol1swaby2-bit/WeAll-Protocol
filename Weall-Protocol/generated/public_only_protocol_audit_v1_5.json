@@ -298,6 +298,12 @@
       "category": "backend/runtime",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "src/weall/runtime/bft_outbound.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "src/weall/runtime/poh/evidence_lifecycle.py"
     },
     {
@@ -426,7 +432,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 61,
+  "inventory_hit_count": 62,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

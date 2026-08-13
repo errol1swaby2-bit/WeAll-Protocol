@@ -83,7 +83,7 @@ Frontend checks prove rendering/source-contract behavior only. They do not overr
 | Current readiness statement | `Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md` | The allowed claim is bounded and public beta remains blocked. |
 | Evidence index | `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md` | Implemented evidence, generated artifacts, local gates, external evidence, and future hardening are separated. |
 | Public beta blocker status | `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md` | 14 blockers visible; 7 closed in repo; 7 open. |
-| Final go-gate doc | `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` | GO only for controlled internal/public-observer rehearsal candidate. |
+| Final go-gate doc | `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` | NO-GO for controlled-testnet mechanism completion until production helper state-root/restart proof is complete; local observer/reviewer rehearsal remains available. |
 | Public observer quickstart | `Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md` | Boot steps are transcript collection steps, not public-readiness authority. |
 | Testnet launch checklist | `Weall-Protocol/docs/testnet/TESTNET_LAUNCH_CHECKLIST.md` | Launch wording remains conservative. |
 | Production posture | `Weall-Protocol/docs/PRODUCTION_POSTURE.md` | Fail-closed and disabled surfaces remain explicit. |

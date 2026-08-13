@@ -520,6 +520,10 @@ def build() -> Json:
         and legal.get("legal_compliance_ready") is False
         and frontend_p2_ux.get("ok") is True
     )
+    controlled_testnet_candidate = bool(
+        evidence_inventory_ok
+        and capabilities.get("controlled_testnet_mechanisms_complete") is True
+    )
     open_blockers = [b for b in blockers if b in remaining]
     closed_count = len([b for b in blockers if str(b.get("gate_status", "")).startswith("closed")])
     classification_counts: dict[str, int] = {}
@@ -552,7 +556,7 @@ def build() -> Json:
         "remaining_blocker_count": "Open blockers that still require external evidence, counsel attestation, or future mainnet-readiness hardening before public beta can be claimed.",
         "closed_in_repository_count": "Catalog entries closed by tracked repository evidence, generated artifacts, docs, or source-level UX gates.",
         "remaining_external_evidence_required_count": "Open blockers with missing independent transcript, real-operator proof, counsel attestation, or other external evidence.",
-        "remaining_mainnet_hardening_count": "Open blockers whose final closure depends on future public-validator, protocol-upgrade, storage, or production-helper hardening beyond the bounded observer/controlled-testnet candidate.",
+        "remaining_mainnet_hardening_count": "Open blockers whose final closure depends on future public-validator, protocol-upgrade, storage, or production-helper hardening beyond the current pre-public-testnet hardening posture.",
         "p*_open_count": "Open blocker count by severity, using remaining_blocker_count semantics rather than catalog size.",
     }
 
@@ -564,7 +568,7 @@ def build() -> Json:
         "ok_meaning": "The blocker inventory and bounded evidence gates are current; this does not mean public beta readiness.",
         "public_beta_ready": False,
         "mainnet_ready": False,
-        "controlled_testnet_candidate": True,
+        "controlled_testnet_candidate": controlled_testnet_candidate,
         "public_beta_blockers_remaining": True,
         "blocker_count": len(blockers),
         "blocker_catalog_count": len(blockers),
@@ -641,7 +645,7 @@ def build() -> Json:
             "live_economics": False,
             "legal_compliance_ready": False,
         },
-        "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+        "next_allowed_claim": "pre-public-testnet implementation under active hardening; controlled-testnet mechanism completion remains NO-GO until production helper state-root/restart proof is complete",
         "verification_commands": [
             "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",

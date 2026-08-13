@@ -591,7 +591,8 @@
     "public_storage_provider_market": false,
     "public_validator_readiness": false
   },
-  "controlled_testnet_candidate_strengthened": true,
+  "controlled_testnet_candidate_strengthened": false,
+  "controlled_testnet_receipt_order_evidence_strengthened": true,
   "gap_register_truth_refresh": {
     "batch": "582",
     "economic_simulation_gap_status": "initial_simulation_added_activation_still_blocked",
@@ -624,6 +625,7 @@
     "ok": true,
     "production_helper_execution_enabled": false,
     "public_helper_execution_claimed": false,
+    "receipt_order_equivalence_proven": true,
     "serial_equivalence_ok": true,
     "source_helper_expansion": {
       "batch": "561",
@@ -645,7 +647,8 @@
       "serial_equivalence_reason": "ok",
       "tx_count": 10
     },
-    "state_root_equality_proven_by_serial_equivalence": true,
+    "state_root_equality_proven_by_serial_equivalence": false,
+    "state_root_equivalence_production_proof_available": false,
     "tx_count": 10
   },
   "ok": true,
@@ -731,7 +734,7 @@
     "PoH operator routes now have explicit metadata, but operator routes remain env/token gated and do not grant public validator or public PoH authority.",
     "Storage durability now rejects wrong/corrupt content and retrieves from a non-origin local daemon-compatible process, but public decentralized media durability still requires multi-machine operator proof.",
     "Anti-Sybil suspicion records now flow through panel/adjudication/recovery/deletion rehearsals, but complete Sybil resistance and automatic duplicate-human detection remain unclaimed.",
-    "Helper equivalence corpus evidence expanded without activating production helper execution; multi-node helper production proof remains required."
+    "Helper receipt/order equivalence corpus evidence expanded without activating production helper execution; production block-path state-root equivalence and restart/replay proof remain required."
   ],
   "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof",
   "storage_ipfs_durability_rehearsal": {

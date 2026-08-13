@@ -18,9 +18,9 @@ def _proof() -> dict:
 def test_controlled_testnet_go_gate_manifest_is_fresh_and_bounded() -> None:
     proof = _proof()
     assert proof["schema"] == "weall.v1_5.controlled_testnet_go_gate"
-    assert proof["ok"] is True
-    assert proof["controlled_testnet_go_gate_ready_to_run"] is True
-    assert proof["controlled_testnet_candidate"] is True
+    assert proof["ok"] is False
+    assert proof["controlled_testnet_go_gate_ready_to_run"] is False
+    assert proof["controlled_testnet_candidate"] is False
     assert proof["controlled_testnet_ready_claimed_by_repo"] is False
     assert proof["public_beta_ready"] is False
     assert proof["public_readiness_claim_requires_external_evidence"] is True
@@ -63,10 +63,13 @@ def test_go_gate_captures_required_artifact_and_runtime_evidence() -> None:
         "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
     ):
         assert artifacts[rel]["present"] is True
-        assert artifacts[rel]["ok"] is True
+        if rel == "generated/b587_b594_testnet_mechanism_completion_v1_5.json":
+            assert artifacts[rel]["ok"] is False
+        else:
+            assert artifacts[rel]["ok"] is True
 
     assert proof["api_response_vector_summary"]["vector_count"] >= 10
-    assert proof["b587_b594_mechanism_completion_summary"]["controlled_testnet_mechanisms_complete"] is True
+    assert proof["b587_b594_mechanism_completion_summary"]["controlled_testnet_mechanisms_complete"] is False
     assert proof["b587_b594_mechanism_completion_summary"]["public_beta_ready"] is False
     assert proof["validator_go_gate_snapshot"]["state_roots_match"] is True
     assert proof["validator_go_gate_snapshot"]["requires_independent_operator_run"] is True
@@ -78,8 +81,8 @@ def test_launch_capability_surface_includes_mechanism_completion_artifact() -> N
     surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
     artifacts = surface["required_artifacts"]
     assert artifacts["b587_b594_mechanism_completion"]["present"] is True
-    assert artifacts["b587_b594_mechanism_completion"]["ok"] is True
-    assert surface["controlled_testnet_mechanisms_complete"] is True
+    assert artifacts["b587_b594_mechanism_completion"]["ok"] is False
+    assert surface["controlled_testnet_mechanisms_complete"] is False
     assert surface["public_beta_ready_claimed"] is False
     for cap in (
         "live_transfers",

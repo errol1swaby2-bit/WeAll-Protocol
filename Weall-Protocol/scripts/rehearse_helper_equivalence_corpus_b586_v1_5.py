@@ -42,10 +42,14 @@ def run_harness() -> Json:
         "lane_count": base.get("lane_count"),
         "helper_lane_count": base.get("helper_lane_count"),
         "serial_equivalence_ok": base.get("serial_equivalence_ok") is True,
+        "receipt_order_equivalence_proven": base.get("serial_equivalence_ok") is True,
         "missing_helper_fallback": bool(base.get("missing_helper_fallback_reasons")),
         "byzantine_helper_rejection": bool(base.get("byzantine_helper_rejection_reasons")),
         "deterministic_merge_preserves_tx_order": bool(base.get("missing_helper_preserves_tx_order") and base.get("byzantine_helper_preserves_tx_order")),
-        "state_root_equality_proven_by_serial_equivalence": bool(base.get("serial_equivalence_ok") is True),
+        # The underlying equivalence report compares receipt/order outputs only.
+        # It does not independently materialize and hash helper-vs-serial post-state.
+        "state_root_equality_proven_by_serial_equivalence": False,
+        "state_root_equivalence_production_proof_available": False,
         "production_helper_execution_enabled": False,
         "public_helper_execution_claimed": False,
     }

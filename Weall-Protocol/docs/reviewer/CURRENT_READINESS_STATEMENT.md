@@ -8,7 +8,7 @@ This statement reflects the repository after Passes 10–27. It is intentionally
 
 | Claim | Status | Evidence boundary |
 |---|---:|---|
-| Controlled internal/public-observer rehearsal candidate | GO | Supported by generated artifacts, reviewer docs, local go-gate checks, and public-observer boot runbooks. |
+| Controlled-testnet mechanism completion | NO-GO | Production helper state-root/restart equivalence is not yet proven; local reviewer/observer rehearsal remains available. |
 | Bounded public observer launch claim | NO-GO | `AUD-628-P1-001` external rendered observer transcript is still missing. |
 | Public beta readiness | NO-GO | `public_beta_ready` must remain `false`. |
 | Public mainnet readiness | NO-GO | Mainnet-hardening gates remain open. |
@@ -27,10 +27,10 @@ The canonical counts are taken from `generated/public_beta_blocker_report_v1_5.j
 
 | Field | Current value |
 |---|---:|
-| `blocker_catalog_count` | 14 |
+| `blocker_catalog_count` | 15 |
 | `closed_in_repository_count` | 7 |
-| `remaining_blocker_count` | 7 |
-| `remaining_external_evidence_required_count` | 7 |
+| `remaining_blocker_count` | 8 |
+| `remaining_external_evidence_required_count` | 8 |
 | `p0_open_count` | 3 |
 | `p1_open_count` | 4 |
 | `public_beta_ready` | `false` |
@@ -52,7 +52,7 @@ Repository evidence currently includes generated artifacts, tests, scripts, and 
 - observer boot scripts and public-testnet chain/registry checks;
 - helper, storage, public validator, replay, and legal evidence templates/hardening plans.
 
-Repository evidence can support a controlled rehearsal candidate. It cannot replace external operator transcripts, counsel/control attestations, or future execution hardening proof.
+Repository evidence supports bounded local/devnet/public-observer-oriented rehearsal and review. Controlled-testnet mechanism completion remains NO-GO until production helper state-root/restart equivalence is proven; local evidence cannot replace external operator transcripts, counsel/control attestations, or future execution hardening proof.
 
 ## What is generated artifact evidence
 

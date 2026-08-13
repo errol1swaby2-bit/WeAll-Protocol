@@ -127,18 +127,28 @@ def build() -> Json:
         "AUD-633-P0-004",
     }
     quantum = _read_json("generated/quantum_resistance_readiness_v1_5.json")
+    controlled_gate = _read_json("generated/controlled_testnet_go_gate_v1_5.json")
     real_mldsa_ready = bool(quantum.get("real_mldsa_implemented_in_this_environment"))
+    mechanism_gate_ready = bool(controlled_gate.get("controlled_testnet_go_gate_ready_to_run"))
     external_blockers_still_open = set(remaining_ids) == expected_remaining
     repo_package_ready = all(docs_present.values()) and all(generated_present.values()) and all(flow_docs_present.values())
     artifact_consistent = repo_package_ready and external_blockers_still_open and blocker_counts.get("public_beta_ready") is False
-    bounded_rehearsal_candidate = artifact_consistent and real_mldsa_ready
-    controlled_verdict = "GO" if bounded_rehearsal_candidate else "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE"
+    bounded_rehearsal_candidate = artifact_consistent and real_mldsa_ready and mechanism_gate_ready
+    if bounded_rehearsal_candidate:
+        controlled_verdict = "GO"
+    elif not mechanism_gate_ready:
+        controlled_verdict = "NO_GO_MECHANISM_COMPLETION_INCOMPLETE"
+    elif not real_mldsa_ready:
+        controlled_verdict = "NO_GO_PQ_SIGNING_PROFILE_INCOMPLETE"
+    else:
+        controlled_verdict = "NO_GO_PACKAGE_INCONSISTENT"
 
     payload: Json = {
         "schema": "weall.v1_5.final_public_observer_controlled_testnet_go_gate",
         "version": "2026-07-pass27-final-bounded-testnet-go-gate",
         "ok": artifact_consistent,
         "controlled_rehearsal_candidate_ready": bounded_rehearsal_candidate,
+        "controlled_testnet_mechanism_gate_ready": mechanism_gate_ready,
         "repo_package_ready": repo_package_ready,
         "go_no_go_verdict": {
             "controlled_internal_public_observer_rehearsal_candidate": controlled_verdict,

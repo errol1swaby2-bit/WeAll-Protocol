@@ -12,11 +12,13 @@ Json = dict[str, Any]
 
 
 class BftJournal:
-    """Append-only local journal for consensus diagnostics and restart hints.
+    """Append-only node-local journal for BFT diagnostics and outbound recovery.
 
-    This journal is intentionally node-local and non-consensus-critical. It gives
-    operators a durable trace of view changes, timeout escalation, fetch gaps,
-    and restart context without altering block validity.
+    Diagnostic/restart-hint consumers may use best-effort reads.  Durable outbound
+    consumers use ``strict=True`` and fail closed on journal I/O errors so a node
+    never silently forgets a send obligation.  The journal remains non-consensus
+    state: it does not alter block validity or the persisted local voting-safety
+    slots that must be committed before outbound emission.
     """
 
     def __init__(self, path: str, *, max_events: int = 2000) -> None:
@@ -39,11 +41,13 @@ class BftJournal:
                 f.write(line)
             self._trim_locked()
 
-    def read_tail(self, limit: int = 100) -> list[Json]:
+    def read_tail(self, limit: int = 100, *, strict: bool = False) -> list[Json]:
         lim = max(1, min(int(limit), self.max_events))
         try:
             lines = Path(self.path).read_text(encoding="utf-8").splitlines()
         except Exception:
+            if strict:
+                raise
             return []
         out: list[Json] = []
         for line in lines[-lim:]:
@@ -61,7 +65,7 @@ class BftJournal:
                 return rec
         return None
 
-    def bootstrap_state(self) -> Json:
+    def bootstrap_state(self, *, strict: bool = False) -> Json:
         out: Json = {
             "last_view": 0,
             "last_timeout_view": -1,
@@ -69,7 +73,7 @@ class BftJournal:
             "fetch_requests": [],
             "pending_outbound": [],
         }
-        for rec in self.read_tail(limit=self.max_events):
+        for rec in self.read_tail(limit=self.max_events, strict=strict):
             payload = rec.get("payload") if isinstance(rec, dict) else None
             if not isinstance(payload, dict):
                 continue

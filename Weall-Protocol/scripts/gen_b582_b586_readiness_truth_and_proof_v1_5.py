@@ -100,7 +100,8 @@ def build() -> Json:
         "storage_ipfs_durability_rehearsal": storage,
         "anti_sybil_suspicion_review_lifecycle": anti_sybil,
         "helper_equivalence_corpus_expansion": helper,
-        "controlled_testnet_candidate_strengthened": True,
+        "controlled_testnet_candidate_strengthened": False,
+        "controlled_testnet_receipt_order_evidence_strengthened": True,
         "trusted_observer_candidate_strengthened": True,
         "public_beta_ready": False,
         "claim_boundaries": boundaries,
@@ -109,7 +110,7 @@ def build() -> Json:
             "PoH operator routes now have explicit metadata, but operator routes remain env/token gated and do not grant public validator or public PoH authority.",
             "Storage durability now rejects wrong/corrupt content and retrieves from a non-origin local daemon-compatible process, but public decentralized media durability still requires multi-machine operator proof.",
             "Anti-Sybil suspicion records now flow through panel/adjudication/recovery/deletion rehearsals, but complete Sybil resistance and automatic duplicate-human detection remain unclaimed.",
-            "Helper equivalence corpus evidence expanded without activating production helper execution; multi-node helper production proof remains required.",
+            "Helper receipt/order equivalence corpus evidence expanded without activating production helper execution; production block-path state-root equivalence and restart/replay proof remain required.",
         ],
     }
 

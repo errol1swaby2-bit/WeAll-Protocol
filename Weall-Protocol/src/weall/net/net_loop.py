@@ -24,6 +24,7 @@ BFT note:
     and broadcasts any produced follow-up messages (votes, QCs, timeouts).
 """
 
+import inspect
 import json
 import logging
 import os
@@ -115,6 +116,32 @@ class BftOutboundReplayError(BftOutboundBridgeError):
 
 class BftFetchDescriptorError(NetLoopRuntimeError):
     pass
+
+
+def _call_with_optional_now_once(fn: Any, now_ms: int) -> Any:
+    """Invoke a compatibility callable exactly once.
+
+    Signature adaptation is decided before the call so an internal ``TypeError``
+    can never be mistaken for an old zero-argument API and retried.
+    """
+
+    try:
+        signature = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return fn(now_ms)
+
+    params = tuple(signature.parameters.values())
+    accepts_positional = any(
+        param.kind is inspect.Parameter.VAR_POSITIONAL
+        for param in params
+    ) or any(
+        param.kind in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        )
+        for param in params
+    )
+    return fn(now_ms) if accepts_positional else fn()
 
 
 def _is_prod() -> bool:
@@ -2062,7 +2089,9 @@ class NetMeshLoop:
 
         try:
             pending = getattr(self._executor, "bft_pending_outbound_messages", lambda: [])()
-        except Exception:
+        except Exception as exc:
+            if _is_prod():
+                raise BftOutboundBridgeError("pending_outbound_read_failed") from exc
             pending = []
         for item in list(pending or []):
             if not isinstance(item, dict):
@@ -2097,12 +2126,8 @@ class NetMeshLoop:
         if (now - int(self._last_bft_vote_ms)) >= int(self._bft_vote_interval_ms):
             self._last_bft_vote_ms = int(now)
             try:
-                out = getattr(self._executor, "bft_drive_timeouts", lambda *_a, **_k: None)(now)
-            except TypeError:
-                try:
-                    out = getattr(self._executor, "bft_drive_timeouts", lambda: None)()
-                except Exception:
-                    out = None
+                drive_timeouts = getattr(self._executor, "bft_drive_timeouts", lambda *_a, **_k: None)
+                out = _call_with_optional_now_once(drive_timeouts, now)
             except Exception as e:
                 if _is_prod():
                     raise BftOutboundBridgeError("drive_timeouts_failed") from e

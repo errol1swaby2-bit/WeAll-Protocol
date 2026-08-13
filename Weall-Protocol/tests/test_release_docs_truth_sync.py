@@ -180,8 +180,9 @@ def test_reviewer_docs_preserve_public_beta_blocker_counts() -> None:
     ]
     for path in docs:
         text = _read(path)
-        assert "14" in text
+        assert "15" in text
         assert "7" in text
+        assert "8" in text
         assert "public_beta_ready" in text
         assert "false" in text.lower()
         assert "p0_open_count" in text

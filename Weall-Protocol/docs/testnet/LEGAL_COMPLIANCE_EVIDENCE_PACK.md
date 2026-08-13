@@ -3,7 +3,7 @@
 Status: non-lawyer draft, pending counsel review.
 
 This page explains how testers and reviewers should interpret the legal/compliance
-work for the bounded public observer / controlled testnet candidate. It is not
+work for bounded pre-public-testnet public-observer-oriented rehearsal. Controlled-testnet mechanism completion remains NO-GO. It is not
 legal advice and does not state that WeAll is legally approved.
 
 ## Current status

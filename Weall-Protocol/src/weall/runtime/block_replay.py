@@ -12,6 +12,7 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
+from weall.runtime.block_commitment_validation import validate_received_block_commitments
 from weall.runtime.executor import (
     MAX_BLOCK_TIME_ADVANCE_MS,
     ApplyError,
@@ -82,11 +83,6 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     except Exception:
         return ExecutorMeta(ok=False, error="bad_block:bad_hash", height=0, block_id="")
 
-    if self._block_identity_conflicts(block2):
-        return ExecutorMeta(
-            ok=False, error="bad_block:block_id_hash_conflict", height=0, block_id=""
-        )
-
     header = block2.get("header")
     if not isinstance(header, dict):
         return ExecutorMeta(ok=False, error="bad_block:missing_header", height=0, block_id="")
@@ -94,28 +90,10 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     if str(header.get("chain_id") or "").strip() != self.chain_id:
         return ExecutorMeta(ok=False, error="bad_block:chain_id_mismatch", height=0, block_id="")
 
-    if effective_bft_enabled(executor=self, default=False):
-        strict_bft_apply = (
-            _mode() == "prod"
-            or isinstance(block2.get("justify_qc"), dict)
-            or not isinstance(block2.get("qc"), dict)
-        )
-        if strict_bft_apply:
-            ok_bft, rej_bft = _call_admit_bft_commit_block(
-                block=block2,
-                state=self.state,
-                blocks_map=self._bft_speculative_blocks_map(),
-                bft_enabled=effective_bft_enabled(executor=self, default=False),
-            )
-            if not ok_bft:
-                code = str(rej_bft.code) if rej_bft is not None else "bft_reject"
-                return ExecutorMeta(
-                    ok=False,
-                    error=f"bad_block:{code}",
-                    height=0,
-                    block_id=str(block2.get("block_id") or ""),
-                )
-
+    # Validate chain position and constitutional time before content binding.
+    # None of these checks consumes or caches the advertised block identity, so
+    # performing them first preserves precise protocol rejection reasons without
+    # reopening block/transaction aliasing.
     height = int(header.get("height") or block2.get("height") or 0)
     if height <= 0:
         return ExecutorMeta(ok=False, error="bad_block:height", height=0, block_id="")
@@ -126,7 +104,6 @@ def apply_block(self, block: Json) -> ExecutorMeta:
 
     prev_bh = str(header.get("prev_block_hash") or "").strip()
     tip_hash = str(self.state.get("tip_hash") or "").strip()
-    # Genesis: allow first block when tip_hash is empty.
     if tip_hash and prev_bh != tip_hash:
         return ExecutorMeta(ok=False, error="bad_block:prev_hash_mismatch", height=0, block_id="")
 
@@ -153,6 +130,66 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 ok=False, error="bad_block:ts_before_constitutional_slot", height=0, block_id=""
             )
         return ExecutorMeta(ok=False, error=f"bad_block:{code}", height=0, block_id="")
+
+    ok_binding, binding_reason, binding = validate_received_block_commitments(
+        block=block2,
+        chain_id=self.chain_id,
+    )
+    if not ok_binding or binding is None:
+        return ExecutorMeta(
+            ok=False,
+            error=f"bad_block:{binding_reason}",
+            height=0,
+            block_id=str(block2.get("block_id") or ""),
+        )
+
+    # Canonicalize omitted body IDs for persistence and ensure all downstream
+    # admission/receipt code uses the same identities validated above. Ignore an
+    # advertised block-hash alias internally; the canonical header hash is the only
+    # value allowed into caches/BFT. The supplied alias is rejected later after
+    # more specific header-semantic checks (state root, recent anchor, helper root).
+    txs_for_binding = block2.get("txs")
+    if isinstance(txs_for_binding, list):
+        for raw, canonical_tx_id in zip(txs_for_binding, binding.tx_ids, strict=True):
+            if isinstance(raw, dict):
+                raw["tx_id"] = canonical_tx_id
+    block2["block_id"] = binding.block_id
+    block2["block_hash"] = binding.block_hash
+    bh = binding.block_hash
+
+    if self._block_identity_conflicts(block2):
+        return ExecutorMeta(
+            ok=False, error="bad_block:block_id_hash_conflict", height=0, block_id=""
+        )
+
+    expected_prev_block_id = str(self.state.get("tip") or "").strip()
+    advertised_prev_block_id = str(block2.get("prev_block_id") or "").strip()
+    if advertised_prev_block_id != expected_prev_block_id:
+        return ExecutorMeta(
+            ok=False, error="bad_block:prev_block_id_mismatch", height=0, block_id=""
+        )
+
+    if effective_bft_enabled(executor=self, default=False):
+        strict_bft_apply = (
+            _mode() == "prod"
+            or isinstance(block2.get("justify_qc"), dict)
+            or not isinstance(block2.get("qc"), dict)
+        )
+        if strict_bft_apply:
+            ok_bft, rej_bft = _call_admit_bft_commit_block(
+                block=block2,
+                state=self.state,
+                blocks_map=self._bft_speculative_blocks_map(),
+                bft_enabled=effective_bft_enabled(executor=self, default=False),
+            )
+            if not ok_bft:
+                code = str(rej_bft.code) if rej_bft is not None else "bft_reject"
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:{code}",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
 
     txs = block2.get("txs")
     if not isinstance(txs, list):
@@ -260,17 +297,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     receipts: list[Json] = []
     env_objs: list[TxEnvelope] = []
     env_parse_ok: list[bool] = []
-    tx_ids: list[str] = []
+    tx_ids: list[str] = list(binding.tx_ids)
 
     for env in txs:
-        if not isinstance(env, dict):
-            env_objs.append(TxEnvelope.from_json({}))
-            env_parse_ok.append(False)
-            tx_ids.append("")
-            continue
-
-        tx_id = str(env.get("tx_id") or "").strip()
-        tx_ids.append(tx_id)
         try:
             env_objs.append(TxEnvelope.from_json(env))
             env_parse_ok.append(True)
@@ -513,25 +542,36 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 block_id="",
             )
 
-    # Verify block commitments fail-closed.
+    # Verify execution-derived commitments fail closed.
     receipts_root = compute_receipts_root(receipts=receipts)
-
-    # Update ancestry + tip fields and time exactly as the leader should have.
-    block_id = str(block2.get("block_id") or "").strip()
-    if not block_id:
-        block_id = compute_block_id(
-            chain_id=str(header.get("chain_id") or self.chain_id),
-            height=int(height),
-            prev_block_id=str(block2.get("prev_block_id") or self.state.get("tip") or ""),
-            prev_block_hash=str(
-                header.get("prev_block_hash") or block2.get("prev_block_hash") or ""
-            ),
-            ts_ms=int(ts_ms),
-            node_id=str(block2.get("proposer") or block2.get("node_id") or ""),
-            tx_ids=list(applied_ids),
-            receipts_root=receipts_root,
+    have_rr = str(header.get("receipts_root") or "").strip()
+    if not have_rr:
+        return ExecutorMeta(
+            ok=False, error="bad_block:missing_receipts_root", height=0, block_id=""
         )
-        block2["block_id"] = block_id
+    if receipts_root != have_rr:
+        return ExecutorMeta(
+            ok=False, error="bad_block:receipts_root_mismatch", height=0, block_id=""
+        )
+
+    # Recompute the block ID again from the *executed* receipt commitment rather
+    # than trusting the earlier advertised root binding.  This closes the full
+    # body IDs -> header IDs -> receipts root -> block ID chain.
+    block_id = compute_block_id(
+        chain_id=self.chain_id,
+        height=int(height),
+        prev_block_id=str(self.state.get("tip") or ""),
+        prev_block_hash=str(header.get("prev_block_hash") or ""),
+        ts_ms=int(ts_ms),
+        node_id=str(block2.get("proposer") or block2.get("node_id") or ""),
+        tx_ids=list(applied_ids),
+        receipts_root=receipts_root,
+    )
+    if block_id != binding.block_id:
+        return ExecutorMeta(
+            ok=False, error="bad_block:block_id_mismatch", height=0, block_id=""
+        )
+    block2["block_id"] = block_id
 
     blocks_map = working.get("blocks")
     if not isinstance(blocks_map, dict):
@@ -552,16 +592,6 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     if bool(clock_policy.enabled):
         # Mirror leader candidate construction after advancing the working tip.
         commit_clock_policy_to_state(working, clock_policy)
-
-    have_rr = str(header.get("receipts_root") or "").strip()
-    if not have_rr:
-        return ExecutorMeta(
-            ok=False, error="bad_block:missing_receipts_root", height=0, block_id=""
-        )
-    if receipts_root != have_rr:
-        return ExecutorMeta(
-            ok=False, error="bad_block:receipts_root_mismatch", height=0, block_id=""
-        )
 
     # ------------------------------------------------------------
     # VRF injection + verification (affects state_root)
@@ -683,8 +713,10 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             ok=False, error="bad_block:unexpected_helper_execution_root", height=0, block_id=""
         )
 
-    existing_block_hash = str(block2.get("block_hash") or "").strip()
-    if existing_block_hash and compute_block_hash(header=header) != existing_block_hash:
+    if (
+        binding.advertised_block_hash
+        and binding.advertised_block_hash != binding.block_hash
+    ):
         return ExecutorMeta(ok=False, error="bad_block:block_hash_mismatch", height=0, block_id="")
 
     # Ensure we persist the same tip hash commitment.

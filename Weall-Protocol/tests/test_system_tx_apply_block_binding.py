@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
+from weall.runtime.block_id import compute_block_id
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.mempool import compute_tx_id
 
@@ -79,7 +80,20 @@ def _retx(block: dict) -> None:
             tx["tx_id"] = compute_tx_id(tx, chain_id="apply-block-system-binding")
     header = block.get("header")
     if isinstance(header, dict):
-        header["tx_ids"] = [str(tx.get("tx_id") or "") for tx in block.get("txs") or [] if isinstance(tx, dict)]
+        header["tx_ids"] = [
+            str(tx.get("tx_id") or "")
+            for tx in block.get("txs") or []
+            if isinstance(tx, dict)
+        ]
+        block["block_id"] = compute_block_id(
+            chain_id=str(header.get("chain_id") or "apply-block-system-binding"),
+            height=int(header.get("height") or block.get("height") or 0),
+            prev_block_id=str(block.get("prev_block_id") or ""),
+            prev_block_hash=str(header.get("prev_block_hash") or ""),
+            ts_ms=int(header.get("block_ts_ms") or block.get("block_ts_ms") or 0),
+            tx_ids=list(header["tx_ids"]),
+            receipts_root=str(header.get("receipts_root") or ""),
+        )
     block.pop("block_hash", None)
 
 

@@ -27,12 +27,12 @@ def _latest_block_id(ex: WeAllExecutor) -> str:
     return str(latest.get("block_id") or "")
 
 
-def test_same_node_same_inputs_stable_block_identity_across_restart() -> None:
+def test_same_node_same_inputs_stable_block_identity_across_restart(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
-    db1 = str(root / ".pytest-b80-a.db")
-    db2 = str(root / ".pytest-b80-b.db")
+    db1 = str(tmp_path / ".pytest-b80-a.db")
+    db2 = str(tmp_path / ".pytest-b80-b.db")
     try:
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)
@@ -53,12 +53,12 @@ def test_same_node_same_inputs_stable_block_identity_across_restart() -> None:
         Path(db2).unlink(missing_ok=True)
 
 
-def test_same_node_chunking_keeps_same_logical_result() -> None:
+def test_same_node_chunking_keeps_same_logical_result(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
-    db1 = str(root / ".pytest-b80-c.db")
-    db2 = str(root / ".pytest-b80-d.db")
+    db1 = str(tmp_path / ".pytest-b80-c.db")
+    db2 = str(tmp_path / ".pytest-b80-d.db")
     try:
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)
@@ -89,12 +89,12 @@ def test_same_node_chunking_keeps_same_logical_result() -> None:
         Path(db2).unlink(missing_ok=True)
 
 
-def test_restart_before_production_does_not_change_first_block_identity() -> None:
+def test_restart_before_production_does_not_change_first_block_identity(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
-    db1 = str(root / ".pytest-b80-e.db")
-    db2 = str(root / ".pytest-b80-f.db")
+    db1 = str(tmp_path / ".pytest-b80-e.db")
+    db2 = str(tmp_path / ".pytest-b80-f.db")
     try:
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)
@@ -117,12 +117,12 @@ def test_restart_before_production_does_not_change_first_block_identity() -> Non
         Path(db2).unlink(missing_ok=True)
 
 
-def test_different_chain_ids_may_change_block_identity_without_state_divergence() -> None:
+def test_different_chain_ids_may_change_block_identity_without_state_divergence(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
-    db1 = str(root / ".pytest-b80-g.db")
-    db2 = str(root / ".pytest-b80-h.db")
+    db1 = str(tmp_path / ".pytest-b80-g.db")
+    db2 = str(tmp_path / ".pytest-b80-h.db")
     try:
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)

@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "019a4464fa7cf281da51409633fdba459449a4d9a16d5a8f56a1277a0695145d"
+    "source_tree_digest": "80b7d19a123b5e237036140a06808ca45320303cdc67f8ee879eb8e0108db8d8"
   },
   "required_fields": [
     "stable_id",
@@ -7093,6 +7093,7 @@
         "tests/test_canon_only_execution_boundary.py",
         "tests/test_canonical_dispatch_and_ordering.py",
         "tests/test_canonical_poh_eligibility_and_node_controls.py",
+        "tests/test_canonical_tx_identity_unification.py",
         "tests/test_chain_config_fail_closed.py",
         "tests/test_chain_id_fail_closed_api.py",
         "tests/test_chain_id_fail_closed_restart.py",
@@ -7809,6 +7810,7 @@
         "tests/test_tx_status_persistence.py",
         "tests/test_tx_status_prefers_confirmed_over_pending.py",
         "tests/test_tx_status_tx_queue_runtime_path.py",
+        "tests/test_typeerror_compatibility_no_retry.py",
         "tests/test_v15_artifact_determinism_gate.py",
         "tests/test_v15_epoch_issuance_scheduler.py",
         "tests/test_v15_runtime_config_alignment.py",

@@ -193,6 +193,7 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
     )
     signed["tx_id"] = tx_id
     ts_ms = next_constitutional_block_time_ms(follower)
+    receipts_root = compute_receipts_root(receipts=[])
 
     header = make_block_header(
         chain_id="sig-enforce",
@@ -200,7 +201,7 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
         prev_block_hash="",
         block_ts_ms=ts_ms,
         tx_ids=[tx_id],
-        receipts_root="",
+        receipts_root=receipts_root,
         state_root="",
     )
     block_id = compute_block_id(
@@ -211,7 +212,7 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
         ts_ms=ts_ms,
         node_id="leader",
         tx_ids=[tx_id],
-        receipts_root="",
+        receipts_root=receipts_root,
     )
     forged = {
         "block_id": block_id,

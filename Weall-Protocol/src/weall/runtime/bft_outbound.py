@@ -24,21 +24,36 @@ def _bft_outbound_key(self, kind: str, payload: Json) -> str:
         return f"{str(kind)}:{repr(payload)}"
 
 def _bft_enqueue_outbound(self, kind: str, payload: Json) -> str:
+    """Durably enqueue an outbound consensus message before it can be emitted.
+
+    Unlike diagnostic journal events, the outbound outbox is part of restart
+    liveness.  Journal failure must therefore propagate instead of silently
+    converting a durable-send obligation into a best-effort event.
+    """
+
     key = self._bft_outbound_key(kind, payload)
-    self._bft_record_event(
-        "bft_outbound_enqueued", kind=str(kind), key=key, payload=dict(payload or {})
+    self._bft_journal.append(
+        "bft_outbound_enqueued",
+        chain_id=self.chain_id,
+        node_id=self.node_id,
+        kind=str(kind),
+        key=key,
+        payload=dict(payload or {}),
     )
     return key
 
 def bft_mark_outbound_sent(self, kind: str, payload: Json) -> None:
     key = self._bft_outbound_key(kind, payload)
-    self._bft_record_event("bft_outbound_sent", kind=str(kind), key=key)
+    self._bft_journal.append(
+        "bft_outbound_sent",
+        chain_id=self.chain_id,
+        node_id=self.node_id,
+        kind=str(kind),
+        key=key,
+    )
 
 def bft_pending_outbound_messages(self) -> list[Json]:
-    try:
-        info = self._bft_journal.bootstrap_state()
-    except Exception:
-        return []
+    info = self._bft_journal.bootstrap_state(strict=True)
     out: list[Json] = []
     for item in list(info.get("pending_outbound") or []):
         if not isinstance(item, dict):

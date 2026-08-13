@@ -42,7 +42,7 @@ def test_api_response_vectors_cover_sensitive_routes_without_public_beta_claim()
 
 def test_launch_matrix_capability_surface_blocks_high_risk_features() -> None:
     surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
-    assert surface["controlled_testnet_mechanisms_complete"] is True
+    assert surface["controlled_testnet_mechanisms_complete"] is False
     assert surface["public_beta_ready_claimed"] is False
     for key in (
         "live_transfers",
@@ -134,12 +134,17 @@ def test_reviewer_accountability_appeal_and_evidence_deletion_mechanism() -> Non
 def test_helper_block_path_adversarial_remains_disabled() -> None:
     out = _proof()["helper_block_path_adversarial"]
     assert out["ok"] is True
-    assert out["tx_count"] >= 4
-    assert out["serial_equivalence_ok"] is True
+    assert out["production_path_verifier_executed"] is True
+    assert out["valid_materialized_result_accepted"] is True
     assert out["byzantine_helper_output_rejected"] is True
-    assert out["missing_helper_fallback_to_serial"] is True
-    assert out["restart_replay_root_equal"] is True
-    assert out["deterministic_merge_preserves_tx_order"] is True
+    assert out["byzantine_rejection_code"] == "lane_delta_hash_mismatch"
+    assert out["tampered_lane_serialized"] is True
+    assert out["tampered_delta_not_applied"] is True
+    assert out["state_root_equivalence_proven"] is False
+    assert out["missing_helper_fallback_to_serial_proven"] is False
+    assert out["restart_replay_root_equal_proven"] is False
+    assert out["production_block_path_state_root_equivalence_proven"] is False
+    assert out["mechanism_complete"] is False
     assert out["production_helper_execution_enabled"] is False
     assert out["public_helper_execution_claimed"] is False
 
@@ -160,9 +165,11 @@ def test_locked_economics_adversarial_expansion_keeps_balances_unchanged() -> No
 
 def test_mechanism_completion_artifact_freshness_and_boundaries() -> None:
     proof = _proof()
-    assert proof["ok"] is True
-    assert proof["controlled_testnet_mechanisms_complete"] is True
-    assert proof["controlled_testnet_ready_candidate"] is True
+    assert proof["ok"] is False
+    assert proof["component_harnesses_ok"] is True
+    assert proof["helper_state_root_proof_complete"] is False
+    assert proof["controlled_testnet_mechanisms_complete"] is False
+    assert proof["controlled_testnet_ready_candidate"] is False
     assert proof["public_beta_ready"] is False
     assert proof["public_readiness_claim_requires_external_gate_run"] is True
     assert proof["claim_boundaries"] == {

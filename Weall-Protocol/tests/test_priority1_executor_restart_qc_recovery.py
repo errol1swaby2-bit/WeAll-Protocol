@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import MethodType
 
 import weall.runtime.executor as executor_mod
+from weall.runtime.bft_journal import BftJournal
 from weall.runtime.bft_hotstuff import HotStuffBFT, QuorumCert
 from weall.runtime.executor import WeAllExecutor
 
@@ -18,7 +20,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def _make_executor(*, chain_id: str = "batch96") -> WeAllExecutor:
+def _make_executor(tmp_path: Path, *, chain_id: str = "batch96") -> WeAllExecutor:
     ex = WeAllExecutor.__new__(WeAllExecutor)
     ex.chain_id = chain_id
     ex.node_id = "alice"
@@ -33,6 +35,7 @@ def _make_executor(*, chain_id: str = "batch96") -> WeAllExecutor:
         },
     }
     ex._bft = HotStuffBFT(chain_id=chain_id)
+    ex._bft_journal = BftJournal(str(tmp_path / f"{chain_id}-bft-journal.jsonl"))
     ex._quarantined_remote_blocks = {}
     ex._pending_remote_blocks = {}
     ex._pending_candidates = {}
@@ -70,8 +73,8 @@ def _make_executor(*, chain_id: str = "batch96") -> WeAllExecutor:
     return ex
 
 
-def test_executor_observes_verified_embedded_qc_before_vote(monkeypatch) -> None:
-    ex = _make_executor()
+def test_executor_observes_verified_embedded_qc_before_vote(tmp_path: Path, monkeypatch) -> None:
+    ex = _make_executor(tmp_path)
     ex._bft.locked_qc = _qc("batch96", 4, "C1", "B1")
     ex._bft.high_qc = _qc("batch96", 4, "C1", "B1")
 
@@ -107,8 +110,8 @@ def test_executor_observes_verified_embedded_qc_before_vote(monkeypatch) -> None
     assert ex._bft.last_voted_block_id == "D2"
 
 
-def test_executor_rejects_unverified_explicit_justify_qc(monkeypatch) -> None:
-    ex = _make_executor()
+def test_executor_rejects_unverified_explicit_justify_qc(tmp_path: Path, monkeypatch) -> None:
+    ex = _make_executor(tmp_path)
     ex._bft.locked_qc = _qc("batch96", 4, "C1", "B1")
     ex._bft.high_qc = _qc("batch96", 4, "C1", "B1")
 
@@ -135,9 +138,9 @@ def test_executor_rejects_unverified_explicit_justify_qc(monkeypatch) -> None:
 
 
 def test_executor_restart_uses_persisted_high_qc_recovery_without_explicit_justify(
-    monkeypatch,
+    tmp_path: Path, monkeypatch,
 ) -> None:
-    ex = _make_executor()
+    ex = _make_executor(tmp_path)
     hs = HotStuffBFT(chain_id="batch96")
     hs.locked_qc = _qc("batch96", 4, "C1", "B1")
     hs.high_qc = _qc("batch96", 5, "C2", "B2")
@@ -166,8 +169,8 @@ def test_executor_restart_uses_persisted_high_qc_recovery_without_explicit_justi
     assert ex._bft.last_voted_block_id == "D2"
 
 
-def test_executor_restart_rejects_conflicting_high_qc_block_itself(monkeypatch) -> None:
-    ex = _make_executor()
+def test_executor_restart_rejects_conflicting_high_qc_block_itself(tmp_path: Path, monkeypatch) -> None:
+    ex = _make_executor(tmp_path)
     hs = HotStuffBFT(chain_id="batch96")
     hs.locked_qc = _qc("batch96", 4, "C1", "B1")
     hs.high_qc = _qc("batch96", 5, "C2", "B2")

@@ -9,10 +9,10 @@ This document preserves blocker truth for reviewer use. It must not be used to i
 | Field | Current value |
 |---|---:|
 | `public_beta_ready` | `false` |
-| `blocker_catalog_count` | 14 |
+| `blocker_catalog_count` | 15 |
 | `closed_in_repository_count` | 7 |
-| `remaining_blocker_count` | 7 |
-| `remaining_external_evidence_required_count` | 7 |
+| `remaining_blocker_count` | 8 |
+| `remaining_external_evidence_required_count` | 8 |
 | `p0_open_count` | 3 |
 | `p1_open_count` | 4 |
 | Current tx canon checkpoint | 236 tx types, version 1.25.0 |
@@ -62,7 +62,7 @@ See `docs/audits/public_observer_testnet_readiness_plan_v1_5.md` and `docs/revie
 
 ## What can safely be said
 
-The repository can say that it is a controlled internal/public-observer rehearsal candidate with explicit public beta blockers still open. It can point reviewers to generated artifacts, local gates, and transcript templates.
+The repository can say that it is a pre-public-testnet implementation under active hardening with bounded local/devnet/public-observer-oriented evidence. Controlled-testnet mechanism completion remains NO-GO until production helper state-root/restart equivalence is proven. It can point reviewers to generated artifacts, local gates, and transcript templates.
 
 ## What must not be said
 

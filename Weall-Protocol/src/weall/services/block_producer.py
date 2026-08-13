@@ -94,47 +94,44 @@ def _log(msg: str) -> None:
     sys.stdout.flush()
 
 
-def _produce_once(executor, cfg: ProducerConfig) -> None:
-    produced = False
+def _call_producer_method_once(method, cfg: ProducerConfig) -> None:
+    """Resolve compatibility from the callable signature, then invoke once.
 
-    if hasattr(executor, "produce_block"):
-        produce = executor.produce_block
-        try:
-            sig = inspect.signature(produce)
-            if "allow_empty" in sig.parameters:
-                produce(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
-            else:
-                produce(max_txs=cfg.max_txs)
-        except TypeError:
-            produce(max_txs=cfg.max_txs)
-        produced = True
-    elif hasattr(executor, "maybe_produce_block"):
-        maybe = executor.maybe_produce_block
-        try:
-            sig = inspect.signature(maybe)
-            if "allow_empty" in sig.parameters:
-                maybe(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
-            else:
-                maybe(max_txs=cfg.max_txs)
-        except TypeError:
-            maybe(max_txs=cfg.max_txs)
-        produced = True
-    elif hasattr(executor, "tick_block_producer"):
-        tick = executor.tick_block_producer
-        try:
-            sig = inspect.signature(tick)
-            if "allow_empty" in sig.parameters:
-                tick(max_txs=cfg.max_txs, allow_empty=cfg.allow_empty)
-            else:
-                tick(max_txs=cfg.max_txs)
-        except TypeError:
-            tick(max_txs=cfg.max_txs)
-        produced = True
+    A TypeError raised *inside* a producer is a runtime failure, not evidence that
+    the call signature was wrong. Retrying after such an exception can produce a
+    second block or repeat another side effect.
+    """
 
-    if not produced:
-        raise ProducerLifecycleError(
-            "producer_method_missing:expected_one_of=produce_block|maybe_produce_block|tick_block_producer"
+    kwargs = {"max_txs": cfg.max_txs}
+    try:
+        sig = inspect.signature(method)
+    except (TypeError, ValueError):
+        sig = None
+
+    if sig is not None:
+        accepts_allow_empty = "allow_empty" in sig.parameters or any(
+            param.kind is inspect.Parameter.VAR_KEYWORD for param in sig.parameters.values()
         )
+        if accepts_allow_empty:
+            kwargs["allow_empty"] = cfg.allow_empty
+
+    method(**kwargs)
+
+
+def _produce_once(executor, cfg: ProducerConfig) -> None:
+    if hasattr(executor, "produce_block"):
+        _call_producer_method_once(executor.produce_block, cfg)
+        return
+    if hasattr(executor, "maybe_produce_block"):
+        _call_producer_method_once(executor.maybe_produce_block, cfg)
+        return
+    if hasattr(executor, "tick_block_producer"):
+        _call_producer_method_once(executor.tick_block_producer, cfg)
+        return
+
+    raise ProducerLifecycleError(
+        "producer_method_missing:expected_one_of=produce_block|maybe_produce_block|tick_block_producer"
+    )
 
 
 def run_forever() -> None:

@@ -124,3 +124,35 @@ def test_outbound_bft_tick_prod_fails_closed_on_vote_broadcast_error(monkeypatch
     loop._last_bft_timeout_ms = 10**18
     with pytest.raises(BftOutboundBridgeError, match="vote_broadcast_failed"):
         loop._outbound_bft_tick()
+
+
+class _ExecutorPendingReadBoom:
+    def bft_pending_outbound_messages(self):
+        raise OSError("journal read boom")
+
+
+class _ExecutorDriveTimeoutsInternalTypeError:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def bft_drive_timeouts(self, now_ms: int):
+        self.calls += 1
+        raise TypeError("internal timeout bug")
+
+
+def test_outbound_bft_tick_prod_fails_closed_on_pending_journal_read_error(monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    loop = _mk_loop(_ExecutorPendingReadBoom())
+    with pytest.raises(BftOutboundBridgeError, match="pending_outbound_read_failed"):
+        loop._outbound_bft_tick()
+
+
+def test_outbound_bft_tick_internal_typeerror_is_not_retried(monkeypatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    executor = _ExecutorDriveTimeoutsInternalTypeError()
+    loop = _mk_loop(executor)
+    loop._last_bft_propose_ms = 10**18
+    loop._last_bft_timeout_ms = 10**18
+    with pytest.raises(BftOutboundBridgeError, match="drive_timeouts_failed"):
+        loop._outbound_bft_tick()
+    assert executor.calls == 1

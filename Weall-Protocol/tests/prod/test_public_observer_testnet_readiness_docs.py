@@ -87,8 +87,10 @@ def test_current_testnet_readiness_statement_preserves_count_semantics() -> None
         "AUD-618-P1-003",
     ):
         assert required in text
-    assert "14" in text
+    assert "15" in text
     assert "7" in text
+    assert "8" in text
+    assert "controlled-testnet mechanism completion is no-go" in text.lower()
 
 
 def test_public_beta_blocker_status_points_to_canonical_readiness_docs() -> None:

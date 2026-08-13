@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from weall.runtime.block_commitment_validation import validate_received_block_commitments
+from weall.runtime.block_hash import compute_block_hash
 from weall.runtime.executor import (
     Path,
     WeAllExecutor,
@@ -133,6 +135,14 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
         return False
     if self._max_votecheck_block_bytes > 0 and len(encoded) > self._max_votecheck_block_bytes:
         return False
+    ok_binding, _binding_reason, binding = validate_received_block_commitments(
+        block=block,
+        chain_id=self.chain_id,
+    )
+    if not ok_binding or binding is None:
+        return False
+    block["block_id"] = binding.block_id
+    block["block_hash"] = binding.block_hash
     if self._block_identity_conflicts(block):
         return False
     helper_execution = block.get("helper_execution")
@@ -150,10 +160,17 @@ def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
     if not isinstance(block, dict):
         return False
     try:
-        block2, bh = ensure_block_hash(copy.deepcopy(block))
+        block2, _bh = ensure_block_hash(copy.deepcopy(block))
     except Exception:
         return False
-    block_hash = str(bh or block2.get("block_hash") or "").strip()
+    header = block2.get("header") if isinstance(block2.get("header"), dict) else None
+    if not isinstance(header, dict):
+        return False
+    block_hash = compute_block_hash(header=header)
+    advertised_block_hash = str(block2.get("block_hash") or "").strip()
+    if advertised_block_hash and advertised_block_hash != block_hash:
+        return False
+    block2["block_hash"] = block_hash
     cached = self._votecheck_cache_get(block_hash)
     if cached is not None:
         return bool(cached)

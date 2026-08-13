@@ -29,11 +29,11 @@ def _logical_state(ex: WeAllExecutor) -> dict:
     }
 
 
-def test_replay_same_tx() -> None:
+def test_replay_same_tx(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
-    db = str(root / ".pytest-b79-r1.db")
+    db = str(tmp_path / ".pytest-b79-r1.db")
     try:
         Path(db).unlink(missing_ok=True)
 
@@ -64,12 +64,12 @@ def test_replay_same_tx() -> None:
         Path(db).unlink(missing_ok=True)
 
 
-def test_replay_order_independence() -> None:
+def test_replay_order_independence(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 
-    db1 = str(root / ".pytest-b79-r2a.db")
-    db2 = str(root / ".pytest-b79-r2b.db")
+    db1 = str(tmp_path / ".pytest-b79-r2a.db")
+    db2 = str(tmp_path / ".pytest-b79-r2b.db")
     try:
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)

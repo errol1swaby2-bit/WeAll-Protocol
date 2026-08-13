@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
@@ -175,3 +176,42 @@ def test_timeout_replayed_after_restart_until_sent(tmp_path: Path, monkeypatch) 
     assert isinstance(msg, BftTimeoutMsg)
     assert msg.timeout["view"] == 2
     assert ex2.bft_pending_outbound_messages() == []
+
+
+def test_outbound_enqueue_journal_failure_propagates_before_send_obligation_is_returned(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = _repo_root()
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    db_path = str(tmp_path / "node-fail.db")
+    ex = WeAllExecutor(
+        db_path=db_path,
+        node_id="@v1",
+        chain_id="chain-A",
+        tx_index_path=str(root / "generated" / "tx_index.json"),
+    )
+
+    def boom(*_args, **_kwargs):
+        raise OSError("journal append boom")
+
+    monkeypatch.setattr(ex._bft_journal, "append", boom)
+    with pytest.raises(OSError, match="journal append boom"):
+        ex._bft_enqueue_outbound("vote", {"view": 1, "signer": "@v1", "block_id": "b1"})
+
+
+def test_pending_outbound_journal_read_failure_propagates(tmp_path: Path, monkeypatch) -> None:
+    root = _repo_root()
+    db_path = str(tmp_path / "node-read-fail.db")
+    ex = WeAllExecutor(
+        db_path=db_path,
+        node_id="@v1",
+        chain_id="chain-A",
+        tx_index_path=str(root / "generated" / "tx_index.json"),
+    )
+
+    def boom(*_args, **_kwargs):
+        raise OSError("journal read boom")
+
+    monkeypatch.setattr(ex._bft_journal, "bootstrap_state", boom)
+    with pytest.raises(OSError, match="journal read boom"):
+        ex.bft_pending_outbound_messages()

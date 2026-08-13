@@ -6,7 +6,9 @@ Current allowed claim: **WeAll is a pre-public-testnet protocol implementation u
 
 ## Go / No-Go summary
 
-GO: controlled internal/public-observer rehearsal candidate.
+GO: bounded local/devnet/public-observer-oriented rehearsal and transcript collection.
+
+NO-GO: controlled-testnet mechanism completion until production helper state-root/restart equivalence is proven.
 
 NO-GO: public beta readiness, public observer launch claim while `AUD-628-P1-001` remains open, public mainnet readiness, public validator safety, public multi-validator BFT readiness, live economics readiness, automatic protocol upgrade readiness, executable migration/rollback readiness, production helper execution readiness, legal/compliance approval, and public storage-market readiness.
 
@@ -29,7 +31,7 @@ PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 PYTHONPATH=src python -m pytest -q tests/prod/test_final_public_observer_controlled_testnet_go_gate.py
 ```
 
-Expected blocker boundary: `public_beta_ready=false`; `blocker_catalog_count=14`; `closed_in_repository_count=7`; `remaining_blocker_count=7`; `p0_open_count=3`; `p1_open_count=4`.
+Expected blocker boundary: `public_beta_ready=false`; `controlled_testnet_candidate=false`; `blocker_catalog_count=15`; `closed_in_repository_count=7`; `remaining_blocker_count=8`; `p0_open_count=4`; `p1_open_count=4`.
 
 ## Documentation truth checks
 

@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "93d94df0e2a93441ffd4ebfe3a4f392abe80e1fe562de776f584c259ab6596c1",
+  "artifact_digest": "6622b4c4d4a707bc3d2d227e53b2c963101d9607869195adde9425a40337f61a",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -12,7 +12,7 @@
     "public_storage_provider_market": false,
     "public_validator_enabled": false
   },
-  "controlled_testnet_candidate": true,
+  "controlled_testnet_candidate": false,
   "mainnet_ready": false,
   "ok": true,
   "public_beta_ready": false,
@@ -48,7 +48,7 @@
     },
     "final_public_observer_controlled_testnet_go_gate": {
       "artifact": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
-      "controlled_rehearsal_candidate_allowed": true,
+      "controlled_rehearsal_candidate_allowed": false,
       "public_beta_ready": false,
       "public_observer_launch_claim_ready": false,
       "required_before_any_public_observer_or_public_beta_claim": true,
@@ -163,7 +163,7 @@
       "schema": "weall.v1_5.api_response_vectors"
     },
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
-      "file_sha256": "a2d31f80daf25266728ffa152d382745885290dacb62c4a5cb883328a757dae1",
+      "file_sha256": "8c37a2541aecdcca15d3d531bbc1dc6a02e217a4a7ad3f99e2be04670a52b403",
       "ok": true,
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "present": true,
@@ -171,11 +171,11 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "file_sha256": "bfbd1d6b47822136af32c411c3136f5236ef43b0b78e67da254e7e61d5290fd4",
+      "file_sha256": "2d005e5bf1296c4f2e49f07f039c9de0198bf36972cf1786953c5613ce7259e3",
       "ok": true,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
-      "readiness_no_go_artifact": false,
+      "readiness_no_go_artifact": true,
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/crypto_inventory_v1_5.json": {
@@ -203,7 +203,7 @@
       "schema": "weall.v1_5.failure_code_registry"
     },
     "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json": {
-      "file_sha256": "c1df5fd94011966fd23fa2a6ecebc7d063dfeeb04459d36fbf18787b6a04d7ac",
+      "file_sha256": "5434337e1f0491afdb384b5acb1562c6dc0e10db409a325b9eaa2a843a314a8c",
       "ok": true,
       "path": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
       "present": true,
@@ -275,7 +275,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "bc3ff4f5470d5869f8809807b526ae9a3d600005b5fd0e21106e6ccd257a8f41",
+      "file_sha256": "aa3fbe1cb81e46fefc80edb22c03c17d4cc62795695c23c3086374f133eb577c",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

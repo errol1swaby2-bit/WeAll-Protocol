@@ -5,6 +5,7 @@ from hashlib import sha256
 import json
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 from weall.runtime.json_tools import canonical_json_str as _canon_json
+from weall.runtime.tx_id import compute_tx_id_from_dict
 
 from .conflict_lanes import lane_base_id as planned_lane_base_id
 from .read_write_sets import build_tx_access_set
@@ -28,19 +29,28 @@ def normalize_validators(validators: Iterable[str]) -> List[str]:
     return ordered
 
 
-def stable_tx_id(tx: Mapping[str, Any]) -> str:
+def stable_tx_id(tx: Mapping[str, Any], *, chain_id: str = "") -> str:
     tx_id = tx.get("tx_id")
     if isinstance(tx_id, str) and tx_id:
         return tx_id
+    if str(chain_id or "").strip():
+        return compute_tx_id_from_dict(str(chain_id), dict(tx))
+    # Legacy/testing-only fallback for planner utilities that operate on synthetic
+    # non-envelope objects. Production helper planning always supplies chain_id.
     return _sha256_hex(tx)
 
 
-def canonical_tx_order_key(tx: Mapping[str, Any]) -> Tuple[str]:
-    return (stable_tx_id(tx),)
+def canonical_tx_order_key(tx: Mapping[str, Any], *, chain_id: str = "") -> Tuple[str]:
+    return (stable_tx_id(tx, chain_id=chain_id),)
 
 
-def canonicalize_txs(txs: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
-    return sorted((dict(tx) for tx in txs), key=canonical_tx_order_key)
+def canonicalize_txs(
+    txs: Sequence[Mapping[str, Any]], *, chain_id: str = ""
+) -> List[Dict[str, Any]]:
+    return sorted(
+        (dict(tx) for tx in txs),
+        key=lambda tx: canonical_tx_order_key(tx, chain_id=chain_id),
+    )
 
 
 def tx_conflict_keys(tx: Mapping[str, Any]) -> List[str]:
@@ -147,8 +157,10 @@ def choose_helper_for_lane(
 
 def partition_conflict_lanes(
     txs: Sequence[Mapping[str, Any]],
+    *,
+    chain_id: str = "",
 ) -> List[Tuple[str, List[Dict[str, Any]]]]:
-    ordered = canonicalize_txs(txs)
+    ordered = canonicalize_txs(txs, chain_id=chain_id)
     lanes: Dict[str, List[Dict[str, Any]]] = {}
     order: List[str] = []
     for tx in ordered:
@@ -174,7 +186,7 @@ def build_helper_plan(
         raise ValueError("helper planning requires a non-empty validator set")
 
     vset_hash = validator_set_hash(normalized)
-    lane_tuples = partition_conflict_lanes(txs)
+    lane_tuples = partition_conflict_lanes(txs, chain_id=chain_id)
 
     assignments: List[LaneAssignment] = []
     for lane_id, lane_txs in lane_tuples:
@@ -186,7 +198,7 @@ def build_helper_plan(
             validator_epoch=validator_epoch,
             lane_id=lane_id,
         )
-        tx_ids = tuple(stable_tx_id(tx) for tx in lane_txs)
+        tx_ids = tuple(stable_tx_id(tx, chain_id=chain_id) for tx in lane_txs)
         assignments.append(
             LaneAssignment(
                 lane_id=lane_id,

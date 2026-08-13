@@ -39,10 +39,10 @@ def _canonical_hash(ex: WeAllExecutor) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def test_restart_only_metadata_drift_does_not_change_canonical_state() -> None:
+def test_restart_only_metadata_drift_does_not_change_canonical_state(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
-    db = str(root / ".pytest-b82-a.db")
+    db = str(tmp_path / ".pytest-b82-a.db")
     try:
         Path(db).unlink(missing_ok=True)
 
@@ -63,11 +63,11 @@ def test_restart_only_metadata_drift_does_not_change_canonical_state() -> None:
         Path(db).unlink(missing_ok=True)
 
 
-def test_same_logical_work_different_restart_schedule_same_canonical_state() -> None:
+def test_same_logical_work_different_restart_schedule_same_canonical_state(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
-    db1 = str(root / ".pytest-b82-b1.db")
-    db2 = str(root / ".pytest-b82-b2.db")
+    db1 = str(tmp_path / ".pytest-b82-b1.db")
+    db2 = str(tmp_path / ".pytest-b82-b2.db")
     try:
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)
@@ -95,10 +95,10 @@ def test_same_logical_work_different_restart_schedule_same_canonical_state() -> 
         Path(db2).unlink(missing_ok=True)
 
 
-def test_rejected_duplicate_work_does_not_change_canonical_state() -> None:
+def test_rejected_duplicate_work_does_not_change_canonical_state(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
-    db = str(root / ".pytest-b82-c.db")
+    db = str(tmp_path / ".pytest-b82-c.db")
     try:
         Path(db).unlink(missing_ok=True)
 
@@ -122,11 +122,11 @@ def test_rejected_duplicate_work_does_not_change_canonical_state() -> None:
         Path(db).unlink(missing_ok=True)
 
 
-def test_cross_db_same_logical_work_same_canonical_hash() -> None:
+def test_cross_db_same_logical_work_same_canonical_hash(tmp_path: Path) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
-    db1 = str(root / ".pytest-b82-d1.db")
-    db2 = str(root / ".pytest-b82-d2.db")
+    db1 = str(tmp_path / ".pytest-b82-d1.db")
+    db2 = str(tmp_path / ".pytest-b82-d2.db")
     try:
         Path(db1).unlink(missing_ok=True)
         Path(db2).unlink(missing_ok=True)

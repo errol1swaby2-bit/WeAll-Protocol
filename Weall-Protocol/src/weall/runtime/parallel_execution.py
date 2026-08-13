@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -116,6 +117,8 @@ class MergeHelperLaneResults:
 
 @dataclass(frozen=True)
 class SerialHelperEquivalenceReport:
+    """Receipt/order equivalence report; it does not prove post-state equality."""
+
     ok: bool
     reason: str
     serial_receipts: tuple[Json, ...]
@@ -621,9 +624,33 @@ def _serial_execute_lane(
     serial_executor: Callable[..., Any],
     leader_context: Mapping[str, Any],
 ) -> list[Json]:
+    """Invoke a serial lane executor exactly once.
+
+    Compatibility is resolved from the signature before invocation. An internal
+    TypeError must propagate instead of being mistaken for an arity mismatch and
+    causing the lane to execute twice.
+    """
+
     try:
+        sig = inspect.signature(serial_executor)
+    except (TypeError, ValueError):
+        sig = None
+
+    accepts_context = True
+    if sig is not None:
+        positional = [
+            param
+            for param in sig.parameters.values()
+            if param.kind
+            in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+        accepts_context = len(positional) >= 2 or any(
+            param.kind is inspect.Parameter.VAR_POSITIONAL for param in sig.parameters.values()
+        )
+
+    if accepts_context:
         out = serial_executor(list(lane_txs), dict(leader_context))
-    except TypeError:
+    else:
         out = serial_executor(list(lane_txs))
     if isinstance(out, tuple):
         out = out[0]
@@ -1154,6 +1181,13 @@ def verify_serial_helper_equivalence(
     serial_executor: Callable[..., Any],
     leader_context: Mapping[str, Any],
 ) -> SerialHelperEquivalenceReport:
+    """Compare canonical transaction order and receipts only.
+
+    This helper deliberately does not materialize or compare serial/helper
+    post-state roots. Evidence generators must not translate ``ok`` into a
+    state-root-equivalence claim.
+    """
+
     serial_receipts = tuple(
         _serial_execute_lane(tuple(canonical_txs or ()), serial_executor, leader_context)
     )

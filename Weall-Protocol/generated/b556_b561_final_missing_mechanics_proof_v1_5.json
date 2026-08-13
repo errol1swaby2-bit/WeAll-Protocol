@@ -216,17 +216,17 @@
     "leader_mempool_accepts": [
       {
         "ok": true,
-        "tx_id": "tx:bd5b74a6bfc1b9ef1d4444157842c687dd0c7b6dec4dca259c885ce9c720eac0"
+        "tx_id": "tx:a0bb04eee03e3d72f72c1c5ccdbb5de0d120db20e04397a7821acdc4fe5bf81d"
       },
       {
         "ok": true,
-        "tx_id": "tx:9b098340ece963146cf9e88096225d0b8b5c3e65b3a3f7b9078f05c105ec7310"
+        "tx_id": "tx:f614792bc062ec8483e2e5f7918da9602c14563540de8e8f6c86e77b9e10b059"
       }
     ],
     "mempool_tx_gossip_model": "canonical_peer_envelope_replay",
     "mempool_tx_ids": [
-      "tx:bd5b74a6bfc1b9ef1d4444157842c687dd0c7b6dec4dca259c885ce9c720eac0",
-      "tx:9b098340ece963146cf9e88096225d0b8b5c3e65b3a3f7b9078f05c105ec7310"
+      "tx:a0bb04eee03e3d72f72c1c5ccdbb5de0d120db20e04397a7821acdc4fe5bf81d",
+      "tx:f614792bc062ec8483e2e5f7918da9602c14563540de8e8f6c86e77b9e10b059"
     ],
     "minority_partition_can_finalize": false,
     "minority_partition_vote_count": 1,

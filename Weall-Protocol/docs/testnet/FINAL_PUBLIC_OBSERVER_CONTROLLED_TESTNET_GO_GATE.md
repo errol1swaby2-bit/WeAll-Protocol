@@ -2,13 +2,13 @@
 
 Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
 
-This go-gate is bounded to the next controlled internal/public-observer rehearsal candidate. It is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
+This go-gate packages bounded local/devnet/public-observer-oriented rehearsal evidence while explicitly keeping controlled-testnet mechanism completion NO-GO until production helper state-root/restart equivalence is proven. It is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
 
 ## Go / No-Go verdict
 
 | Claim | Verdict | Source |
 |---|---:|---|
-| Controlled internal/public-observer rehearsal candidate | GO | `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` |
+| Controlled-testnet mechanism completion | NO-GO | Production helper state-root/restart equivalence is not yet proven; see `generated/b587_b594_testnet_mechanism_completion_v1_5.json`. |
 | Public observer launch claim | NO-GO | `AUD-628-P1-001` external observer transcript remains missing. |
 | Public beta readiness | NO-GO | `generated/public_beta_blocker_report_v1_5.json` keeps `public_beta_ready=false`. |
 | Public mainnet readiness | NO-GO | Remaining mainnet-hardening gates are open. |
@@ -28,12 +28,12 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 - version: `2026-07-pass27-final-bounded-testnet-go-gate`;
 - `ok=true`;
 - `repo_package_ready=true`;
-- allowed claim limited to controlled internal/public-observer rehearsal candidate;
-- `blocker_catalog_count=14`;
+- allowed claim limited to the pre-public-testnet hardening statement; controlled-testnet mechanism completion is NO-GO;
+- `blocker_catalog_count=15`;
 - `closed_in_repository_count=7`;
-- `remaining_blocker_count=7`;
-- `remaining_external_evidence_required_count=7`;
-- `p0_open_count=3`;
+- `remaining_blocker_count=8`;
+- `remaining_external_evidence_required_count=8`;
+- `p0_open_count=4`;
 - `p1_open_count=4`;
 - all release claim boundaries false for public beta, mainnet, live economics, public validator, automatic upgrades, production helpers, legal/compliance, and public storage-market readiness.
 

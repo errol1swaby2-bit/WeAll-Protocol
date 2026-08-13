@@ -1,6 +1,6 @@
 # Current testnet readiness statement
 
-Status: bounded public observer / controlled testnet launch-candidate framing.
+Status: bounded public observer / pre-public-testnet hardening framing; controlled-testnet mechanism completion is NO-GO.
 
 This is the canonical reviewer-facing statement for the current repository. It
 must be read together with:
@@ -12,10 +12,10 @@ must be read together with:
 
 ## Current allowed claim
 
-WeAll is a controlled-testnet candidate with a conservative public-beta blocker
-inventory. The repository evidence supports continued bounded public observer /
-controlled-testnet launch preparation, provided public beta remains unclaimed
-until the seven still-open external evidence and mainnet-hardening gates are
+WeAll is a pre-public-testnet implementation under active hardening with a conservative public-beta blocker
+inventory. The repository evidence supports continued bounded local/devnet/public-observer preparation, but
+controlled-testnet mechanism completion remains NO-GO until production helper state-root/restart equivalence
+is proven. Public beta remains unclaimed until all still-open external evidence and mainnet-hardening gates are
 satisfied.
 
 If the external public observer transcript has not been captured yet, the
@@ -28,11 +28,11 @@ strongest allowed claim is:
 
 | Field | Current value | Meaning |
 | --- | ---: | --- |
-| `blocker_catalog_count` / `blocker_count` | 14 | Full blocker catalog preserved for continuity. |
+| `blocker_catalog_count` / `blocker_count` | 15 | Full blocker catalog preserved for continuity. |
 | `closed_in_repository_count` | 7 | Entries closed by tracked repository artifacts, docs, generated gates, or source-level UX evidence. |
-| `remaining_blocker_count` | 7 | Entries still blocking public beta claims. |
-| `remaining_external_evidence_required_count` | 7 | Open blockers that require independent transcripts, real-operator proof, counsel attestation, or future hardening evidence. |
-| `p0_open_count` | 3 | Still-open P0 blockers. |
+| `remaining_blocker_count` | 8 | Entries still blocking public beta claims. |
+| `remaining_external_evidence_required_count` | 8 | Open blockers that require independent transcripts, real-operator proof, counsel attestation, or future hardening evidence. |
+| `p0_open_count` | 4 | Still-open P0 blockers. |
 | `p1_open_count` | 4 | Still-open P1 blockers. |
 | `p2_open_count` | 0 | No open P2 blockers. |
 | `p3_open_count` | 0 | No open P3 blockers. |
@@ -106,4 +106,4 @@ PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 
 The final repository-side go-gate package is maintained in `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json`, `docs/reviewer/EVIDENCE_INDEX.md`, `docs/reviewer/CURRENT_READINESS_STATEMENT.md`, `docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md`, `docs/testnet/TESTNET_LAUNCH_CHECKLIST.md`, and `docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md`.
 
-The current verdict is GO for controlled internal/public-observer rehearsal candidate and NO-GO for public beta, public observer launch claims, mainnet, public validator/BFT, live economics, automatic upgrades, production helpers, legal approval, and public storage-market readiness until the external evidence gates are satisfied.
+The current verdict is NO-GO for controlled-testnet mechanism completion because production helper state-root/restart equivalence is not yet proven. Bounded local/devnet/public-observer-oriented rehearsal remains available; public beta, public observer launch claims, mainnet, public validator/BFT, live economics, automatic upgrades, production helpers, legal approval, and public storage-market readiness remain NO-GO until their gates are satisfied.

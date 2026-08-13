@@ -99,7 +99,9 @@ def test_helper_equivalence_corpus_expands_without_production_activation() -> No
     assert out["missing_helper_fallback"] is True
     assert out["byzantine_helper_rejection"] is True
     assert out["deterministic_merge_preserves_tx_order"] is True
-    assert out["state_root_equality_proven_by_serial_equivalence"] is True
+    assert out["receipt_order_equivalence_proven"] is True
+    assert out["state_root_equality_proven_by_serial_equivalence"] is False
+    assert out["state_root_equivalence_production_proof_available"] is False
     assert out["production_helper_execution_enabled"] is False
     assert out["public_helper_execution_claimed"] is False
 
@@ -107,7 +109,8 @@ def test_helper_equivalence_corpus_expands_without_production_activation() -> No
 def test_claim_boundaries_and_artifact_freshness() -> None:
     proof = _proof()
     assert proof["ok"] is True
-    assert proof["controlled_testnet_candidate_strengthened"] is True
+    assert proof["controlled_testnet_candidate_strengthened"] is False
+    assert proof["controlled_testnet_receipt_order_evidence_strengthened"] is True
     assert proof["trusted_observer_candidate_strengthened"] is True
     assert proof["public_beta_ready"] is False
     assert proof["claim_boundaries"] == {

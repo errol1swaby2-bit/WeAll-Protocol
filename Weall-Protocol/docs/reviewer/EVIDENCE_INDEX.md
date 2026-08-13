@@ -8,7 +8,7 @@ This index separates implemented repository evidence, generated artifacts, local
 
 | Category | Status | Canonical source |
 |---|---:|---|
-| Controlled internal/public-observer rehearsal candidate | GO | `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` |
+| Controlled-testnet mechanism completion | NO-GO | Production helper state-root/restart equivalence is not yet proven; see `generated/b587_b594_testnet_mechanism_completion_v1_5.json`. |
 | Public beta readiness | NO-GO | `generated/public_beta_blocker_report_v1_5.json` keeps `public_beta_ready=false` |
 | Public observer launch claim | NO-GO | `AUD-628-P1-001` remains open |
 | Public mainnet readiness | NO-GO | Remaining mainnet-hardening gates remain open |
@@ -47,9 +47,9 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 
 | Artifact | Path | Current meaning |
 |---|---|---|
-| Public beta blocker report | `generated/public_beta_blocker_report_v1_5.json` | 14 blockers cataloged; 7 closed in repository; 7 open; `public_beta_ready=false`. |
+| Public beta blocker report | `generated/public_beta_blocker_report_v1_5.json` | 15 blockers cataloged; 7 closed in repository; 8 open; `public_beta_ready=false`. |
 | Release evidence manifest | `generated/release_evidence_manifest_v1_5.json` | Tracks release artifacts and disabled claim boundaries. |
-| Final public-observer go-gate | `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` | Allows only controlled internal/public-observer rehearsal candidate wording. |
+| Final public-observer go-gate | `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` | Records controlled-testnet mechanism completion as NO-GO while preserving the bounded pre-public-testnet hardening claim. |
 | Public observer launch requirements | `generated/public_observer_launch_evidence_requirements_v1_5.json` | Defines external observer transcript requirements. |
 | Protocol upgrade hardening plan | `generated/protocol_upgrade_execution_hardening_plan_v1_5.json` | Documents future executable upgrade proof; execution remains disabled. |
 | Production helper topology hardening plan | `generated/production_helper_topology_hardening_plan_v1_5.json` | Documents future helper topology proof; production helper execution remains disabled. |
@@ -57,7 +57,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 
 ## Local / controlled readiness evidence
 
-The current local package supports a controlled internal/public-observer rehearsal candidate. It includes:
+The current local package supports bounded local/devnet/public-observer-oriented rehearsal and review, but it is not a controlled-testnet mechanism-complete candidate. It includes:
 
 - backend public-readiness artifact checks;
 - release-evidence manifest check;

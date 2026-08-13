@@ -81,9 +81,17 @@ def _artifact(rel: str) -> Json:
     payload = _load_json(rel)
     boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
     readiness_no_go_artifact = rel in {
+        "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
         "generated/controlled_testnet_go_gate_v1_5.json",
         "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
-    } and bool(payload) and (payload.get("public_beta_ready") is False or boundaries.get("public_beta_ready") is False)
+    } and bool(payload) and (
+        payload.get("controlled_testnet_mechanisms_complete") is False
+        or payload.get("controlled_testnet_ready_candidate") is False
+        or payload.get("controlled_testnet_candidate") is False
+        or payload.get("controlled_rehearsal_candidate_ready") is False
+        or payload.get("public_beta_ready") is False
+        or boundaries.get("public_beta_ready") is False
+    )
     artifact_ok = bool(payload.get("ok", True)) if payload else False
     return {
         "path": rel,
@@ -103,13 +111,26 @@ def _run_git(args: list[str]) -> str:
 def build() -> Json:
     artifacts = {rel: _artifact(rel) for rel in _TRACKED_ARTIFACTS}
     all_artifacts_ok = all(item["present"] and item["ok"] and item["file_sha256"] for item in artifacts.values())
+    mechanism_completion_payload = _load_json(
+        "generated/b587_b594_testnet_mechanism_completion_v1_5.json"
+    )
+    controlled_testnet_candidate = bool(
+        mechanism_completion_payload.get("controlled_testnet_ready_candidate") is True
+        and mechanism_completion_payload.get("controlled_testnet_mechanisms_complete") is True
+    )
+    final_gate_payload = _load_json(
+        "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json"
+    )
+    controlled_rehearsal_candidate_allowed = bool(
+        final_gate_payload.get("controlled_rehearsal_candidate_ready")
+    )
     return {
         "schema": "weall.v1_5.release_evidence_manifest",
         "version": "2026-06-b621-release-evidence-hardening",
         "ok": all_artifacts_ok,
         "public_beta_ready": False,
         "mainnet_ready": False,
-        "controlled_testnet_candidate": True,
+        "controlled_testnet_candidate": controlled_testnet_candidate,
         "tracked_manifest_is_commit_agnostic": True,
         "runtime_commit_binding_required": True,
         "why_commit_head_is_not_tracked_here": "A generated file cannot stably contain the commit hash of the commit that contains it; concrete HEAD binding is emitted by --runtime-json and clean-clone gate reports.",
@@ -230,7 +251,7 @@ def build() -> Json:
                 "artifact": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
                 "runbook": "docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
                 "validator": "PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check",
-                "controlled_rehearsal_candidate_allowed": True,
+                "controlled_rehearsal_candidate_allowed": controlled_rehearsal_candidate_allowed,
                 "public_beta_ready": False,
                 "public_observer_launch_claim_ready": False,
             },

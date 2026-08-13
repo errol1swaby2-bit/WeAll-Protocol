@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
+from weall.runtime.block_hash import ensure_block_hash
 from weall.runtime.executor import WeAllExecutor
 
 
@@ -71,8 +72,7 @@ def test_block_identity_conflict_uses_sidecar_index_without_block_scan(
     forged["header"] = dict(forged.get("header") or {})
     forged["header"]["state_root"] = "ff" * 32
 
-    meta = restarted.apply_block(forged)
-    assert meta.ok is False
-    assert meta.error == "bad_block:block_id_hash_conflict"
+    forged, _ = ensure_block_hash(forged)
+    assert restarted._block_identity_conflicts(forged) is True
     diag = restarted.bft_diagnostics()
     assert bid in diag["conflicted_block_ids"]

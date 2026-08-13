@@ -54,13 +54,11 @@ _REQUIRED_ARTIFACTS = {
     "external_operator_transcript_requirements": "generated/external_operator_transcript_requirements_v1_5.json",
 }
 
-# These artifacts are intentionally self-referential or public-beta-blocker
-# inventories. They must be present and reviewer-readable, but they must not
-# make the controlled-testnet mechanism surface fail merely because the repo is
-# truthfully *not* public-beta ready yet. Public-beta claim safety is enforced by
-# the blocker summary and launch matrix below.
+# Public-beta blocker inventories are advisory to the narrower controlled-testnet
+# mechanism surface.  The B587-B594 mechanism-completion artifact is deliberately
+# *not* advisory: its aggregate truth value must flow into this surface rather
+# than being excluded as a self-reference.
 _CONTROLLED_MECHANISM_ADVISORY_ARTIFACTS = {
-    "b587_b594_mechanism_completion",
     "public_beta_blocker_report",
 }
 

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import MethodType
 
 import weall.runtime.executor as executor_mod
+from weall.runtime.bft_journal import BftJournal
 from weall.runtime.bft_hotstuff import HotStuffBFT, QuorumCert
 from weall.runtime.executor import WeAllExecutor
 
@@ -18,7 +20,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def _make_executor(*, chain_id: str = "batch97") -> WeAllExecutor:
+def _make_executor(tmp_path: Path, *, chain_id: str = "batch97") -> WeAllExecutor:
     ex = WeAllExecutor.__new__(WeAllExecutor)
     ex.chain_id = chain_id
     ex.node_id = "alice"
@@ -33,6 +35,7 @@ def _make_executor(*, chain_id: str = "batch97") -> WeAllExecutor:
         },
     }
     ex._bft = HotStuffBFT(chain_id=chain_id)
+    ex._bft_journal = BftJournal(str(tmp_path / f"{chain_id}-bft-journal.jsonl"))
     ex._quarantined_remote_blocks = {}
     ex._pending_remote_blocks = {}
     ex._pending_candidates = {}
@@ -86,9 +89,9 @@ def _make_executor(*, chain_id: str = "batch97") -> WeAllExecutor:
 
 
 def test_invalid_leader_proposal_drops_quarantine_and_does_not_cache_qc(
-    monkeypatch,
+    tmp_path: Path, monkeypatch,
 ) -> None:
-    ex = _make_executor()
+    ex = _make_executor(tmp_path)
     monkeypatch.setattr(executor_mod, "admit_bft_block", lambda block, state: (True, ""))
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_AUTOVOTE", "1")
@@ -119,9 +122,9 @@ def test_invalid_leader_proposal_drops_quarantine_and_does_not_cache_qc(
 
 
 def test_unrelated_justify_qc_branch_is_rejected_without_cache_pollution(
-    monkeypatch,
+    tmp_path: Path, monkeypatch,
 ) -> None:
-    ex = _make_executor()
+    ex = _make_executor(tmp_path)
     monkeypatch.setattr(executor_mod, "admit_bft_block", lambda block, state: (True, ""))
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
     monkeypatch.setenv("WEALL_AUTOVOTE", "1")
@@ -150,9 +153,9 @@ def test_unrelated_justify_qc_branch_is_rejected_without_cache_pollution(
 
 
 def test_valid_justify_qc_is_cached_only_after_proposal_survives_checks(
-    monkeypatch,
+    tmp_path: Path, monkeypatch,
 ) -> None:
-    ex = _make_executor()
+    ex = _make_executor(tmp_path)
     ex._bft.locked_qc = _qc("batch97", 4, "C1", "B1")
     ex._bft.high_qc = _qc("batch97", 4, "C1", "B1")
     monkeypatch.setattr(executor_mod, "admit_bft_block", lambda block, state: (True, ""))
