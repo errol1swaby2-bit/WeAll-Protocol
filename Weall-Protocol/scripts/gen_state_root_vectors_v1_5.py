@@ -45,7 +45,20 @@ def fixture_states() -> list[Json]:
     with_ephemeral["created_ms"] = 999
     with_ephemeral["meta"] = {"local": True, "helper_profile": "diagnostic-only"}
     with_ephemeral["tip_hash"] = "local-tip"
-    with_ephemeral["content"]["posts"]["p1"]["tip_ts_ms"] = 123
+    with_ephemeral["tip_ts_ms"] = 123
+
+    consensus_meta_changed = deepcopy(base)
+    consensus_meta_changed["meta"] = {"recent_block_anchor_activation_height": 10}
+
+    nested_meta_reference = deepcopy(base)
+    nested_meta_reference["groups"] = {
+        "g:root-contract": {
+            "members": ["alice"],
+            "meta": {"membership_mode": "approval_required"},
+        }
+    }
+    nested_meta_changed = deepcopy(nested_meta_reference)
+    nested_meta_changed["groups"]["g:root-contract"]["meta"]["membership_mode"] = "open"
 
     list_order_reference = deepcopy(base)
     list_order_reference["notifications"] = {"queue": ["n1", "n2"]}
@@ -124,6 +137,9 @@ def fixture_states() -> list[Json]:
         {"name": "base", "state": base},
         {"name": "reordered_dicts_same_semantics", "state": reordered, "same_root_as": "base"},
         {"name": "with_ephemeral_fields_same_semantics", "state": with_ephemeral, "same_root_as": "base"},
+        {"name": "consensus_meta_policy_is_root_bound", "state": consensus_meta_changed, "different_root_from": "base"},
+        {"name": "nested_meta_reference", "state": nested_meta_reference},
+        {"name": "nested_meta_semantic_change", "state": nested_meta_changed, "different_root_from": "nested_meta_reference"},
         {"name": "list_order_reference", "state": list_order_reference},
         {"name": "list_order_changed", "state": list_order_changed, "different_root_from": "list_order_reference"},
         {"name": "poh_async_and_live_commitments", "state": poh_state},
@@ -148,14 +164,19 @@ def build_payload() -> Json:
             "dict_keys_sorted": True,
             "list_order_preserved": True,
             "json_separators": [",", ":"],
-            "ephemeral_keys_ignored": ["created_ms", "bft", "meta", "tip_hash", "tip_ts_ms"],
+            "top_level_ephemeral_keys_ignored": ["created_ms", "bft", "tip_hash", "tip_ts_ms"],
+            "top_level_meta_is_path_projected": True,
+            "consensus_meta_policy_is_root_bound": True,
+            "nested_meta_is_root_bound": True,
+            "nested_ephemeral_names_are_not_stripped_by_name": True,
             "float_values_forbidden_by_admission": True,
-            "consensus_relevant_policy_must_not_live_under_meta": True,
         },
         "vectors": vectors,
         "assertions": [
             {"kind": "equal", "left": "base", "right": "reordered_dicts_same_semantics"},
             {"kind": "equal", "left": "base", "right": "with_ephemeral_fields_same_semantics"},
+            {"kind": "not_equal", "left": "base", "right": "consensus_meta_policy_is_root_bound"},
+            {"kind": "not_equal", "left": "nested_meta_reference", "right": "nested_meta_semantic_change"},
             {"kind": "not_equal", "left": "list_order_reference", "right": "list_order_changed"},
             {"kind": "domain_fixture_present", "name": "poh_async_and_live_commitments"},
             {"kind": "domain_fixture_present", "name": "governance_protocol_record_only"},

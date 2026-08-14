@@ -63,6 +63,18 @@ def _protocol_version() -> str:
     return str(PROTOCOL_VERSION)
 
 
+def _state_root_commitment_version() -> str:
+    from weall.runtime.protocol_profile import STATE_ROOT_COMMITMENT_VERSION
+
+    return str(STATE_ROOT_COMMITMENT_VERSION)
+
+
+def _profile_payload() -> Json:
+    from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE
+
+    return dict(PRODUCTION_CONSENSUS_PROFILE.to_json())
+
+
 def _key_id(pubkey: str) -> str:
     return f"k:{_sha256(pubkey)[:16]}"
 
@@ -107,10 +119,32 @@ def _derive_founding_material(base_ledger: Json, base_manifest: Json) -> tuple[s
     return account, pubkey, authority
 
 
-def _build_testnet_genesis(*, chain_id: str, founding_account: str, founding_pubkey: str) -> Json:
+def _build_testnet_genesis(
+    *, chain_id: str, founding_account: str, founding_pubkey: str, tx_index_hash: str
+) -> Json:
+    from weall.runtime.block_hash import RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
     from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
+    from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE
 
     founder_reputation_milli = 5000
+    helper_execution_profile = {
+        "helper_mode_enabled": False,
+        "helper_fast_path_enabled": False,
+        "helper_timeout_ms": 5000,
+        "enforce_helper_signature": True,
+        "enforce_helper_certificate_consistency": True,
+        "enforce_helper_tx_order_hash": True,
+        "enforce_helper_namespace_hash": True,
+        "enforce_helper_receipts_root": True,
+    }
+    genesis_bootstrap_profile = {
+        "enabled": False,
+        "mode": "disabled",
+        "account": "",
+        "pubkey": "",
+        "reputation_milli": int(PRODUCTION_CONSENSUS_PROFILE.reputation_scale),
+        "storage_capacity_bytes": 0,
+    }
     founding_key_id = _key_id(founding_pubkey)
     genesis: Json = {
         "chain_id": chain_id,
@@ -227,6 +261,26 @@ def _build_testnet_genesis(*, chain_id: str, founding_account: str, founding_pub
         },
         "finalized": False,
         "economics": {},
+        "meta": {
+            "protocol_version": _protocol_version(),
+            "state_root_commitment_version": _state_root_commitment_version(),
+            "production_consensus_profile": _profile_payload(),
+            "production_consensus_profile_hash": _profile_hash(),
+            "schema_version": "1",
+            "tx_index_hash": str(tx_index_hash),
+            "reputation_scale": int(PRODUCTION_CONSENSUS_PROFILE.reputation_scale),
+            "max_block_future_drift_ms": int(
+                PRODUCTION_CONSENSUS_PROFILE.max_block_future_drift_ms
+            ),
+            "mempool_selection_policy": "canonical",
+            "helper_execution_profile": helper_execution_profile,
+            "helper_execution_profile_hash": _sha256(_canon(helper_execution_profile)),
+            "genesis_bootstrap_profile": genesis_bootstrap_profile,
+            "genesis_bootstrap_profile_hash": _sha256(_canon(genesis_bootstrap_profile)),
+            "recent_block_anchor_activation_height": int(
+                RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
+            ),
+        },
         "params": {
             "economics_enabled": False,
             "genesis_time": DEFAULT_GENESIS_TIME,
@@ -400,8 +454,12 @@ def main() -> int:
     founding_account, founding_pubkey, authority_pubkey = _derive_founding_material(
         base_ledger, base_manifest
     )
+    tx_index_hash = _file_hash(tx_index_path)
     genesis = _build_testnet_genesis(
-        chain_id=chain_id, founding_account=founding_account, founding_pubkey=founding_pubkey
+        chain_id=chain_id,
+        founding_account=founding_account,
+        founding_pubkey=founding_pubkey,
+        tx_index_hash=tx_index_hash,
     )
     genesis_state_root = _compute_state_root(genesis)
     genesis_hash = _sha256(_canon(genesis))
@@ -410,7 +468,7 @@ def main() -> int:
         base_manifest=base_manifest,
         genesis_hash=genesis_hash,
         genesis_state_root=genesis_state_root,
-        tx_index_hash=_file_hash(tx_index_path),
+        tx_index_hash=tx_index_hash,
         protocol_profile_hash=_profile_hash(),
         authority_pubkey=authority_pubkey,
     )

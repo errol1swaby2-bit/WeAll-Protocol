@@ -94,6 +94,12 @@ def _expected_profile_hash() -> str:
     return str(PRODUCTION_CONSENSUS_PROFILE.profile_hash())
 
 
+def _expected_state_root_commitment_version() -> str:
+    from weall.runtime.protocol_profile import STATE_ROOT_COMMITMENT_VERSION
+
+    return str(STATE_ROOT_COMMITMENT_VERSION)
+
+
 def _issue(issues: list[Json], code: str, detail: Any = None) -> None:
     row: Json = {"code": code}
     if detail is not None:
@@ -179,6 +185,70 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
         _issue(issues, "genesis_chain_id_unpinned")
     elif manifest_chain_id and chain_id != manifest_chain_id:
         _issue(issues, "genesis_chain_id_mismatch", {"genesis": chain_id, "manifest": manifest_chain_id})
+
+    genesis_meta = genesis.get("meta") if isinstance(genesis.get("meta"), dict) else {}
+    root_version = str(genesis_meta.get("state_root_commitment_version") or "").strip()
+    expected_root_version = _expected_state_root_commitment_version()
+    if root_version != expected_root_version:
+        _issue(
+            issues,
+            "genesis_state_root_commitment_version_mismatch",
+            {"genesis": root_version, "expected": expected_root_version},
+        )
+    genesis_profile_hash = str(
+        genesis_meta.get("production_consensus_profile_hash") or ""
+    ).strip()
+    expected_profile_hash = _expected_profile_hash()
+    if genesis_profile_hash != expected_profile_hash:
+        _issue(
+            issues,
+            "genesis_production_consensus_profile_hash_mismatch",
+            {"genesis": genesis_profile_hash, "expected": expected_profile_hash},
+        )
+
+    # Every root-committed startup default must already be present in the
+    # pinned height-zero ledger. Otherwise first boot silently changes the live
+    # genesis state root while retaining the manifest's older commitment.
+    from weall.runtime.block_hash import RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
+    from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE
+
+    manifest_schema = str(manifest.get("schema_version") or "").strip()
+    manifest_tx_index = str(manifest.get("tx_index_hash") or "").strip()
+    required_meta = {
+        "schema_version": manifest_schema,
+        "tx_index_hash": manifest_tx_index,
+        "reputation_scale": int(PRODUCTION_CONSENSUS_PROFILE.reputation_scale),
+        "max_block_future_drift_ms": int(
+            PRODUCTION_CONSENSUS_PROFILE.max_block_future_drift_ms
+        ),
+        "mempool_selection_policy": "canonical",
+        "recent_block_anchor_activation_height": int(
+            RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
+        ),
+    }
+    for key, expected in required_meta.items():
+        if genesis_meta.get(key) != expected:
+            _issue(
+                issues,
+                f"genesis_root_committed_meta_mismatch:{key}",
+                {"genesis": genesis_meta.get(key), "expected": expected},
+            )
+
+    helper_profile = genesis_meta.get("helper_execution_profile")
+    if not isinstance(helper_profile, dict):
+        _issue(issues, "genesis_helper_execution_profile_missing")
+    elif str(genesis_meta.get("helper_execution_profile_hash") or "") != _sha256(
+        _canon(helper_profile)
+    ):
+        _issue(issues, "genesis_helper_execution_profile_hash_mismatch")
+
+    bootstrap_profile = genesis_meta.get("genesis_bootstrap_profile")
+    if not isinstance(bootstrap_profile, dict):
+        _issue(issues, "genesis_bootstrap_profile_missing")
+    elif str(genesis_meta.get("genesis_bootstrap_profile_hash") or "") != _sha256(
+        _canon(bootstrap_profile)
+    ):
+        _issue(issues, "genesis_bootstrap_profile_hash_mismatch")
 
     accounts = genesis.get("accounts") if isinstance(genesis.get("accounts"), dict) else {}
     if "SYSTEM" not in accounts:

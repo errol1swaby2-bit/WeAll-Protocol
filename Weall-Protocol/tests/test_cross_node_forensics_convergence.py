@@ -139,6 +139,10 @@ def test_cross_node_forensics_converge_after_remote_apply_and_restart(tmp_path: 
 
     _bootstrap_content_account(leader, "@alice")
     _bootstrap_content_account(follower, "@alice")
+    # All synthetic canonical fixture state is established before the first
+    # committed block. Same-height canonical rewrites are forbidden afterward.
+    _seed_protocol_treasury_open_spend(leader)
+    _seed_protocol_treasury_open_spend(follower)
 
     ok1 = leader.submit_tx(
         {
@@ -157,9 +161,6 @@ def test_cross_node_forensics_converge_after_remote_apply_and_restart(tmp_path: 
     helper_block = _commit_next_block(leader, max_txs=1)
     helper_replay = follower.apply_block(helper_block)
     assert helper_replay.ok is True
-
-    _seed_protocol_treasury_open_spend(leader)
-    _seed_protocol_treasury_open_spend(follower)
 
     ok2 = leader.submit_tx(
         {

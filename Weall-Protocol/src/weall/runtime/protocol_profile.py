@@ -10,6 +10,7 @@ from typing import Any
 from weall.runtime.reputation_units import REPUTATION_SCALE
 
 PROTOCOL_VERSION = "2026.03-prod.6"
+STATE_ROOT_COMMITMENT_VERSION = "weall.state-root.v2"
 GENESIS_CREATED_MS = 0
 DEFAULT_MAX_BLOCK_FUTURE_DRIFT_MS = 2 * 60 * 1000
 DEFAULT_CLOCK_SKEW_WARN_MS = 30 * 1000
@@ -26,6 +27,7 @@ DEFAULT_MAX_TX_PAYLOAD_NODES = 50_000
 @dataclass(frozen=True, slots=True)
 class ProductionConsensusProfile:
     protocol_version: str = PROTOCOL_VERSION
+    state_root_commitment_version: str = STATE_ROOT_COMMITMENT_VERSION
     sigverify_required: bool = True
     legacy_sig_domain_allowed: bool = False
     qc_less_blocks_allowed: bool = False
@@ -53,6 +55,7 @@ class ProductionConsensusProfile:
     def to_json(self) -> dict[str, object]:
         return {
             "protocol_version": self.protocol_version,
+            "state_root_commitment_version": self.state_root_commitment_version,
             "sigverify_required": bool(self.sigverify_required),
             "legacy_sig_domain_allowed": bool(self.legacy_sig_domain_allowed),
             "qc_less_blocks_allowed": bool(self.qc_less_blocks_allowed),
@@ -335,6 +338,7 @@ def production_consensus_env_audit() -> dict[str, Any]:
 
     canonical_payload = {
         "protocol_version": str(p.protocol_version),
+        "state_root_commitment_version": str(p.state_root_commitment_version),
         "protocol_profile_hash": str(p.profile_hash()),
         "mode": mode,
         "checks": [
@@ -442,6 +446,7 @@ def effective_runtime_consensus_posture() -> dict[str, object]:
             "startup_clock_hard_fail_ms": int(p.startup_clock_hard_fail_ms),
             "max_block_time_advance_ms": int(p.max_block_time_advance_ms),
             "protocol_version": str(p.protocol_version),
+            "state_root_commitment_version": str(p.state_root_commitment_version),
             "protocol_profile_hash": str(p.profile_hash()),
             "vrf_required": bool(p.vrf_required),
             "timestamp_rule": str(p.timestamp_rule),
@@ -599,6 +604,7 @@ def runtime_startup_fingerprint(
         "chain_id": str(chain_id or ""),
         "node_id": str(node_id or ""),
         "protocol_version": str(p.protocol_version),
+        "state_root_commitment_version": str(p.state_root_commitment_version),
         "protocol_profile_hash": str(p.profile_hash()),
         "schema_version": str(schema_version or ""),
         "tx_index_hash": str(tx_index_hash or ""),

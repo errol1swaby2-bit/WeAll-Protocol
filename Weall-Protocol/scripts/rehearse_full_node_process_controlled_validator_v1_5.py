@@ -76,6 +76,10 @@ def _proposal(height: int, view: int, parent_id: str, tx_ids: list[str]) -> dict
 
 
 def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
+    # This controlled rehearsal mounts its own state-file-backed endpoints. The
+    # imported module-level app must not create/use ./data/weall.db.
+    os.environ["WEALL_API_BOOT_RUNTIME"] = "0"
+
     # This child process runs the real FastAPI app and mounts proof-only local
     # rehearsal endpoints.  Public production routes are still available, so the
     # parent probes /v1/readyz; the added endpoints are isolated under /__controlled_validator.
@@ -145,6 +149,7 @@ def _start_node(root: Path, node_id: str, port: int, role: str = "validator") ->
     repo = Path(__file__).resolve().parents[1]
     env["PYTHONPATH"] = f"{repo / 'src'}:{repo / 'scripts'}" + ((":" + env["PYTHONPATH"]) if env.get("PYTHONPATH") else "")
     env.setdefault("WEALL_MODE", "test")
+    env["WEALL_API_BOOT_RUNTIME"] = "0"
     return subprocess.Popen(
         [sys.executable, __file__, "--node", "--port", str(port), "--state-file", str(_state_path(root, node_id)), "--node-id", node_id, "--role", role],
         cwd=str(repo),

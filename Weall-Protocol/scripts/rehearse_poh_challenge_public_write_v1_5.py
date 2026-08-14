@@ -54,6 +54,16 @@ def run_harness() -> dict[str, Any]:
                 chain_id="batch549-poh-challenge-api",
                 tx_index_path=_tx_index_path(),
             )
+            # Enable the bounded bootstrap grant before the first committed block.
+            # Prerequisite identity/PoH state is then created through canonical
+            # transactions rather than a same-height ledger snapshot rewrite.
+            genesis = ex.read_state()
+            params = genesis.setdefault("params", {})
+            params["poh_bootstrap_open"] = True
+            params["poh_bootstrap_max_height"] = 100
+            ex._ledger_store.write(genesis)
+            ex.state = ex._ledger_store.read()
+
             app = create_app(boot_runtime=False)
             app.state.executor = ex
             client = TestClient(app)
@@ -84,17 +94,23 @@ def run_harness() -> dict[str, Any]:
                 },
             )
             _produce(ex, max_txs=2)
-            st = ex.read_state()
-            st.setdefault("accounts", {}).setdefault("@alice", {})["poh_tier"] = 1
-            st.setdefault("accounts", {}).setdefault("@bob", {})["poh_tier"] = 1
-            st.setdefault("poh", {}).setdefault("async_cases", {})["case-a"] = {
-                "case_id": "case-a",
-                "account_id": "@alice",
-                "status": "approved",
-                "reviews": {"@reviewer": {"verdict": "approve"}},
-            }
-            ex._ledger_store.write(st)
-            ex.state = ex._ledger_store.read()
+
+            # Establish the PoH prerequisite through the same public transaction
+            # submission + canonical block path used by a real client.
+            for account in ("@alice", "@bob"):
+                _post(
+                    client,
+                    "/v1/tx/submit",
+                    {
+                        "tx_type": "POH_BOOTSTRAP_TIER2_GRANT",
+                        "signer": account,
+                        "nonce": 2,
+                        "chain_id": "batch549-poh-challenge-api",
+                        "payload": {"account_id": account},
+                        "sig": "sig",
+                    },
+                )
+            _produce(ex, max_txs=2)
 
             skeleton = _post(
                 client,
@@ -105,7 +121,7 @@ def run_harness() -> dict[str, Any]:
             envelope = {
                 "tx_type": tx["tx_type"],
                 "signer": "@bob",
-                "nonce": 2,
+                "nonce": 3,
                 "chain_id": "batch549-poh-challenge-api",
                 "payload": tx["payload"],
                 "sig": "sig",
@@ -113,7 +129,7 @@ def run_harness() -> dict[str, Any]:
             submit = _post(client, "/v1/tx/submit", envelope)
             _produce(ex, max_txs=1)
             final_state = ex.read_state()
-            challenge_id = "pohc:@alice:2"
+            challenge_id = "pohc:@alice:3"
             challenge = final_state.get("poh", {}).get("challenges", {}).get(challenge_id, {})
             return {
                 "ok": bool(
@@ -126,6 +142,8 @@ def run_harness() -> dict[str, Any]:
                 "challenge_status": challenge.get("status"),
                 "challenge_case_id": challenge.get("case_id"),
                 "public_client_write_gap_closed": True,
+                "bootstrap_prerequisites_committed_via_transactions": True,
+                "same_height_fixture_mutation_used": False,
                 "system_or_receipt_submission_required": False,
             }
     finally:

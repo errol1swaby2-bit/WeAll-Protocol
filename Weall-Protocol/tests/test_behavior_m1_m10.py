@@ -181,6 +181,8 @@ def test_m10_state_root_vectors_encode_canonicalization_contract() -> None:
     vectors = {v["name"]: v for v in data["vectors"]}
     assert vectors["base"]["state_root"] == vectors["reordered_dicts_same_semantics"]["state_root"]
     assert vectors["base"]["state_root"] == vectors["with_ephemeral_fields_same_semantics"]["state_root"]
+    assert vectors["base"]["state_root"] != vectors["consensus_meta_policy_is_root_bound"]["state_root"]
+    assert vectors["nested_meta_reference"]["state_root"] != vectors["nested_meta_semantic_change"]["state_root"]
     assert vectors["list_order_reference"]["state_root"] != vectors["list_order_changed"]["state_root"]
     assert compute_state_root({"a": 1, "meta": {"local": True}}) == compute_state_root({"a": 1})
 

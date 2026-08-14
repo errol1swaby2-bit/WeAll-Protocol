@@ -17,6 +17,7 @@ from weall.runtime.executor import (
     MAX_BLOCK_FUTURE_DRIFT_MS,
     PRODUCTION_CONSENSUS_PROFILE,
     PROTOCOL_VERSION,
+    STATE_ROOT_COMMITMENT_VERSION,
     REPUTATION_SCALE,
     ExecutorError,
     Json,
@@ -206,6 +207,7 @@ def _initial_state(self) -> Json:
         "time": 0,
         "meta": {
             "protocol_version": PROTOCOL_VERSION,
+            "state_root_commitment_version": STATE_ROOT_COMMITMENT_VERSION,
             "production_consensus_profile": PRODUCTION_CONSENSUS_PROFILE.to_json(),
             "production_consensus_profile_hash": PRODUCTION_CONSENSUS_PROFILE.profile_hash(),
             "mempool_selection_policy": _normalize_mempool_selection_policy(

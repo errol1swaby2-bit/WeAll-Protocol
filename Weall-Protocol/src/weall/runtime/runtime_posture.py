@@ -77,19 +77,18 @@ def _apply_node_lifecycle_runtime_overrides(self) -> None:
         )
         self._bft_enabled_effective = bool(_env_bool("WEALL_BFT_ENABLED", False))
 
-    # Persist the runtime-effective helper profile for the live node posture.
-    # In strict production/lifecycle mode, the runtime profile must reflect
-    # authority gating even if the operator explicitly requested helper mode.
-    # In bootstrap/dev compatibility mode, the runtime-effective profile
-    # remains aligned with the local requested helper posture.
+    # Persist the runtime-effective helper profile only as node-local posture.
+    # ``meta["helper_execution_profile"]`` is the consensus-pinned profile used
+    # by block construction/replay and is state-root bound; overwriting it from
+    # local lifecycle authority would make honest nodes commit different roots.
     meta = self._runtime_meta()
     runtime_helper_execution_profile = (
         self._effective_helper_execution_profile()
         if strict_authority
         else self._requested_helper_execution_profile()
     )
-    meta["helper_execution_profile"] = dict(runtime_helper_execution_profile)
-    meta["helper_execution_profile_hash"] = _helper_execution_profile_hash(
+    meta["runtime_helper_execution_profile"] = dict(runtime_helper_execution_profile)
+    meta["runtime_helper_execution_profile_hash"] = _helper_execution_profile_hash(
         runtime_helper_execution_profile
     )
 

@@ -20,14 +20,16 @@ def test_genesis_testnet_launch_readiness_generator_static_verdict():
     assert payload["schema"] == "weall.v1_5.genesis_testnet_launch_readiness"
     assert payload["registry"]["chain_id"] == "weall-testnet-v1"
     assert payload["registry"]["network_id"] == "weall-public-observer-testnet-v1"
-    assert payload["registry"]["signature_status"]["verified"] is True
-    assert payload["registry"]["signature_status"]["trust"] == "pinned"
-    assert payload["static_readiness_verdict"] == "ready_for_live_endpoint_rehearsal"
-    assert payload["registry"]["errors"] == []
+    assert payload["registry"]["signature_status"]["verified"] is False
+    assert payload["registry"]["signature_status"]["trust"] == "rotation_required"
+    assert payload["static_readiness_verdict"] == "blocked"
+    assert payload["registry"]["errors"] == [
+        "public_testnet_seed_registry_rotation_required"
+    ]
     assert payload["observer_boot_script_checks"]["enables_direct_p2p_mesh_loop"] is True
     assert payload["observer_boot_script_checks"]["refuses_observer_validator_signing"] is True
     assert payload["named_provider_dependency"] is False
     assert (
         payload["overall_launch_verdict"]
-        == "partial_until_live_genesis_reachability_and_rehearsal_pass"
+        == "blocked_until_seed_registry_rotation_and_static_checks_pass"
     )

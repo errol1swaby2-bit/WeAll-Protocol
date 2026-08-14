@@ -45,5 +45,8 @@ def test_public_launch_artifacts_expose_static_partial_until_live_rehearsal():
     assert payload["direct_p2p_primary"] is True
     assert payload["relay_fallback_only"] is True
     assert payload["manual_validator_activation_authority"] is False
-    assert payload["overall_launch_verdict"] == "partial_until_live_genesis_reachability_and_rehearsal_pass"
+    assert (
+        payload["overall_launch_verdict"]
+        == "blocked_until_seed_registry_rotation_and_static_checks_pass"
+    )
     assert payload["observer_boot_script_checks"]["enables_direct_p2p_mesh_loop"] is True

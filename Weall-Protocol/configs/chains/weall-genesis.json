@@ -21,14 +21,14 @@
     "procedure_time_source": "finalized_block_height",
     "target_block_interval_ms": 20000
   },
-  "genesis_hash": "ebe9c4a20524a24692954c1be13ed0283aca85ad20e8df247d7d434a3402a659",
-  "genesis_state_root": "ebe9c4a20524a24692954c1be13ed0283aca85ad20e8df247d7d434a3402a659",
+  "genesis_hash": "b32ed6841aef8c8c332aa2e3b47cdeb2b8442bf1ff858a85764bc470390f24b1",
+  "genesis_state_root": "b32ed6841aef8c8c332aa2e3b47cdeb2b8442bf1ff858a85764bc470390f24b1",
   "genesis_time_ms": 0,
   "mode": "prod",
   "name": "WeAll Genesis Canonical Chain",
   "notes": "Pinned production chain identity. Private keys must never be committed or included in observer bundles.",
   "profile": "production_service",
-  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
   "schema_version": "1",
   "trusted_authority_pubkeys": [
     "c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be"

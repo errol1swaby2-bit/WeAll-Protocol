@@ -21,6 +21,8 @@ def test_poh_challenge_public_write_path_closes_gap() -> None:
     assert out["challenge_status"] == "open"
     assert out["challenge_case_id"] == "case-a"
     assert out["public_client_write_gap_closed"] is True
+    assert out["bootstrap_prerequisites_committed_via_transactions"] is True
+    assert out["same_height_fixture_mutation_used"] is False
     assert out["system_or_receipt_submission_required"] is False
 
 

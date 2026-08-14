@@ -39,10 +39,10 @@ from weall.runtime.helper_certificates import HelperExecutionCertificate
 def _root_committed_map(self, key: str) -> Json:
     """Return a root-committed helper planning map.
 
-    ``state["meta"]`` is excluded from ``compute_state_root`` and may carry
-    node-local diagnostics.  Helper planning/assignment inputs are consensus
-    relevant whenever the helper fast path is enabled, so they must be read only
-    from root-visible state keys.
+    Top-level ``state["meta"]`` mixes root-bound protocol fields with excluded
+    node-local diagnostics. Helper planning/assignment inputs are consensus
+    relevant whenever the helper fast path is enabled, so mutable planning state
+    must still be read only from dedicated root-visible state keys.
     """
     raw = self.state.get(str(key))
     return dict(raw) if isinstance(raw, dict) else {}

@@ -21,6 +21,7 @@ from weall.runtime.bft_hotstuff import (
     canonical_vote_message,
     leader_for_view,
     quorum_threshold,
+    validator_set_hash,
 )
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.sqlite_db import SqliteDB
@@ -79,6 +80,13 @@ def _mk_keypair_hex() -> tuple[str, str]:
 def _seed_validator_set(
     ex: WeAllExecutor, *, validators: Sequence[str], pub: Mapping[str, str], epoch: int = 1
 ) -> None:
+    """Seed/stage the synthetic validator-set fixture without rewriting committed state.
+
+    Height zero is the only point where this harness may persist synthetic
+    canonical fixture state directly.  Once blocks exist, validator epoch and
+    registry changes are staged identically in memory on every node; the next
+    committed block makes that transition durable and state-root-bound.
+    """
     st = ex.read_state()
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
@@ -93,15 +101,13 @@ def _seed_validator_set(
     st["consensus"]["validator_set"]["active_set"] = list(validators)
     st["consensus"].setdefault("epoch_history", [])
     st["consensus"]["validator_set"]["epoch"] = int(epoch)
+    st["consensus"]["validator_set"]["set_hash"] = validator_set_hash(list(validators))
     for v in validators:
         st["consensus"]["validators"]["registry"].setdefault(v, {})
         st["consensus"]["validators"]["registry"][v]["pubkey"] = str(pub[v])
     ex.state = st
-    ex._ledger_store.write(ex.state)
-    st = ex.read_state()
-    st["consensus"]["validator_set"]["set_hash"] = ex._current_validator_set_hash()
-    ex.state = st
-    ex._ledger_store.write(ex.state)
+    if int(st.get("height") or 0) == 0:
+        ex._ledger_store.write(ex.state)
 
 
 def _advance_validator_epoch(
@@ -298,15 +304,20 @@ def run_bft_fault_injection_soak(
         rejoin_catchup_events = 0
         forced_clock_skew_events = 0
         forced_clock_skew_warnings = 0
+        clock_skew_previous_tip_ts_ms: dict[str, int] = {}
 
         def _force_clock_skew(node_id: str, *, reference_ts_ms: int) -> None:
             nonlocal forced_clock_skew_events, forced_clock_skew_warnings
             ex = executors[node_id]
-            st = ex.read_state()
-            st["_fault_prev_tip_ts_ms"] = int(st.get("tip_ts_ms") or 0)
+            # Clock skew is a transient, root-excluded local fault. Inject it only
+            # into the live executor state. Reloading the durable snapshot here can
+            # discard canonical validator/epoch changes intentionally staged in
+            # memory for the next block; persisting the synthetic skew is also not
+            # representative of a wall-clock fault.
+            st = dict(ex.state)
+            clock_skew_previous_tip_ts_ms[node_id] = int(st.get("tip_ts_ms") or 0)
             st["tip_ts_ms"] = int(time.time() * 1000) + max(1, int(clock_skew_ahead_ms))
             ex.state = st
-            ex._ledger_store.write(ex.state)
             forced_clock_skew_events += 1
             diag = ex.bft_diagnostics()
             if bool(diag.get("clock_skew_warning", False)):
@@ -314,14 +325,15 @@ def run_bft_fault_injection_soak(
 
         def _clear_clock_skew(node_id: str, *, reference_ts_ms: int) -> None:
             ex = executors[node_id]
-            st = ex.read_state()
-            prev_tip_ts_ms = int(st.pop("_fault_prev_tip_ts_ms", st.get("tip_ts_ms") or 0) or 0)
-            # Restore to the prior committed chain time, never to the current round's
-            # block timestamp, because that would make the incoming block appear to be
-            # at or before the current chain-time floor and stall catch-up.
+            st = dict(ex.state)
+            prev_tip_ts_ms = int(
+                clock_skew_previous_tip_ts_ms.pop(node_id, int(st.get("tip_ts_ms") or 0))
+            )
+            # Restore the live local chain-time posture without touching durable
+            # canonical state. This preserves any staged epoch/validator transition
+            # that must be committed by the next real block.
             st["tip_ts_ms"] = int(max(0, prev_tip_ts_ms))
             ex.state = st
-            ex._ledger_store.write(ex.state)
 
         def _deliver(node_id: str, blk: Json, view: int) -> None:
             ex = executors[node_id]
@@ -1266,17 +1278,15 @@ def _seed_validator_set_full(
     st["consensus"].setdefault("validator_set", {})
     st["consensus"]["validator_set"]["active_set"] = list(validators)
     st["consensus"]["validator_set"]["epoch"] = int(epoch)
+    st["consensus"]["validator_set"]["set_hash"] = validator_set_hash(list(validators))
     for v in validators:
         st["consensus"]["validators"]["registry"].setdefault(v, {})
         st["consensus"]["validators"]["registry"][v]["pubkey"] = str(pub[v])
         st["validators"]["registry"].setdefault(v, {})
         st["validators"]["registry"][v]["pubkey"] = str(pub[v])
     ex.state = st
-    ex._ledger_store.write(ex.state)
-    st = ex.read_state()
-    st["consensus"]["validator_set"]["set_hash"] = ex._current_validator_set_hash()
-    ex.state = st
-    ex._ledger_store.write(ex.state)
+    if int(st.get("height") or 0) == 0:
+        ex._ledger_store.write(ex.state)
 
 
 def run_consensus_resilience_matrix(

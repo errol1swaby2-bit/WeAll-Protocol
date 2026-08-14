@@ -175,12 +175,29 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--write", action="store_true")
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument(
+        "--out",
+        default=str(ROOT / "generated" / "b510_b515_completion_proof_v1_5.json"),
+    )
     args = parser.parse_args()
+    if args.write and args.check:
+        parser.error("--write and --check are mutually exclusive")
+
     report = build_report()
-    if args.write:
-        out = ROOT / "generated" / "b510_b515_completion_proof_v1_5.json"
+    out = Path(args.out)
+    if not out.is_absolute():
+        out = ROOT / out
+    canonical = json.dumps(report, sort_keys=True, indent=2) + "\n"
+
+    if args.check:
+        if not out.exists() or out.read_text(encoding="utf-8") != canonical:
+            print(f"{out.name} is stale; rerun generator with --write", file=sys.stderr)
+            return 1
+        print(f"OK: {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out} is fresh")
+    elif args.write:
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
+        out.write_text(canonical, encoding="utf-8")
         print(out)
     else:
         print(json.dumps(report, sort_keys=True, indent=None if args.json else 2))

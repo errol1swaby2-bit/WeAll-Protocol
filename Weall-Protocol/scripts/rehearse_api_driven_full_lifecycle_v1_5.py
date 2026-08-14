@@ -3,9 +3,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from typing import Any
 
 from fastapi.testclient import TestClient
+
+# This offline rehearsal injects its own in-memory executor. Importing the
+# module-level FastAPI app must never boot the repository default runtime DB.
+os.environ.setdefault("WEALL_API_BOOT_RUNTIME", "0")
 
 from weall.api.app import create_app
 from weall.runtime.apply.content import apply_content

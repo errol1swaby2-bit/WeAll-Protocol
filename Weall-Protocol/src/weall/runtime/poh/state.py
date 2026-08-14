@@ -133,7 +133,11 @@ def canonical_account_poh_status(state: Json, account_id: str) -> Json:
     """
 
     account_id = _as_str(account_id)
-    statuses = account_status_root(state)
+    # This is a read path. Do not call account_status_root(), which creates
+    # missing canonical containers and can therefore change the state root just
+    # because a status/authorization query was evaluated.
+    poh = state.get("poh") if isinstance(state.get("poh"), dict) else {}
+    statuses = poh.get("account_status") if isinstance(poh.get("account_status"), dict) else {}
     rec = statuses.get(account_id)
     if not isinstance(rec, dict):
         tier = _legacy_account_tier(state, account_id)

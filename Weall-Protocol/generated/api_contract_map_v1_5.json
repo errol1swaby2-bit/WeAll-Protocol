@@ -2946,11 +2946,11 @@
       "truth_boundary": "Disposable reviewer manifest read only; not canonical production authority."
     },
     {
-      "auth": "dev_or_local_direct_session_mutation_gated",
+      "auth": "seeded_demo_height_zero_direct_session_mutation_only",
       "cache_policy": "no_store_session_material",
       "error_model": "standard_api_error_envelope; 403 direct_session_mutation_disabled; 404 account_not_found",
       "function": "v1_session_create",
-      "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
+      "idempotency": "height_zero_seeded_demo_direct_mutation_only; canonical transaction required after first committed block",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
@@ -2960,19 +2960,19 @@
       "route_id": "265cefbc6cf5d572",
       "route_path_without_v1_prefix": "/session/create",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 386,
+      "source_lineno": 412,
       "summary": "",
       "tags": [
         "session"
       ],
-      "truth_boundary": "Session create is a local/dev rehearsal helper guarded by runtime profile isolation and must not be classified as a production public write."
+      "truth_boundary": "Session create is an explicit single-node seeded-demo bootstrap helper permitted only at height zero. After the first committed block, session/device state must use canonical ACCOUNT_SESSION_KEY_ISSUE / ACCOUNT_DEVICE_REGISTER transactions; this route is not a production public write."
     },
     {
-      "auth": "signed_account_key_session_login_direct_mutation_profile_gated",
+      "auth": "signed_account_key_seeded_demo_height_zero_session_login_only",
       "cache_policy": "no_store_session_material",
       "error_model": "standard_api_error_envelope; 400 account/session/pubkey/sig required; 403 stale/bad_sig/direct_mutation_disabled; 404 account_not_found",
       "function": "v1_session_login",
-      "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
+      "idempotency": "signed height-zero seeded-demo direct mutation only; canonical transaction required after first committed block",
       "launch_matrix_binding": "see generated/launch_disabled_matrix_v1_5.json",
       "metadata_source": "specs/api_contracts/v1_5_route_metadata.json",
       "method": "POST",
@@ -2982,12 +2982,12 @@
       "route_id": "8aa87bfedb4476d9",
       "route_path_without_v1_prefix": "/session/login",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 175,
+      "source_lineno": 200,
       "summary": "",
       "tags": [
         "session"
       ],
-      "truth_boundary": "Session login creates backend-recognized session material only after signed account-key proof and runtime direct-session gate. It is not a generic public write route."
+      "truth_boundary": "Session login creates backend-recognized session material only after signed account-key proof, explicit seeded-demo isolation, and height-zero bootstrap gating. After the first committed block, canonical session/device transactions are required; it is not a generic public write route."
     },
     {
       "auth": "session_probe_optional_account_session",
@@ -3004,7 +3004,7 @@
       "route_id": "c3f8b32a3bb27285",
       "route_path_without_v1_prefix": "/session/me",
       "source": "src/weall/api/routes_public_parts/session.py",
-      "source_lineno": 488,
+      "source_lineno": 517,
       "summary": "",
       "tags": [
         "session"

@@ -2,12 +2,13 @@
 
 Repository snapshot date: 2026-05-02
 Protocol version: `2026.03-prod.6`
-Protocol profile hash: `a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6`
+Protocol profile hash: `0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25`
 Transaction canon index: `1.25.0`
 Transaction canon count: `233`
 
 ## Enforced production posture
 
+- state_root_commitment_version = `weall.state-root.v2`
 - sigverify_required = true
 - legacy_sig_domain_allowed = false
 - qc_less_blocks_allowed = false
@@ -61,6 +62,7 @@ Before enabling signing, validators should verify:
 - schema_version matches peers
 - protocol_version matches peers
 - protocol_profile_hash matches peers
+- state_root_commitment_version is `weall.state-root.v2`
 - validator_epoch matches peers when BFT is enabled
 - validator_set_hash matches peers when BFT is enabled
 - `WEALL_BFT_ENABLED=1` before validator service/signing is enabled

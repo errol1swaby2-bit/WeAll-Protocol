@@ -654,6 +654,37 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         if runtime_vrf_required():
             return ExecutorMeta(ok=False, error="bad_block:vrf:missing", height=0, block_id="")
 
+    # Block production pins root-committed execution policy into meta before
+    # calculating the advertised state root. Replay must materialize the same
+    # canonical policy fields before its independent root calculation,
+    # especially for genesis/legacy snapshots where they may be absent. Local
+    # diagnostic markers remain added only after root verification.
+    meta_for_commitment = working.get("meta")
+    if not isinstance(meta_for_commitment, dict):
+        meta_for_commitment = {}
+        working["meta"] = meta_for_commitment
+    local_policy_for_commitment = _normalize_mempool_selection_policy(
+        getattr(self._mempool, "selection_policy", lambda: "canonical")()
+    )
+    pinned_policy_for_commitment = _pinned_mempool_selection_policy(
+        self.state,
+        local_policy_for_commitment,
+    )
+    meta_for_commitment["mempool_selection_policy"] = str(
+        pinned_policy_for_commitment
+    )
+    local_helper_profile_for_commitment = self._requested_helper_execution_profile()
+    pinned_helper_profile_for_commitment = _pinned_helper_execution_profile(
+        self.state,
+        local_helper_profile_for_commitment,
+    )
+    meta_for_commitment["helper_execution_profile"] = dict(
+        pinned_helper_profile_for_commitment
+    )
+    meta_for_commitment["helper_execution_profile_hash"] = _helper_execution_profile_hash(
+        pinned_helper_profile_for_commitment
+    )
+
     helper_execution_for_root = block2.get("helper_execution")
 
     state_root = compute_state_root(working)

@@ -40,7 +40,7 @@ Verify against an expected trusted anchor file:
 
 ```bash
 python3 scripts/verify_validator_bootstrap.py \
-  --trusted-anchor ./trusted_anchor.json
+  --anchor ./trusted_anchor.json
 ```
 
 ## What the verifier checks
@@ -53,7 +53,7 @@ It fails when it detects any of the following:
 - production consensus profile hash mismatch between binary and persisted state
 - tx index hash mismatch between generated tx index and persisted state
 - schema version disagreement between SQLite metadata and state metadata
-- trusted-anchor mismatch for height, finalized height, tip hash, state root, or finalized block id
+- trusted-anchor mismatch for chain id, height, tip hash, state root, finalized height, finalized block id, or anchor snapshot hash
 
 ## Recommended validator workflow
 

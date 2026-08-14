@@ -131,13 +131,20 @@
     "api_read_routes_exercised": [
       "GET /v1/feed?rank=production",
       "GET /v1/session/me",
-      "GET /v1/disputes/{dispute_id}"
+      "GET /v1/disputes/{dispute_id} [uncommitted direct-domain simulation]"
     ],
     "api_write_routes_exercised": [
-      "POST /v1/tx/submit ACCOUNT_REGISTER",
+      "POST /v1/tx/submit ACCOUNT_REGISTER @alice",
+      "POST /v1/tx/submit ACCOUNT_REGISTER @bob",
+      "POST /v1/tx/submit POH_BOOTSTRAP_TIER2_GRANT @alice",
+      "POST /v1/tx/submit POH_BOOTSTRAP_TIER2_GRANT @bob",
       "POST /v1/tx/submit CONTENT_POST_CREATE"
     ],
     "batch": "541",
+    "committed_state_unchanged_by_direct_apply": true,
+    "direct_apply_persisted": false,
+    "direct_apply_simulation_source": "copy_of_committed_executor_state",
+    "direct_apply_state_root": "22280594337c92d4966da6bfbcc6673af97738d2be7b4f39895c255136f3b3fb",
     "direct_apply_write_domains_remaining": [
       "poh_challenge",
       "dispute_final_receipt",
@@ -147,7 +154,7 @@
     "dispute_remedy_applied": true,
     "feed_items": 1,
     "feed_rank_mode": "production",
-    "final_state_root": "3a33fb1e466ba908792885cba21030b1e8b574ff5282d419d5dc7003fc4927ad",
+    "final_state_root": "ca88409396188f801f745b8a6f05a21bb7c9ec3fa8b6ebaf1defa744f56f5d56",
     "ok": true,
     "poh_challenge_status": "resolved",
     "protocol_upgrade_record_only": true,

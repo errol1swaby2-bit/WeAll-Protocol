@@ -3,10 +3,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
+
+# This offline rehearsal supplies a synthetic executor and must not boot the
+# module-level app against ./data/weall.db merely because it imports create_app.
+os.environ.setdefault("WEALL_API_BOOT_RUNTIME", "0")
 
 from weall.api.app import create_app
 from weall.runtime.apply.content import apply_content
@@ -16,6 +21,7 @@ from weall.runtime.apply.groups import apply_groups
 from weall.runtime.apply.poh import apply_poh
 from weall.runtime.apply.protocol import apply_protocol
 from weall.runtime.apply.storage import apply_storage
+from weall.runtime.poh.state import POH_STATUS_ACTIVE, set_account_poh_status
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.tx_admission import TxEnvelope
 
@@ -165,9 +171,22 @@ def run_harness() -> dict[str, Any]:
         apply_poh(state, _env("POH_ASYNC_JUROR_ACCEPT", reviewer, 30 + idx, {"case_id": "case-r"}))
         apply_poh(state, _env("POH_ASYNC_REVIEW_SUBMIT", reviewer, 40 + idx, {"case_id": "case-r", "verdict": "approve"}))
     apply_poh(state, _env("POH_ASYNC_FINALIZE", "SYSTEM", 6, {"case_id": "case-r"}, system=True, parent="poh:case"))
-    # Challenge reverification completion restores active status; ensure the
-    # content path sees the live tier in older state-shape variants too.
-    state["accounts"]["@alice"]["poh_tier"] = max(2, int(state["accounts"]["@alice"].get("poh_tier") or 0))
+    # This rehearsal predates the canonical AccountPoHStatus migration.  Do not
+    # revive Tier 2 by mutating only the legacy account mirror: content
+    # authorization reads the canonical PoH record when one exists.  Seed the
+    # intended Tier-2 post-reverification posture through the canonical helper,
+    # which also mirrors the legacy account field for compatibility.
+    set_account_poh_status(
+        state,
+        account_id="@alice",
+        poh_tier=2,
+        status=POH_STATUS_ACTIVE,
+        verified_at_height=int(state.get("height") or 0),
+        expires_at_height=None,
+        proof_commitment="rehearsal:tier2-restored",
+        issuer_authority_id="rehearsal",
+        last_updated_height=int(state.get("height") or 0),
+    )
 
     # Group/content/public-activity state transitions, then real API reads.
     apply_groups(state, _env("GROUP_CREATE", "@alice", 50, {"group_id": "g1", "name": "Group One", "visibility": "public"}))

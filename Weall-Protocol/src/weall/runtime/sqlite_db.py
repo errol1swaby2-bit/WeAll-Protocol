@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 import os
 import random
@@ -791,11 +792,41 @@ class SqliteLedgerStore:
             return json.loads(row["state_json"])
 
     def write(self, state: Json) -> None:
+        if not isinstance(state, dict):
+            raise TypeError("ledger state must be a dict")
+
         payload = _canon_json(state)
+        height = int(state.get("height") or 0)
+        block_id = str(state.get("tip") or "")
+
         with self.db.write_tx() as con:
-            # NOTE: block_id is persisted separately in some schemas; we keep it here for consistency.
-            height = int(state.get("height") or 0)
-            block_id = str(state.get("tip") or "")
+            row = con.execute(
+                "SELECT height, state_json FROM ledger_state WHERE id=1;"
+            ).fetchone()
+            if row is not None:
+                current_height = int(row["height"] or 0)
+                if height < current_height:
+                    raise RuntimeError(
+                        f"ledger_state_height_regression:{height}<{current_height}"
+                    )
+
+                # At a committed height, a side-channel/runtime writer may only
+                # alter state excluded by the canonical state-root projection.
+                # This prevents BFT/runtime metadata persistence from replacing a
+                # newer or conflicting canonical ledger snapshot. Height zero is
+                # intentionally migration-compatible before the first block.
+                if height == current_height and height > 0:
+                    try:
+                        current = json.loads(str(row["state_json"] or "{}"))
+                    except Exception as exc:
+                        raise RuntimeError("ledger_state_corrupted") from exc
+                    if not isinstance(current, dict):
+                        raise RuntimeError("ledger_state_corrupted:not_object")
+                    from weall.runtime.state_hash import compute_state_root
+
+                    if compute_state_root(current) != compute_state_root(state):
+                        raise RuntimeError("ledger_state_same_height_root_conflict")
+
             con.execute(
                 "INSERT OR REPLACE INTO ledger_state(id, height, block_id, state_json, updated_ts_ms) VALUES(1,?,?,?,?);",
                 (height, block_id, payload, _now_ms()),
@@ -834,15 +865,36 @@ class SqliteLedgerStore:
             if not isinstance(cur, dict):
                 raise RuntimeError("ledger_state corrupted:not_object")
 
-            tmp = dict(cur)
+            # The updater must receive an object independent from the persisted
+            # preimage. A shallow copy would share nested dictionaries and could
+            # mutate ``cur`` too, making before/after integrity comparisons
+            # self-confirming.
+            tmp = copy.deepcopy(cur)
             res = fn(tmp)
             # Allow in-place mutation functions (returning None), or returning a new dict.
             nxt = tmp if res is None else res
             if not isinstance(nxt, dict):
                 raise TypeError("update fn must mutate a dict or return a dict")
 
-            payload = _canon_json(nxt)
+            current_height = int(cur.get("height") or 0)
             height = int(nxt.get("height") or 0)
+            if height != current_height:
+                raise RuntimeError(
+                    f"ledger_state_update_height_change:{current_height}->{height}"
+                )
+
+            # ``update`` is reserved for side-channel/runtime metadata merges. At
+            # a committed height it must never alter canonical application state;
+            # canonical mutations belong in block commit/state-sync transactions.
+            # Height zero remains bootstrap-compatible for the explicitly fenced
+            # single-node seeded-demo helpers.
+            if height > 0:
+                from weall.runtime.state_hash import compute_state_root
+
+                if compute_state_root(cur) != compute_state_root(nxt):
+                    raise RuntimeError("ledger_state_update_root_conflict")
+
+            payload = _canon_json(nxt)
             block_id = str(nxt.get("tip") or "")
             con.execute(
                 "INSERT OR REPLACE INTO ledger_state(id, height, block_id, state_json, updated_ts_ms) VALUES(1,?,?,?,?);",

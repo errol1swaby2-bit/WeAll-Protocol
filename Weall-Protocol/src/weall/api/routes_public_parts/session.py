@@ -92,8 +92,20 @@ def _state_chain_context(st: Json) -> tuple[str, str]:
     meta = st.get("meta") if isinstance(st.get("meta"), dict) else {}
     chain = st.get("chain") if isinstance(st.get("chain"), dict) else {}
     cfg = st.get("config") if isinstance(st.get("config"), dict) else {}
-    chain_id = str(meta.get("chain_id") or chain.get("chain_id") or cfg.get("chain_id") or "").strip()
-    network_id = str(meta.get("network_id") or chain.get("network_id") or cfg.get("network_id") or "").strip()
+    chain_id = str(
+        st.get("chain_id")
+        or meta.get("chain_id")
+        or chain.get("chain_id")
+        or cfg.get("chain_id")
+        or ""
+    ).strip()
+    network_id = str(
+        st.get("network_id")
+        or meta.get("network_id")
+        or chain.get("network_id")
+        or cfg.get("network_id")
+        or ""
+    ).strip()
     return chain_id, network_id
 
 
@@ -154,6 +166,19 @@ def _reject_direct_session_mutation_if_forbidden() -> None:
         raise ApiError.forbidden(
             issue,
             "direct session mutation is disabled in this runtime profile; issue session/device state through canonical transactions",
+            {"required_flow": "ACCOUNT_SESSION_KEY_ISSUE or ACCOUNT_DEVICE_REGISTER"},
+        )
+
+
+def _reject_direct_session_mutation_after_genesis(st: Json) -> None:
+    # Even the explicitly fenced seeded-demo helper must not mutate canonical
+    # account/session/device state after a block has committed a state root.
+    # After height zero the canonical ACCOUNT_SESSION_KEY_ISSUE /
+    # ACCOUNT_DEVICE_REGISTER transactions are the only safe mutation path.
+    if int(st.get("height") or 0) > 0:
+        raise ApiError.forbidden(
+            "direct_session_mutation_forbidden_after_genesis",
+            "direct session mutation is bootstrap-only after height zero; use canonical session/device transactions",
             {"required_flow": "ACCOUNT_SESSION_KEY_ISSUE or ACCOUNT_DEVICE_REGISTER"},
         )
 
@@ -252,6 +277,7 @@ async def v1_session_login(request: Request):
         raise ApiError.bad_request("issued_at_ms_required", "issued_at_ms is required", {})
 
     st = common._snapshot(request)
+    _reject_direct_session_mutation_after_genesis(st)
     now_ms = _state_now_ts(st) * 1000
     max_skew_ms = 5 * 60 * 1000
     if now_ms > 0 and abs(now_ms - issued_at_ms) > max_skew_ms:
@@ -403,6 +429,9 @@ async def v1_session_create(request: Request):
         raise ApiError.bad_request("account_required", "account is required", {})
     if not session_key:
         raise ApiError.bad_request("session_key_required", "session_key is required", {})
+
+    st_snapshot = common._snapshot(request)
+    _reject_direct_session_mutation_after_genesis(st_snapshot)
 
     ex = common._executor(request)
     ledger_store = getattr(ex, "_ledger_store", None)

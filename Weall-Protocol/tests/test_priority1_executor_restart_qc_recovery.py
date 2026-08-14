@@ -137,7 +137,7 @@ def test_executor_rejects_unverified_explicit_justify_qc(tmp_path: Path, monkeyp
     assert ex._bft.last_voted_block_id == ""
 
 
-def test_executor_restart_uses_persisted_high_qc_recovery_without_explicit_justify(
+def test_hotstuff_state_reload_uses_exported_high_qc_recovery_without_explicit_justify(
     tmp_path: Path, monkeypatch,
 ) -> None:
     ex = _make_executor(tmp_path)

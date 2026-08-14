@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "80b7d19a123b5e237036140a06808ca45320303cdc67f8ee879eb8e0108db8d8"
+    "source_tree_digest": "d28f73ab47936c00b7b6bb4b3a6a8bb7d5bbcccef65b6980b670d210a5bc5871"
   },
   "required_fields": [
     "stable_id",
@@ -724,6 +724,7 @@
       "tests": [
         "tests/prod/test_external_evidence_transcript_gates.py",
         "tests/prod/test_public_testnet_v1_chain_identity.py",
+        "tests/test_adversarial_invariant_closure.py",
         "tests/test_chain_manifest.py",
         "tests/test_chain_manifest_authority_section.py",
         "tests/test_constitution_and_public_payload_policy.py",
@@ -6773,14 +6774,14 @@
         "mainnet": "disabled_pending_activation_receipt",
         "public_testnet": "disabled_pending_activation_receipt"
       },
-      "authority_source": "dev_or_local_direct_session_mutation_gated",
+      "authority_source": "seeded_demo_height_zero_direct_session_mutation_only",
       "canonical_mappings": [],
       "duplicate_route_key": false,
       "failure_contract": "standard_api_error_envelope; 403 direct_session_mutation_disabled; 404 account_not_found",
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_session_create",
-        "line": 386,
+        "line": 412,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6791,9 +6792,9 @@
       "request_limits": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds",
       "route_key": "POST /v1/session/create",
       "security_policy": {
-        "auth": "dev_or_local_direct_session_mutation_gated",
+        "auth": "seeded_demo_height_zero_direct_session_mutation_only",
         "cache": "no_store_session_material",
-        "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
+        "idempotency": "height_zero_seeded_demo_direct_mutation_only; canonical transaction required after first committed block",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
       "semantic_derivation": "explicit_metadata",
@@ -6801,10 +6802,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "1b925c0431e34250e0987561f45df2bfb03e76b12f266fa299688dedd5b73999",
+        "review_digest": "e23f6e86009491b5756f24b19e533367075c42529ff4bf7cbf1f0ec07eb64ae0",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "reviewed_at": "2026-08-13T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted adversarial invariant closure); independent launch review deferred"
       },
       "stable_id": "ROUTE-7FCEC86AF617DFBF",
       "tests": [
@@ -6821,7 +6822,7 @@
         "mainnet": "disabled_pending_activation_receipt",
         "public_testnet": "disabled_pending_activation_receipt"
       },
-      "authority_source": "signed_account_key_session_login_direct_mutation_profile_gated",
+      "authority_source": "signed_account_key_seeded_demo_height_zero_session_login_only",
       "canonical_mappings": [],
       "duplicate_route_key": false,
       "failure_contract": "standard_api_error_envelope; 400 account/session/pubkey/sig required; 403 stale/bad_sig/direct_mutation_disabled; 404 account_not_found",
@@ -6830,7 +6831,7 @@
       ],
       "implementation_source": {
         "function": "v1_session_login",
-        "line": 175,
+        "line": 200,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6841,9 +6842,9 @@
       "request_limits": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds",
       "route_key": "POST /v1/session/login",
       "security_policy": {
-        "auth": "signed_account_key_session_login_direct_mutation_profile_gated",
+        "auth": "signed_account_key_seeded_demo_height_zero_session_login_only",
         "cache": "no_store_session_material",
-        "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
+        "idempotency": "signed height-zero seeded-demo direct mutation only; canonical transaction required after first committed block",
         "rate_limit": "global_request_size_and_rate_limit_middleware_plus_route_specific_bounds"
       },
       "semantic_derivation": "explicit_metadata",
@@ -6851,10 +6852,10 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "62af2aa4500bd0d4f2e469a92014121fbdf1e22db609ccf940e7cc2508f47719",
+        "review_digest": "b032e3650bca874207dc8333c23513391e40aa383c68218b6630ee57fa98f2aa",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-        "reviewed_at": "2026-07-22T00:00:00Z",
-        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
+        "reviewed_at": "2026-08-13T00:00:00Z",
+        "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted adversarial invariant closure); independent launch review deferred"
       },
       "stable_id": "ROUTE-3FFABBEFCB7FF39D",
       "tests": [
@@ -6879,7 +6880,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_session_me",
-        "line": 488,
+        "line": 517,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6900,7 +6901,7 @@
       "semantic_review": {
         "authority_effect": "none; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "6b12a23bf52197e78e50533e9e32c37d4f066338a88c69d9ced9368a3656f2ac",
+        "review_digest": "3cea6d2182cb7d7163c7766c2ec915b462bc57235a3c4a603d4967452e26b251",
         "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
         "reviewed_at": "2026-07-22T00:00:00Z",
         "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred"
@@ -7015,6 +7016,7 @@
         "tests/test_admission_validator_payload_mvp.py",
         "tests/test_adversarial_bft_state_sync_poh_appeal_governance_vectors.py",
         "tests/test_adversarial_consensus.py",
+        "tests/test_adversarial_invariant_closure.py",
         "tests/test_ai_integrity_runtime_contracts.py",
         "tests/test_api_app_fail_closed.py",
         "tests/test_api_contract_map_v15.py",
@@ -7180,6 +7182,7 @@
         "tests/test_epoch_transition_activation_torture.py",
         "tests/test_epoch_transition_ordering.py",
         "tests/test_evidence_freshness_policy.py",
+        "tests/test_evidence_harness_runtime_isolation.py",
         "tests/test_exact_responsibility_lane_consent.py",
         "tests/test_execution_lane.py",
         "tests/test_executor_atomic_commit_crash_recovery.py",
@@ -7229,6 +7232,7 @@
         "tests/test_gate_authority_safety.py",
         "tests/test_gate_expr_and_precedence.py",
         "tests/test_gates_scoped_and_reputation.py",
+        "tests/test_generated_checker_read_only.py",
         "tests/test_genesis_api_external_observer_readiness.py",
         "tests/test_genesis_bootstrap_observability_and_manifest.py",
         "tests/test_genesis_bootstrap_profile_pinning.py",

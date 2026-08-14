@@ -95,16 +95,16 @@
     "restart_exercised": true,
     "restart_root_matches": true,
     "roots_after": [
-      "82b34bbbe674f1d590e07fea3aae141376cf8a50ad8551b5afec80a6fee15688",
-      "82b34bbbe674f1d590e07fea3aae141376cf8a50ad8551b5afec80a6fee15688",
-      "82b34bbbe674f1d590e07fea3aae141376cf8a50ad8551b5afec80a6fee15688",
-      "82b34bbbe674f1d590e07fea3aae141376cf8a50ad8551b5afec80a6fee15688"
+      "5b75f5af4fbebb7cf33a2fe0dcd7ea120e5edff6b0c962ff4b6c928d6d433509",
+      "5b75f5af4fbebb7cf33a2fe0dcd7ea120e5edff6b0c962ff4b6c928d6d433509",
+      "5b75f5af4fbebb7cf33a2fe0dcd7ea120e5edff6b0c962ff4b6c928d6d433509",
+      "5b75f5af4fbebb7cf33a2fe0dcd7ea120e5edff6b0c962ff4b6c928d6d433509"
     ],
     "roots_before": [
-      "82b34bbbe674f1d590e07fea3aae141376cf8a50ad8551b5afec80a6fee15688",
-      "82b34bbbe674f1d590e07fea3aae141376cf8a50ad8551b5afec80a6fee15688",
-      "82b34bbbe674f1d590e07fea3aae141376cf8a50ad8551b5afec80a6fee15688",
-      "82b34bbbe674f1d590e07fea3aae141376cf8a50ad8551b5afec80a6fee15688"
+      "5b75f5af4fbebb7cf33a2fe0dcd7ea120e5edff6b0c962ff4b6c928d6d433509",
+      "5b75f5af4fbebb7cf33a2fe0dcd7ea120e5edff6b0c962ff4b6c928d6d433509",
+      "5b75f5af4fbebb7cf33a2fe0dcd7ea120e5edff6b0c962ff4b6c928d6d433509",
+      "5b75f5af4fbebb7cf33a2fe0dcd7ea120e5edff6b0c962ff4b6c928d6d433509"
     ],
     "transport": "tcp://127.0.0.1"
   },
@@ -202,11 +202,13 @@
   "ok": true,
   "poh_challenge_public_write": {
     "batch": "549",
+    "bootstrap_prerequisites_committed_via_transactions": true,
     "challenge_case_id": "case-a",
-    "challenge_id": "pohc:@alice:2",
+    "challenge_id": "pohc:@alice:3",
     "challenge_status": "open",
     "ok": true,
     "public_client_write_gap_closed": true,
+    "same_height_fixture_mutation_used": false,
     "skeleton_route": "POST /v1/poh/challenge/tx/open",
     "submit_route": "POST /v1/tx/submit POH_CHALLENGE_OPEN",
     "system_or_receipt_submission_required": false

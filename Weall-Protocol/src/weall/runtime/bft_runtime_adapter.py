@@ -1255,9 +1255,19 @@ def _prune_bft_liveness_caches_for_current_epoch(self) -> None:
 
 def _persist_bft_state(self) -> None:
     self._prune_bft_liveness_caches_for_current_epoch()
-    self.state["bft"] = self._bft.export_state()
+    bft_state = self._bft.export_state()
+    self.state["bft"] = bft_state
     maybe_trigger_failpoint("bft_state_before_persist")
-    self._ledger_store.write(self.state)
+
+    # Merge BFT state into the latest durable ledger snapshot inside a single
+    # SQLite write transaction. Writing ``self.state`` directly can race a block
+    # commit: a BFT thread may serialize height N, the block thread commits N+1,
+    # and the stale BFT write can otherwise replace the N+1 snapshot.
+    def _merge_bft(current: Json) -> Json:
+        current["bft"] = dict(bft_state)
+        return current
+
+    self._ledger_store.update(_merge_bft)
     maybe_trigger_failpoint("bft_state_after_persist")
     self._bft_record_event(
         "bft_state_persisted",

@@ -44,8 +44,14 @@ def test_production_block_commit_replay_uses_sqlite_tables_and_rejects_corruptio
 def test_public_api_write_lifecycle_reports_real_writes_and_remaining_direct_apply_domains() -> None:
     out = _proof()["public_api_write_lifecycle"]
     assert out["ok"] is True
-    assert "POST /v1/tx/submit ACCOUNT_REGISTER" in out["api_write_routes_exercised"]
-    assert "POST /v1/tx/submit CONTENT_POST_CREATE" in out["api_write_routes_exercised"]
+    writes = set(out["api_write_routes_exercised"])
+    assert {
+        "POST /v1/tx/submit ACCOUNT_REGISTER @alice",
+        "POST /v1/tx/submit ACCOUNT_REGISTER @bob",
+        "POST /v1/tx/submit POH_BOOTSTRAP_TIER2_GRANT @alice",
+        "POST /v1/tx/submit POH_BOOTSTRAP_TIER2_GRANT @bob",
+        "POST /v1/tx/submit CONTENT_POST_CREATE",
+    } <= writes
     assert "GET /v1/feed?rank=production" in out["api_read_routes_exercised"]
     assert out["feed_rank_mode"] == "production"
     assert out["feed_items"] >= 1
@@ -54,6 +60,9 @@ def test_public_api_write_lifecycle_reports_real_writes_and_remaining_direct_app
     assert out["storage_retrieval_confirmed"] is True
     assert out["protocol_upgrade_record_only"] is True
     assert "poh_challenge" in out["direct_apply_write_domains_remaining"]
+    assert out["direct_apply_persisted"] is False
+    assert out["committed_state_unchanged_by_direct_apply"] is True
+    assert out["direct_apply_simulation_source"] == "copy_of_committed_executor_state"
 
 
 def test_live_storage_worker_durability_records_reassignment_and_retrieval() -> None:

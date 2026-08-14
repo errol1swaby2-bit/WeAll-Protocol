@@ -34,6 +34,7 @@ from weall.runtime.mempool import PersistentMempool
 from weall.runtime.protocol_profile import (
     PRODUCTION_CONSENSUS_PROFILE,
     PROTOCOL_VERSION,
+    STATE_ROOT_COMMITMENT_VERSION,
     runtime_clock_skew_warn_ms,
     runtime_max_block_future_drift_ms,
     runtime_startup_clock_hard_fail_ms,
@@ -461,6 +462,9 @@ class WeAllExecutor:
         st_chain_id = str(self.state.get("chain_id") or "").strip()
         meta = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
         st_protocol_version = str(meta.get("protocol_version") or "").strip()
+        st_state_root_commitment_version = str(
+            meta.get("state_root_commitment_version") or ""
+        ).strip()
         st_profile_hash = str(meta.get("production_consensus_profile_hash") or "").strip()
         st_schema_version = str(meta.get("schema_version") or "").strip()
         st_tx_index_hash = str(meta.get("tx_index_hash") or "").strip()
@@ -540,6 +544,23 @@ class WeAllExecutor:
             raise ExecutorError(
                 f"protocol_version mismatch: db={st_protocol_version!r} binary={PROTOCOL_VERSION!r}. Refuse to start."
             )
+        if (
+            st_state_root_commitment_version
+            and st_state_root_commitment_version != STATE_ROOT_COMMITMENT_VERSION
+        ):
+            raise ExecutorError(
+                "state_root_commitment_version mismatch: "
+                f"db={st_state_root_commitment_version!r} "
+                f"binary={STATE_ROOT_COMMITMENT_VERSION!r}. Refuse to start."
+            )
+        if (
+            int(self.state.get("height") or 0) > 0
+            and not st_state_root_commitment_version
+        ):
+            raise ExecutorError(
+                "state_root_commitment_version missing on committed ledger; "
+                "pre-v2 state-root databases require an explicit prelaunch rebuild/migration"
+            )
         if st_profile_hash and st_profile_hash != expected_profile_hash:
             raise ExecutorError(
                 f"production_consensus_profile_hash mismatch: db={st_profile_hash!r} binary={expected_profile_hash!r}. Refuse to start."
@@ -613,6 +634,7 @@ class WeAllExecutor:
             meta = {}
             self.state["meta"] = meta
         meta.setdefault("protocol_version", PROTOCOL_VERSION)
+        meta.setdefault("state_root_commitment_version", STATE_ROOT_COMMITMENT_VERSION)
         meta["production_consensus_profile"] = PRODUCTION_CONSENSUS_PROFILE.to_json()
         meta["production_consensus_profile_hash"] = expected_profile_hash
         meta.setdefault("schema_version", self._schema_version_cached)
@@ -639,6 +661,7 @@ class WeAllExecutor:
         self._startup_clock_observer_reason = ""
         if (
             not st_chain_id
+            or not st_state_root_commitment_version
             or not st_profile_hash
             or not st_schema_version
             or not st_tx_index_hash
@@ -1134,6 +1157,21 @@ class WeAllExecutor:
                 raise ExecutorError(
                     "db_invariant_violation: snapshot tip_hash does not match persisted block hash. Refuse to start."
                 )
+
+            header = blk2.get("header") if isinstance(blk2.get("header"), dict) else {}
+            committed_state_root = str(header.get("state_root") or "").strip()
+            if not committed_state_root:
+                raise ExecutorError(
+                    "db_invariant_violation: persisted tip block is missing state_root. Refuse to start."
+                )
+            from weall.runtime.state_hash import compute_state_root
+
+            snapshot_state_root = str(compute_state_root(self.state) or "").strip()
+            if snapshot_state_root != committed_state_root:
+                raise ExecutorError(
+                    "db_invariant_violation: snapshot state_root does not match persisted tip block state_root. Refuse to start."
+                )
+
             if not st_tip_hash:
                 self.state["tip_hash"] = str(bh)
             if not _safe_int(self.state.get("tip_ts_ms"), 0):

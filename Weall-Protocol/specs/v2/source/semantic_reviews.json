@@ -2133,14 +2133,14 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "v1_session_create",
-        "line": 386,
+        "line": 412,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "independent_review": false,
-      "review_digest": "1b925c0431e34250e0987561f45df2bfb03e76b12f266fa299688dedd5b73999",
+      "review_digest": "e23f6e86009491b5756f24b19e533367075c42529ff4bf7cbf1f0ec07eb64ae0",
       "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "reviewed_at": "2026-08-13T00:00:00Z",
+      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted adversarial invariant closure); independent launch review deferred",
       "route_key": "POST /v1/session/create",
       "stable_id": "ROUTE-7FCEC86AF617DFBF"
     },
@@ -2149,14 +2149,14 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "v1_session_login",
-        "line": 175,
+        "line": 200,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "independent_review": false,
-      "review_digest": "62af2aa4500bd0d4f2e469a92014121fbdf1e22db609ccf940e7cc2508f47719",
+      "review_digest": "b032e3650bca874207dc8333c23513391e40aa383c68218b6630ee57fa98f2aa",
       "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
-      "reviewed_at": "2026-07-22T00:00:00Z",
-      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
+      "reviewed_at": "2026-08-13T00:00:00Z",
+      "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted adversarial invariant closure); independent launch review deferred",
       "route_key": "POST /v1/session/login",
       "stable_id": "ROUTE-3FFABBEFCB7FF39D"
     },
@@ -2165,11 +2165,11 @@
       "disposition": "accepted_current_semantic_contract",
       "implementation_source": {
         "function": "v1_session_me",
-        "line": 488,
+        "line": 517,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "independent_review": false,
-      "review_digest": "6b12a23bf52197e78e50533e9e32c37d4f066338a88c69d9ced9368a3656f2ac",
+      "review_digest": "3cea6d2182cb7d7163c7766c2ec915b462bc57235a3c4a603d4967452e26b251",
       "review_method": "row_by_row_semantic_snapshot_bound_to_implementation_source",
       "reviewed_at": "2026-07-22T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",

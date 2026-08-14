@@ -21,15 +21,15 @@
     "procedure_time_source": "finalized_block_height",
     "target_block_interval_ms": 20000
   },
-  "genesis_hash": "b1037dd45a1635e99e0e635d27ba9920c21ad3103071b9daada0840be498fa91",
-  "genesis_state_root": "b1037dd45a1635e99e0e635d27ba9920c21ad3103071b9daada0840be498fa91",
+  "genesis_hash": "180bb54f86edf1d8e193b3707d8b1afe8eadd98e9b6977e057d98162980abfba",
+  "genesis_state_root": "180bb54f86edf1d8e193b3707d8b1afe8eadd98e9b6977e057d98162980abfba",
   "genesis_time_ms": 0,
   "mode": "prod",
   "name": "WeAll Public Observer Testnet v1",
   "network_id": "weall-public-observer-testnet-v1",
   "notes": "Pinned resettable public observer testnet-v1 chain identity. Tokens, reputation, validator status, storage offers, and governance outcomes are resettable/non-economic unless a later governance/spec activation explicitly says otherwise. Private keys must never be committed or included in observer bundles.",
   "profile": "public_testnet_v1_service",
-  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
   "resettable_testnet": true,
   "schema_version": "1",
   "trusted_authority_pubkeys": [

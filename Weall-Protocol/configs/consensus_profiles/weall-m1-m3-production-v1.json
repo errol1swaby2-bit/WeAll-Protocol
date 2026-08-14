@@ -16,7 +16,7 @@
       "configs/chains/weall-controlled-devnet.json"
     ]
   },
-  "manifest_hash": "959972aa4e5fbe3f9c19273111d945744384525d2e8da77064181b33e7daf840",
+  "manifest_hash": "36994b7a43bda8e5f51d4e8f491f3bafab4f13407ca6f78e6daffc71b461066f",
   "manifest_id": "weall-m1-m3-production-v1",
   "protocol_profile": {
     "clock_skew_warn_ms": 30000,
@@ -39,11 +39,12 @@
     "sigverify_required": true,
     "startup_clock_hard_fail_ms": 86400000,
     "startup_clock_sanity_required": false,
+    "state_root_commitment_version": "weall.state-root.v2",
     "timestamp_rule": "chain_time_successor_only",
     "trusted_anchor_required": true,
     "unsafe_autocommit_allowed": false,
     "vrf_required": true
   },
-  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
   "schema": "weall.consensus_profile_manifest.v1"
 }

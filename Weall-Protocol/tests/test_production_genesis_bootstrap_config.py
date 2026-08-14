@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from weall.runtime.executor import ExecutorError, WeAllExecutor
+from weall.runtime.state_hash import compute_state_root
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,7 +67,11 @@ def test_prod_first_boot_loads_pinned_genesis_and_validator_is_effective(
         tx_index_path=str(ROOT / "generated" / "tx_index.json"),
     )
     status = ex.node_lifecycle_status()
+    manifest = json.loads(
+        (ROOT / "configs" / "chains" / "weall-genesis.json").read_text(encoding="utf-8")
+    )
 
+    assert compute_state_root(ex.state) == manifest["genesis_state_root"]
     assert ex.state["accounts"][FOUNDER]["devices"]["by_id"]["node:founding"]["pubkey"] == FOUNDER_PUBKEY
     assert status["promotion_preflight_passed"] is True, status
     assert status["bft_enabled_effective"] is True, status

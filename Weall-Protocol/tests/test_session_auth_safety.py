@@ -85,6 +85,43 @@ def test_prod_session_mutation_routes_forbidden(monkeypatch: pytest.MonkeyPatch,
     assert r.json()["error"]["code"] == "direct_session_mutation_forbidden_in_production"
 
 
+def test_seeded_demo_direct_session_mutation_is_bootstrap_only_after_height_zero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "dev")
+    monkeypatch.setenv("WEALL_RUNTIME_PROFILE", "seeded_demo")
+    monkeypatch.setenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "1")
+    monkeypatch.setenv("WEALL_ALLOW_DIRECT_SESSION_MUTATION", "1")
+
+    from weall.api.routes_public_parts import common
+
+    state = {
+        "chain_id": "session-bootstrap-only",
+        "height": 1,
+        "time": int(time.time()),
+        "accounts": {"@alice": {"devices": {"by_id": {}}, "session_keys": {}}},
+    }
+
+    class Ex:
+        def read_state(self):
+            return state
+
+    monkeypatch.setattr(common, "_executor", lambda request: Ex())
+    monkeypatch.setattr(common, "_snapshot", lambda request: state)
+
+    app = create_app(boot_runtime=False)
+    client = TestClient(app, raise_server_exceptions=False)
+    r = client.post(
+        "/v1/session/create",
+        json={"account": "@alice", "session_key": "demo-key"},
+    )
+    assert r.status_code == 403, r.text
+    assert (
+        r.json()["error"]["code"]
+        == "direct_session_mutation_forbidden_after_genesis"
+    )
+
+
 def test_account_session_key_issue_stores_hash_and_revoke_accepts_raw_key() -> None:
     state = {
         "height": 7,

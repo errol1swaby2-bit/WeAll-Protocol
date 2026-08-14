@@ -12,6 +12,16 @@
     },
     {
       "kind": "not_equal",
+      "left": "base",
+      "right": "consensus_meta_policy_is_root_bound"
+    },
+    {
+      "kind": "not_equal",
+      "left": "nested_meta_reference",
+      "right": "nested_meta_semantic_change"
+    },
+    {
+      "kind": "not_equal",
       "left": "list_order_reference",
       "right": "list_order_changed"
     },
@@ -33,21 +43,23 @@
     }
   ],
   "canonicalization_contract": {
-    "consensus_relevant_policy_must_not_live_under_meta": true,
+    "consensus_meta_policy_is_root_bound": true,
     "dict_keys_sorted": true,
-    "ephemeral_keys_ignored": [
-      "created_ms",
-      "bft",
-      "meta",
-      "tip_hash",
-      "tip_ts_ms"
-    ],
     "float_values_forbidden_by_admission": true,
     "json_separators": [
       ",",
       ":"
     ],
-    "list_order_preserved": true
+    "list_order_preserved": true,
+    "nested_ephemeral_names_are_not_stripped_by_name": true,
+    "nested_meta_is_root_bound": true,
+    "top_level_ephemeral_keys_ignored": [
+      "created_ms",
+      "bft",
+      "tip_hash",
+      "tip_ts_ms"
+    ],
+    "top_level_meta_is_path_projected": true
   },
   "schema": "weall.v1_5.state_root_vectors",
   "vectors": [
@@ -86,7 +98,46 @@
         "meta",
         "params",
         "state_version",
-        "tip_hash"
+        "tip_hash",
+        "tip_ts_ms"
+      ]
+    },
+    {
+      "different_root_from": "base",
+      "name": "consensus_meta_policy_is_root_bound",
+      "state_root": "df8c2d1fb563869fd60f70f0f9b50c46c96592897bf0cbaae08a721664fd190c",
+      "state_summary": [
+        "accounts",
+        "content",
+        "height",
+        "meta",
+        "params",
+        "state_version"
+      ]
+    },
+    {
+      "name": "nested_meta_reference",
+      "state_root": "2e8c2eeeb21742c9b019922690c62ff16c2bbc3880f139916094d88e43193925",
+      "state_summary": [
+        "accounts",
+        "content",
+        "groups",
+        "height",
+        "params",
+        "state_version"
+      ]
+    },
+    {
+      "different_root_from": "nested_meta_reference",
+      "name": "nested_meta_semantic_change",
+      "state_root": "2e0b60aba6efa920a78f7c62ce3a5af40b260062c4612ad0c7b1c55e3251a434",
+      "state_summary": [
+        "accounts",
+        "content",
+        "groups",
+        "height",
+        "params",
+        "state_version"
       ]
     },
     {

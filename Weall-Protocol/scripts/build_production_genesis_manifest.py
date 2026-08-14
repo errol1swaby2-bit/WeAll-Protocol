@@ -92,11 +92,35 @@ def _build_genesis(
     genesis_time: int,
     econ_unlock_days: int,
     bootstrap_expires_height: int,
+    tx_index_hash: str,
 ) -> Json:
     from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
-    from weall.runtime.protocol_profile import PROTOCOL_VERSION
+    from weall.runtime.block_hash import RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
+    from weall.runtime.protocol_profile import (
+        PRODUCTION_CONSENSUS_PROFILE,
+        PROTOCOL_VERSION,
+        STATE_ROOT_COMMITMENT_VERSION,
+    )
 
     unlock_time = int(genesis_time) + int(econ_unlock_days) * SECONDS_PER_DAY
+    helper_execution_profile = {
+        "helper_mode_enabled": False,
+        "helper_fast_path_enabled": False,
+        "helper_timeout_ms": 5000,
+        "enforce_helper_signature": True,
+        "enforce_helper_certificate_consistency": True,
+        "enforce_helper_tx_order_hash": True,
+        "enforce_helper_namespace_hash": True,
+        "enforce_helper_receipts_root": True,
+    }
+    genesis_bootstrap_profile = {
+        "enabled": False,
+        "mode": "disabled",
+        "account": "",
+        "pubkey": "",
+        "reputation_milli": int(PRODUCTION_CONSENSUS_PROFILE.reputation_scale),
+        "storage_capacity_bytes": 0,
+    }
     founding_key_id = _key_id(founding_pubkey)
     founder_reputation_milli = 5000
     genesis = {
@@ -214,6 +238,26 @@ def _build_genesis(
         },
         "finalized": False,
         "economics": {},
+        "meta": {
+            "protocol_version": PROTOCOL_VERSION,
+            "state_root_commitment_version": STATE_ROOT_COMMITMENT_VERSION,
+            "production_consensus_profile": PRODUCTION_CONSENSUS_PROFILE.to_json(),
+            "production_consensus_profile_hash": PRODUCTION_CONSENSUS_PROFILE.profile_hash(),
+            "schema_version": "1",
+            "tx_index_hash": str(tx_index_hash),
+            "reputation_scale": int(PRODUCTION_CONSENSUS_PROFILE.reputation_scale),
+            "max_block_future_drift_ms": int(
+                PRODUCTION_CONSENSUS_PROFILE.max_block_future_drift_ms
+            ),
+            "mempool_selection_policy": "canonical",
+            "helper_execution_profile": helper_execution_profile,
+            "helper_execution_profile_hash": _sha256(_canon(helper_execution_profile)),
+            "genesis_bootstrap_profile": genesis_bootstrap_profile,
+            "genesis_bootstrap_profile_hash": _sha256(_canon(genesis_bootstrap_profile)),
+            "recent_block_anchor_activation_height": int(
+                RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
+            ),
+        },
         "params": {
             "economics_enabled": False,
             "genesis_time": int(genesis_time),
@@ -365,6 +409,7 @@ def main() -> int:
         raise SystemExit("bootstrap_expires_height_must_be_positive")
 
     genesis_time = int(args.genesis_time or int(time.time()))
+    tx_index_hash = _file_hash(tx_index_path)
     genesis = _build_genesis(
         chain_id=chain_id,
         founding_account=founding_account,
@@ -372,12 +417,13 @@ def main() -> int:
         genesis_time=genesis_time,
         econ_unlock_days=int(args.econ_unlock_days),
         bootstrap_expires_height=int(args.bootstrap_expires_height),
+        tx_index_hash=tx_index_hash,
     )
     state_root = _compute_state_root(genesis)
     genesis_hash = _sha256(_canon(genesis))
     manifest = _build_manifest(
         chain_id=chain_id,
-        tx_index_hash=_file_hash(tx_index_path),
+        tx_index_hash=tx_index_hash,
         genesis_hash=genesis_hash,
         genesis_state_root=state_root,
         protocol_profile_hash=_load_profile_hash(),
