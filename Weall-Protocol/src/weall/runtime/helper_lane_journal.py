@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -8,8 +9,16 @@ from typing import Any
 Json = dict[str, Any]
 
 
+class HelperLaneJournalCorruptionError(RuntimeError):
+    """Raised when durable helper-lane journal bytes cannot be trusted."""
+
+
 class HelperLaneJournal:
     """Durable append-only persistence for helper-lane orchestration."""
+
+    _FORMAT = "weall.helper-lane-journal.v2"
+    _FORMAT_KEY = "_journal_format"
+    _CHECKSUM_KEY = "_journal_checksum"
 
     def __init__(self, path: str) -> None:
         self.path = str(path)
@@ -19,8 +28,35 @@ class HelperLaneJournal:
     def _canon_record(record: Json) -> str:
         return json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
+    @classmethod
+    def _record_with_integrity(cls, record: Json) -> Json:
+        payload = dict(record)
+        payload.pop(cls._FORMAT_KEY, None)
+        payload.pop(cls._CHECKSUM_KEY, None)
+        protected = {cls._FORMAT_KEY: cls._FORMAT, **payload}
+        checksum = hashlib.sha256(cls._canon_record(protected).encode("utf-8")).hexdigest()
+        return {**protected, cls._CHECKSUM_KEY: checksum}
+
+    @classmethod
+    def _verify_and_strip_integrity(cls, obj: Json, *, line_no: int) -> Json:
+        fmt = str(obj.get(cls._FORMAT_KEY) or "")
+        checksum = str(obj.get(cls._CHECKSUM_KEY) or "")
+        if fmt != cls._FORMAT or not checksum:
+            raise HelperLaneJournalCorruptionError(
+                f"helper_lane_journal_integrity_fields_missing:line={line_no}"
+            )
+        protected = dict(obj)
+        protected.pop(cls._CHECKSUM_KEY, None)
+        expected = hashlib.sha256(cls._canon_record(protected).encode("utf-8")).hexdigest()
+        if checksum != expected:
+            raise HelperLaneJournalCorruptionError(
+                f"helper_lane_journal_checksum_mismatch:line={line_no}"
+            )
+        protected.pop(cls._FORMAT_KEY, None)
+        return protected
+
     def append(self, record: Json) -> None:
-        line = self._canon_record(record)
+        line = self._canon_record(self._record_with_integrity(record))
         with open(self.path, "a", encoding="utf-8") as fh:
             fh.write(line)
             fh.write("\n")
@@ -61,18 +97,29 @@ class HelperLaneJournal:
         p = Path(self.path)
         if not p.exists():
             return []
+        raw = p.read_bytes()
+        if raw and not raw.endswith(b"\n"):
+            raise HelperLaneJournalCorruptionError("helper_lane_journal_truncated_final_record")
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise HelperLaneJournalCorruptionError("helper_lane_journal_invalid_utf8") from exc
         out: list[Json] = []
-        with open(self.path, "r", encoding="utf-8") as fh:
-            for line in fh:
-                s = line.strip()
-                if not s:
-                    continue
-                try:
-                    obj = json.loads(s)
-                except Exception:
-                    continue
-                if isinstance(obj, dict):
-                    out.append(obj)
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            value = line.strip()
+            if not value:
+                continue
+            try:
+                obj = json.loads(value)
+            except json.JSONDecodeError as exc:
+                raise HelperLaneJournalCorruptionError(
+                    f"helper_lane_journal_invalid_json:line={line_no}"
+                ) from exc
+            if not isinstance(obj, dict):
+                raise HelperLaneJournalCorruptionError(
+                    f"helper_lane_journal_record_not_object:line={line_no}"
+                )
+            out.append(self._verify_and_strip_integrity(obj, line_no=line_no))
         return out
 
     def load_resolution_state(self) -> Json:

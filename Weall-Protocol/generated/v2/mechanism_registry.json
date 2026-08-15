@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "d28f73ab47936c00b7b6bb4b3a6a8bb7d5bbcccef65b6980b670d210a5bc5871"
+    "source_tree_digest": "0c214856ce7ceaf58c4bf0cb0132f00339a96e66bd3d7e33ff2f5ac544f4fbc8"
   },
   "rows": [
     {
@@ -75,28 +75,26 @@
       "production_target": "Mainnet uses one verified genesis account plus separately qualified role seeds, dynamic concurrence, expiry, challenge, and readiness gates; sole-validator mode is not BFT.",
       "repository_evidence": [
         {
-          "kind": "current_path",
-          "path": "src/weall/runtime/genesis_bootstrap.py",
-          "status": "present"
-        },
-        {
-          "kind": "current_path",
-          "path": "src/weall/runtime/genesis_config.py",
-          "status": "present"
-        },
-        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/bootstrap_manifest.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/bootstrap_audit.py",
+          "path": "src/weall/runtime/genesis_bootstrap.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/genesis_config.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "src/weall/runtime/bootstrap_audit.py",
         "src/weall/runtime/bootstrap_manifest.py",
         "src/weall/runtime/genesis_bootstrap.py",
         "src/weall/runtime/genesis_config.py"
@@ -125,23 +123,27 @@
       "production_target": "Active Constitution state, amendment history, lifetime challenge, remedies, and constitution-first activation must govern lower contracts.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/constitution.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/constitutional_clock.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "docs/CONSTITUTIONAL_CLOCK.md",
+          "path": "src/weall/runtime/block_time_admission.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "docs/CONSTITUTIONAL_CLOCK.md",
+        "src/weall/runtime/block_time_admission.py",
         "src/weall/runtime/constitution.py",
         "src/weall/runtime/constitutional_clock.py"
       ],
@@ -213,30 +215,35 @@
       "production_target": "Every current and target TX/MSG/SYS/RCP contract has exact IDs, schemas, authority, state, receipts, failures, replay, activation, API, and vectors.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "generated/tx_index.json",
+          "path": "src/weall/runtime/domain_dispatch.py",
           "status": "present"
         },
         {
-          "kind": "current_path",
-          "path": "generated/tx_contract_map.json",
-          "status": "present"
-        },
-        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/tx_schema.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/domain_dispatch.py",
+          "path": "src/weall/runtime/tx_contracts.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "generated/tx_index.json",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "generated/tx_contract_map.json",
         "generated/tx_index.json",
         "src/weall/runtime/domain_dispatch.py",
+        "src/weall/runtime/tx_contracts.py",
         "src/weall/runtime/tx_schema.py"
       ],
       "required_evidence": [
@@ -263,35 +270,28 @@
       "production_target": "All admission behavior is profile-pinned, deterministic, replay-equivalent, and mapped to exact failure IDs and API responses.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/tx_admission.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/gates.py",
+          "path": "src/weall/crypto/signature_profiles.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/gate_expr.py",
-          "status": "present"
-        },
-        {
-          "kind": "current_path",
-          "path": "src/weall/runtime/sigverify.py",
+          "path": "src/weall/crypto/pq_mldsa.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "src/weall/crypto/__init__.py",
-        "src/weall/crypto/account_keys.py",
         "src/weall/crypto/pq_mldsa.py",
-        "src/weall/crypto/sig.py",
         "src/weall/crypto/signature_profiles.py",
-        "src/weall/runtime/gate_expr.py",
-        "src/weall/runtime/gates.py",
-        "src/weall/runtime/sigverify.py",
         "src/weall/runtime/tx_admission.py"
       ],
       "required_evidence": [
@@ -318,21 +318,25 @@
       "production_target": "TX identity, nonce consumption, duplicate behavior, and rejection/receipt semantics are exact per contract and stable across replay.",
       "repository_evidence": [
         {
-          "kind": "current_path",
-          "path": "src/weall/runtime/mempool.py",
-          "status": "present"
-        },
-        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/tx_id.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/mempool.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/apply/identity.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/runtime/apply/identity.py",
         "src/weall/runtime/mempool.py",
@@ -362,25 +366,22 @@
       "production_target": "Local timing metadata never affects consensus; candidate selection is height-bound, canonical, resource-accounted, and identical across validators.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/mempool.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/block_builder.py",
           "status": "present"
-        },
-        {
-          "kind": "current_path",
-          "path": "tests/test_block_candidate_selection_is_deterministic.py",
-          "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/runtime/block_builder.py",
-        "src/weall/runtime/mempool.py",
-        "tests/test_block_candidate_selection_is_deterministic.py"
+        "src/weall/runtime/mempool.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -406,29 +407,34 @@
       "production_target": "Every contract declares exact reads, boundary writes, conflicts, ordering, parallel-safety, and serial-equivalence vectors.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/conflict_lanes.py",
+          "path": "src/weall/runtime/parallel_execution.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/execution_lanes.py",
+          "path": "src/weall/runtime/lane_identity.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/read_write_sets.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/tx_conflicts.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "src/weall/runtime/conflict_lanes.py",
-        "src/weall/runtime/execution_lanes.py",
+        "src/weall/runtime/lane_identity.py",
+        "src/weall/runtime/parallel_execution.py",
         "src/weall/runtime/read_write_sets.py",
         "src/weall/runtime/tx_conflicts.py"
       ],
@@ -456,21 +462,25 @@
       "production_target": "Every validator derives the same candidate under active resource and SYS-priority rules; invalid blocks fail closed before state mutation.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/block_builder.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/block_admission.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/block_time_admission.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/runtime/block_admission.py",
         "src/weall/runtime/block_builder.py",
@@ -500,28 +510,33 @@
       "production_target": "All consensus-relevant roots and profile/schema/parameter commitments are exact, mandatory, versioned, and independently replayable.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/block_id.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/block_hash.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/state_hash.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/block_commit.py",
+          "path": "src/weall/runtime/block_commitment_validation.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "src/weall/runtime/block_commit.py",
+        "src/weall/runtime/block_commitment_validation.py",
         "src/weall/runtime/block_hash.py",
         "src/weall/runtime/block_id.py",
         "src/weall/runtime/state_hash.py"
@@ -550,108 +565,22 @@
       "production_target": "No partial state mutation on failure; restart and replay reproduce identical state, receipts, roots, and scheduler queues.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/domain_apply.py",
+          "path": "src/weall/runtime/block_commit.py",
           "status": "present"
         },
         {
-          "kind": "current_path",
-          "path": "src/weall/runtime/single_writer.py",
-          "status": "present"
-        },
-        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/sqlite_db.py",
           "status": "present"
-        },
-        {
-          "kind": "current_path",
-          "path": "src/weall/runtime/executor.py",
-          "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "scripts/check_consensus_profile_manifest.py",
-        "src/weall/__init__.py",
-        "src/weall/env.py",
-        "src/weall/indexing/__init__.py",
-        "src/weall/runtime/account_id.py",
-        "src/weall/runtime/ancestry.py",
-        "src/weall/runtime/apply/__init__.py",
-        "src/weall/runtime/apply/indexing.py",
-        "src/weall/runtime/apply/networking.py",
-        "src/weall/runtime/apply/notifications.py",
-        "src/weall/runtime/apply/protocol.py",
-        "src/weall/runtime/attestation_pool.py",
-        "src/weall/runtime/bootstrap_audit.py",
-        "src/weall/runtime/bootstrap_manifest.py",
-        "src/weall/runtime/bounded_rollback.py",
-        "src/weall/runtime/conflict_lanes.py",
-        "src/weall/runtime/consensus_profile_manifest.py",
-        "src/weall/runtime/constitution.py",
-        "src/weall/runtime/constitutional_clock.py",
-        "src/weall/runtime/diagnostics.py",
-        "src/weall/runtime/domain_apply.py",
-        "src/weall/runtime/domain_dispatch.py",
-        "src/weall/runtime/econ_phase.py",
-        "src/weall/runtime/errors.py",
-        "src/weall/runtime/executor.py",
-        "src/weall/runtime/executor_boot.py",
-        "src/weall/runtime/executor_safe_mode.py",
-        "src/weall/runtime/executor_safe_mode_integration.py",
-        "src/weall/runtime/failpoints.py",
-        "src/weall/runtime/fault_injection.py",
-        "src/weall/runtime/fork_choice.py",
-        "src/weall/runtime/gate_expr.py",
-        "src/weall/runtime/gates.py",
-        "src/weall/runtime/genesis_bootstrap.py",
-        "src/weall/runtime/genesis_config.py",
-        "src/weall/runtime/gov_engine.py",
-        "src/weall/runtime/json_tools.py",
-        "src/weall/runtime/metrics.py",
-        "src/weall/runtime/node_lifecycle.py",
-        "src/weall/runtime/node_lifecycle_preflight.py",
-        "src/weall/runtime/node_operator_responsibilities.py",
-        "src/weall/runtime/node_operator_scheduler.py",
-        "src/weall/runtime/node_runtime_config.py",
-        "src/weall/runtime/operator_recovery.py",
-        "src/weall/runtime/operator_safe_mode.py",
-        "src/weall/runtime/param_policy.py",
-        "src/weall/runtime/proposals.py",
-        "src/weall/runtime/proposer_selection.py",
-        "src/weall/runtime/protocol_profile.py",
-        "src/weall/runtime/protocol_time.py",
-        "src/weall/runtime/public_protocol_policy.py",
-        "src/weall/runtime/read_write_sets.py",
-        "src/weall/runtime/replay_consistency.py",
-        "src/weall/runtime/runtime_authority.py",
-        "src/weall/runtime/runtime_context.py",
-        "src/weall/runtime/runtime_env.py",
-        "src/weall/runtime/runtime_time.py",
-        "src/weall/runtime/scheduler_pipeline.py",
-        "src/weall/runtime/session_keys.py",
-        "src/weall/runtime/sigverify.py",
-        "src/weall/runtime/single_writer.py",
-        "src/weall/runtime/sqlite_db.py",
-        "src/weall/runtime/startup_checks.py",
-        "src/weall/runtime/state_hash.py",
-        "src/weall/runtime/state_invariants.py",
-        "src/weall/runtime/supported_txs.py",
-        "src/weall/runtime/system_tx_engine.py",
-        "src/weall/runtime/testnet_capabilities.py",
-        "src/weall/runtime/tx_admission.py",
-        "src/weall/runtime/tx_admission_types.py",
-        "src/weall/runtime/tx_conflict_audit_samples.py",
-        "src/weall/runtime/tx_conflicts.py",
-        "src/weall/runtime/tx_contracts.py",
-        "src/weall/runtime/tx_id.py",
-        "src/weall/runtime/tx_index.py",
-        "src/weall/runtime/tx_schema.py",
-        "src/weall/runtime/vrf_sig.py",
-        "src/weall/tx/canon.py",
-        "src/weall/tx/index.py",
-        "src/weall/util/__init__.py",
-        "src/weall/util/ipfs_cid.py"
+        "src/weall/runtime/block_commit.py",
+        "src/weall/runtime/sqlite_db.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -759,24 +688,28 @@
       "production_target": "Every active schema/parameter/contract transition has deterministic migration and rollback-or-forward-repair vectors across fresh replay and restart.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/block_replay.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/replay_consistency.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/ledger/migrations.py",
+          "path": "src/weall/runtime/executor.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "src/weall/ledger/migrations.py",
         "src/weall/runtime/block_replay.py",
+        "src/weall/runtime/executor.py",
         "src/weall/runtime/replay_consistency.py"
       ],
       "required_evidence": [
@@ -803,25 +736,29 @@
       "production_target": "Snapshots are acceleration only; finality, validator-set proof chains, schema/parameter roots, archive availability, and replay verification remain authoritative.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/net/state_sync.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/storage_probe_runner.py",
+          "path": "src/weall/runtime/executor.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
+          "path": "src/weall/runtime/sqlite_db.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
         "src/weall/net/state_sync.py",
-        "src/weall/runtime/storage_probe_runner.py"
+        "src/weall/runtime/executor.py",
+        "src/weall/runtime/sqlite_db.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -891,39 +828,29 @@
       "production_target": "Epoch-aware LogicalView, exact safe-runtime/bft_hotstuff.py; boundary node/lock/commit, persist-before-send, validator-set binding, and independent consensus review control public BFT.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_hotstuff.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/bft_runtime_adapter.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/bft_votecheck.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "src/weall/runtime/apply/consensus.py",
-        "src/weall/runtime/bft_artifact_cache.py",
-        "src/weall/runtime/bft_diagnostics.py",
-        "src/weall/runtime/bft_fetch_requests.py",
         "src/weall/runtime/bft_hotstuff.py",
-        "src/weall/runtime/bft_journal.py",
-        "src/weall/runtime/bft_outbound.py",
-        "src/weall/runtime/bft_pending_frontier.py",
-        "src/weall/runtime/bft_pending_frontier_impl.py",
         "src/weall/runtime/bft_runtime_adapter.py",
-        "src/weall/runtime/bft_votecheck.py",
-        "src/weall/runtime/block.py",
-        "src/weall/runtime/block_admission.py",
-        "src/weall/runtime/block_builder.py",
-        "src/weall/runtime/block_commit.py",
-        "src/weall/runtime/block_commitment_validation.py",
-        "src/weall/runtime/block_hash.py",
-        "src/weall/runtime/block_id.py",
-        "src/weall/runtime/block_loop.py",
-        "src/weall/runtime/block_replay.py",
-        "src/weall/runtime/block_signature_profiles.py",
-        "src/weall/runtime/block_time_admission.py",
-        "src/weall/runtime/chain_config.py",
-        "src/weall/runtime/chain_manifest.py",
-        "src/weall/runtime/mempool.py",
-        "src/weall/runtime/validator_execution_model.py",
-        "src/weall/runtime/validator_readiness_runner.py"
+        "src/weall/runtime/bft_votecheck.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -949,16 +876,19 @@
       "production_target": "A validator must never double-vote/propose after restart; all safety slots persist before transmission and replay deterministically.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/bft_journal.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/bft_outbound.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/runtime/bft_journal.py",
         "src/weall/runtime/bft_outbound.py"
@@ -987,25 +917,29 @@
       "production_target": "Dependency fetch and pending-frontier processing are bounded, deterministic, stale-safe, epoch-bound, and denial-of-service resistant.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/bft_pending_frontier.py",
+          "path": "src/weall/runtime/bft_pending_frontier_impl.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/bft_fetch_requests.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/bft_artifact_cache.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/runtime/bft_artifact_cache.py",
         "src/weall/runtime/bft_fetch_requests.py",
-        "src/weall/runtime/bft_pending_frontier.py"
+        "src/weall/runtime/bft_pending_frontier_impl.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -1031,25 +965,29 @@
       "production_target": "Exact LogicalView arithmetic, timeout backoff, NewView aggregation, epoch handoff, and old-set QC exception are canonical and externally reviewed.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/bft_hotstuff.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/bft_runtime_adapter.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "docs/CATCHUP_AND_EPOCH_NOTES.md",
+          "path": "src/weall/runtime/constitutional_clock.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "docs/CATCHUP_AND_EPOCH_NOTES.md",
         "src/weall/runtime/bft_hotstuff.py",
-        "src/weall/runtime/bft_runtime_adapter.py"
+        "src/weall/runtime/bft_runtime_adapter.py",
+        "src/weall/runtime/constitutional_clock.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -1542,25 +1480,22 @@
       "production_target": "Assignment, evidence access, quorum, deadlines, appeal, renewal, and deletion are profile-bound and independently reviewable.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/apply/poh.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/poh/async_scheduler.py",
           "status": "present"
-        },
-        {
-          "kind": "current_path",
-          "path": "src/weall/runtime/poh/eligibility.py",
-          "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/runtime/apply/poh.py",
-        "src/weall/runtime/poh/async_scheduler.py",
-        "src/weall/runtime/poh/eligibility.py"
+        "src/weall/runtime/poh/async_scheduler.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -2907,7 +2842,6 @@
         "src/weall/runtime/helper_merge.py",
         "src/weall/runtime/helper_merge_admission.py",
         "src/weall/runtime/helper_operator_diagnostics.py",
-        "src/weall/runtime/helper_planner.py",
         "src/weall/runtime/helper_preflight_gate.py",
         "src/weall/runtime/helper_proposal_loop.py",
         "src/weall/runtime/helper_proposal_orchestrator.py",
@@ -3000,31 +2934,50 @@
       "production_target": "Helpers may only accelerate; assignment, lane partitioning, ordering, receipts, merge, crash recovery, Byzantine rejection, and serial equivalence must be proven.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_execution_runtime.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/helper_block_validation.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/parallel_execution.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/helper_assignment.py",
           "status": "present"
         },
         {
-          "kind": "current_path",
-          "path": "src/weall/runtime/helper_planner.py",
-          "status": "present"
-        },
-        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/helper_certificates.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/helper_merge.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/runtime/helper_assignment.py",
+        "src/weall/runtime/helper_block_validation.py",
         "src/weall/runtime/helper_certificates.py",
+        "src/weall/runtime/helper_execution_runtime.py",
         "src/weall/runtime/helper_merge.py",
-        "src/weall/runtime/helper_planner.py"
+        "src/weall/runtime/parallel_execution.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -3223,6 +3176,7 @@
         "../web/src/vite-env.d.ts",
         "src/weall/api/__main__.py",
         "src/weall/api/app.py",
+        "src/weall/api/asgi.py",
         "src/weall/api/config.py",
         "src/weall/api/errors.py",
         "src/weall/api/ipfs.py",
@@ -3774,7 +3728,9 @@
         "specs/v2/source/semantic_reviews.json",
         "specs/v2/source/stable_ids_baseline.json",
         "src/weall/testing/__init__.py",
+        "src/weall/testing/conflict_lanes.py",
         "src/weall/testing/helper_executor.py",
+        "src/weall/testing/helper_planner.py",
         "src/weall/testing/prod_fixtures.py",
         "src/weall/testing/sigtools.py",
         "tooling/canon_lint.py",

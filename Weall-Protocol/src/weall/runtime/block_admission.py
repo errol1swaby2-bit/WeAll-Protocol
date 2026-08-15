@@ -12,7 +12,7 @@ from weall.runtime.block_time_admission import (
     has_material_block_timestamp,
     validate_block_timestamp,
 )
-from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
+from weall.runtime.helper_block_validation import validate_received_helper_execution
 from weall.runtime.block_signature_profiles import validate_block_signature_profile
 from weall.crypto.signature_profiles import mode_requires_explicit_sig_profile
 from weall.runtime.protocol_profile import runtime_max_block_future_drift_ms
@@ -195,16 +195,42 @@ def _block_proposer(block: Json) -> str:
     )
 
 
-def _validate_helper_execution_metadata(block: Json) -> tuple[bool, BlockReject | None]:
+def _validate_helper_execution_metadata(
+    block: Json, state: Json
+) -> tuple[bool, BlockReject | None]:
     helper_execution = block.get("helper_execution")
     if helper_execution is None:
         return True, None
     if not isinstance(helper_execution, dict):
-        return False, BlockReject("bad_shape", "helper_execution_must_be_object", {"type": str(type(helper_execution))})
-    advertised_plan_id = _as_str(helper_execution.get("plan_id") or "")
-    ok, reason = verify_block_helper_plan_metadata(helper_execution=helper_execution, expected_plan_id=advertised_plan_id)
+        return False, BlockReject(
+            "bad_shape",
+            "helper_execution_must_be_object",
+            {"type": str(type(helper_execution))},
+        )
+
+    validators = _get_active_validators_from_state(state)
+    validator_pubkeys = _get_validator_pubkeys_from_state(state)
+    validator_epoch = _current_validator_epoch_from_state(state)
+    validator_set_hash = _current_validator_set_hash_from_state(state)
+    chain_id = _as_str(state.get("chain_id") or block.get("chain_id") or "")
+    ok, reason = validate_received_helper_execution(
+        block=block,
+        state=state,
+        chain_id=chain_id,
+        validators=validators,
+        validator_pubkeys=validator_pubkeys,
+        validator_epoch=validator_epoch,
+        validator_set_hash=validator_set_hash,
+    )
     if not ok:
-        return False, BlockReject("helper_plan_invalid", str(reason), {"block_id": _as_str(block.get("block_id") or ""), "plan_id": advertised_plan_id})
+        return False, BlockReject(
+            "helper_plan_invalid",
+            str(reason),
+            {
+                "block_id": _as_str(block.get("block_id") or ""),
+                "plan_id": _as_str(helper_execution.get("plan_id") or ""),
+            },
+        )
     return True, None
 
 def _validate_bft_proposal_leader_view(block: Json, state: Json) -> tuple[bool, BlockReject | None]:
@@ -488,7 +514,7 @@ def admit_bft_block(
     if not isinstance(block, dict):
         return False, BlockReject("bad_shape", "block_must_be_object", {"type": str(type(block))})
 
-    ok_helper_meta, rej_helper_meta = _validate_helper_execution_metadata(block)
+    ok_helper_meta, rej_helper_meta = _validate_helper_execution_metadata(block, state)
     if not ok_helper_meta:
         return False, rej_helper_meta
 

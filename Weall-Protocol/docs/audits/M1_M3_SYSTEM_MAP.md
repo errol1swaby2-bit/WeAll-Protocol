@@ -126,11 +126,13 @@ Status: read-only source snapshot map; no Git identity is available in the suppl
 - `src/weall/runtime/consensus_contract.py` — missing; classes: none; functions: none
 
 ### Helper And Parallel Execution
-- `src/weall/runtime/helper_planner.py` — present; classes: LaneAssignment, HelperPlan; functions: _sha256_hex, normalize_validators, stable_tx_id, canonical_tx_order_key, canonicalize_txs, tx_conflict_keys, lane_base_id, validator_set_hash, choose_helper_for_lane, partition_conflict_lanes, build_helper_plan
+- `src/weall/runtime/parallel_execution.py` — authoritative helper/parallel planner; production lane planning and merge execution live here.
+- `src/weall/testing/helper_planner.py` — testing/reference planner only; not production mechanism authority.
+- `src/weall/testing/conflict_lanes.py` — testing/reference conflict partitioner only; not production mechanism authority.
 - `src/weall/runtime/helper_execution_runtime.py` — present; classes: none; functions: _root_committed_map, _helper_mode_enabled_runtime, _requested_helper_execution_profile, _effective_helper_execution_profile, _helper_fast_path_enabled, _helper_lane_journal_path, _helper_dispatch_context, _build_helper_execution_metadata
-- `src/weall/runtime/helper_merge_admission.py` — present; classes: HelperMergeCandidate, HelperMergeAdmissionDecision; functions: _sha256_hex, canonical_receipts_root, canonical_state_delta_hash, canonical_lane_plan_id, merge_state_deltas, helper_receipts_from_candidates, admit_helper_merge
-- `src/weall/runtime/helper_receipts.py` — present; classes: HelperReceipt; functions: _sha256_hex, _normalize_tx_ids, _signing_material, _pq_seed_from_helper_material, sign_helper_receipt, verify_helper_receipt
-- `src/weall/runtime/helper_restart_replay.py` — present; classes: HelperRestartSnapshot; functions: _sha256_hex, _lane_plan_map, _lane_plan_digest, _journal_history_consistent, build_helper_restart_snapshot
+- `src/weall/runtime/helper_merge_admission.py` — present; classes: HelperMergeCandidate, HelperMergeAdmissionDecision; functions: canonical_receipts_root, canonical_state_delta_hash, canonical_lane_plan_id, merge_state_deltas, helper_receipts_from_candidates, admit_helper_merge
+- `src/weall/runtime/helper_receipts.py` — present; classes: HelperReceipt; functions: _normalize_tx_ids, _signing_material, sign_helper_receipt, verify_helper_receipt; commitment hashing delegates to `runtime/commitments.py`.
+- `src/weall/runtime/helper_restart_replay.py` — present; classes: HelperRestartSnapshot; functions: _lane_plan_map, _lane_plan_digest, _journal_history_consistent, build_helper_restart_snapshot; commitment hashing delegates to `runtime/commitments.py`.
 - `src/weall/runtime/parallel_execution.py` — present; classes: LanePlan, LaneDecision, MergeHelperLaneResults, SerialHelperEquivalenceReport; functions: _canonical_json, lane_descriptor_hash, canonical_lane_plan_fingerprint, _canonical_tx_id, _tx_type, _tx_namespace_prefixes, _uses_explicit_access_sets, _explicit_lane_override, _expected_parallel_lane_from_access, _effective_parallel_lane_id, _access_conflicts, _plan_helper_assignment
 - `src/weall/runtime/helper_lane_journal.py` — present; classes: HelperLaneJournal; functions: none
 

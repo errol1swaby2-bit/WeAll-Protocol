@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
-import json
 from typing import Any, Callable, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from weall.runtime.commitments import receipts_root, value_sha256
 
 from weall.runtime.helper_proposal_orchestrator import HelperLaneResolution
 
@@ -13,18 +11,12 @@ Json = dict[str, Any]
 
 
 
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
-
-
 def canonical_receipts_root(receipts: Sequence[Mapping[str, Any]]) -> str:
-    return _sha256_hex([dict(r) for r in receipts])
+    return receipts_root(receipts)
 
 
 def canonical_state_delta_hash(delta: Mapping[str, Any]) -> str:
-    return _sha256_hex(dict(delta))
+    return value_sha256(dict(delta))
 
 
 def canonical_lane_plan_id(lane_plan_by_id: Mapping[str, Any] | None) -> str:
@@ -35,7 +27,7 @@ def canonical_lane_plan_id(lane_plan_by_id: Mapping[str, Any] | None) -> str:
         normalized.append({"lane_id": str(lane_id), "helper_id": helper_id, "tx_ids": list(tx_ids)})
     if not normalized:
         return ""
-    return _sha256_hex(normalized)
+    return value_sha256(normalized)
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
-import json
 from typing import Any, Protocol
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from weall.runtime.commitments import value_sha256
 
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
@@ -22,14 +20,9 @@ Json = dict[str, Any]
 
 
 
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
-
 
 def certificate_fingerprint(cert: HelperExecutionCertificate) -> str:
-    return _sha256_hex(cert.to_json())
+    return value_sha256(cert.to_json())
 
 
 def _certificate_matches_context(cert: HelperExecutionCertificate, context: HelperDispatchContext) -> bool:

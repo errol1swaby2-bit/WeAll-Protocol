@@ -5,7 +5,8 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from weall.runtime.conflict_lanes import lane_base_id
+from weall.runtime.lane_identity import lane_base_id
+from weall.runtime.commitments import canonical_json_sha256
 from weall.runtime.helper_assignment import (
     assign_helper_candidates_for_lane,
     choose_helper_from_candidates,
@@ -27,7 +28,6 @@ from weall.runtime.helper_certificates import (
     make_tx_order_hash,
     verify_helper_certificate_signature,
 )
-from weall.runtime.json_tools import canonical_json_str
 from weall.runtime.lane_assignment import assign_execution_lane
 from weall.runtime.read_write_sets import (
     CONTENT_LANE,
@@ -44,12 +44,7 @@ from weall.runtime.read_write_sets import (
 Json = dict[str, Any]
 
 
-def _canonical_json(value: Any) -> str:
-    return canonical_json_str(value)
-
-
 def lane_descriptor_hash(access_sets: Sequence[TxAccessSet]) -> str:
-    from hashlib import sha256
 
     material = [
         {
@@ -63,11 +58,10 @@ def lane_descriptor_hash(access_sets: Sequence[TxAccessSet]) -> str:
         }
         for item in access_sets
     ]
-    return sha256(_canonical_json(material).encode("utf-8")).hexdigest() if material else ""
+    return canonical_json_sha256(material) if material else ""
 
 
 def canonical_lane_plan_fingerprint(lane_plans: Sequence[LanePlan]) -> str:
-    from hashlib import sha256
 
     material = [
         {
@@ -78,7 +72,7 @@ def canonical_lane_plan_fingerprint(lane_plans: Sequence[LanePlan]) -> str:
         }
         for plan in sorted(tuple(lane_plans or ()), key=lambda item: item.lane_id)
     ]
-    return sha256(_canonical_json(material).encode("utf-8")).hexdigest() if material else ""
+    return canonical_json_sha256(material) if material else ""
 
 
 @dataclass(frozen=True)
@@ -684,7 +678,6 @@ def _helper_state_delta_hash_valid(
 
 
 def canonical_helper_execution_plan_fingerprint(lanes: Sequence[Mapping[str, Any]] | None) -> str:
-    from hashlib import sha256
 
     material = []
     for lane in sorted(
@@ -709,7 +702,7 @@ def canonical_helper_execution_plan_fingerprint(lanes: Sequence[Mapping[str, Any
                 "descriptor_hash": descriptor_hash,
             }
         )
-    return sha256(_canonical_json(material).encode("utf-8")).hexdigest() if material else ""
+    return canonical_json_sha256(material) if material else ""
 
 
 def verify_block_helper_plan_metadata(

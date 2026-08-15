@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any, Iterable, List, Mapping, Optional, Sequence
 
+from weall.runtime.commitments import normalize_validator_ids
 from weall.runtime.helper_capacity import (
     DEFAULT_HELPER_CAPACITY_UNITS,
     lane_cost_units as compute_lane_cost_units,
@@ -13,7 +14,7 @@ Json = dict[str, object]
 
 
 def normalize_validators(validators: List[str]) -> List[str]:
-    return sorted(set(validators))
+    return normalize_validator_ids(validators)
 
 
 def _clean_quarantined_helpers(quarantined_helpers: Iterable[str] | None) -> set[str]:

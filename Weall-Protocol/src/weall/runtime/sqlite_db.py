@@ -832,6 +832,123 @@ class SqliteLedgerStore:
                 (height, block_id, payload, _now_ms()),
             )
 
+
+    def install_state_sync_checkpoint(self, *, state: Json, checkpoint_block: Json) -> None:
+        """Atomically replace local canonical history with a verified sync checkpoint.
+
+        This is intentionally destructive to branch-local/history-derived tables.
+        The caller must independently verify the trusted snapshot/checkpoint pair
+        before invoking this method.  A checkpointed node retains the checkpoint
+        block as its durable base and can append normal blocks from height H+1.
+        """
+        if not isinstance(state, dict):
+            raise TypeError("checkpoint state must be a dict")
+        if not isinstance(checkpoint_block, dict):
+            raise TypeError("checkpoint block must be a dict")
+
+        from weall.runtime.block_hash import ensure_block_hash
+        from weall.runtime.state_hash import compute_state_root
+
+        block2, block_hash = ensure_block_hash(copy.deepcopy(checkpoint_block))
+        height = int(state.get("height") or 0)
+        block_height = int(block2.get("height") or 0)
+        block_id = str(block2.get("block_id") or "").strip()
+        state_tip = str(state.get("tip") or "").strip()
+        state_tip_hash = str(state.get("tip_hash") or "").strip()
+        header = block2.get("header") if isinstance(block2.get("header"), dict) else {}
+        committed_root = str(header.get("state_root") or "").strip()
+        computed_root = str(compute_state_root(state) or "").strip()
+
+        if height <= 0 or block_height != height:
+            raise RuntimeError("state_sync_checkpoint_height_mismatch")
+        if not block_id or state_tip != block_id:
+            raise RuntimeError("state_sync_checkpoint_block_id_mismatch")
+        if not state_tip_hash or state_tip_hash != str(block_hash):
+            raise RuntimeError("state_sync_checkpoint_block_hash_mismatch")
+        if not committed_root or committed_root != computed_root:
+            raise RuntimeError("state_sync_checkpoint_state_root_mismatch")
+
+        payload = _canon_json(state)
+        block_json = _canon_json(block2)
+        created_ts_ms = int(block2.get("block_ts_ms") or block2.get("created_ms") or _now_ms())
+
+        reset_tables = (
+            "blocks",
+            "block_hash_index",
+            "tx_index",
+            "mempool",
+            "attestations",
+            "system_queue",
+            "bft_candidates",
+            "bft_pending_artifacts",
+            "ipfs_replication_jobs",
+            "tx_conflict_materialization",
+            "helper_plans",
+            "helper_lane_results",
+            "helper_lane_receipts",
+            "helper_resolution_journal",
+            "state_consensus",
+            "state_governance",
+            "state_roles",
+            "state_poh",
+            "state_identity",
+            "state_treasury",
+            "state_economics",
+            "state_groups",
+            "state_content",
+            "state_dispute",
+            "state_cases",
+            "state_moderation",
+            "state_networking",
+            "state_notifications",
+            "state_indexing",
+            "state_reputation",
+            "state_rewards",
+            "state_performance",
+            "state_social",
+            "state_storage",
+        )
+
+        with self.db.write_tx() as con:
+            for table in reset_tables:
+                con.execute(f"DELETE FROM {table};")
+
+            con.execute(
+                "INSERT INTO blocks(height, block_id, block_json, created_ts_ms) VALUES(?,?,?,?);",
+                (height, block_id, block_json, created_ts_ms),
+            )
+            con.execute(
+                """
+                INSERT INTO block_hash_index(block_id, block_hash, height, created_ts_ms)
+                VALUES(?,?,?,?);
+                """,
+                (block_id, str(block_hash), height, created_ts_ms),
+            )
+            con.execute(
+                """
+                INSERT INTO ledger_state(id, height, block_id, state_json, updated_ts_ms)
+                VALUES(1, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                  height=excluded.height,
+                  block_id=excluded.block_id,
+                  state_json=excluded.state_json,
+                  updated_ts_ms=excluded.updated_ts_ms;
+                """,
+                (height, block_id, payload, _now_ms()),
+            )
+            con.execute(
+                "INSERT OR REPLACE INTO meta(key, value) VALUES('checkpoint_base_height', ?);",
+                (str(height),),
+            )
+            con.execute(
+                "INSERT OR REPLACE INTO meta(key, value) VALUES('checkpoint_block_id', ?);",
+                (block_id,),
+            )
+            con.execute(
+                "INSERT OR REPLACE INTO meta(key, value) VALUES('checkpoint_block_hash', ?);",
+                (str(block_hash),),
+            )
+
     # -----------------------------------------------------------------
     # Test/back-compat helpers
     # -----------------------------------------------------------------

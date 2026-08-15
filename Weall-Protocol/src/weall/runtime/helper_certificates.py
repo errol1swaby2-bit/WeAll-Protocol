@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
+from weall.runtime.commitments import (
+    canonical_json_sha256,
+    canonical_json_sha256_ascii,
+    receipts_root,
+)
 from weall.runtime.json_tools import canonical_json_str
 
 
@@ -19,11 +23,7 @@ def canonical_json(obj: Any) -> str:
 
 
 def hash_json(obj: Any) -> str:
-    return hashlib.sha256(canonical_json(obj).encode("utf-8")).hexdigest()
-
-
-def sha256(data: str) -> str:
-    return hashlib.sha256(str(data).encode("utf-8")).hexdigest()
+    return canonical_json_sha256(obj)
 
 
 def make_namespace_hash(prefixes: Sequence[str]) -> str:
@@ -45,8 +45,7 @@ def hash_ordered_strings(values: Sequence[str]) -> str:
 
 
 def hash_receipts(receipts: Sequence[Mapping[str, Any]]) -> str:
-    rows = [dict(item) for item in receipts]
-    return hash_json(rows)
+    return receipts_root(receipts)
 
 
 def hash_state_delta_ops(delta_ops: Sequence[Mapping[str, Any]]) -> str:
@@ -365,9 +364,7 @@ def sign_helper_certificate(
             "issued_ms": issued_ms,
             "sig_profile": profile,
         }
-        payload["certificate_id"] = hashlib.sha256(
-            json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
-        ).hexdigest()
+        payload["certificate_id"] = canonical_json_sha256_ascii(payload)
         if not privkey:
             raise ValueError("helper certificate signing requires pq-mldsa-v1 privkey")
         payload["signature"] = sign_signature_for_profile(

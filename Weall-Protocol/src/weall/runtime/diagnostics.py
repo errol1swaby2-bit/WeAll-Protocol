@@ -159,16 +159,24 @@ def get_tx_status(self, tx_id: str) -> dict[str, object]:
         "status": "unknown",
     }
 
-def read_state(self) -> Json:
-    """Return the latest persisted ledger snapshot.
+class LedgerStateReadError(RuntimeError):
+    """Raised when the authoritative persisted ledger snapshot cannot be read."""
 
-    This keeps read-only API processes coherent when a separate producer
-    process commits blocks into the shared SQLite store.
-    """
+
+def read_cached_state(self) -> Json:
+    """Return the in-memory snapshot without claiming persisted freshness."""
+    return self.state
+
+
+def read_state(self) -> Json:
+    """Return the latest persisted ledger snapshot or fail closed."""
     try:
-        self.state = self._ledger_store.read()
-    except Exception:
-        pass
+        persisted = self._ledger_store.read()
+    except Exception as exc:
+        raise LedgerStateReadError("persisted_ledger_state_read_failed") from exc
+    if not isinstance(persisted, dict):
+        raise LedgerStateReadError("persisted_ledger_state_invalid_type")
+    self.state = persisted
     return self.state
 
 def tx_index_hash(self) -> str:

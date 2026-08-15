@@ -1,4 +1,4 @@
-from weall.runtime.conflict_lanes import plan_conflict_lanes
+from weall.testing.conflict_lanes import plan_conflict_lanes
 
 
 def _tx(tx_id: str, tx_type: str, reads=None, writes=None):

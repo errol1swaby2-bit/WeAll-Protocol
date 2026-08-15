@@ -50,6 +50,10 @@
       "type": "array",
       "uniqueItems": true
     },
+    "repository_evidence_overlay": {
+      "minLength": 1,
+      "type": "string"
+    },
     "repository_evidence_paths": {
       "items": {
         "minLength": 1,

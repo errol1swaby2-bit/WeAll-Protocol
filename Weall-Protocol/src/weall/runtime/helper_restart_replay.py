@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
-import json
 from typing import Any, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from weall.runtime.commitments import value_sha256
 
 from weall.runtime.helper_assembly_gate import (
     HelperAssemblyProfile,
@@ -19,11 +17,6 @@ from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_finge
 Json = dict[str, Any]
 
 
-
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
 
 
 def _lane_plan_map(lane_plans: Sequence[LanePlan]) -> dict[str, LanePlan]:
@@ -97,7 +90,7 @@ class HelperRestartSnapshot:
         }
 
     def snapshot_hash(self) -> str:
-        return _sha256_hex(self.to_json())
+        return value_sha256(self.to_json())
 
 
 def build_helper_restart_snapshot(

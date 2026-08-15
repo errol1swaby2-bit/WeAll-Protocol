@@ -537,4 +537,5 @@ def create_app(*, boot_runtime: bool) -> FastAPI:
     return app
 
 
-app = create_app(boot_runtime=_module_app_boot_runtime_default())
+# Import-safe convenience app for tests/tools. Production servers use weall.api.asgi:app.
+app = create_app(boot_runtime=False)

@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "d28f73ab47936c00b7b6bb4b3a6a8bb7d5bbcccef65b6980b670d210a5bc5871"
+    "source_tree_digest": "0c214856ce7ceaf58c4bf0cb0132f00339a96e66bd3d7e33ff2f5ac544f4fbc8"
   },
   "required_fields": [
     "stable_id",
@@ -282,6 +282,7 @@
         "tests/test_protocol_blocker_safety.py",
         "tests/test_public_payload_key_policy.py",
         "tests/test_readyz_empty_chain_and_restored_chain.py",
+        "tests/test_recursive_production_readiness_closure.py",
         "tests/test_restart_api_and_producer_recovery.py",
         "tests/test_restart_feed_persistence.py",
         "tests/test_restart_no_double_finalize.py",
@@ -6210,6 +6211,7 @@
       ],
       "tests": [
         "tests/test_content_review_conflict_enforcement.py",
+        "tests/test_deep_ai_engineering_integrity_closure.py",
         "tests/test_dispute_followups.py",
         "tests/test_dispute_height_lifecycle_boundaries.py",
         "tests/test_dispute_requires_explicit_juror_strict.py",
@@ -8230,6 +8232,7 @@
       "system_followups": [],
       "tests": [
         "tests/test_bounded_rollback_equivalence.py",
+        "tests/test_deep_ai_engineering_integrity_closure.py",
         "tests/test_m2_complete_security_and_lifecycle.py",
         "tests/test_operator_ingress_signature_required_prod.py",
         "tests/test_public_only_protocol_redesign.py"
@@ -8630,6 +8633,7 @@
         "tests/test_bounded_rollback_equivalence.py",
         "tests/test_content_review_conflict_enforcement.py",
         "tests/test_cross_tx_conflict_safety.py",
+        "tests/test_deep_ai_engineering_integrity_closure.py",
         "tests/test_demo_review_role_persistence.py",
         "tests/test_dispute_auto_juror_assignment.py",
         "tests/test_m2_complete_security_and_lifecycle.py",

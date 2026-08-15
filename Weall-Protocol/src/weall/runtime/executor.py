@@ -455,6 +455,14 @@ class WeAllExecutor:
         )
         self._known_block_ids_by_hash: OrderedDict[str, str] = OrderedDict()
 
+        # Preserve the raw persisted duplicate timestamp only as startup diagnostic
+        # evidence. DB consistency immediately rebinds state["tip_ts_ms"] to the
+        # canonical persisted tip block so the duplicate can never influence
+        # consensus after restart.
+        self._startup_persisted_tip_ts_ms = _safe_int(self.state.get("tip_ts_ms"), 0)
+        self._startup_canonical_tip_ts_ms = self._startup_persisted_tip_ts_ms
+        self._startup_tip_ts_rebound = False
+
         # Fail-closed if on-disk DB invariants do not match the snapshot.
         self._check_db_consistency_fail_closed()
 
@@ -657,8 +665,18 @@ class WeAllExecutor:
             PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
         )
         meta["startup_clock_hard_fail_ms"] = STARTUP_CLOCK_HARD_FAIL_MS
-        self._startup_clock_observer_required = False
-        self._startup_clock_observer_reason = ""
+        persisted_clock_warning = (
+            meta.get("clock_warning")
+            if isinstance(meta.get("clock_warning"), dict)
+            else {}
+        )
+        self._startup_clock_observer_required = bool(
+            _mode() == "prod"
+            and bool(persisted_clock_warning.get("observer_mode_forced", False))
+        )
+        self._startup_clock_observer_reason = (
+            "clock_skew_warning" if self._startup_clock_observer_required else ""
+        )
         if (
             not st_chain_id
             or not st_state_root_commitment_version
@@ -682,17 +700,38 @@ class WeAllExecutor:
             self._ledger_store.write(self.state)
 
         wall_now_ms = _now_ms()
-        tip_ts_ms = _safe_int(self.state.get("tip_ts_ms"), 0)
-        clock_skew_ahead_ms = max(0, int(tip_ts_ms) - int(wall_now_ms)) if tip_ts_ms > 0 else 0
+        canonical_tip_ts_ms = _safe_int(self.state.get("tip_ts_ms"), 0)
+        persisted_tip_ts_ms = _safe_int(
+            getattr(self, "_startup_persisted_tip_ts_ms", canonical_tip_ts_ms),
+            canonical_tip_ts_ms,
+        )
+        # Consensus consumes only the rebound canonical timestamp. The raw
+        # persisted duplicate remains diagnostic-only, but catastrophic future
+        # corruption must still force the operator-safe observer posture instead
+        # of disappearing during canonicalization.
+        diagnostic_tip_ts_ms = max(int(canonical_tip_ts_ms), int(persisted_tip_ts_ms))
+        clock_skew_ahead_ms = (
+            max(0, int(diagnostic_tip_ts_ms) - int(wall_now_ms))
+            if diagnostic_tip_ts_ms > 0
+            else 0
+        )
         catastrophic_skew = bool(clock_skew_ahead_ms > STARTUP_CLOCK_HARD_FAIL_MS)
         if clock_skew_ahead_ms > CLOCK_SKEW_WARN_MS:
-            self._startup_clock_observer_required = bool(_mode() == "prod" and catastrophic_skew)
-            self._startup_clock_observer_reason = (
-                "clock_skew_ahead" if self._startup_clock_observer_required else ""
+            current_clock_observer_required = bool(
+                _mode() == "prod" and catastrophic_skew
             )
+            if current_clock_observer_required:
+                self._startup_clock_observer_required = True
+                self._startup_clock_observer_reason = "clock_skew_ahead"
             meta["clock_warning"] = {
                 "wall_now_ms": int(wall_now_ms),
-                "tip_ts_ms": int(tip_ts_ms),
+                "tip_ts_ms": int(canonical_tip_ts_ms),
+                "canonical_tip_ts_ms": int(canonical_tip_ts_ms),
+                "persisted_tip_ts_ms": int(persisted_tip_ts_ms),
+                "diagnostic_tip_ts_ms": int(diagnostic_tip_ts_ms),
+                "tip_ts_rebound": bool(
+                    getattr(self, "_startup_tip_ts_rebound", False)
+                ),
                 "skew_ms": int(clock_skew_ahead_ms),
                 "warning_threshold_ms": int(CLOCK_SKEW_WARN_MS),
                 "startup_hard_fail_threshold_ms": int(STARTUP_CLOCK_HARD_FAIL_MS),
@@ -704,6 +743,10 @@ class WeAllExecutor:
                 "observer_mode_forced": bool(self._startup_clock_observer_required),
                 "consensus_impact": "operator_warning_only",
             }
+            self._ledger_store.write(self.state)
+        elif bool(getattr(self, "_startup_tip_ts_rebound", False)):
+            # Persist the canonical rebound even when the discarded duplicate was
+            # not far enough ahead to warrant a clock warning.
             self._ledger_store.write(self.state)
 
         # Back-compat / migration: ensure tip fields exist.
@@ -1174,10 +1217,27 @@ class WeAllExecutor:
 
             if not st_tip_hash:
                 self.state["tip_hash"] = str(bh)
-            if not _safe_int(self.state.get("tip_ts_ms"), 0):
-                self.state["tip_ts_ms"] = _safe_int(
-                    blk2.get("block_ts_ms") or blk2.get("created_ms"), 0
-                )
+            # tip_ts_ms is intentionally excluded from the state root, but legacy
+            # clock modes consume it. Never trust a duplicate persisted value:
+            # bind it unconditionally to the canonical persisted tip block. Keep
+            # any disagreement only in startup-only diagnostic fields so a corrupt
+            # future timestamp can still trigger the observer safety posture.
+            canonical_tip_ts_ms = _safe_int(
+                blk2.get("block_ts_ms") or blk2.get("created_ms"), 0
+            )
+            persisted_tip_ts_ms = _safe_int(
+                getattr(
+                    self,
+                    "_startup_persisted_tip_ts_ms",
+                    self.state.get("tip_ts_ms"),
+                ),
+                0,
+            )
+            self._startup_canonical_tip_ts_ms = int(canonical_tip_ts_ms)
+            self._startup_tip_ts_rebound = bool(
+                int(persisted_tip_ts_ms) != int(canonical_tip_ts_ms)
+            )
+            self.state["tip_ts_ms"] = int(canonical_tip_ts_ms)
         except ExecutorError:
             raise
         except Exception:
@@ -1225,6 +1285,11 @@ class WeAllExecutor:
         from weall.runtime import diagnostics as _impl
 
         return _impl.get_tx_status(self, tx_id)
+
+    def read_cached_state(self) -> Json:
+        from weall.runtime import diagnostics as _impl
+
+        return _impl.read_cached_state(self)
 
     def read_state(self) -> Json:
         from weall.runtime import diagnostics as _impl
@@ -2401,14 +2466,50 @@ class WeAllExecutor:
         if resp.snapshot is not None:
             if not allow_snapshot_bootstrap:
                 raise ExecutorError("state_sync_snapshot_requires_explicit_allow")
-            if int(self.state.get("height") or 0) != 0:
-                raise ExecutorError("state_sync_snapshot_only_allowed_on_empty_ledger")
             snap = dict(resp.snapshot)
             snap_chain = str(snap.get("chain_id") or self.chain_id).strip()
             if snap_chain != self.chain_id:
                 raise ExecutorError("state_sync_snapshot_chain_mismatch")
+
+            local_height = int(self.state.get("height") or 0)
+            snapshot_height = int(snap.get("height") or 0)
+            if snapshot_height <= 0:
+                raise ExecutorError("state_sync_snapshot_nonzero_height_required")
+            if local_height > 0 and snapshot_height <= local_height:
+                raise ExecutorError("state_sync_snapshot_must_advance_local_height")
+
+            required_anchor_fields = ("height", "tip_hash", "state_root", "snapshot_hash")
+            if not isinstance(trusted_anchor, dict) or any(
+                trusted_anchor.get(key) in (None, "") for key in required_anchor_fields
+            ):
+                raise ExecutorError("state_sync_snapshot_requires_fully_pinned_anchor")
+
+            checkpoint_blocks = list(resp.blocks or ())
+            if len(checkpoint_blocks) != 1 or not isinstance(checkpoint_blocks[0], dict):
+                raise ExecutorError("state_sync_snapshot_checkpoint_missing")
+            checkpoint = dict(checkpoint_blocks[0])
+
+            try:
+                self._ledger_store.install_state_sync_checkpoint(
+                    state=snap,
+                    checkpoint_block=checkpoint,
+                )
+            except Exception as exc:
+                raise ExecutorError(f"state_sync_checkpoint_install_failed:{exc}") from exc
+
+            previous_epoch = self._current_validator_epoch()
+            previous_set_hash = self._current_validator_set_hash() if previous_epoch > 0 else ""
             self.state = snap
-            self._ledger_store.write(self.state)
+            self._bft.load_from_state(self.state)
+            checkpoint2, checkpoint_hash = ensure_block_hash(checkpoint)
+            self._cache_known_block_hash(
+                str(checkpoint2.get("block_id") or ""),
+                str(checkpoint_hash or ""),
+            )
+            self._prune_pending_bft_artifacts_on_local_validator_transition(
+                previous_epoch=int(previous_epoch),
+                previous_set_hash=str(previous_set_hash or ""),
+            )
             self._check_db_consistency_fail_closed()
             return []
 
@@ -2559,8 +2660,20 @@ class WeAllExecutor:
             if resp is None:
                 raise ExecutorError("state_sync_timeout")
 
+            allow_checkpoint_snapshot = bool(
+                resp.snapshot is not None
+                and isinstance(trusted_anchor, dict)
+                and all(
+                    trusted_anchor.get(key) not in (None, "")
+                    for key in ("height", "tip_hash", "state_root", "snapshot_hash")
+                )
+            )
             try:
-                metas = self.apply_state_sync_response(resp, trusted_anchor=trusted_anchor)
+                metas = self.apply_state_sync_response(
+                    resp,
+                    trusted_anchor=trusted_anchor,
+                    allow_snapshot_bootstrap=allow_checkpoint_snapshot,
+                )
             except ExecutorError as exc:
                 if str(exc) == "state_sync_delta_no_progress":
                     raise ExecutorError("state_sync_no_progress") from exc

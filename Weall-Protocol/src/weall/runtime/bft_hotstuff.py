@@ -4,6 +4,10 @@ import hashlib
 import time
 from dataclasses import dataclass
 from typing import Any
+from weall.runtime.commitments import (
+    normalize_validator_ids as _normalize_validator_ids,
+    validator_set_hash as _canonical_validator_set_hash,
+)
 from weall.runtime.runtime_time import now_ms as _now_ms
 
 from weall.crypto.sig import verify_signature_for_profile
@@ -135,19 +139,8 @@ def _verify_bft_signature(*, sig_profile: str, message: bytes, sig: str, pubkey:
 
 
 def normalize_validators(validators: list[str]) -> list[str]:
-    """
-    Deterministic validator ordering.
-    We sort + de-dup so leader selection is stable even if nodes receive the same set in different orders.
-    """
-    seen: set[str] = set()
-    out: list[str] = []
-    for x in validators or []:
-        s = _as_str(x)
-        if s and s not in seen:
-            seen.add(s)
-            out.append(s)
-    out.sort()
-    return out
+    """Deterministic validator ordering shared by all commitment domains."""
+    return _normalize_validator_ids(validators or [])
 
 
 def quorum_threshold(n: int) -> int:
@@ -273,7 +266,7 @@ def canonical_proposal_message(
 
 
 def validator_set_hash(validators: list[str]) -> str:
-    return hashlib.sha256(_canon_json(normalize_validators(validators)).encode("utf-8")).hexdigest()
+    return _canonical_validator_set_hash(validators or [])
 
 
 # -----------------------------

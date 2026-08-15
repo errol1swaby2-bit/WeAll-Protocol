@@ -311,29 +311,34 @@ class StateSyncService:
                 header=hdr, ok=False, reason="trusted_anchor_mismatch", height=tip_h
             )
 
-        if req.mode == "snapshot":
+        def _snapshot_checkpoint_blocks() -> tuple[Json, ...] | None:
+            if tip_h <= 0:
+                return ()
+            # Transport-only/test services may expose snapshots without block
+            # history. Such snapshots can still be hashed/inspected, but the
+            # executor will refuse to install a nonzero snapshot unless a
+            # checkpoint block is present. Production executor services always
+            # provide block_provider.
+            if self.block_provider is None:
+                return ()
+            checkpoint = self.block_provider(tip_h)
+            if not isinstance(checkpoint, dict):
+                return None
+            return (dict(checkpoint),)
+
+        def _reply_snapshot(reason: str | None) -> StateSyncResponseMsg:
             snap: Json = st
             if not self._size_ok(snap, self.max_snapshot_bytes):
                 return StateSyncResponseMsg(
                     header=hdr, ok=False, reason="snapshot_too_large", height=tip_h
                 )
-            snap_hash = sha256_hex_of(snap)
-            return StateSyncResponseMsg(
-                header=hdr,
-                ok=True,
-                reason=None,
-                height=tip_h,
-                snapshot=snap,
-                blocks=(),
-                snapshot_hash=snap_hash,
-                snapshot_anchor=local_anchor,
-            )
-
-        def _reply_snapshot(reason: str) -> StateSyncResponseMsg:
-            snap: Json = st
-            if not self._size_ok(snap, self.max_snapshot_bytes):
+            checkpoint_blocks = _snapshot_checkpoint_blocks()
+            if checkpoint_blocks is None:
                 return StateSyncResponseMsg(
-                    header=hdr, ok=False, reason="snapshot_too_large", height=tip_h
+                    header=hdr,
+                    ok=False,
+                    reason="snapshot_checkpoint_unavailable",
+                    height=tip_h,
                 )
             snap_hash = sha256_hex_of(snap)
             return StateSyncResponseMsg(
@@ -342,10 +347,13 @@ class StateSyncService:
                 reason=reason,
                 height=tip_h,
                 snapshot=snap,
-                blocks=(),
+                blocks=checkpoint_blocks,
                 snapshot_hash=snap_hash,
                 snapshot_anchor=local_anchor,
             )
+
+        if req.mode == "snapshot":
+            return _reply_snapshot(None)
 
         if req.mode == "delta":
             if not self.enable_delta:
@@ -501,7 +509,34 @@ class StateSyncService:
             ):
                 raise StateSyncVerifyError("trusted_anchor_mismatch")
 
-        if resp.blocks:
+            snapshot_height = _as_int(resp.snapshot.get("height"), 0)
+            if resp.blocks:
+                if snapshot_height <= 0:
+                    raise StateSyncVerifyError("genesis_snapshot_checkpoint_unexpected")
+                if not isinstance(resp.blocks, (tuple, list)) or len(resp.blocks) != 1:
+                    raise StateSyncVerifyError("snapshot_checkpoint_count_invalid")
+                checkpoint = resp.blocks[0]
+                if not isinstance(checkpoint, dict):
+                    raise StateSyncVerifyError("snapshot_checkpoint_bad_shape")
+                checkpoint_height = _as_int(checkpoint.get("height"), 0)
+                if checkpoint_height != snapshot_height:
+                    raise StateSyncVerifyError("snapshot_checkpoint_height_mismatch")
+                checkpoint_hash = _block_hash_for_sync_chain(checkpoint)
+                if not checkpoint_hash or checkpoint_hash != _as_str(computed_anchor.get("tip_hash")):
+                    raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch")
+                checkpoint_id = _block_id_for_sync_chain(checkpoint)
+                snapshot_tip = _as_str(resp.snapshot.get("tip") or "")
+                if snapshot_tip and checkpoint_id != snapshot_tip:
+                    raise StateSyncVerifyError("snapshot_checkpoint_block_id_mismatch")
+                header2 = checkpoint.get("header") if isinstance(checkpoint.get("header"), dict) else {}
+                if _as_str(header2.get("state_root") or "") != _as_str(computed_anchor.get("state_root")):
+                    raise StateSyncVerifyError("snapshot_checkpoint_state_root_mismatch")
+
+        # Delta-chain ancestry/range rules apply only to delta responses. A
+        # snapshot checkpoint is independently pinned above to the snapshot tip,
+        # state root and trusted snapshot anchor; it may legitimately be newer
+        # than the last finalized height carried inside that same snapshot.
+        if resp.blocks and resp.snapshot is None:
             if not isinstance(resp.blocks, (tuple, list)):
                 raise StateSyncVerifyError("blocks_not_sequence")
             last_h: int | None = None

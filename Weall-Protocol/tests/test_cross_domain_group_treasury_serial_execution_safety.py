@@ -1,4 +1,4 @@
-from weall.runtime.conflict_lanes import plan_conflict_lanes
+from weall.testing.conflict_lanes import plan_conflict_lanes
 from weall.runtime.read_write_sets import build_tx_access_set
 from weall.runtime.tx_conflict_audit_samples import build_conflict_probe_tx
 

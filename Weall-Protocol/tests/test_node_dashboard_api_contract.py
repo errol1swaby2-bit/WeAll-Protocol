@@ -20,3 +20,10 @@ def test_frontend_contract_harness_starts_backend_before_contract_check() -> Non
     assert "python3 -m weall.api" in src
     assert 'WEALL_API_BOOT_RUNTIME="${WEALL_API_BOOT_RUNTIME:-1}"' in src
     assert 'API_BASE="${API_BASE}" npm run contract-check' in src
+
+
+def test_api_module_import_is_storage_safe_and_asgi_entrypoint_owns_runtime_boot() -> None:
+    app_src = Path("src/weall/api/app.py").read_text()
+    asgi_src = Path("src/weall/api/asgi.py").read_text()
+    assert "app = create_app(boot_runtime=False)" in app_src
+    assert "create_app(boot_runtime=_module_app_boot_runtime_default())" in asgi_src

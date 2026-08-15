@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from weall.runtime.helper_planner import (
+from weall.testing.helper_planner import (
     build_helper_plan,
     normalize_validators,
     partition_conflict_lanes,

@@ -712,12 +712,16 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         )
 
     if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
-        from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
+        from weall.runtime.helper_block_validation import validate_received_helper_execution
 
-        advertised_plan_id = str(helper_execution_for_root.get("plan_id") or "").strip()
-        ok_helper_meta, helper_reason = verify_block_helper_plan_metadata(
-            helper_execution=helper_execution_for_root,
-            expected_plan_id=advertised_plan_id,
+        ok_helper_meta, helper_reason = validate_received_helper_execution(
+            block=block2,
+            state=self.state,
+            chain_id=str(self.chain_id),
+            validators=self._active_validators(),
+            validator_pubkeys=self._validator_pubkeys(),
+            validator_epoch=self._current_validator_epoch(),
+            validator_set_hash=self._current_validator_set_hash(),
         )
         if not ok_helper_meta:
             return ExecutorMeta(

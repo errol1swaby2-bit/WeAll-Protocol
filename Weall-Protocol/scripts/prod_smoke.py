@@ -41,6 +41,8 @@ _bootstrap_repo_imports()
 
 from fastapi.testclient import TestClient
 
+os.environ.setdefault("WEALL_API_BOOT_RUNTIME", "0")
+
 from weall.api.app import create_app
 from weall.runtime.block_loop import BlockLoopConfig, BlockProducerLoop
 

@@ -258,6 +258,9 @@ def _build_helper_execution_metadata(
                 "manifest_hash": str(ctx.manifest_hash),
                 "manifest_signed": bool(ctx.manifest_signed),
                 "plan_id": str(getattr(cert, "plan_id", "") or helper_plan_id),
+                # Commit the full certificate so every receiver can independently
+                # reverify helper identity, signature, lane scope and context.
+                "certificate": cert.to_json(),
             }
         )
 

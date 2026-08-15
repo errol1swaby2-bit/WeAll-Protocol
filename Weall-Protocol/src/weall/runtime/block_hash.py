@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from weall.runtime.commitments import receipts_root
 from weall.runtime.sqlite_db import _canon_json
 
 Json = dict[str, Any]
@@ -128,8 +129,7 @@ def compute_receipts_root(*, receipts: list[Json]) -> str:
     Defined as sha256(canonical_json(receipts)).
     """
 
-    payload = _canon_json(receipts).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
+    return receipts_root(receipts)
 
 
 def make_block_header(

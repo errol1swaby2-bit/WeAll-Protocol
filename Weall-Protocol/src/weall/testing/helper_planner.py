@@ -1,15 +1,26 @@
+"""Testing-only legacy helper planner.
+
+Production helper execution MUST use :mod:`weall.runtime.parallel_execution`.
+This module remains only for legacy test vectors and synthetic helper-executor
+fixtures; keeping it outside :mod:`weall.runtime` prevents it from being
+misidentified as production authority.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
-import json
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
+from weall.runtime.commitments import (
+    normalize_validator_ids,
+    validator_set_hash as canonical_validator_set_hash,
+)
 from weall.runtime.json_tools import canonical_json_str as _canon_json
 from weall.runtime.tx_id import compute_tx_id_from_dict
 
-from .conflict_lanes import lane_base_id as planned_lane_base_id
-from .read_write_sets import build_tx_access_set
-from .tx_conflicts import build_conflict_descriptor
+from weall.runtime.lane_identity import lane_base_id as planned_lane_base_id
+from weall.runtime.read_write_sets import build_tx_access_set
+from weall.runtime.tx_conflicts import build_conflict_descriptor
 
 
 
@@ -20,13 +31,7 @@ def _sha256_hex(value: Any) -> str:
 
 
 def normalize_validators(validators: Iterable[str]) -> List[str]:
-    seen = set()
-    ordered: List[str] = []
-    for validator in sorted(str(v) for v in validators):
-        if validator not in seen:
-            ordered.append(validator)
-            seen.add(validator)
-    return ordered
+    return normalize_validator_ids(validators)
 
 
 def stable_tx_id(tx: Mapping[str, Any], *, chain_id: str = "") -> str:
@@ -125,8 +130,7 @@ class HelperPlan:
 
 
 def validator_set_hash(validators: Sequence[str]) -> str:
-    normalized = normalize_validators(validators)
-    return _sha256_hex(normalized)
+    return canonical_validator_set_hash(validators)
 
 
 def choose_helper_for_lane(

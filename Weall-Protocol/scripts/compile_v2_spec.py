@@ -16,6 +16,7 @@ from typing import Any
 
 import yaml
 from v2_spec_validation import (
+    apply_authoritative_mechanism_bindings,
     apply_semantic_reviews,
     validate_mechanism_evidence,
     validate_normative_cleanliness,
@@ -2024,7 +2025,13 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
         structured_schema_validation = validate_structured_schemas(
             state_rows, target_contract_rows, target_failure_rows
         )
+        authoritative_mechanism_bindings = apply_authoritative_mechanism_bindings(
+            ROOT, mechanism_rows
+        )
         mechanism_evidence_validation = validate_mechanism_evidence(ROOT, mechanism_rows)
+        mechanism_evidence_validation["authority_overlays_applied"] = int(
+            authoritative_mechanism_bindings
+        )
     except ValueError as exc:
         raise CompileError(str(exc)) from exc
 
@@ -2095,6 +2102,21 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
                 str(row.get("path") or "")
             )
     for row in mechanism_rows:
+        # Explicit authority overlays intentionally narrow mechanism evidence to
+        # production-authoritative entry points. Keep broad source mappings in
+        # the source-coverage registry instead of re-inflating this compatibility
+        # list with supporting/test/reference paths after validation.
+        if str(row.get("repository_evidence_overlay") or "") == "weall.authoritative_mechanism_map.v1":
+            row["repository_evidence_paths"] = sorted(
+                {
+                    str(item.get("path") or "")
+                    for item in list(row.get("repository_evidence") or [])
+                    if isinstance(item, dict)
+                    and str(item.get("authority") or "") == "authoritative"
+                    and str(item.get("path") or "")
+                }
+            )
+            continue
         row["repository_evidence_paths"] = sorted(
             set(row.get("repository_evidence_paths") or [])
             | set(mapped_paths.get(str(row.get("id") or ""), []))

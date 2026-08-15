@@ -7,7 +7,7 @@ from hashlib import sha256
 from typing import Any
 
 from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed
-from weall.runtime.helper_planner import (
+from weall.testing.helper_planner import (
     HelperPlan,
     build_helper_plan,
     canonicalize_txs,

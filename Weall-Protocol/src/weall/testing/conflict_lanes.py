@@ -3,7 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
-from .read_write_sets import TxAccessSet, build_tx_access_set
+"""Testing/reference conflict planner.
+
+Production helper planning is authoritative in ``weall.runtime.parallel_execution``.
+This module remains only for focused conflict-model tests and must not satisfy
+production mechanism authority.
+"""
+
+from weall.runtime.lane_identity import lane_base_id
+from weall.runtime.read_write_sets import TxAccessSet, build_tx_access_set
 
 Json = dict[str, Any]
 
@@ -23,12 +31,6 @@ class ConflictLanePlan:
     lanes: tuple[PlannedLane, ...]
     serialized_tx_ids: tuple[str, ...]
 
-
-def lane_base_id(lane_id: str) -> str:
-    lane_id = str(lane_id or "SERIAL")
-    if "#" in lane_id:
-        return lane_id.split("#", 1)[0]
-    return lane_id
 
 
 def _set(values: Iterable[str]) -> set[str]:

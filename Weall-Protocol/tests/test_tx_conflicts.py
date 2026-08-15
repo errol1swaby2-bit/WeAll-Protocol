@@ -1,4 +1,4 @@
-from weall.runtime.helper_planner import partition_conflict_lanes
+from weall.testing.helper_planner import partition_conflict_lanes
 from weall.runtime.read_write_sets import build_tx_access_set
 from weall.runtime.tx_conflicts import BarrierClass, TxFamily, build_conflict_descriptor
 

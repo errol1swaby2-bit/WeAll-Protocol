@@ -169,7 +169,7 @@ GUNICORN_WORKERS="${GUNICORN_WORKERS:-1}"
 GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-120}"
 GUNICORN_LOG_LEVEL="${GUNICORN_LOG_LEVEL:-info}"
 
-exec gunicorn weall.api.app:app \
+exec gunicorn weall.api.asgi:app \
   -k uvicorn.workers.UvicornWorker \
   --bind "${GUNICORN_BIND}" \
   --workers "${GUNICORN_WORKERS}" \

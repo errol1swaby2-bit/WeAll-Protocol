@@ -1,20 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
-import json
 from typing import Any, Dict, Mapping, Sequence
+from weall.runtime.commitments import value_sha256
 from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode, normalize_signature_profile_id
 
 
-
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
 
 
 def _normalize_tx_ids(values: Sequence[str] | None) -> tuple[str, ...]:
@@ -55,10 +49,10 @@ class HelperReceipt:
         }
 
     def receipt_id(self) -> str:
-        return _sha256_hex(self.signing_payload())
+        return value_sha256(self.signing_payload())
 
     def context_fingerprint(self) -> str:
-        return _sha256_hex(
+        return value_sha256(
             {
                 "chain_id": self.chain_id,
                 "height": int(self.height),

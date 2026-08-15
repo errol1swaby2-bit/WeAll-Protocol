@@ -331,6 +331,52 @@ def validate_normative_cleanliness(collections: dict[str, list[Json]]) -> Json:
     }
 
 
+def _load_authoritative_mechanism_map(root: Path) -> Json:
+    path = root / "configs" / "authoritative_mechanism_map.json"
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(obj, dict) or obj.get("schema") != "weall.authoritative_mechanism_map.v1":
+        raise ValueError("authoritative mechanism map missing or invalid")
+    mechanisms = obj.get("mechanisms")
+    if not isinstance(mechanisms, dict) or not mechanisms:
+        raise ValueError("authoritative mechanism map must contain mechanism bindings")
+    required = obj.get("required_high_risk_mechanisms")
+    if not isinstance(required, list) or not required:
+        raise ValueError("authoritative mechanism map must declare required high-risk bindings")
+    missing_required = sorted({str(v) for v in required if str(v)} - set(mechanisms))
+    if missing_required:
+        raise ValueError(
+            f"authoritative mechanism map misses required high-risk bindings: {missing_required}"
+        )
+    return obj
+
+
+def apply_authoritative_mechanism_bindings(root: Path, rows: list[Json]) -> int:
+    """Apply repository-authority overlays after immutable PDF extraction verification.
+
+    The signed PDF extraction remains byte/fingerprint authoritative for normative
+    mechanism text. Repository evidence is a mutable implementation binding and is
+    therefore overlaid only after attestation verification.
+    """
+    authority_map = _load_authoritative_mechanism_map(root)
+    by_id = {str(row.get("id") or ""): row for row in rows}
+    applied = 0
+    for mid, binding in dict(authority_map.get("mechanisms") or {}).items():
+        row = by_id.get(str(mid))
+        if row is None:
+            raise ValueError(f"authoritative mechanism map references missing mechanism: {mid}")
+        authoritative = [str(v) for v in list(dict(binding).get("authoritative_paths") or []) if str(v)]
+        if not authoritative:
+            raise ValueError(f"mechanism {mid} lacks authoritative paths")
+        row["repository_evidence"] = [
+            {"kind": "current_path", "path": rel, "status": "present", "authority": "authoritative"}
+            for rel in authoritative
+        ]
+        row["repository_evidence_paths"] = list(authoritative)
+        row["repository_evidence_overlay"] = "weall.authoritative_mechanism_map.v1"
+        applied += 1
+    return applied
+
+
 def validate_mechanism_evidence(root: Path, rows: list[Json]) -> Json:
     current = 0
     planned = 0
@@ -360,10 +406,46 @@ def validate_mechanism_evidence(root: Path, rows: list[Json]) -> Json:
                 planned += 1
             else:
                 raise ValueError(f"mechanism {mid} has uncontrolled evidence kind: {kind}")
+    authority_map = _load_authoritative_mechanism_map(root)
+    by_id = {str(row.get("id") or ""): row for row in rows}
+    bound = 0
+    for mid, binding in dict(authority_map.get("mechanisms") or {}).items():
+        row = by_id.get(str(mid))
+        if row is None:
+            raise ValueError(f"authoritative mechanism map references missing mechanism: {mid}")
+        evidence_paths = {
+            str(item.get("path") or "")
+            for item in list(row.get("repository_evidence") or [])
+            if isinstance(item, dict) and str(item.get("kind") or "") in {"current_path", "current_glob"}
+        }
+        authoritative = {str(v) for v in list(dict(binding).get("authoritative_paths") or [])}
+        forbidden = {str(v) for v in list(dict(binding).get("forbidden_shadow_paths") or [])}
+        if not authoritative:
+            raise ValueError(f"mechanism {mid} lacks authoritative paths")
+        missing = sorted(authoritative - evidence_paths)
+        if missing:
+            raise ValueError(f"mechanism {mid} evidence misses authoritative paths: {missing}")
+        shadow = sorted(forbidden & evidence_paths)
+        if shadow:
+            raise ValueError(f"mechanism {mid} evidence includes forbidden shadow paths: {shadow}")
+        for rel in sorted(authoritative):
+            if not (root / rel).exists():
+                raise ValueError(f"mechanism {mid} authoritative path does not resolve: {rel}")
+        bound += 1
+    required_high_risk = {
+        str(v) for v in list(authority_map.get("required_high_risk_mechanisms") or []) if str(v)
+    }
+    validated_ids = set(dict(authority_map.get("mechanisms") or {}))
+    missing_high_risk = sorted(required_high_risk - validated_ids)
+    if missing_high_risk:
+        raise ValueError(f"required high-risk authority bindings not validated: {missing_high_risk}")
     return {
         "current_evidence_entries": current,
         "planned_target_entries": planned,
-        "validation_result": "PASS_TYPED_MECHANISM_EVIDENCE_PATHS",
+        "explicit_authority_bindings_validated": bound,
+        "required_high_risk_authority_bindings_validated": len(required_high_risk),
+        "authority_claim_scope": "explicit_high_risk_map; other current_path evidence proves existence, not call-path authority",
+        "validation_result": "PASS_TYPED_MECHANISM_EVIDENCE_WITH_EXPLICIT_AUTHORITY_BINDINGS",
     }
 
 

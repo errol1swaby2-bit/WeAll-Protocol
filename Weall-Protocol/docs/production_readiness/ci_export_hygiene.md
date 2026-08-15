@@ -27,7 +27,7 @@ Batch 316 updates Web CI to:
 
 - install backend runtime dependencies from `Weall-Protocol/requirements.lock` using `--require-hashes`
 - install the backend package with `--no-deps`
-- start `uvicorn weall.api.app:app` on `127.0.0.1:8000`
+- start `uvicorn weall.api.asgi:app` on `127.0.0.1:8000`
 - wait for `/v1/readyz`
 - run `API_BASE=http://127.0.0.1:8000 npm run contract-check`
 

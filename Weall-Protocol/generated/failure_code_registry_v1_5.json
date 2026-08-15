@@ -733,7 +733,7 @@
       "http_status": null,
       "sample_reason": "removed_legacy_poh_tier_action",
       "source": "src/weall/runtime/poh/eligibility.py",
-      "source_lineno": 154
+      "source_lineno": 75
     },
     {
       "code": "forbidden",

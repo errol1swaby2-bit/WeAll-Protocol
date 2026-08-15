@@ -210,7 +210,7 @@ MECHANICS: list[Json] = [
         "current_files": [
             "src/weall/runtime/helper_execution.py",
             "src/weall/runtime/helper_receipts.py",
-            "src/weall/runtime/conflict_lanes.py",
+            "src/weall/runtime/parallel_execution.py",
             "generated/helper_contract_map.json",
         ],
         "missing_mechanics": [

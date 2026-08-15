@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from dataclasses import dataclass, field
-from hashlib import sha256
-import json
+from dataclasses import dataclass
 from typing import Any, Deque, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from weall.runtime.commitments import value_sha256
 
 from weall.runtime.helper_certificates import HelperExecutionCertificate
 from weall.runtime.helper_lane_journal import HelperLaneJournal
@@ -22,14 +20,9 @@ def _expected_helper_id(orchestrator: HelperProposalOrchestrator | None, lane_id
 
 
 
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
-
 
 def _certificate_fingerprint(cert: HelperExecutionCertificate) -> str:
-    return _sha256_hex(cert.to_json())
+    return value_sha256(cert.to_json())
 
 
 @dataclass
@@ -162,7 +155,7 @@ class HelperReplayGuard:
                 expected_helper_id = _expected_helper_id(self.orchestrator, lane_id)
                 if expected_helper_id and helper_id and helper_id != expected_helper_id:
                     continue
-                self._resolved_fingerprints[lane_id] = _sha256_hex(
+                self._resolved_fingerprints[lane_id] = value_sha256(
                     {"lane_id": lane_id, "helper_id": helper_id or expected_helper_id, "mode": "fallback", "plan_id": plan_id}
                 )
                 self._resolved_modes[lane_id] = "fallback"
@@ -224,7 +217,7 @@ class HelperReplayGuard:
         for resolution in finalized:
             lane_id = str(resolution.lane_id)
             helper_id = str(resolution.helper_id)
-            fingerprint = _sha256_hex(
+            fingerprint = value_sha256(
                 {"lane_id": lane_id, "helper_id": helper_id, "mode": "fallback", "plan_id": self.plan_id}
             )
             self._resolved_fingerprints[lane_id] = fingerprint
