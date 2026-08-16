@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "0c214856ce7ceaf58c4bf0cb0132f00339a96e66bd3d7e33ff2f5ac544f4fbc8"
+    "source_tree_digest": "54f45c50506b919bf35936a9730e1db0242c514db6dd58509df9c88063d5d335"
   },
   "rows": [
     {
@@ -1101,47 +1101,71 @@
       "production_target": "Network hints and peer scores affect connectivity only, never civic authority or finalized truth; abuse controls are public and bounded.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/net/net_loop.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/net/node.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/net/peer_store.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/net/handshake.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/net/peer_identity.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/net/gossip.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/net/router.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/net/relay.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/runtime/apply/networking.py",
+          "path": "src/weall/net/state_sync.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "src/weall/net/__init__.py",
-        "src/weall/net/codec.py",
         "src/weall/net/gossip.py",
         "src/weall/net/handshake.py",
-        "src/weall/net/messages.py",
-        "src/weall/net/messages_parallel.py",
-        "src/weall/net/net_logging.py",
         "src/weall/net/net_loop.py",
         "src/weall/net/node.py",
         "src/weall/net/peer_identity.py",
-        "src/weall/net/peer_list_store.py",
         "src/weall/net/peer_store.py",
         "src/weall/net/relay.py",
         "src/weall/net/router.py",
-        "src/weall/net/state_sync.py",
-        "src/weall/net/transport.py",
-        "src/weall/net/transport_memory.py",
-        "src/weall/net/transport_tcp.py",
-        "src/weall/net/transport_tls.py",
-        "src/weall/runtime/apply/networking.py"
+        "src/weall/net/state_sync.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -1305,42 +1329,57 @@
       "production_target": "Custody operations are purpose-bound, nonce-protected, replay-safe, recoverable, and exposed truthfully through API/frontend.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/crypto/account_keys.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/apply/identity.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/apply/poh.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/session_keys.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/crypto/account_keys.py",
+          "path": "src/weall/runtime/account_recovery_policy.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/account_recovery_scheduler.py",
+          "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/runtime/recovery_review.py",
           "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/crypto/account_keys.py",
-        "src/weall/poh/apply.py",
-        "src/weall/poh/finalize.py",
         "src/weall/runtime/account_recovery_policy.py",
         "src/weall/runtime/account_recovery_scheduler.py",
         "src/weall/runtime/apply/identity.py",
         "src/weall/runtime/apply/poh.py",
-        "src/weall/runtime/apply/roles.py",
-        "src/weall/runtime/poh/async_scheduler.py",
-        "src/weall/runtime/poh/bootstrap_quorum.py",
-        "src/weall/runtime/poh/eligibility.py",
-        "src/weall/runtime/poh/evidence_lifecycle.py",
-        "src/weall/runtime/poh/juror_select.py",
-        "src/weall/runtime/poh/live_quorum.py",
-        "src/weall/runtime/poh/live_scheduler.py",
-        "src/weall/runtime/poh/state.py",
-        "src/weall/runtime/poh/tier2_scheduler.py",
         "src/weall/runtime/recovery_review.py",
-        "src/weall/runtime/session_keys.py",
-        "src/weall/runtime/tier2_responsibility.py"
+        "src/weall/runtime/session_keys.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",
@@ -2601,31 +2640,34 @@
       "production_target": "Governance activation, time lock, conservation, abuse controls, legal review, and launch receipt precede live fees/transfers.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/apply/economics.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/econ_phase.py",
           "status": "present"
         },
         {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/ledger/tokenomics.py",
           "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/ledger/issuance.py",
+          "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
-        "src/weall/ledger/constants.py",
-        "src/weall/ledger/gate_resolver.py",
         "src/weall/ledger/issuance.py",
-        "src/weall/ledger/migrations.py",
-        "src/weall/ledger/rewards.py",
-        "src/weall/ledger/roles_schema.py",
-        "src/weall/ledger/state.py",
         "src/weall/ledger/tokenomics.py",
-        "src/weall/ledger/types.py",
         "src/weall/runtime/apply/economics.py",
         "src/weall/runtime/econ_phase.py"
       ],
@@ -2653,25 +2695,29 @@
       "production_target": "Exact activation, conservation, recipient qualification, unused-bucket treatment, replay, and independent economic review control issuance.",
       "repository_evidence": [
         {
+          "authority": "authoritative",
           "kind": "current_path",
-          "path": "src/weall/ledger/issuance.py",
+          "path": "src/weall/runtime/system_tx_engine.py",
           "status": "present"
         },
         {
-          "kind": "current_path",
-          "path": "src/weall/ledger/rewards.py",
-          "status": "present"
-        },
-        {
+          "authority": "authoritative",
           "kind": "current_path",
           "path": "src/weall/runtime/apply/rewards.py",
           "status": "present"
+        },
+        {
+          "authority": "authoritative",
+          "kind": "current_path",
+          "path": "src/weall/ledger/issuance.py",
+          "status": "present"
         }
       ],
+      "repository_evidence_overlay": "weall.authoritative_mechanism_map.v1",
       "repository_evidence_paths": [
         "src/weall/ledger/issuance.py",
-        "src/weall/ledger/rewards.py",
-        "src/weall/runtime/apply/rewards.py"
+        "src/weall/runtime/apply/rewards.py",
+        "src/weall/runtime/system_tx_engine.py"
       ],
       "required_evidence": [
         "same_commit_executed_tests",

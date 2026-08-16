@@ -11,10 +11,10 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any
-from weall.runtime.runtime_time import now_ms as _now_ms
-from weall.runtime.json_tools import canonical_json_str
 
 from weall.runtime.failpoints import maybe_trigger_failpoint
+from weall.runtime.json_tools import canonical_json_str
+from weall.runtime.runtime_time import now_ms as _now_ms
 
 Json = dict[str, Any]
 
@@ -362,6 +362,67 @@ class SqliteDB:
                 ON mempool(signer, nonce)
                 WHERE nonce IS NOT NULL;
                 """
+            )
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS peer_security (
+                  peer_id TEXT PRIMARY KEY,
+                  strikes INTEGER NOT NULL DEFAULT 0,
+                  banned_until_ms INTEGER NOT NULL DEFAULT 0,
+                  score REAL NOT NULL DEFAULT 0.0,
+                  updated_ts_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_peer_security_ban ON peer_security(banned_until_ms);"
+            )
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS bft_outbox (
+                  outbound_key TEXT PRIMARY KEY,
+                  kind TEXT NOT NULL,
+                  payload_json TEXT NOT NULL,
+                  enqueue_seq INTEGER NOT NULL,
+                  enqueued_ts_ms INTEGER NOT NULL,
+                  updated_ts_ms INTEGER NOT NULL
+                );
+                """
+            )
+            bft_outbox_cols = {
+                str(row["name"])
+                for row in con.execute("PRAGMA table_info(bft_outbox);").fetchall()
+                if row is not None and row["name"] is not None
+            }
+            if "enqueue_seq" not in bft_outbox_cols:
+                # Additive migration for nodes that created the first dedicated
+                # outbox schema before enqueue ordering became explicit. SQLite's
+                # rowid reflects insertion order for that table, so use it only as
+                # the one-time migration source; all future ordering is explicit.
+                con.execute("ALTER TABLE bft_outbox ADD COLUMN enqueue_seq INTEGER;")
+                max_row = con.execute(
+                    "SELECT COALESCE(MAX(enqueue_seq), 0) AS n FROM bft_outbox;"
+                ).fetchone()
+                next_seq = int(max_row["n"] if max_row is not None else 0) + 1
+                legacy_rows = con.execute(
+                    "SELECT rowid AS rid FROM bft_outbox "
+                    "WHERE enqueue_seq IS NULL ORDER BY rowid ASC;"
+                ).fetchall()
+                for legacy_row in legacy_rows:
+                    con.execute(
+                        "UPDATE bft_outbox SET enqueue_seq=? WHERE rowid=?;",
+                        (next_seq, int(legacy_row["rid"])),
+                    )
+                    next_seq += 1
+            con.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_bft_outbox_enqueue_seq "
+                "ON bft_outbox(enqueue_seq);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_bft_outbox_enqueued "
+                "ON bft_outbox(enqueued_ts_ms, enqueue_seq);"
             )
 
             con.execute(

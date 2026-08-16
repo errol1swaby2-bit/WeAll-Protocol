@@ -3,14 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.net.messages import BftTimeoutMsg, BftVoteMsg
 from weall.net.net_loop import NetMeshLoop, net_loop_config_from_env
@@ -178,7 +171,7 @@ def test_timeout_replayed_after_restart_until_sent(tmp_path: Path, monkeypatch) 
     assert ex2.bft_pending_outbound_messages() == []
 
 
-def test_outbound_enqueue_journal_failure_propagates_before_send_obligation_is_returned(
+def test_outbound_durable_store_survives_diagnostic_journal_append_failure(
     tmp_path: Path, monkeypatch
 ) -> None:
     root = _repo_root()
@@ -194,12 +187,15 @@ def test_outbound_enqueue_journal_failure_propagates_before_send_obligation_is_r
     def boom(*_args, **_kwargs):
         raise OSError("journal append boom")
 
+    payload = {"view": 1, "signer": "@v1", "block_id": "b1"}
     monkeypatch.setattr(ex._bft_journal, "append", boom)
-    with pytest.raises(OSError, match="journal append boom"):
-        ex._bft_enqueue_outbound("vote", {"view": 1, "signer": "@v1", "block_id": "b1"})
+    ex._bft_enqueue_outbound("vote", payload)
+    assert ex.bft_pending_outbound_messages() == [{"kind": "vote", "payload": payload}]
 
 
-def test_pending_outbound_journal_read_failure_propagates(tmp_path: Path, monkeypatch) -> None:
+def test_pending_outbound_does_not_depend_on_diagnostic_journal_reads(
+    tmp_path: Path, monkeypatch
+) -> None:
     root = _repo_root()
     db_path = str(tmp_path / "node-read-fail.db")
     ex = WeAllExecutor(
@@ -208,10 +204,11 @@ def test_pending_outbound_journal_read_failure_propagates(tmp_path: Path, monkey
         chain_id="chain-A",
         tx_index_path=str(root / "generated" / "tx_index.json"),
     )
+    payload = {"view": 2, "signer": "@v1", "block_id": "b2"}
+    ex._bft_enqueue_outbound("vote", payload)
 
     def boom(*_args, **_kwargs):
         raise OSError("journal read boom")
 
     monkeypatch.setattr(ex._bft_journal, "bootstrap_state", boom)
-    with pytest.raises(OSError, match="journal read boom"):
-        ex.bft_pending_outbound_messages()
+    assert ex.bft_pending_outbound_messages() == [{"kind": "vote", "payload": payload}]

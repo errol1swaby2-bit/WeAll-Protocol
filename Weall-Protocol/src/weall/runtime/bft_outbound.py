@@ -9,6 +9,7 @@ from weall.runtime.executor import (
     _canon_json,
 )
 
+
 def _bft_outbound_key(self, kind: str, payload: Json) -> str:
     try:
         if str(kind) == "vote":
@@ -23,52 +24,57 @@ def _bft_outbound_key(self, kind: str, payload: Json) -> str:
     except Exception:
         return f"{str(kind)}:{repr(payload)}"
 
+
 def _bft_enqueue_outbound(self, kind: str, payload: Json) -> str:
     """Durably enqueue an outbound consensus message before it can be emitted.
 
-    Unlike diagnostic journal events, the outbound outbox is part of restart
-    liveness.  Journal failure must therefore propagate instead of silently
-    converting a durable-send obligation into a best-effort event.
+    The SQLite outbox is authoritative and intentionally independent from the
+    bounded diagnostic BFT journal.  If this durable write fails, the obligation
+    is not returned to the networking layer and the error propagates fail-closed.
     """
 
     key = self._bft_outbound_key(kind, payload)
-    self._bft_journal.append(
+    self._bft_outbox_store.enqueue(
+        key=key,
+        kind=str(kind),
+        payload=dict(payload or {}),
+    )
+    _bft_record_event(
+        self,
         "bft_outbound_enqueued",
-        chain_id=self.chain_id,
-        node_id=self.node_id,
         kind=str(kind),
         key=key,
         payload=dict(payload or {}),
     )
     return key
 
+
 def bft_mark_outbound_sent(self, kind: str, payload: Json) -> None:
     key = self._bft_outbound_key(kind, payload)
-    self._bft_journal.append(
-        "bft_outbound_sent",
-        chain_id=self.chain_id,
-        node_id=self.node_id,
-        kind=str(kind),
-        key=key,
-    )
+    # Deletion happens only after the networking layer reports the send. If a
+    # crash happens before this point, restart will replay the obligation. A
+    # duplicate BFT artifact is safer than silently forgetting an unsent one.
+    self._bft_outbox_store.mark_sent(key=key)
+    _bft_record_event(self, "bft_outbound_sent", kind=str(kind), key=key)
+
 
 def bft_pending_outbound_messages(self) -> list[Json]:
-    info = self._bft_journal.bootstrap_state(strict=True)
     out: list[Json] = []
-    for item in list(info.get("pending_outbound") or []):
-        if not isinstance(item, dict):
-            continue
-        kind = str(item.get("kind") or "").strip().lower()
-        payload = item.get("payload")
+    for item in self._bft_outbox_store.pending():
+        kind = str(item.kind or "").strip().lower()
+        payload = item.payload
         if kind and isinstance(payload, dict) and payload:
             out.append({"kind": kind, "payload": dict(payload)})
     return out
+
 
 def _bft_record_event(self, event: str, **payload: Any) -> None:
     try:
         self._bft_journal.append(event, chain_id=self.chain_id, node_id=self.node_id, **payload)
     except Exception:
+        # Diagnostic history must never control the authoritative durable outbox.
         pass
+
 
 def _restore_bft_restart_hints(self) -> None:
     try:
@@ -79,4 +85,3 @@ def _restore_bft_restart_hints(self) -> None:
         self._bft.view = max(int(self._bft.view), int(info.get("last_view") or 0))
     except Exception:
         pass
-

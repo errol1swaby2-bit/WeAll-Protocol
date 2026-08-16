@@ -37,7 +37,9 @@ def _sha256_file_or_empty(path: str) -> str:
         return ""
 
 
-def prepare_executor_init_paths(*, db_path: str, tx_index_path: str) -> ExecutorInitPaths:
+def prepare_executor_init_paths(
+    *, db_path: str, tx_index_path: str, aux_db_path: str | None = None
+) -> ExecutorInitPaths:
     """Prepare path-derived executor boot values without mutating consensus state.
 
     This is deliberately small and behavior-preserving: it only centralizes the
@@ -48,7 +50,10 @@ def prepare_executor_init_paths(*, db_path: str, tx_index_path: str) -> Executor
     db_path_s = str(db_path)
     db_file_existed_before_init = Path(db_path_s).exists()
     _ensure_parent_path(db_path_s)
-    aux_db_override = str(os.environ.get("WEALL_AUX_DB_PATH") or "").strip()
+    explicit_aux_db_path = str(aux_db_path or "").strip()
+    aux_db_override = explicit_aux_db_path or str(
+        os.environ.get("WEALL_AUX_DB_PATH") or ""
+    ).strip()
     # Local import avoids coupling executor_boot to sqlite/runtime internals at
     # module import time and prevents a circular import with executor.py.
     from weall.runtime.sqlite_db import derive_aux_db_path

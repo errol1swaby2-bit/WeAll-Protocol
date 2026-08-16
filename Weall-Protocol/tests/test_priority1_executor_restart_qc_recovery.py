@@ -4,9 +4,11 @@ from pathlib import Path
 from types import MethodType
 
 import weall.runtime.executor as executor_mod
-from weall.runtime.bft_journal import BftJournal
 from weall.runtime.bft_hotstuff import HotStuffBFT, QuorumCert
+from weall.runtime.bft_journal import BftJournal
+from weall.runtime.bft_outbox_store import BftOutboxStore
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.sqlite_db import SqliteDB
 
 
 def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
@@ -36,6 +38,8 @@ def _make_executor(tmp_path: Path, *, chain_id: str = "batch96") -> WeAllExecuto
     }
     ex._bft = HotStuffBFT(chain_id=chain_id)
     ex._bft_journal = BftJournal(str(tmp_path / f"{chain_id}-bft-journal.jsonl"))
+    ex._aux_db = SqliteDB(path=str(tmp_path / f"{chain_id}-bft-aux.sqlite"))
+    ex._bft_outbox_store = BftOutboxStore(db=ex._aux_db)
     ex._quarantined_remote_blocks = {}
     ex._pending_remote_blocks = {}
     ex._pending_candidates = {}

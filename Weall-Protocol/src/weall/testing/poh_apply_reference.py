@@ -1,3 +1,8 @@
+"""Reference-only legacy PoF NFT mutation helpers.
+
+Production PoH/identity mutation is authoritative under ``weall.runtime.apply``.
+"""
+
 # src/weall/pof_nft/apply.py
 from __future__ import annotations
 

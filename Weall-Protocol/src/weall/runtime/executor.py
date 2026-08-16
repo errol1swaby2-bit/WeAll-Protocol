@@ -21,6 +21,7 @@ from weall.runtime.bft_hotstuff import (
     QuorumCert,
 )
 from weall.runtime.bft_journal import BftJournal
+from weall.runtime.bft_outbox_store import BftOutboxStore
 from weall.runtime.block_admission import admit_bft_block, admit_bft_commit_block
 from weall.runtime.block_hash import (
     RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT,
@@ -381,6 +382,7 @@ class WeAllExecutor:
         node_id: str,
         chain_id: str,
         tx_index_path: str,
+        aux_db_path: str | None = None,
     ) -> None:
         self.node_id = str(node_id)
         self.chain_id = str(chain_id)
@@ -389,6 +391,7 @@ class WeAllExecutor:
         _init_paths = prepare_executor_init_paths(
             db_path=str(db_path),
             tx_index_path=self.tx_index_path,
+            aux_db_path=aux_db_path,
         )
         self.db_path = _init_paths.db_path
         db_file_existed_before_init = _init_paths.db_file_existed_before_init
@@ -415,6 +418,12 @@ class WeAllExecutor:
         if helper_fast_path_requested and not self._helper_mode_enabled_default:
             raise ExecutorError(
                 "helper fast path requires WEALL_HELPER_MODE_ENABLED=1. Refuse to start."
+            )
+        if _mode() == "prod" and helper_fast_path_requested:
+            raise ExecutorError(
+                "helper_fast_path_production_integration_not_ready: "
+                "the BFT leader proposal lifecycle does not yet collect/finalize helper "
+                "certificates before block construction"
             )
         self._helper_fast_path_enabled_default = bool(
             self._helper_mode_enabled_default and helper_fast_path_requested
@@ -777,6 +786,17 @@ class WeAllExecutor:
             path=str(journal_path),
             max_events=_safe_int(os.environ.get("WEALL_BFT_JOURNAL_MAX_EVENTS"), 2000),
         )
+        self._bft_outbox_store = BftOutboxStore(
+            db=self._aux_db,
+            max_pending=max(
+                1, _safe_int(os.environ.get("WEALL_BFT_OUTBOX_MAX_PENDING"), 10_000)
+            ),
+        )
+        if not self._bft_outbox_store.legacy_migration_complete():
+            legacy_restart = self._bft_journal.bootstrap_state(strict=True)
+            self._bft_outbox_store.import_legacy_pending_once(
+                list(legacy_restart.get("pending_outbound") or [])
+            )
         helper_lane_dir = str(os.environ.get("WEALL_HELPER_LANE_JOURNAL_DIR") or "").strip()
         if helper_lane_dir:
             self._helper_lane_journal_dir = helper_lane_dir
@@ -888,6 +908,8 @@ class WeAllExecutor:
         self._proposal_validation_semaphore = threading.BoundedSemaphore(
             self._proposal_validation_limit
         )
+        self._votecheck_lock = threading.RLock()
+        self._spec_exec_slot_seq: int = 0
         self._proposal_peer_budget_window_ms: int = max(
             100, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_PEER_WINDOW_MS"), 1000)
         )

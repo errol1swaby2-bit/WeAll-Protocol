@@ -8,6 +8,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlsplit
 
 from weall.api.public_seed_registry import public_testnet_enabled
 from weall.net.codec import decode_message, encode_message
@@ -40,6 +41,7 @@ from weall.net.messages import (
     WireMessage,
 )
 from weall.net.peer_identity import verify_peer_hello_identity
+from weall.net.peer_store import PeerSecurityStore
 from weall.net.router import Router
 from weall.net.state_sync import StateSyncService
 from weall.net.transport import Connection, PeerAddr, Transport, WirePacket
@@ -200,8 +202,10 @@ class PeerPolicy:
 class _PeerRec:
     peer_id: str
     router: Router
+    security_key: str = ""
     strikes: int = 0
     banned_until_ms: int = 0
+    security_score: float = 0.0
 
     # per-peer limiter state
     last_refill_ms: int = 0
@@ -288,6 +292,7 @@ class NetNode:
         ledger_provider: Callable[[], Json] | None = None,
         sync_service: StateSyncService | None = None,
         transport: Transport | None = None,
+        peer_security_store: PeerSecurityStore | None = None,
     ) -> None:
         self.cfg = cfg
         self.peer_policy = peer_policy or PeerPolicy()
@@ -301,6 +306,7 @@ class NetNode:
         self.peer_addr_provider = peer_addr_provider
         self.ledger_provider = ledger_provider
         self.sync_service = sync_service
+        self._peer_security_store = peer_security_store
 
         self.transport: Transport = transport or _make_transport(cfg)
 
@@ -334,13 +340,88 @@ class NetNode:
         self._sync_responses: OrderedDict[str, StateSyncResponseMsg] = OrderedDict()
         self._sync_requests: OrderedDict[str, tuple[str, int]] = OrderedDict()
         self._sync_completed: OrderedDict[tuple[str, str], int] = OrderedDict()
+        self._peer_security_retention_ms: int = max(
+            0, _env_int("WEALL_PEER_SECURITY_RETENTION_MS", 7 * 24 * 60 * 60 * 1000)
+        )
+        self._peer_security_prune_interval_ms: int = max(
+            1_000, _env_int("WEALL_PEER_SECURITY_PRUNE_INTERVAL_MS", 60_000)
+        )
+        self._last_peer_security_prune_ms: int = 0
 
     # ----------------------------
     # Peer state + rate limiting
     # ----------------------------
 
+    @staticmethod
+    def _peer_security_transport_key(peer_id: str) -> str:
+        pid = str(peer_id or "").strip()
+        if not pid:
+            return ""
+        try:
+            parsed = urlsplit(pid)
+            if parsed.scheme in {"tcp", "tls"} and parsed.hostname:
+                return f"transport-host:{parsed.hostname.lower()}"
+        except Exception:
+            pass
+        return f"transport:{pid}"
+
+    @staticmethod
+    def _peer_security_identity_key(account_id: str) -> str:
+        account = str(account_id or "").strip()
+        return f"identity-account:{account}" if account else ""
+
+    def _maybe_prune_peer_security(self, *, now_ms: int | None = None) -> None:
+        store = self._peer_security_store
+        if store is None:
+            return
+        now = int(_now_ms() if now_ms is None else now_ms)
+        if now - int(self._last_peer_security_prune_ms) < int(
+            self._peer_security_prune_interval_ms
+        ):
+            return
+        store.prune_expired(
+            now_ms=now,
+            retention_ms=int(self._peer_security_retention_ms),
+        )
+        self._last_peer_security_prune_ms = now
+
+    def _bind_authenticated_peer_security(self, rec: _PeerRec) -> None:
+        key = self._peer_security_identity_key(rec.identity_account)
+        if not key:
+            return
+        store = self._peer_security_store
+        if store is not None:
+            saved = store.load(key)
+            if saved is not None:
+                rec.strikes = max(int(rec.strikes), max(0, int(saved.strikes)))
+                rec.banned_until_ms = max(
+                    int(rec.banned_until_ms), max(0, int(saved.banned_until_ms))
+                )
+                rec.security_score = min(float(rec.security_score), float(saved.score))
+        rec.security_key = key
+        self._persist_peer_security(rec)
+
+    def _persist_peer_security(self, rec: _PeerRec) -> None:
+        store = self._peer_security_store
+        if store is None:
+            return
+        key = str(rec.security_key or self._peer_security_transport_key(rec.peer_id)).strip()
+        if not key:
+            return
+        store.upsert(
+            peer_id=key,
+            strikes=int(rec.strikes),
+            banned_until_ms=int(rec.banned_until_ms),
+            score=float(rec.security_score),
+        )
+
     def is_banned(self, peer_id: str) -> bool:
         rec = self._peers.get(peer_id)
+        if rec is None and self._peer_security_store is not None:
+            key = self._peer_security_transport_key(peer_id)
+            saved = self._peer_security_store.load(key) if key else None
+            if saved is not None:
+                return int(saved.banned_until_ms) > _now_ms()
         if not rec:
             return False
         return rec.banned_until_ms > _now_ms()
@@ -348,6 +429,7 @@ class NetNode:
     def _ban(self, rec: _PeerRec, *, cooldown_ms: int | None = None) -> None:
         cd = int(cooldown_ms if cooldown_ms is not None else self.peer_policy.ban_cooldown_ms)
         rec.banned_until_ms = max(rec.banned_until_ms, _now_ms() + cd)
+        self._persist_peer_security(rec)
 
     def _strike(self, rec: _PeerRec, weight: int) -> None:
         if weight <= 0:
@@ -355,6 +437,8 @@ class NetNode:
         rec.strikes += int(weight)
         if rec.strikes >= int(self.peer_policy.max_strikes):
             self._ban(rec)
+            return
+        self._persist_peer_security(rec)
 
     def _refill_limits(self, rec: _PeerRec, now_ms: int) -> None:
         if rec.last_refill_ms == 0:
@@ -624,6 +708,7 @@ class NetNode:
         rec.identity_ok = True
         rec.identity_account = account_id
         rec.identity_pubkey = pubkey
+        self._bind_authenticated_peer_security(rec)
 
     def _enforce_bft_identity_gate(self, rec: _PeerRec, msg: BftVoteMsg) -> None:
         if not (
@@ -1035,7 +1120,15 @@ class NetNode:
             on_peer_addr=_on_peer_addr,
         )
 
-        rec = _PeerRec(peer_id=peer_id, router=router)
+        security_key = self._peer_security_transport_key(peer_id)
+        rec = _PeerRec(peer_id=peer_id, router=router, security_key=security_key)
+        if self._peer_security_store is not None:
+            self._maybe_prune_peer_security()
+            saved = self._peer_security_store.load(security_key) if security_key else None
+            if saved is not None:
+                rec.strikes = max(0, int(saved.strikes))
+                rec.banned_until_ms = max(0, int(saved.banned_until_ms))
+                rec.security_score = float(saved.score)
         rec.last_seen_ms = _now_ms()
         self._peers[peer_id] = rec
         return rec
@@ -1347,6 +1440,7 @@ class NetNode:
                     "account_id": str(rec.identity_account or ""),
                     "pubkey": str(rec.identity_pubkey or ""),
                     "strikes": int(rec.strikes),
+                    "security_score": float(rec.security_score),
                     "banned": self.is_banned(peer_id),
                     "banned_until_ms": int(rec.banned_until_ms),
                     "last_error": last_error,

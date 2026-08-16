@@ -65,6 +65,12 @@ def test_votecheck_per_proposer_budget_window_is_enforced(
     assert follower._validate_remote_proposal_for_vote(blk2) is True
     assert follower._validate_remote_proposal_for_vote(blk3) is False
 
+    # Budget exhaustion is retryable local pressure, not permanent block invalidity.
+    meta2 = follower.apply_block(blk2)
+    assert meta2.ok is True
+    follower._proposal_peer_budget["peer-A"]["reset_ms"] = 0
+    assert follower._validate_remote_proposal_for_vote(blk3) is True
+
     diag = follower.bft_diagnostics()
     assert diag["votecheck_peer_budget_entries"] >= 1
 
@@ -88,6 +94,9 @@ def test_votecheck_global_limiter_fails_closed_when_all_slots_busy(
         assert follower._validate_remote_proposal_for_vote(blk) is False
     finally:
         follower._proposal_validation_semaphore.release()
+
+    # Capacity recovery must make the exact same proposal retryable immediately.
+    assert follower._validate_remote_proposal_for_vote(blk) is True
 
     diag = follower.bft_diagnostics()
     assert diag["votecheck_concurrency_limit"] == 1

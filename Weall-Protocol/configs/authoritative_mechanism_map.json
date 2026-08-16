@@ -133,6 +133,35 @@
       ],
       "forbidden_shadow_paths": []
     },
+    "M-024": {
+      "authoritative_paths": [
+        "src/weall/net/net_loop.py",
+        "src/weall/net/node.py",
+        "src/weall/net/peer_store.py",
+        "src/weall/net/handshake.py",
+        "src/weall/net/peer_identity.py",
+        "src/weall/net/gossip.py",
+        "src/weall/net/router.py",
+        "src/weall/net/relay.py",
+        "src/weall/net/state_sync.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-028": {
+      "authoritative_paths": [
+        "src/weall/crypto/account_keys.py",
+        "src/weall/runtime/apply/identity.py",
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/runtime/session_keys.py",
+        "src/weall/runtime/account_recovery_policy.py",
+        "src/weall/runtime/account_recovery_scheduler.py",
+        "src/weall/runtime/recovery_review.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/poh/apply.py",
+        "src/weall/poh/finalize.py"
+      ]
+    },
     "M-032": {
       "authoritative_paths": [
         "src/weall/runtime/apply/poh.py",
@@ -140,6 +169,27 @@
       ],
       "forbidden_shadow_paths": [
         "src/weall/runtime/poh/eligibility.py"
+      ]
+    },
+    "M-060": {
+      "authoritative_paths": [
+        "src/weall/runtime/apply/economics.py",
+        "src/weall/runtime/econ_phase.py",
+        "src/weall/ledger/tokenomics.py",
+        "src/weall/ledger/issuance.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/ledger/rewards.py"
+      ]
+    },
+    "M-061": {
+      "authoritative_paths": [
+        "src/weall/runtime/system_tx_engine.py",
+        "src/weall/runtime/apply/rewards.py",
+        "src/weall/ledger/issuance.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/ledger/rewards.py"
       ]
     },
     "M-067": {
@@ -173,7 +223,11 @@
     "M-019",
     "M-020",
     "M-021",
+    "M-024",
+    "M-028",
     "M-032",
+    "M-060",
+    "M-061",
     "M-067"
   ],
   "schema": "weall.authoritative_mechanism_map.v1",

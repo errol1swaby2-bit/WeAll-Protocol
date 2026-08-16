@@ -1,9 +1,15 @@
+"""Reference-only legacy PoH/PoF finalization model.
+
+Production PoH state mutation is authoritative under ``weall.runtime.apply.poh``.
+This module exists only for historical/reference behavior tests.
+"""
+
 from __future__ import annotations
 
 from collections.abc import MutableMapping
 from typing import Any
 
-from weall.poh.apply import canonical_metadata_reference, deterministic_token_id
+from weall.testing.poh_apply_reference import canonical_metadata_reference, deterministic_token_id
 
 Json = dict[str, Any]
 

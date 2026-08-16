@@ -56,6 +56,7 @@ from weall.net.messages import (
 from weall.net.net_logging import log_event
 from weall.net.node import NetConfig, NetNode
 from weall.net.peer_list_store import PeerListStore
+from weall.net.peer_store import PeerSecurityStore
 from weall.net.relay import (
     RelayConfig,
     RelayEnvelopeError,
@@ -655,6 +656,11 @@ class NetMeshLoop:
             bft_enabled=bool(self._bft_enabled),
         )
 
+        peer_security_store = None
+        aux_db = getattr(self._executor, "_aux_db", None)
+        if aux_db is not None:
+            peer_security_store = PeerSecurityStore(db=aux_db)
+
         node = NetNode(
             cfg=cfg,
             on_tx=self._on_tx,
@@ -666,6 +672,7 @@ class NetMeshLoop:
             peer_addr_provider=self._peer_addr_provider,
             ledger_provider=self._state_snapshot,
             sync_service=sync,
+            peer_security_store=peer_security_store,
         )
         return node
 

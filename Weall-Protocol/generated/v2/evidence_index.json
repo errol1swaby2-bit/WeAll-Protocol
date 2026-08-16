@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "0c214856ce7ceaf58c4bf0cb0132f00339a96e66bd3d7e33ff2f5ac544f4fbc8"
+    "source_tree_digest": "54f45c50506b919bf35936a9730e1db0242c514db6dd58509df9c88063d5d335"
   },
   "rows": [
     {
@@ -167,7 +167,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "5bf0efc9565adffea1e646e8d1fe436d31dab1cd7e8da865da6435c5b84982db",
+      "sha256": "0458cfdbfb0881ecad47c0b26b893e1a3dd1a24b5763125c3e3c33321f8b92bb",
       "stable_id": "EVD-224E96B1E6D9984E",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -321,7 +321,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "7a669e009b005c98754ec50954d3369c54a6c6a0c0ce8d4574c175bb64742c41",
+      "sha256": "ec47ea81d49ecca8b0a250b76c29f2e2c6eb2236a815d3e7eaf605d2699f6790",
       "stable_id": "EVD-4F9C5188B5C90E01",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."
@@ -517,7 +517,7 @@
       "primary_mechanism_id": "M-076",
       "required_external_review": true,
       "reviewer": "IMPLEMENTATION_REVIEW_PENDING",
-      "sha256": "aa3fbe1cb81e46fefc80edb22c03c17d4cc62795695c23c3086374f133eb577c",
+      "sha256": "ca2fdff791d8ebc9b6f6ce2c4df91f87cf7f8c0e90c0d26d8b63b748072afcbd",
       "stable_id": "EVD-693A4A1C6F167853",
       "status": "current_implemented",
       "truth_boundary": "Evidence supports a scoped claim only; it does not activate protocol authority by itself."

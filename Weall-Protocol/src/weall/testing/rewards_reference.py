@@ -1,4 +1,9 @@
-# src/weall/ledger/rewards.py
+"""Reference-only legacy block reward model.
+
+Production issuance and reward application is authoritative through
+``weall.runtime.system_tx_engine`` and ``weall.runtime.apply.rewards``.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Iterable

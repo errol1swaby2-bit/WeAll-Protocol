@@ -12,11 +12,11 @@
   "implementation_commit_binding": "1dedcaa5463f1fe230be35d90a610569a82c87dc",
   "mechanism_evidence": {
     "authority_claim_scope": "explicit_high_risk_map; other current_path evidence proves existence, not call-path authority",
-    "authority_overlays_applied": 18,
-    "current_evidence_entries": 201,
-    "explicit_authority_bindings_validated": 18,
+    "authority_overlays_applied": 22,
+    "current_evidence_entries": 211,
+    "explicit_authority_bindings_validated": 22,
     "planned_target_entries": 11,
-    "required_high_risk_authority_bindings_validated": 18,
+    "required_high_risk_authority_bindings_validated": 22,
     "validation_result": "PASS_TYPED_MECHANISM_EVIDENCE_WITH_EXPLICIT_AUTHORITY_BINDINGS"
   },
   "pdf_extraction_attestation": {
@@ -72,7 +72,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "0c214856ce7ceaf58c4bf0cb0132f00339a96e66bd3d7e33ff2f5ac544f4fbc8"
+    "source_tree_digest": "54f45c50506b919bf35936a9730e1db0242c514db6dd58509df9c88063d5d335"
   },
   "provenance_binding": {
     "binding_policy": "PASS_NON_CIRCULAR_TWO_COMMIT_BINDING",

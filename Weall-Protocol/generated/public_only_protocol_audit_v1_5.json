@@ -195,7 +195,7 @@
     {
       "category": "generated",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
-      "match_count": 1,
+      "match_count": 2,
       "path": "generated/v2/source_coverage_map.json"
     },
     {
@@ -245,6 +245,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
       "path": "specs/v2/source/requirements.json"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "specs/v2/source/source_mappings.json"
     },
     {
       "category": "docs/specs",
@@ -304,6 +310,18 @@
       "category": "backend/runtime",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "src/weall/runtime/bft_outbox_store.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/executor.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "src/weall/runtime/poh/evidence_lifecycle.py"
     },
     {
@@ -311,6 +329,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "src/weall/runtime/public_protocol_policy.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/sqlite_db.py"
     },
     {
       "category": "backend/runtime",
@@ -335,6 +359,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 9,
       "path": "tests/test_direct_message_transaction_quarantine.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_fresh_ai_error_closure.py"
     },
     {
       "category": "tests",
@@ -399,6 +429,24 @@
     {
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_priority1_duplicate_bft_artifact_suppression.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_priority1_executor_restart_qc_recovery.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_priority1_pending_qc_cache_safety.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 2,
       "path": "tests/test_public_only_protocol_redesign.py"
     },
@@ -432,7 +480,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 62,
+  "inventory_hit_count": 70,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

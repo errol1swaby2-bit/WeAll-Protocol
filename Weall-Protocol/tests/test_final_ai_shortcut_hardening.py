@@ -29,12 +29,19 @@ def test_m3_complete_closure_has_no_bare_python_execution() -> None:
     assert bare == [], "bare python execution remains: " + " | ".join(bare)
 
 
-def test_pof_metadata_helper_is_not_named_as_a_cid_placeholder() -> None:
-    apply_source = (BACKEND / "src" / "weall" / "poh" / "apply.py").read_text(encoding="utf-8")
-    finalize_source = (BACKEND / "src" / "weall" / "poh" / "finalize.py").read_text(
-        encoding="utf-8"
-    )
+def test_pof_reference_helpers_are_not_production_authority_or_cid_placeholders() -> None:
+    assert not (BACKEND / "src" / "weall" / "poh" / "apply.py").exists()
+    assert not (BACKEND / "src" / "weall" / "poh" / "finalize.py").exists()
+
+    apply_source = (
+        BACKEND / "src" / "weall" / "testing" / "poh_apply_reference.py"
+    ).read_text(encoding="utf-8")
+    finalize_source = (
+        BACKEND / "src" / "weall" / "testing" / "poh_finalize_reference.py"
+    ).read_text(encoding="utf-8")
     assert "canonical_metadata_cid_placeholder" not in apply_source
     assert "canonical_metadata_cid_placeholder" not in finalize_source
     assert "canonical_metadata_reference" in apply_source
     assert "canonical_metadata_reference" in finalize_source
+    assert "Reference-only" in apply_source
+    assert "Reference-only" in finalize_source

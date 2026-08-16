@@ -5,6 +5,10 @@ from dataclasses import dataclass
 from weall.runtime.sqlite_db import SqliteDB, _now_ms
 
 
+class PeerSecurityStoreError(RuntimeError):
+    """Raised when persisted peer-security state cannot be trusted."""
+
+
 @dataclass(frozen=True, slots=True)
 class PeerSecurityRecord:
     peer_id: str
@@ -22,7 +26,9 @@ class PeerSecurityStore:
       - strikes / ban window
       - score (soft reputation)
 
-    The goal is to survive restarts so a reboot doesn't "forgive" abusive peers.
+    Keys are stable security principals (authenticated account identities or
+    pre-auth transport hosts), never ephemeral connection identifiers. The goal
+    is to survive reconnects/restarts without growing one row per source port.
     """
 
     def __init__(self, *, db: SqliteDB) -> None:
@@ -50,8 +56,8 @@ class PeerSecurityStore:
                     score=float(row["score"]),
                     updated_ts_ms=int(row["updated_ts_ms"]),
                 )
-            except Exception:
-                return None
+            except Exception as exc:
+                raise PeerSecurityStoreError(f"peer_security_record_corrupt:{pid}") from exc
 
     def upsert(self, *, peer_id: str, strikes: int, banned_until_ms: int, score: float) -> None:
         pid = str(peer_id or "").strip()
@@ -84,12 +90,22 @@ class PeerSecurityStore:
         with self._db.write_tx() as con:
             con.execute("DELETE FROM peer_security WHERE peer_id=?;", (pid,))
 
-    def prune_expired(self, *, now_ms: int | None = None, limit: int = 5000) -> int:
-        """Drop rows that are fully neutral: no strikes, no ban, near-zero score.
+    def prune_expired(
+        self,
+        *,
+        now_ms: int | None = None,
+        retention_ms: int = 7 * 24 * 60 * 60 * 1000,
+        limit: int = 5000,
+    ) -> int:
+        """Prune security history only after its ban is inactive and TTL elapsed.
 
-        This keeps the table from growing unbounded on long-lived nodes.
+        Persisted strikes are intentionally not immortal. A stable principal key
+        plus a bounded retention window prevents reconnect/source-port churn from
+        growing this auxiliary table forever while preserving active bans.
         """
         now = int(_now_ms() if now_ms is None else now_ms)
+        retention = max(0, int(retention_ms))
+        cutoff = int(now - retention)
         lim = max(1, int(limit))
         with self._db.write_tx() as con:
             cur = con.execute(
@@ -98,15 +114,14 @@ class PeerSecurityStore:
                 WHERE peer_id IN (
                   SELECT peer_id
                   FROM peer_security
-                  WHERE strikes <= 0
-                    AND banned_until_ms <= ?
-                    AND score BETWEEN -0.01 AND 0.01
+                  WHERE banned_until_ms <= ?
+                    AND updated_ts_ms <= ?
+                  ORDER BY updated_ts_ms ASC
                   LIMIT ?
                 );
                 """,
-                (now, lim),
+                (now, cutoff, lim),
             )
-            # sqlite3's cursor.rowcount is best-effort.
             try:
                 return int(cur.rowcount or 0)
             except Exception:

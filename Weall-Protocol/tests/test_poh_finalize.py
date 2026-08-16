@@ -1,7 +1,12 @@
+"""Reference-only tests for the retired PoH/PoF finalization model.
+
+Production PoH behavior is tested through ``weall.runtime.apply.poh`` and runtime schedulers.
+"""
+
 from __future__ import annotations
 
-from weall.poh.apply import deterministic_token_id
-from weall.poh.finalize import finalize_poh_and_mint_gate_nfts
+from weall.testing.poh_apply_reference import deterministic_token_id
+from weall.testing.poh_finalize_reference import finalize_poh_and_mint_gate_nfts
 
 
 def _base_ledger() -> dict:
