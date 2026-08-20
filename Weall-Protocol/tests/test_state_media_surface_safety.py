@@ -157,7 +157,9 @@ def test_raw_block_fetch_is_operator_gated_in_prod_and_header_is_public(monkeypa
     assert header_body["tx_count"] == 1
     assert "private block body" not in header.text
 
-    authed = client.get("/v1/state/block/block:9", headers={"X-WeAll-State-Raw-Read-Token": "raw-ok"})
+    authed = client.get(
+        "/v1/state/block/block:9", headers={"X-WeAll-State-Raw-Read-Token": "raw-ok"}
+    )
     assert authed.status_code == 200, authed.text
     assert "private block body" in authed.text
 
@@ -172,7 +174,10 @@ def test_sync_request_rejects_oversized_json_before_parsing(monkeypatch) -> None
     res = client.post(
         "/v1/sync/request",
         content=b'{"mode":"delta","padding":"too-large"}',
-        headers={"content-type": "application/json", "X-WeAll-State-Sync-Operator-Token": "sync-ok"},
+        headers={
+            "content-type": "application/json",
+            "X-WeAll-State-Sync-Operator-Token": "sync-ok",
+        },
     )
     assert res.status_code == 413, res.text
     assert res.json()["error"]["code"] == "payload_too_large"
@@ -196,7 +201,9 @@ def test_media_upload_returns_file_byte_sha256_for_declare(monkeypatch) -> None:
     monkeypatch.setattr(media_routes, "ipfs_add_fileobj", _fake_ipfs_add_fileobj)
 
     client = _client()
-    res = client.post("/v1/media/upload", files={"file": ("hello.txt", BytesIO(payload), "text/plain")})
+    res = client.post(
+        "/v1/media/upload", files={"file": ("hello.txt", BytesIO(payload), "text/plain")}
+    )
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["ok"] is True
@@ -208,7 +215,9 @@ def test_media_upload_returns_file_byte_sha256_for_declare(monkeypatch) -> None:
 
 def test_frontend_commits_upload_sha256_and_dispute_uses_scoped_content() -> None:
     root = Path(__file__).resolve().parents[2]
-    create_post = (root / "web" / "src" / "pages" / "CreatePostPage.tsx").read_text(encoding="utf-8")
+    create_post = (root / "web" / "src" / "pages" / "CreatePostPage.tsx").read_text(
+        encoding="utf-8"
+    )
     api = (root / "web" / "src" / "api" / "weall.ts").read_text(encoding="utf-8")
     review = (root / "web" / "src" / "pages" / "DisputeReview.tsx").read_text(encoding="utf-8")
 

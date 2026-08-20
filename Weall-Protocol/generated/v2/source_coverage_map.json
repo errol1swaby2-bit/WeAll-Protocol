@@ -16984,7 +16984,7 @@
       ],
       "path": "tests/test_frontend_dependency_audit.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "25db8b643c450f1dbb622830a338e78898583c32860388a365f4c7c981b1f2c3",
+      "sha256": "8818cbe63eaf75f2c1fc8a17a71dc736b64a894ef7473da97847cc5ef19a5342",
       "source_id": "SRC-8A077776FA8B7BDC"
     },
     {
@@ -25885,7 +25885,7 @@
       ],
       "path": "tests/test_state_media_surface_safety.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "cf2882286a01404232703de82a5735fa8379dd3da11aa1e8345eedd361ebfaa4",
+      "sha256": "a1e7bb3a571f8c393abcc8f182010333c09649d2552bd6f0aefdfc4233bb9141",
       "source_id": "SRC-1A2CC2DA25333255"
     },
     {

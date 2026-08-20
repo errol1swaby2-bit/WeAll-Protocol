@@ -91,9 +91,7 @@ def test_frontend_lockfile_no_longer_contains_known_vulnerable_router_chain() ->
 def test_frontend_dependency_audit_is_a_hard_release_verification_gate() -> None:
     workflow = (ROOT / ".github" / "workflows" / "web-ci.yml").read_text(encoding="utf-8")
     golden = (ROOT / "scripts" / "golden_path_regression.sh").read_text(encoding="utf-8")
-    clean_clone = (ROOT / "scripts" / "run_clean_clone_go_gate_v1_5.sh").read_text(
-        encoding="utf-8"
-    )
+    clean_clone = (ROOT / "scripts" / "run_clean_clone_go_gate_v1_5.sh").read_text(encoding="utf-8")
     reviewer = (ROOT / "Weall-Protocol" / "scripts" / "reviewer_check.sh").read_text(
         encoding="utf-8"
     )
