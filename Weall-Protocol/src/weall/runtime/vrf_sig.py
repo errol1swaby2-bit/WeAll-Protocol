@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-"""Verifiable randomness based on ML-DSA signatures ("sig-VRF").
+"""Signed deterministic consensus beacon using ML-DSA.
 
-We implement a VRF-like primitive using deterministic ML-DSA signatures:
+This module intentionally does *not* treat randomized ML-DSA signature bytes as
+randomness.  ML-DSA proofs authenticate a fixed canonical beacon context, while
+the beacon output is derived only from that context:
 
-  proof = ML-DSASign(privkey, message)
-  output = sha256(proof_bytes)
+  context = domain || chain_id || height || parent_block_hash || proposer_pubkey
+  proof   = ML-DSA-Sign(proposer_key, context)
+  output  = sha256(context)
 
-Anyone can verify the proof with the public key and reproduce `output`.
-
-Security notes:
-- This is not a standards-track VRF (e.g., IETF ECVRF). It is a pragmatic,
-  dependency-light construction that is *verifiable* and *deterministic*.
-- Bias resistance requires the message to be fixed and non-malleable.
-  We bind the proof to the canonical block header fields.
-- Withholding is still possible (a proposer can refuse to produce a block).
-  Mitigations include multi-validator aggregation after quorum (future).
+This construction is not a standards-track secret-key VRF and does not promise
+unpredictability.  Its safety purpose is narrower: for a fixed parent, height,
+and canonical proposer key there is exactly one consensus beacon output, so a
+proposer cannot grind randomized ML-DSA signatures to choose among outputs.
+The proof demonstrates authorization by the bound proposer key.
 """
 
 import hashlib
@@ -25,24 +24,21 @@ from weall.crypto.sig import sign_mldsa, verify_mldsa_signature
 
 Json = dict[str, Any]
 
-SCHEME = "mldsa_sig_v1"
-DOMAIN = "weall-vrf"
+SCHEME = "mldsa_beacon_v2"
+DOMAIN = "weall-vrf-beacon-v2"
 
 
-def vrf_message(*, chain_id: str, height: int, prev_block_hash: str, block_ts_ms: int) -> bytes:
-    """Return the canonical message bytes for VRF signing."""
+def vrf_message(*, chain_id: str, height: int, prev_block_hash: str, pubkey: str) -> bytes:
+    """Return the canonical signed beacon context."""
 
-    s = f"{DOMAIN}|{str(chain_id)}|{int(height)}|{str(prev_block_hash)}|{int(block_ts_ms)}"
+    s = f"{DOMAIN}|{str(chain_id)}|{int(height)}|{str(prev_block_hash)}|{str(pubkey).strip()}"
     return s.encode("utf-8")
 
 
-def vrf_output_from_proof(proof_hex: str) -> str:
-    """Compute output hex from a proof (signature) hex string."""
-    try:
-        pb = bytes.fromhex(str(proof_hex))
-    except Exception:
-        pb = b""
-    return hashlib.sha256(pb).hexdigest()
+def vrf_output_from_message(message: bytes) -> str:
+    """Return the deterministic beacon output for canonical context bytes."""
+
+    return hashlib.sha256(bytes(message)).hexdigest()
 
 
 def make_vrf_record(
@@ -50,23 +46,25 @@ def make_vrf_record(
     chain_id: str,
     height: int,
     prev_block_hash: str,
-    block_ts_ms: int,
     pubkey: str,
     privkey: str,
 ) -> Json:
-    """Create a VRF record suitable for inclusion in block headers and state."""
+    """Create a signed deterministic beacon record for a block header."""
 
+    pubkey_s = str(pubkey or "").strip()
+    if not pubkey_s:
+        raise ValueError("vrf_missing_pubkey")
     msg = vrf_message(
         chain_id=chain_id,
         height=height,
         prev_block_hash=prev_block_hash,
-        block_ts_ms=block_ts_ms,
+        pubkey=pubkey_s,
     )
     proof = sign_mldsa(message=msg, privkey=privkey, encoding="hex")
-    out = vrf_output_from_proof(proof)
+    out = vrf_output_from_message(msg)
     return {
         "scheme": SCHEME,
-        "pubkey": str(pubkey),
+        "pubkey": pubkey_s,
         "proof": str(proof),
         "output": str(out),
     }
@@ -78,9 +76,8 @@ def verify_vrf_record(
     chain_id: str,
     height: int,
     prev_block_hash: str,
-    block_ts_ms: int,
 ) -> tuple[bool, str]:
-    """Verify VRF record and return (ok, reason)."""
+    """Verify a signed deterministic beacon record and return ``(ok, reason)``."""
 
     if not isinstance(vrf, dict):
         return False, "vrf_not_object"
@@ -98,13 +95,13 @@ def verify_vrf_record(
         chain_id=chain_id,
         height=height,
         prev_block_hash=prev_block_hash,
-        block_ts_ms=block_ts_ms,
+        pubkey=pubkey,
     )
 
     if not verify_mldsa_signature(message=msg, sig=proof, pubkey=pubkey):
         return False, "vrf_bad_signature"
 
-    want_out = vrf_output_from_proof(proof)
+    want_out = vrf_output_from_message(msg)
     if want_out != output:
         return False, "vrf_output_mismatch"
 
@@ -112,7 +109,8 @@ def verify_vrf_record(
 
 
 def state_vrf_output(state: Json) -> str | None:
-    """Best-effort helper to fetch the latest VRF output stored in state."""
+    """Best-effort helper to fetch the latest deterministic beacon output."""
+
     r = state.get("rand")
     if not isinstance(r, dict):
         return None

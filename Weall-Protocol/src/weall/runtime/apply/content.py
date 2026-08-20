@@ -449,6 +449,17 @@ def _active_juror_accounts(state: Json) -> list[str]:
 
 
 def _active_validator_accounts(state: Json) -> list[str]:
+    consensus = state.get("consensus")
+    if isinstance(consensus, dict):
+        validator_set = consensus.get("validator_set")
+        if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
+            return _canonical_account_list(
+                [
+                    _resolve_account_identity(state, item)
+                    for item in _canonical_account_list(validator_set.get("active_set"))
+                ]
+            )
+
     active_from_roles = _active_role_accounts(
         state,
         "validators",
@@ -457,18 +468,7 @@ def _active_validator_accounts(state: Json) -> list[str]:
     if active_from_roles:
         return active_from_roles
 
-    consensus = state.get("consensus")
     if isinstance(consensus, dict):
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict):
-            active = _canonical_account_list(
-                [
-                    _resolve_account_identity(state, item)
-                    for item in _canonical_account_list(validator_set.get("active_set"))
-                ]
-            )
-            if active:
-                return active
         validators = consensus.get("validators")
         if isinstance(validators, dict):
             registry = validators.get("registry")

@@ -241,6 +241,7 @@ if [ "${RUN_FRONTEND}" = "1" ]; then
   else
     run_frontend npm install
   fi
+  run_frontend npm run dependency-audit
   run_frontend npm run typecheck
   run_frontend npm run production-safety-check
   run_frontend node scripts/guard_production_ux_safety.mjs

@@ -6,9 +6,9 @@ import threading
 import time
 from dataclasses import dataclass, replace
 
-from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.chain_manifest import load_chain_manifest
 from weall.runtime.constitutional_clock import policy_from_manifest
+from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
 from weall.runtime.runtime_authority import effective_bft_enabled, strict_runtime_authority_mode
 
@@ -170,21 +170,31 @@ def _active_validators_from_executor(executor) -> list[str]:
     st = getattr(executor, "state", None)
     if not isinstance(st, dict):
         return []
+
+    def _normalize(raw: object) -> list[str]:
+        if not isinstance(raw, list):
+            return []
+        out: list[str] = []
+        seen: set[str] = set()
+        for x in raw:
+            s = str(x).strip()
+            if not s or s in seen:
+                continue
+            seen.add(s)
+            out.append(s)
+        return out
+
+    consensus = st.get("consensus")
+    if isinstance(consensus, dict):
+        validator_set = consensus.get("validator_set")
+        if isinstance(validator_set, dict) and "active_set" in validator_set:
+            return _normalize(validator_set.get("active_set"))
+
     roles = st.get("roles")
     if isinstance(roles, dict):
         validators = roles.get("validators")
         if isinstance(validators, dict):
-            aset = validators.get("active_set")
-            if isinstance(aset, list):
-                out: list[str] = []
-                seen: set[str] = set()
-                for x in aset:
-                    s = str(x).strip()
-                    if not s or s in seen:
-                        continue
-                    seen.add(s)
-                    out.append(s)
-                return out
+            return _normalize(validators.get("active_set"))
     return []
 
 
@@ -272,13 +282,24 @@ class BlockProducerLoop:
             return False
         if not self._lock.acquire():
             return False
-        self._t = threading.Thread(target=self._run, name="weall-block-loop", daemon=True)
-        self._t.start()
+        self._stop.clear()
+        self._t = threading.Thread(target=self._thread_main, name="weall-block-loop", daemon=True)
         self._started = True
         try:
             self._executor.block_loop_running = True
         except Exception:
             pass
+        try:
+            self._t.start()
+        except Exception:
+            self._started = False
+            self._t = None
+            self._lock.release()
+            try:
+                self._executor.block_loop_running = False
+            except Exception:
+                pass
+            raise
         inc_counter("block_loop_start_total", 1)
         return True
 
@@ -291,6 +312,8 @@ class BlockProducerLoop:
             except Exception:
                 pass
         self._lock.release()
+        self._started = False
+        self._t = None
         try:
             self._executor.block_loop_running = False
         except Exception:
@@ -350,6 +373,17 @@ class BlockProducerLoop:
             self._last_error,
         )
         self._stop.set()
+
+    def _thread_main(self) -> None:
+        try:
+            self._run()
+        finally:
+            try:
+                self._executor.block_loop_running = False
+            except Exception:
+                pass
+            self._lock.release()
+            self._started = False
 
     def _run(self) -> None:
         interval_s = float(self._cfg.interval_ms) / 1000.0

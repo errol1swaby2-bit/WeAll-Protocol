@@ -15,11 +15,12 @@ Output: generated/tx_coverage_report.md
 
 from __future__ import annotations
 
-import json
+import argparse
 from pathlib import Path
 from typing import Any
 
 from weall.runtime.tx_schema import model_for_tx_type
+from weall.tx.canon import load_tx_index_json_raw
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TX_INDEX = REPO_ROOT / "generated" / "tx_index.json"
@@ -36,17 +37,80 @@ def _as_bool(x: Any) -> bool:
 def _load_index() -> dict[str, Any]:
     if not TX_INDEX.exists():
         raise SystemExit(f"Missing generated tx index: {TX_INDEX}")
-    d = json.loads(TX_INDEX.read_text(encoding="utf-8"))
-    if not isinstance(d, dict):
-        raise SystemExit(f"Invalid tx index json root: {TX_INDEX}")
-    return d
+    try:
+        return load_tx_index_json_raw(TX_INDEX)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"Invalid tx index: {TX_INDEX}: {exc}") from exc
+
+
+def _tx_records(idx: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return canonical tx records from the current or legacy tx-index shape."""
+    tx_types = idx.get("tx_types")
+    if isinstance(tx_types, list):
+        if not tx_types:
+            raise SystemExit("generated/tx_index.json has an empty tx_types list")
+
+        txs: list[dict[str, Any]] = []
+        for pos, record in enumerate(tx_types):
+            if not isinstance(record, dict):
+                raise SystemExit(f"generated/tx_index.json tx_types[{pos}] is not an object")
+            name = record.get("name")
+            if not isinstance(name, str) or not name.strip():
+                raise SystemExit(f"generated/tx_index.json tx_types[{pos}] is missing name")
+            txs.append(record)
+
+        by_name = idx.get("by_name")
+        by_id = idx.get("by_id")
+        if not isinstance(by_name, dict) or len(by_name) != len(txs):
+            raise SystemExit("generated/tx_index.json by_name does not cover tx_types")
+        if not isinstance(by_id, dict) or len(by_id) != len(txs):
+            raise SystemExit("generated/tx_index.json by_id does not cover tx_types")
+
+        for name, pos in by_name.items():
+            if not isinstance(name, str) or type(pos) is not int:
+                raise SystemExit(
+                    "generated/tx_index.json by_name entries must map names to indexes"
+                )
+            if pos < 0 or pos >= len(txs) or txs[pos].get("name") != name:
+                raise SystemExit(f"generated/tx_index.json by_name mismatch for {name!r}")
+
+        if set(by_name.values()) != set(range(len(txs))):
+            raise SystemExit("generated/tx_index.json by_name indexes do not cover tx_types")
+
+        for raw_id, pos in by_id.items():
+            if not isinstance(raw_id, str) or type(pos) is not int:
+                raise SystemExit("generated/tx_index.json by_id entries must map ids to indexes")
+            try:
+                int(raw_id)
+            except ValueError as exc:
+                raise SystemExit(
+                    f"generated/tx_index.json contains invalid numeric id {raw_id!r}"
+                ) from exc
+            if pos < 0 or pos >= len(txs):
+                raise SystemExit(f"generated/tx_index.json by_id index out of range for {raw_id!r}")
+
+        if set(by_id.values()) != set(range(len(txs))):
+            raise SystemExit("generated/tx_index.json by_id indexes do not cover tx_types")
+
+        return txs
+
+    legacy = idx.get("tx")
+    if isinstance(legacy, dict) and legacy:
+        txs = []
+        for name, spec in legacy.items():
+            if not isinstance(name, str) or not name.strip():
+                raise SystemExit("legacy generated/tx_index.json contains an invalid tx name")
+            record: dict[str, Any] = {"name": name}
+            if isinstance(spec, dict):
+                record.update(spec)
+            txs.append(record)
+        return txs
+
+    raise SystemExit("generated/tx_index.json has no supported transaction record collection")
 
 
 def _has_schema(tx_name: str) -> bool:
-    try:
-        return model_for_tx_type(str(tx_name or "").strip().upper()) is not None
-    except Exception:
-        return False
+    return model_for_tx_type(str(tx_name or "").strip().upper()) is not None
 
 
 def _row(tx: dict[str, Any]) -> str:
@@ -90,18 +154,13 @@ def _summaries(txs: list[dict[str, Any]]) -> list[str]:
     ]
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Generate transaction coverage report")
+    parser.add_argument("--out", default=str(OUT_MD), help="output Markdown report path")
+    args = parser.parse_args(argv)
+
     idx = _load_index()
-    by_id = idx.get("by_id")
-
-    if not isinstance(by_id, dict):
-        raise SystemExit("generated/tx_index.json missing by_id map")
-
-    txs: list[dict[str, Any]] = []
-    for _, v in by_id.items():
-        if isinstance(v, dict) and isinstance(v.get("name"), str):
-            txs.append(v)
-
+    txs = _tx_records(idx)
     txs.sort(key=lambda t: (str(t.get("domain") or ""), str(t.get("name") or "")))
 
     lines: list[str] = []
@@ -114,10 +173,12 @@ def main() -> None:
     lines.extend(_row(t) for t in txs)
     lines.append("")
 
-    OUT_MD.parent.mkdir(parents=True, exist_ok=True)
-    OUT_MD.write_text("\n".join(lines), encoding="utf-8")
-    print(f"✅ wrote {OUT_MD}")
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines), encoding="utf-8")
+    print(f"✅ wrote {out_path}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

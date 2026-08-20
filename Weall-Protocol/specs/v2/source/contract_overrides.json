@@ -1,7 +1,32 @@
 {
   "routes": {},
   "schema": "weall.v2.contract_overrides",
-  "transactions": {},
+  "transactions": {
+    "VALIDATOR_REGISTER": {
+      "failure_codes": [
+        {
+          "code": "forbidden",
+          "reason": "active_validator_key_rotation_requires_set_transition"
+        },
+        {
+          "code": "forbidden",
+          "reason": "system_only"
+        },
+        {
+          "code": "invalid_payload",
+          "reason": "missing_account"
+        },
+        {
+          "code": "invalid_payload",
+          "reason": "missing_pubkey"
+        },
+        {
+          "code": "invalid_state",
+          "reason": "state_invariant_violation"
+        }
+      ]
+    }
+  },
   "truth_boundary": "Overrides are reserved for reviewed tx-specific or route-specific declarations that cannot be derived safely from code. Empty overrides do not imply semantic review completion.",
   "version": "2.0.0-first-draft-full-scope-w1"
 }

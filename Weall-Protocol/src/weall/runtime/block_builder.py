@@ -10,6 +10,7 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.bft_finality_bridge import schedule_bft_finality_receipt
 from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
 from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.executor import (
@@ -147,6 +148,8 @@ def build_block_candidate(
     force_ts_ms: int | None = None,
     helper_certificates: dict[str, HelperExecutionCertificate] | None = None,
     helper_receipts_by_lane: dict[str, list[Json]] | None = None,
+    bft_justify_qc: Json | None = None,
+    proposer: str = "",
 ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
     runtime_ctx = RuntimeContext.from_executor(self)
     scheduler_set = runtime_ctx.scheduler_set
@@ -272,15 +275,17 @@ def build_block_candidate(
         return queue_item_phase(working, queue_id)
 
     def _apply_system_env(env: TxEnvelope) -> None:
-        try:
-            meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
-        except ApplyError:
-            j = env.to_json()
-            tx_id2 = compute_tx_id(j, chain_id=self.chain_id)
-            invalid_ids.append(tx_id2)
-            return
+        # A deterministic queued SYSTEM transition is mandatory protocol work.
+        # It must never be converted into an ordinary failed receipt: the emitter
+        # has already marked its queue item emitted, so swallowing an apply failure
+        # would let candidate construction prune the transition without executing it.
+        meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
         if meta is None:
-            return
+            raise ApplyError(
+                "invalid_tx",
+                "unclaimed_system_tx",
+                {"tx_type": str(getattr(env, "tx_type", "") or "")},
+            )
 
         j = env.to_json()
         tx_id2 = compute_tx_id(j, chain_id=self.chain_id)
@@ -297,6 +302,26 @@ def build_block_candidate(
                 "ok": True,
             }
         )
+
+    # A verified HotStuff justify-QC carried by the next proposal is the first
+    # deterministic, replayable point at which the 3-chain finalized grandparent
+    # may enter canonical application state. Queue that transition as a normal
+    # SYSTEM receipt so leader/follower state roots cannot depend on QC arrival order.
+    if isinstance(bft_justify_qc, dict):
+        try:
+            schedule_bft_finality_receipt(
+                working, justify_qc=bft_justify_qc, next_height=next_height
+            )
+            _invalidate_queue_lookup()
+        except Exception as exc:
+            if _consensus_fail_closed():
+                return (
+                    None,
+                    None,
+                    [],
+                    invalid_ids,
+                    f"bft_finality_schedule_failed:{type(exc).__name__}",
+                )
 
     # Validate the replicated queue before scheduler/emitter work so malformed
     # queue state fails closed with stable error precedence.
@@ -324,14 +349,33 @@ def build_block_candidate(
             self.tx_index,
             next_height=next_height,
             phase="pre",
+            proposer=str(proposer or "").strip(),
             scheduler_set=scheduler_set,
         )
         _invalidate_queue_lookup()
-        for env in sys_pre:
-            _apply_system_env(env)
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], [], f"system_emitter_pre_failed:{type(exc).__name__}"
+        sys_pre = []
+    for env in sys_pre:
+        try:
+            _apply_system_env(env)
+        except ApplyError as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"system_tx_apply_pre_failed:{exc.code}:{exc.reason}",
+            )
+        except Exception as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"system_tx_apply_pre_failed:{type(exc).__name__}",
+            )
 
     # Parse envelopes
     env_objs: list[TxEnvelope] = []
@@ -418,12 +462,20 @@ def build_block_candidate(
                     f"system_queue_binding:{why_binding}",
                 )
 
-        if rej is not None:
-            invalid_ids.append(tx_id)
-            continue
-
         signer = str(getattr(env_obj, "signer", "") or "")
         is_system = bool(getattr(env_obj, "system", False))
+
+        if rej is not None:
+            if is_system:
+                return (
+                    None,
+                    None,
+                    [],
+                    invalid_ids,
+                    f"system_tx_admission_failed:{str(getattr(rej, 'code', '') or 'rejected')}",
+                )
+            invalid_ids.append(tx_id)
+            continue
 
         applied_ok = False
         err_code = ""
@@ -442,16 +494,35 @@ def build_block_candidate(
                 )
                 applied_ok = meta is not None
             except ApplyError as e:
+                if is_system:
+                    return (
+                        None,
+                        None,
+                        [],
+                        invalid_ids,
+                        f"system_tx_apply_failed:{e.code}:{e.reason}",
+                    )
                 applied_ok = False
                 err_code = str(getattr(e, "code", "") or "")
                 err_reason = str(getattr(e, "reason", "") or "")
                 err_details = getattr(e, "details", None)
             except Exception as e:
+                if is_system:
+                    return (
+                        None,
+                        None,
+                        [],
+                        invalid_ids,
+                        f"system_tx_apply_failed:{type(e).__name__}",
+                    )
                 if _consensus_fail_closed():
                     return None, None, [], [], f"tx_apply_failed:{type(e).__name__}"
                 applied_ok = False
                 err_code = type(e).__name__
                 err_reason = str(e)
+
+        if is_system and not applied_ok:
+            return None, None, [], invalid_ids, "system_tx_apply_failed:unclaimed_system_tx"
 
         if (not applied_ok) and (not is_system) and signer:
             blocked_signers_after_apply_reject.add(signer)
@@ -492,11 +563,10 @@ def build_block_candidate(
             self.tx_index,
             next_height=next_height,
             phase="post",
+            proposer=str(proposer or "").strip(),
             scheduler_set=scheduler_set,
         )
         _invalidate_queue_lookup()
-        for env in sys_post:
-            _apply_system_env(env)
     except Exception as exc:
         if _consensus_fail_closed():
             return (
@@ -505,6 +575,26 @@ def build_block_candidate(
                 [],
                 invalid_ids,
                 f"system_emitter_post_failed:{type(exc).__name__}",
+            )
+        sys_post = []
+    for env in sys_post:
+        try:
+            _apply_system_env(env)
+        except ApplyError as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"system_tx_apply_post_failed:{exc.code}:{exc.reason}",
+            )
+        except Exception as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"system_tx_apply_post_failed:{type(exc).__name__}",
             )
 
     # System queue items are consensus scheduling scratch. Once their
@@ -615,12 +705,18 @@ def build_block_candidate(
     try:
         pubkey = (os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
         privkey = (os.environ.get("WEALL_NODE_PRIVKEY") or "").strip()
+        proposer_s = str(proposer or "").strip()
+        if proposer_s:
+            canonical_pubkey = str(self._validator_pubkeys().get(proposer_s) or "").strip()
+            if not canonical_pubkey:
+                return None, None, [], invalid_ids, "vrf_missing_canonical_proposer_key"
+            if pubkey and pubkey != canonical_pubkey:
+                return None, None, [], invalid_ids, "vrf_node_key_not_canonical_proposer"
         if pubkey and privkey:
             vrf = make_vrf_record(
                 chain_id=self.chain_id,
                 height=new_height,
                 prev_block_hash=tip_hash,
-                block_ts_ms=ts_ms,
                 pubkey=pubkey,
                 privkey=privkey,
             )
@@ -628,7 +724,12 @@ def build_block_candidate(
             if not isinstance(rand, dict):
                 rand = {}
                 working["rand"] = rand
-            rand["vrf"] = {"height": int(new_height), **(vrf if isinstance(vrf, dict) else {})}
+            rand["vrf"] = {
+                "height": int(new_height),
+                "scheme": str(vrf.get("scheme") or ""),
+                "pubkey": str(vrf.get("pubkey") or ""),
+                "output": str(vrf.get("output") or ""),
+            }
         elif require_vrf:
             return None, None, [], invalid_ids, "vrf_missing_node_key"
     except Exception:

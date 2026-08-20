@@ -171,7 +171,7 @@ def test_sync_request_rejects_oversized_json_before_parsing(monkeypatch) -> None
 
     res = client.post(
         "/v1/sync/request",
-        data=b'{"mode":"delta","padding":"too-large"}',
+        content=b'{"mode":"delta","padding":"too-large"}',
         headers={"content-type": "application/json", "X-WeAll-State-Sync-Operator-Token": "sync-ok"},
     )
     assert res.status_code == 413, res.text

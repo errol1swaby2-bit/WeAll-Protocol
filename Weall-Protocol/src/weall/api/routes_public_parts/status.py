@@ -745,7 +745,7 @@ def _local_validator_lifecycle(state: Mapping[str, Any], validator_account: str)
     pending = validator_set.get("pending")
     pending = pending if isinstance(pending, dict) else {}
 
-    current_epoch = _safe_int(epochs.get("current", validator_set.get("epoch", 0)), 0)
+    current_epoch = _safe_int(validator_set.get("epoch"), _safe_int(epochs.get("current"), 0))
     current_set_hash = _safe_str(validator_set.get("set_hash"), "")
     active_validators = _active_validators(state)
     pending_active_set = (
@@ -1574,7 +1574,9 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
             "profile_hash": _safe_str(genesis_bootstrap.get("profile_hash"), ""),
         },
         "testnet_readiness": _testnet_readiness_payload(state if isinstance(state, dict) else {}),
-        "validator_epoch": _safe_int(epochs.get("current"), 0),
+        "validator_epoch": _safe_int(
+            validator_set.get("epoch"), _safe_int(epochs.get("current"), 0)
+        ),
         "validator_set_hash": _safe_str(validator_set.get("set_hash"), ""),
     }
 

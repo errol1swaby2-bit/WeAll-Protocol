@@ -30271,6 +30271,125 @@
       "kind": "failure",
       "stable_id": "FAIL-B940AB36E4D5C16B",
       "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:active_validator_key_rotation_requires_set_transition",
+      "kind": "failure",
+      "stable_id": "FAIL-6274CA034CA5EA0E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/vrf_sig.py:vrf_output_from_message:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-6786A650B941B96E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_finality_bridge.py:finalized_target_from_justify_qc",
+      "kind": "scheduler",
+      "stable_id": "SYS-E57C4A6D48E4C203",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/bft_finality_bridge.py:schedule_bft_finality_receipt",
+      "kind": "scheduler",
+      "stable_id": "SYS-F02E0BBAFF3F34C8",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/block_replay.py:apply_block",
+      "kind": "scheduler",
+      "stable_id": "SYS-5032499394D629F5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:block_propose_disabled_under_hotstuff_bft",
+      "kind": "failure",
+      "stable_id": "FAIL-E3C2B0D2EB8912B2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:validator_candidate_not_registered",
+      "kind": "failure",
+      "stable_id": "FAIL-4C62E39B4C42C8BF",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:validator_not_registered",
+      "kind": "failure",
+      "stable_id": "FAIL-6D5C09EC545699E9",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_block:attested_block_height_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-59D2AF23AFB2E5BC",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_block:conflicting_finalized_block_at_same_height",
+      "kind": "failure",
+      "stable_id": "FAIL-0D79F14E947A26A2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_block:finalized_block_height_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-5C4B5766EB2048C9",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_block:finalized_branch_regression",
+      "kind": "failure",
+      "stable_id": "FAIL-710FC135299E4AC3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_block:finalized_height_regression",
+      "kind": "failure",
+      "stable_id": "FAIL-9479C2C1EBAB1C39",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_block:unknown_attested_block",
+      "kind": "failure",
+      "stable_id": "FAIL-EFDD731C8D367FCE",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_block:unknown_finalized_block",
+      "kind": "failure",
+      "stable_id": "FAIL-B3D6D2EE531BBB90",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:validator_set_update_requires_future_activation",
+      "kind": "failure",
+      "stable_id": "FAIL-F1E333DBB856F17A",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_state:candidate_missing_canonical_pubkey",
+      "kind": "failure",
+      "stable_id": "FAIL-6DA71AD154AA869C",
+      "status": "active"
     }
   ],
   "reuse_forbidden": true,

@@ -6,8 +6,8 @@ import os
 import sqlite3
 from pathlib import Path
 from typing import Any
-from weall.runtime.json_tools import canonical_json_str
 
+from weall.runtime.json_tools import canonical_json_str
 from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 from weall.runtime.state_hash import compute_state_root
 
@@ -132,9 +132,7 @@ def _empty_state() -> tuple[Json, Json]:
     return state, meta
 
 
-def read_db_state(
-    db_path: str | Path, *, fail_closed: bool = False
-) -> tuple[Json, Json]:
+def read_db_state(db_path: str | Path, *, fail_closed: bool = False) -> tuple[Json, Json]:
     resolved = _resolve_path(db_path)
     if not resolved.is_file():
         return _empty_state()
@@ -209,16 +207,16 @@ def read_db_state(
 def _normalized_validators_from_state(state: Json) -> list[str]:
     consensus = state.get("consensus")
     roles = state.get("roles")
-    validators: list[str] = []
 
     if isinstance(consensus, dict):
         validator_set = consensus.get("validator_set")
         if isinstance(validator_set, dict):
             active = validator_set.get("active_set")
             if isinstance(active, list):
-                validators.extend(str(x).strip() for x in active if str(x).strip())
+                return sorted({str(x).strip() for x in active if str(x).strip()})
 
-    if not validators and isinstance(roles, dict):
+    validators: list[str] = []
+    if isinstance(roles, dict):
         validators_role = roles.get("validators")
         if isinstance(validators_role, dict):
             active = validators_role.get("active_set")
@@ -233,15 +231,20 @@ def validator_epoch_and_hash(state: Json) -> tuple[int, str, list[str]]:
     epoch = 0
     set_hash = ""
     if isinstance(consensus, dict):
-        epochs = consensus.get("epochs")
-        if isinstance(epochs, dict):
-            try:
-                epoch = int(epochs.get("current") or 0)
-            except Exception:
-                epoch = 0
         validator_set = consensus.get("validator_set")
         if isinstance(validator_set, dict):
+            try:
+                epoch = int(validator_set.get("epoch") or 0)
+            except Exception:
+                epoch = 0
             set_hash = str(validator_set.get("set_hash") or "").strip()
+        if epoch <= 0:
+            epochs = consensus.get("epochs")
+            if isinstance(epochs, dict):
+                try:
+                    epoch = int(epochs.get("current") or 0)
+                except Exception:
+                    epoch = 0
 
     normalized = _normalized_validators_from_state(state)
     if not set_hash:
@@ -267,12 +270,8 @@ def build_anchor_from_state(state: Json) -> Json:
         or legacy_chain.get("block_id")
         or ""
     )
-    finalized_height = int(
-        finalized.get("height") or bft.get("finalized_height") or 0
-    )
-    finalized_block_id = str(
-        finalized.get("block_id") or bft.get("finalized_block_id") or ""
-    )
+    finalized_height = int(finalized.get("height") or bft.get("finalized_height") or 0)
+    finalized_block_id = str(finalized.get("block_id") or bft.get("finalized_block_id") or "")
 
     anchor_payload = {
         "chain_id": chain_id,
@@ -467,10 +466,18 @@ def build_manifest(cfg: Any, *, db_path: Path, tx_index_path: Path) -> Json:
         validator_set_hash_value=validator_set_hash_value,
     )
     state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    lifecycle = state_meta.get("node_lifecycle") if isinstance(state_meta.get("node_lifecycle"), dict) else {}
+    lifecycle = (
+        state_meta.get("node_lifecycle")
+        if isinstance(state_meta.get("node_lifecycle"), dict)
+        else {}
+    )
     authority_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
     authority_contract_hash = _sha256_hex(canon_json(authority_contract).encode("utf-8"))
-    genesis_bootstrap_profile = state_meta.get("genesis_bootstrap_profile") if isinstance(state_meta.get("genesis_bootstrap_profile"), dict) else {}
+    genesis_bootstrap_profile = (
+        state_meta.get("genesis_bootstrap_profile")
+        if isinstance(state_meta.get("genesis_bootstrap_profile"), dict)
+        else {}
+    )
     genesis_bootstrap_profile_hash = str(state_meta.get("genesis_bootstrap_profile_hash") or "")
     manifest: Json = {
         "chain_id": str(cfg.chain_id or ""),
@@ -508,8 +515,14 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
     state, meta = read_db_state(cfg.db_path, fail_closed=True)
     tx_index_path = Path(cfg.tx_index_path).resolve()
     state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    local_genesis_bootstrap_profile = state_meta.get("genesis_bootstrap_profile") if isinstance(state_meta.get("genesis_bootstrap_profile"), dict) else {}
-    local_genesis_bootstrap_profile_hash = str(state_meta.get("genesis_bootstrap_profile_hash") or "")
+    local_genesis_bootstrap_profile = (
+        state_meta.get("genesis_bootstrap_profile")
+        if isinstance(state_meta.get("genesis_bootstrap_profile"), dict)
+        else {}
+    )
+    local_genesis_bootstrap_profile_hash = str(
+        state_meta.get("genesis_bootstrap_profile_hash") or ""
+    )
     local_tx_index_hash = _sha256_file(tx_index_path) if tx_index_path.is_file() else ""
     validator_epoch, validator_set_hash_value, normalized_validators = validator_epoch_and_hash(
         state
@@ -533,9 +546,15 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
     local_chain_cfg = chain_config_compatibility_payload(cfg)
     local_chain_cfg_hash = chain_config_compatibility_hash(cfg)
     state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    lifecycle = state_meta.get("node_lifecycle") if isinstance(state_meta.get("node_lifecycle"), dict) else {}
+    lifecycle = (
+        state_meta.get("node_lifecycle")
+        if isinstance(state_meta.get("node_lifecycle"), dict)
+        else {}
+    )
     local_authority_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
-    local_authority_contract_hash = _sha256_hex(canon_json(local_authority_contract).encode("utf-8"))
+    local_authority_contract_hash = _sha256_hex(
+        canon_json(local_authority_contract).encode("utf-8")
+    )
 
     mismatches: list[str] = []
     field_status: Json = {}
@@ -640,7 +659,9 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
             "authority_contract": manifest.get("authority_contract"),
             "authority_contract_hash": str(manifest.get("authority_contract_hash") or ""),
             "genesis_bootstrap_profile": manifest.get("genesis_bootstrap_profile"),
-            "genesis_bootstrap_profile_hash": str(manifest.get("genesis_bootstrap_profile_hash") or ""),
+            "genesis_bootstrap_profile_hash": str(
+                manifest.get("genesis_bootstrap_profile_hash") or ""
+            ),
         },
         "trusted_anchor_mismatches": list(anchor_issues),
     }

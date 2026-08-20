@@ -9,18 +9,15 @@ echo "==> Golden Path Regression"
 echo "ROOT: ${ROOT_DIR}"
 echo
 
-echo "==> [1/4] Frontend: npm ci + typecheck + build"
+echo "==> [1/4] Frontend: locked install"
 cd "${WEB_DIR}"
 npm ci
-npm run typecheck
-npm run build
 echo
 
-echo "==> [2/4] Frontend: npm audit (safe auto-fix only)"
-# Do NOT use --force in CI-like scripts; it can introduce breaking changes.
-# This step is informational + safe auto-fix only.
-npm audit || true
-npm audit fix || true
+echo "==> [2/4] Frontend: dependency audit + typecheck + build"
+# Dependency vulnerabilities are a release gate. Never mutate dependencies inside
+# a verification script; update package.json/package-lock.json intentionally.
+npm run dependency-audit
 npm run typecheck
 npm run build
 echo

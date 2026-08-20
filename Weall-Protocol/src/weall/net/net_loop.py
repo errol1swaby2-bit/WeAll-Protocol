@@ -133,10 +133,10 @@ def _call_with_optional_now_once(fn: Any, now_ms: int) -> Any:
 
     params = tuple(signature.parameters.values())
     accepts_positional = any(
-        param.kind is inspect.Parameter.VAR_POSITIONAL
-        for param in params
+        param.kind is inspect.Parameter.VAR_POSITIONAL for param in params
     ) or any(
-        param.kind in (
+        param.kind
+        in (
             inspect.Parameter.POSITIONAL_ONLY,
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
         )
@@ -425,6 +425,9 @@ class NetMeshLoop:
         self._stop = threading.Event()
         self._t: threading.Thread | None = None
         self._started = False
+        self._runtime_unhealthy = False
+        self._runtime_last_error = ""
+        self._runtime_failure_count = 0
 
         peers_file = os.environ.get("WEALL_PEERS_FILE", "./data/peers.json")
         self._peers_store = PeerListStore(path=str(peers_file or "./data/peers.json"))
@@ -773,10 +776,58 @@ class NetMeshLoop:
             return False
 
         self._stop.clear()
-        self._t = threading.Thread(target=self._run, name="weall-net-loop", daemon=True)
-        self._t.start()
+        self._t = threading.Thread(target=self._thread_main, name="weall-net-loop", daemon=True)
         self._started = True
+        try:
+            self._t.start()
+        except Exception:
+            self._started = False
+            raise
         return True
+
+    def runtime_debug(self) -> Json:
+        thread = self._t
+        return {
+            "started": bool(self._started),
+            "thread_alive": bool(thread is not None and thread.is_alive()),
+            "unhealthy": bool(self._runtime_unhealthy),
+            "last_error": str(self._runtime_last_error or ""),
+            "failure_count": int(self._runtime_failure_count),
+        }
+
+    def _thread_main(self) -> None:
+        """Run the mesh loop with fail-fast visibility but without silent thread death.
+
+        ``_run`` intentionally raises production-critical network/BFT failures.
+        A daemon-thread target must record that failure before retrying; otherwise
+        the process can keep serving HTTP while networking has died and still look
+        started to operators.  The unhealthy latch remains set until process restart.
+        """
+
+        try:
+            while not self._stop.is_set():
+                try:
+                    self._run()
+                    break
+                except Exception as exc:
+                    self._runtime_unhealthy = True
+                    self._runtime_failure_count += 1
+                    self._runtime_last_error = f"{type(exc).__name__}:{exc}"
+                    try:
+                        log_event(
+                            _LOG,
+                            "net_runtime_failed",
+                            error=self._runtime_last_error,
+                            failure_count=int(self._runtime_failure_count),
+                        )
+                    except Exception:
+                        pass
+                    # Keep polling/recovery possible after a surfaced liveness
+                    # failure.  The health latch remains degraded until restart.
+                    if self._stop.wait(max(0.05, float(self._cfg.tick_ms) / 1000.0)):
+                        break
+        finally:
+            self._started = False
 
     def stop(self) -> None:
         self._stop.set()
@@ -812,18 +863,27 @@ class NetMeshLoop:
 
             try:
                 self._seed_discovery_tick()
-            except Exception:
-                pass
+            except Exception as e:
+                if _is_prod():
+                    if isinstance(e, NetLoopRuntimeError):
+                        raise
+                    raise NetPeerConfigError("seed_discovery_tick_failed") from e
 
             try:
                 self._dial_peers_tick()
-            except Exception:
-                pass
+            except Exception as e:
+                if _is_prod():
+                    if isinstance(e, NetLoopRuntimeError):
+                        raise
+                    raise NetPeerConfigError("dial_peers_tick_failed") from e
 
             try:
                 self._addr_gossip_tick()
-            except Exception:
-                pass
+            except Exception as e:
+                if _is_prod():
+                    if isinstance(e, NetLoopRuntimeError):
+                        raise
+                    raise NetPeerConfigError("addr_gossip_tick_failed") from e
 
             try:
                 self._relay_poll_tick()
@@ -840,12 +900,18 @@ class NetMeshLoop:
             if self._bft_enabled:
                 try:
                     self._bft_fetch_tick()
-                except Exception:
-                    pass
+                except Exception as e:
+                    if _is_prod():
+                        if isinstance(e, NetLoopRuntimeError):
+                            raise
+                        raise BftInboundProcessingError("bft_fetch_tick_failed") from e
                 try:
                     self._outbound_bft_tick()
-                except Exception:
-                    pass
+                except Exception as e:
+                    if _is_prod():
+                        if isinstance(e, NetLoopRuntimeError):
+                            raise
+                        raise BftOutboundBridgeError("bft_outbound_tick_failed") from e
 
             try:
                 self._record_net_metric_gauges()
@@ -2133,7 +2199,9 @@ class NetMeshLoop:
         if (now - int(self._last_bft_vote_ms)) >= int(self._bft_vote_interval_ms):
             self._last_bft_vote_ms = int(now)
             try:
-                drive_timeouts = getattr(self._executor, "bft_drive_timeouts", lambda *_a, **_k: None)
+                drive_timeouts = getattr(
+                    self._executor, "bft_drive_timeouts", lambda *_a, **_k: None
+                )
                 out = _call_with_optional_now_once(drive_timeouts, now)
             except Exception as e:
                 if _is_prod():

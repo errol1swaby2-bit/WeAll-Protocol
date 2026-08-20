@@ -772,20 +772,19 @@ def _active_validator_count_for_bootstrap_sunset(state: Json) -> int:
     """
     candidates: list[str] = []
 
+    consensus = state.get("consensus")
+    if isinstance(consensus, dict):
+        validator_set = consensus.get("validator_set")
+        if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
+            candidates = [str(item).strip() for item in validator_set.get("active_set") or []]
+            return len(normalize_validators([item for item in candidates if item]))
+
+    # Legacy fallback only when no explicit consensus active_set exists.
     roles = state.get("roles")
     if isinstance(roles, dict):
         validators = roles.get("validators")
         if isinstance(validators, dict) and isinstance(validators.get("active_set"), list):
             candidates = [str(item).strip() for item in validators.get("active_set") or []]
-
-    if not candidates:
-        consensus = state.get("consensus")
-        if isinstance(consensus, dict):
-            validator_set = consensus.get("validator_set")
-            if isinstance(validator_set, dict) and isinstance(
-                validator_set.get("active_set"), list
-            ):
-                candidates = [str(item).strip() for item in validator_set.get("active_set") or []]
 
     return len(normalize_validators([item for item in candidates if item]))
 

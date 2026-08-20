@@ -315,6 +315,19 @@ def _try_read_state(request: Request) -> Json:
 
 
 def _active_validators_from_state(state: Json) -> list[str]:
+    consensus = state.get("consensus") if isinstance(state.get("consensus"), dict) else {}
+    validator_set = (
+        consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else None
+    )
+    if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
+        return sorted(
+            {
+                str(value).strip()
+                for value in validator_set.get("active_set") or []
+                if str(value).strip()
+            }
+        )
+
     values: list[str] = []
     validators_root = state.get("validators")
     if isinstance(validators_root, dict):

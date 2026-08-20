@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "54f45c50506b919bf35936a9730e1db0242c514db6dd58509df9c88063d5d335"
+    "source_tree_digest": "9cfad7ad459fc002782515c48c9e2bdce902e5c406642f74db40eeb557454d2a"
   },
   "rows": [
     {
@@ -662,12 +662,7 @@
     {
       "creation_contracts": [
         "TX-0601",
-        "TX-0602",
-        "TX-0603",
-        "TX-0606",
-        "TX-0608",
-        "TX-2600",
-        "TX-2601"
+        "TX-0603"
       ],
       "domain": "Consensus",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -678,13 +673,8 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/consensus.py#_apply_block_finalize",
-        "src/weall/runtime/apply/consensus.py#_apply_block_propose",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_remove",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_suspend"
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister"
       ],
       "primary_mechanism_id": "M-018",
       "reads_by": [
@@ -697,9 +687,7 @@
         "TX-0607",
         "TX-0608",
         "TX-0609",
-        "TX-0610",
-        "TX-2600",
-        "TX-2601"
+        "TX-0610"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -709,12 +697,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-0601",
-        "TX-0602",
-        "TX-0603",
-        "TX-0606",
-        "TX-0608",
-        "TX-2600",
-        "TX-2601"
+        "TX-0603"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -722,12 +705,7 @@
       ],
       "writes_by": [
         "TX-0601",
-        "TX-0602",
-        "TX-0603",
-        "TX-0606",
-        "TX-0608",
-        "TX-2600",
-        "TX-2601"
+        "TX-0603"
       ]
     },
     {
@@ -923,7 +901,9 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [],
       "primary_mechanism_id": "M-018",
-      "reads_by": [],
+      "reads_by": [
+        "TX-0608"
+      ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "declared_namespace",
       "source": "specs/v2/source/protocol_registry.json",
@@ -1012,6 +992,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1035,6 +1016,7 @@
         "src/weall/runtime/apply/consensus.py#_apply_epoch_open",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register",
         "src/weall/runtime/apply/consensus.py#_apply_validator_set_update"
       ],
@@ -1043,6 +1025,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1060,6 +1043,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1075,6 +1059,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1086,6 +1071,7 @@
     {
       "creation_contracts": [
         "TX-0602",
+        "TX-0603",
         "TX-2600",
         "TX-2601"
       ],
@@ -1099,6 +1085,7 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_remove",
         "src/weall/runtime/apply/consensus.py#_apply_validator_suspend"
       ],
@@ -1116,6 +1103,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-0602",
+        "TX-0603",
         "TX-2600",
         "TX-2601"
       ],
@@ -1125,6 +1113,7 @@
       ],
       "writes_by": [
         "TX-0602",
+        "TX-0603",
         "TX-2600",
         "TX-2601"
       ]
@@ -1208,6 +1197,7 @@
       "mutators": [],
       "primary_mechanism_id": "M-018",
       "reads_by": [
+        "TX-0603",
         "TX-0605",
         "TX-0609",
         "TX-0610"
@@ -1230,6 +1220,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1253,6 +1244,7 @@
         "src/weall/runtime/apply/consensus.py#_apply_epoch_open",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register",
         "src/weall/runtime/apply/consensus.py#_apply_validator_set_update"
       ],
@@ -1261,6 +1253,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1278,6 +1271,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1293,6 +1287,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1306,6 +1301,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1335,6 +1331,7 @@
         "src/weall/runtime/apply/consensus.py#_apply_slash_vote",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register",
         "src/weall/runtime/apply/consensus.py#_apply_validator_set_update"
       ],
@@ -1343,6 +1340,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1363,6 +1361,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1381,6 +1380,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1523,6 +1523,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1546,6 +1547,7 @@
         "src/weall/runtime/apply/consensus.py#_apply_epoch_open",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register",
         "src/weall/runtime/apply/consensus.py#_apply_validator_set_update"
       ],
@@ -1554,6 +1556,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1571,6 +1574,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1586,6 +1590,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1666,6 +1671,7 @@
     {
       "creation_contracts": [
         "TX-0600",
+        "TX-0602",
         "TX-0603",
         "TX-0604"
       ],
@@ -1678,6 +1684,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
+        "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_heartbeat",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register"
@@ -1685,6 +1692,7 @@
       "primary_mechanism_id": "M-018",
       "reads_by": [
         "TX-0600",
+        "TX-0602",
         "TX-0603",
         "TX-0604"
       ],
@@ -1696,6 +1704,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-0600",
+        "TX-0602",
         "TX-0603",
         "TX-0604"
       ],
@@ -1705,6 +1714,7 @@
       ],
       "writes_by": [
         "TX-0600",
+        "TX-0602",
         "TX-0603",
         "TX-0604"
       ]
@@ -1788,6 +1798,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1811,6 +1822,7 @@
         "src/weall/runtime/apply/consensus.py#_apply_epoch_open",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register",
         "src/weall/runtime/apply/consensus.py#_apply_validator_set_update"
       ],
@@ -1819,6 +1831,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1836,6 +1849,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1851,6 +1865,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1862,6 +1877,7 @@
     {
       "creation_contracts": [
         "TX-0600",
+        "TX-0602",
         "TX-0603",
         "TX-0604"
       ],
@@ -1874,6 +1890,7 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
+        "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_heartbeat",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register"
@@ -1881,6 +1898,7 @@
       "primary_mechanism_id": "M-018",
       "reads_by": [
         "TX-0600",
+        "TX-0602",
         "TX-0603",
         "TX-0604"
       ],
@@ -1892,6 +1910,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-0600",
+        "TX-0602",
         "TX-0603",
         "TX-0604"
       ],
@@ -1901,6 +1920,7 @@
       ],
       "writes_by": [
         "TX-0600",
+        "TX-0602",
         "TX-0603",
         "TX-0604"
       ]
@@ -1910,6 +1930,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1933,6 +1954,7 @@
         "src/weall/runtime/apply/consensus.py#_apply_epoch_open",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register",
         "src/weall/runtime/apply/consensus.py#_apply_validator_set_update"
       ],
@@ -1941,6 +1963,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1958,6 +1981,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -1973,6 +1997,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -2311,7 +2336,9 @@
         "TX-0607",
         "TX-0608",
         "TX-0609",
-        "TX-0610"
+        "TX-0610",
+        "TX-2600",
+        "TX-2601"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -2421,12 +2448,7 @@
     {
       "creation_contracts": [
         "TX-0601",
-        "TX-0602",
-        "TX-0603",
-        "TX-0606",
-        "TX-0608",
-        "TX-2600",
-        "TX-2601"
+        "TX-0603"
       ],
       "domain": "Consensus",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -2437,23 +2459,13 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/consensus.py#_apply_block_finalize",
-        "src/weall/runtime/apply/consensus.py#_apply_block_propose",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_approve",
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_remove",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_suspend"
+        "src/weall/runtime/apply/consensus.py#_apply_validator_deregister"
       ],
       "primary_mechanism_id": "M-018",
       "reads_by": [
         "TX-0601",
-        "TX-0602",
-        "TX-0603",
-        "TX-0606",
-        "TX-0608",
-        "TX-2600",
-        "TX-2601"
+        "TX-0603"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -2463,12 +2475,7 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-0601",
-        "TX-0602",
-        "TX-0603",
-        "TX-0606",
-        "TX-0608",
-        "TX-2600",
-        "TX-2601"
+        "TX-0603"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -2476,12 +2483,7 @@
       ],
       "writes_by": [
         "TX-0601",
-        "TX-0602",
-        "TX-0603",
-        "TX-0606",
-        "TX-0608",
-        "TX-2600",
-        "TX-2601"
+        "TX-0603"
       ]
     },
     {
@@ -2838,6 +2840,7 @@
         "TX-0600",
         "TX-0601",
         "TX-0602",
+        "TX-0603",
         "TX-0605",
         "TX-0606",
         "TX-0607",
@@ -2903,9 +2906,7 @@
         "TX-0607",
         "TX-0608",
         "TX-0609",
-        "TX-0610",
-        "TX-2600",
-        "TX-2601"
+        "TX-0610"
       ],
       "domain": "Consensus",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
@@ -2925,9 +2926,7 @@
         "src/weall/runtime/apply/consensus.py#_apply_validator_candidate_register",
         "src/weall/runtime/apply/consensus.py#_apply_validator_deregister",
         "src/weall/runtime/apply/consensus.py#_apply_validator_register",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_remove",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_set_update",
-        "src/weall/runtime/apply/consensus.py#_apply_validator_suspend"
+        "src/weall/runtime/apply/consensus.py#_apply_validator_set_update"
       ],
       "primary_mechanism_id": "M-018",
       "reads_by": [
@@ -2960,9 +2959,7 @@
         "TX-0607",
         "TX-0608",
         "TX-0609",
-        "TX-0610",
-        "TX-2600",
-        "TX-2601"
+        "TX-0610"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
@@ -2978,9 +2975,7 @@
         "TX-0607",
         "TX-0608",
         "TX-0609",
-        "TX-0610",
-        "TX-2600",
-        "TX-2601"
+        "TX-0610"
       ]
     },
     {

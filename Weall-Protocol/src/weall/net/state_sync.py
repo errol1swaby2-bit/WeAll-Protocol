@@ -10,7 +10,12 @@ from typing import Any
 
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
 from weall.runtime.block_hash import compute_block_hash
-from weall.runtime.state_hash import compute_state_root
+from weall.runtime.commitments import normalize_validator_ids, validator_set_hash
+from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
+from weall.runtime.system_tx_engine import (
+    SystemQueueCorruptionError,
+    validate_system_queue_recovery_state,
+)
 
 Json = dict[str, Any]
 
@@ -147,10 +152,106 @@ def _block_id_for_sync_chain(block: Json) -> str:
     return ""
 
 
+def state_sync_snapshot_view(snapshot: Json) -> Json:
+    """Return the canonical peer-transferable checkpoint state.
+
+    State sync must transfer the same protocol-semantic projection committed by
+    the application state root, not sender-local runtime metadata. The canonical
+    tip hash is reattached because checkpoint installation binds the state to the
+    separately transferred tip block even though ``tip_hash`` is intentionally
+    excluded from the application state root.
+    """
+
+    if not isinstance(snapshot, dict):
+        raise StateSyncVerifyError("snapshot_not_object")
+    out = consensus_state_root_view(snapshot)
+    tip_hash = _as_str(snapshot.get("tip_hash") or snapshot.get("block_hash") or "").strip()
+    if tip_hash:
+        out["tip_hash"] = tip_hash
+    return out
+
+
+def _validate_snapshot_validator_authority(snapshot: Json) -> None:
+    """Validate production validator membership/key authority at recovery boundaries.
+
+    Normal validator-set transitions already fail closed unless every active
+    member has a lifecycle registry key and the consensus verification registry
+    carries the same key.  Snapshot recovery must enforce that same invariant;
+    otherwise a hash-valid checkpoint can import state no legal transition could
+    have produced and leave BFT unable to verify honest validators.
+    """
+
+    params = snapshot.get("params") if isinstance(snapshot.get("params"), dict) else {}
+    if params.get("validator_candidate_lifecycle_gate_enabled") is not True:
+        return
+
+    consensus = snapshot.get("consensus") if isinstance(snapshot.get("consensus"), dict) else {}
+    validator_set = (
+        consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
+    )
+    active_raw = validator_set.get("active_set")
+    if not isinstance(active_raw, list):
+        return
+
+    active = normalize_validator_ids(active_raw)
+    stored_set_hash = _as_str(validator_set.get("set_hash") or "")
+    if stored_set_hash and stored_set_hash != validator_set_hash(active):
+        raise StateSyncVerifyError("snapshot_validator_authority_invalid:set_hash_mismatch")
+
+    validators_root = (
+        snapshot.get("validators") if isinstance(snapshot.get("validators"), dict) else {}
+    )
+    lifecycle_registry = (
+        validators_root.get("registry") if isinstance(validators_root.get("registry"), dict) else {}
+    )
+    consensus_validators = (
+        consensus.get("validators") if isinstance(consensus.get("validators"), dict) else {}
+    )
+    consensus_registry = (
+        consensus_validators.get("registry")
+        if isinstance(consensus_validators.get("registry"), dict)
+        else {}
+    )
+
+    for account in active:
+        lifecycle_rec = lifecycle_registry.get(account)
+        if not isinstance(lifecycle_rec, dict):
+            raise StateSyncVerifyError(
+                f"snapshot_validator_authority_invalid:member_not_registered:{account}"
+            )
+        canonical_pubkey = _as_str(lifecycle_rec.get("pubkey") or "")
+        if not canonical_pubkey:
+            raise StateSyncVerifyError(
+                f"snapshot_validator_authority_invalid:missing_canonical_pubkey:{account}"
+            )
+        consensus_rec = consensus_registry.get(account)
+        consensus_pubkey = (
+            _as_str(consensus_rec.get("pubkey") or "") if isinstance(consensus_rec, dict) else ""
+        )
+        if not consensus_pubkey:
+            raise StateSyncVerifyError(
+                f"snapshot_validator_authority_invalid:missing_consensus_pubkey:{account}"
+            )
+        if consensus_pubkey != canonical_pubkey:
+            raise StateSyncVerifyError(
+                f"snapshot_validator_authority_invalid:pubkey_mismatch:{account}"
+            )
+
+
+def _validate_snapshot_semantics(snapshot: Json) -> None:
+    try:
+        validate_system_queue_recovery_state(snapshot)
+    except SystemQueueCorruptionError as exc:
+        raise StateSyncVerifyError(f"snapshot_system_queue_invalid:{exc}") from exc
+    _validate_snapshot_validator_authority(snapshot)
+
+
 def build_snapshot_anchor(snapshot: Json) -> Json:
     if not isinstance(snapshot, dict):
         raise StateSyncVerifyError("snapshot_not_object")
+    _validate_snapshot_semantics(snapshot)
     finalized = snapshot.get("finalized") if isinstance(snapshot.get("finalized"), dict) else {}
+    transferable = state_sync_snapshot_view(snapshot)
     return {
         "height": _as_int(snapshot.get("height"), 0),
         "tip_hash": _as_str(
@@ -161,7 +262,7 @@ def build_snapshot_anchor(snapshot: Json) -> Json:
         "finalized_block_id": _as_str(
             finalized.get("block_id") or snapshot.get("finalized_block_id") or ""
         ),
-        "snapshot_hash": sha256_hex_of(snapshot),
+        "snapshot_hash": sha256_hex_of(transferable),
     }
 
 
@@ -327,7 +428,7 @@ class StateSyncService:
             return (dict(checkpoint),)
 
         def _reply_snapshot(reason: str | None) -> StateSyncResponseMsg:
-            snap: Json = st
+            snap = state_sync_snapshot_view(st)
             if not self._size_ok(snap, self.max_snapshot_bytes):
                 return StateSyncResponseMsg(
                     header=hdr, ok=False, reason="snapshot_too_large", height=tip_h
@@ -484,7 +585,13 @@ class StateSyncService:
         if resp.snapshot is not None:
             if not isinstance(resp.snapshot, dict):
                 raise StateSyncVerifyError("snapshot_not_object")
-            expect_hash = sha256_hex_of(resp.snapshot)
+            if "bft" in resp.snapshot:
+                raise StateSyncVerifyError("snapshot_contains_node_local_bft")
+            transferable = state_sync_snapshot_view(resp.snapshot)
+            if resp.snapshot != transferable:
+                raise StateSyncVerifyError("snapshot_contains_nontransferable_state")
+            _validate_snapshot_semantics(resp.snapshot)
+            expect_hash = sha256_hex_of(transferable)
             have_hash = resp.snapshot_hash or ""
             if not isinstance(have_hash, str) or not have_hash:
                 raise StateSyncVerifyError("missing_snapshot_hash")
@@ -522,14 +629,20 @@ class StateSyncService:
                 if checkpoint_height != snapshot_height:
                     raise StateSyncVerifyError("snapshot_checkpoint_height_mismatch")
                 checkpoint_hash = _block_hash_for_sync_chain(checkpoint)
-                if not checkpoint_hash or checkpoint_hash != _as_str(computed_anchor.get("tip_hash")):
+                if not checkpoint_hash or checkpoint_hash != _as_str(
+                    computed_anchor.get("tip_hash")
+                ):
                     raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch")
                 checkpoint_id = _block_id_for_sync_chain(checkpoint)
                 snapshot_tip = _as_str(resp.snapshot.get("tip") or "")
                 if snapshot_tip and checkpoint_id != snapshot_tip:
                     raise StateSyncVerifyError("snapshot_checkpoint_block_id_mismatch")
-                header2 = checkpoint.get("header") if isinstance(checkpoint.get("header"), dict) else {}
-                if _as_str(header2.get("state_root") or "") != _as_str(computed_anchor.get("state_root")):
+                header2 = (
+                    checkpoint.get("header") if isinstance(checkpoint.get("header"), dict) else {}
+                )
+                if _as_str(header2.get("state_root") or "") != _as_str(
+                    computed_anchor.get("state_root")
+                ):
                     raise StateSyncVerifyError("snapshot_checkpoint_state_root_mismatch")
 
         # Delta-chain ancestry/range rules apply only to delta responses. A

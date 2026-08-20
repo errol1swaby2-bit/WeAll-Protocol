@@ -570,10 +570,7 @@ class WeAllExecutor:
                 f"db={st_state_root_commitment_version!r} "
                 f"binary={STATE_ROOT_COMMITMENT_VERSION!r}. Refuse to start."
             )
-        if (
-            int(self.state.get("height") or 0) > 0
-            and not st_state_root_commitment_version
-        ):
+        if int(self.state.get("height") or 0) > 0 and not st_state_root_commitment_version:
             raise ExecutorError(
                 "state_root_commitment_version missing on committed ledger; "
                 "pre-v2 state-root databases require an explicit prelaunch rebuild/migration"
@@ -675,13 +672,10 @@ class WeAllExecutor:
         )
         meta["startup_clock_hard_fail_ms"] = STARTUP_CLOCK_HARD_FAIL_MS
         persisted_clock_warning = (
-            meta.get("clock_warning")
-            if isinstance(meta.get("clock_warning"), dict)
-            else {}
+            meta.get("clock_warning") if isinstance(meta.get("clock_warning"), dict) else {}
         )
         self._startup_clock_observer_required = bool(
-            _mode() == "prod"
-            and bool(persisted_clock_warning.get("observer_mode_forced", False))
+            _mode() == "prod" and bool(persisted_clock_warning.get("observer_mode_forced", False))
         )
         self._startup_clock_observer_reason = (
             "clock_skew_warning" if self._startup_clock_observer_required else ""
@@ -720,15 +714,11 @@ class WeAllExecutor:
         # of disappearing during canonicalization.
         diagnostic_tip_ts_ms = max(int(canonical_tip_ts_ms), int(persisted_tip_ts_ms))
         clock_skew_ahead_ms = (
-            max(0, int(diagnostic_tip_ts_ms) - int(wall_now_ms))
-            if diagnostic_tip_ts_ms > 0
-            else 0
+            max(0, int(diagnostic_tip_ts_ms) - int(wall_now_ms)) if diagnostic_tip_ts_ms > 0 else 0
         )
         catastrophic_skew = bool(clock_skew_ahead_ms > STARTUP_CLOCK_HARD_FAIL_MS)
         if clock_skew_ahead_ms > CLOCK_SKEW_WARN_MS:
-            current_clock_observer_required = bool(
-                _mode() == "prod" and catastrophic_skew
-            )
+            current_clock_observer_required = bool(_mode() == "prod" and catastrophic_skew)
             if current_clock_observer_required:
                 self._startup_clock_observer_required = True
                 self._startup_clock_observer_reason = "clock_skew_ahead"
@@ -738,9 +728,7 @@ class WeAllExecutor:
                 "canonical_tip_ts_ms": int(canonical_tip_ts_ms),
                 "persisted_tip_ts_ms": int(persisted_tip_ts_ms),
                 "diagnostic_tip_ts_ms": int(diagnostic_tip_ts_ms),
-                "tip_ts_rebound": bool(
-                    getattr(self, "_startup_tip_ts_rebound", False)
-                ),
+                "tip_ts_rebound": bool(getattr(self, "_startup_tip_ts_rebound", False)),
                 "skew_ms": int(clock_skew_ahead_ms),
                 "warning_threshold_ms": int(CLOCK_SKEW_WARN_MS),
                 "startup_hard_fail_threshold_ms": int(STARTUP_CLOCK_HARD_FAIL_MS),
@@ -786,11 +774,14 @@ class WeAllExecutor:
             path=str(journal_path),
             max_events=_safe_int(os.environ.get("WEALL_BFT_JOURNAL_MAX_EVENTS"), 2000),
         )
+        # A checkpoint install is a canonical branch boundary. If the process
+        # crashed after committing the ledger checkpoint but before clearing the
+        # separate auxiliary BFT DB, reconcile it before restoring any durable
+        # outbox/frontier state or journal restart hints.
+        self._reconcile_aux_bft_checkpoint_reset()
         self._bft_outbox_store = BftOutboxStore(
             db=self._aux_db,
-            max_pending=max(
-                1, _safe_int(os.environ.get("WEALL_BFT_OUTBOX_MAX_PENDING"), 10_000)
-            ),
+            max_pending=max(1, _safe_int(os.environ.get("WEALL_BFT_OUTBOX_MAX_PENDING"), 10_000)),
         )
         if not self._bft_outbox_store.legacy_migration_complete():
             legacy_restart = self._bft_journal.bootstrap_state(strict=True)
@@ -1116,6 +1107,151 @@ class WeAllExecutor:
 
         return _impl._restore_bft_restart_hints(self)
 
+    def _ledger_checkpoint_block_hash(self) -> str:
+        try:
+            with self._db.connection() as con:
+                row = con.execute(
+                    "SELECT value FROM meta WHERE key='checkpoint_block_hash' LIMIT 1;"
+                ).fetchone()
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_marker_read_failed") from exc
+        if row is None:
+            return ""
+        try:
+            return str(row["value"] or "").strip()
+        except Exception:
+            try:
+                return str(row[0] or "").strip()
+            except Exception:
+                return ""
+
+    def _reset_aux_bft_state_for_checkpoint(self, *, checkpoint_hash: str) -> None:
+        checkpoint = str(checkpoint_hash or "").strip()
+        if not checkpoint:
+            raise ExecutorError("state_sync_checkpoint_bft_reset_hash_missing")
+        try:
+            with self._aux_db.write_tx() as con:
+                # The auxiliary DB owns branch-local ingress/recovery state. A
+                # destructive checkpoint invalidates every artifact tied to the
+                # discarded branch, not only HotStuff frontier/outbox rows.
+                con.execute("DELETE FROM bft_pending_artifacts;")
+                con.execute("DELETE FROM bft_outbox;")
+                con.execute("DELETE FROM attestations;")
+                con.execute(
+                    "INSERT INTO meta(key, value) VALUES('state_sync_bft_reset_checkpoint_hash', ?) "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value;",
+                    (checkpoint,),
+                )
+                # Version the auxiliary reset contract so nodes upgraded from a
+                # build that only purged BFT rows do not trust an old matching
+                # checkpoint marker while stale attestations remain present.
+                con.execute(
+                    "INSERT INTO meta(key, value) VALUES('state_sync_aux_branch_reset_version', '2') "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value;"
+                )
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_aux_bft_reset_failed") from exc
+
+    def _reconcile_aux_bft_checkpoint_reset(self) -> bool:
+        checkpoint = self._ledger_checkpoint_block_hash()
+        if not checkpoint:
+            return False
+        try:
+            with self._aux_db.connection() as con:
+                row = con.execute(
+                    "SELECT value FROM meta "
+                    "WHERE key='state_sync_bft_reset_checkpoint_hash' LIMIT 1;"
+                ).fetchone()
+                version_row = con.execute(
+                    "SELECT value FROM meta "
+                    "WHERE key='state_sync_aux_branch_reset_version' LIMIT 1;"
+                ).fetchone()
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_aux_bft_marker_read_failed") from exc
+        marker = ""
+        if row is not None:
+            try:
+                marker = str(row["value"] or "").strip()
+            except Exception:
+                try:
+                    marker = str(row[0] or "").strip()
+                except Exception:
+                    marker = ""
+        reset_version = ""
+        if version_row is not None:
+            try:
+                reset_version = str(version_row["value"] or "").strip()
+            except Exception:
+                try:
+                    reset_version = str(version_row[0] or "").strip()
+                except Exception:
+                    reset_version = ""
+        if marker == checkpoint and reset_version == "2":
+            return False
+
+        # Journal reset is written first. If the process crashes before the aux
+        # transaction below commits, startup still sees a marker mismatch and
+        # retries the purge; if it crashes after the aux commit, restart hints
+        # have already been separated from the discarded branch.
+        try:
+            self._bft_journal.append(
+                "bft_checkpoint_reset",
+                chain_id=self.chain_id,
+                node_id=self.node_id,
+                checkpoint_hash=checkpoint,
+            )
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_bft_journal_reset_failed") from exc
+        self._reset_aux_bft_state_for_checkpoint(checkpoint_hash=checkpoint)
+        return True
+
+    def _clear_in_memory_bft_branch_state(self) -> None:
+        # Every cache below is branch-local or derived from branch-local BFT
+        # artifacts. None may survive destructive checkpoint replacement.
+        for name in (
+            "_known_block_hashes",
+            "_known_block_ids_by_hash",
+            "_pending_candidates",
+            "_pending_candidate_ids_by_hash",
+            "_pending_remote_blocks",
+            "_pending_remote_block_ids_by_hash",
+            "_quarantined_remote_blocks",
+            "_quarantined_remote_block_ids_by_hash",
+            "_pending_missing_qcs",
+            "_pending_missing_qcs_by_hash",
+            "_conflicted_block_ids",
+            "_conflicted_block_hashes",
+            "_votecheck_cache",
+            "_proposal_peer_budget",
+            "_recent_bft_proposals",
+            "_recent_bft_qcs",
+            "_recent_bft_votes",
+            "_recent_bft_timeouts",
+            "_recent_bft_sender_budgets",
+        ):
+            cache = getattr(self, name, None)
+            clear = getattr(cache, "clear", None)
+            if callable(clear):
+                clear()
+        self._missing_parent_fetch_cursor = 0
+        self._missing_qc_fetch_cursor = 0
+
+    def _reset_bft_branch_state_for_checkpoint(self, *, checkpoint_hash: str) -> None:
+        checkpoint = str(checkpoint_hash or "").strip()
+        if not checkpoint:
+            raise ExecutorError("state_sync_checkpoint_bft_reset_hash_missing")
+        try:
+            self._bft_journal.append(
+                "bft_checkpoint_reset",
+                chain_id=self.chain_id,
+                node_id=self.node_id,
+                checkpoint_hash=checkpoint,
+            )
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_bft_journal_reset_failed") from exc
+        self._reset_aux_bft_state_for_checkpoint(checkpoint_hash=checkpoint)
+        self._clear_in_memory_bft_branch_state()
+
     def _bft_record_event(self, event: str, **payload: Any) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
 
@@ -1244,9 +1380,7 @@ class WeAllExecutor:
             # bind it unconditionally to the canonical persisted tip block. Keep
             # any disagreement only in startup-only diagnostic fields so a corrupt
             # future timestamp can still trigger the observer safety posture.
-            canonical_tip_ts_ms = _safe_int(
-                blk2.get("block_ts_ms") or blk2.get("created_ms"), 0
-            )
+            canonical_tip_ts_ms = _safe_int(blk2.get("block_ts_ms") or blk2.get("created_ms"), 0)
             persisted_tip_ts_ms = _safe_int(
                 getattr(
                     self,
@@ -1628,14 +1762,18 @@ class WeAllExecutor:
                 "details": {"signer": signer, "payload_validator": payload_validator},
             }
 
-        normalized_payload = dict(payload)
-        normalized_payload["validator"] = signer
+        # Preserve the exact signed payload. ``payload.validator`` is optional;
+        # when present it must match the signer, but omission must not cause the
+        # executor to mutate the signed transaction before re-verification.
         normalized = dict(env)
-        normalized["payload"] = normalized_payload
-        normalized["block_id"] = str(
-            normalized_payload.get("block_id") or normalized_payload.get("id") or ""
-        ).strip()
-        return self._att_pool.add(normalized)
+        normalized["payload"] = dict(payload)
+
+        # BLOCK_ATTEST is a canonical validator transaction, not a separate
+        # local-only consensus message.  Route it through the same persistent
+        # mempool/admission path as every other user transaction so nonce
+        # uniqueness, tx-id derivation, deterministic selection, restart, and
+        # block replay share one authority boundary.
+        return self.submit_tx(normalized, ingress="http")
 
     # ----------------------------
     # Simple block producer (SQLite-backed)
@@ -1729,6 +1867,8 @@ class WeAllExecutor:
         force_ts_ms: int | None = None,
         helper_certificates: dict[str, HelperExecutionCertificate] | None = None,
         helper_receipts_by_lane: dict[str, list[Json]] | None = None,
+        bft_justify_qc: Json | None = None,
+        proposer: str = "",
     ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
         from weall.runtime import block_builder as _impl
 
@@ -1739,6 +1879,8 @@ class WeAllExecutor:
             force_ts_ms=force_ts_ms,
             helper_certificates=helper_certificates,
             helper_receipts_by_lane=helper_receipts_by_lane,
+            bft_justify_qc=bft_justify_qc,
+            proposer=proposer,
         )
 
     # ----------------------------
@@ -2488,7 +2630,21 @@ class WeAllExecutor:
         if resp.snapshot is not None:
             if not allow_snapshot_bootstrap:
                 raise ExecutorError("state_sync_snapshot_requires_explicit_allow")
+
+            # A checkpoint snapshot is canonical application state, not a vehicle
+            # for replacing this node's anti-equivocation history. Refuse the
+            # destructive checkpoint path after this node has signed/proposed in
+            # HotStuff; a validator with local signing history must recover via a
+            # non-destructive/delta path or an explicit operator recovery flow.
+            if (
+                int(getattr(self._bft, "last_voted_view", -1)) >= 0
+                or int(getattr(self._bft, "last_proposed_view", -1)) >= 0
+            ):
+                raise ExecutorError("state_sync_snapshot_local_signing_history_present")
+
             snap = dict(resp.snapshot)
+            if "bft" in snap:
+                raise ExecutorError("state_sync_snapshot_contains_node_local_bft")
             snap_chain = str(snap.get("chain_id") or self.chain_id).strip()
             if snap_chain != self.chain_id:
                 raise ExecutorError("state_sync_snapshot_chain_mismatch")
@@ -2510,6 +2666,48 @@ class WeAllExecutor:
             if len(checkpoint_blocks) != 1 or not isinstance(checkpoint_blocks[0], dict):
                 raise ExecutorError("state_sync_snapshot_checkpoint_missing")
             checkpoint = dict(checkpoint_blocks[0])
+            checkpoint2, checkpoint_hash = ensure_block_hash(checkpoint)
+
+            # Reconstruct receiver-local/runtime-only fields rather than importing
+            # them from the snapshot peer. Canonical meta fields in the verified
+            # snapshot override any stale local copy; non-consensus local meta is
+            # preserved. The duplicate tip timestamp is rebound to the canonical
+            # checkpoint block before persistence.
+            from weall.runtime.state_hash import consensus_state_root_view
+
+            local_meta = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
+            local_consensus_meta = consensus_state_root_view({"meta": local_meta}).get("meta", {})
+            local_runtime_meta = {
+                str(key): value
+                for key, value in local_meta.items()
+                if str(key) not in local_consensus_meta
+            }
+            remote_meta = snap.get("meta") if isinstance(snap.get("meta"), dict) else {}
+            merged_meta = dict(local_runtime_meta)
+            merged_meta.update(remote_meta)
+            if merged_meta:
+                snap["meta"] = merged_meta
+            else:
+                snap.pop("meta", None)
+
+            local_created_ms = self.state.get("created_ms")
+            if isinstance(local_created_ms, int) and not isinstance(local_created_ms, bool):
+                snap["created_ms"] = int(local_created_ms)
+            snap["tip_hash"] = str(checkpoint_hash or "")
+            checkpoint_ts_ms = _safe_int(
+                checkpoint2.get("block_ts_ms") or checkpoint2.get("created_ms"), 0
+            )
+            snap["tip_ts_ms"] = max(0, int(checkpoint_ts_ms))
+
+            # The checkpoint has already passed the trusted-anchor/snapshot
+            # verification above. Clear branch-local BFT recovery state *before*
+            # committing the canonical ledger replacement. This ordering is
+            # deliberately fail-closed across two SQLite files: if auxiliary
+            # cleanup succeeds but ledger installation fails, the old branch may
+            # lose liveness hints but cannot leak signed/replay obligations into a
+            # future branch. The inverse ordering could commit the new ledger and
+            # then fail while stale outbound/frontier state remained replayable.
+            self._reset_bft_branch_state_for_checkpoint(checkpoint_hash=str(checkpoint_hash or ""))
 
             try:
                 self._ledger_store.install_state_sync_checkpoint(
@@ -2519,19 +2717,24 @@ class WeAllExecutor:
             except Exception as exc:
                 raise ExecutorError(f"state_sync_checkpoint_install_failed:{exc}") from exc
 
-            previous_epoch = self._current_validator_epoch()
-            previous_set_hash = self._current_validator_set_hash() if previous_epoch > 0 else ""
             self.state = snap
-            self._bft.load_from_state(self.state)
-            checkpoint2, checkpoint_hash = ensure_block_hash(checkpoint)
+
+            # Never retain or import peer BFT runtime state across a destructive
+            # checkpoint install. Rebuild a fresh local engine from the adopted
+            # canonical ledger. The guard above ensures this reset cannot erase
+            # local vote/proposal anti-equivocation history.
+            self._bft = HotStuffBFT(chain_id=self.chain_id)
+            self._bft.timeout_base_ms = max(
+                250, _safe_int(os.environ.get("WEALL_BFT_TIMEOUT_BASE_MS"), 10_000)
+            )
+            self._bft.timeout_backoff_cap = max(
+                0, _safe_int(os.environ.get("WEALL_BFT_TIMEOUT_BACKOFF_CAP"), 4)
+            )
             self._cache_known_block_hash(
                 str(checkpoint2.get("block_id") or ""),
                 str(checkpoint_hash or ""),
             )
-            self._prune_pending_bft_artifacts_on_local_validator_transition(
-                previous_epoch=int(previous_epoch),
-                previous_set_hash=str(previous_set_hash or ""),
-            )
+            self._persist_bft_state()
             self._check_db_consistency_fail_closed()
             return []
 

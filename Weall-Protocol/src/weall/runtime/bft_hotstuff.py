@@ -1,23 +1,24 @@
 from __future__ import annotations
 
 import hashlib
-import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from weall.runtime.commitments import (
-    normalize_validator_ids as _normalize_validator_ids,
-    validator_set_hash as _canonical_validator_set_hash,
-)
-from weall.runtime.runtime_time import now_ms as _now_ms
 
 from weall.crypto.sig import verify_signature_for_profile
 from weall.crypto.signature_profiles import (
     PQ_MLDSA_V1,
-    mode_requires_explicit_sig_profile,
     normalize_signature_profile_id,
     profile_allowed_for_context,
 )
 from weall.runtime.ancestry import walk_ancestry
+from weall.runtime.commitments import (
+    normalize_validator_ids as _normalize_validator_ids,
+)
+from weall.runtime.commitments import (
+    validator_set_hash as _canonical_validator_set_hash,
+)
+from weall.runtime.runtime_time import now_ms as _now_ms
 from weall.runtime.sqlite_db import _canon_json
 
 Json = dict[str, Any]
@@ -105,7 +106,6 @@ def consensus_contract_summary(validators: list[str] | None = None) -> Json:
     }
 
 
-
 def _as_int(v: Any, default: int = 0) -> int:
     try:
         return int(v)
@@ -135,7 +135,9 @@ def _verify_bft_signature(*, sig_profile: str, message: bytes, sig: str, pubkey:
     profile = _bft_sig_profile(sig_profile)
     if not _bft_sig_allowed(profile):
         return False
-    return verify_signature_for_profile(sig_profile=profile, message=message, sig=sig, pubkey=pubkey)
+    return verify_signature_for_profile(
+        sig_profile=profile, message=message, sig=sig, pubkey=pubkey
+    )
 
 
 def normalize_validators(validators: list[str]) -> list[str]:
@@ -320,7 +322,9 @@ class BftVote:
             validator_set_hash=self.validator_set_hash,
             sig_profile=_bft_sig_profile(self.sig_profile),
         )
-        return _verify_bft_signature(sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey)
+        return _verify_bft_signature(
+            sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -411,7 +415,9 @@ class BftTimeout:
             validator_set_hash=self.validator_set_hash,
             sig_profile=_bft_sig_profile(self.sig_profile),
         )
-        return _verify_bft_signature(sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey)
+        return _verify_bft_signature(
+            sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey
+        )
 
 
 # -----------------------------
@@ -533,10 +539,17 @@ def verify_qc(
         if signer not in vset:
             continue
 
-        pubkey = _as_str(vj.get("pubkey") or "") or _as_str(pubmap.get(signer) or "")
+        registered_pubkey = _as_str(pubmap.get(signer) or "")
+        embedded_pubkey = _as_str(vj.get("pubkey") or "")
         sig = _as_str(vj.get("sig") or "")
-        if not pubkey or not sig:
+        # Consensus authority comes only from the canonical validator registry.
+        # An artifact may repeat that key for transport/debugging purposes, but
+        # it must never substitute a different key for a registered validator.
+        if not registered_pubkey or not sig:
             continue
+        if embedded_pubkey and embedded_pubkey != registered_pubkey:
+            continue
+        pubkey = registered_pubkey
 
         vote_chain_id = _as_str(vj.get("chain_id") or qc.chain_id)
         vote_view = _as_int(vj.get("view"), qc.view)
@@ -613,11 +626,17 @@ def verify_proposal_json(
     if proposer not in vset:
         return False
     pubmap = dict(vpub or {})
-    pubkey = _as_str(proposal.get("proposer_pubkey") or pubmap.get(proposer) or "")
+    registered_pubkey = _as_str(pubmap.get(proposer) or "")
+    embedded_pubkey = _as_str(proposal.get("proposer_pubkey") or "")
     sig = _as_str(proposal.get("proposer_sig") or "")
-    if not pubkey or not sig or not _as_str(proposal.get("block_hash") or ""):
+    if not registered_pubkey or not sig or not _as_str(proposal.get("block_hash") or ""):
         return False
-    sig_profile = _bft_sig_profile(proposal.get("proposer_sig_profile") or proposal.get("sig_profile"))
+    if embedded_pubkey and embedded_pubkey != registered_pubkey:
+        return False
+    pubkey = registered_pubkey
+    sig_profile = _bft_sig_profile(
+        proposal.get("proposer_sig_profile") or proposal.get("sig_profile")
+    )
     msg = canonical_proposal_message(
         chain_id=_as_str(proposal.get("chain_id") or ""),
         view=_as_int(proposal.get("view"), 0),
@@ -657,11 +676,14 @@ class HotStuffBFT:
         # Persisted so restarts cannot accidentally double-vote.
         self.last_voted_view: int = -1
         self.last_voted_block_id: str = ""
+        self.last_voted_block_hash: str = ""
 
         # Local proposal safety (prevents same-view proposal equivocation by this
-        # node across crashes/restarts).
+        # node across crashes/restarts).  The exact signed BFT artifact is bound
+        # by both semantic block_id and canonical block_hash.
         self.last_proposed_view: int = -1
         self.last_proposed_block_id: str = ""
+        self.last_proposed_block_hash: str = ""
 
         # vote cache: (view, block_id, block_hash) -> signer -> vote_json
         self._votes: dict[tuple[int, str, str], dict[str, Json]] = {}
@@ -715,9 +737,15 @@ class HotStuffBFT:
         self.finalized_view = _as_int(b.get("finalized_view"), self.finalized_view)
         self.last_voted_view = _as_int(b.get("last_voted_view"), self.last_voted_view)
         self.last_voted_block_id = _as_str(b.get("last_voted_block_id") or self.last_voted_block_id)
+        self.last_voted_block_hash = _as_str(
+            b.get("last_voted_block_hash") or self.last_voted_block_hash
+        )
         self.last_proposed_view = _as_int(b.get("last_proposed_view"), self.last_proposed_view)
         self.last_proposed_block_id = _as_str(
             b.get("last_proposed_block_id") or self.last_proposed_block_id
+        )
+        self.last_proposed_block_hash = _as_str(
+            b.get("last_proposed_block_hash") or self.last_proposed_block_hash
         )
         self.timeout_base_ms = max(250, _as_int(b.get("timeout_base_ms"), self.timeout_base_ms))
         self.timeout_backoff_exp = max(
@@ -801,8 +829,10 @@ class HotStuffBFT:
             "finalized_view": int(self.finalized_view),
             "last_voted_view": int(self.last_voted_view),
             "last_voted_block_id": self.last_voted_block_id,
+            "last_voted_block_hash": self.last_voted_block_hash,
             "last_proposed_view": int(self.last_proposed_view),
             "last_proposed_block_id": self.last_proposed_block_id,
+            "last_proposed_block_hash": self.last_proposed_block_hash,
             "last_progress_ms": int(self.last_progress_ms),
             "timeout_base_ms": int(self.timeout_base_ms),
             "timeout_backoff_exp": int(self.timeout_backoff_exp),
@@ -1011,60 +1041,72 @@ class HotStuffBFT:
             return False
         return is_descendant(blocks, candidate=bid, ancestor=high_block_id)
 
-    def record_local_vote(self, *, view: int, block_id: str) -> bool:
+    def record_local_vote(self, *, view: int, block_id: str, block_hash: str = "") -> bool:
         """Record a local vote if safe.
 
         Safety rules:
           - monotonic view voting (cannot vote below last_voted_view)
-          - no equivocation within the same view (same view must use same block_id)
+          - no equivocation within the same view
+          - when a canonical block hash is supplied, same-view idempotence
+            requires both block_id and block_hash to match the prior signed
+            artifact
 
-        Returns True if vote may proceed and was recorded.
+        Legacy direct callers may omit ``block_hash``.  A persisted legacy
+        cursor that has no hash fails closed if a same-view production call
+        later supplies one; the node must advance view rather than guess which
+        exact artifact was signed before the upgrade.
         """
         v = int(view)
         bid = str(block_id).strip()
+        bh = str(block_hash or "").strip()
         if not bid:
             return False
 
-        # Refuse to vote in the past.
         if v < int(self.last_voted_view):
             return False
 
-        # Same-view equivocation guard.
-        if (
-            v == int(self.last_voted_view)
-            and self.last_voted_block_id
-            and bid != self.last_voted_block_id
-        ):
-            return False
+        if v == int(self.last_voted_view):
+            if self.last_voted_block_id and bid != self.last_voted_block_id:
+                return False
+            prior_hash = str(self.last_voted_block_hash or "").strip()
+            if prior_hash or bh:
+                if not prior_hash or not bh or bh != prior_hash:
+                    return False
 
         self.last_voted_view = v
         self.last_voted_block_id = bid
+        self.last_voted_block_hash = bh
         return True
 
-    def record_local_proposal(self, *, view: int, block_id: str) -> bool:
+    def record_local_proposal(self, *, view: int, block_id: str, block_hash: str = "") -> bool:
         """Record a local proposal if safe.
 
-        Safety rules mirror local vote safety so a restarted leader cannot sign two
-        different proposals for the same view. Re-emitting the same proposal for the
-        same view is treated as idempotent and is allowed.
+        Proposal anti-equivocation binds the exact BFT artifact being signed.
+        ``block_id`` remains the semantic ancestry identifier while
+        ``block_hash`` commits the canonical header/state execution result.
+        Re-emission in the same view is idempotent only when both identifiers
+        match.
         """
         v = int(view)
         bid = str(block_id).strip()
+        bh = str(block_hash or "").strip()
         if not bid:
             return False
 
         if v < int(self.last_proposed_view):
             return False
 
-        if (
-            v == int(self.last_proposed_view)
-            and self.last_proposed_block_id
-            and bid != self.last_proposed_block_id
-        ):
-            return False
+        if v == int(self.last_proposed_view):
+            if self.last_proposed_block_id and bid != self.last_proposed_block_id:
+                return False
+            prior_hash = str(self.last_proposed_block_hash or "").strip()
+            if prior_hash or bh:
+                if not prior_hash or not bh or bh != prior_hash:
+                    return False
 
         self.last_proposed_view = v
         self.last_proposed_block_id = bid
+        self.last_proposed_block_hash = bh
         return True
 
     def observe_qc(self, *, blocks: dict[str, Any], qc: QuorumCert) -> str | None:
@@ -1138,7 +1180,12 @@ class HotStuffBFT:
     # ---- vote aggregation ----
 
     def accept_vote(
-        self, *, vote_json: Json, validators: list[str], vpub: dict[str, str]
+        self,
+        *,
+        vote_json: Json,
+        validators: list[str],
+        vpub: dict[str, str],
+        verified_admission: Callable[[Json], bool] | None = None,
     ) -> QuorumCert | None:
         """
         Accept a VOTE, cache it, and if threshold reached for (view, block_id) return a QC.
@@ -1157,7 +1204,9 @@ class HotStuffBFT:
             signer=_as_str(vote_json.get("signer") or ""),
             pubkey=_as_str(vote_json.get("pubkey") or ""),
             sig=_as_str(vote_json.get("sig") or ""),
-            sig_profile=_bft_sig_profile(vote_json.get("sig_profile") or vote_json.get("signature_profile")),
+            sig_profile=_bft_sig_profile(
+                vote_json.get("sig_profile") or vote_json.get("signature_profile")
+            ),
             validator_epoch=_as_int(vote_json.get("validator_epoch"), 0),
             validator_set_hash=_as_str(vote_json.get("validator_set_hash") or ""),
         )
@@ -1170,9 +1219,12 @@ class HotStuffBFT:
         vset = set(normalize_validators(validators))
         if vote.signer not in vset:
             return None
-        pubkey = vote.pubkey or _as_str(vpub.get(vote.signer) or "")
-        if not pubkey:
+        registered_pubkey = _as_str(vpub.get(vote.signer) or "")
+        if not registered_pubkey:
             return None
+        if vote.pubkey and vote.pubkey != registered_pubkey:
+            return None
+        pubkey = registered_pubkey
         vote2 = BftVote(
             chain_id=vote.chain_id,
             view=int(vote.view),
@@ -1189,6 +1241,12 @@ class HotStuffBFT:
         if not vote2.verify():
             return None
 
+        validated_vote_json = vote2.to_json()
+        if verified_admission is not None and not bool(
+            verified_admission(dict(validated_vote_json))
+        ):
+            return None
+
         key = (int(vote2.view), vote2.block_id, vote2.block_hash)
         bucket = self._votes.get(key)
         if bucket is None:
@@ -1196,7 +1254,7 @@ class HotStuffBFT:
             self._votes[key] = bucket
         # cache only first per signer (prevents duplicates)
         if vote2.signer not in bucket:
-            bucket[vote2.signer] = vote2.to_json()
+            bucket[vote2.signer] = dict(validated_vote_json)
         self._prune_local_liveness_caches()
 
         th = quorum_threshold(len(vset))
@@ -1220,7 +1278,12 @@ class HotStuffBFT:
     # ---- timeout aggregation ----
 
     def accept_timeout(
-        self, *, timeout_json: Json, validators: list[str], vpub: dict[str, str]
+        self,
+        *,
+        timeout_json: Json,
+        validators: list[str],
+        vpub: dict[str, str],
+        verified_admission: Callable[[Json], bool] | None = None,
     ) -> int | None:
         """
         Accept TIMEOUT; if threshold reached for view, return new_view to advance to.
@@ -1237,7 +1300,9 @@ class HotStuffBFT:
             signer=_as_str(timeout_json.get("signer") or ""),
             pubkey=_as_str(timeout_json.get("pubkey") or ""),
             sig=_as_str(timeout_json.get("sig") or ""),
-            sig_profile=_bft_sig_profile(timeout_json.get("sig_profile") or timeout_json.get("signature_profile")),
+            sig_profile=_bft_sig_profile(
+                timeout_json.get("sig_profile") or timeout_json.get("signature_profile")
+            ),
             validator_epoch=_as_int(timeout_json.get("validator_epoch"), 0),
             validator_set_hash=_as_str(timeout_json.get("validator_set_hash") or ""),
         )
@@ -1247,9 +1312,12 @@ class HotStuffBFT:
         vset = set(normalize_validators(validators))
         if tmo.signer not in vset:
             return None
-        pubkey = tmo.pubkey or _as_str(vpub.get(tmo.signer) or "")
-        if not pubkey:
+        registered_pubkey = _as_str(vpub.get(tmo.signer) or "")
+        if not registered_pubkey:
             return None
+        if tmo.pubkey and tmo.pubkey != registered_pubkey:
+            return None
+        pubkey = registered_pubkey
 
         tmo2 = BftTimeout(
             chain_id=tmo.chain_id,
@@ -1268,12 +1336,19 @@ class HotStuffBFT:
         v = int(tmo2.view)
         if v < int(self.view):
             return None
+
+        validated_timeout_json = tmo2.to_json()
+        if verified_admission is not None and not bool(
+            verified_admission(dict(validated_timeout_json))
+        ):
+            return None
+
         bucket = self._timeouts.get(v)
         if bucket is None:
             bucket = {}
             self._timeouts[v] = bucket
         if tmo2.signer not in bucket:
-            bucket[tmo2.signer] = tmo2.to_json()
+            bucket[tmo2.signer] = dict(validated_timeout_json)
         self._prune_local_liveness_caches()
 
         th = quorum_threshold(len(vset))

@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 # Rewards scheduling (Genesis v1.5): leaders enqueue deterministic epoch-issuance
 # system txs inside the block. Followers never run the scheduler; they replay the
@@ -372,11 +373,24 @@ def _queue_root(state: Json) -> list[Json]:
     return root
 
 
-def _validated_queue_items_with_indexes(state: Json) -> list[tuple[int, SystemQueueItem]]:
+def _validated_queue_items_from_root(root: list[Any]) -> list[tuple[int, SystemQueueItem]]:
     items: list[tuple[int, SystemQueueItem]] = []
-    for idx, obj in enumerate(_queue_root(state)):
+    seen_queue_ids: set[str] = set()
+    for idx, obj in enumerate(root):
         if not isinstance(obj, dict):
             raise SystemQueueCorruptionError(f"system_queue_item_not_object:{idx}")
+        if not isinstance(obj.get("payload"), dict):
+            raise SystemQueueCorruptionError(f"system_queue_item_payload_not_object:{idx}")
+        if not isinstance(obj.get("once", True), bool):
+            raise SystemQueueCorruptionError(f"system_queue_item_once_not_bool:{idx}")
+        raw_due = obj.get("due_height")
+        if not isinstance(raw_due, int) or isinstance(raw_due, bool):
+            raise SystemQueueCorruptionError(f"system_queue_item_bad_due_height:{idx}")
+        raw_emitted = obj.get("emitted_height")
+        if raw_emitted is not None and (
+            not isinstance(raw_emitted, int) or isinstance(raw_emitted, bool)
+        ):
+            raise SystemQueueCorruptionError(f"system_queue_item_bad_emitted_height:{idx}")
         try:
             item = SystemQueueItem.from_ledger_obj(obj)
         except (TypeError, ValueError) as exc:
@@ -384,35 +398,101 @@ def _validated_queue_items_with_indexes(state: Json) -> list[tuple[int, SystemQu
 
         if not item.queue_id:
             raise SystemQueueCorruptionError(f"system_queue_item_missing_queue_id:{idx}")
+        if not item.tx_type:
+            raise SystemQueueCorruptionError(f"system_queue_item_missing_tx_type:{idx}")
+        if int(item.due_height) <= 0:
+            raise SystemQueueCorruptionError(f"system_queue_item_bad_due_height:{idx}")
         if item.phase not in {"pre", "post"}:
             raise SystemQueueCorruptionError(f"system_queue_item_bad_phase:{idx}")
+        expected_qid = _queue_id_for_fields(
+            tx_type=item.tx_type,
+            payload=item.payload,
+            signer=item.signer,
+            due_height=item.due_height,
+            parent=item.parent,
+            phase=item.phase,
+            once=item.once,
+        )
+        if item.queue_id != expected_qid:
+            raise SystemQueueCorruptionError(f"system_queue_item_queue_id_mismatch:{idx}")
+        if item.queue_id in seen_queue_ids:
+            raise SystemQueueCorruptionError(f"system_queue_duplicate_queue_id:{item.queue_id}")
+        seen_queue_ids.add(item.queue_id)
+        if item.emitted_height is not None:
+            if not item.once or int(item.emitted_height) != int(item.due_height):
+                raise SystemQueueCorruptionError(f"system_queue_item_bad_emitted_height:{idx}")
         items.append((idx, item))
     return items
+
+
+def _validated_queue_items_with_indexes(state: Json) -> list[tuple[int, SystemQueueItem]]:
+    return _validated_queue_items_from_root(_queue_root(state))
 
 
 def _validated_queue_items(state: Json) -> list[SystemQueueItem]:
     return [item for _idx, item in _validated_queue_items_with_indexes(state)]
 
 
-def build_system_queue_lookup(state: Json) -> dict[str, Json]:
-    """Return a first-match queue-id lookup after validating the queue once.
+def validate_system_queue_recovery_state(
+    state: Json, *, committed_height: int | None = None
+) -> None:
+    """Validate persisted/imported SYSTEM queue state at a committed height.
 
-    The returned values are the live ledger dictionaries, not copied dataclasses.
-    That preserves the current in-place mutation behavior while allowing replay
-    callers to avoid rescanning the whole queue for phase and binding checks.
-    Duplicate queue IDs keep first-match semantics, matching the old linear scan.
+    Recovery boundaries must reject canonical state that cannot make forward
+    progress. Any un-emitted queue item whose due height is already at or below
+    the committed state height is permanently unselectable by the next block and
+    therefore represents corrupt canonical state. This helper is read-only.
     """
+
+    height_raw = state.get("height") if committed_height is None else committed_height
+    if not isinstance(height_raw, int) or isinstance(height_raw, bool):
+        raise SystemQueueCorruptionError("system_queue_recovery_bad_committed_height")
+    height = int(height_raw)
+    if height < 0:
+        raise SystemQueueCorruptionError("system_queue_recovery_bad_committed_height")
+
+    root_any = state.get("system_queue")
+    if root_any is None:
+        return
+    if not isinstance(root_any, list):
+        raise SystemQueueCorruptionError("system_queue_not_list")
+
+    for _idx, item in _validated_queue_items_from_root(root_any):
+        if item.once and item.emitted_height is not None:
+            continue
+        if int(item.due_height) <= height:
+            raise SystemQueueCorruptionError(
+                f"system_queue_item_past_due_at_recovery:{item.queue_id}:"
+                f"{int(item.due_height)}:{height}"
+            )
+
+
+def build_system_queue_lookup(state: Json) -> dict[str, Json]:
+    """Return a first-match queue-id lookup without mutating replicated state.
+
+    Missing queue state is equivalent to an empty queue for legacy snapshots. A
+    present non-list value is corruption and must fail closed; validation must
+    never "repair" canonical state merely by reading it. Returned values remain
+    the live ledger dictionaries so later binding checks observe emitter updates.
+    """
+    root_any = state.get("system_queue")
+    if root_any is None:
+        return {}
+    if not isinstance(root_any, list):
+        raise SystemQueueCorruptionError("system_queue_not_list")
+
     lookup: dict[str, Json] = {}
-    root = _queue_root(state)
-    for idx, item in _validated_queue_items_with_indexes(state):
-        if item.queue_id not in lookup:
-            obj = root[idx]
-            if isinstance(obj, dict):
-                lookup[item.queue_id] = obj
+    for idx, item in _validated_queue_items_from_root(root_any):
+        obj = root_any[idx]
+        if not isinstance(obj, dict):
+            raise SystemQueueCorruptionError(f"system_queue_item_not_object:{idx}")
+        lookup[item.queue_id] = obj
     return lookup
 
 
-def _lookup_queue_item(queue_objects_by_id: Mapping[str, Any] | None, qid: str) -> SystemQueueItem | None:
+def _lookup_queue_item(
+    queue_objects_by_id: Mapping[str, Any] | None, qid: str
+) -> SystemQueueItem | None:
     if queue_objects_by_id is None:
         return None
     obj = queue_objects_by_id.get(qid)
@@ -451,6 +531,29 @@ def _queue_ids(state: Json) -> set[str]:
     return ids
 
 
+def _queue_id_for_fields(
+    *,
+    tx_type: str,
+    payload: Json,
+    signer: str,
+    due_height: int,
+    parent: str,
+    phase: str,
+    once: bool,
+) -> str:
+    base = {
+        "tx_type": _as_str(tx_type).strip().upper(),
+        "payload": dict(payload),
+        "signer": _as_str(signer).strip() or "SYSTEM",
+        "due_height": int(due_height),
+        "parent": _as_opt_str(parent).strip(),
+        "phase": _as_str(phase).strip().lower() or "post",
+        "once": bool(once),
+    }
+    raw = json.dumps(base, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
 def enqueue_system_tx(
     state: Json,
     *,
@@ -465,10 +568,18 @@ def enqueue_system_tx(
     tx_type_u = _as_str(tx_type).strip().upper()
     phase_n = _as_str(phase).strip().lower() or "post"
     parent_norm = _as_opt_str(parent).strip() if parent is not None else ""
+    if not tx_type_u:
+        raise ValueError("system_queue_tx_type_required")
+    if phase_n not in {"pre", "post"}:
+        raise ValueError("system_queue_phase_invalid")
+    if int(due_height) <= 0:
+        raise ValueError("system_queue_due_height_invalid")
+    if not isinstance(payload, dict):
+        raise ValueError("system_queue_payload_not_object")
 
     base = {
         "tx_type": tx_type_u,
-        "payload": payload or {},
+        "payload": dict(payload),
         "signer": _as_str(signer).strip() or "SYSTEM",
         "due_height": int(due_height),
         "parent": parent_norm,
@@ -476,8 +587,7 @@ def enqueue_system_tx(
         "once": bool(once),
     }
 
-    raw = json.dumps(base, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    qid = hashlib.sha256(raw).hexdigest()
+    qid = _queue_id_for_fields(**base)
     base["queue_id"] = qid
 
     if qid in _queue_ids(state):
@@ -487,12 +597,18 @@ def enqueue_system_tx(
     return qid
 
 
-def _select_due_items_with_indexes(state: Json, *, next_height: int, phase: str) -> list[tuple[int, SystemQueueItem]]:
+def _select_due_items_with_indexes(
+    state: Json, *, next_height: int, phase: str
+) -> list[tuple[int, SystemQueueItem]]:
     out: list[tuple[int, SystemQueueItem]] = []
     phase_n = _as_str(phase).strip().lower() or "post"
     for idx, item in _validated_queue_items_with_indexes(state):
         if item.emitted_height is not None and item.once:
             continue
+        if int(item.due_height) < int(next_height):
+            raise SystemQueueCorruptionError(
+                f"system_queue_item_past_due:{item.queue_id}:{int(item.due_height)}:{int(next_height)}"
+            )
         if item.phase != phase_n:
             continue
         if int(item.due_height) != int(next_height):
@@ -503,7 +619,12 @@ def _select_due_items_with_indexes(state: Json, *, next_height: int, phase: str)
 
 
 def _select_due_items(state: Json, *, next_height: int, phase: str) -> list[SystemQueueItem]:
-    return [item for _idx, item in _select_due_items_with_indexes(state, next_height=next_height, phase=phase)]
+    return [
+        item
+        for _idx, item in _select_due_items_with_indexes(
+            state, next_height=next_height, phase=phase
+        )
+    ]
 
 
 def system_tx_emitter(
@@ -590,18 +711,23 @@ def system_tx_emitter(
             ):
                 queue_root[int(queue_idx)]["emitted_height"] = int(next_height)
             else:
-                confirm_system_tx_emitted(state, queue_id=it.queue_id, emitted_height=int(next_height))
+                confirm_system_tx_emitted(
+                    state, queue_id=it.queue_id, emitted_height=int(next_height)
+                )
 
     return out
 
 
-
 def _system_payload_hash(payload: Json) -> str:
-    raw = json.dumps(payload if isinstance(payload, dict) else {}, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    raw = json.dumps(
+        payload if isinstance(payload, dict) else {}, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
 
-def _expected_emitted_system_env_fields(state: Json, canon: Any, item: SystemQueueItem) -> tuple[Json, str, str]:
+def _expected_emitted_system_env_fields(
+    state: Json, canon: Any, item: SystemQueueItem
+) -> tuple[Json, str, str]:
     payload = dict(item.payload or {})
     payload.setdefault("_due_height", int(item.due_height))
     payload.setdefault("_system_queue_id", item.queue_id)
@@ -658,7 +784,9 @@ def validate_system_tx_queue_binding(
         return False, "system_payload_due_height_mismatch"
     if found.phase != phase_n:
         return False, "system_queue_phase_mismatch"
-    expected_payload, expected_signer, expected_parent = _expected_emitted_system_env_fields(state, canon, found)
+    expected_payload, expected_signer, expected_parent = _expected_emitted_system_env_fields(
+        state, canon, found
+    )
     signer = _as_str(getattr(env, "signer", "") or "").strip()
     if signer != expected_signer:
         return False, "system_queue_signer_mismatch"
@@ -671,6 +799,7 @@ def validate_system_tx_queue_binding(
     if emitted_height is not None and int(emitted_height) not in {0, int(next_height)}:
         return False, "system_queue_emitted_height_mismatch"
     return True, ""
+
 
 def confirm_system_tx_emitted(state: Json, *, queue_id: str, emitted_height: int) -> bool:
     qid = _as_str(queue_id).strip()

@@ -11,7 +11,8 @@
     "minimum_cryptography_version": "47.0.0",
     "public_key_bytes": 1952,
     "reason": "ok",
-    "repo_locked_cryptography_version": "48.0.0",
+    "repo_locked_cryptography_version": "50.0.0",
+    "required_cryptography_spec": ">=50.0.0,<51",
     "signature_bytes": 3309
   },
   "production_crypto_audit_complete": false,

@@ -52,6 +52,10 @@ from weall.runtime.executor import (
 )
 
 
+class BftLeaderProposalError(RuntimeError):
+    """An elected production leader could not construct its canonical proposal."""
+
+
 def _restore_bft_restart_hints(self, *args, **kwargs):
     return _bft_outbound._restore_bft_restart_hints(self, *args, **kwargs)
 
@@ -279,7 +283,7 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
             if (
                 isinstance(votej, dict)
                 and votej
-                and self._bft.record_local_vote(view=view, block_id=bid)
+                and self._bft.record_local_vote(view=view, block_id=bid, block_hash=block_hash)
             ):
                 self._bft.last_progress_ms = _now_ms()
                 self._persist_bft_state()
@@ -311,8 +315,6 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
     if not self._bft_artifact_shape_fast_fail("proposal", proposal2):
         return None
     if not local_nonprod_qcless_self_proposal and self._remember_recent_bft_proposal(proposal2):
-        return None
-    if not local_nonprod_qcless_self_proposal and not self._consume_bft_sender_budget(proposal2):
         return None
 
     if not self._bft_payload_phase_matches_current_security_model(proposal2):
@@ -431,6 +433,13 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
             self.bft_try_apply_pending_remote_blocks()
             return None
 
+    # Charge signer-scoped runtime budgets only after proposer authority and
+    # proposal/block admission have been cryptographically/canonically verified.
+    # Otherwise a Byzantine peer can spoof an honest proposer identity in
+    # malformed artifacts and consume the honest validator's budget.
+    if not local_nonprod_qcless_self_proposal and not self._consume_bft_sender_budget(proposal2):
+        return None
+
     if bid and isinstance(verified_qc_json, dict):
         self._put_pending_missing_qc(verified_qc_json)
         if verified_qc is not None:
@@ -508,7 +517,7 @@ def bft_on_proposal(self, proposal: Json) -> Json | None:
     if not isinstance(votej, dict) or not votej:
         return None
 
-    if not self._bft.record_local_vote(view=view, block_id=bid):
+    if not self._bft.record_local_vote(view=view, block_id=bid, block_hash=block_hash):
         return None
     self._bft.last_progress_ms = _now_ms()
     self._persist_bft_state()
@@ -530,10 +539,13 @@ def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
         return None
     if self._has_recent_bft_qc(qcj):
         return None
-    if not self._consume_bft_sender_budget(qcj):
-        return None
     qc = self.bft_verify_qc_json(qcj)
     if qc is None:
+        return None
+    # A QC has no singular canonical sender. Its runtime budget key may derive
+    # from embedded signers, so only account it after the aggregate certificate
+    # has been verified; untrusted claimed signers must never consume budgets.
+    if not self._consume_bft_sender_budget(qc.to_json()):
         return None
     self._record_recent_bft_qc(qcj)
 
@@ -573,7 +585,12 @@ def bft_on_timeout(self, timeoutj: Json) -> Json | None:
 
 
 def bft_drive_timeouts(self, now_ms: int) -> list[Json]:
-    """Return any timeout messages we should broadcast."""
+    """Return any timeout messages we should broadcast.
+
+    Production pacemaker failures are consensus-liveness failures and must be
+    observable by the networking layer.  Non-production/test posture retains
+    the historical best-effort behavior for lightweight fixtures.
+    """
     if not _env_bool("WEALL_AUTOTIMEOUT", False):
         return []
     try:
@@ -589,6 +606,8 @@ def bft_drive_timeouts(self, now_ms: int) -> list[Json]:
         t = self.bft_make_timeout(view=view)
         return [t] if isinstance(t, dict) else []
     except Exception:
+        if (os.environ.get("WEALL_MODE") or "prod").strip().lower() == "prod":
+            raise
         return []
 
 
@@ -692,18 +711,26 @@ def _local_validator_sig_profile(self) -> str:
 
 
 def _current_validator_epoch(self) -> int:
+    """Return the active validator-set generation used for BFT domain binding.
+
+    ``consensus.epochs.current`` is the protocol/constitutional epoch clock.
+    Validator membership may remain unchanged across many protocol epochs, so it
+    must not substitute for the validator-set generation.  The explicit
+    ``consensus.validator_set.epoch`` is authoritative whenever present; the
+    protocol epoch remains only a legacy fallback for older persisted states.
+    """
     c = self.state.get("consensus")
     if isinstance(c, dict):
-        ep = c.get("epochs")
-        if isinstance(ep, dict):
-            cur = _safe_int(ep.get("current"), 0)
-            if cur > 0:
-                return cur
         vs = c.get("validator_set")
         if isinstance(vs, dict):
-            cur2 = _safe_int(vs.get("epoch"), 0)
-            if cur2 > 0:
-                return cur2
+            generation = _safe_int(vs.get("epoch"), 0)
+            if generation > 0:
+                return generation
+        ep = c.get("epochs")
+        if isinstance(ep, dict):
+            legacy_epoch = _safe_int(ep.get("current"), 0)
+            if legacy_epoch > 0:
+                return legacy_epoch
     return 0
 
 
@@ -1348,16 +1375,49 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         if expected_leader and local_validator != expected_leader:
             return None
 
+    # Same-view retries must re-emit the exact proposal already recorded for
+    # anti-equivocation.  Rebuilding would create a fresh randomized ML-DSA
+    # beacon proof and therefore a different block_hash under the same semantic
+    # block_id.  If the exact pending candidate is unavailable after restart,
+    # fail closed and wait for a higher view rather than signing a replacement.
+    if int(self._bft.last_proposed_view) == view:
+        prior_id = str(self._bft.last_proposed_block_id or "").strip()
+        prior_hash = str(self._bft.last_proposed_block_hash or "").strip()
+        prior = self._pending_candidates.get(prior_id) if prior_id else None
+        prior_block = prior[0] if isinstance(prior, tuple) and prior else None
+        if isinstance(prior_block, dict) and prior_hash:
+            try:
+                prior_block2, computed_hash = ensure_block_hash(dict(prior_block))
+            except Exception:
+                return None
+            if (
+                str(prior_block2.get("block_id") or "").strip() == prior_id
+                and str(computed_hash or "").strip() == prior_hash
+                and _safe_int(prior_block2.get("view"), -1) == view
+                and str(prior_block2.get("proposer") or "").strip() == local_validator
+            ):
+                return prior_block2
+        return None
+
+    best_justify_qc = self._bft_best_justify_qc_json()
     blk, st2, applied_ids, invalid_ids, err = self.build_block_candidate(
-        max_txs=max_txs, allow_empty=True
+        max_txs=max_txs,
+        allow_empty=True,
+        bft_justify_qc=best_justify_qc,
+        proposer=local_validator,
     )
-    if err and err != "empty":
+    if err == "empty":
+        return None
+    if err:
+        if _mode() == "prod":
+            raise BftLeaderProposalError(f"candidate_build_failed:{err}")
         return None
     if blk is None or st2 is None:
+        if _mode() == "prod":
+            raise BftLeaderProposalError("candidate_build_missing_result")
         return None
 
     justify_qc_id = ""
-    best_justify_qc = self._bft_best_justify_qc_json()
     if isinstance(best_justify_qc, dict):
         blk["justify_qc"] = best_justify_qc
         justify_qc_id = str(best_justify_qc.get("block_id") or "")
@@ -1379,9 +1439,6 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
     parent_id = str(blk.get("prev_block_id") or "").strip()
     proposer_pubkey = str(os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
     proposer_privkey = str(os.environ.get("WEALL_NODE_PRIVKEY") or "").strip()
-    if bid and not self._bft.record_local_proposal(view=view, block_id=bid):
-        return None
-
     if bid and proposer_pubkey and proposer_privkey and local_validator:
         sig_profile = _local_validator_sig_profile(self)
         msg = canonical_proposal_message(
@@ -1416,6 +1473,9 @@ def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
             "role": "bft_proposer_signature",
         }
 
+    if bid and not self._bft.record_local_proposal(view=view, block_id=bid, block_hash=block_hash):
+        return None
+
     if bid:
         self._persist_bft_state()
         _bounded_put(
@@ -1446,8 +1506,6 @@ def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
         return None
     if self._remember_recent_bft_vote(vote_json):
         return None
-    if not self._consume_bft_sender_budget(vote_json):
-        return None
 
     validators = self._active_validators()
     vpub = self._validator_pubkeys()
@@ -1470,7 +1528,12 @@ def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
 
     # NOTE: HotStuffBFT validates signatures + threshold internally.
     # Use the engine's canonical accept_vote API.
-    qc = self._bft.accept_vote(vote_json=vote.to_json(), validators=validators, vpub=vpub)
+    qc = self._bft.accept_vote(
+        vote_json=vote.to_json(),
+        validators=validators,
+        vpub=vpub,
+        verified_admission=self._consume_bft_sender_budget,
+    )
     if qc is None:
         self._persist_bft_state()
         return None
@@ -1617,8 +1680,6 @@ def bft_handle_timeout(self, timeout_json: Json) -> int | None:
         return None
     if self._remember_recent_bft_timeout(timeout_json):
         return None
-    if not self._consume_bft_sender_budget(timeout_json):
-        return None
 
     validators = self._active_validators()
     vpub = self._validator_pubkeys()
@@ -1640,7 +1701,10 @@ def bft_handle_timeout(self, timeout_json: Json) -> int | None:
     # Use the engine's canonical accept_timeout API. It returns the new view
     # to advance to once threshold is reached.
     new_view = self._bft.accept_timeout(
-        timeout_json=tmo.to_json(), validators=validators, vpub=vpub
+        timeout_json=tmo.to_json(),
+        validators=validators,
+        vpub=vpub,
+        verified_admission=self._consume_bft_sender_budget,
     )
     if new_view is not None:
         self._persist_bft_state()

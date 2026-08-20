@@ -67,16 +67,12 @@ class BftJournal:
         fmt = str(obj.get(cls._FORMAT_KEY) or "")
         checksum = str(obj.get(cls._CHECKSUM_KEY) or "")
         if fmt != cls._FORMAT or not checksum:
-            raise BftJournalCorruptionError(
-                f"bft_journal_integrity_fields_invalid:line={line_no}"
-            )
+            raise BftJournalCorruptionError(f"bft_journal_integrity_fields_invalid:line={line_no}")
         protected = dict(obj)
         protected.pop(cls._CHECKSUM_KEY, None)
         expected = hashlib.sha256(cls._canon_record(protected).encode("utf-8")).hexdigest()
         if checksum != expected:
-            raise BftJournalCorruptionError(
-                f"bft_journal_checksum_mismatch:line={line_no}"
-            )
+            raise BftJournalCorruptionError(f"bft_journal_checksum_mismatch:line={line_no}")
         protected.pop(cls._FORMAT_KEY, None)
         return protected
 
@@ -156,9 +152,7 @@ class BftJournal:
                 continue
             if not isinstance(obj, dict):
                 if strict:
-                    raise BftJournalCorruptionError(
-                        f"bft_journal_record_not_object:line={line_no}"
-                    )
+                    raise BftJournalCorruptionError(f"bft_journal_record_not_object:line={line_no}")
                 continue
             try:
                 record = self._verify_and_strip_integrity(obj, line_no=line_no)
@@ -189,7 +183,19 @@ class BftJournal:
             if not isinstance(payload, dict):
                 continue
             ev = str(rec.get("event") or "")
-            if ev == "bft_view_advanced":
+            if ev == "bft_checkpoint_reset":
+                # A destructive trusted checkpoint adopts a different canonical
+                # history. Restart hints and legacy outbound reconstruction from
+                # the prior branch must not cross that boundary. Events after the
+                # reset remain eligible restart evidence.
+                out = {
+                    "last_view": 0,
+                    "last_timeout_view": -1,
+                    "last_high_qc_id": "",
+                    "fetch_requests": [],
+                    "pending_outbound": [],
+                }
+            elif ev == "bft_view_advanced":
                 try:
                     out["last_view"] = max(int(out["last_view"]), int(payload.get("view") or 0))
                 except Exception:
@@ -255,12 +261,9 @@ class BftJournal:
         # Strict parsing prevents trimming from silently laundering corrupt bytes.
         records = self.read_tail(limit=self.max_events, strict=True)
         encoded = "".join(
-            self._canon_record(self._record_with_integrity(record)) + "\n"
-            for record in records
+            self._canon_record(self._record_with_integrity(record)) + "\n" for record in records
         ).encode("utf-8")
-        tmp = path.with_name(
-            f".{path.name}.tmp.{os.getpid()}.{threading.get_ident()}"
-        )
+        tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}.{threading.get_ident()}")
         try:
             with open(tmp, "xb") as fh:
                 fh.write(encoded)

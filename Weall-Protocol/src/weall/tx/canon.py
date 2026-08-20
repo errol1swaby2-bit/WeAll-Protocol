@@ -243,12 +243,65 @@ def _validate_index(idx: Json) -> None:
         return
 
     if "by_name" in idx:
-        if not isinstance(idx.get("by_name"), dict):
+        by_name = idx.get("by_name")
+        by_id = idx.get("by_id")
+        tx_types = idx.get("tx_types")
+        if not isinstance(by_name, dict):
             raise ValueError("tx index 'by_name' must be a dict")
-        if "by_id" in idx and not isinstance(idx.get("by_id"), dict):
+        if not isinstance(by_id, dict):
             raise ValueError("tx index 'by_id' must be a dict")
-        if "tx_types" in idx and not isinstance(idx.get("tx_types"), list):
+        if not isinstance(tx_types, list):
             raise ValueError("tx index 'tx_types' must be a list")
+
+        # Empty indexes are retained for isolated startup/unit-test fixtures, but
+        # any populated current index must be internally bijective. This prevents
+        # consumers from silently reconstructing a different ID/name view.
+        if not tx_types:
+            if by_name or by_id:
+                raise ValueError("empty tx_types requires empty by_name and by_id")
+            return
+
+        if len(by_name) != len(tx_types):
+            raise ValueError("tx index 'by_name' must cover tx_types exactly")
+        if len(by_id) != len(tx_types):
+            raise ValueError("tx index 'by_id' must cover tx_types exactly")
+
+        names: set[str] = set()
+        for pos, rec in enumerate(tx_types):
+            if not isinstance(rec, dict):
+                raise ValueError(f"tx index tx_types[{pos}] must be a dict")
+            name = str(rec.get("name") or "").strip()
+            if not name:
+                raise ValueError(f"tx index tx_types[{pos}] is missing name")
+            if name in names:
+                raise ValueError(f"tx index duplicate tx name: {name}")
+            names.add(name)
+
+        by_name_positions: set[int] = set()
+        for name, pos in by_name.items():
+            if not isinstance(name, str) or type(pos) is not int:
+                raise ValueError("tx index 'by_name' entries must map names to integer indexes")
+            if pos < 0 or pos >= len(tx_types):
+                raise ValueError(f"tx index 'by_name' index out of range for {name!r}")
+            if str(tx_types[pos].get("name") or "").strip() != name:
+                raise ValueError(f"tx index 'by_name' mismatch for {name!r}")
+            by_name_positions.add(pos)
+        if by_name_positions != set(range(len(tx_types))):
+            raise ValueError("tx index 'by_name' indexes must cover tx_types exactly")
+
+        by_id_positions: set[int] = set()
+        for raw_id, pos in by_id.items():
+            if not isinstance(raw_id, str) or type(pos) is not int:
+                raise ValueError("tx index 'by_id' entries must map string ids to integer indexes")
+            try:
+                int(raw_id)
+            except ValueError as exc:
+                raise ValueError(f"tx index contains invalid numeric id {raw_id!r}") from exc
+            if pos < 0 or pos >= len(tx_types):
+                raise ValueError(f"tx index 'by_id' index out of range for {raw_id!r}")
+            by_id_positions.add(pos)
+        if by_id_positions != set(range(len(tx_types))):
+            raise ValueError("tx index 'by_id' indexes must cover tx_types exactly")
         return
 
     raise ValueError("tx index must contain either 'tx' or 'by_name'")
@@ -463,29 +516,45 @@ class TxIndex:
             raise CanonError("tx index must be a dict")
 
         tx_types0 = raw.get("tx_types")
-        if isinstance(tx_types0, list) and tx_types0:
-            tx_types: list[Json] = [t if isinstance(t, dict) else {} for t in tx_types0]
+        if isinstance(tx_types0, list):
+            try:
+                _validate_index(raw)
+            except ValueError as exc:
+                raise CanonError(str(exc)) from exc
+
+            tx_types: list[Json] = [t for t in tx_types0 if isinstance(t, dict)]
+            if not tx_types:
+                return cls(
+                    meta=_d(raw.get("meta")),
+                    source_sha256=_s(source_sha256 or raw.get("source_sha256") or ""),
+                    raw=raw,
+                )
+
+            raw_by_name = raw.get("by_name")
+            raw_by_id = raw.get("by_id")
+            if not isinstance(raw_by_name, dict) or not isinstance(raw_by_id, dict):
+                raise CanonError("validated current tx index lost lookup maps")
+
             by_name: dict[str, Json] = {}
-            by_id_str: dict[str, Json] = {}
             by_id: dict[int, Json] = {}
+            by_id_str: dict[str, Json] = {}
 
-            for seq, t in enumerate(tx_types, start=1):
-                name = _s(t.get("name")).upper()
-                if name:
-                    by_name[name] = t
+            # Honor the generated lookup maps instead of rebuilding a different
+            # interpretation from record order or the stable hash identifier.
+            for name, pos in raw_by_name.items():
+                rec = tx_types[int(pos)]
+                by_name[str(name).upper()] = rec
 
-                tid = t.get("id")
-                if tid is not None:
-                    tid_s = _s(tid)
-                    if tid_s:
-                        by_id_str[tid_s] = t
-                    try:
-                        by_id[int(tid)] = t
-                    except Exception:
-                        pass
+            for raw_id, pos in raw_by_id.items():
+                rec = tx_types[int(pos)]
+                by_id[int(raw_id)] = rec
 
-                if seq not in by_id:
-                    by_id[seq] = t
+            # Preserve the historical stable-string lookup as a compatibility
+            # surface. It is intentionally distinct from canonical numeric IDs.
+            for rec in tx_types:
+                stable_id = _s(rec.get("id"))
+                if stable_id:
+                    by_id_str[stable_id] = rec
 
             return cls(
                 tx_types=tx_types,

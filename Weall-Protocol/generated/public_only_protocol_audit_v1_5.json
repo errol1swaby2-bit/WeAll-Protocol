@@ -461,6 +461,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "tests/test_restricted_poh_session_and_webrtc_transport.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_state_sync_bft_branch_reset.py"
     }
   ],
   "inventory_classification": {
@@ -480,7 +486,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 70,
+  "inventory_hit_count": 71,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

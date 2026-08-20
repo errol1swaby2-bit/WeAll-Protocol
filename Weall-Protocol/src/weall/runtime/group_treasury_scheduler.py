@@ -90,9 +90,16 @@ def maybe_enqueue_group_spend_execute(state: Json, *, spend: Json) -> str | None
     if len(valid) < int(threshold):
         return None
 
+    current_apply_height = _height_now(state)
     due_h = _as_int(spend.get("earliest_execute_height"), 0)
     if due_h <= 0:
-        due_h = _height_now(state)
+        due_h = current_apply_height
+    else:
+        # Reaching multisig threshold after the timelock must not enqueue work
+        # at a historical height that the exact-height SYSTEM emitter can never
+        # select. Execute at the current applying block once the timelock is
+        # already satisfied.
+        due_h = max(int(due_h), int(current_apply_height))
 
     payload = {"spend_id": spend_id, "_parent_ref": "GROUP_TREASURY_SPEND_SIGN"}
     return enqueue_system_tx(

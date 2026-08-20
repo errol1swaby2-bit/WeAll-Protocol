@@ -276,7 +276,7 @@
       "route_id": "0d0c21fba15f0d7d",
       "route_path_without_v1_prefix": "/chain/genesis",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1730,
+      "source_lineno": 1732,
       "summary": "",
       "tags": [
         "status"
@@ -298,7 +298,7 @@
       "route_id": "d90596655609b2d1",
       "route_path_without_v1_prefix": "/chain/head",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1763,
+      "source_lineno": 1765,
       "summary": "",
       "tags": [
         "status"
@@ -320,7 +320,7 @@
       "route_id": "4ecc6d509148c5f2",
       "route_path_without_v1_prefix": "/chain/identity",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1583,
+      "source_lineno": 1585,
       "summary": "",
       "tags": [
         "status"
@@ -342,7 +342,7 @@
       "route_id": "e2da20eef560658e",
       "route_path_without_v1_prefix": "/chain/manifest",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1755,
+      "source_lineno": 1757,
       "summary": "",
       "tags": [
         "status"
@@ -364,7 +364,7 @@
       "route_id": "86cd04c4c5a90d93",
       "route_path_without_v1_prefix": "/chain/state-root",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1716,
+      "source_lineno": 1718,
       "summary": "",
       "tags": [
         "status"
@@ -386,7 +386,7 @@
       "route_id": "898a2703a9d1fc8b",
       "route_path_without_v1_prefix": "/consensus/attest/submit",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 47,
+      "source_lineno": 46,
       "summary": "",
       "tags": [
         "consensus"
@@ -408,7 +408,7 @@
       "route_id": "467052b1fb5c59ba",
       "route_path_without_v1_prefix": "/consensus/block-production/proof",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 315,
+      "source_lineno": 332,
       "summary": "",
       "tags": [
         "consensus"
@@ -430,7 +430,7 @@
       "route_id": "88a35ef2343b2b79",
       "route_path_without_v1_prefix": "/consensus/block-production/readiness",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 185,
+      "source_lineno": 189,
       "summary": "",
       "tags": [
         "consensus"
@@ -826,7 +826,7 @@
       "route_id": "216390ead2051b33",
       "route_path_without_v1_prefix": "/genesis/api/readiness",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1709,
+      "source_lineno": 1711,
       "summary": "",
       "tags": [
         "status"
@@ -848,7 +848,7 @@
       "route_id": "661f19e1d30f08fb",
       "route_path_without_v1_prefix": "/genesis/observer/readiness",
       "source": "src/weall/api/routes_public_parts/status.py",
-      "source_lineno": 1704,
+      "source_lineno": 1706,
       "summary": "",
       "tags": [
         "status"

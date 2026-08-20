@@ -13,7 +13,9 @@ def test_mldsa_backend_status_is_real_and_available():
     assert status["algorithm"] == "ML-DSA-65"
     assert status["backend"] == "pyca-cryptography"
     assert status["available"] is True
-    assert status["repo_locked_cryptography_version"] == "48.0.0"
+    assert status["minimum_cryptography_version"] == "47.0.0"
+    assert status["required_cryptography_spec"] == ">=50.0.0,<51"
+    assert status["repo_locked_cryptography_version"] == "50.0.0"
 
 
 def test_mldsa_sign_verify_positive_and_negative_paths():
@@ -23,4 +25,6 @@ def test_mldsa_sign_verify_positive_and_negative_paths():
     assert len(bytes.fromhex(sig)) == MLDSA65_SIGNATURE_BYTES
     assert verify_mldsa65_signature(message=b"weall-pq-test", sig=sig, pubkey=kp["pubkey"])
     assert not verify_mldsa65_signature(message=b"tampered", sig=sig, pubkey=kp["pubkey"])
-    assert not verify_mldsa65_signature(message=b"weall-pq-test", sig="00" + sig[2:], pubkey=kp["pubkey"])
+    assert not verify_mldsa65_signature(
+        message=b"weall-pq-test", sig="00" + sig[2:], pubkey=kp["pubkey"]
+    )

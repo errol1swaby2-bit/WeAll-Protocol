@@ -33,6 +33,9 @@ class _FakeNode:
         if self._fail_poll:
             raise RuntimeError("poll boom")
 
+    def broadcast_peer_addr(self) -> None:
+        return None
+
 
 class _RejectingMempool:
     def add(self, tx) -> None:
@@ -72,6 +75,7 @@ class _ExecutorWithBadSnapshot:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         raise ValueError("snapshot boom")
 
@@ -83,6 +87,7 @@ class _ExecutorSimple:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         return {}
 

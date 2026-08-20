@@ -68,6 +68,10 @@ jobs:
         run: |
           npm ci
 
+      - name: Dependency audit
+        run: |
+          npm run dependency-audit
+
       - name: Typecheck
         run: |
           npm run typecheck

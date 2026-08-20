@@ -4296,6 +4296,15 @@
     },
     {
       "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/bft_finality_bridge.py",
+      "primary_mechanism_id": "M-018",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
         "messages",
         "mechanisms"
       ],

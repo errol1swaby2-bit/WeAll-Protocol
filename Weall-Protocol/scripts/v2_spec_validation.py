@@ -364,7 +364,9 @@ def apply_authoritative_mechanism_bindings(root: Path, rows: list[Json]) -> int:
         row = by_id.get(str(mid))
         if row is None:
             raise ValueError(f"authoritative mechanism map references missing mechanism: {mid}")
-        authoritative = [str(v) for v in list(dict(binding).get("authoritative_paths") or []) if str(v)]
+        authoritative = [
+            str(v) for v in list(dict(binding).get("authoritative_paths") or []) if str(v)
+        ]
         if not authoritative:
             raise ValueError(f"mechanism {mid} lacks authoritative paths")
         row["repository_evidence"] = [
@@ -416,7 +418,8 @@ def validate_mechanism_evidence(root: Path, rows: list[Json]) -> Json:
         evidence_paths = {
             str(item.get("path") or "")
             for item in list(row.get("repository_evidence") or [])
-            if isinstance(item, dict) and str(item.get("kind") or "") in {"current_path", "current_glob"}
+            if isinstance(item, dict)
+            and str(item.get("kind") or "") in {"current_path", "current_glob"}
         }
         authoritative = {str(v) for v in list(dict(binding).get("authoritative_paths") or [])}
         forbidden = {str(v) for v in list(dict(binding).get("forbidden_shadow_paths") or [])}
@@ -438,7 +441,9 @@ def validate_mechanism_evidence(root: Path, rows: list[Json]) -> Json:
     validated_ids = set(dict(authority_map.get("mechanisms") or {}))
     missing_high_risk = sorted(required_high_risk - validated_ids)
     if missing_high_risk:
-        raise ValueError(f"required high-risk authority bindings not validated: {missing_high_risk}")
+        raise ValueError(
+            f"required high-risk authority bindings not validated: {missing_high_risk}"
+        )
     return {
         "current_evidence_entries": current,
         "planned_target_entries": planned,
@@ -447,6 +452,20 @@ def validate_mechanism_evidence(root: Path, rows: list[Json]) -> Json:
         "authority_claim_scope": "explicit_high_risk_map; other current_path evidence proves existence, not call-path authority",
         "validation_result": "PASS_TYPED_MECHANISM_EVIDENCE_WITH_EXPLICIT_AUTHORITY_BINDINGS",
     }
+
+
+def _stable_implementation_source(value: Any) -> Any:
+    """Return semantic implementation identity without volatile line offsets.
+
+    Semantic review should become stale when the owning path/function/handler or
+    behavior changes, not when an unrelated edit shifts a function by one line.
+    Generated artifacts may continue to report exact current line numbers for
+    navigation; review digests deliberately bind only stable implementation
+    identity fields.
+    """
+    if not isinstance(value, dict):
+        return value
+    return {key: val for key, val in value.items() if str(key) != "line"}
 
 
 def tx_review_material(row: Json) -> Json:
@@ -473,7 +492,9 @@ def tx_review_material(row: Json) -> Json:
         "implementation_source",
         "primary_mechanism_id",
     )
-    return {key: row.get(key) for key in keys}
+    out = {key: row.get(key) for key in keys}
+    out["implementation_source"] = _stable_implementation_source(out.get("implementation_source"))
+    return out
 
 
 def route_review_material(row: Json) -> Json:
@@ -494,7 +515,9 @@ def route_review_material(row: Json) -> Json:
         "activation",
         "duplicate_route_key",
     )
-    return {key: row.get(key) for key in keys}
+    out = {key: row.get(key) for key in keys}
+    out["implementation_source"] = _stable_implementation_source(out.get("implementation_source"))
+    return out
 
 
 def apply_semantic_reviews(

@@ -6,17 +6,18 @@ import os
 import time
 from dataclasses import dataclass
 from typing import Any
+
 from weall.runtime.runtime_env import safe_int as _safe_int
 from weall.runtime.runtime_time import now_ms as _now_ms
+from weall.runtime.sqlite_db import SqliteDB, _canon_json
 from weall.runtime.tx_id import (
     canonical_tx_identity_from_dict,
+)
+from weall.runtime.tx_id import (
     compute_tx_id_from_dict as _compute_protocol_tx_id,
 )
 
-from weall.runtime.sqlite_db import SqliteDB, _canon_json
-
 Json = dict[str, Any]
-
 
 
 def _mode() -> str:
@@ -76,7 +77,9 @@ def _selection_policy_name(raw: Any) -> str:
     return "fifo"
 
 
-def _read_selection_policy(name: str = "WEALL_MEMPOOL_SELECTION_POLICY", *, default: str = "canonical") -> str:
+def _read_selection_policy(
+    name: str = "WEALL_MEMPOOL_SELECTION_POLICY", *, default: str = "canonical"
+) -> str:
     raw = os.environ.get(name)
     if raw is None:
         normalized_default = _selection_policy_name(default)
@@ -111,13 +114,12 @@ def compute_tx_id(env: Json, *, chain_id: str | None = None) -> str:
         raise ValueError("compute_tx_id requires chain_id")
     return _compute_protocol_tx_id(resolved_chain_id, env)
 
+
 def _expires_ms(env: Json, *, fallback_ttl_ms: int) -> int:
     ex = env.get("expires_ms")
     if ex is not None:
         return _safe_int(ex, _now_ms() + fallback_ttl_ms)
     return _now_ms() + fallback_ttl_ms
-
-
 
 
 def _extract_height_field(env: Json, *names: str) -> int:
@@ -177,6 +179,7 @@ def _with_timings(result: Json, timings: dict[str, float] | None) -> Json:
     if timings is not None:
         result.setdefault("timings_ms", {k: round(float(v), 3) for k, v in timings.items()})
     return result
+
 
 def _extract_nonce(env: Json) -> int | None:
     try:
@@ -309,9 +312,7 @@ class PersistentMempool:
         else:
             env_chain_id = _env_str("WEALL_CHAIN_ID", "").strip()
             if _mode() == "prod":
-                raise ValueError(
-                    "PersistentMempool requires an explicit chain_id in production"
-                )
+                raise ValueError("PersistentMempool requires an explicit chain_id in production")
             if not env_chain_id:
                 raise ValueError(
                     "PersistentMempool requires an explicit chain_id or WEALL_CHAIN_ID"
@@ -369,19 +370,13 @@ class PersistentMempool:
                 try:
                     env = json.loads(str(row["envelope_json"]))
                 except Exception as exc:
-                    raise ValueError(
-                        f"mempool_tx_id_migration_bad_envelope:{old_tx_id}"
-                    ) from exc
+                    raise ValueError(f"mempool_tx_id_migration_bad_envelope:{old_tx_id}") from exc
                 if not isinstance(env, dict):
-                    raise ValueError(
-                        f"mempool_tx_id_migration_bad_envelope:{old_tx_id}"
-                    )
+                    raise ValueError(f"mempool_tx_id_migration_bad_envelope:{old_tx_id}")
                 try:
                     new_tx_id = compute_tx_id(env, chain_id=self.chain_id)
                 except Exception as exc:
-                    raise ValueError(
-                        f"mempool_tx_id_migration_bad_identity:{old_tx_id}"
-                    ) from exc
+                    raise ValueError(f"mempool_tx_id_migration_bad_identity:{old_tx_id}") from exc
 
                 owner = canonical_owner.get(new_tx_id)
                 if owner is not None and owner != old_tx_id:
@@ -466,9 +461,13 @@ class PersistentMempool:
 
     def _add_height_columns_if_missing(self, *, con) -> None:
         if not self._mempool_has_column(con=con, column="admitted_at_height"):
-            con.execute("ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;")
+            con.execute(
+                "ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;"
+            )
         if not self._mempool_has_column(con=con, column="expires_at_height"):
-            con.execute("ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;")
+            con.execute(
+                "ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;"
+            )
 
     def _backfill_nonce_column(self, *, con) -> None:
         rows = con.execute(
@@ -682,7 +681,9 @@ class PersistentMempool:
                 existing = _matching_signer_nonce_entry(con=con, signer=signer, nonce=int(nonce))
                 if existing is not None:
                     existing_tx_id, existing_env = existing
-                    existing_base = _canon_json(_envelope_for_id(existing_env, chain_id=self.chain_id))
+                    existing_base = _canon_json(
+                        _envelope_for_id(existing_env, chain_id=self.chain_id)
+                    )
                     incoming_base = _canon_json(_envelope_for_id(env, chain_id=self.chain_id))
                     if existing_base == incoming_base:
                         env["tx_id"] = existing_tx_id
@@ -866,7 +867,12 @@ class PersistentMempool:
         """
 
         if not isinstance(envs, list):
-            return [_with_timings({"ok": False, "error": "bad_envs:not_list"}, _empty_batch_timings() if include_timings else None)]
+            return [
+                _with_timings(
+                    {"ok": False, "error": "bad_envs:not_list"},
+                    _empty_batch_timings() if include_timings else None,
+                )
+            ]
 
         timings = _empty_batch_timings() if include_timings else None
         total_start = time.perf_counter_ns()
@@ -959,7 +965,17 @@ class PersistentMempool:
             signer_counts: dict[str, int] = {}
             tx_type_counts: dict[str, int] = {}
 
-            for idx, env, signer, tx_type, tx_id, nonce, requested_received_ms, expires_ms, protocol_expires_at_height in prepared:
+            for (
+                idx,
+                env,
+                signer,
+                tx_type,
+                tx_id,
+                nonce,
+                requested_received_ms,
+                expires_ms,
+                protocol_expires_at_height,
+            ) in prepared:
                 if results[idx] is not None:
                     continue
 
@@ -982,13 +998,17 @@ class PersistentMempool:
 
                 if nonce is not None:
                     start = time.perf_counter_ns()
-                    existing = _matching_signer_nonce_entry(con=con, signer=signer, nonce=int(nonce))
+                    existing = _matching_signer_nonce_entry(
+                        con=con, signer=signer, nonce=int(nonce)
+                    )
                     if timings is not None:
                         _add_timing(timings, "tx_duplicate_check_wall_ms", start)
                     if existing is not None:
                         existing_tx_id, existing_env = existing
                         start = time.perf_counter_ns()
-                        existing_base = _canon_json(_envelope_for_id(existing_env, chain_id=self.chain_id))
+                        existing_base = _canon_json(
+                            _envelope_for_id(existing_env, chain_id=self.chain_id)
+                        )
                         incoming_base = _canon_json(_envelope_for_id(env, chain_id=self.chain_id))
                         if timings is not None:
                             _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
@@ -999,16 +1019,22 @@ class PersistentMempool:
                             if "expires_ms" in existing_env:
                                 env["expires_ms"] = existing_env.get("expires_ms")
                             if "mempool_admitted_height" in existing_env:
-                                env["mempool_admitted_height"] = existing_env.get("mempool_admitted_height")
+                                env["mempool_admitted_height"] = existing_env.get(
+                                    "mempool_admitted_height"
+                                )
                             if "mempool_expires_height" in existing_env:
-                                env["mempool_expires_height"] = existing_env.get("mempool_expires_height")
+                                env["mempool_expires_height"] = existing_env.get(
+                                    "mempool_expires_height"
+                                )
                             results[idx] = {
                                 "ok": True,
                                 "tx_id": existing_tx_id,
                                 "already_known": True,
                                 "received_ms": existing_env.get("received_ms"),
                                 "expires_ms": existing_env.get("expires_ms"),
-                                "admitted_at_height": existing_env.get("mempool_admitted_height", 0),
+                                "admitted_at_height": existing_env.get(
+                                    "mempool_admitted_height", 0
+                                ),
                                 "expires_at_height": existing_env.get("mempool_expires_height", 0),
                                 "details": {
                                     "signer": signer,
@@ -1040,13 +1066,21 @@ class PersistentMempool:
                         tx_type_counts.clear()
                         if total_count >= self.max_items:
                             start = time.perf_counter_ns()
-                            results[idx] = {"ok": False, "error": "mempool_full", "details": {"max": self.max_items}}
+                            results[idx] = {
+                                "ok": False,
+                                "error": "mempool_full",
+                                "details": {"max": self.max_items},
+                            }
                             if timings is not None:
                                 _add_timing(timings, "tx_reject_wall_ms", start)
                             continue
                     else:
                         start = time.perf_counter_ns()
-                        results[idx] = {"ok": False, "error": "mempool_full", "details": {"max": self.max_items}}
+                        results[idx] = {
+                            "ok": False,
+                            "error": "mempool_full",
+                            "details": {"max": self.max_items},
+                        }
                         if timings is not None:
                             _add_timing(timings, "tx_reject_wall_ms", start)
                         continue
@@ -1059,16 +1093,26 @@ class PersistentMempool:
                             need = (signer_counts[signer] - self.max_per_signer) + 1
                             self._evict_oldest(con=con, need=int(need), signer=signer)
                             signer_counts[signer] = self._count_signer(signer, con=con)
-                            total_count = self._count_total(con=con) if self.max_items > 0 else total_count
+                            total_count = (
+                                self._count_total(con=con) if self.max_items > 0 else total_count
+                            )
                             if signer_counts[signer] >= self.max_per_signer:
                                 start = time.perf_counter_ns()
-                                results[idx] = {"ok": False, "error": "mempool_signer_quota", "details": {"signer": signer, "max": self.max_per_signer}}
+                                results[idx] = {
+                                    "ok": False,
+                                    "error": "mempool_signer_quota",
+                                    "details": {"signer": signer, "max": self.max_per_signer},
+                                }
                                 if timings is not None:
                                     _add_timing(timings, "tx_reject_wall_ms", start)
                                 continue
                         else:
                             start = time.perf_counter_ns()
-                            results[idx] = {"ok": False, "error": "mempool_signer_quota", "details": {"signer": signer, "max": self.max_per_signer}}
+                            results[idx] = {
+                                "ok": False,
+                                "error": "mempool_signer_quota",
+                                "details": {"signer": signer, "max": self.max_per_signer},
+                            }
                             if timings is not None:
                                 _add_timing(timings, "tx_reject_wall_ms", start)
                             continue
@@ -1081,16 +1125,26 @@ class PersistentMempool:
                             need = (tx_type_counts[tx_type] - self.max_per_tx_type) + 1
                             self._evict_oldest(con=con, need=int(need), tx_type=tx_type)
                             tx_type_counts[tx_type] = self._count_tx_type(tx_type, con=con)
-                            total_count = self._count_total(con=con) if self.max_items > 0 else total_count
+                            total_count = (
+                                self._count_total(con=con) if self.max_items > 0 else total_count
+                            )
                             if tx_type_counts[tx_type] >= self.max_per_tx_type:
                                 start = time.perf_counter_ns()
-                                results[idx] = {"ok": False, "error": "mempool_tx_type_quota", "details": {"tx_type": tx_type, "max": self.max_per_tx_type}}
+                                results[idx] = {
+                                    "ok": False,
+                                    "error": "mempool_tx_type_quota",
+                                    "details": {"tx_type": tx_type, "max": self.max_per_tx_type},
+                                }
                                 if timings is not None:
                                     _add_timing(timings, "tx_reject_wall_ms", start)
                                 continue
                         else:
                             start = time.perf_counter_ns()
-                            results[idx] = {"ok": False, "error": "mempool_tx_type_quota", "details": {"tx_type": tx_type, "max": self.max_per_tx_type}}
+                            results[idx] = {
+                                "ok": False,
+                                "error": "mempool_tx_type_quota",
+                                "details": {"tx_type": tx_type, "max": self.max_per_tx_type},
+                            }
                             if timings is not None:
                                 _add_timing(timings, "tx_reject_wall_ms", start)
                             continue
@@ -1140,7 +1194,9 @@ class PersistentMempool:
                     except Exception:
                         existing_env = {}
                     start = time.perf_counter_ns()
-                    existing_base = _canon_json(_envelope_for_id(existing_env, chain_id=self.chain_id))
+                    existing_base = _canon_json(
+                        _envelope_for_id(existing_env, chain_id=self.chain_id)
+                    )
                     incoming_base = _canon_json(_envelope_for_id(env, chain_id=self.chain_id))
                     if timings is not None:
                         _add_timing(timings, "tx_canonicalize_or_hash_wall_ms", start)
@@ -1151,9 +1207,13 @@ class PersistentMempool:
                         if "expires_ms" in existing_env:
                             env["expires_ms"] = existing_env.get("expires_ms")
                         if "mempool_admitted_height" in existing_env:
-                            env["mempool_admitted_height"] = existing_env.get("mempool_admitted_height")
+                            env["mempool_admitted_height"] = existing_env.get(
+                                "mempool_admitted_height"
+                            )
                         if "mempool_expires_height" in existing_env:
-                            env["mempool_expires_height"] = existing_env.get("mempool_expires_height")
+                            env["mempool_expires_height"] = existing_env.get(
+                                "mempool_expires_height"
+                            )
                         results[idx] = {
                             "ok": True,
                             "tx_id": tx_id,
@@ -1191,7 +1251,10 @@ class PersistentMempool:
 
         if timings is not None:
             timings["tx_submit_total_wall_ms"] = _elapsed_ms(total_start)
-            return [_with_timings(dict(r or {"ok": False, "error": "internal_missing_result"}), timings) for r in results]
+            return [
+                _with_timings(dict(r or {"ok": False, "error": "internal_missing_result"}), timings)
+                for r in results
+            ]
         return [dict(r or {"ok": False, "error": "internal_missing_result"}) for r in results]
 
     def remove(self, env_or_tx_id: Any) -> Json:
@@ -1369,7 +1432,9 @@ class PersistentMempool:
             ).fetchall()
         return self._decode_rows(list(rows or []))
 
-    def _load_candidate_rows_fifo(self, *, candidate_height: int, limit: int) -> list[tuple[Json, int, str]]:
+    def _load_candidate_rows_fifo(
+        self, *, candidate_height: int, limit: int
+    ) -> list[tuple[Json, int, str]]:
         lim = int(limit) if int(limit) > 0 else 1000
         h = int(candidate_height)
         with self.db.connection() as con:
@@ -1386,7 +1451,9 @@ class PersistentMempool:
             ).fetchall()
         return self._decode_rows(list(rows or []))
 
-    def _load_candidate_rows_canonical(self, *, candidate_height: int, limit: int) -> list[tuple[Json, int, str]]:
+    def _load_candidate_rows_canonical(
+        self, *, candidate_height: int, limit: int
+    ) -> list[tuple[Json, int, str]]:
         lim = int(limit) if int(limit) > 0 else 1000
         h = int(candidate_height)
         with self.db.connection() as con:
@@ -1413,24 +1480,21 @@ class PersistentMempool:
     ) -> list[Json]:
         lim = int(limit) if int(limit) > 0 else 1000
         pol = _selection_policy_name(policy or self.selection_policy())
-        try:
-            if candidate_height is not None:
-                h = int(candidate_height)
-                if pol == "canonical":
-                    rows = self._load_candidate_rows_canonical(candidate_height=h, limit=lim)
-                else:
-                    rows = self._load_candidate_rows_fifo(candidate_height=h, limit=lim)
+        if candidate_height is not None:
+            h = int(candidate_height)
+            if pol == "canonical":
+                rows = self._load_candidate_rows_canonical(candidate_height=h, limit=lim)
             else:
-                # Local diagnostic/back-compat path only. Consensus block construction
-                # must pass candidate_height so eligibility is anchored to protocol
-                # height, not the receiver's wall clock.
-                now = int(_now_ms() if now_ms is None else int(now_ms))
-                if pol == "canonical":
-                    rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
-                else:
-                    rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
-        except Exception:
-            return []
+                rows = self._load_candidate_rows_fifo(candidate_height=h, limit=lim)
+        else:
+            # Local diagnostic/back-compat path only. Consensus block construction
+            # must pass candidate_height so eligibility is anchored to protocol
+            # height, not the receiver's wall clock.
+            now = int(_now_ms() if now_ms is None else int(now_ms))
+            if pol == "canonical":
+                rows = self._load_live_rows_canonical(now_ms=now, limit=lim)
+            else:
+                rows = self._load_live_rows_fifo(now_ms=now, limit=lim)
         if pol == "canonical":
             rows.sort(key=lambda item: self._selection_key(item[0]))
         return [dict(env) if isinstance(env, dict) else {} for env, _received_ms, _tx_id in rows]

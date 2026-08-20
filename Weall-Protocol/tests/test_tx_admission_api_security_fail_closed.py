@@ -85,7 +85,7 @@ def test_request_size_limit_rejects_invalid_media_limit_env_in_prod(monkeypatch)
 
     client = TestClient(app)
     with pytest.raises(ValueError, match=r"invalid_integer_env:WEALL_IPFS_MAX_UPLOAD_BYTES"):
-        client.post("/v1/media/upload", data=b"x")
+        client.post("/v1/media/upload", content=b"x")
 
 
 @pytest.mark.parametrize("name", ["WEALL_RL_TTL_S", "WEALL_RL_MAX_KEYS", "WEALL_RL_PRUNE_EVERY"])

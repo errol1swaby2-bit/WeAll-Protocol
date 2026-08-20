@@ -2,9 +2,11 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
+from weall.crypto.signature_profiles import mode_requires_explicit_sig_profile
 from weall.ledger.state import LedgerView
 from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from weall.runtime.block_signature_profiles import validate_block_signature_profile
 from weall.runtime.block_time_admission import (
     block_height_from_header,
     block_ts_from_header,
@@ -13,8 +15,6 @@ from weall.runtime.block_time_admission import (
     validate_block_timestamp,
 )
 from weall.runtime.helper_block_validation import validate_received_helper_execution
-from weall.runtime.block_signature_profiles import validate_block_signature_profile
-from weall.crypto.signature_profiles import mode_requires_explicit_sig_profile
 from weall.runtime.protocol_profile import runtime_max_block_future_drift_ms
 from weall.runtime.public_protocol_policy import mark_public_protocol_policy_checked
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
@@ -151,18 +151,24 @@ def _validator_set_hash_from_validators(validators: list[str]) -> str:
 
 
 def _current_validator_epoch_from_state(state: Json) -> int:
+    """Return the canonical validator-set generation for BFT admission.
+
+    Protocol epochs are not validator-set generations.  Prefer the explicit
+    validator-set epoch and retain the protocol epoch only for legacy states
+    that predate ``consensus.validator_set`` generation tracking.
+    """
     c = state.get("consensus")
     if isinstance(c, dict):
-        ep = c.get("epochs")
-        if isinstance(ep, dict):
-            cur = _as_int(ep.get("current"), 0)
-            if cur > 0:
-                return cur
         vs = c.get("validator_set")
         if isinstance(vs, dict):
-            cur2 = _as_int(vs.get("epoch"), 0)
-            if cur2 > 0:
-                return cur2
+            generation = _as_int(vs.get("epoch"), 0)
+            if generation > 0:
+                return generation
+        ep = c.get("epochs")
+        if isinstance(ep, dict):
+            legacy_epoch = _as_int(ep.get("current"), 0)
+            if legacy_epoch > 0:
+                return legacy_epoch
     return 0
 
 
@@ -232,6 +238,7 @@ def _validate_helper_execution_metadata(
             },
         )
     return True, None
+
 
 def _validate_bft_proposal_leader_view(block: Json, state: Json) -> tuple[bool, BlockReject | None]:
     validators = _get_active_validators_from_state(state)
@@ -408,7 +415,9 @@ def admit_block_txs(
                 context="block" if bool(verify_signatures) else "local",
             )
             if not verdict.ok:
-                rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
+                rejects[i] = TxReject(
+                    code=verdict.code, reason=verdict.reason, details=verdict.details
+                )
             else:
                 mark_public_protocol_policy_checked(env)
             continue
@@ -487,7 +496,9 @@ def admit_bft_block(
     if not isinstance(block, dict):
         return False, BlockReject("bad_shape", "block_must_be_object", {"type": str(type(block))})
 
-    effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    effective_bft_enabled = (
+        _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    )
     if not effective_bft_enabled:
         has_sig_material = bool(
             block.get("sig_profile")
@@ -497,7 +508,9 @@ def admit_bft_block(
             or block.get("proposer_sig")
         )
         if has_sig_material and mode_requires_explicit_sig_profile():
-            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            chain_config = (
+                state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            )
             ok_sig_profile, sig_reason = validate_block_signature_profile(
                 block,
                 chain_config=chain_config,
@@ -624,7 +637,9 @@ def admit_bft_block(
             or block.get("proposer_sig")
         )
         if has_sig_material:
-            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            chain_config = (
+                state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            )
             ok_sig_profile, sig_reason = validate_block_signature_profile(
                 block, chain_config=chain_config, require_verifier=True
             )
@@ -752,7 +767,9 @@ def admit_bft_commit_block(
     if not ok:
         return ok, rej
 
-    effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    effective_bft_enabled = (
+        _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    )
     if not effective_bft_enabled:
         has_sig_material = bool(
             block.get("sig_profile")
@@ -762,7 +779,9 @@ def admit_bft_commit_block(
             or block.get("proposer_sig")
         )
         if has_sig_material and mode_requires_explicit_sig_profile():
-            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            chain_config = (
+                state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            )
             ok_sig_profile, sig_reason = validate_block_signature_profile(
                 block,
                 chain_config=chain_config,

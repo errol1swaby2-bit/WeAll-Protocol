@@ -1,8 +1,8 @@
 {
   "by_domain": {
-    "api": 103,
+    "api": 105,
     "launch_readiness": 32,
-    "runtime": 7,
+    "runtime": 8,
     "runtime_apply": 73
   },
   "codes": [
@@ -409,7 +409,7 @@
       "http_status": 400,
       "sample_reason": "Body must be a tx envelope object",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 67
+      "source_lineno": 62
     },
     {
       "code": "bad_request",
@@ -472,7 +472,7 @@
       "http_status": 403,
       "sample_reason": "signature verification failed",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 113
+      "source_lineno": 108
     },
     {
       "code": "bad_sig",
@@ -517,7 +517,7 @@
       "http_status": 403,
       "sample_reason": "attestation chain_id does not match this node",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 39
+      "source_lineno": 38
     },
     {
       "code": "chain_id_mismatch",
@@ -544,7 +544,7 @@
       "http_status": null,
       "sample_reason": "proposal_already_exists",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1531
+      "source_lineno": 1526
     },
     {
       "code": "conflict",
@@ -922,7 +922,7 @@
       "http_status": null,
       "sample_reason": "bad_proposer",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 1152
+      "source_lineno": 1305
     },
     {
       "code": "invalid_payload",
@@ -940,7 +940,7 @@
       "http_status": 400,
       "sample_reason": "missing payload.block_id",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 129
+      "source_lineno": 124
     },
     {
       "code": "invalid_payload",
@@ -976,7 +976,7 @@
       "http_status": null,
       "sample_reason": "bft_activation_requires_minimum_validator_count",
       "source": "src/weall/runtime/apply/consensus.py",
-      "source_lineno": 277
+      "source_lineno": 294
     },
     {
       "code": "invalid_payload",
@@ -1228,7 +1228,7 @@
       "http_status": 400,
       "sample_reason": "attestation envelope failed schema validation",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 72
+      "source_lineno": 67
     },
     {
       "code": "invalid_tx",
@@ -1271,6 +1271,15 @@
       "domain": "runtime",
       "family": "ApplyError",
       "http_status": null,
+      "sample_reason": "unclaimed_system_tx",
+      "source": "src/weall/runtime/block_builder.py",
+      "source_lineno": 284
+    },
+    {
+      "code": "invalid_tx",
+      "domain": "runtime",
+      "family": "ApplyError",
+      "http_status": null,
       "sample_reason": "missing_signer",
       "source": "src/weall/runtime/domain_apply.py",
       "source_lineno": 131
@@ -1300,7 +1309,7 @@
       "http_status": 403,
       "sample_reason": "public attestation endpoint only accepts BLOCK_ATTEST",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 80
+      "source_lineno": 75
     },
     {
       "code": "ipfs_error",
@@ -1336,7 +1345,7 @@
       "http_status": null,
       "sample_reason": "/v1/nodes has been removed; use /v1/nodes/seeds or /v1/nodes/known",
       "source": "src/weall/api/routes_nodes.py",
-      "source_lineno": 518
+      "source_lineno": 531
     },
     {
       "code": "legacy_endpoint_removed",
@@ -1480,7 +1489,7 @@
       "http_status": 403,
       "sample_reason": "chain_id is required for public attestation submission",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 32
+      "source_lineno": 31
     },
     {
       "code": "missing_chain_id",
@@ -1525,7 +1534,7 @@
       "http_status": 403,
       "sample_reason": "signature is required for public attestation submission",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 104
+      "source_lineno": 99
     },
     {
       "code": "missing_sig",
@@ -1597,7 +1606,7 @@
       "http_status": null,
       "sample_reason": "proposal_not_found",
       "source": "src/weall/runtime/apply/governance.py",
-      "source_lineno": 1259
+      "source_lineno": 1254
     },
     {
       "code": "not_found",
@@ -1606,7 +1615,7 @@
       "http_status": null,
       "sample_reason": "reviewer_collusion_suspicion_not_found",
       "source": "src/weall/runtime/apply/poh.py",
-      "source_lineno": 1407
+      "source_lineno": 1406
     },
     {
       "code": "not_found",
@@ -1715,6 +1724,15 @@
       "sample_reason": "executor not attached to app.state",
       "source": "src/weall/api/routes_public_parts/common.py",
       "source_lineno": 87
+    },
+    {
+      "code": "not_ready",
+      "domain": "api",
+      "family": "ApiError.internal",
+      "http_status": 500,
+      "sample_reason": "canonical attestation submission is not available",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 138
     },
     {
       "code": "not_ready",
@@ -1888,6 +1906,15 @@
       "source_lineno": 292
     },
     {
+      "code": "submission_missing_tx_id",
+      "domain": "api",
+      "family": "ApiError.internal",
+      "http_status": 500,
+      "sample_reason": "canonical attestation submission did not return a tx id",
+      "source": "src/weall/api/routes_public_parts/consensus.py",
+      "source_lineno": 154
+    },
+    {
       "code": "system_tx_forbidden",
       "domain": "api",
       "family": "ApiError.forbidden",
@@ -1903,7 +1930,7 @@
       "http_status": 403,
       "sample_reason": "system-only txs cannot be submitted through the public attestation endpoint",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 87
+      "source_lineno": 82
     },
     {
       "code": "system_tx_forbidden",
@@ -1939,10 +1966,10 @@
       "http_status": 403,
       "sample_reason": "payload.validator must match signer",
       "source": "src/weall/api/routes_public_parts/consensus.py",
-      "source_lineno": 133
+      "source_lineno": 128
     }
   ],
-  "entry_count": 215,
+  "entry_count": 218,
   "scanner": {
     "families": [
       "ApiError.bad_gateway",
@@ -1980,6 +2007,6 @@
   },
   "schema": "weall.v1_5.failure_code_registry",
   "truth_boundary": "Source-derived registry of stable ApiError/apply error codes; route/runtime tests remain the authority for exact response bodies.",
-  "unique_code_count": 102,
+  "unique_code_count": 103,
   "version": "2026-06-batch10a"
 }

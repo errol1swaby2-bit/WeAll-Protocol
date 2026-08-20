@@ -346,6 +346,18 @@ class LedgerView:
         return out
 
     def get_active_validator_set(self) -> list[str]:
+        """Return the canonical active validator set for admission/read boundaries.
+
+        An explicitly materialized consensus validator set is authoritative,
+        including an explicitly empty set.  ``roles.validators.active_set`` is
+        retained only as a legacy fallback for snapshots that predate the
+        consensus validator-set subtree.
+        """
+        consensus = self.consensus if isinstance(self.consensus, dict) else {}
+        validator_set = consensus.get("validator_set")
+        if isinstance(validator_set, dict) and "active_set" in validator_set:
+            return canonicalize_account_set(validator_set.get("active_set"))
+
         validators = self.roles.get("validators")
         if not isinstance(validators, dict):
             return []

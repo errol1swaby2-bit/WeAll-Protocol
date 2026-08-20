@@ -439,16 +439,18 @@ def _canonical_actor_key(active_identities: list[str], signer: str, state: Json)
 def _configured_active_validator_ids(state: Json) -> list[str]:
     """Return only explicitly configured active validators.
 
-    This intentionally excludes the legacy convenience behavior that inferred a
-    validator electorate from every Tier2 account when no validator config was
-    present. That inference remains useful for no-action community decisions in
-    tests/local flows, but executable protocol governance must fail closed unless
-    the electorate is explicitly recorded in chain state.
+    The explicit ``consensus.validator_set.active_set`` is authoritative whenever
+    present, including an intentionally empty set. Role and registry fallbacks are
+    retained only for legacy states that predate that consensus declaration.
     """
 
-    roles_present = isinstance(state.get("roles"), dict)
     consensus_present = isinstance(state.get("consensus"), dict)
+    consensus = _d(state.get("consensus"))
+    validator_set = _d(consensus.get("validator_set"))
+    if isinstance(validator_set.get("active_set"), list):
+        return _normalize_identity_list(state, validator_set.get("active_set"))
 
+    roles_present = isinstance(state.get("roles"), dict)
     roles = _d(state.get("roles"))
     validators = _d(roles.get("validators"))
 
@@ -480,13 +482,6 @@ def _configured_active_validator_ids(state: Json) -> list[str]:
         out = sorted(set(out))
         if out:
             return out
-
-    consensus = _d(state.get("consensus"))
-    validator_set = _d(consensus.get("validator_set"))
-
-    active_set = _normalize_identity_list(state, validator_set.get("active_set"))
-    if active_set:
-        return active_set
 
     registry = _d(_d(consensus.get("validators")).get("registry"))
     if consensus_present and registry:

@@ -612,6 +612,22 @@ class NetNode:
         return False
 
     def _is_validator(self, ledger: Json, account_id: str) -> bool:
+        """Resolve BFT network authority from the canonical consensus set.
+
+        Role membership records eligibility/lifecycle state; it must not grant
+        consensus-network authority when an explicit validator set exists.
+        """
+        consensus = ledger.get("consensus") if isinstance(ledger, dict) else None
+        if isinstance(consensus, dict):
+            validator_set = consensus.get("validator_set")
+            if isinstance(validator_set, dict) and isinstance(
+                validator_set.get("active_set"), list
+            ):
+                return str(account_id).strip() in {
+                    str(item).strip()
+                    for item in validator_set.get("active_set") or []
+                    if str(item).strip()
+                }
         roles = ledger.get("roles")
         if not isinstance(roles, dict):
             return False
@@ -625,20 +641,20 @@ class NetNode:
         ledger = self._get_ledger() or {}
         consensus = ledger.get("consensus") if isinstance(ledger, dict) else {}
         if isinstance(consensus, dict):
-            epochs = consensus.get("epochs")
-            if isinstance(epochs, dict):
-                try:
-                    cur = int(epochs.get("current") or 0)
-                    if cur > 0:
-                        return cur
-                except Exception:
-                    pass
             validator_set = consensus.get("validator_set")
             if isinstance(validator_set, dict):
                 try:
-                    cur2 = int(validator_set.get("epoch") or 0)
-                    if cur2 > 0:
-                        return cur2
+                    generation = int(validator_set.get("epoch") or 0)
+                    if generation > 0:
+                        return generation
+                except Exception:
+                    pass
+            epochs = consensus.get("epochs")
+            if isinstance(epochs, dict):
+                try:
+                    legacy_epoch = int(epochs.get("current") or 0)
+                    if legacy_epoch > 0:
+                        return legacy_epoch
                 except Exception:
                     pass
         return 0
@@ -652,6 +668,10 @@ class NetNode:
                 have = str(validator_set.get("set_hash") or "").strip()
                 if have:
                     return have
+                active = validator_set.get("active_set")
+                if isinstance(active, list):
+                    vals = _normalize_validators(active)
+                    return _canonical_validator_set_hash(vals) if vals else ""
         roles = ledger.get("roles") if isinstance(ledger, dict) else {}
         validators = roles.get("validators") if isinstance(roles, dict) else {}
         active = validators.get("active_set") if isinstance(validators, dict) else []

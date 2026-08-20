@@ -54,6 +54,7 @@ if [ -f "${WEB_DIR}/package.json" ]; then
   if [ ! -d node_modules ]; then
     run npm ci
   fi
+  run npm run dependency-audit
   run npm run typecheck
   run npm run build
   run npm run production-safety-check

@@ -164,9 +164,12 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
             "evidence_lifecycle": {"by_evidence": {}, "receipts": []},
         }
     )
-    # ML-DSA signatures are randomized, so independent sig-VRF proofs and
-    # resulting block hashes need not be byte-identical. The deterministic
-    # consensus payload and block_id must remain identical.
+    # ML-DSA proof bytes may be randomized, but the signed beacon output and
+    # canonical state transition must be deterministic for fixed consensus
+    # context.  Proof randomness may still make the final header/block hash
+    # candidate-specific until the leader records the exact artifact it signs.
+    assert st_a.get("rand", {}).get("vrf") == st_b.get("rand", {}).get("vrf")
+    assert blk_a["header"]["state_root"] == blk_b["header"]["state_root"]
     assert blk_a["block_id"] == blk_b["block_id"]
     assert blk_a["height"] == blk_b["height"]
     assert blk_a["prev_block_id"] == blk_b["prev_block_id"]
@@ -176,8 +179,7 @@ def test_build_block_candidate_normalizes_corrupt_poh_shapes_deterministically(
     assert blk_a["receipts"] == blk_b["receipts"]
     header_a = dict(blk_a["header"])
     header_b = dict(blk_b["header"])
-    # state_root commits the randomized sig-VRF record, so it is intentionally
-    # candidate-specific alongside the VRF record and final block hash.
+    # Compare all deterministic header fields independently of the proof bytes.
     for candidate_header in (header_a, header_b):
         candidate_header.pop("vrf", None)
         candidate_header.pop("state_root", None)

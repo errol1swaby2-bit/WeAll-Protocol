@@ -469,18 +469,28 @@ def _is_validator(ledger: Json, signer: str) -> bool:
     and compatibility metadata from satisfying Validator-gated protocol actions.
     """
 
+    consensus = _as_dict(ledger.get("consensus"))
+    validator_set = _as_dict(consensus.get("validator_set"))
+    registry = _as_dict(_as_dict(consensus.get("validators")).get("registry"))
+
+    # Once an explicit consensus active_set exists it is the validator-membership
+    # authority, including when it is intentionally empty. Secondary role and
+    # lifecycle registries must not re-grant authority to a signer excluded from
+    # that set.
+    if isinstance(validator_set.get("active_set"), list):
+        if _collection_has_blocked_record(registry, signer):
+            return False
+        return _matches_identity_collection(signer, validator_set.get("active_set", []))
+
+    # Legacy states without an explicit consensus set retain the historical role
+    # and registry fallbacks for migration compatibility.
     roles = _as_dict(ledger.get("roles"))
     rv = _as_dict(roles.get("validators"))
     if _active_role(rv, signer):
         return True
 
-    consensus = _as_dict(ledger.get("consensus"))
-    validator_set = _as_dict(consensus.get("validator_set"))
-    registry = _as_dict(_as_dict(consensus.get("validators")).get("registry"))
     if _collection_has_blocked_record(registry, signer):
         return False
-    if _matches_identity_collection(signer, validator_set.get("active_set", [])):
-        return True
     if _active_by_id(registry, signer):
         return True
 

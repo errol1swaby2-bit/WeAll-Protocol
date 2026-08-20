@@ -23,18 +23,19 @@ def _as_str(value: Any) -> str:
 
 def active_validator_count(state: Json) -> int:
     candidates: list[str] = []
+    consensus = state.get("consensus")
+    if isinstance(consensus, dict):
+        validator_set = consensus.get("validator_set")
+        if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
+            candidates = [_as_str(item).strip() for item in validator_set.get("active_set") or []]
+            return len(normalize_validators([item for item in candidates if item]))
+
+    # Legacy fallback only when no explicit consensus active_set exists.
     roles = state.get("roles")
     if isinstance(roles, dict):
         validators = roles.get("validators")
         if isinstance(validators, dict) and isinstance(validators.get("active_set"), list):
             candidates = [_as_str(item).strip() for item in validators.get("active_set") or []]
-
-    if not candidates:
-        consensus = state.get("consensus")
-        if isinstance(consensus, dict):
-            validator_set = consensus.get("validator_set")
-            if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
-                candidates = [_as_str(item).strip() for item in validator_set.get("active_set") or []]
 
     return len(normalize_validators([item for item in candidates if item]))
 
@@ -89,7 +90,9 @@ def adaptive_bootstrap_review_policy(
         "minimum_reviews": int(minimum),
         "approval_threshold": int(approval),
         "rejection_threshold": int(rejection),
-        "bootstrap_adaptive": bool(assigned != configured_jurors or minimum != configured_min_reviews),
+        "bootstrap_adaptive": bool(
+            assigned != configured_jurors or minimum != configured_min_reviews
+        ),
         "active_validators": int(active_validator_count(state)),
         "bft_min_validators": int(BFT_MIN_VALIDATORS),
     }

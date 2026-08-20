@@ -372,6 +372,7 @@ def v1_net_self(request: Request) -> dict[str, object]:
     connected_peers = None
     established_sessions = None
     seed_discovery: dict[str, Any] | None = None
+    loop_runtime: dict[str, Any] | None = None
     try:
         t = getattr(net, "transport", None)
         if t is not None and hasattr(t, "connections"):
@@ -399,6 +400,11 @@ def v1_net_self(request: Request) -> dict[str, object]:
             maybe_seed = seed_fn()
             if isinstance(maybe_seed, dict):
                 seed_discovery = maybe_seed
+        runtime_fn = getattr(loop, "runtime_debug", None)
+        if callable(runtime_fn):
+            maybe_runtime = runtime_fn()
+            if isinstance(maybe_runtime, dict):
+                loop_runtime = maybe_runtime
     except Exception as exc:
         if _is_prod():
             raise NetSelfStateError("net_self_seed_discovery_failed") from exc
@@ -434,6 +440,11 @@ def v1_net_self(request: Request) -> dict[str, object]:
     if require_peer_identity and not (cfg_pubkey or node_pubkey_env):
         warnings.append(
             "missing_identity_pubkey: set WEALL_NODE_PUBKEY to participate in identity-gated mesh"
+        )
+
+    if isinstance(loop_runtime, dict) and bool(loop_runtime.get("unhealthy")):
+        warnings.append(
+            "net_loop_unhealthy:" + str(loop_runtime.get("last_error") or "runtime_failure")
         )
 
     nat = _nat_traversal_report(
@@ -476,6 +487,7 @@ def v1_net_self(request: Request) -> dict[str, object]:
                 "ok": node_device_gate_ok,
             },
             "seed_discovery": seed_discovery,
+            "runtime": loop_runtime,
             "nat": nat,
         },
         "nat": nat,
