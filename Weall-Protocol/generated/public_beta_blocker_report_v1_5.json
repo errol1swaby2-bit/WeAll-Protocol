@@ -18,7 +18,7 @@
       "expected_production_behavior": "Independent multi-process/operator BFT proof with churn, equivocation, partition/rejoin, restart/replay, and transcript digest.",
       "gate_status": "gate_present_external_attestation_required",
       "id": "AUD-618-P0-001",
-      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_for_public_beta_and_mainnet_external_evidence",
       "remaining_external_evidence": [
         "independently operated validator run",
         "operator-signed transcript",
@@ -40,7 +40,7 @@
       "expected_production_behavior": "Counsel-reviewed public claims, token/economic/governance language, and jurisdictional risk review.",
       "gate_status": "manual_counsel_attestation_required",
       "id": "AUD-618-P0-002",
-      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_for_public_beta_and_mainnet_external_evidence",
       "remaining_external_evidence": [
         "token/economics claims reviewed by counsel or controlled external reviewer",
         "governance and treasury claims reviewed by counsel or controlled external reviewer",
@@ -59,13 +59,13 @@
         "public_beta",
         "mainnet"
       ],
-      "can_be_closed_by_code_only": true,
+      "can_be_closed_by_code_only": false,
       "current_behavior": "Protocol upgrades are record-only and auto-apply remains disabled.",
       "evidence_gate": "protocol_upgrade_execution_hardening_plan",
       "expected_production_behavior": "Signed artifact manifests, deterministic migration vectors, rollback semantics, operator approval policy, and staged multi-node rehearsal before execution.",
       "gate_status": "hardening_plan_present_execution_still_disabled",
       "id": "AUD-618-P0-003",
-      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_for_public_beta_and_mainnet_external_evidence",
       "remaining_external_evidence": [
         "future production execution gate",
         "operator approval policy",
@@ -89,7 +89,7 @@
       "expected_production_behavior": "Fresh profile-aware closed-testnet rehearsal evidence, browser/local signing boundary review, helper/evidence-signing production gates, and external crypto review before long-lived public network claims.",
       "gate_status": "gate_present_real_mldsa_integrated_external_review_required",
       "id": "AUD-633-P0-004",
-      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_for_closed_testnet_and_public_beta_and_mainnet_external_evidence",
       "remaining_external_evidence": [
         "fresh profile-aware testnet rehearsal",
         "browser/local signing boundary review",
@@ -145,7 +145,7 @@
       "expected_production_behavior": "External/two-physical-machine replay transcript proving identical state roots, vector digest, and tx-index hash on the same commit.",
       "gate_status": "gate_present_external_transcript_required",
       "id": "AUD-618-P1-003",
-      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_for_public_beta_external_evidence",
       "remaining_external_evidence": [
         "external machine replay transcript",
         "same-commit state-root replay transcript",
@@ -166,7 +166,7 @@
       "expected_production_behavior": "Real daemon/operator topology with failure, retrieval, corrupt-content, wrong-CID, and revalidation transcript.",
       "gate_status": "gate_present_real_operator_rehearsal_required",
       "id": "AUD-618-P1-004",
-      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_for_public_beta_external_evidence",
       "remaining_external_evidence": [
         "real IPFS daemon transcript",
         "independent storage operator transcript"
@@ -180,13 +180,13 @@
       "blocks": [
         "public_beta"
       ],
-      "can_be_closed_by_code_only": true,
+      "can_be_closed_by_code_only": false,
       "current_behavior": "Production helper execution remains disabled and future topology evidence is now planned.",
       "evidence_gate": "production_helper_topology_hardening_plan",
       "expected_production_behavior": "Helper assignment, receipts, merge, crash, Byzantine, capacity/backpressure, operator policy, governance/release gate, and serial equivalence proven under production topology before activation.",
       "gate_status": "hardening_plan_present_execution_still_disabled",
       "id": "AUD-618-P1-005",
-      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_for_public_beta_external_evidence",
       "remaining_external_evidence": [
         "future helper production enablement governance/release gate",
         "multi-node helper topology transcript",
@@ -225,7 +225,7 @@
       "expected_production_behavior": "Clean-clone transcript proves signed registry discovery, seed/validator peer discovery, state sync, and frontend visibility from a new user environment.",
       "gate_status": "gate_present_external_transcript_required",
       "id": "AUD-628-P1-001",
-      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_for_public_observer_launch_external_evidence",
       "remaining_external_evidence": [
         "external clean-clone observer transcript",
         "state-sync proof",
