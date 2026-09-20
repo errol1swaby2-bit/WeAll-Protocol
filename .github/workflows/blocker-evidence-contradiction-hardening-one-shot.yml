@@ -10,8 +10,8 @@ permissions:
 
 jobs:
   harden:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'github-actions[bot]' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,121 +24,20 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install locked backend dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r Weall-Protocol/requirements-dev.lock
 
-      - name: Apply contradiction and artifact-summary hardening
-        shell: bash
+      - name: Apply bounded hardening
+        run: python scripts/tmp_blocker_evidence_contradiction_hardening.py
+
+      - name: Remove temporary helpers before source-sensitive generation
         run: |
-          set -Eeuo pipefail
-          python - <<'PY'
-          from pathlib import Path
+          rm scripts/tmp_blocker_evidence_contradiction_hardening.py
+          rm .github/workflows/blocker-evidence-contradiction-hardening-one-shot.yml
 
-          path = Path('Weall-Protocol/scripts/gen_public_beta_blocker_report_v1_5.py')
-          text = path.read_text(encoding='utf-8')
-
-          def replace_once(old: str, new: str) -> None:
-              global text
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'expected exactly one replacement target, found {count}: {old[:160]!r}')
-              text = text.replace(old, new, 1)
-
-          replace_once(
-              '        "ok": bool(payload.get("ok", True)) if payload else False,\n',
-              '        "ok": payload.get("ok") is True if payload else False,\n',
-          )
-
-          replace_once(
-              '''    if gate_status.startswith("closed"):\n        category = "closed_by_artifact_or_docs"\n''',
-              '''    is_closed = gate_status.startswith("closed")\n    if is_closed and remaining_external_evidence:\n        raise SystemExit(\n            "closed blocker status contradicts non-empty remaining_external_evidence"\n        )\n    if is_closed:\n        category = "closed_by_artifact_or_docs"\n''',
-          )
-
-          marker = '\n\ndef build() -> Json:\n'
-          if marker not in text:
-              raise SystemExit('build() marker not found')
-          invariant = '''\n\ndef _validate_blocker_invariants(blockers: list[Json]) -> None:\n    seen_ids: set[str] = set()\n    for index, blocker in enumerate(blockers):\n        blocker_id = blocker.get("id")\n        if not isinstance(blocker_id, str) or not blocker_id.strip():\n            raise SystemExit(f"blockers[{index}] missing non-empty id")\n        if blocker_id in seen_ids:\n            raise SystemExit(f"duplicate blocker id: {blocker_id}")\n        seen_ids.add(blocker_id)\n\n        gate_status = blocker.get("gate_status")\n        if not isinstance(gate_status, str) or not gate_status.strip():\n            raise SystemExit(f"{blocker_id} missing non-empty gate_status")\n        is_closed = gate_status.startswith("closed")\n\n        remaining = blocker.get("remaining_external_evidence")\n        if not isinstance(remaining, list) or not all(\n            isinstance(item, str) and item.strip() for item in remaining\n        ):\n            raise SystemExit(\n                f"{blocker_id} remaining_external_evidence must be a list of non-empty strings"\n            )\n        if is_closed and remaining:\n            raise SystemExit(\n                f"{blocker_id} is closed but still declares remaining external evidence"\n            )\n\n        safe_to_close = blocker.get("safe_to_close_with_current_repository_evidence")\n        if not isinstance(safe_to_close, bool):\n            raise SystemExit(f"{blocker_id} safe_to_close flag must be boolean")\n        if safe_to_close is not is_closed:\n            raise SystemExit(\n                f"{blocker_id} safe_to_close flag contradicts gate_status={gate_status!r}"\n            )\n\n        blocks = blocker.get("blocks")\n        if not isinstance(blocks, list) or not blocks or not all(\n            isinstance(item, str) and item.strip() for item in blocks\n        ):\n            raise SystemExit(f"{blocker_id} blocks must be a non-empty list of strings")\n'''
-          text = text.replace(marker, invariant + marker, 1)
-
-          replace_once(
-              '''    # Fail closed: every blocker that is not explicitly closed remains open.\n''',
-              '''    _validate_blocker_invariants(blockers)\n\n    # Fail closed: every blocker that is not explicitly closed remains open.\n''',
-          )
-
-          path.write_text(text, encoding='utf-8')
-          PY
-
-          cat >> Weall-Protocol/tests/test_public_beta_blocker_report_fail_closed.py <<'PYTEST'
-
-
-def test_closed_status_with_remaining_external_evidence_is_rejected() -> None:
-    module = _load_module()
-    try:
-        module._classify_blocker(
-            severity="P1",
-            blocks=["public_beta"],
-            gate_status="closed_as_artifact_gate",
-            remaining_external_evidence=["still missing external transcript"],
-            can_be_closed_by_code_only=True,
-        )
-    except SystemExit as exc:
-        assert "contradicts" in str(exc)
-    else:
-        raise AssertionError("contradictory closed blocker must fail closed")
-
-
-def test_duplicate_blocker_ids_are_rejected() -> None:
-    module = _load_module()
-    row = {
-        "id": "AUD-DUP",
-        "severity": "P1",
-        "blocks": ["public_beta"],
-        "gate_status": "gate_failed",
-        "remaining_external_evidence": [],
-        "safe_to_close_with_current_repository_evidence": False,
-    }
-    try:
-        module._validate_blocker_invariants([row, dict(row)])
-    except SystemExit as exc:
-        assert "duplicate blocker id" in str(exc)
-    else:
-        raise AssertionError("duplicate blocker IDs must fail closed")
-
-
-def test_artifact_summary_requires_explicit_ok_true(tmp_path: Path) -> None:
-    import json
-
-    module = _load_module()
-    module.ROOT = tmp_path
-    generated = tmp_path / "generated"
-    generated.mkdir()
-
-    (generated / "missing_ok.json").write_text(
-        json.dumps({"schema": "test.schema", "payload": {"x": 1}}),
-        encoding="utf-8",
-    )
-    assert module._artifact_summary("generated/missing_ok.json")["ok"] is False
-
-    (generated / "explicit_true.json").write_text(
-        json.dumps({"schema": "test.schema", "ok": True}),
-        encoding="utf-8",
-    )
-    assert module._artifact_summary("generated/explicit_true.json")["ok"] is True
-
-    (generated / "explicit_false.json").write_text(
-        json.dumps({"schema": "test.schema", "ok": False}),
-        encoding="utf-8",
-    )
-    assert module._artifact_summary("generated/explicit_false.json")["ok"] is False
-PYTEST
-
-      - name: Remove one-shot workflow before source-sensitive generation
-        run: rm .github/workflows/blocker-evidence-contradiction-hardening-one-shot.yml
-
-      - name: Format, regenerate, and validate
-        shell: bash
+      - name: Regenerate and validate
         run: |
           set -Eeuo pipefail
           cd Weall-Protocol
@@ -148,11 +47,7 @@ PYTEST
           PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
           PYTHONPATH=src python scripts/gen_current_verified_claims.py
           PYTHONPATH=src:scripts python scripts/compile_v2_spec.py
-          PYTHONPATH=src:scripts python -m pytest -q \
-            tests/test_public_beta_blocker_report_fail_closed.py \
-            tests/test_current_verified_claims_fail_closed.py \
-            tests/prod/test_public_beta_evidence_gates.py \
-            tests/test_public_readiness_artifacts_v15.py
+          PYTHONPATH=src:scripts python -m pytest -q tests/test_public_beta_blocker_report_fail_closed.py tests/test_current_verified_claims_fail_closed.py tests/prod/test_public_beta_evidence_gates.py tests/test_public_readiness_artifacts_v15.py
           PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
           PYTHONPATH=src python scripts/gen_current_verified_claims.py --check
           PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked
@@ -162,7 +57,6 @@ PYTEST
           git diff --check
 
       - name: Commit validated final tree
-        shell: bash
         run: |
           set -Eeuo pipefail
           git config user.name 'github-actions[bot]'
