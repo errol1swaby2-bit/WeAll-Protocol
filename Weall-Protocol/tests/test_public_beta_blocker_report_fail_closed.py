@@ -86,3 +86,64 @@ def test_needs_more_vectors_without_external_evidence_is_not_classified_closed()
     )
     assert result["blocker_category"] == "code_or_test_hardening"
     assert result["safe_to_close_with_current_repository_evidence"] is False
+
+
+def test_closed_status_with_remaining_external_evidence_is_rejected() -> None:
+    module = _load_module()
+    try:
+        module._classify_blocker(
+            severity="P1",
+            blocks=["public_beta"],
+            gate_status="closed_as_artifact_gate",
+            remaining_external_evidence=["still missing external transcript"],
+            can_be_closed_by_code_only=True,
+        )
+    except SystemExit as exc:
+        assert "contradicts" in str(exc)
+    else:
+        raise AssertionError("contradictory closed blocker must fail closed")
+
+
+def test_duplicate_blocker_ids_are_rejected() -> None:
+    module = _load_module()
+    row = {
+        "id": "AUD-DUP",
+        "severity": "P1",
+        "blocks": ["public_beta"],
+        "gate_status": "gate_failed",
+        "remaining_external_evidence": [],
+        "safe_to_close_with_current_repository_evidence": False,
+    }
+    try:
+        module._validate_blocker_invariants([row, dict(row)])
+    except SystemExit as exc:
+        assert "duplicate blocker id" in str(exc)
+    else:
+        raise AssertionError("duplicate blocker IDs must fail closed")
+
+
+def test_artifact_summary_requires_explicit_ok_true(tmp_path: Path) -> None:
+    import json
+
+    module = _load_module()
+    module.ROOT = tmp_path
+    generated = tmp_path / "generated"
+    generated.mkdir()
+
+    (generated / "missing_ok.json").write_text(
+        json.dumps({"schema": "test.schema", "payload": {"x": 1}}),
+        encoding="utf-8",
+    )
+    assert module._artifact_summary("generated/missing_ok.json")["ok"] is False
+
+    (generated / "explicit_true.json").write_text(
+        json.dumps({"schema": "test.schema", "ok": True}),
+        encoding="utf-8",
+    )
+    assert module._artifact_summary("generated/explicit_true.json")["ok"] is True
+
+    (generated / "explicit_false.json").write_text(
+        json.dumps({"schema": "test.schema", "ok": False}),
+        encoding="utf-8",
+    )
+    assert module._artifact_summary("generated/explicit_false.json")["ok"] is False

@@ -69,7 +69,7 @@ def _artifact_summary(rel: str) -> Json:
     return {
         "path": rel,
         "present": bool(payload),
-        "ok": bool(payload.get("ok", True)) if payload else False,
+        "ok": payload.get("ok") is True if payload else False,
         "schema": str(payload.get("schema") or "") if payload else "",
         "digest": _digest(payload) if payload else "",
     }
@@ -274,7 +274,10 @@ def _classify_blocker(
     remaining_external_evidence: list[str],
     can_be_closed_by_code_only: bool,
 ) -> Json:
-    if gate_status.startswith("closed"):
+    is_closed = gate_status.startswith("closed")
+    if is_closed and remaining_external_evidence:
+        raise SystemExit("closed blocker status contradicts non-empty remaining_external_evidence")
+    if is_closed:
         category = "closed_by_artifact_or_docs"
         disposition = "closed_in_repository"
         safe_with_current_evidence = True
@@ -337,6 +340,50 @@ def _blocker(
         "remaining_external_evidence": remaining,
         **classification,
     }
+
+
+def _validate_blocker_invariants(blockers: list[Json]) -> None:
+    seen_ids: set[str] = set()
+    for index, blocker in enumerate(blockers):
+        blocker_id = blocker.get("id")
+        if not isinstance(blocker_id, str) or not blocker_id.strip():
+            raise SystemExit(f"blockers[{index}] missing non-empty id")
+        if blocker_id in seen_ids:
+            raise SystemExit(f"duplicate blocker id: {blocker_id}")
+        seen_ids.add(blocker_id)
+
+        gate_status = blocker.get("gate_status")
+        if not isinstance(gate_status, str) or not gate_status.strip():
+            raise SystemExit(f"{blocker_id} missing non-empty gate_status")
+        is_closed = gate_status.startswith("closed")
+
+        remaining = blocker.get("remaining_external_evidence")
+        if not isinstance(remaining, list) or not all(
+            isinstance(item, str) and item.strip() for item in remaining
+        ):
+            raise SystemExit(
+                f"{blocker_id} remaining_external_evidence must be a list of non-empty strings"
+            )
+        if is_closed and remaining:
+            raise SystemExit(
+                f"{blocker_id} is closed but still declares remaining external evidence"
+            )
+
+        safe_to_close = blocker.get("safe_to_close_with_current_repository_evidence")
+        if not isinstance(safe_to_close, bool):
+            raise SystemExit(f"{blocker_id} safe_to_close flag must be boolean")
+        if safe_to_close is not is_closed:
+            raise SystemExit(
+                f"{blocker_id} safe_to_close flag contradicts gate_status={gate_status!r}"
+            )
+
+        blocks = blocker.get("blocks")
+        if (
+            not isinstance(blocks, list)
+            or not blocks
+            or not all(isinstance(item, str) and item.strip() for item in blocks)
+        ):
+            raise SystemExit(f"{blocker_id} blocks must be a non-empty list of strings")
 
 
 def build() -> Json:
@@ -590,6 +637,8 @@ def build() -> Json:
             True,
         ),
     ]
+
+    _validate_blocker_invariants(blockers)
 
     # Fail closed: every blocker that is not explicitly closed remains open.
     # This intentionally treats statuses such as "gate_failed",
