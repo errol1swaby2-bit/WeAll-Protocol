@@ -32,13 +32,20 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Delete helper, regenerate derivatives, validate, and commit
+      - name: Delete helper, regenerate, commit locally, validate exact commit, and push
         shell: bash
         run: |
           set -Eeuo pipefail
           rm .github/workflows/v2-source-sensitive-refresh-once.yml
           cd Weall-Protocol
           PYTHONPATH=src python scripts/compile_v2_spec.py
+          cd ..
+          git add -A
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Refresh V2 derivatives after test wording update'
+          FINAL_SHA="$(git rev-parse HEAD)"
+          cd Weall-Protocol
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
@@ -47,9 +54,6 @@ jobs:
           python scripts/gen_current_verified_claims.py --check
           pytest -q tests/test_direct_message_transaction_quarantine.py tests/test_current_document_registry.py
           cd ..
-          git status --short
-          git add -A
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Refresh V2 derivatives after test wording update'
+          test "$(git rev-parse HEAD)" = "$FINAL_SHA"
+          test -z "$(git status --porcelain)"
           git push origin HEAD:claim-surface-registry-hardening
