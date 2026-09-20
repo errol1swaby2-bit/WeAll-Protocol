@@ -1,7 +1,9 @@
 name: Claim Surface Registry Hardening Once
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - claim-surface-registry-hardening
 
 permissions:
   contents: write
@@ -10,4 +12,23 @@ jobs:
   harden:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Paused while the resume helper is staged."
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: claim-surface-registry-hardening
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Resume, regenerate, validate, and commit
+        run: bash scripts/claim-surface-registry-hardening-resume-once.sh
