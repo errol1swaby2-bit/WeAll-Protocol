@@ -1,4 +1,5 @@
 name: Claim Registry Completeness Refresh Once
+# resume after exact allowed-claim synchronization
 
 on:
   push:

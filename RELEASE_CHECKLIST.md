@@ -2,7 +2,7 @@
 
 This checklist is for bounded repository verification and rehearsal preparation against the current generated readiness artifacts. It does not escalate readiness claims.
 
-Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, cryptographic-review, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.** Independent cryptographic review remains a separate launch gate.
 
 ## Current status
 
