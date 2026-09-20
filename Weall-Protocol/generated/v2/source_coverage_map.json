@@ -526,7 +526,7 @@
       ],
       "path": "docs/CURRENT_DOCUMENT_REGISTRY.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a390ddec540280d44ecc094e564b89f3d07653b83a3bd6d830c925e890c5fea6",
+      "sha256": "a3b442468fb15ca6aca8eef1d1fb4c7d0bead42c4fc33b98da9a8117b2e1c83d",
       "source_id": "SRC-A51AC0876553B0DD"
     },
     {
@@ -3991,7 +3991,7 @@
       ],
       "path": "scripts/check_public_claim_freshness.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "687b25bb2369558d2a652a8c8d244fbe164e34480fa530b24f969c983adeb387",
+      "sha256": "001a03c8f0dfc8862277540e61dd0b88723544a2b43ea3ebd05057f8b98a00e2",
       "source_id": "SRC-927BB0F44ECD50DF"
     },
     {
@@ -15563,7 +15563,7 @@
       ],
       "path": "tests/test_current_document_registry.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "1621d706f70c6bf6607171de5d67a8b70fa2d13f9e33c5e27d53a74c72085a2c",
+      "sha256": "893f459823a2ec1f7007253142135eeb0ea60582c040f65dc5604b130b899370",
       "source_id": "SRC-2BE6E660EA281E38"
     },
     {

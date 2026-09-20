@@ -51,9 +51,7 @@ def test_coverage_glob_fails_closed_for_unclassified_document(
     (tmp_path / "README.md").write_text("# current\n", encoding="utf-8")
     (tmp_path / "UNCLASSIFIED.md").write_text("# should fail\n", encoding="utf-8")
     registry = {
-        "documents": [
-            {"path": "README.md", "classification": "CURRENT", "claim_scan": True}
-        ],
+        "documents": [{"path": "README.md", "classification": "CURRENT", "claim_scan": True}],
         "coverage_globs": ["*.md"],
         "prefix_classifications": [],
     }
