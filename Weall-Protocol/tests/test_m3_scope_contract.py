@@ -60,14 +60,22 @@ def test_m3_traceability_records_implementation_ready_and_evidence_pending() -> 
 
 
 def test_m3_formal_traceability_refuses_missing_replacement_freeze_evidence() -> None:
-    result = subprocess.run(
-        [sys.executable, "scripts/check_m3_requirement_traceability.py"],
-        cwd=REPO_ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        check=False,
-    )
+    manifest_path = REPO_ROOT / "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
+    manifest_bytes = manifest_path.read_bytes() if manifest_path.is_file() else None
+    if manifest_bytes is not None:
+        manifest_path.unlink()
+    try:
+        result = subprocess.run(
+            [sys.executable, "scripts/check_m3_requirement_traceability.py"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+    finally:
+        if manifest_bytes is not None:
+            manifest_path.write_bytes(manifest_bytes)
     assert result.returncode != 0
     assert "m3_traceability_missing:artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json" in result.stdout
 
