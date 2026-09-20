@@ -3673,7 +3673,7 @@
       ],
       "path": "pyproject.toml",
       "primary_mechanism_id": "M-075",
-      "sha256": "0b2f47e41da1bcc207e34e5424774752e8a987e8e00dc1be2cd4428f3b68dfad",
+      "sha256": "76d1817063ace868375b0180c68f91876a39a70bc9b70b1736a0d3fc9f0feb4c",
       "source_id": "SRC-50C86B7ED8AC2CF9"
     },
     {
@@ -3686,7 +3686,7 @@
       ],
       "path": "requirements-dev.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "442b617d429369ea3e3d939c1ab2e047155282fa20497510fcbd1b29bf0fef6e",
+      "sha256": "6e05badb9b048421e442cb0db48dda83abc0e6436ecd071a8610ce45b60c5401",
       "source_id": "SRC-76E5F5875EE0F8B7"
     },
     {
@@ -3699,7 +3699,7 @@
       ],
       "path": "requirements.in",
       "primary_mechanism_id": "M-075",
-      "sha256": "9bc730cebeeb70a0ef6fac5b0f74fc44d055e9b3f6f88c6640f772756dbec7f5",
+      "sha256": "b1939fd98fbc27aa61b15fde225d8795c35bd3fd9dd2685d0f2533e0b7115b69",
       "source_id": "SRC-DE469CC9CF8992FF"
     },
     {
@@ -3712,7 +3712,7 @@
       ],
       "path": "requirements.lock",
       "primary_mechanism_id": "M-075",
-      "sha256": "5cb1b2902c9c899ce66d836334b51858b662dbcbefefad202ca2de12e5503599",
+      "sha256": "07371592ee393d8146a450389335e0cae4af3cad61e6fee9e1ba98560d0a6eda",
       "source_id": "SRC-DDFDE0DD1838FD1F"
     },
     {
