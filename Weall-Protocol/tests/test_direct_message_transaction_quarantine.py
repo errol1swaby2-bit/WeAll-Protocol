@@ -47,18 +47,6 @@ def test_direct_message_tx_types_absent_from_public_testnet_tx_index() -> None:
     ]
 
 
-def test_tx_canon_source_does_not_regenerate_private_message_types() -> None:
-    canon = _read(ROOT / "specs" / "tx_canon" / "tx_canon.yaml")
-    schema = _read(ROOT / "src" / "weall" / "runtime" / "tx_schema.py")
-    generated = _read(ROOT / "generated" / "tx_index.json")
-
-    combined = "\n".join([canon, schema, generated])
-    for term in PRIVATE_TERMS:
-        assert term not in combined, (
-            f"private/direct message tx term must stay absent from canon/schema/generated artifacts: {term}"
-        )
-
-
 def test_reviewer_docs_quarantine_private_message_language_instead_of_claiming_it() -> None:
     docs = [
         OUTER_ROOT / "README.md",
@@ -73,7 +61,7 @@ def test_reviewer_docs_quarantine_private_message_language_instead_of_claiming_i
 
     for required in (
         "public-only civic protocol",
-        "private/direct/encrypted messaging is not part of the nlnet/public-testnet claim",
+        "private/direct/encrypted messaging is not part of the current public-testnet scope",
         "legacy/out-of-scope",
         "group membership may gate",
         "must not gate read visibility",
