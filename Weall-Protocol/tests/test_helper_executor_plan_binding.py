@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from weall.runtime.helper_executor import HelperExecutor
+from weall.testing.helper_executor import HelperExecutor
 
 
 def test_helper_executor_carries_plan_id_into_receipt() -> None:
-    executor = HelperExecutor({"h1": "secret"})
+    executor = HelperExecutor({"h1": "11" * 32})
     result = executor.execute_lane(
         chain_id="c1",
         height=10,
@@ -19,21 +19,27 @@ def test_helper_executor_carries_plan_id_into_receipt() -> None:
     )
     assert result.plan_id == "plan-1"
     assert result.receipt.plan_id == "plan-1"
-    assert executor.verify_lane_result(
-        result,
-        chain_id="c1",
-        height=10,
-        validator_epoch=3,
-        validator_set_hash="vh",
-        parent_block_id="p1",
-        expected_plan_id="plan-1",
-    ) is True
-    assert executor.verify_lane_result(
-        result,
-        chain_id="c1",
-        height=10,
-        validator_epoch=3,
-        validator_set_hash="vh",
-        parent_block_id="p1",
-        expected_plan_id="wrong-plan",
-    ) is False
+    assert (
+        executor.verify_lane_result(
+            result,
+            chain_id="c1",
+            height=10,
+            validator_epoch=3,
+            validator_set_hash="vh",
+            parent_block_id="p1",
+            expected_plan_id="plan-1",
+        )
+        is True
+    )
+    assert (
+        executor.verify_lane_result(
+            result,
+            chain_id="c1",
+            height=10,
+            validator_epoch=3,
+            validator_set_hash="vh",
+            parent_block_id="p1",
+            expected_plan_id="wrong-plan",
+        )
+        is False
+    )

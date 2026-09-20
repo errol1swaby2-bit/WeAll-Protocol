@@ -49,13 +49,12 @@ def test_missing_parent_fetch_requests_are_bounded_and_rotating(
     )
 
     for i in range(7):
-        assert ex.bft_cache_remote_block(
-            _pending_block(
-                block_id=f"child-{i}",
-                parent_id=f"missing-parent-{i}",
-                height=10 + i,
-            )
+        block = _pending_block(
+            block_id=f"child-{i}",
+            parent_id=f"missing-parent-{i}",
+            height=10 + i,
         )
+        ex._put_pending_remote_block(block_id=str(block["block_id"]), block=block)
 
     first = ex.bft_resolved_pending_fetch_request_descriptors()
     second = ex.bft_resolved_pending_fetch_request_descriptors()
@@ -101,13 +100,12 @@ def test_fetch_budget_resets_when_missing_parent_backlog_clears(
     ex = _make_executor(tmp_path, monkeypatch)
 
     for i in range(4):
-        assert ex.bft_cache_remote_block(
-            _pending_block(
-                block_id=f"child-clear-{i}",
-                parent_id=f"missing-clear-{i}",
-                height=20 + i,
-            )
+        block = _pending_block(
+            block_id=f"child-clear-{i}",
+            parent_id=f"missing-clear-{i}",
+            height=20 + i,
         )
+        ex._put_pending_remote_block(block_id=str(block["block_id"]), block=block)
 
     first = ex.bft_resolved_pending_fetch_request_descriptors()
     assert [
@@ -122,9 +120,8 @@ def test_fetch_budget_resets_when_missing_parent_backlog_clears(
 
     assert ex.bft_resolved_pending_fetch_request_descriptors() == []
 
-    assert ex.bft_cache_remote_block(
-        _pending_block(block_id="child-fresh", parent_id="missing-fresh", height=50)
-    )
+    block = _pending_block(block_id="child-fresh", parent_id="missing-fresh", height=50)
+    ex._put_pending_remote_block(block_id=str(block["block_id"]), block=block)
     after_reset = ex.bft_resolved_pending_fetch_request_descriptors()
     assert after_reset == [
         {

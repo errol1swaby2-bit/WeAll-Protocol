@@ -70,7 +70,6 @@ class _FakeExecutor:
             },
         }
 
-
     def tx_index_hash(self) -> str:
         return "txindexhash-batch6"
 
@@ -132,8 +131,9 @@ def test_status_consensus_exposes_operator_stall_diagnostics(monkeypatch) -> Non
     assert body["runtime_profile"]["reputation_scale"] == 1000
 
 
-def test_status_operator_and_readyz_surface_consensus_diagnostics(monkeypatch) -> None:
+def test_status_operator_and_readyz_surface_consensus_diagnostics(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "operator-observability.db"))
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@validator-4")
 

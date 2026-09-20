@@ -8,7 +8,13 @@ from weall.runtime.domain_apply import NonceSideEffectError, apply_tx_atomic
 
 
 def _base_state() -> dict:
-    return {"accounts": {}, "roles": {}, "params": {"system_signer": "SYSTEM"}, "poh": {}, "last_block_ts_ms": 0}
+    return {
+        "accounts": {},
+        "roles": {},
+        "params": {"system_signer": "SYSTEM"},
+        "poh": {},
+        "last_block_ts_ms": 0,
+    }
 
 
 def test_nonce_convergence_preserves_existing_success_path() -> None:

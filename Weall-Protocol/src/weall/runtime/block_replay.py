@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 """Follower-side received block replay and commitment verification delegate.
 
@@ -10,12 +11,15 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.bft_finality_bridge import schedule_bft_finality_receipt
+from weall.runtime.block_commitment_validation import validate_received_block_commitments
+from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.executor import (
+    MAX_BLOCK_TIME_ADVANCE_MS,
     ApplyError,
     ExecutorMeta,
     Json,
     LedgerView,
-    MAX_BLOCK_TIME_ADVANCE_MS,
     TxEnvelope,
     _call_admit_bft_commit_block,
     _consensus_fail_closed,
@@ -28,7 +32,6 @@ from weall.runtime.executor import (
     _sanitize_mempool_selection_marker,
     _summarize_transition_guardrail_receipts,
     admit_block_txs,
-    compute_block_hash,
     compute_block_id,
     compute_helper_execution_root,
     compute_receipts_root,
@@ -37,15 +40,13 @@ from weall.runtime.executor import (
     copy,
     effective_bft_enabled,
     ensure_block_hash,
-    recent_block_ids_from_state,
     recent_block_anchor_required_for_height,
-    runtime_mode,
+    recent_block_ids_from_state,
     runtime_vrf_required,
     validate_system_tx_queue_binding,
     verify_vrf_record,
 )
-
-from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
+from weall.runtime.protocol_profile import block_tx_signatures_required
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
@@ -54,8 +55,45 @@ from weall.runtime.scheduler_pipeline import (
     run_replay_post_schedulers,
     run_replay_pre_schedulers,
 )
-from weall.runtime.system_tx_engine import build_system_queue_lookup
+from weall.runtime.system_tx_engine import (
+    BLOCK_FINALIZE_TX_TYPE,
+    EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+    bind_new_same_block_single_tx_children,
+    build_system_queue_lookup,
+    validate_same_block_single_tx_lineage,
+)
 
+
+def _vrf_validator_authority_reason(
+    self, *, vrf_pubkey: str, proposer: str, bft_enabled: bool
+) -> str:
+    """Return an empty string when VRF/beacon signer authority is canonical.
+
+    Explicit consensus membership and the consensus validator-key registry are
+    resolved through the executor's BFT authority helpers.  Under BFT the beacon
+    signer must be exactly the proposal signer; non-BFT compatibility mode still
+    requires the key to belong to a currently active validator.
+    """
+
+    pubkey = str(vrf_pubkey or "").strip()
+    active_accounts = list(self._active_validators())
+    validator_pubkeys = dict(self._validator_pubkeys())
+    if bft_enabled:
+        proposer_s = str(proposer or "").strip()
+        expected_pubkey = str(validator_pubkeys.get(proposer_s) or "").strip()
+        if not proposer_s or proposer_s not in set(active_accounts):
+            return "not_canonical_proposer"
+        if not expected_pubkey:
+            return "canonical_proposer_key_missing"
+        if pubkey != expected_pubkey:
+            return "not_canonical_proposer_key"
+        return ""
+
+    if any(
+        str(validator_pubkeys.get(account) or "").strip() == pubkey for account in active_accounts
+    ):
+        return ""
+    return "not_active_validator"
 
 
 def apply_block(self, block: Json) -> ExecutorMeta:
@@ -72,6 +110,15 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         subtrees exist, enqueue system queue items, confirm emitted queue items).
       - We verify receipts_root and state_root (if present) against a fresh replay.
     """
+    post_commit_error = str(getattr(self, "_post_commit_housekeeping_error", "") or "")
+    if post_commit_error:
+        return ExecutorMeta(
+            ok=False,
+            error=f"executor_unhealthy:{post_commit_error}",
+            height=int(self.state.get("height") or 0),
+            block_id=str(self.state.get("tip") or ""),
+        )
+
     runtime_ctx = RuntimeContext.from_executor(self)
     scheduler_set = runtime_ctx.scheduler_set
     apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta
@@ -83,18 +130,94 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     except Exception:
         return ExecutorMeta(ok=False, error="bad_block:bad_hash", height=0, block_id="")
 
-    if self._block_identity_conflicts(block2):
-        return ExecutorMeta(
-            ok=False, error="bad_block:block_id_hash_conflict", height=0, block_id=""
-        )
-
     header = block2.get("header")
     if not isinstance(header, dict):
         return ExecutorMeta(ok=False, error="bad_block:missing_header", height=0, block_id="")
 
     if str(header.get("chain_id") or "").strip() != self.chain_id:
+        return ExecutorMeta(ok=False, error="bad_block:chain_id_mismatch", height=0, block_id="")
+
+    # Validate chain position and constitutional time before content binding.
+    # None of these checks consumes or caches the advertised block identity, so
+    # performing them first preserves precise protocol rejection reasons without
+    # reopening block/transaction aliasing.
+    height = int(header.get("height") or block2.get("height") or 0)
+    if height <= 0:
+        return ExecutorMeta(ok=False, error="bad_block:height", height=0, block_id="")
+
+    want_h = _safe_int(self.state.get("height"), 0) + 1
+    if height != want_h:
+        return ExecutorMeta(ok=False, error="bad_block:height_mismatch", height=0, block_id="")
+
+    prev_bh = str(header.get("prev_block_hash") or "").strip()
+    tip_hash = str(self.state.get("tip_hash") or "").strip()
+    if tip_hash and prev_bh != tip_hash:
+        return ExecutorMeta(ok=False, error="bad_block:prev_hash_mismatch", height=0, block_id="")
+
+    ts_ms = int(header.get("block_ts_ms") or block2.get("block_ts_ms") or 0)
+    if ts_ms <= 0:
+        return ExecutorMeta(ok=False, error="bad_block:ts", height=0, block_id="")
+    chain_floor_ms = self.chain_time_floor_ms()
+    time_verdict = validate_block_timestamp(
+        state=self.state,
+        height=int(height),
+        block_ts_ms=int(ts_ms),
+        chain_floor_ms=int(chain_floor_ms),
+        max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
+        mode=str(os.environ.get("WEALL_MODE", "") or ""),
+    )
+    if not bool(time_verdict.ok):
+        code = str(time_verdict.code or "ts")
+        if code == "not_constitutional_slot":
+            return ExecutorMeta(
+                ok=False, error="bad_block:ts_not_constitutional_slot", height=0, block_id=""
+            )
+        if code == "before_constitutional_slot":
+            return ExecutorMeta(
+                ok=False, error="bad_block:ts_before_constitutional_slot", height=0, block_id=""
+            )
+        return ExecutorMeta(ok=False, error=f"bad_block:{code}", height=0, block_id="")
+
+    ok_binding, binding_reason, binding = validate_received_block_commitments(
+        block=block2,
+        chain_id=self.chain_id,
+    )
+    if not ok_binding or binding is None:
         return ExecutorMeta(
-            ok=False, error="bad_block:chain_id_mismatch", height=0, block_id=""
+            ok=False,
+            error=f"bad_block:{binding_reason}",
+            height=0,
+            block_id=str(block2.get("block_id") or ""),
+        )
+
+    # Canonicalize omitted body IDs for persistence and ensure all downstream
+    # admission/receipt code uses the same identities validated above. Ignore an
+    # advertised block-hash alias internally; the canonical header hash is the only
+    # value allowed into caches/BFT. The supplied alias is rejected later after
+    # more specific header-semantic checks (state root, recent anchor, helper root).
+    txs_for_binding = block2.get("txs")
+    if isinstance(txs_for_binding, list):
+        for raw, canonical_tx_id in zip(txs_for_binding, binding.tx_ids, strict=True):
+            if isinstance(raw, dict):
+                raw["tx_id"] = canonical_tx_id
+    block2["block_id"] = binding.block_id
+    block2["block_hash"] = binding.block_hash
+    bh = binding.block_hash
+
+    # Reject identities already under durable quarantine immediately. Generic
+    # replay is not itself trusted to create new durable equivocation truth.
+    if self._is_conflicted_block_id(binding.block_id) or self._is_conflicted_block_hash(
+        binding.block_hash
+    ):
+        return ExecutorMeta(
+            ok=False, error="bad_block:block_id_hash_conflict", height=0, block_id=""
+        )
+
+    expected_prev_block_id = str(self.state.get("tip") or "").strip()
+    advertised_prev_block_id = str(block2.get("prev_block_id") or "").strip()
+    if advertised_prev_block_id != expected_prev_block_id:
+        return ExecutorMeta(
+            ok=False, error="bad_block:prev_block_id_mismatch", height=0, block_id=""
         )
 
     if effective_bft_enabled(executor=self, default=False):
@@ -119,41 +242,14 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                     block_id=str(block2.get("block_id") or ""),
                 )
 
-    height = int(header.get("height") or block2.get("height") or 0)
-    if height <= 0:
-        return ExecutorMeta(ok=False, error="bad_block:height", height=0, block_id="")
-
-    want_h = _safe_int(self.state.get("height"), 0) + 1
-    if height != want_h:
-        return ExecutorMeta(ok=False, error="bad_block:height_mismatch", height=0, block_id="")
-
-    prev_bh = str(header.get("prev_block_hash") or "").strip()
-    tip_hash = str(self.state.get("tip_hash") or "").strip()
-    # Genesis: allow first block when tip_hash is empty.
-    if tip_hash and prev_bh != tip_hash:
+    # Generic replay/state-sync does not authenticate the current proposer.
+    # It may reject a block against known identity truth, but only the
+    # authenticated proposal/QC ingress paths are allowed to create durable
+    # equivocation quarantine.
+    if self._block_identity_conflicts(block2, record_conflicts=False):
         return ExecutorMeta(
-            ok=False, error="bad_block:prev_hash_mismatch", height=0, block_id=""
+            ok=False, error="bad_block:block_id_hash_conflict", height=0, block_id=""
         )
-
-    ts_ms = int(header.get("block_ts_ms") or block2.get("block_ts_ms") or 0)
-    if ts_ms <= 0:
-        return ExecutorMeta(ok=False, error="bad_block:ts", height=0, block_id="")
-    chain_floor_ms = self.chain_time_floor_ms()
-    time_verdict = validate_block_timestamp(
-        state=self.state,
-        height=int(height),
-        block_ts_ms=int(ts_ms),
-        chain_floor_ms=int(chain_floor_ms),
-        max_block_time_advance_ms=int(MAX_BLOCK_TIME_ADVANCE_MS),
-        mode=str(os.environ.get("WEALL_MODE", "") or ""),
-    )
-    if not bool(time_verdict.ok):
-        code = str(time_verdict.code or "ts")
-        if code == "not_constitutional_slot":
-            return ExecutorMeta(ok=False, error="bad_block:ts_not_constitutional_slot", height=0, block_id="")
-        if code == "before_constitutional_slot":
-            return ExecutorMeta(ok=False, error="bad_block:ts_before_constitutional_slot", height=0, block_id="")
-        return ExecutorMeta(ok=False, error=f"bad_block:{code}", height=0, block_id="")
 
     txs = block2.get("txs")
     if not isinstance(txs, list):
@@ -174,6 +270,49 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     # system queue items (and confirm emission) which affect state_root.
     next_height = int(height)
 
+    bft_enabled_for_replay = effective_bft_enabled(executor=self, default=False)
+    reward_proposer = str(block2.get("proposer") or "").strip() if bft_enabled_for_replay else ""
+
+    required_bft_finality_queue_id = ""
+    if bft_enabled_for_replay and isinstance(block2.get("justify_qc"), dict):
+        try:
+            required_bft_finality_queue_id = str(
+                schedule_bft_finality_receipt(
+                    working, justify_qc=block2.get("justify_qc"), next_height=next_height
+                )
+                or ""
+            ).strip()
+        except Exception as exc:
+            return ExecutorMeta(
+                ok=False,
+                error=f"bad_block:bft_finality_schedule_failed:{type(exc).__name__}",
+                height=0,
+                block_id=str(block2.get("block_id") or ""),
+            )
+
+        if required_bft_finality_queue_id:
+            matching_finalizers = 0
+            for raw_tx in txs:
+                if not isinstance(raw_tx, dict):
+                    continue
+                if str(raw_tx.get("tx_type") or "").strip().upper() != "BLOCK_FINALIZE":
+                    continue
+                payload = raw_tx.get("payload")
+                if not isinstance(payload, dict):
+                    continue
+                if (
+                    str(payload.get("_system_queue_id") or "").strip()
+                    == required_bft_finality_queue_id
+                ):
+                    matching_finalizers += 1
+            if matching_finalizers != 1:
+                return ExecutorMeta(
+                    ok=False,
+                    error="bad_block:required_bft_finality_receipt_missing_or_duplicated",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
+
     queue_lookup_cache: tuple[int, int, dict[str, Json]] | None = None
 
     def _invalidate_queue_lookup() -> None:
@@ -184,7 +323,11 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         nonlocal queue_lookup_cache
         root = working.get("system_queue")
         marker = (id(root), len(root) if isinstance(root, list) else -1)
-        if queue_lookup_cache is None or queue_lookup_cache[0] != marker[0] or queue_lookup_cache[1] != marker[1]:
+        if (
+            queue_lookup_cache is None
+            or queue_lookup_cache[0] != marker[0]
+            or queue_lookup_cache[1] != marker[1]
+        ):
             queue_lookup_cache = (marker[0], marker[1], build_system_queue_lookup(working))
         return queue_lookup_cache[2]
 
@@ -196,12 +339,43 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         run_replay_post_schedulers(working, next_height=next_height, scheduler_set=scheduler_set)
         _invalidate_queue_lookup()
 
-    def _run_system_emitter_side_effects(phase: str) -> None:
-        # We discard envelopes; the block already contains the tx list.
-        _ = emit_system_txs(
-            working, self.tx_index, next_height=next_height, phase=str(phase), proposer="", scheduler_set=scheduler_set
+    def _run_system_emitter_side_effects(phase: str) -> list[TxEnvelope]:
+        # Materialize deterministic envelopes even though follower replay never
+        # inserts them into the received block. Their queue IDs are the
+        # completeness commitment for this phase: emitter side effects alone
+        # must never let an omitted SYSTEM transition look emitted.
+        emitted = emit_system_txs(
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase=str(phase),
+            proposer=reward_proposer,
+            scheduler_set=scheduler_set,
         )
         _invalidate_queue_lookup()
+        return list(emitted)
+
+    def _emitted_queue_ids(envelopes: list[TxEnvelope]) -> list[str]:
+        out: list[str] = []
+        for emitted in envelopes:
+            payload = emitted.payload if isinstance(emitted.payload, dict) else {}
+            qid = str(payload.get("_system_queue_id") or "").strip()
+            if not qid:
+                raise ValueError("emitted_system_tx_missing_queue_id")
+            out.append(qid)
+        return out
+
+    def _raw_system_queue_id(raw: Any) -> str:
+        if not isinstance(raw, dict) or raw.get("system") is not True:
+            return ""
+        payload = raw.get("payload")
+        if not isinstance(payload, dict):
+            return ""
+        return str(payload.get("_system_queue_id") or "").strip()
+
+    def _all_queue_ids_known(queue_ids: list[str]) -> bool:
+        lookup = _queue_lookup()
+        return all(bool(qid) and qid in lookup for qid in queue_ids)
 
     def _queue_item_phase(queue_id: str) -> str:
         qid = str(queue_id or "").strip()
@@ -211,6 +385,19 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         if isinstance(obj, dict):
             return str(obj.get("phase") or "").strip().lower()
         return queue_item_phase(working, queue_id)
+
+    # Validate the replicated queue before scheduler/emitter work so malformed
+    # queue state fails closed before unrelated commitment mismatches.
+    try:
+        build_system_queue_lookup(self.state)
+    except Exception as exc:
+        if _consensus_fail_closed():
+            return ExecutorMeta(
+                ok=False,
+                error=f"bad_block:system_emitter_pre_failed:{type(exc).__name__}",
+                height=0,
+                block_id="",
+            )
 
     # Production path: pre schedulers + pre emitter side-effects.
     try:
@@ -224,7 +411,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 block_id="",
             )
     try:
-        _run_system_emitter_side_effects("pre")
+        expected_pre_queue_ids = _emitted_queue_ids(_run_system_emitter_side_effects("pre"))
     except Exception as exc:
         if _consensus_fail_closed():
             return ExecutorMeta(
@@ -233,23 +420,63 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 height=0,
                 block_id="",
             )
+        expected_pre_queue_ids = []
+
+    # Canonical leader construction is phase ordered: every due pre SYSTEM
+    # envelope precedes user transactions, then every due post SYSTEM envelope
+    # follows them. Enforce the prefix now, before any transaction replay.
+    if len(txs) < len(expected_pre_queue_ids):
+        return ExecutorMeta(
+            ok=False,
+            error="bad_block:required_system_pre_missing_or_reordered",
+            height=0,
+            block_id=str(block2.get("block_id") or ""),
+        )
+    actual_pre_queue_ids = [_raw_system_queue_id(raw) for raw in txs[: len(expected_pre_queue_ids)]]
+    if actual_pre_queue_ids != expected_pre_queue_ids and _all_queue_ids_known(
+        actual_pre_queue_ids
+    ):
+        return ExecutorMeta(
+            ok=False,
+            error="bad_block:required_system_pre_missing_or_reordered",
+            height=0,
+            block_id=str(block2.get("block_id") or ""),
+        )
+
+    # After the required pre prefix, SYSTEM envelopes form a suffix. This blocks
+    # a proposer from running a post transition before all user transactions or
+    # interleaving deterministic system work with user execution.
+    post_system_start: int | None = None
+    for idx, raw in enumerate(
+        txs[len(expected_pre_queue_ids) :], start=len(expected_pre_queue_ids)
+    ):
+        if isinstance(raw, dict) and raw.get("system") is True:
+            if post_system_start is None:
+                post_system_start = idx
+            continue
+        if post_system_start is not None:
+            return ExecutorMeta(
+                ok=False,
+                error="bad_block:system_tx_phase_order",
+                height=0,
+                block_id=str(block2.get("block_id") or ""),
+            )
+
+    actual_post_queue_ids = (
+        [_raw_system_queue_id(raw) for raw in txs[post_system_start:]]
+        if post_system_start is not None
+        else []
+    )
+    expected_post_queue_ids: list[str] | None = None
 
     applied_ids: list[str] = []
     invalid_ids: list[str] = []
     receipts: list[Json] = []
     env_objs: list[TxEnvelope] = []
     env_parse_ok: list[bool] = []
-    tx_ids: list[str] = []
+    tx_ids: list[str] = list(binding.tx_ids)
 
     for env in txs:
-        if not isinstance(env, dict):
-            env_objs.append(TxEnvelope.from_json({}))
-            env_parse_ok.append(False)
-            tx_ids.append("")
-            continue
-
-        tx_id = str(env.get("tx_id") or "").strip()
-        tx_ids.append(tx_id)
         try:
             env_objs.append(TxEnvelope.from_json(env))
             env_parse_ok.append(True)
@@ -259,7 +486,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
 
     # Inclusion gates (fail-closed)
     ledger_for_block = LedgerView.from_ledger(working)
-    verify_block_signatures = bool(runtime_mode() == "prod")
+    verify_block_signatures = block_tx_signatures_required(self.state, chain_id=self.chain_id)
     ok, block_reject, per_tx = admit_block_txs(
         env_objs,
         ledger_for_block,
@@ -286,46 +513,86 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     post_ran = False
     blocked_signers_after_apply_reject: set[str] = set()
 
-    for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
-        if not post_ran and bool(getattr(env_obj, "system", False)):
-            try:
-                payload = env.get("payload") if isinstance(env, dict) else None
-                qid = (
-                    str((payload or {}).get("_system_queue_id") or "").strip()
-                    if isinstance(payload, dict)
-                    else ""
+    def _ensure_post_phase_materialized() -> ExecutorMeta | None:
+        nonlocal post_ran, expected_post_queue_ids
+        if post_ran:
+            return None
+        try:
+            _run_post_schedulers()
+        except Exception as exc:
+            if _consensus_fail_closed():
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:poh_schedule_failed:{type(exc).__name__}",
+                    height=0,
+                    block_id="",
                 )
-                if qid and _queue_item_phase(qid) == "post":
-                    try:
-                        _run_post_schedulers()
-                    except Exception as exc:
-                        if _consensus_fail_closed():
-                            return ExecutorMeta(
-                                ok=False,
-                                error=f"bad_block:poh_schedule_failed:{type(exc).__name__}",
-                                height=0,
-                                block_id="",
-                            )
-                    try:
-                        _run_system_emitter_side_effects("post")
-                    except Exception as exc:
-                        if _consensus_fail_closed():
-                            return ExecutorMeta(
-                                ok=False,
-                                error=f"bad_block:system_emitter_post_failed:{type(exc).__name__}",
-                                height=0,
-                                block_id="",
-                            )
-                    post_ran = True
-            except Exception:
-                pass
+        try:
+            expected_post_queue_ids = _emitted_queue_ids(_run_system_emitter_side_effects("post"))
+        except Exception as exc:
+            if _consensus_fail_closed():
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:system_emitter_post_failed:{type(exc).__name__}",
+                    height=0,
+                    block_id="",
+                )
+            expected_post_queue_ids = []
+
+        if actual_post_queue_ids != expected_post_queue_ids:
+            try:
+                all_known = _all_queue_ids_known(actual_post_queue_ids)
+            except Exception as exc:
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:system_queue_validation_failed:{type(exc).__name__}",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
+            if all_known:
+                return ExecutorMeta(
+                    ok=False,
+                    error="bad_block:required_system_post_missing_duplicated_or_reordered",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
+
+        post_ran = True
+        return None
+
+    for tx_pos, (env, env_obj, parse_ok, tx_id, rej) in enumerate(
+        zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False)
+    ):
+        is_system_position = bool(getattr(env_obj, "system", False))
+        if (
+            not post_ran
+            and is_system_position
+            and post_system_start is not None
+            and tx_pos >= post_system_start
+        ):
+            post_error = _ensure_post_phase_materialized()
+            if post_error is not None:
+                return post_error
 
         if not tx_id:
             invalid_ids.append(tx_id)
             continue
 
         if rej is not None:
-            # Still record a deterministic receipt.
+            raw_is_system = isinstance(env, dict) and env.get("system") is True
+            parsed_is_system = bool(getattr(env_obj, "system", False))
+            if raw_is_system or parsed_is_system:
+                return ExecutorMeta(
+                    ok=False,
+                    error=(
+                        "bad_block:system_tx_admission_failed:"
+                        f"{str(getattr(rej, 'code', '') or 'rejected')}"
+                    ),
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
+            # Ordinary user-transaction apply/admission failure is committed as
+            # a deterministic failed receipt; mandatory SYSTEM work is not.
             invalid_ids.append(tx_id)
             receipts.append(
                 {
@@ -351,37 +618,15 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 if isinstance(payload_for_binding, dict)
                 else ""
             )
-            phase_for_binding = _queue_item_phase(qid_for_binding)
-
-            # Post-phase system txs are enqueued only after user txs have
-            # replayed on the follower. If the tx references a queue item
-            # that is not present yet, run the post schedulers/emitter once
-            # before binding. Missing/unknown queue ids still fail closed
-            # below; this only gives legitimate post-phase system txs the
-            # same deterministic queue state the proposer had.
-            if qid_for_binding and not phase_for_binding and not post_ran:
-                try:
-                    _run_poh_schedulers()
-                except Exception as exc:
-                    if _consensus_fail_closed():
-                        return ExecutorMeta(
-                            ok=False,
-                            error=f"bad_block:poh_schedule_failed:{type(exc).__name__}",
-                            height=0,
-                            block_id="",
-                        )
-                try:
-                    _run_system_emitter_side_effects("post")
-                except Exception as exc:
-                    if _consensus_fail_closed():
-                        return ExecutorMeta(
-                            ok=False,
-                            error=f"bad_block:system_emitter_post_failed:{type(exc).__name__}",
-                            height=0,
-                            block_id="",
-                        )
-                post_ran = True
+            try:
                 phase_for_binding = _queue_item_phase(qid_for_binding)
+            except Exception as exc:
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:system_queue_validation_failed:{type(exc).__name__}",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
 
             ok_binding, why_binding = validate_system_tx_queue_binding(
                 working,
@@ -398,7 +643,25 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                     height=0,
                     block_id="",
                 )
+            lineage_ok, lineage_reason = validate_same_block_single_tx_lineage(
+                self.tx_index,
+                env_obj,
+                prior_txs=txs[:tx_pos],
+                required_child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+            )
+            if not lineage_ok:
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:single_tx_lineage:{lineage_reason}",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
 
+        queue_ids_before_apply = (
+            set(_queue_lookup())
+            if str(getattr(env_obj, "tx_type", "") or "").strip().upper() == BLOCK_FINALIZE_TX_TYPE
+            else set()
+        )
         applied_ok = False
         err_code = ""
         err_reason = ""
@@ -411,27 +674,72 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_fn(working, env_obj if parse_ok else env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(
+                    working, env_obj if parse_ok else env, consume_nonce_on_fail=False
+                )
                 applied_ok = meta is not None
             except ApplyError as e:
+                if is_system:
+                    return ExecutorMeta(
+                        ok=False,
+                        error=f"bad_block:system_tx_apply_failed:{e.code}:{e.reason}",
+                        height=0,
+                        block_id=str(block2.get("block_id") or ""),
+                    )
                 applied_ok = False
                 err_code = str(getattr(e, "code", "") or "")
                 err_reason = str(getattr(e, "reason", "") or "")
                 err_details = getattr(e, "details", None)
             except Exception as e:
+                if is_system:
+                    return ExecutorMeta(
+                        ok=False,
+                        error=f"bad_block:system_tx_apply_failed:{type(e).__name__}",
+                        height=0,
+                        block_id=str(block2.get("block_id") or ""),
+                    )
                 if _consensus_fail_closed():
                     return ExecutorMeta(
-                    ok=False,
-                    error=f"bad_block:tx_apply_failed:{type(e).__name__}",
-                    height=0,
-                    block_id="",
-                )
+                        ok=False,
+                        error=f"bad_block:tx_apply_failed:{type(e).__name__}",
+                        height=0,
+                        block_id="",
+                    )
                 applied_ok = False
                 err_code = type(e).__name__
                 err_reason = str(e)
 
+        if is_system and not applied_ok:
+            return ExecutorMeta(
+                ok=False,
+                error="bad_block:system_tx_apply_failed:unclaimed_system_tx",
+                height=0,
+                block_id=str(block2.get("block_id") or ""),
+            )
+
         if (not applied_ok) and (not is_system) and signer:
             blocked_signers_after_apply_reject.add(signer)
+
+        tx_type = str(getattr(env_obj, "tx_type", "") or "").strip().upper()
+        if applied_ok and tx_type == BLOCK_FINALIZE_TX_TYPE:
+            try:
+                bind_new_same_block_single_tx_children(
+                    working,
+                    self.tx_index,
+                    queue_ids_before=queue_ids_before_apply,
+                    parent_tx_type=tx_type,
+                    parent_tx_id=str(tx_id),
+                    parent_position=tx_pos,
+                    child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+                )
+                _invalidate_queue_lookup()
+            except Exception as exc:
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:single_tx_lineage_bind_failed:{type(exc).__name__}",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
 
         applied_ids.append(tx_id)
 
@@ -452,26 +760,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         receipts.append(receipt)
 
     if not post_ran:
-        try:
-            _run_poh_schedulers()
-        except Exception as exc:
-            if _consensus_fail_closed():
-                return ExecutorMeta(
-                    ok=False,
-                    error=f"bad_block:poh_schedule_failed:{type(exc).__name__}",
-                    height=0,
-                    block_id="",
-                )
-        try:
-            _run_system_emitter_side_effects("post")
-        except Exception as exc:
-            if _consensus_fail_closed():
-                return ExecutorMeta(
-                    ok=False,
-                    error=f"bad_block:system_emitter_post_failed:{type(exc).__name__}",
-                    height=0,
-                    block_id="",
-                )
+        post_error = _ensure_post_phase_materialized()
+        if post_error is not None:
+            return post_error
 
     # Match leader-side durable state before verifying commitments. Emitted
     # system queue entries are scheduling scratch once the corresponding
@@ -488,25 +779,34 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                 block_id="",
             )
 
-    # Verify block commitments fail-closed.
+    # Verify execution-derived commitments fail closed.
     receipts_root = compute_receipts_root(receipts=receipts)
-
-    # Update ancestry + tip fields and time exactly as the leader should have.
-    block_id = str(block2.get("block_id") or "").strip()
-    if not block_id:
-        block_id = compute_block_id(
-            chain_id=str(header.get("chain_id") or self.chain_id),
-            height=int(height),
-            prev_block_id=str(block2.get("prev_block_id") or self.state.get("tip") or ""),
-            prev_block_hash=str(
-                header.get("prev_block_hash") or block2.get("prev_block_hash") or ""
-            ),
-            ts_ms=int(ts_ms),
-            node_id=str(block2.get("proposer") or block2.get("node_id") or ""),
-            tx_ids=list(applied_ids),
-            receipts_root=receipts_root,
+    have_rr = str(header.get("receipts_root") or "").strip()
+    if not have_rr:
+        return ExecutorMeta(
+            ok=False, error="bad_block:missing_receipts_root", height=0, block_id=""
         )
-        block2["block_id"] = block_id
+    if receipts_root != have_rr:
+        return ExecutorMeta(
+            ok=False, error="bad_block:receipts_root_mismatch", height=0, block_id=""
+        )
+
+    # Recompute the block ID again from the *executed* receipt commitment rather
+    # than trusting the earlier advertised root binding.  This closes the full
+    # body IDs -> header IDs -> receipts root -> block ID chain.
+    block_id = compute_block_id(
+        chain_id=self.chain_id,
+        height=int(height),
+        prev_block_id=str(self.state.get("tip") or ""),
+        prev_block_hash=str(header.get("prev_block_hash") or ""),
+        ts_ms=int(ts_ms),
+        node_id=str(block2.get("proposer") or block2.get("node_id") or ""),
+        tx_ids=list(applied_ids),
+        receipts_root=receipts_root,
+    )
+    if block_id != binding.block_id:
+        return ExecutorMeta(ok=False, error="bad_block:block_id_mismatch", height=0, block_id="")
+    block2["block_id"] = block_id
 
     blocks_map = working.get("blocks")
     if not isinstance(blocks_map, dict):
@@ -524,16 +824,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     working["height"] = int(height)
     working["tip"] = str(block_id)
     working["time"] = int(int(ts_ms) // 1000)
-
-    have_rr = str(header.get("receipts_root") or "").strip()
-    if not have_rr:
-        return ExecutorMeta(
-            ok=False, error="bad_block:missing_receipts_root", height=0, block_id=""
-        )
-    if receipts_root != have_rr:
-        return ExecutorMeta(
-            ok=False, error="bad_block:receipts_root_mismatch", height=0, block_id=""
-        )
+    if bool(clock_policy.enabled):
+        # Mirror leader candidate construction after advancing the working tip.
+        commit_clock_policy_to_state(working, clock_policy)
 
     # ------------------------------------------------------------
     # VRF injection + verification (affects state_root)
@@ -545,40 +838,27 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             chain_id=self.chain_id,
             height=int(height),
             prev_block_hash=str(header.get("prev_block_hash") or ""),
-            block_ts_ms=int(ts_ms),
         )
         if not ok_vrf:
             return ExecutorMeta(ok=False, error=f"bad_block:vrf:{why}", height=0, block_id="")
 
-        # Ensure VRF pubkey belongs to an active validator (fail-closed).
+        # Bind the beacon proof to canonical validator authority.  Under BFT,
+        # the randomness signer must be exactly the block proposer and its
+        # current consensus verification key; a different active/stale validator
+        # must never be able to supply randomness for another proposer.
         try:
-            pubkey = str(vrf_any.get("pubkey") or "").strip()
-            vroot = working.get("validators")
-            reg = vroot.get("registry") if isinstance(vroot, dict) else None
-            roles = working.get("roles")
-            vroles = roles.get("validators") if isinstance(roles, dict) else None
-            active = vroles.get("active_set") if isinstance(vroles, dict) else None
-
-            active_accounts: list[str] = []
-            if isinstance(active, list):
-                for a in active:
-                    s = str(a or "").strip()
-                    if s:
-                        active_accounts.append(s)
-
-            pub_ok = False
-            if isinstance(reg, dict) and pubkey and active_accounts:
-                for acct in active_accounts:
-                    rec = reg.get(acct)
-                    if not isinstance(rec, dict):
-                        continue
-                    if str(rec.get("pubkey") or "").strip() == pubkey:
-                        pub_ok = True
-                        break
-
-            if not pub_ok:
+            authority_reason = _vrf_validator_authority_reason(
+                self,
+                vrf_pubkey=str(vrf_any.get("pubkey") or "").strip(),
+                proposer=str(block2.get("proposer") or "").strip(),
+                bft_enabled=bool(bft_enabled_for_replay),
+            )
+            if authority_reason:
                 return ExecutorMeta(
-                    ok=False, error="bad_block:vrf:not_active_validator", height=0, block_id=""
+                    ok=False,
+                    error=f"bad_block:vrf:{authority_reason}",
+                    height=0,
+                    block_id="",
                 )
         except Exception:
             return ExecutorMeta(
@@ -590,33 +870,52 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         if not isinstance(rand, dict):
             rand = {}
             working["rand"] = rand
-        rand["vrf"] = {"height": int(height), **vrf_any}
+        rand["vrf"] = {
+            "height": int(height),
+            "scheme": str(vrf_any.get("scheme") or ""),
+            "pubkey": str(vrf_any.get("pubkey") or ""),
+            "output": str(vrf_any.get("output") or ""),
+        }
     else:
-        # If required, reject blocks without VRF.  A narrow pytest-only
-        # compatibility allowance mirrors block construction for local
-        # persistence/replay fixtures that run in prod mode without network,
-        # BFT, validator signing, or loop autostart.
-        if runtime_vrf_required() and not self._pytest_local_missing_vrf_allowed():
+        # Required VRF is a protocol rule, not a test-environment preference.
+        if runtime_vrf_required():
             return ExecutorMeta(ok=False, error="bad_block:vrf:missing", height=0, block_id="")
 
+    # Block production pins root-committed execution policy into meta before
+    # calculating the advertised state root. Replay must materialize the same
+    # canonical policy fields before its independent root calculation,
+    # especially for genesis/legacy snapshots where they may be absent. Local
+    # diagnostic markers remain added only after root verification.
+    meta_for_commitment = working.get("meta")
+    if not isinstance(meta_for_commitment, dict):
+        meta_for_commitment = {}
+        working["meta"] = meta_for_commitment
+    local_policy_for_commitment = _normalize_mempool_selection_policy(
+        getattr(self._mempool, "selection_policy", lambda: "canonical")()
+    )
+    pinned_policy_for_commitment = _pinned_mempool_selection_policy(
+        self.state,
+        local_policy_for_commitment,
+    )
+    meta_for_commitment["mempool_selection_policy"] = str(pinned_policy_for_commitment)
+    local_helper_profile_for_commitment = self._requested_helper_execution_profile()
+    pinned_helper_profile_for_commitment = _pinned_helper_execution_profile(
+        self.state,
+        local_helper_profile_for_commitment,
+    )
+    meta_for_commitment["helper_execution_profile"] = dict(pinned_helper_profile_for_commitment)
+    meta_for_commitment["helper_execution_profile_hash"] = _helper_execution_profile_hash(
+        pinned_helper_profile_for_commitment
+    )
+
     helper_execution_for_root = block2.get("helper_execution")
-    if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
-        helper_rep = helper_execution_for_root.get("helper_reputation")
-        if isinstance(helper_rep, dict):
-            rep_state = helper_rep.get("state")
-            if isinstance(rep_state, dict):
-                working["helper_reputation"] = dict(rep_state)
 
     state_root = compute_state_root(working)
     have_sr = str(header.get("state_root") or "").strip()
     if not have_sr:
-        return ExecutorMeta(
-            ok=False, error="bad_block:missing_state_root", height=0, block_id=""
-        )
+        return ExecutorMeta(ok=False, error="bad_block:missing_state_root", height=0, block_id="")
     if state_root != have_sr:
-        return ExecutorMeta(
-            ok=False, error="bad_block:state_root_mismatch", height=0, block_id=""
-        )
+        return ExecutorMeta(ok=False, error="bad_block:state_root_mismatch", height=0, block_id="")
 
     recent_anchor_required = recent_block_anchor_required_for_height(
         state=self.state,
@@ -636,12 +935,16 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         )
 
     if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
-        from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
+        from weall.runtime.helper_block_validation import validate_received_helper_execution
 
-        advertised_plan_id = str(helper_execution_for_root.get("plan_id") or "").strip()
-        ok_helper_meta, helper_reason = verify_block_helper_plan_metadata(
-            helper_execution=helper_execution_for_root,
-            expected_plan_id=advertised_plan_id,
+        ok_helper_meta, helper_reason = validate_received_helper_execution(
+            block=block2,
+            state=self.state,
+            chain_id=str(self.chain_id),
+            validators=self._active_validators(),
+            validator_pubkeys=self._validator_pubkeys(),
+            validator_epoch=self._current_validator_epoch(),
+            validator_set_hash=self._current_validator_set_hash(),
         )
         if not ok_helper_meta:
             return ExecutorMeta(
@@ -652,7 +955,9 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             )
     header_helper_root = str(header.get("helper_execution_root") or "").strip()
     if isinstance(helper_execution_for_root, dict) and helper_execution_for_root:
-        computed_helper_root = compute_helper_execution_root(helper_execution=helper_execution_for_root)
+        computed_helper_root = compute_helper_execution_root(
+            helper_execution=helper_execution_for_root
+        )
         if not header_helper_root:
             return ExecutorMeta(
                 ok=False, error="bad_block:missing_helper_execution_root", height=0, block_id=""
@@ -666,8 +971,7 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             ok=False, error="bad_block:unexpected_helper_execution_root", height=0, block_id=""
         )
 
-    existing_block_hash = str(block2.get("block_hash") or "").strip()
-    if existing_block_hash and compute_block_hash(header=header) != existing_block_hash:
+    if binding.advertised_block_hash and binding.advertised_block_hash != binding.block_hash:
         return ExecutorMeta(ok=False, error="bad_block:block_hash_mismatch", height=0, block_id="")
 
     # Ensure we persist the same tip hash commitment.
@@ -733,7 +1037,6 @@ def apply_block(self, block: Json) -> ExecutorMeta:
             "fraud_lane_ids": list(helper_execution.get("fraud_lane_ids") or []),
             "helper_reputation": dict(helper_execution.get("helper_reputation") or {}),
         }
-        meta_root["helper_reputation"] = dict(helper_execution.get("helper_reputation", {}).get("state") or {})
 
     transition_guardrail = _summarize_transition_guardrail_receipts(
         receipts,
@@ -750,4 +1053,3 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         block=block2, new_state=working, applied_ids=applied_ids, invalid_ids=invalid_ids
     )
     return meta
-

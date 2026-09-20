@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from weall.runtime.helper_preflight_gate import (
     ProductionPreflightDecision,
     ProductionPreflightInput,
     decide_production_preflight,
 )
-
 
 Json = dict[str, Any]
 

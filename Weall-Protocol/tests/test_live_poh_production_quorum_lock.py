@@ -31,7 +31,13 @@ def _env(
 
 def _state(*, production: bool) -> dict:
     accounts = {
-        "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation_milli": 0}
+        "alice": {
+            "nonce": 0,
+            "poh_tier": 1,
+            "banned": False,
+            "locked": False,
+            "reputation_milli": 0,
+        }
     }
     for i in range(1, 6):
         accounts[f"j{i}"] = {
@@ -101,13 +107,27 @@ def _assign(st: dict, case_id: str, jurors: list[str]) -> dict:
 
 
 def _active_vote(st: dict, case_id: str, juror_id: str, verdict: str, nonce: int) -> int:
-    apply_tx(st, _env("POH_LIVE_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": nonce}, signer=juror_id, nonce=nonce))
+    apply_tx(
+        st,
+        _env(
+            "POH_LIVE_JUROR_ACCEPT",
+            {"case_id": case_id, "ts_ms": nonce},
+            signer=juror_id,
+            nonce=nonce,
+        ),
+    )
     nonce += 1
     apply_tx(
         st,
         _env(
             "POH_LIVE_ATTENDANCE_MARK",
-            {"case_id": case_id, "juror_id": juror_id, "attended": True, "session_commitment": "sc:1", "ts_ms": nonce},
+            {
+                "case_id": case_id,
+                "juror_id": juror_id,
+                "attended": True,
+                "session_commitment": "sc:1",
+                "ts_ms": nonce,
+            },
             signer=juror_id,
             nonce=nonce,
         ),

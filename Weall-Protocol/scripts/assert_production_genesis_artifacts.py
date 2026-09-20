@@ -12,6 +12,7 @@ hash/state-root commitments, unsafe economics unlock windows, and bootstrap
 artifacts that still look like templates.  It does not generate keys and it
 never needs private keys; only public launch identifiers are inspected.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -19,8 +20,9 @@ import hashlib
 import json
 import re
 import sys
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -94,13 +96,17 @@ def _expected_profile_hash() -> str:
     return str(PRODUCTION_CONSENSUS_PROFILE.profile_hash())
 
 
+def _expected_state_root_commitment_version() -> str:
+    from weall.runtime.protocol_profile import STATE_ROOT_COMMITMENT_VERSION
+
+    return str(STATE_ROOT_COMMITMENT_VERSION)
+
+
 def _issue(issues: list[Json], code: str, detail: Any = None) -> None:
     row: Json = {"code": code}
     if detail is not None:
         row["detail"] = detail
     issues.append(row)
-
-
 
 
 def _truthy(value: Any) -> bool:
@@ -120,7 +126,9 @@ _PROD_FORBIDDEN_CHAIN_PARAM_FLAGS = (
 )
 
 
-def _validate_manifest(manifest: Mapping[str, Any], *, tx_index_path: Path, issues: list[Json]) -> None:
+def _validate_manifest(
+    manifest: Mapping[str, Any], *, tx_index_path: Path, issues: list[Json]
+) -> None:
     if str(manifest.get("mode") or "").strip().lower() != "prod":
         _issue(issues, "manifest_mode_not_prod", manifest.get("mode"))
     if str(manifest.get("profile") or "").strip().lower() != "production_service":
@@ -159,26 +167,102 @@ def _validate_manifest(manifest: Mapping[str, Any], *, tx_index_path: Path, issu
         for idx, key in enumerate(authority_keys):
             key_text = str(key or "").strip().lower()
             if _is_placeholder(key_text):
-                _issue(issues, "manifest_trusted_authority_pubkey_unpinned", {"index": idx, "value": key_text})
+                _issue(
+                    issues,
+                    "manifest_trusted_authority_pubkey_unpinned",
+                    {"index": idx, "value": key_text},
+                )
             elif not _is_hex64(key_text):
-                _issue(issues, "manifest_trusted_authority_pubkey_invalid", {"index": idx, "value": key_text})
+                _issue(
+                    issues,
+                    "manifest_trusted_authority_pubkey_invalid",
+                    {"index": idx, "value": key_text},
+                )
 
     authority = manifest.get("authority") if isinstance(manifest.get("authority"), dict) else {}
     if authority.get("expected_profile") != "production":
-        _issue(issues, "manifest_authority_expected_profile_not_production", authority.get("expected_profile"))
+        _issue(
+            issues,
+            "manifest_authority_expected_profile_not_production",
+            authority.get("expected_profile"),
+        )
     if authority.get("signed_snapshot_required") is not True:
         _issue(issues, "manifest_signed_snapshot_not_required")
     if authority.get("authority_snapshot_required") is not True:
         _issue(issues, "manifest_authority_snapshot_not_required")
 
 
-def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any], issues: list[Json]) -> None:
+def _validate_genesis(
+    genesis: Mapping[str, Any], *, manifest: Mapping[str, Any], issues: list[Json]
+) -> None:
     chain_id = str(genesis.get("chain_id") or "").strip()
     manifest_chain_id = str(manifest.get("chain_id") or "").strip()
     if _is_placeholder(chain_id):
         _issue(issues, "genesis_chain_id_unpinned")
     elif manifest_chain_id and chain_id != manifest_chain_id:
-        _issue(issues, "genesis_chain_id_mismatch", {"genesis": chain_id, "manifest": manifest_chain_id})
+        _issue(
+            issues,
+            "genesis_chain_id_mismatch",
+            {"genesis": chain_id, "manifest": manifest_chain_id},
+        )
+
+    genesis_meta = genesis.get("meta") if isinstance(genesis.get("meta"), dict) else {}
+    root_version = str(genesis_meta.get("state_root_commitment_version") or "").strip()
+    expected_root_version = _expected_state_root_commitment_version()
+    if root_version != expected_root_version:
+        _issue(
+            issues,
+            "genesis_state_root_commitment_version_mismatch",
+            {"genesis": root_version, "expected": expected_root_version},
+        )
+    genesis_profile_hash = str(genesis_meta.get("production_consensus_profile_hash") or "").strip()
+    expected_profile_hash = _expected_profile_hash()
+    if genesis_profile_hash != expected_profile_hash:
+        _issue(
+            issues,
+            "genesis_production_consensus_profile_hash_mismatch",
+            {"genesis": genesis_profile_hash, "expected": expected_profile_hash},
+        )
+
+    # Every root-committed startup default must already be present in the
+    # pinned height-zero ledger. Otherwise first boot silently changes the live
+    # genesis state root while retaining the manifest's older commitment.
+    from weall.runtime.block_hash import RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
+    from weall.runtime.protocol_profile import PRODUCTION_CONSENSUS_PROFILE
+
+    manifest_schema = str(manifest.get("schema_version") or "").strip()
+    manifest_tx_index = str(manifest.get("tx_index_hash") or "").strip()
+    required_meta = {
+        "schema_version": manifest_schema,
+        "tx_index_hash": manifest_tx_index,
+        "reputation_scale": int(PRODUCTION_CONSENSUS_PROFILE.reputation_scale),
+        "max_block_future_drift_ms": int(PRODUCTION_CONSENSUS_PROFILE.max_block_future_drift_ms),
+        "mempool_selection_policy": "canonical",
+        "recent_block_anchor_activation_height": int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT),
+    }
+    for key, expected in required_meta.items():
+        if genesis_meta.get(key) != expected:
+            _issue(
+                issues,
+                f"genesis_root_committed_meta_mismatch:{key}",
+                {"genesis": genesis_meta.get(key), "expected": expected},
+            )
+
+    helper_profile = genesis_meta.get("helper_execution_profile")
+    if not isinstance(helper_profile, dict):
+        _issue(issues, "genesis_helper_execution_profile_missing")
+    elif str(genesis_meta.get("helper_execution_profile_hash") or "") != _sha256(
+        _canon(helper_profile)
+    ):
+        _issue(issues, "genesis_helper_execution_profile_hash_mismatch")
+
+    bootstrap_profile = genesis_meta.get("genesis_bootstrap_profile")
+    if not isinstance(bootstrap_profile, dict):
+        _issue(issues, "genesis_bootstrap_profile_missing")
+    elif str(genesis_meta.get("genesis_bootstrap_profile_hash") or "") != _sha256(
+        _canon(bootstrap_profile)
+    ):
+        _issue(issues, "genesis_bootstrap_profile_hash_mismatch")
 
     accounts = genesis.get("accounts") if isinstance(genesis.get("accounts"), dict) else {}
     if "SYSTEM" not in accounts:
@@ -191,7 +275,11 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
     elif founding_account not in accounts:
         _issue(issues, "genesis_bootstrap_founder_account_missing", founding_account)
 
-    allowlist = params.get("bootstrap_allowlist") if isinstance(params.get("bootstrap_allowlist"), dict) else {}
+    allowlist = (
+        params.get("bootstrap_allowlist")
+        if isinstance(params.get("bootstrap_allowlist"), dict)
+        else {}
+    )
     allow_rec = allowlist.get(founding_account) if founding_account else None
     if not isinstance(allow_rec, dict):
         _issue(issues, "genesis_bootstrap_allowlist_missing_founder", founding_account)
@@ -202,7 +290,11 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
         elif not _is_hex64(allow_pubkey):
             _issue(issues, "genesis_bootstrap_allowlist_pubkey_invalid", allow_pubkey)
 
-    founder = accounts.get(founding_account) if founding_account and isinstance(accounts.get(founding_account), dict) else {}
+    founder = (
+        accounts.get(founding_account)
+        if founding_account and isinstance(accounts.get(founding_account), dict)
+        else {}
+    )
     keys = founder.get("keys") if isinstance(founder.get("keys"), dict) else {}
     founder_key_values: list[str] = []
     if founding_account and not keys:
@@ -226,7 +318,9 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
     poh = genesis.get("poh") if isinstance(genesis.get("poh"), dict) else {}
     grants = poh.get("bootstrap_grants") if isinstance(poh.get("bootstrap_grants"), dict) else {}
     grants_by_id = grants.get("by_id") if isinstance(grants.get("by_id"), dict) else {}
-    grants_by_account = grants.get("by_account") if isinstance(grants.get("by_account"), dict) else {}
+    grants_by_account = (
+        grants.get("by_account") if isinstance(grants.get("by_account"), dict) else {}
+    )
     founder_grant_ids = grants_by_account.get(founding_account) if founding_account else None
     if not isinstance(founder_grant_ids, list) or not founder_grant_ids:
         _issue(issues, "genesis_founder_bootstrap_grant_audit_missing", founding_account)
@@ -239,14 +333,27 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
             if grant.get("account_id") != founding_account:
                 _issue(issues, "genesis_founder_bootstrap_grant_account_mismatch", grant)
             if grant.get("grant_type") != "poh_tier2_live_verified":
-                _issue(issues, "genesis_founder_bootstrap_grant_type_unexpected", grant.get("grant_type"))
+                _issue(
+                    issues,
+                    "genesis_founder_bootstrap_grant_type_unexpected",
+                    grant.get("grant_type"),
+                )
             if grant.get("auditable") is not True:
                 _issue(issues, "genesis_founder_bootstrap_grant_not_auditable", grant_id)
             if grant.get("transitional") is not True:
                 _issue(issues, "genesis_founder_bootstrap_grant_not_transitional", grant_id)
-            if not isinstance(grant.get("grant_height"), int) or int(grant.get("grant_height") or 0) != 0:
-                _issue(issues, "genesis_founder_bootstrap_grant_height_unexpected", grant.get("grant_height"))
-            if not isinstance(grant.get("expires_height"), int) or int(grant.get("expires_height") or 0) <= int(grant.get("grant_height") or 0):
+            if (
+                not isinstance(grant.get("grant_height"), int)
+                or int(grant.get("grant_height") or 0) != 0
+            ):
+                _issue(
+                    issues,
+                    "genesis_founder_bootstrap_grant_height_unexpected",
+                    grant.get("grant_height"),
+                )
+            if not isinstance(grant.get("expires_height"), int) or int(
+                grant.get("expires_height") or 0
+            ) <= int(grant.get("grant_height") or 0):
                 _issue(issues, "genesis_founder_bootstrap_grant_expiry_missing", grant_id)
             if not str(grant.get("reason_code") or "").strip():
                 _issue(issues, "genesis_founder_bootstrap_reason_missing", grant_id)
@@ -258,18 +365,32 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
                 _issue(issues, "genesis_founder_bootstrap_receipt_missing", grant_id)
     if founding_account and founder:
         if not str(founder.get("poh_bootstrap_grant_id") or "").startswith("poh_bootstrap_grant:"):
-            _issue(issues, "genesis_founder_account_bootstrap_grant_pointer_missing", founding_account)
+            _issue(
+                issues, "genesis_founder_account_bootstrap_grant_pointer_missing", founding_account
+            )
         receipt_pointer = str(founder.get("poh_bootstrap_receipt_id") or "").strip()
         if not receipt_pointer.startswith("poh_bootstrap_receipt:"):
-            _issue(issues, "genesis_founder_account_bootstrap_receipt_pointer_missing", founding_account)
+            _issue(
+                issues,
+                "genesis_founder_account_bootstrap_receipt_pointer_missing",
+                founding_account,
+            )
         else:
             for grant_id in founder_grant_ids if isinstance(founder_grant_ids, list) else []:
                 grant = grants_by_id.get(str(grant_id)) if isinstance(grants_by_id, dict) else None
-                if isinstance(grant, dict) and str(grant.get("receipt_id") or "").strip() != receipt_pointer:
+                if (
+                    isinstance(grant, dict)
+                    and str(grant.get("receipt_id") or "").strip() != receipt_pointer
+                ):
                     _issue(
                         issues,
                         "genesis_founder_account_bootstrap_receipt_pointer_mismatch",
-                        {"account": founding_account, "grant_id": grant_id, "account_receipt": receipt_pointer, "grant_receipt": grant.get("receipt_id")},
+                        {
+                            "account": founding_account,
+                            "grant_id": grant_id,
+                            "account_receipt": receipt_pointer,
+                            "grant_receipt": grant.get("receipt_id"),
+                        },
                     )
 
     if int(params.get("genesis_time") or genesis.get("time") or 0) <= 0:
@@ -287,12 +408,25 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
     if str(params.get("poh_bootstrap_mode") or "").strip() != "allowlist":
         _issue(issues, "genesis_poh_bootstrap_mode_not_allowlist", params.get("poh_bootstrap_mode"))
     if str(params.get("poh_bootstrap_mode") or "").strip().lower() == "open":
-        _issue(issues, "genesis_poh_bootstrap_open_forbidden_in_prod", params.get("poh_bootstrap_mode"))
+        _issue(
+            issues, "genesis_poh_bootstrap_open_forbidden_in_prod", params.get("poh_bootstrap_mode")
+        )
     for flag in _PROD_FORBIDDEN_CHAIN_PARAM_FLAGS:
         if _truthy(params.get(flag)):
-            _issue(issues, "genesis_forbidden_production_chain_param", {"param": flag, "value": params.get(flag)})
-    if str(params.get("poh_bootstrap_auto_lock_rule") or "").strip() != "active_validators>=BFT_MIN_VALIDATORS":
-        _issue(issues, "genesis_poh_bootstrap_auto_lock_rule_missing", params.get("poh_bootstrap_auto_lock_rule"))
+            _issue(
+                issues,
+                "genesis_forbidden_production_chain_param",
+                {"param": flag, "value": params.get(flag)},
+            )
+    if (
+        str(params.get("poh_bootstrap_auto_lock_rule") or "").strip()
+        != "active_validators>=BFT_MIN_VALIDATORS"
+    ):
+        _issue(
+            issues,
+            "genesis_poh_bootstrap_auto_lock_rule_missing",
+            params.get("poh_bootstrap_auto_lock_rule"),
+        )
     if params.get("validator_candidate_lifecycle_gate_enabled") is not True:
         _issue(
             issues,
@@ -312,7 +446,11 @@ def _validate_genesis(genesis: Mapping[str, Any], *, manifest: Mapping[str, Any]
             params.get("bft_signing_public_beta_gate_enabled"),
         )
     if params.get("public_mainnet_enabled") is not False:
-        _issue(issues, "genesis_public_mainnet_must_start_disabled", params.get("public_mainnet_enabled"))
+        _issue(
+            issues,
+            "genesis_public_mainnet_must_start_disabled",
+            params.get("public_mainnet_enabled"),
+        )
 
 
 def verify(*, manifest_path: Path, genesis_path: Path, tx_index_path: Path) -> Json:
@@ -343,11 +481,19 @@ def verify(*, manifest_path: Path, genesis_path: Path, tx_index_path: Path) -> J
         if not _is_hex64(manifest_genesis_hash):
             _issue(issues, "manifest_genesis_hash_unpinned", manifest_genesis_hash)
         elif manifest_genesis_hash != genesis_hash:
-            _issue(issues, "manifest_genesis_hash_mismatch", {"manifest": manifest_genesis_hash, "actual": genesis_hash})
+            _issue(
+                issues,
+                "manifest_genesis_hash_mismatch",
+                {"manifest": manifest_genesis_hash, "actual": genesis_hash},
+            )
         if not _is_hex64(manifest_state_root):
             _issue(issues, "manifest_genesis_state_root_unpinned", manifest_state_root)
         elif manifest_state_root != state_root:
-            _issue(issues, "manifest_genesis_state_root_mismatch", {"manifest": manifest_state_root, "actual": state_root})
+            _issue(
+                issues,
+                "manifest_genesis_state_root_mismatch",
+                {"manifest": manifest_state_root, "actual": state_root},
+            )
     else:
         genesis_hash = ""
         state_root = ""
@@ -367,8 +513,12 @@ def verify(*, manifest_path: Path, genesis_path: Path, tx_index_path: Path) -> J
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Verify launch-critical WeAll production genesis artifacts.")
-    parser.add_argument("--manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json"))
+    parser = argparse.ArgumentParser(
+        description="Verify launch-critical WeAll production genesis artifacts."
+    )
+    parser.add_argument(
+        "--manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json")
+    )
     parser.add_argument("--genesis", default=str(ROOT / "configs" / "genesis.ledger.prod.json"))
     parser.add_argument("--tx-index", default=str(ROOT / "generated" / "tx_index.json"))
     parser.add_argument("--json", action="store_true")

@@ -802,6 +802,22 @@ def admit_tx(
 
     tx_type_norm = str(env.tx_type or "").strip().upper()
 
+    # BLOCK_PROPOSE is a legacy transaction-era proposal record.  Once the
+    # canonical consensus phase is HotStuff BFT, proposals are signed BFT wire
+    # artifacts and this compatibility transaction must not create a parallel
+    # consensus representation through public/block admission.
+    if tx_type_norm == "BLOCK_PROPOSE":
+        consensus = lv.consensus if isinstance(lv.consensus, dict) else {}
+        phase = consensus.get("phase") if isinstance(consensus.get("phase"), dict) else {}
+        current_phase = str(phase.get("current") or "").strip().lower()
+        if current_phase == "bft_active":
+            return _rej(
+                "legacy_consensus_tx_disabled",
+                "block_propose_disabled_under_hotstuff_bft",
+                tx_type=tx_type_norm,
+                consensus_phase=current_phase,
+            )
+
     public_only_violation = public_protocol_policy_violation(env)
     if public_only_violation is not None:
         return _rej(

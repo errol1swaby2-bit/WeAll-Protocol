@@ -355,20 +355,6 @@ def cmd_submit_tx(args: argparse.Namespace) -> int:
     return 0
 
 
-def _tier2_case(api: str, case_id: str) -> Json:
-    return _http_json("GET", api, f"/v1/poh/tier2/case/{urllib.parse.quote(case_id, safe='')}")
-
-
-def _tier2_case_payload(api: str, case_id: str) -> Json:
-    out = _tier2_case(api, case_id)
-    case = out.get("case") if isinstance(out, dict) else None
-    return case if isinstance(case, dict) else {}
-
-
-def _tier2_case_id(*, account: str, nonce: int) -> str:
-    return f"poh2:{str(account or '').strip()}:{max(0, int(nonce))}"
-
-
 def _live_case(api: str, case_id: str) -> Json:
     return _http_json("GET", api, f"/v1/poh/live/case/{urllib.parse.quote(case_id, safe='')}")
 
@@ -377,6 +363,46 @@ def _live_case_payload(api: str, case_id: str) -> Json:
     out = _live_case(api, case_id)
     case = out.get("case") if isinstance(out, dict) else None
     return case if isinstance(case, dict) else {}
+
+
+def _wait_live_juror_state(
+    api: str,
+    case_id: str,
+    juror: str,
+    *,
+    field: str,
+    expected: object,
+    timeout_s: float,
+    poll_s: float,
+) -> Json:
+    """Wait until a dependent Live reviewer action is canonical in case state."""
+
+    deadline = time.time() + max(0.0, float(timeout_s))
+    last: Json = {}
+    while True:
+        case = _live_case_payload(api, case_id)
+        jurors = case.get("jurors") if isinstance(case.get("jurors"), list) else []
+        record = next(
+            (
+                item
+                for item in jurors
+                if isinstance(item, dict)
+                and str(item.get("juror_id") or "").strip() == str(juror or "").strip()
+            ),
+            None,
+        )
+        last = record if isinstance(record, dict) else {}
+        actual = last.get(field)
+        if field == "verdict":
+            if str(actual or "").strip().lower() == str(expected or "").strip().lower():
+                return last
+        elif actual is expected or actual == expected:
+            return last
+        if time.time() >= deadline:
+            raise SystemExit(
+                f"live_juror_state_timeout:{case_id}:{juror}:{field}:{expected}:{_json_dumps(last)}"
+            )
+        time.sleep(max(0.05, float(poll_s)))
 
 
 def _live_session(api: str, session_id: str) -> Json:
@@ -417,64 +443,10 @@ def _devnet_video_commitment(*, chain_id: str, account: str) -> str:
     return f"sha256:{_sha256_hex(material)}"
 
 
-def cmd_tier2_request(args: argparse.Namespace) -> int:
-    keyfile = Path(args.keyfile).expanduser()
-    account, priv, _pub, keydata = _key_material(keyfile, account=args.account)
-    chain_id = _chain_id(args.api)
-    nonce = int(args.nonce) if args.nonce is not None else _next_nonce(args.api, account)
-    commitment = str(args.video_commitment or "").strip() or _devnet_video_commitment(
-        chain_id=chain_id, account=account
-    )
-    skeleton = _http_json(
-        "POST",
-        args.api,
-        "/v1/poh/tier2/tx/request",
-        {"account_id": account, "target_tier": 2, "video_commitment": commitment},
-    )
-    tx_skel = skeleton.get("tx") if isinstance(skeleton, dict) else None
-    if not isinstance(tx_skel, dict):
-        raise SystemExit(f"Unexpected tier2 request skeleton response: {_json_dumps(skeleton)}")
-    tx = _sign_tx(
-        chain_id=chain_id,
-        tx_type="POH_TIER2_REQUEST_OPEN",
-        signer=account,
-        nonce=nonce,
-        payload=tx_skel.get("payload")
-        if isinstance(tx_skel.get("payload"), dict)
-        else {"account_id": account, "target_tier": 2, "video_commitment": commitment},
-        parent=args.parent,
-        privkey=priv,
-    )
-    submitted = _http_json("POST", args.api, "/v1/tx/submit", tx)
-    tx_id = str(submitted.get("tx_id") or "").strip()
-    case_id = _tier2_case_id(account=account, nonce=nonce)
-    result: Json = {
-        "ok": bool(submitted.get("ok", False)),
-        "api": args.api,
-        "chain_id": chain_id,
-        "account": account,
-        "case_id": case_id,
-        "video_commitment": commitment,
-        "tx_id": tx_id,
-        "submit": submitted,
-    }
-    if args.wait and tx_id:
-        result["tx_status"] = _wait_tx(args.api, tx_id, timeout_s=args.timeout, poll_s=args.poll)
-        result["case"] = _tier2_case_payload(args.api, case_id)
-        result["account_state"] = _account_state(args.api, account)
-    keydata["last_poh_tier2_request_tx_id"] = tx_id
-    keydata["last_poh_tier2_case_id"] = case_id
-    keydata["last_poh_tier2_video_commitment"] = commitment
-    keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
-    print(_json_dumps(result))
-    return 0
-
-
 def _sign_and_submit_skeleton_tx(
     *,
     api: str,
     chain_id: str,
-    keyfile: Path,
     account: str,
     priv: str,
     route: str,
@@ -485,6 +457,8 @@ def _sign_and_submit_skeleton_tx(
     timeout: float,
     poll: float,
 ) -> Json:
+    """Build, sign, submit, and confirm a public API transaction skeleton."""
+
     skeleton = _http_json("POST", api, route, request_body)
     tx_skel = skeleton.get("tx") if isinstance(skeleton, dict) else None
     if not isinstance(tx_skel, dict):
@@ -578,74 +552,6 @@ def cmd_live_request(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_tier2_review(args: argparse.Namespace) -> int:
-    keyfile = Path(args.keyfile).expanduser()
-    juror, priv, _pub, keydata = _key_material(keyfile, account=args.account)
-    chain_id = _chain_id(args.api)
-    case_id = (
-        str(args.case_id or "").strip() or str(keydata.get("last_poh_tier2_case_id") or "").strip()
-    )
-    if not case_id:
-        raise SystemExit("missing --case-id")
-    verdict = str(args.verdict or "").strip().lower()
-    if verdict not in {"pass", "fail"}:
-        raise SystemExit("--verdict must be pass or fail")
-
-    result: Json = {
-        "ok": True,
-        "api": args.api,
-        "chain_id": chain_id,
-        "juror": juror,
-        "case_id": case_id,
-    }
-    if args.accept:
-        accept = _sign_and_submit_skeleton_tx(
-            api=args.api,
-            chain_id=chain_id,
-            keyfile=keyfile,
-            account=juror,
-            priv=priv,
-            route="/v1/poh/tier2/tx/juror-accept",
-            request_body={"case_id": case_id},
-            fallback_tx_type="POH_TIER2_JUROR_ACCEPT",
-            fallback_payload={"case_id": case_id},
-            parent=args.parent,
-            timeout=args.timeout,
-            poll=args.poll,
-        )
-        result["accept"] = accept
-        if str((accept.get("tx_status") or {}).get("status") or "").lower() != "confirmed":
-            result["ok"] = False
-            print(_json_dumps(result))
-            return 2
-
-    review = _sign_and_submit_skeleton_tx(
-        api=args.api,
-        chain_id=chain_id,
-        keyfile=keyfile,
-        account=juror,
-        priv=priv,
-        route="/v1/poh/tier2/tx/review",
-        request_body={"case_id": case_id, "verdict": verdict},
-        fallback_tx_type="POH_TIER2_REVIEW_SUBMIT",
-        fallback_payload={"case_id": case_id, "verdict": verdict, "ts_ms": 0},
-        parent=args.parent,
-        timeout=args.timeout,
-        poll=args.poll,
-    )
-    result["review"] = review
-    result["case"] = _tier2_case_payload(args.api, case_id)
-    keydata["last_poh_tier2_review_tx_id"] = str(review.get("tx_id") or "")
-    keydata["last_poh_tier2_case_id"] = case_id
-    keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
-    if str((review.get("tx_status") or {}).get("status") or "").lower() != "confirmed":
-        result["ok"] = False
-        print(_json_dumps(result))
-        return 2
-    print(_json_dumps(result))
-    return 0
-
-
 def cmd_live_review(args: argparse.Namespace) -> int:
     """Accept, attend, and optionally verdict a Live live verification case.
 
@@ -679,7 +585,6 @@ def cmd_live_review(args: argparse.Namespace) -> int:
         accept = _sign_and_submit_skeleton_tx(
             api=args.api,
             chain_id=chain_id,
-            keyfile=keyfile,
             account=juror,
             priv=priv,
             route="/v1/poh/live/tx/juror-accept",
@@ -695,12 +600,20 @@ def cmd_live_review(args: argparse.Namespace) -> int:
             result["ok"] = False
             print(_json_dumps(result))
             return 2
+        result["accept_state"] = _wait_live_juror_state(
+            args.api,
+            case_id,
+            juror,
+            field="accepted",
+            expected=True,
+            timeout_s=args.timeout,
+            poll_s=args.poll,
+        )
 
     if args.attendance:
         attendance = _sign_and_submit_skeleton_tx(
             api=args.api,
             chain_id=chain_id,
-            keyfile=keyfile,
             account=juror,
             priv=priv,
             route="/v1/poh/live/tx/attendance",
@@ -716,12 +629,20 @@ def cmd_live_review(args: argparse.Namespace) -> int:
             result["ok"] = False
             print(_json_dumps(result))
             return 2
+        result["attendance_state"] = _wait_live_juror_state(
+            args.api,
+            case_id,
+            juror,
+            field="attended",
+            expected=True,
+            timeout_s=args.timeout,
+            poll_s=args.poll,
+        )
 
     if args.submit_verdict and verdict:
         review = _sign_and_submit_skeleton_tx(
             api=args.api,
             chain_id=chain_id,
-            keyfile=keyfile,
             account=juror,
             priv=priv,
             route="/v1/poh/live/tx/verdict",
@@ -737,6 +658,15 @@ def cmd_live_review(args: argparse.Namespace) -> int:
             result["ok"] = False
             print(_json_dumps(result))
             return 2
+        result["verdict_state"] = _wait_live_juror_state(
+            args.api,
+            case_id,
+            juror,
+            field="verdict",
+            expected=verdict,
+            timeout_s=args.timeout,
+            poll_s=args.poll,
+        )
 
     case_payload = _live_case_payload(args.api, case_id)
     result["case"] = case_payload
@@ -813,11 +743,6 @@ def cmd_bootstrap_live(args: argparse.Namespace) -> int:
     keydata["last_poh_bootstrap_live_tx_id"] = tx_id
     keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
     print(_json_dumps(result))
-    return 0
-
-
-def cmd_tier2_case(args: argparse.Namespace) -> int:
-    print(_json_dumps(_tier2_case(args.api, args.case_id)))
     return 0
 
 
@@ -948,67 +873,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     k.add_argument("--print-private", action="store_true")
     k.set_defaults(func=cmd_ensure_keyfile)
-
-    t2 = sub.add_parser("tier2-request", help="Submit a POH_TIER2_REQUEST_OPEN tx")
-    t2.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))
-    t2.add_argument(
-        "--keyfile",
-        default=os.environ.get(
-            "WEALL_KEYFILE", str(REPO_ROOT / ".weall-devnet" / "accounts" / "devnet-account.json")
-        ),
-    )
-    t2.add_argument(
-        "--video-commitment", default=os.environ.get("WEALL_POH_TIER2_VIDEO_COMMITMENT", "")
-    )
-    t2.add_argument("--nonce", type=int, default=None)
-    t2.add_argument("--parent", default=None)
-    t2.add_argument("--wait", action="store_true", default=True)
-    t2.add_argument("--no-wait", dest="wait", action="store_false")
-    t2.add_argument(
-        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
-    )
-    t2.add_argument(
-        "--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
-    )
-    t2.set_defaults(func=cmd_tier2_request)
-
-    r2 = sub.add_parser("tier2-review", help="Accept and submit a Tier-2 juror review")
-    r2.add_argument(
-        "--account",
-        default=os.environ.get(
-            "WEALL_TIER2_JUROR_ACCOUNT",
-            os.environ.get(
-                "WEALL_BOOTSTRAP_OPERATOR_ACCOUNT",
-                os.environ.get("WEALL_GENESIS_BOOTSTRAP_ACCOUNT", "@devnet-genesis"),
-            ),
-        ),
-    )
-    r2.add_argument(
-        "--keyfile",
-        default=os.environ.get(
-            "WEALL_TIER2_JUROR_KEYFILE",
-            os.environ.get(
-                "WEALL_GENESIS_OPERATOR_KEYFILE",
-                str(REPO_ROOT / ".weall-devnet" / "genesis-operator.json"),
-            ),
-        ),
-    )
-    r2.add_argument("--case-id", default=os.environ.get("WEALL_TIER2_CASE_ID", ""))
-    r2.add_argument("--verdict", default=os.environ.get("WEALL_TIER2_VERDICT", "pass"))
-    r2.add_argument("--accept", action="store_true", default=True)
-    r2.add_argument("--no-accept", dest="accept", action="store_false")
-    r2.add_argument("--parent", default=None)
-    r2.add_argument(
-        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
-    )
-    r2.add_argument(
-        "--poll", type=float, default=float(os.environ.get("WEALL_TX_WAIT_POLL", "0.5"))
-    )
-    r2.set_defaults(func=cmd_tier2_review)
-
-    c2 = sub.add_parser("tier2-case", help="Read a Tier-2 PoH case")
-    c2.add_argument("case_id")
-    c2.set_defaults(func=cmd_tier2_case)
 
     b3 = sub.add_parser("bootstrap-live", help="Submit bounded devnet POH_BOOTSTRAP_TIER2_GRANT")
     b3.add_argument("--account", default=os.environ.get("WEALL_ACCOUNT", ""))

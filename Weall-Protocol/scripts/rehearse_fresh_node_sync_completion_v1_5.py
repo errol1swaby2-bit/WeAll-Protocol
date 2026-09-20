@@ -23,7 +23,13 @@ TX_INDEX_HASH = "tx-index-b510"
 
 
 def _header(corr_id: str) -> WireHeader:
-    return WireHeader(type=MsgType.STATE_SYNC_REQUEST, chain_id=CHAIN_ID, schema_version=SCHEMA_VERSION, tx_index_hash=TX_INDEX_HASH, corr_id=corr_id)
+    return WireHeader(
+        type=MsgType.STATE_SYNC_REQUEST,
+        chain_id=CHAIN_ID,
+        schema_version=SCHEMA_VERSION,
+        tx_index_hash=TX_INDEX_HASH,
+        corr_id=corr_id,
+    )
 
 
 def run_harness() -> Json:
@@ -33,7 +39,11 @@ def run_harness() -> Json:
         "chain_id": CHAIN_ID,
         "finalized": {"height": 42, "block_id": "block:42"},
         "accounts": {"alice": {"nonce": 7, "poh_tier": 2}, "bob": {"nonce": 1}},
-        "roles": {"validators": {"active_set": ["validator-a", "validator-b", "validator-c", "validator-d"]}},
+        "roles": {
+            "validators": {
+                "active_set": ["validator-a", "validator-b", "validator-c", "validator-d"]
+            }
+        },
     }
     source_root = compute_state_root(source_state)
     trusted_anchor = build_snapshot_anchor(source_state)
@@ -45,11 +55,21 @@ def run_harness() -> Json:
         require_trusted_anchor=True,
         enforce_finalized_anchor=True,
     )
-    response = service.handle_request(StateSyncRequestMsg(header=_header("fresh-node"), mode="snapshot", selector={"trusted_anchor": trusted_anchor}))
+    response = service.handle_request(
+        StateSyncRequestMsg(
+            header=_header("fresh-node"),
+            mode="snapshot",
+            selector={"trusted_anchor": trusted_anchor},
+        )
+    )
     service.verify_response(response, trusted_anchor=trusted_anchor)
     fresh_node_state = dict(response.snapshot or {})
     fresh_root = compute_state_root(fresh_node_state)
-    ok = bool(response.ok) and source_root == fresh_root and int(fresh_node_state.get("height") or 0) == 42
+    ok = (
+        bool(response.ok)
+        and source_root == fresh_root
+        and int(fresh_node_state.get("height") or 0) == 42
+    )
     return {
         "artifact": "b510_fresh_node_sync_completion_v1_5",
         "source_height": int(source_state["height"]),

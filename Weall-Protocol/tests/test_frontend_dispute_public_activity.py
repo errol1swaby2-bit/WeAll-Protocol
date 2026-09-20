@@ -18,8 +18,14 @@ def test_dispute_review_choice_semantics_match_backend_resolution() -> None:
     text = (WEB / "src/pages/DisputeReview.tsx").read_text(encoding="utf-8")
     assert '"Keep Post"' in text
     assert '"Remove Post"' in text
-    assert 'vote: "no", resolution: { summary: "Reviewer chose to keep the post visible.", actions: [] }' in text
-    assert 'vote: "yes", resolution: { summary: "Reviewer upheld the report and chose to remove the post." }' in text
+    assert (
+        'vote: "no", resolution: { summary: "Reviewer chose to keep the post visible.", actions: [] }'
+        in text
+    )
+    assert (
+        'vote: "yes", resolution: { summary: "Reviewer upheld the report and chose to remove the post." }'
+        in text
+    )
     assert '"Accept assignment", "Review assignment accepted."' in text
     assert '"Accept report", "Report accepted."' not in text
 
@@ -50,5 +56,7 @@ def test_seeded_demo_allows_case_scoped_report_review_without_leaking_to_prod() 
     state["roles"]["jurors"] = {"by_id": {}, "active_set": []}
     ok, meta = eval_gate("Juror", signer=reviewer, state=state, payload={"dispute_id": dispute_id})
     assert ok, meta
-    owner_ok, owner_meta = eval_gate("Juror", signer="@demo_tester", state=state, payload={"dispute_id": dispute_id})
+    owner_ok, owner_meta = eval_gate(
+        "Juror", signer="@demo_tester", state=state, payload={"dispute_id": dispute_id}
+    )
     assert not owner_ok, owner_meta

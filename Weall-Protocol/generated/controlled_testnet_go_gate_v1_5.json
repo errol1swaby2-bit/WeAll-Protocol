@@ -44,7 +44,7 @@
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
-      "ok": true,
+      "ok": false,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
@@ -117,9 +117,9 @@
     }
   },
   "b587_b594_mechanism_completion_summary": {
-    "controlled_testnet_mechanisms_complete": true,
-    "controlled_testnet_ready_candidate": true,
-    "ok": true,
+    "controlled_testnet_mechanisms_complete": false,
+    "controlled_testnet_ready_candidate": false,
+    "ok": false,
     "present": true,
     "public_beta_ready": false,
     "unsafe_claims_false": true
@@ -153,8 +153,8 @@
     "public_validator_readiness",
     "protocol_private_activity"
   ],
-  "controlled_testnet_candidate": true,
-  "controlled_testnet_go_gate_ready_to_run": true,
+  "controlled_testnet_candidate": false,
+  "controlled_testnet_go_gate_ready_to_run": false,
   "controlled_testnet_ready_claimed_by_repo": false,
   "deterministic_tracked_manifest": true,
   "external_operator_transcript_requirements_summary": {
@@ -165,7 +165,9 @@
     "schema_count": 4
   },
   "launch_matrix_capability_snapshot": {
-    "artifact_blockers": [],
+    "artifact_blockers": [
+      "b587_b594_mechanism_completion"
+    ],
     "blocked_capabilities": [
       "live_transfers",
       "live_rewards",
@@ -186,14 +188,14 @@
       "public_validator_enabled": false
     }
   },
-  "next_allowed_claim_if_runtime_go_gate_passes": "controlled testnet candidate evidence captured",
-  "ok": true,
+  "next_allowed_claim_if_runtime_go_gate_passes": "pre-public-testnet hardening evidence refreshed; controlled-testnet candidate remains disallowed while deterministic mechanism completion is false",
+  "ok": false,
   "public_beta_blocker_report_summary": {
     "blocker_catalog_count": 15,
     "blocker_count": 15,
     "closed_in_repository_count": 7,
     "mainnet_ready": false,
-    "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+    "next_allowed_claim": "pre-public-testnet implementation under active hardening; controlled-testnet mechanism completion remains NO-GO until production helper state-root/restart proof is complete",
     "ok": true,
     "p0_open_count": 4,
     "p1_open_count": 4,

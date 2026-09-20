@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from weall.runtime.executor import WeAllExecutor
-from weall.runtime.replay_consistency import build_sample_chain, build_replay_manifest
+from weall.runtime.replay_consistency import build_sample_chain
 
 
 def _repo_root() -> Path:
@@ -56,7 +56,12 @@ def _corrupt_block_rejected(source_db: str, chain_id: str) -> bool:
         con.close()
     block["block_hash"] = "00" * 32
     with tempfile.TemporaryDirectory(prefix="weall-b540-corrupt-") as td:
-        ex = WeAllExecutor(db_path=str(Path(td) / "fresh.sqlite"), node_id="fresh-corrupt", chain_id=chain_id, tx_index_path=_tx_index_path())
+        ex = WeAllExecutor(
+            db_path=str(Path(td) / "fresh.sqlite"),
+            node_id="fresh-corrupt",
+            chain_id=chain_id,
+            tx_index_path=_tx_index_path(),
+        )
         meta = ex.apply_block(block)
         return not bool(meta.ok)
 
@@ -69,7 +74,11 @@ def run_harness() -> dict[str, Any]:
             result = build_sample_chain(work_dir=td, chain_id_prefix="batch540")
             source_db = str(result.get("source_db") or "")
             replay_db = str(result.get("replay_db") or "")
-            source_manifest = result.get("source_manifest") if isinstance(result.get("source_manifest"), dict) else {}
+            source_manifest = (
+                result.get("source_manifest")
+                if isinstance(result.get("source_manifest"), dict)
+                else {}
+            )
             chain_id = str(result.get("chain_id") or source_manifest.get("chain_id") or "")
             corrupt_rejected = _corrupt_block_rejected(source_db, chain_id)
             source_counts = _table_counts(source_db)
@@ -80,7 +89,12 @@ def run_harness() -> dict[str, Any]:
                 "production_commit_path": True,
                 "source_db_backed": True,
                 "fresh_replay_db_backed": True,
-                "block_commit_tables_used": ["blocks", "block_hash_index", "ledger_state", "tx_index"],
+                "block_commit_tables_used": [
+                    "blocks",
+                    "block_hash_index",
+                    "ledger_state",
+                    "tx_index",
+                ],
                 "source_table_counts": source_counts,
                 "replay_table_counts": replay_counts,
                 "height": int(source_manifest.get("height") or 0),
@@ -89,11 +103,14 @@ def run_harness() -> dict[str, Any]:
                 "issues": list(result.get("issues") or []),
             }
     finally:
-        os.environ.clear(); os.environ.update(old)
+        os.environ.clear()
+        os.environ.update(old)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

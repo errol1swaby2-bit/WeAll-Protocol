@@ -10,8 +10,9 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-
-def test_production_request_with_wrong_node_key_enters_maintenance(tmp_path: Path, monkeypatch) -> None:
+def test_production_request_with_wrong_node_key_enters_maintenance(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator")
@@ -51,8 +52,9 @@ def test_production_request_with_wrong_node_key_enters_maintenance(tmp_path: Pat
     assert lifecycle["node_key_authorized"] is False
 
 
-
-def test_production_request_requires_requested_roles_to_be_active(tmp_path: Path, monkeypatch) -> None:
+def test_production_request_requires_requested_roles_to_be_active(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "helper")

@@ -10,7 +10,6 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-
 def test_default_node_lifecycle_is_bootstrap_registration(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_NODE_LIFECYCLE_STATE", raising=False)
@@ -38,8 +37,9 @@ def test_default_node_lifecycle_is_bootstrap_registration(tmp_path: Path, monkey
     assert lifecycle["runtime_profile_hash"]
 
 
-
-def test_production_request_without_bound_account_fails_closed_to_maintenance(tmp_path: Path, monkeypatch) -> None:
+def test_production_request_without_bound_account_fails_closed_to_maintenance(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator,helper")
@@ -65,7 +65,6 @@ def test_production_request_without_bound_account_fails_closed_to_maintenance(tm
     assert lifecycle["promotion_preflight_passed"] is False
     assert "ACCOUNT_NOT_BOUND" in lifecycle["promotion_failure_reasons"]
     assert lifecycle["service_roles_effective"] == []
-
 
 
 def test_production_request_activates_validator_and_helper_when_preflight_passes(
@@ -103,7 +102,10 @@ def test_production_request_activates_validator_and_helper_when_preflight_passes
     }
     st["roles"] = {
         "validators": {"active_set": ["@v1", "@v2", "@v3", "@v4"]},
-        "node_operators": {"by_id": {"@v1": {"enrolled": True, "active": True}}, "active_set": ["@v1"]},
+        "node_operators": {
+            "by_id": {"@v1": {"enrolled": True, "active": True}},
+            "active_set": ["@v1"],
+        },
     }
     ex.state = st
     ex._persist_node_lifecycle_meta()  # type: ignore[attr-defined]

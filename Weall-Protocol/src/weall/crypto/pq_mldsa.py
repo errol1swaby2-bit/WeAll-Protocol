@@ -10,6 +10,8 @@ must fail closed.
 """
 
 import base64
+import re
+from pathlib import Path
 from typing import Any
 
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
@@ -19,6 +21,9 @@ MLDSA_SEED_BYTES = 32
 MLDSA65_PUBLIC_KEY_BYTES = 1952
 MLDSA65_SIGNATURE_BYTES = 3309
 MLDSA_CONTEXT = b"weall:pq-mldsa-v1:protocol-signature"
+MLDSA_API_MIN_CRYPTOGRAPHY_VERSION = "47.0.0"
+WEALL_CRYPTOGRAPHY_REQUIRED_SPEC = ">=50.0.0,<51"
+_CRYPTOGRAPHY_LOCK_RE = re.compile(r"^cryptography==([^\s\\]+)")
 
 
 def _decode_bytes(s: str) -> bytes:
@@ -47,6 +52,27 @@ def _mldsa_classes() -> tuple[Any, Any]:
     return mldsa.MLDSA65PrivateKey, mldsa.MLDSA65PublicKey
 
 
+def _repo_locked_cryptography_version() -> str | None:
+    """Return the exact cryptography pin from the repository lock when present."""
+    try:
+        lock_path = Path(__file__).resolve().parents[3] / "requirements.lock"
+        for line in lock_path.read_text(encoding="utf-8").splitlines():
+            match = _CRYPTOGRAPHY_LOCK_RE.match(line.strip())
+            if match:
+                return match.group(1)
+    except (IndexError, OSError):
+        return None
+    return None
+
+
+def _dependency_posture() -> dict[str, Any]:
+    return {
+        "minimum_cryptography_version": MLDSA_API_MIN_CRYPTOGRAPHY_VERSION,
+        "required_cryptography_spec": WEALL_CRYPTOGRAPHY_REQUIRED_SPEC,
+        "repo_locked_cryptography_version": _repo_locked_cryptography_version(),
+    }
+
+
 def mldsa_backend_status() -> dict[str, Any]:
     try:
         private_cls, _public_cls = _mldsa_classes()
@@ -56,8 +82,7 @@ def mldsa_backend_status() -> dict[str, Any]:
             return {
                 "available": False,
                 "backend": "pyca-cryptography",
-                "minimum_cryptography_version": "47.0.0",
-                "repo_locked_cryptography_version": "48.0.0",
+                **_dependency_posture(),
                 "algorithm": MLDSA_PARAMETER_SET,
                 "reason": "unsupported_backend",
                 "detail": str(exc),
@@ -65,8 +90,7 @@ def mldsa_backend_status() -> dict[str, Any]:
         return {
             "available": True,
             "backend": "pyca-cryptography",
-            "minimum_cryptography_version": "47.0.0",
-            "repo_locked_cryptography_version": "48.0.0",
+            **_dependency_posture(),
             "algorithm": MLDSA_PARAMETER_SET,
             "reason": "ok",
             "public_key_bytes": MLDSA65_PUBLIC_KEY_BYTES,
@@ -77,8 +101,7 @@ def mldsa_backend_status() -> dict[str, Any]:
         return {
             "available": False,
             "backend": "pyca-cryptography",
-            "minimum_cryptography_version": "47.0.0",
-            "repo_locked_cryptography_version": "48.0.0",
+            **_dependency_posture(),
             "algorithm": MLDSA_PARAMETER_SET,
             "reason": "module_unavailable",
             "detail": str(exc),

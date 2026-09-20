@@ -8,7 +8,8 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
-
+import time
+from typing import Any
 
 from weall.runtime.executor import (
     ExecutorMeta,
@@ -22,6 +23,10 @@ from weall.runtime.executor import (
     os,
     prune_emitted_system_queue,
 )
+from weall.runtime.failpoints import failpoints_enabled
+
+Json = dict[str, Any]
+
 
 def commit_block_candidate(
     self,
@@ -94,7 +99,48 @@ def commit_block_candidate(
         snap_tip = str(new_state.get("tip") or block_id).strip()
         state_json = _canon_json(new_state)
 
+        # Capture transition context before crossing the durable commit boundary.
+        # Any exception here is still a true non-commit and can safely return
+        # ``ok=False`` without creating an ambiguous durable outcome.
+        previous_epoch = self._current_validator_epoch()
+        previous_set_hash = self._current_validator_set_hash() if int(previous_epoch) > 0 else ""
+
         with self._db.write_tx() as con:
+            # Revalidate the candidate against the *durable* canonical parent
+            # while holding the same SQLite writer transaction used for commit.
+            # A candidate may have been built before a destructive checkpoint or
+            # another canonical block commit; without this check a stale height
+            # can be inserted after the newer branch and overwrite ledger_state.
+            durable = con.execute(
+                """
+                SELECT ls.height, ls.block_id, bhi.block_hash
+                FROM ledger_state AS ls
+                LEFT JOIN block_hash_index AS bhi ON bhi.block_id = ls.block_id
+                WHERE ls.id=1
+                LIMIT 1;
+                """
+            ).fetchone()
+            if durable is None:
+                raise RuntimeError("block_commit_ledger_state_missing")
+
+            durable_height = int(durable["height"] or 0)
+            durable_tip = str(durable["block_id"] or "").strip()
+            durable_tip_hash = str(durable["block_hash"] or "").strip()
+            candidate_prev = str(block2.get("prev_block_id") or "").strip()
+            header = block2.get("header") if isinstance(block2.get("header"), dict) else {}
+            candidate_prev_hash = str(
+                header.get("prev_block_hash") or block2.get("prev_block_hash") or ""
+            ).strip()
+
+            if int(height) != int(durable_height) + 1:
+                raise RuntimeError(
+                    f"block_commit_stale_height:{int(height)}!={int(durable_height) + 1}"
+                )
+            if candidate_prev != durable_tip:
+                raise RuntimeError("block_commit_stale_parent")
+            if durable_tip_hash and candidate_prev_hash != durable_tip_hash:
+                raise RuntimeError("block_commit_stale_parent_hash")
+
             con.execute(
                 "INSERT INTO blocks(height, block_id, block_json, created_ts_ms) VALUES(?,?,?,?);",
                 (int(height), str(block_id), block_json, int(now)),
@@ -111,30 +157,30 @@ def commit_block_candidate(
                 (str(block_id), str(block2.get("block_hash") or ""), int(height), int(now)),
             )
 
-            # TEST-ONLY crash hook: give tests a window to SIGKILL this process
-            marker = os.environ.get("WEALL_TEST_MARKER_PATH", "").strip()
-            if marker:
+            # Legacy crash-window controls remain available only in explicit
+            # non-production modes.  In production these environment variables
+            # are inert.
+            if failpoints_enabled():
+                marker = os.environ.get("WEALL_TEST_MARKER_PATH", "").strip()
+                if marker:
+                    try:
+                        Path(marker).parent.mkdir(parents=True, exist_ok=True)
+                        Path(marker).write_text("ready\n")
+                    except Exception:
+                        pass
                 try:
-                    Path(marker).parent.mkdir(parents=True, exist_ok=True)
-                    Path(marker).write_text("ready\n")
+                    sleep_ms = int(os.environ.get("WEALL_TEST_SLEEP_AFTER_BLOCK_INSERT_MS", "0"))
                 except Exception:
-                    pass
-            # after the block insert but before ledger_state is updated.
-            try:
-                sleep_ms = int(os.environ.get("WEALL_TEST_SLEEP_AFTER_BLOCK_INSERT_MS", "0"))
-            except Exception:
-                sleep_ms = 0
-            if sleep_ms > 0:
-                time.sleep(sleep_ms / 1000.0)
+                    sleep_ms = 0
+                if sleep_ms > 0:
+                    time.sleep(sleep_ms / 1000.0)
 
-            # TEST-ONLY fail hook: simulate an exception after the block row is inserted
-            # but before mempool cleanup + ledger_state write.
-            if os.environ.get("WEALL_TEST_FAIL_AFTER_BLOCK_INSERT", "").strip().lower() in {
-                "1",
-                "true",
-                "yes",
-            }:
-                raise RuntimeError("test_fail_after_block_insert")
+                if os.environ.get("WEALL_TEST_FAIL_AFTER_BLOCK_INSERT", "").strip().lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                }:
+                    raise RuntimeError("test_fail_after_block_insert")
 
             maybe_trigger_failpoint("block_commit_after_block_insert")
 
@@ -184,17 +230,33 @@ def commit_block_candidate(
 
             maybe_trigger_failpoint("block_commit_after_ledger_state")
 
-        previous_epoch = self._current_validator_epoch()
-        previous_set_hash = (
-            self._current_validator_set_hash() if int(previous_epoch) > 0 else ""
-        )
+        # The SQLite transaction has committed at this point. From here onward
+        # an exception must never be reported as though the block were absent:
+        # callers could otherwise retry/reject a block that restart will load as
+        # canonical. Publish the durable state first, then fail the local runtime
+        # closed if BFT/cache housekeeping cannot be completed.
         self.state = new_state
-        self._bft.load_from_state(self.state)
-        self._cache_known_block_hash(str(block_id), str(block2.get("block_hash") or ""))
-        self._prune_pending_bft_artifacts_on_local_validator_transition(
-            previous_epoch=int(previous_epoch),
-            previous_set_hash=str(previous_set_hash or ""),
-        )
+        try:
+            self._bft.load_from_state(self.state)
+            self._cache_known_block_hash(str(block_id), str(block2.get("block_hash") or ""))
+            self._prune_pending_bft_artifacts_on_local_validator_transition(
+                previous_epoch=int(previous_epoch),
+                previous_set_hash=str(previous_set_hash or ""),
+            )
+        except Exception as exc:
+            post_commit_error = f"post_commit_housekeeping_failed:{type(exc).__name__}:{str(exc)}"
+            self._post_commit_housekeeping_error = post_commit_error
+            self._validator_signing_enabled = False
+            self._observer_mode_forced = True
+            self._signing_block_reason = "post_commit_housekeeping_failed"
+            self.block_loop_unhealthy = True
+            return ExecutorMeta(
+                ok=True,
+                error=post_commit_error,
+                height=int(height),
+                block_id=str(block_id),
+                applied_count=len(applied_ids),
+            )
 
         return ExecutorMeta(
             ok=True,
@@ -204,7 +266,4 @@ def commit_block_candidate(
             applied_count=len(applied_ids),
         )
     except Exception as e:
-        return ExecutorMeta(
-            ok=False, error=_format_commit_failure(e), height=0, block_id=""
-        )
-
+        return ExecutorMeta(ok=False, error=_format_commit_failure(e), height=0, block_id="")

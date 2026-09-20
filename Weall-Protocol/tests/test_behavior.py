@@ -10,14 +10,26 @@ from weall.net.state_sync import StateSyncService, build_snapshot_anchor
 from weall.runtime.apply.consensus import apply_consensus
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.poh import apply_poh
-from weall.runtime.poh.state import POH_STATUS_ACTIVE, canonical_account_poh_status, set_account_poh_status
+from weall.runtime.poh.state import (
+    POH_STATUS_ACTIVE,
+    canonical_account_poh_status,
+    set_account_poh_status,
+)
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.tx_admission import TxEnvelope
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _env(tx_type: str, *, signer: str = "alice", nonce: int = 1, payload: dict | None = None, system: bool = False, parent: str | None = None) -> TxEnvelope:
+def _env(
+    tx_type: str,
+    *,
+    signer: str = "alice",
+    nonce: int = 1,
+    payload: dict | None = None,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -34,8 +46,7 @@ def _run_json(script: str) -> dict:
         [sys.executable, str(ROOT / "scripts" / script), "--json"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=True,
     )
     return json.loads(proc.stdout)
@@ -146,7 +157,12 @@ def test_upheld_poh_challenge_revokes_and_requires_reverification() -> None:
     )
     apply_poh(
         state,
-        _env("POH_CHALLENGE_OPEN", signer="bob", nonce=1, payload={"account_id": "alice", "reason": "duplicate"}),
+        _env(
+            "POH_CHALLENGE_OPEN",
+            signer="bob",
+            nonce=1,
+            payload={"account_id": "alice", "reason": "duplicate"},
+        ),
     )
     res = apply_poh(
         state,
@@ -192,9 +208,21 @@ def test_appealed_dispute_requires_appeal_decision_before_enforcement() -> None:
                 "resolution": {
                     "summary": "remove",
                     "actions": [
-                        {"tx_type": "CONTENT_LABEL_SET", "payload": {"target_id": "post:alice:1", "labels": ["policy_violation"]}},
-                        {"tx_type": "CONTENT_VISIBILITY_SET", "payload": {"target_id": "post:alice:1", "visibility": "deleted"}},
-                        {"tx_type": "CONTENT_THREAD_LOCK_SET", "payload": {"target_id": "post:alice:1", "locked": True}},
+                        {
+                            "tx_type": "CONTENT_LABEL_SET",
+                            "payload": {
+                                "target_id": "post:alice:1",
+                                "labels": ["policy_violation"],
+                            },
+                        },
+                        {
+                            "tx_type": "CONTENT_VISIBILITY_SET",
+                            "payload": {"target_id": "post:alice:1", "visibility": "deleted"},
+                        },
+                        {
+                            "tx_type": "CONTENT_THREAD_LOCK_SET",
+                            "payload": {"target_id": "post:alice:1", "locked": True},
+                        },
                     ],
                 },
             }
@@ -202,7 +230,13 @@ def test_appealed_dispute_requires_appeal_decision_before_enforcement() -> None:
     }
     res = apply_dispute(
         state,
-        _env("DISPUTE_FINAL_RECEIPT", signer="SYSTEM", nonce=1, system=True, payload={"dispute_id": "d1"}),
+        _env(
+            "DISPUTE_FINAL_RECEIPT",
+            signer="SYSTEM",
+            nonce=1,
+            system=True,
+            payload={"dispute_id": "d1"},
+        ),
     )
     assert res is not None
     assert state["disputes_by_id"]["d1"]["stage"] == "appeal_review"
@@ -215,7 +249,13 @@ def test_appealed_dispute_requires_appeal_decision_before_enforcement() -> None:
             signer="SYSTEM",
             nonce=2,
             system=True,
-            payload={"dispute_id": "d1", "appeal_resolution": {"decision": "uphold", "summary": "appeal reviewed; removal upheld"}},
+            payload={
+                "dispute_id": "d1",
+                "appeal_resolution": {
+                    "decision": "uphold",
+                    "summary": "appeal reviewed; removal upheld",
+                },
+            },
         ),
     )
     assert res2 is not None
@@ -231,7 +271,19 @@ def test_appealed_dispute_requires_appeal_decision_before_enforcement() -> None:
 def test_appeal_reverse_suppresses_delayed_enforcement() -> None:
     state = {
         "height": 41,
-        "content": {"posts": {"post:alice:2": {"id": "post:alice:2", "author": "alice", "visibility": "public", "deleted": False, "labels": [], "locked": False}}, "comments": {}},
+        "content": {
+            "posts": {
+                "post:alice:2": {
+                    "id": "post:alice:2",
+                    "author": "alice",
+                    "visibility": "public",
+                    "deleted": False,
+                    "labels": [],
+                    "locked": False,
+                }
+            },
+            "comments": {},
+        },
         "disputes_by_id": {
             "d2": {
                 "dispute_id": "d2",
@@ -240,7 +292,12 @@ def test_appeal_reverse_suppresses_delayed_enforcement() -> None:
                 "appeals": [{"by": "alice", "height": 40}],
                 "resolution": {
                     "summary": "remove",
-                    "actions": [{"tx_type": "CONTENT_VISIBILITY_SET", "payload": {"target_id": "post:alice:2", "visibility": "deleted"}}],
+                    "actions": [
+                        {
+                            "tx_type": "CONTENT_VISIBILITY_SET",
+                            "payload": {"target_id": "post:alice:2", "visibility": "deleted"},
+                        }
+                    ],
                 },
             }
         },
@@ -252,7 +309,10 @@ def test_appeal_reverse_suppresses_delayed_enforcement() -> None:
             signer="SYSTEM",
             nonce=1,
             system=True,
-            payload={"dispute_id": "d2", "appeal_resolution": {"decision": "reverse", "summary": "appeal accepted"}},
+            payload={
+                "dispute_id": "d2",
+                "appeal_resolution": {"decision": "reverse", "summary": "appeal accepted"},
+            },
         ),
     )
     assert res is not None

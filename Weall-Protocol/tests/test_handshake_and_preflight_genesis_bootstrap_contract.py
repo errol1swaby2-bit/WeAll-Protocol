@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from weall.net.handshake import HandshakeConfig, HandshakeState, build_hello, process_inbound_hello
+from weall.testing.prod_fixtures import write_strict_prod_chain_manifest
 
 
 def _cfg(**kwargs):
@@ -125,9 +126,17 @@ def _cfg_payload(db_path: Path, tx_index_path: Path) -> dict[str, object]:
 
 
 def _prod_env(cfg_path: Path) -> dict[str, str]:
+    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    manifest = write_strict_prod_chain_manifest(
+        cfg_path.with_name("strict-prod-chain-manifest.json"),
+        chain_id=str(cfg["chain_id"]),
+        tx_index_path=str(cfg["tx_index_path"]),
+    )
     return {
         **dict(os.environ),
         "WEALL_CHAIN_CONFIG_PATH": str(cfg_path),
+        "WEALL_CHAIN_MANIFEST_PATH": str(manifest),
+        "WEALL_REQUIRE_CHAIN_MANIFEST": "1",
         "WEALL_MODE": "prod",
         "WEALL_NET_ENABLED": "1",
         "WEALL_BFT_ENABLED": "1",
@@ -170,7 +179,13 @@ def test_public_validator_preflight_surfaces_genesis_bootstrap_contract(tmp_path
     assert build.returncode == 0, build.stdout + build.stderr
 
     proc = subprocess.run(
-        [sys.executable, "scripts/public_validator_preflight.py", "--bundle", str(bundle_path), "--json"],
+        [
+            sys.executable,
+            "scripts/public_validator_preflight.py",
+            "--bundle",
+            str(bundle_path),
+            "--json",
+        ],
         cwd=root,
         env=env,
         capture_output=True,

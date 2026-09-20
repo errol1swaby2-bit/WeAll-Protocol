@@ -47,9 +47,11 @@ def test_block_production_proof_endpoint_and_local_gate_461() -> None:
     assert '@router.get("/consensus/block-production/proof")' in consensus
     assert "block_production_proof_from_state" in consensus
     assert "state_root" in consensus and "receipts_root" in consensus and "block_hash" in consensus
-    assert "production_block_production_rehearsal_gate" in script or "local production-profile block proof" in script
+    assert (
+        "production_block_production_rehearsal_gate" in script
+        or "local production-profile block proof" in script
+    )
     assert "public multi-validator BFT not claimed" in doc
-
 
 
 def test_removed_private_communication_modules_and_live_room_turn_surfaces_remain_461() -> None:

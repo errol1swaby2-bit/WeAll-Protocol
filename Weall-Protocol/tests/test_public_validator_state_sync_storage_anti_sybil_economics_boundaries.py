@@ -75,7 +75,10 @@ def test_anti_sybil_records_collusion_suspicion_without_overclaiming() -> None:
 def test_economics_activation_complete_but_locked() -> None:
     out = _proof()["economics_activation_locked_completion"]
     assert out["ok"] is True
-    assert out["strict_preconditions_missing_error"] == "economics_activation_preconditions_not_satisfied"
+    assert (
+        out["strict_preconditions_missing_error"]
+        == "economics_activation_preconditions_not_satisfied"
+    )
     assert out["preconditions_ready_if_governance_chooses_activation"] is True
     assert out["wallet_initialization_policy_present"] is True
     assert out["reward_recipient_eligibility_present"] is True
@@ -117,8 +120,7 @@ def test_claim_boundaries_and_artifact_freshness() -> None:
         [sys.executable, "scripts/gen_b556_b561_final_missing_mechanics_proof_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr

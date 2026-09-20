@@ -14,10 +14,15 @@ def _read(path: Path) -> str:
 def test_live_request_waits_for_confirmed_synced_case_before_routing() -> None:
     src = _read(WEB / "src" / "pages" / "AccountVerificationPage.tsx")
 
-    live_fn = src.split("async function reconcileLiveCaseVisible", 1)[1].split("async function waitForLiveCaseIdVisible", 1)[0]
+    live_fn = src.split("async function reconcileLiveCaseVisible", 1)[1].split(
+        "async function waitForLiveCaseIdVisible", 1
+    )[0]
     assert "return reconcileVerificationLevel(account, 1, base);" not in live_fn
     assert "return null;" in live_fn
-    assert "Live verification request was not confirmed on genesis and synced back to the observer yet" in src
+    assert (
+        "Live verification request was not confirmed on genesis and synced back to the observer yet"
+        in src
+    )
     assert "requireLocalStateSynced: true" in src
     assert "return { skeleton: skel, commitments, submit, case_id: visibleCaseId };" in src
     assert 'String((r as any)?.case_id || "") || await waitForLiveCaseIdVisible' in src

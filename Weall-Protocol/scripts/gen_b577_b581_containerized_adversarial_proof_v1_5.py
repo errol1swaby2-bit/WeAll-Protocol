@@ -6,11 +6,15 @@ import json
 from pathlib import Path
 from typing import Any
 
+from rehearse_anti_sybil_conflict_appeal_recovery_v1_5 import (
+    run_harness as run_anti_sybil_conflict_appeal,
+)
 from rehearse_containerized_validator_network_v1_5 import run_harness as run_containerized_validator
+from rehearse_economics_sybil_farming_adversarial_stress_v1_5 import (
+    run_harness as run_economics_sybil_stress,
+)
 from rehearse_extended_seeded_network_soak_v1_5 import run_harness as run_extended_soak
 from rehearse_real_ipfs_daemon_durability_v1_5 import run_harness as run_real_ipfs_daemon
-from rehearse_anti_sybil_conflict_appeal_recovery_v1_5 import run_harness as run_anti_sybil_conflict_appeal
-from rehearse_economics_sybil_farming_adversarial_stress_v1_5 import run_harness as run_economics_sybil_stress
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "b577_b581_containerized_adversarial_proof_v1_5.json"
@@ -60,17 +64,23 @@ def _canon(obj: Any) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--check", action="store_true"); args = ap.parse_args()
-    artifact = build(); text = _canon(artifact)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--check", action="store_true")
+    args = ap.parse_args()
+    artifact = build()
+    text = _canon(artifact)
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("b577_b581_containerized_adversarial_proof_v1_5.json is stale; rerun generator")
+            raise SystemExit(
+                "b577_b581_containerized_adversarial_proof_v1_5.json is stale; rerun generator"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is fresh")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print(str(OUT))
     return 0 if artifact.get("ok") else 1
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

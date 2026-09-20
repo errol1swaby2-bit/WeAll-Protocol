@@ -44,7 +44,9 @@ def test_launch_matrix_disables_high_risk_features_for_current_phases() -> None:
 
 
 def test_launch_matrix_generated_artifact_matches_runtime() -> None:
-    artifact = json.loads((ROOT / "generated/launch_disabled_matrix_v1_5.json").read_text(encoding="utf-8"))
+    artifact = json.loads(
+        (ROOT / "generated/launch_disabled_matrix_v1_5.json").read_text(encoding="utf-8")
+    )
     runtime = launch_matrix_payload()
     assert artifact == runtime
     assert len(artifact["rows"]) == len(LAUNCH_PHASES) * len(HIGH_RISK_FEATURES)

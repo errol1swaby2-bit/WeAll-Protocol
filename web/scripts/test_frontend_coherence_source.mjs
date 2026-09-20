@@ -134,13 +134,13 @@ for (const token of [
 }
 
 for (const token of [
-  'Accepted locally',
-  'Gossiped / pending',
-  'Pending in mempool',
+  'Locally accepted',
+  'Queued / pending',
+  'Forwarded / gossiped',
   'Included in block',
-  'Finalized',
+  'Finalized / confirmed',
   'Removed from mempool',
-  'peer propagation',
+  'gossip/upstream propagation',
 ]) {
   assertIncludes(transactions, token, 'transaction lifecycle labels');
 }

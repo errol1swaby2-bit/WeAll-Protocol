@@ -14,11 +14,27 @@ SMOKE = ROOT / "scripts" / "operator_onboarding_smoke.sh"
 FRESH_DEMO = ROOT / "scripts" / "fresh_node_operator_candidate_demo.sh"
 
 
-def _env(tx_type: str, payload: dict, *, signer: str = "@op", system: bool = False, nonce: int = 1) -> dict:
-    return {"tx_type": tx_type, "signer": signer, "nonce": nonce, "payload": payload, "sig": "", "system": system}
+def _env(
+    tx_type: str, payload: dict, *, signer: str = "@op", system: bool = False, nonce: int = 1
+) -> dict:
+    return {
+        "tx_type": tx_type,
+        "signer": signer,
+        "nonce": nonce,
+        "payload": payload,
+        "sig": "",
+        "system": system,
+    }
 
 
-def _state(*, tier: int = 2, rep: int = 6000, active: bool = True, banned: bool = False, locked: bool = False) -> dict:
+def _state(
+    *,
+    tier: int = 2,
+    rep: int = 6000,
+    active: bool = True,
+    banned: bool = False,
+    locked: bool = False,
+) -> dict:
     return {
         "accounts": {
             "@op": {
@@ -99,24 +115,36 @@ def test_active_node_operator_can_opt_into_validator_but_not_gain_consensus(monk
 def test_validator_opt_in_requires_active_node_operator_tier2_reputation_and_node_key() -> None:
     inactive = _state(tier=2, rep=6000, active=False)
     with pytest.raises(Exception) as exc1:
-        apply_tx(inactive, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}))
+        apply_tx(
+            inactive,
+            _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}),
+        )
     assert "node_operator_status_required" in str(exc1.value)
 
     tier1 = _state(tier=1, rep=6000, active=True)
     with pytest.raises(Exception) as exc2:
-        apply_tx(tier1, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}))
+        apply_tx(
+            tier1,
+            _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}),
+        )
     assert "live_verification_required" in str(exc2.value)
 
     low_rep = _state(tier=2, rep=4999, active=True)
     with pytest.raises(Exception) as exc3:
-        apply_tx(low_rep, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}))
+        apply_tx(
+            low_rep,
+            _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True}),
+        )
     assert "validator_reputation_insufficient" in str(exc3.value)
 
     wrong_key = _state(tier=2, rep=6000, active=True)
     with pytest.raises(Exception) as exc4:
         apply_tx(
             wrong_key,
-            _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "validator_opt_in": True, "node_pubkey": "other"}),
+            _env(
+                "ROLE_NODE_OPERATOR_ENROLL",
+                {"account_id": "@op", "validator_opt_in": True, "node_pubkey": "other"},
+            ),
         )
     assert "node_key_not_registered" in str(exc4.value)
 

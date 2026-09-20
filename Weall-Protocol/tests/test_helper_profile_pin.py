@@ -68,7 +68,6 @@ def test_restart_rejects_helper_execution_profile_mismatch(
         )
 
 
-
 def test_startup_rejects_helper_fast_path_without_helper_mode(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -78,7 +77,9 @@ def test_startup_rejects_helper_fast_path_without_helper_mode(
     monkeypatch.delenv("WEALL_HELPER_MODE_ENABLED", raising=False)
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
 
-    with pytest.raises(ExecutorError, match="helper fast path requires WEALL_HELPER_MODE_ENABLED=1"):
+    with pytest.raises(
+        ExecutorError, match="helper fast path requires WEALL_HELPER_MODE_ENABLED=1"
+    ):
         WeAllExecutor(
             db_path=str(tmp_path / "helper_requires_mode.db"),
             node_id="@node",
@@ -87,8 +88,7 @@ def test_startup_rejects_helper_fast_path_without_helper_mode(
         )
 
 
-
-def test_build_block_candidate_uses_pinned_helper_profile_when_runtime_profile_drifts(
+def test_build_block_candidate_uses_committed_helper_profile_policy(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -135,8 +135,7 @@ def test_build_block_candidate_uses_pinned_helper_profile_when_runtime_profile_d
     }
 
 
-
-def test_apply_block_uses_pinned_helper_profile_when_local_runtime_drifts(
+def test_apply_block_ignores_local_runtime_helper_profile_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
@@ -164,7 +163,10 @@ def test_apply_block_uses_pinned_helper_profile_when_local_runtime_drifts(
     assert err == ""
     assert block is not None
 
-    follower.state.setdefault("meta", {})["helper_execution_profile"] = {
+    # Local lifecycle/posture may disable helper acceleration on this node, but
+    # that local effective profile must not mutate the consensus-pinned helper
+    # execution policy committed by the state root.
+    follower.state.setdefault("meta", {})["runtime_helper_execution_profile"] = {
         "helper_mode_enabled": True,
         "helper_fast_path_enabled": False,
         "helper_timeout_ms": 5000,

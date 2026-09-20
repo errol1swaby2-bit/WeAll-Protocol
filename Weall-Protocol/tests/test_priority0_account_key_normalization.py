@@ -30,14 +30,18 @@ def test_account_register_syncs_legacy_key_views() -> None:
 
 def test_account_key_add_and_revoke_keep_mirrors_deterministic() -> None:
     state = {"accounts": {}}
-    apply_tx(state, _env("ACCOUNT_REGISTER", signer="alice", nonce=1, payload={"pubkey": "pk-main"}))
+    apply_tx(
+        state, _env("ACCOUNT_REGISTER", signer="alice", nonce=1, payload={"pubkey": "pk-main"})
+    )
     apply_tx(state, _env("ACCOUNT_KEY_ADD", signer="alice", nonce=2, payload={"pubkey": "pk-zed"}))
     acct = state["accounts"]["alice"]
     assert acct["pubkeys"] == ["pk-main", "pk-zed"]
     assert acct["active_keys"] == ["pk-main", "pk-zed"]
     assert acct["pubkey"] == "pk-main"
 
-    apply_tx(state, _env("ACCOUNT_KEY_REVOKE", signer="alice", nonce=3, payload={"pubkey": "pk-main"}))
+    apply_tx(
+        state, _env("ACCOUNT_KEY_REVOKE", signer="alice", nonce=3, payload={"pubkey": "pk-main"})
+    )
     acct = state["accounts"]["alice"]
     assert acct["pubkeys"] == ["pk-zed"]
     assert acct["active_keys"] == ["pk-zed"]

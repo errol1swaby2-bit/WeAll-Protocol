@@ -2,6 +2,10 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_votecheck.py)."""
 
+from typing import Any
+
+from weall.runtime.block_commitment_validation import validate_received_block_commitments
+from weall.runtime.block_hash import compute_block_hash
 from weall.runtime.executor import (
     Path,
     WeAllExecutor,
@@ -15,44 +19,53 @@ from weall.runtime.executor import (
     verify_block_helper_plan_metadata,
 )
 
+Json = dict[str, Any]
+
+
 def _votecheck_cache_get(self, block_hash: str) -> bool | None:
     key = str(block_hash or "").strip()
     if not key:
         return None
     try:
-        value = self._votecheck_cache.get(key)
-        if value is None:
-            return None
-        _bounded_put(self._votecheck_cache, key, bool(value), cap=self._max_votecheck_cache)
-        return bool(value)
+        with self._votecheck_lock:
+            value = self._votecheck_cache.get(key)
+            if value is None:
+                return None
+            _bounded_put(self._votecheck_cache, key, bool(value), cap=self._max_votecheck_cache)
+            return bool(value)
     except Exception:
         return None
+
 
 def _votecheck_cache_put(self, block_hash: str, ok: bool) -> None:
     key = str(block_hash or "").strip()
     if not key:
         return
-    _bounded_put(self._votecheck_cache, key, bool(ok), cap=self._max_votecheck_cache)
+    with self._votecheck_lock:
+        _bounded_put(self._votecheck_cache, key, bool(ok), cap=self._max_votecheck_cache)
+
 
 def _proposal_votecheck_budget_ok(self, peer_id: str) -> bool:
     key = str(peer_id or "").strip() or "<unknown>"
     now_ms = _now_ms()
-    entry = self._proposal_peer_budget.get(key)
-    if not isinstance(entry, dict):
-        entry = {"count": 0, "reset_ms": int(now_ms + self._proposal_peer_budget_window_ms)}
-    reset_ms = _safe_int(
-        entry.get("reset_ms"), int(now_ms + self._proposal_peer_budget_window_ms)
-    )
-    count = _safe_int(entry.get("count"), 0)
-    if now_ms >= reset_ms:
-        count = 0
-        reset_ms = int(now_ms + self._proposal_peer_budget_window_ms)
-    count += 1
-    entry = {"count": int(count), "reset_ms": int(reset_ms)}
-    _bounded_put(
-        self._proposal_peer_budget, key, entry, cap=self._max_proposal_peer_budget_entries
-    )
-    return count <= self._proposal_peer_budget_max
+    with self._votecheck_lock:
+        entry = self._proposal_peer_budget.get(key)
+        if not isinstance(entry, dict):
+            entry = {"count": 0, "reset_ms": int(now_ms + self._proposal_peer_budget_window_ms)}
+        reset_ms = _safe_int(
+            entry.get("reset_ms"), int(now_ms + self._proposal_peer_budget_window_ms)
+        )
+        count = _safe_int(entry.get("count"), 0)
+        if now_ms >= reset_ms:
+            count = 0
+            reset_ms = int(now_ms + self._proposal_peer_budget_window_ms)
+        count += 1
+        entry = {"count": int(count), "reset_ms": int(reset_ms)}
+        _bounded_put(
+            self._proposal_peer_budget, key, entry, cap=self._max_proposal_peer_budget_entries
+        )
+        return count <= self._proposal_peer_budget_max
+
 
 def _spec_exec_paths_for_slot(self, slot: str) -> tuple[str, str]:
     root = self._spec_exec_pool_root / str(slot)
@@ -61,19 +74,29 @@ def _spec_exec_paths_for_slot(self, slot: str) -> tuple[str, str]:
     aux_path = str(root / "votecheck.aux.sqlite")
     return db_path, aux_path
 
+
 def _make_spec_exec_slot(self) -> tuple[str, str]:
-    slot = f"slot-{len(self._spec_exec_pool)}-{_now_ms()}"
-    return self._spec_exec_paths_for_slot(slot)
+    with self._votecheck_lock:
+        sequence = int(self._spec_exec_slot_seq)
+        self._spec_exec_slot_seq = sequence + 1
+    return self._spec_exec_paths_for_slot(f"slot-{sequence}")
+
 
 def _acquire_spec_exec_slot(self) -> tuple[str, str]:
-    if self._spec_exec_pool:
-        return self._spec_exec_pool.pop()
+    with self._votecheck_lock:
+        if self._spec_exec_pool:
+            return self._spec_exec_pool.pop()
     return self._make_spec_exec_slot()
 
+
 def _release_spec_exec_slot(self, slot: tuple[str, str]) -> None:
-    if len(self._spec_exec_pool) >= self._max_spec_exec_pool:
-        return
-    self._spec_exec_pool.append(slot)
+    with self._votecheck_lock:
+        if len(self._spec_exec_pool) >= self._max_spec_exec_pool:
+            return
+        if slot in self._spec_exec_pool:
+            return
+        self._spec_exec_pool.append(slot)
+
 
 def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
     db_path, aux_path = slot
@@ -87,21 +110,14 @@ def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
                 Path(f"{path}{suffix}").unlink(missing_ok=True)
             except Exception:
                 pass
-    old_aux = os.environ.get("WEALL_AUX_DB_PATH")
-    os.environ["WEALL_AUX_DB_PATH"] = str(aux_path)
-    try:
-        clone = WeAllExecutor(
-            db_path=str(db_path),
-            node_id=str(self.node_id),
-            chain_id=str(self.chain_id),
-            tx_index_path=str(self.tx_index_path),
-        )
-    finally:
-        if old_aux is None:
-            os.environ.pop("WEALL_AUX_DB_PATH", None)
-        else:
-            os.environ["WEALL_AUX_DB_PATH"] = old_aux
-    return clone
+    return WeAllExecutor(
+        db_path=str(db_path),
+        aux_db_path=str(aux_path),
+        node_id=str(self.node_id),
+        chain_id=str(self.chain_id),
+        tx_index_path=str(self.tx_index_path),
+    )
+
 
 def _proposal_votecheck_static_ok(self, block: Json) -> bool:
     if not isinstance(block, dict):
@@ -115,7 +131,12 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
         # before a committed height exists. Keep production strict, but allow this
         # non-prod qc-less path so vote-state persistence can be tested.
         mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
-        allow_qcless = str(os.environ.get("WEALL_BFT_ALLOW_QC_LESS_BLOCKS") or "").strip() in {"1", "true", "yes", "on"}
+        allow_qcless = str(os.environ.get("WEALL_BFT_ALLOW_QC_LESS_BLOCKS") or "").strip() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         if mode == "prod" or not allow_qcless:
             return False
     txs = block.get("txs")
@@ -129,11 +150,21 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
         return False
     if self._max_votecheck_block_bytes > 0 and len(encoded) > self._max_votecheck_block_bytes:
         return False
+    ok_binding, _binding_reason, binding = validate_received_block_commitments(
+        block=block,
+        chain_id=self.chain_id,
+    )
+    if not ok_binding or binding is None:
+        return False
+    block["block_id"] = binding.block_id
+    block["block_hash"] = binding.block_hash
     if self._block_identity_conflicts(block):
         return False
     helper_execution = block.get("helper_execution")
     if helper_execution is not None:
-        advertised_plan_id = str(helper_execution.get("plan_id") or "") if isinstance(helper_execution, dict) else ""
+        advertised_plan_id = (
+            str(helper_execution.get("plan_id") or "") if isinstance(helper_execution, dict) else ""
+        )
         ok_helper_meta, _helper_reason = verify_block_helper_plan_metadata(
             helper_execution=helper_execution if isinstance(helper_execution, dict) else None,
             expected_plan_id=advertised_plan_id,
@@ -142,14 +173,22 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
             return False
     return True
 
+
 def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
     if not isinstance(block, dict):
         return False
     try:
-        block2, bh = ensure_block_hash(copy.deepcopy(block))
+        block2, _bh = ensure_block_hash(copy.deepcopy(block))
     except Exception:
         return False
-    block_hash = str(bh or block2.get("block_hash") or "").strip()
+    header = block2.get("header") if isinstance(block2.get("header"), dict) else None
+    if not isinstance(header, dict):
+        return False
+    block_hash = compute_block_hash(header=header)
+    advertised_block_hash = str(block2.get("block_hash") or "").strip()
+    if advertised_block_hash and advertised_block_hash != block_hash:
+        return False
+    block2["block_hash"] = block_hash
     cached = self._votecheck_cache_get(block_hash)
     if cached is not None:
         return bool(cached)
@@ -162,15 +201,15 @@ def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
     parent_id = str(block2.get("prev_block_id") or "").strip()
     if parent_id and not self._has_local_block(parent_id):
         if parent_id in self._pending_missing_fetches:
-            self._votecheck_cache_put(block_hash, False)
+            # Missing-parent work is retryable local state, not intrinsic block invalidity.
             return False
     proposer = str(block2.get("proposer") or "").strip()
     if not self._proposal_votecheck_budget_ok(proposer):
-        self._votecheck_cache_put(block_hash, False)
+        # Per-peer budget pressure is transient and must never poison block validity.
         return False
     acquired = self._proposal_validation_semaphore.acquire(blocking=False)
     if not acquired:
-        self._votecheck_cache_put(block_hash, False)
+        # Global validation capacity is transient and must never poison block validity.
         return False
     slot: tuple[str, str] | None = None
     try:
@@ -181,10 +220,13 @@ def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
         clone._bft.load_from_state(clone.state)
         meta = clone.apply_block(copy.deepcopy(block2))
         ok = bool(meta.ok)
-        self._votecheck_cache_put(block_hash, ok)
+        # Only successful speculative validation is safe to memoize here. A failed
+        # replay can depend on local parent/state availability and must remain retryable.
+        if ok:
+            self._votecheck_cache_put(block_hash, True)
         return ok
     except Exception:
-        self._votecheck_cache_put(block_hash, False)
+        # Local speculative execution failures are retryable, not canonical verdicts.
         return False
     finally:
         if slot is not None:
@@ -193,4 +235,3 @@ def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
             self._proposal_validation_semaphore.release()
         except Exception:
             pass
-

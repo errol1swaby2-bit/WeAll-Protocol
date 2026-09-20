@@ -30,8 +30,8 @@ _EMPTY_REGISTRY = {"version": 1, "nodes": []}
 
 
 def _runtime_mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -43,7 +43,9 @@ def load_api_config() -> ApiConfig:
     mode = str(os.getenv("WEALL_API_MODE", "gateway") or "gateway").strip().lower() or "gateway"
     token_raw = os.getenv("WEALL_NODES_REGISTRY_TOKEN")
     path_raw = os.getenv("WEALL_NODES_REGISTRY_PATH")
-    public_seed_path_raw = os.getenv("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH") or os.getenv("WEALL_PUBLIC_SEED_REGISTRY_PATH")
+    public_seed_path_raw = os.getenv("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH") or os.getenv(
+        "WEALL_PUBLIC_SEED_REGISTRY_PATH"
+    )
 
     token = str(token_raw).strip() if token_raw is not None else None
     if token == "":
@@ -53,7 +55,9 @@ def load_api_config() -> ApiConfig:
     if path == "":
         path = None
 
-    public_seed_path = str(public_seed_path_raw).strip() if public_seed_path_raw is not None else None
+    public_seed_path = (
+        str(public_seed_path_raw).strip() if public_seed_path_raw is not None else None
+    )
     if public_seed_path == "":
         public_seed_path = None
 
@@ -68,10 +72,16 @@ def load_api_config() -> ApiConfig:
         nodes_registry_path=path,
         public_testnet=_is_truthy(os.getenv("WEALL_PUBLIC_TESTNET")),
         public_seed_registry_path=public_seed_path,
-        expected_chain_id=str(os.getenv("WEALL_EXPECTED_CHAIN_ID") or os.getenv("WEALL_CHAIN_ID") or "").strip(),
-        expected_genesis_hash=str(os.getenv("WEALL_EXPECTED_GENESIS_HASH") or os.getenv("WEALL_GENESIS_HASH") or "").strip(),
+        expected_chain_id=str(
+            os.getenv("WEALL_EXPECTED_CHAIN_ID") or os.getenv("WEALL_CHAIN_ID") or ""
+        ).strip(),
+        expected_genesis_hash=str(
+            os.getenv("WEALL_EXPECTED_GENESIS_HASH") or os.getenv("WEALL_GENESIS_HASH") or ""
+        ).strip(),
         expected_tx_index_hash=str(os.getenv("WEALL_EXPECTED_TX_INDEX_HASH") or "").strip(),
-        expected_protocol_profile_hash=str(os.getenv("WEALL_EXPECTED_PROTOCOL_PROFILE_HASH") or "").strip(),
+        expected_protocol_profile_hash=str(
+            os.getenv("WEALL_EXPECTED_PROTOCOL_PROFILE_HASH") or ""
+        ).strip(),
     )
 
 

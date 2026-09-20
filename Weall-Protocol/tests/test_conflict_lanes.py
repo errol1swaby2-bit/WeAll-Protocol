@@ -1,4 +1,4 @@
-from weall.runtime.conflict_lanes import plan_conflict_lanes
+from weall.testing.conflict_lanes import plan_conflict_lanes
 
 
 def _tx(tx_id: str, tx_type: str, reads=None, writes=None):
@@ -44,10 +44,12 @@ def test_read_write_conflict_splits_lane() -> None:
 
 
 def test_fail_closed_unknown_tx_is_serialized() -> None:
-    plan = plan_conflict_lanes([
-        {"tx_id": "t1", "tx_type": "MYSTERY_TX"},
-        _tx("t2", "CONTENT_POST_CREATE", writes=["content:post:2"]),
-    ])
+    plan = plan_conflict_lanes(
+        [
+            {"tx_id": "t1", "tx_type": "MYSTERY_TX"},
+            _tx("t2", "CONTENT_POST_CREATE", writes=["content:post:2"]),
+        ]
+    )
     assert plan.lanes[0].serial_only is True
     assert plan.serialized_tx_ids == ("t1",)
 

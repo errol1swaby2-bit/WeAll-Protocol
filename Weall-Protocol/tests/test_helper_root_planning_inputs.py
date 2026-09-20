@@ -123,14 +123,18 @@ def test_helper_planning_ignores_state_root_excluded_meta(tmp_path: Path, monkey
     _bootstrap_helper_state(noisy)
 
     noisy_state = dict(noisy.state)
-    noisy_state["meta"] = {
-        "helper_reputation": _quarantined_state("@helper-a", "@helper-b"),
-        "helper_capacity_by_helper": {"@helper-a": 0, "@helper-b": 0},
-        "helper_capabilities_by_helper": {
-            "@helper-a": {"lane_classes": []},
-            "@helper-b": {"lane_classes": []},
-        },
-    }
+    noisy_meta = dict(noisy_state.get("meta") or {})
+    noisy_meta.update(
+        {
+            "helper_reputation": _quarantined_state("@helper-a", "@helper-b"),
+            "helper_capacity_by_helper": {"@helper-a": 0, "@helper-b": 0},
+            "helper_capabilities_by_helper": {
+                "@helper-a": {"lane_classes": []},
+                "@helper-b": {"lane_classes": []},
+            },
+        }
+    )
+    noisy_state["meta"] = noisy_meta
     _write_state(noisy, noisy_state)
 
     assert compute_state_root(clean.state) == compute_state_root(noisy.state)

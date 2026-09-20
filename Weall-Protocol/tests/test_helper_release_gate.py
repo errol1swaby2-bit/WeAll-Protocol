@@ -91,6 +91,7 @@ def _context(block_height: int = 22):
 def _journal_factory(tmp_path: Path, prefix: str):
     def factory(idx: int):
         return HelperLaneJournal(str(tmp_path / f"{prefix}_{idx}.jsonl"))
+
     return factory
 
 
@@ -132,10 +133,9 @@ def test_helper_release_gate_bundle(tmp_path) -> None:
             HelperEvent(kind="cert", cert=cert_22, peer_id=lane_plan.helper_id),
         ),
     )
-    deterministic_replay_ok = (
-        replay_summary.finalized_modes == ((lane_plan.lane_id, "helper"),)
-        and replay_summary.event_codes == ("start", "accepted", "duplicate_replay")
-    )
+    deterministic_replay_ok = replay_summary.finalized_modes == (
+        (lane_plan.lane_id, "helper"),
+    ) and replay_summary.event_codes == ("start", "accepted", "duplicate_replay")
 
     timeout_summary = run_helper_event_sequence(
         context=_context(22),
@@ -243,7 +243,9 @@ def test_helper_release_gate_bundle(tmp_path) -> None:
                     HelperEvent(kind="start", started_ms=1000),
                     HelperEvent(kind="cert", cert=fail_closed_cert, peer_id=lane_plan.helper_id),
                 ),
-                lane_results_by_id={lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}},
+                lane_results_by_id={
+                    lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}
+                },
                 require_serial_equivalence=False,
                 fail_closed_on_helper_error=True,
             ),
@@ -276,7 +278,9 @@ def test_helper_release_gate_bundle(tmp_path) -> None:
                     HelperEvent(kind="start", started_ms=1000),
                     HelperEvent(kind="cert", cert=degrade_cert, peer_id=lane_plan.helper_id),
                 ),
-                lane_results_by_id={lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}},
+                lane_results_by_id={
+                    lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}
+                },
                 require_serial_equivalence=True,
                 fail_closed_on_helper_error=False,
             ),

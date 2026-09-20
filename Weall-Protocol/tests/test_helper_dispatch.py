@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
-from weall.runtime.helper_assignment import assign_helper_for_lane
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
     make_namespace_hash,
@@ -20,7 +19,16 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
     return key.public_key().public_bytes_raw().hex()
 
 
-def _mk_cert(*, helper_id: str, lane_id: str, tx_ids: tuple[str, ...], epoch: int = 9, vset_hash: str = "vhash", view: int = 7, block_height: int = 22) -> HelperExecutionCertificate:
+def _mk_cert(
+    *,
+    helper_id: str,
+    lane_id: str,
+    tx_ids: tuple[str, ...],
+    epoch: int = 9,
+    vset_hash: str = "vhash",
+    view: int = 7,
+    block_height: int = 22,
+) -> HelperExecutionCertificate:
     cert = HelperExecutionCertificate(
         chain_id="c1",
         block_height=block_height,
@@ -63,7 +71,9 @@ def test_helper_store_rejects_wrong_peer() -> None:
         ),
         lane_plans=lane_plans,
     )
-    cert = _mk_cert(helper_id=lane_plan.helper_id, lane_id=lane_plan.lane_id, tx_ids=lane_plan.tx_ids)
+    cert = _mk_cert(
+        helper_id=lane_plan.helper_id, lane_id=lane_plan.lane_id, tx_ids=lane_plan.tx_ids
+    )
     status = store.ingest_certificate(cert=cert, peer_id="intruder")
     assert status.accepted is False
     assert status.code == "wrong_peer"
@@ -90,7 +100,9 @@ def test_helper_store_rejects_stale_epoch() -> None:
         ),
         lane_plans=lane_plans,
     )
-    cert = _mk_cert(helper_id=lane_plan.helper_id, lane_id=lane_plan.lane_id, tx_ids=lane_plan.tx_ids, epoch=8)
+    cert = _mk_cert(
+        helper_id=lane_plan.helper_id, lane_id=lane_plan.lane_id, tx_ids=lane_plan.tx_ids, epoch=8
+    )
     status = store.ingest_certificate(cert=cert, peer_id=lane_plan.helper_id)
     assert status.accepted is False
     assert status.code == "epoch_mismatch"

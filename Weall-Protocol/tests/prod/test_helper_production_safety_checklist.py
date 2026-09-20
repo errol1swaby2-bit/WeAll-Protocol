@@ -54,7 +54,9 @@ def test_helper_safety_checklist_points_to_real_targeted_tests() -> None:
 
 
 def test_helper_generated_plan_and_checklist_agree_production_execution_disabled() -> None:
-    payload = json.loads(_read(ROOT / "generated" / "production_helper_topology_hardening_plan_v1_5.json"))
+    payload = json.loads(
+        _read(ROOT / "generated" / "production_helper_topology_hardening_plan_v1_5.json")
+    )
     assert payload["production_helper_execution_enabled"] is False
     assert payload["production_helper_execution_ready"] is False
     assert payload["current_boundary"]["serial_fallback_required"] is True

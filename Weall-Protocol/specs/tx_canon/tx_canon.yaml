@@ -9,10 +9,9 @@ notes:
 - GovExecutor-gated TxTypes are BLOCK-ONLY; emitted by deterministic executor logic
   after passing governance.
 - Receipt-only TxTypes MUST specify valid parent TxTypes.
+- Receipt-only TxTypes with more than one legitimate causal path MAY declare parent_any_of; parent remains the compatibility-primary parent and MUST be included in parent_any_of.
 - Block-context TxTypes are INVALID in the mempool.
 - Implicit behavior is forbidden; all authority derives from Tx-defined state transitions.
-- 'Spec constraint (v2.1): posting requires reputation >= 0.75 (encoded as min_reputation
-  on post/comment create).'
 - 'HARDENING: removed gate "Any" (unsafe as a reusable pattern); missing gate is only
   valid for SYSTEM+block-only in runtime enforcement.'
 - 'HARDENING: removed gate "Guardian"; account recovery approvals must be enforced
@@ -325,6 +324,9 @@ txs:
   context: block
   receipt_only: true
   parent: DISPUTE_OPEN
+  parent_any_of:
+  - DISPUTE_OPEN
+  - CONTENT_ESCALATE_TO_DISPUTE
   system_only: true
 - id: 205
   name: DISPUTE_JUROR_ACCEPT
@@ -387,7 +389,6 @@ txs:
   gate: Tier2+
   context: mempool
   receipt_only: false
-  min_reputation: 1
   notes:
   - includes creator-supplied identifying tags[] at upload (normalized/validated in
     domain rules)
@@ -398,7 +399,6 @@ txs:
   gate: Tier2+
   context: mempool
   receipt_only: false
-  min_reputation: 1
   notes:
   - 'allows updating identifying tags[] as part of edit (Option A: tags editable via
     CONTENT_POST_EDIT)'
@@ -409,7 +409,6 @@ txs:
   gate: Tier2+
   context: mempool
   receipt_only: false
-  min_reputation: 1
 - id: 303
   name: CONTENT_COMMENT_CREATE
   domain: Content
@@ -417,7 +416,6 @@ txs:
   gate: Tier0+
   context: mempool
   receipt_only: false
-  min_reputation: 1
 - id: 304
   name: CONTENT_COMMENT_DELETE
   domain: Content
@@ -1605,6 +1603,9 @@ txs:
   context: block
   receipt_only: true
   parent: ACCOUNT_RECOVERY_FINALIZE
+  parent_any_of:
+  - ACCOUNT_RECOVERY_FINALIZE
+  - ACCOUNT_RECOVERY_REQUEST
   system_only: true
 - id: 2200
   name: PEER_ADVERTISE

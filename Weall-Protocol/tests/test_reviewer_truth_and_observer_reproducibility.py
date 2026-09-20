@@ -20,6 +20,8 @@ def test_reviewer_workflow_is_tracked_and_runs_the_gate() -> None:
     assert "bash scripts/reviewer_production_readiness_gate.sh" in workflow
     assert "requirements-dev.lock" in workflow
     assert "npm ci" in workflow
+    assert "fetch-depth: 0" in workflow
+    assert "restore_m2_m3_evidence_from_git.sh" in workflow
 
 
 def test_block_proof_gate_no_longer_overclaims_production_validator_bft() -> None:
@@ -40,13 +42,15 @@ def test_block_proof_gate_no_longer_overclaims_production_validator_bft() -> Non
 
 def test_block_proof_gate_refuses_prod_mode_to_prevent_false_claims() -> None:
     env = os.environ.copy()
-    env.update({
-        "PYTHONPATH": str(ROOT / "src"),
-        "WEALL_MODE": "prod",
-        "WEALL_CHAIN_ID": "weall-prod",
-        "WEALL_CHAIN_MANIFEST_PATH": str(ROOT / "configs/chains/weall-genesis.json"),
-        "WEALL_REQUIRE_CHAIN_MANIFEST": "1",
-    })
+    env.update(
+        {
+            "PYTHONPATH": str(ROOT / "src"),
+            "WEALL_MODE": "prod",
+            "WEALL_CHAIN_ID": "weall-prod",
+            "WEALL_CHAIN_MANIFEST_PATH": str(ROOT / "configs/chains/weall-genesis.json"),
+            "WEALL_REQUIRE_CHAIN_MANIFEST": "1",
+        }
+    )
     proc = subprocess.run(
         [sys.executable, "scripts/production_block_production_rehearsal_gate.py"],
         cwd=ROOT,
@@ -81,7 +85,10 @@ def test_first_external_observer_reproducibility_gate_has_truth_boundary() -> No
     assert "rehearse_external_observer_signed_onboarding.sh" in script
     assert "WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT" in script
     assert "WEALL_RUN_SIGNED_OBSERVER_ONBOARDING" in script
-    assert "Signed onboarding passing is required before claiming first trusted external observer readiness" in script
+    assert (
+        "Signed onboarding passing is required before claiming first trusted external observer readiness"
+        in script
+    )
     assert "None of these gates prove public multi-validator BFT" in script
 
 

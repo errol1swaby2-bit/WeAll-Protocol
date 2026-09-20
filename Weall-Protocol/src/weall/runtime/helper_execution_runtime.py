@@ -9,7 +9,6 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
-
 from weall.runtime.executor import (
     HelperCertificateStore,
     HelperDispatchContext,
@@ -34,22 +33,24 @@ from weall.runtime.executor import (
     validator_execution_summary,
     verify_block_helper_plan_metadata,
 )
-
+from weall.runtime.helper_certificates import HelperExecutionCertificate
 
 
 def _root_committed_map(self, key: str) -> Json:
     """Return a root-committed helper planning map.
 
-    ``state["meta"]`` is excluded from ``compute_state_root`` and may carry
-    node-local diagnostics.  Helper planning/assignment inputs are consensus
-    relevant whenever the helper fast path is enabled, so they must be read only
-    from root-visible state keys.
+    Top-level ``state["meta"]`` mixes root-bound protocol fields with excluded
+    node-local diagnostics. Helper planning/assignment inputs are consensus
+    relevant whenever the helper fast path is enabled, so mutable planning state
+    must still be read only from dedicated root-visible state keys.
     """
     raw = self.state.get(str(key))
     return dict(raw) if isinstance(raw, dict) else {}
 
+
 def _helper_mode_enabled_runtime(self) -> bool:
     return bool(getattr(self, "_helper_mode_enabled_effective", False))
+
 
 def _requested_helper_execution_profile(self) -> Json:
     return _helper_execution_profile(
@@ -58,6 +59,7 @@ def _requested_helper_execution_profile(self) -> Json:
         helper_timeout_ms=int(getattr(self, "_helper_timeout_ms", 5000)),
     )
 
+
 def _effective_helper_execution_profile(self) -> Json:
     return _helper_execution_profile(
         helper_mode_enabled=bool(self._helper_mode_enabled_runtime()),
@@ -65,12 +67,15 @@ def _effective_helper_execution_profile(self) -> Json:
         helper_timeout_ms=int(getattr(self, "_helper_timeout_ms", 5000)),
     )
 
+
 def _helper_fast_path_enabled(self) -> bool:
     return bool(getattr(self, "_helper_fast_path_enabled_effective", False))
+
 
 def _helper_lane_journal_path(self, *, block_height: int) -> str:
     name = f"lane_journal_h{int(block_height)}.jsonl"
     return str(Path(self._helper_lane_journal_dir) / name)
+
 
 def _helper_dispatch_context(
     self,
@@ -99,12 +104,15 @@ def _helper_dispatch_context(
         manifest_signature=str(manifest_signature or ""),
         manifest_signed=bool(manifest_signed),
         manifest_signature_required=bool(manifest_signature_required),
-        manifest_payload=dict(manifest_payload or {}) if isinstance(manifest_payload, dict) else None,
+        manifest_payload=dict(manifest_payload or {})
+        if isinstance(manifest_payload, dict)
+        else None,
         strict_helper_certificate_consistency=bool(strict_helper_certificate_consistency),
         strict_helper_receipts_root=bool(strict_helper_receipts_root),
         strict_helper_state_delta_hash=bool(strict_helper_state_delta_hash),
         plan_id=str(plan_id or ""),
     )
+
 
 def _build_helper_execution_metadata(
     self,
@@ -120,7 +128,6 @@ def _build_helper_execution_metadata(
     if not self._helper_fast_path_enabled():
         return {}
     ctx0 = self._helper_dispatch_context(block_height=int(block_height))
-    meta_root_existing = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
     helper_reputation_state = _root_committed_map(self, "helper_reputation")
     helper_capacity_by_helper = _root_committed_map(self, "helper_capacity_by_helper")
     helper_capabilities_by_helper = _root_committed_map(self, "helper_capabilities_by_helper")
@@ -136,7 +143,9 @@ def _build_helper_execution_metadata(
         leader_id=str(ctx0.leader_id),
         state_snapshot_metadata={
             "validator_epoch": int(ctx0.validator_epoch),
-            "quarantined_helper_ids": list(helper_reputation_pre_summary.get("quarantined_helper_ids") or []),
+            "quarantined_helper_ids": list(
+                helper_reputation_pre_summary.get("quarantined_helper_ids") or []
+            ),
             "helper_capacity_by_helper": dict(helper_capacity_by_helper),
             "helper_capabilities_by_helper": dict(helper_capabilities_by_helper),
             "helper_planning_inputs_source": "state_root",
@@ -160,7 +169,12 @@ def _build_helper_execution_metadata(
         lane_plans=lane_plans,
     )
     signer, coordinator_pubkey, coordinator_privkey = self._local_validator_identity()
-    if signer and signer == str(manifest.coordinator_id) and coordinator_pubkey and coordinator_privkey:
+    if (
+        signer
+        and signer == str(manifest.coordinator_id)
+        and coordinator_pubkey
+        and coordinator_privkey
+    ):
         manifest = sign_validator_execution_manifest(
             manifest,
             coordinator_pubkey=coordinator_pubkey,
@@ -200,7 +214,10 @@ def _build_helper_execution_metadata(
             "namespace_prefixes": list(lane_plan.namespace_prefixes),
             "coordinator_id": str(manifest.coordinator_id),
             "plan_id": str(helper_plan_id),
-            "routing_mode": str(getattr(lane_plan, "routing_mode", "helper" if lane_plan.helper_id else "serial") or "serial"),
+            "routing_mode": str(
+                getattr(lane_plan, "routing_mode", "helper" if lane_plan.helper_id else "serial")
+                or "serial"
+            ),
             "lane_class": str(getattr(lane_plan, "lane_class", "serial") or "serial"),
             "lane_tx_types": list(getattr(lane_plan, "lane_tx_types", ()) or ()),
             "capability_restricted": bool(getattr(lane_plan, "capability_restricted", False)),
@@ -208,11 +225,11 @@ def _build_helper_execution_metadata(
             "helper_capacity_units": int(getattr(lane_plan, "helper_capacity_units", 0) or 0),
             "descriptor_hash": str(getattr(lane_plan, "descriptor_hash", "") or ""),
             "quarantined_helper": bool(
-                lane_plan.helper_id is None and any(
+                lane_plan.helper_id is None
+                and any(
                     item.get("lane_id") == str(lane_plan.lane_id)
                     for item in list(
-                        helper_reputation_pre_summary.get("quarantined_lane_overrides")
-                        or []
+                        helper_reputation_pre_summary.get("quarantined_lane_overrides") or []
                     )
                 )
             ),
@@ -241,6 +258,9 @@ def _build_helper_execution_metadata(
                 "manifest_hash": str(ctx.manifest_hash),
                 "manifest_signed": bool(ctx.manifest_signed),
                 "plan_id": str(getattr(cert, "plan_id", "") or helper_plan_id),
+                # Commit the full certificate so every receiver can independently
+                # reverify helper identity, signature, lane scope and context.
+                "certificate": cert.to_json(),
             }
         )
 
@@ -347,26 +367,48 @@ def _build_helper_execution_metadata(
         helper_reputation_state=helper_reputation_state,
         now_ms=int(started_ms),
     )
+    # Reputation transitions are diagnostic-only until followers can derive them
+    # independently from consensus-verifiable certificates and audit results.
+    # Never let proposer-authored helper metadata mutate root-committed state.
+    helper_reputation_summary["transition_policy"] = "diagnostic_only_v1"
+    helper_reputation_summary["state_committed"] = False
     helper_assignment_summary = summarize_assignment_counts(
-        candidates_by_lane={str(plan.lane_id): tuple(getattr(plan, "helper_candidates", ()) or ()) for plan in lane_plans},
+        candidates_by_lane={
+            str(plan.lane_id): tuple(getattr(plan, "helper_candidates", ()) or ())
+            for plan in lane_plans
+        },
         assignment_counts={
-            str(plan.helper_id): sum(1 for item in lane_plans if getattr(item, "helper_id", None) == getattr(plan, "helper_id", None))
+            str(plan.helper_id): sum(
+                1
+                for item in lane_plans
+                if getattr(item, "helper_id", None) == getattr(plan, "helper_id", None)
+            )
             for plan in lane_plans
             if getattr(plan, "helper_id", None)
         },
-        chosen_by_lane={str(plan.lane_id): str(plan.helper_id or "") for plan in lane_plans if getattr(plan, "helper_id", None)},
+        chosen_by_lane={
+            str(plan.lane_id): str(plan.helper_id or "")
+            for plan in lane_plans
+            if getattr(plan, "helper_id", None)
+        },
         quarantined_helpers=helper_reputation_summary.get("quarantined_helper_ids"),
     )
     helper_capability_summary = summarize_helper_capabilities(helper_capabilities_by_helper)
     helper_capacity_summary = summarize_helper_capacity_usage(
         helper_capacity_by_helper=dict(helper_capacity_by_helper),
         helper_load_by_helper={
-            str(plan.helper_id): sum(int(getattr(item, "lane_cost_units", 1) or 1) for item in lane_plans if getattr(item, "helper_id", None) == getattr(plan, "helper_id", None))
+            str(plan.helper_id): sum(
+                int(getattr(item, "lane_cost_units", 1) or 1)
+                for item in lane_plans
+                if getattr(item, "helper_id", None) == getattr(plan, "helper_id", None)
+            )
             for plan in lane_plans
             if getattr(plan, "helper_id", None)
         },
     )
-    validator_model = validator_execution_summary(manifest=manifest, local_node_id=str(self.node_id))
+    validator_model = validator_execution_summary(
+        manifest=manifest, local_node_id=str(self.node_id)
+    )
     helper_execution_meta = {
         "enabled": True,
         "mode": "planner_only" if not accepted_certs else "certificate_observed",
@@ -387,6 +429,7 @@ def _build_helper_execution_metadata(
         "accepted_certificates": accepted,
         "timed_out_lanes": timed_out,
         "merge_summary": merge_summary,
+        "audit_summary": audit_summary,
         "helper_reputation": helper_reputation_summary,
         "helper_assignment": helper_assignment_summary,
         "helper_capacity": helper_capacity_summary,
@@ -409,4 +452,3 @@ def _build_helper_execution_metadata(
     if not ok_helper_meta:
         raise RuntimeError(f"helper_execution_metadata_invalid:{helper_meta_reason}")
     return helper_execution_meta
-

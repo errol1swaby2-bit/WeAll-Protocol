@@ -14,6 +14,7 @@ from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 from weall.runtime.tx_admission import TxEnvelope, admit_tx
 from weall.runtime.tx_id import compute_tx_id
+from weall.testing.prod_fixtures import next_constitutional_block_time_ms
 from weall.testing.sigtools import deterministic_mldsa_keypair
 from weall.tx.canon import load_tx_index_json
 
@@ -37,6 +38,15 @@ def _executor(tmp_path: Path, name: str) -> WeAllExecutor:
         chain_id="sig-enforce",
         tx_index_path=str(_tx_index_path()),
     )
+
+
+def _require_block_signatures(executor: WeAllExecutor) -> None:
+    state = executor.read_state()
+    params = state.setdefault("params", {})
+    assert isinstance(params, dict)
+    params["block_tx_signature_policy"] = "required"
+    executor.state = state
+    executor._ledger_store.write(state)
 
 
 def test_block_admission_rejects_unsigned_non_system_tx() -> None:
@@ -69,6 +79,7 @@ def test_apply_block_rejects_forged_block_with_signature_removed(
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     follower = _executor(tmp_path, "follower")
+    _require_block_signatures(follower)
 
     pub, priv = deterministic_mldsa_keypair(label="@alice")
     msg = canonical_tx_message(
@@ -108,17 +119,18 @@ def test_apply_block_rejects_forged_block_with_signature_removed(
         }
     ]
     receipts_root = compute_receipts_root(receipts=receipts)
+    ts_ms = next_constitutional_block_time_ms(follower)
     block_id = compute_block_id(
         chain_id="sig-enforce",
         height=1,
         prev_block_id="",
         prev_block_hash="",
-        ts_ms=1,
+        ts_ms=ts_ms,
         node_id="leader",
         tx_ids=[tx_id],
         receipts_root=receipts_root,
     )
-    working["blocks"] = {block_id: {"height": 1, "prev_block_id": "", "block_ts_ms": 1}}
+    working["blocks"] = {block_id: {"height": 1, "prev_block_id": "", "block_ts_ms": ts_ms}}
     working["height"] = 1
     working["tip"] = block_id
     working["time"] = 0
@@ -127,7 +139,7 @@ def test_apply_block_rejects_forged_block_with_signature_removed(
         chain_id="sig-enforce",
         height=1,
         prev_block_hash="",
-        block_ts_ms=1,
+        block_ts_ms=ts_ms,
         tx_ids=[tx_id],
         receipts_root=receipts_root,
         state_root=state_root,
@@ -154,6 +166,7 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     follower = _executor(tmp_path, "follower-missing-chain-id")
+    _require_block_signatures(follower)
 
     pub, priv = deterministic_mldsa_keypair(label="@alice-chain")
     msg = canonical_tx_message(
@@ -179,14 +192,16 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
         payload={"pubkey": pub},
     )
     signed["tx_id"] = tx_id
+    ts_ms = next_constitutional_block_time_ms(follower)
+    receipts_root = compute_receipts_root(receipts=[])
 
     header = make_block_header(
         chain_id="sig-enforce",
         height=1,
         prev_block_hash="",
-        block_ts_ms=1,
+        block_ts_ms=ts_ms,
         tx_ids=[tx_id],
-        receipts_root="",
+        receipts_root=receipts_root,
         state_root="",
     )
     block_id = compute_block_id(
@@ -194,10 +209,10 @@ def test_apply_block_rejects_non_system_tx_missing_chain_id_in_prod(
         height=1,
         prev_block_id="",
         prev_block_hash="",
-        ts_ms=1,
+        ts_ms=ts_ms,
         node_id="leader",
         tx_ids=[tx_id],
-        receipts_root="",
+        receipts_root=receipts_root,
     )
     forged = {
         "block_id": block_id,

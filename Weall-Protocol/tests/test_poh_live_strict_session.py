@@ -100,7 +100,11 @@ def test_live_init_requires_existing_requested_case_and_matching_session() -> No
             st,
             _env(
                 "POH_LIVE_SESSION_INIT",
-                {"case_id": "poh_live:alice:1", "account_id": "alice", "session_commitment": "session:cmt:1"},
+                {
+                    "case_id": "poh_live:alice:1",
+                    "account_id": "alice",
+                    "session_commitment": "session:cmt:1",
+                },
                 signer="SYSTEM",
                 nonce=1,
                 system=True,
@@ -114,7 +118,11 @@ def test_live_init_requires_existing_requested_case_and_matching_session() -> No
             st,
             _env(
                 "POH_LIVE_SESSION_INIT",
-                {"case_id": "poh_live:alice:1", "account_id": "alice", "session_commitment": "wrong"},
+                {
+                    "case_id": "poh_live:alice:1",
+                    "account_id": "alice",
+                    "session_commitment": "wrong",
+                },
                 signer="SYSTEM",
                 nonce=2,
                 system=True,
@@ -152,14 +160,21 @@ def test_live_attendance_and_verdict_must_match_session_commitment() -> None:
             system=True,
         ),
     )
-    apply_tx(st, _env("POH_LIVE_JUROR_ACCEPT", {"case_id": "poh_live:alice:1"}, signer="j1", nonce=1))
+    apply_tx(
+        st, _env("POH_LIVE_JUROR_ACCEPT", {"case_id": "poh_live:alice:1"}, signer="j1", nonce=1)
+    )
 
     with pytest.raises(ApplyError) as raised:
         apply_tx(
             st,
             _env(
                 "POH_LIVE_ATTENDANCE_MARK",
-                {"case_id": "poh_live:alice:1", "juror_id": "j1", "attended": True, "session_commitment": "wrong"},
+                {
+                    "case_id": "poh_live:alice:1",
+                    "juror_id": "j1",
+                    "attended": True,
+                    "session_commitment": "wrong",
+                },
                 signer="j1",
                 nonce=2,
             ),
@@ -170,7 +185,12 @@ def test_live_attendance_and_verdict_must_match_session_commitment() -> None:
         st,
         _env(
             "POH_LIVE_ATTENDANCE_MARK",
-            {"case_id": "poh_live:alice:1", "juror_id": "j1", "attended": True, "session_commitment": "session:cmt:1"},
+            {
+                "case_id": "poh_live:alice:1",
+                "juror_id": "j1",
+                "attended": True,
+                "session_commitment": "session:cmt:1",
+            },
             signer="j1",
             nonce=3,
         ),

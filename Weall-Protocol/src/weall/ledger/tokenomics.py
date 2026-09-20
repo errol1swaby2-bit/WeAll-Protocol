@@ -25,7 +25,9 @@ MAX_SUPPLY = int(getattr(ledger_constants, "MAX_SUPPLY", MAX_SUPPLY_WCN * COIN))
 TARGET_BLOCK_INTERVAL_SECONDS = int(getattr(ledger_constants, "TARGET_BLOCK_INTERVAL_SECONDS", 20))
 ISSUANCE_EPOCH_SECONDS = int(getattr(ledger_constants, "ISSUANCE_EPOCH_SECONDS", 600))
 ISSUANCE_EPOCH_BLOCKS = int(getattr(ledger_constants, "ISSUANCE_EPOCH_BLOCKS", 30))
-INITIAL_ISSUANCE_PER_EPOCH_WCN = int(getattr(ledger_constants, "INITIAL_ISSUANCE_PER_EPOCH_WCN", 100))
+INITIAL_ISSUANCE_PER_EPOCH_WCN = int(
+    getattr(ledger_constants, "INITIAL_ISSUANCE_PER_EPOCH_WCN", 100)
+)
 INITIAL_ISSUANCE_PER_EPOCH = int(
     getattr(ledger_constants, "INITIAL_ISSUANCE_PER_EPOCH", INITIAL_ISSUANCE_PER_EPOCH_WCN * COIN)
 )
@@ -33,7 +35,11 @@ HALVING_INTERVAL_ISSUANCE_EPOCHS = int(
     getattr(ledger_constants, "HALVING_INTERVAL_ISSUANCE_EPOCHS", 105_120)
 )
 HALVING_INTERVAL_BLOCKS = int(
-    getattr(ledger_constants, "HALVING_INTERVAL_BLOCKS", HALVING_INTERVAL_ISSUANCE_EPOCHS * ISSUANCE_EPOCH_BLOCKS)
+    getattr(
+        ledger_constants,
+        "HALVING_INTERVAL_BLOCKS",
+        HALVING_INTERVAL_ISSUANCE_EPOCHS * ISSUANCE_EPOCH_BLOCKS,
+    )
 )
 
 # Compatibility aliases for older callers.  The values now point to the v1.5

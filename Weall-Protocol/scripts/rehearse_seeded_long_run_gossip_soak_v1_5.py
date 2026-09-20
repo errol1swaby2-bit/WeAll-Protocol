@@ -11,7 +11,9 @@ VALIDATORS = ["v-a", "v-b", "v-c", "v-d"]
 
 
 def _h(obj: Any) -> str:
-    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 def run_harness(*, seed: int = 572, rounds: int = 48) -> dict[str, Any]:
@@ -39,7 +41,14 @@ def run_harness(*, seed: int = 572, rounds: int = 48) -> dict[str, Any]:
             for v in VALIDATORS:
                 if v in minority:
                     continue
-                roots[v] = _h({"prev": roots[v], "block_id": block["block_id"], "height": height, "tx_ids": tx_ids})
+                roots[v] = _h(
+                    {
+                        "prev": roots[v],
+                        "block_id": block["block_id"],
+                        "height": height,
+                        "tx_ids": tx_ids,
+                    }
+                )
                 heights[v] = height
             committed.append(block)
         if minority and height + 1 <= rounds:
@@ -47,7 +56,14 @@ def run_harness(*, seed: int = 572, rounds: int = 48) -> dict[str, Any]:
             for v in sorted(minority):
                 for b in committed:
                     if int(b["height"]) > heights[v]:
-                        roots[v] = _h({"prev": roots[v], "block_id": b["block_id"], "height": b["height"], "tx_ids": b["tx_ids"]})
+                        roots[v] = _h(
+                            {
+                                "prev": roots[v],
+                                "block_id": b["block_id"],
+                                "height": b["height"],
+                                "tx_ids": b["tx_ids"],
+                            }
+                        )
                         heights[v] = int(b["height"])
         if height % 13 == 0:
             restarts += 1
@@ -79,9 +95,13 @@ def run_harness(*, seed: int = 572, rounds: int = 48) -> dict[str, Any]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--rounds", type=int, default=48); ap.add_argument("--seed", type=int, default=572); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--rounds", type=int, default=48)
+    ap.add_argument("--seed", type=int, default=572)
+    args = ap.parse_args()
     print(json.dumps(run_harness(seed=args.seed, rounds=args.rounds), sort_keys=True, indent=2))
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

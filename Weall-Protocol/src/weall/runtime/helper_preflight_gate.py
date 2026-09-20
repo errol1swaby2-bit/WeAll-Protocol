@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
 
 from weall.runtime.helper_release_gate import (
     HelperReleaseGateReport,
-    build_helper_release_gate_report,
 )
 
 

@@ -15,8 +15,7 @@ def test_prepare_live_jurors_script_is_syntax_valid() -> None:
         ["bash", "-n", str(REPO_ROOT / "scripts/devnet_prepare_live_jurors.sh")],
         cwd=REPO_ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         timeout=10,
         check=False,
     )

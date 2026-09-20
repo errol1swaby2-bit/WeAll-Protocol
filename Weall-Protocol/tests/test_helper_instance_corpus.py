@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from weall.runtime.helper_contracts import build_helper_contract_map, build_helper_instance_contract_map
+from weall.runtime.helper_contracts import (
+    build_helper_contract_map,
+    build_helper_instance_contract_map,
+)
 from weall.runtime.helper_instance_corpus import DEFAULT_HELPER_INSTANCE_CORPUS
-
 
 ROOT = Path(__file__).resolve().parents[1]
 TX_INDEX = ROOT / "generated" / "tx_index.json"

@@ -29,9 +29,16 @@ class _FakeExecutor:
             "meta": {"schema_version": "1", "tx_index_hash": "txhash"},
             "roles": {"validators": {"active_set": ["@genesis"]}},
             "validators": {"registry": {}},
-            "consensus": {"epochs": {"current": 0}, "validator_set": {"epoch": 0, "set_hash": "genesis-hash", "active_set": ["@genesis"], "pending": {}}},
+            "consensus": {
+                "epochs": {"current": 0},
+                "validator_set": {
+                    "epoch": 0,
+                    "set_hash": "genesis-hash",
+                    "active_set": ["@genesis"],
+                    "pending": {},
+                },
+            },
         }
-
 
     def tx_index_hash(self) -> str:
         return "txhash"
@@ -49,8 +56,9 @@ class _FakeExecutor:
         return "genesis-hash"
 
 
-def test_status_operator_defaults_unknown_validator_to_observer(monkeypatch) -> None:
+def test_status_operator_defaults_unknown_validator_to_observer(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "unknown-validator-status.db"))
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@unknown")
     app = create_app(boot_runtime=False)
     app.state.executor = _FakeExecutor()

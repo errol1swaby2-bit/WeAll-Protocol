@@ -23,7 +23,7 @@ def test_new_style_helper_certificate_defaults_issued_ms_to_zero() -> None:
         lane_tx_ids=("tx1",),
         descriptor_hash="desc",
         plan_id="plan-1",
-        receipt_secret="secret",
+        privkey=("01" * 32),
     )
     assert cert["issued_ms"] == 0
 

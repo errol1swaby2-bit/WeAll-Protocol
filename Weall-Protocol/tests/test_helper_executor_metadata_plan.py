@@ -29,7 +29,9 @@ def _bootstrap_account(ex: WeAllExecutor, *, account_id: str) -> None:
     ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
 
 
-def test_build_block_candidate_emits_recomputable_helper_plan_id(tmp_path: Path, monkeypatch) -> None:
+def test_build_block_candidate_emits_recomputable_helper_plan_id(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
@@ -40,7 +42,17 @@ def test_build_block_candidate_emits_recomputable_helper_plan_id(tmp_path: Path,
         tx_index_path=str(_repo_root() / "generated" / "tx_index.json"),
     )
     _bootstrap_account(ex, account_id="@alice")
-    assert ex.submit_tx({"tx_type": "CONTENT_POST_CREATE", "signer": "@alice", "nonce": 2, "payload": {"body": "hello", "visibility": "public", "tags": [], "media": []}})["ok"] is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "CONTENT_POST_CREATE",
+                "signer": "@alice",
+                "nonce": 2,
+                "payload": {"body": "hello", "visibility": "public", "tags": [], "media": []},
+            }
+        )["ok"]
+        is True
+    )
     block, _new_state, _applied_ids, _invalid_ids, err = ex.build_block_candidate(max_txs=1)
     assert err == ""
     helper_execution = block.get("helper_execution")
@@ -48,5 +60,4 @@ def test_build_block_candidate_emits_recomputable_helper_plan_id(tmp_path: Path,
     lanes = helper_execution.get("lanes")
     assert isinstance(lanes, list)
     assert helper_execution.get("plan_id") == canonical_helper_execution_plan_fingerprint(lanes)
-    assert all(isinstance(l, dict) and "descriptor_hash" in l for l in lanes)
-
+    assert all(isinstance(lane, dict) and "descriptor_hash" in lane for lane in lanes)

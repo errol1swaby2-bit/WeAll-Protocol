@@ -27,7 +27,13 @@ def _client(state: dict[str, Any]) -> TestClient:
 def test_reviewer_status_is_backend_truth_source_for_frontend_lanes() -> None:
     state = {
         "accounts": {
-            "@alice": {"poh_tier": 2, "reputation": 1, "banned": False, "locked": False, "nonce": 0},
+            "@alice": {
+                "poh_tier": 2,
+                "reputation": 1,
+                "banned": False,
+                "locked": False,
+                "nonce": 0,
+            },
         },
         "roles": {
             "jurors": {
@@ -65,7 +71,12 @@ def test_reviewer_status_is_backend_truth_source_for_frontend_lanes() -> None:
 
 
 def test_reviewer_status_reports_eligibility_blockers_without_frontend_guessing() -> None:
-    client = _client({"accounts": {"@bob": {"poh_tier": 1, "banned": False, "locked": True}}, "roles": {"jurors": {"active_set": [], "by_id": {}}}})
+    client = _client(
+        {
+            "accounts": {"@bob": {"poh_tier": 1, "banned": False, "locked": True}},
+            "roles": {"jurors": {"active_set": [], "by_id": {}}},
+        }
+    )
     res = client.get("/v1/accounts/%40bob/reviewer-status")
     assert res.status_code == 200, res.text
     reviewer = res.json()["reviewer"]

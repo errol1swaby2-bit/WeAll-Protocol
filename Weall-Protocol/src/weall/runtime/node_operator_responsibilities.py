@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
-from weall.runtime.reputation_units import account_reputation_units
 from weall.runtime.poh.state import effective_poh_tier
+from weall.runtime.reputation_units import account_reputation_units
 from weall.runtime.storage_revalidation_scheduler import (
     storage_max_failed_challenges,
     storage_max_missed_challenges,
@@ -140,17 +141,23 @@ def node_key_owner_map(state: Mapping[str, Any]) -> dict[str, str]:
     Production uniqueness checks MUST use node_key_owner_sets() because a node
     key shared by multiple accounts is not unique for any of those accounts.
     """
-    return {pubkey: sorted(owners)[0] for pubkey, owners in node_key_owner_sets(state).items() if owners}
+    return {
+        pubkey: sorted(owners)[0] for pubkey, owners in node_key_owner_sets(state).items() if owners
+    }
 
 
-def has_registered_node_key(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> bool:
+def has_registered_node_key(
+    state: Mapping[str, Any], account_id: str, *, node_pubkey: str = ""
+) -> bool:
     active = set(active_node_pubkeys_for_account(account_record(state, account_id)))
     if node_pubkey:
         return node_pubkey in active
     return bool(active)
 
 
-def has_unique_node_key(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> bool:
+def has_unique_node_key(
+    state: Mapping[str, Any], account_id: str, *, node_pubkey: str = ""
+) -> bool:
     node_keys = list(active_node_pubkeys_for_account(account_record(state, account_id)))
     if node_pubkey:
         node_keys = [k for k in node_keys if k == node_pubkey]
@@ -173,7 +180,9 @@ def duplicate_node_keys_for_account(state: Mapping[str, Any], account_id: str) -
     return tuple(sorted(out))
 
 
-def responsibility_record(state: Mapping[str, Any], account_id: str, name: str) -> Mapping[str, Any]:
+def responsibility_record(
+    state: Mapping[str, Any], account_id: str, name: str
+) -> Mapping[str, Any]:
     responsibilities = node_operator_record(state, account_id).get("responsibilities")
     if not isinstance(responsibilities, dict):
         return {}
@@ -181,7 +190,9 @@ def responsibility_record(state: Mapping[str, Any], account_id: str, name: str) 
     return rec if isinstance(rec, dict) else {}
 
 
-def baseline_requirements(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> tuple[list[str], Json]:
+def baseline_requirements(
+    state: Mapping[str, Any], account_id: str, *, node_pubkey: str = ""
+) -> tuple[list[str], Json]:
     account = account_record(state, account_id)
     reasons: list[str] = []
     effective_tier = effective_poh_tier(dict(state), account_id)
@@ -208,20 +219,40 @@ def baseline_requirements(state: Mapping[str, Any], account_id: str, *, node_pub
     return reasons, details
 
 
-def evaluate_baseline_node_operator(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> ResponsibilityEvaluation:
+def evaluate_baseline_node_operator(
+    state: Mapping[str, Any], account_id: str, *, node_pubkey: str = ""
+) -> ResponsibilityEvaluation:
     rec = node_operator_record(state, account_id)
     enrolled = bool(rec.get("enrolled", False))
     active = is_node_operator_active(state, account_id)
     details: Json = {"account_id": account_id, "enrolled": enrolled, "node_pubkey": node_pubkey}
     if not enrolled:
-        return ResponsibilityEvaluation("baseline_node_operator", "not_opted_in", False, False, ("not_enrolled",), ("enrolled", "tier2", "active_node_key", "unrestricted_account"), details)
+        return ResponsibilityEvaluation(
+            "baseline_node_operator",
+            "not_opted_in",
+            False,
+            False,
+            ("not_enrolled",),
+            ("enrolled", "tier2", "active_node_key", "unrestricted_account"),
+            details,
+        )
     reasons, extra = baseline_requirements(state, account_id, node_pubkey=node_pubkey)
     details.update(extra)
     status = "active" if active else ("blocked" if reasons else "eligible")
-    return ResponsibilityEvaluation("baseline_node_operator", status, not reasons, active, tuple(reasons), ("enrolled", "tier2", "active_node_key", "unique_node_key", "unrestricted_account"), details)
+    return ResponsibilityEvaluation(
+        "baseline_node_operator",
+        status,
+        not reasons,
+        active,
+        tuple(reasons),
+        ("enrolled", "tier2", "active_node_key", "unique_node_key", "unrestricted_account"),
+        details,
+    )
 
 
-def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> ResponsibilityEvaluation:
+def evaluate_storage_responsibility(
+    state: Mapping[str, Any], account_id: str, *, node_pubkey: str = ""
+) -> ResponsibilityEvaluation:
     rec = responsibility_record(state, account_id, "storage")
     opted_in = bool(rec.get("opted_in", False))
     active_flag = bool(rec.get("active", False))
@@ -235,10 +266,18 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
     current_height = _state_height(state)
     proof_status = _as_str(rec.get("proof_status")) or "not_requested"
     details: Json = {
-        "account_id": account_id, "opted_in": opted_in, "declared_capacity_bytes": declared,
-        "reserved_capacity_bytes": reserved, "probed_capacity_bytes": probed, "proven_capacity_bytes": proven,
-        "allocated_capacity_bytes": allocated, "used_capacity_bytes": used, "available_capacity_bytes": max(0, proven - allocated),
-        "proof_status": proof_status, "proof_expires_height": proof_expires, "current_height": current_height,
+        "account_id": account_id,
+        "opted_in": opted_in,
+        "declared_capacity_bytes": declared,
+        "reserved_capacity_bytes": reserved,
+        "probed_capacity_bytes": probed,
+        "proven_capacity_bytes": proven,
+        "allocated_capacity_bytes": allocated,
+        "used_capacity_bytes": used,
+        "available_capacity_bytes": max(0, proven - allocated),
+        "proof_status": proof_status,
+        "proof_expires_height": proof_expires,
+        "current_height": current_height,
         "latest_challenge_id": _as_str(rec.get("latest_challenge_id")),
         "failed_challenge_count": _as_int(rec.get("failed_challenge_count"), 0),
         "missed_challenge_count": _as_int(rec.get("missed_challenge_count"), 0),
@@ -250,7 +289,20 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
         "node_pubkey": node_pubkey,
     }
     if not opted_in:
-        return ResponsibilityEvaluation("storage", "not_opted_in", False, False, ("not_opted_in",), ("baseline_node_operator_active", "storage_opt_in", "declared_capacity", "capacity_proof"), details)
+        return ResponsibilityEvaluation(
+            "storage",
+            "not_opted_in",
+            False,
+            False,
+            ("not_opted_in",),
+            (
+                "baseline_node_operator_active",
+                "storage_opt_in",
+                "declared_capacity",
+                "capacity_proof",
+            ),
+            details,
+        )
     reasons: list[str] = []
     baseline = evaluate_baseline_node_operator(state, account_id, node_pubkey=node_pubkey)
     if not baseline.active:
@@ -275,19 +327,31 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
             _append_unique(reasons, "capacity_proof_expired")
     if proof_expires > 0 and current_height > proof_expires:
         _append_unique(reasons, "capacity_proof_expired")
-    elif proof_expires > 0 and proof_expires - current_height <= storage_revalidation_window_blocks(state):
+    elif proof_expires > 0 and proof_expires - current_height <= storage_revalidation_window_blocks(
+        state
+    ):
         _append_unique(reasons, "capacity_revalidation_due")
     if _as_int(rec.get("failed_challenge_count"), 0) >= storage_max_failed_challenges(state):
         _append_unique(reasons, "capacity_failed_challenge_limit_reached")
     if _as_int(rec.get("missed_challenge_count"), 0) >= storage_max_missed_challenges(state):
         _append_unique(reasons, "capacity_missed_challenge_limit_reached")
-    if _as_int(rec.get("availability_score_milli"), 1000) < storage_min_availability_score_milli(state):
+    if _as_int(rec.get("availability_score_milli"), 1000) < storage_min_availability_score_milli(
+        state
+    ):
         _append_unique(reasons, "capacity_availability_score_below_minimum")
     if allocated > proven and proven > 0:
         _append_unique(reasons, "allocated_capacity_exceeds_proven_capacity")
     if used > allocated and allocated > 0:
         _append_unique(reasons, "used_capacity_exceeds_allocated_capacity")
-    active = bool(active_flag and proven > 0 and baseline.active and proof_status in ("verified", "active") and proven <= declared and (proof_expires <= 0 or current_height <= proof_expires) and allocated <= proven)
+    active = bool(
+        active_flag
+        and proven > 0
+        and baseline.active
+        and proof_status in ("verified", "active")
+        and proven <= declared
+        and (proof_expires <= 0 or current_height <= proof_expires)
+        and allocated <= proven
+    )
     if active:
         status = "active"
     elif "capacity_probe_open" in reasons:
@@ -298,7 +362,11 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
         status = "proof_failed"
     elif "capacity_proof_expired" in reasons:
         status = "proof_expired"
-    elif "capacity_failed_challenge_limit_reached" in reasons or "capacity_missed_challenge_limit_reached" in reasons or "capacity_availability_score_below_minimum" in reasons:
+    elif (
+        "capacity_failed_challenge_limit_reached" in reasons
+        or "capacity_missed_challenge_limit_reached" in reasons
+        or "capacity_availability_score_below_minimum" in reasons
+    ):
         status = "paused"
     elif "capacity_revalidation_due" in reasons:
         status = "revalidation_due"
@@ -306,10 +374,20 @@ def evaluate_storage_responsibility(state: Mapping[str, Any], account_id: str, *
         status = "proof_pending"
     else:
         status = "blocked" if reasons else "eligible"
-    return ResponsibilityEvaluation("storage", status, not reasons, active, tuple(reasons), ("baseline_node_operator_active", "storage_opt_in", "declared_capacity", "capacity_proof"), details)
+    return ResponsibilityEvaluation(
+        "storage",
+        status,
+        not reasons,
+        active,
+        tuple(reasons),
+        ("baseline_node_operator_active", "storage_opt_in", "declared_capacity", "capacity_proof"),
+        details,
+    )
 
 
-def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> ResponsibilityEvaluation:
+def evaluate_validator_responsibility(
+    state: Mapping[str, Any], account_id: str, *, node_pubkey: str = ""
+) -> ResponsibilityEvaluation:
     account = account_record(state, account_id)
     rec = responsibility_record(state, account_id, "validator")
     opted_in = bool(rec.get("opted_in", False))
@@ -338,7 +416,20 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
         "bft_pubkey": _as_str(rec.get("bft_pubkey")),
     }
     if not opted_in:
-        return ResponsibilityEvaluation("validator", "not_opted_in", False, False, ("not_opted_in",), ("baseline_node_operator_active", "validator_opt_in", "reputation", "validator_readiness"), details)
+        return ResponsibilityEvaluation(
+            "validator",
+            "not_opted_in",
+            False,
+            False,
+            ("not_opted_in",),
+            (
+                "baseline_node_operator_active",
+                "validator_opt_in",
+                "reputation",
+                "validator_readiness",
+            ),
+            details,
+        )
     reasons: list[str] = []
     baseline = evaluate_baseline_node_operator(state, account_id, node_pubkey=node_pubkey)
     if not baseline.active:
@@ -353,11 +444,29 @@ def evaluate_validator_responsibility(state: Mapping[str, Any], account_id: str,
     if readiness_expires > 0 and current_height > readiness_expires:
         _append_unique(reasons, "validator_readiness_expired")
     active = bool(active_flag and not reasons)
-    status = "active" if active else ("readiness_pending" if "validator_readiness_pending" in reasons else ("blocked" if reasons else "eligible"))
-    return ResponsibilityEvaluation("validator", status, not reasons, active, tuple(reasons), ("baseline_node_operator_active", "validator_opt_in", "reputation", "validator_readiness"), details)
+    status = (
+        "active"
+        if active
+        else (
+            "readiness_pending"
+            if "validator_readiness_pending" in reasons
+            else ("blocked" if reasons else "eligible")
+        )
+    )
+    return ResponsibilityEvaluation(
+        "validator",
+        status,
+        not reasons,
+        active,
+        tuple(reasons),
+        ("baseline_node_operator_active", "validator_opt_in", "reputation", "validator_readiness"),
+        details,
+    )
 
 
-def evaluate_helper_responsibility(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> ResponsibilityEvaluation:
+def evaluate_helper_responsibility(
+    state: Mapping[str, Any], account_id: str, *, node_pubkey: str = ""
+) -> ResponsibilityEvaluation:
     account = account_record(state, account_id)
     rec = responsibility_record(state, account_id, "helper")
     opted_in = bool(rec.get("opted_in", False))
@@ -436,12 +545,22 @@ def evaluate_helper_responsibility(state: Mapping[str, Any], account_id: str, *,
     )
 
 
-def evaluate_node_operator_responsibilities(state: Mapping[str, Any], account_id: str, *, node_pubkey: str = "") -> Json:
+def evaluate_node_operator_responsibilities(
+    state: Mapping[str, Any], account_id: str, *, node_pubkey: str = ""
+) -> Json:
     return {
-        "baseline": evaluate_baseline_node_operator(state, account_id, node_pubkey=node_pubkey).as_dict(),
-        "validator": evaluate_validator_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict(),
-        "storage": evaluate_storage_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict(),
-        "helper": evaluate_helper_responsibility(state, account_id, node_pubkey=node_pubkey).as_dict(),
+        "baseline": evaluate_baseline_node_operator(
+            state, account_id, node_pubkey=node_pubkey
+        ).as_dict(),
+        "validator": evaluate_validator_responsibility(
+            state, account_id, node_pubkey=node_pubkey
+        ).as_dict(),
+        "storage": evaluate_storage_responsibility(
+            state, account_id, node_pubkey=node_pubkey
+        ).as_dict(),
+        "helper": evaluate_helper_responsibility(
+            state, account_id, node_pubkey=node_pubkey
+        ).as_dict(),
     }
 
 

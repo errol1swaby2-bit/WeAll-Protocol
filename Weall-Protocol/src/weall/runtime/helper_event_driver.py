@@ -1,27 +1,18 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from hashlib import sha256
-import json
-from typing import Any, Sequence
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from typing import Any
 
+from weall.runtime.commitments import value_sha256
+from weall.runtime.helper_certificates import HelperExecutionCertificate
 from weall.runtime.helper_dispatch import HelperDispatchContext
 from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 from weall.runtime.helper_replay_guard import HelperReplayGuard
 from weall.runtime.parallel_execution import LanePlan
-from weall.runtime.helper_certificates import HelperExecutionCertificate
-
 
 Json = dict[str, Any]
-
-
-
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,7 +46,7 @@ def _build_outcome_hash(
     finalized_modes: Sequence[tuple[str, str]],
     event_codes: Sequence[str],
 ) -> str:
-    return _sha256_hex(
+    return value_sha256(
         {
             "resolved_lanes": list(resolved_lanes),
             "finalized_modes": [[lane_id, mode] for lane_id, mode in finalized_modes],
@@ -124,8 +115,7 @@ def run_helper_event_sequence(
             codes.append("unknown_event")
 
     finalized = tuple(
-        (str(item.lane_id), str(item.mode))
-        for item in orchestrator.finalized_resolutions()
+        (str(item.lane_id), str(item.mode)) for item in orchestrator.finalized_resolutions()
     )
     resolved_lanes = tuple(sorted(guard.resolved_lanes()))
     return HelperEventOutcomeSummary(

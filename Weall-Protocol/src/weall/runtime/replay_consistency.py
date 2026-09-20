@@ -1,16 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
-
+from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.block_hash import ensure_block_hash
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
-from weall.testing.sigtools import deterministic_mldsa_keypair
 
 Json = dict[str, Any]
 
@@ -89,11 +88,16 @@ def compare_replay_manifests(expected: Json, observed: Json) -> list[str]:
     return issues
 
 
+def _deterministic_replay_fixture_keypair(*, label: str) -> tuple[str, str]:
+    seed_hex = hashlib.sha256(
+        ("weall-replay-fixture:" + str(label or "")).encode("utf-8")
+    ).hexdigest()
+    pubkey_hex = mldsa65_public_key_from_seed(privkey=seed_hex, encoding="hex")
+    return pubkey_hex, seed_hex
+
+
 def _submit_account_register(executor: WeAllExecutor, signer: str, nonce: int) -> None:
-    pubkey_hex, sk = deterministic_mldsa_keypair(label=signer)
-    privkey_hex = sk.private_bytes(
-        encoding=Encoding.Raw, format=PrivateFormat.Raw, encryption_algorithm=NoEncryption()
-    ).hex()
+    pubkey_hex, privkey_hex = _deterministic_replay_fixture_keypair(label=signer)
     tx = sign_tx_envelope_dict(
         tx={
             "tx_type": "ACCOUNT_REGISTER",

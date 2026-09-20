@@ -1,17 +1,13 @@
-# src/weall/runtime/tx_id.py
 from __future__ import annotations
 
 import hashlib
-import json
 from typing import Any
-from weall.runtime.json_tools import canonical_json_bytes
 
-# NOTE: TxEnvelope lives in tx_admission_types.
-# Importing it directly avoids accidental circular imports and keeps this module
-# usable from both admission and execution codepaths.
+from weall.runtime.json_tools import canonical_json_bytes
 from weall.runtime.tx_admission_types import TxEnvelope
 
 Json = dict[str, Any]
+TX_ID_PREFIX = "tx:"
 
 
 def _json_canonical(obj: Any) -> bytes:
@@ -20,6 +16,36 @@ def _json_canonical(obj: Any) -> bytes:
 
 def _sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def canonical_tx_identity(
+    *,
+    chain_id: str,
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: Json,
+    system: bool = False,
+    parent: str | None = None,
+) -> Json:
+    """Return the single consensus transaction-identity object.
+
+    Signature bytes/profile, transport/network metadata, timestamps, and local
+    mempool fields are deliberately excluded.  They may prove or transport a
+    transaction, but they do not change the transaction's protocol semantics.
+    """
+
+    obj: Json = {
+        "chain_id": str(chain_id),
+        "tx_type": str(tx_type),
+        "signer": str(signer),
+        "nonce": int(nonce),
+        "payload": payload if isinstance(payload, dict) else {},
+        "system": bool(system),
+    }
+    if parent is not None:
+        obj["parent"] = str(parent)
+    return obj
 
 
 def compute_tx_id(
@@ -32,27 +58,26 @@ def compute_tx_id(
     system: bool = False,
     parent: str | None = None,
 ) -> str:
-    """
-    Canonical tx_id function (single source of truth).
+    """Compute the protocol-canonical transaction ID.
 
     Contract:
-      - Includes chain_id (so identical tx across chains cannot collide)
-      - Includes parent if present (affects semantics for receipt-only tx types)
-      - Excludes sig (signature encoding MUST NOT affect tx_id)
-      - Excludes ts_ms / mempool metadata (non-deterministic)
+      - one implementation is used by API, mempool, gossip, block construction,
+        admission, replay, and helper planning;
+      - chain_id and semantic envelope fields are committed;
+      - signature encoding and local metadata are excluded; and
+      - the external wire/storage form is always ``tx:<sha256-hex>``.
     """
-    obj: Json = {
-        "chain_id": str(chain_id),
-        "tx_type": str(tx_type),
-        "signer": str(signer),
-        "nonce": int(nonce),
-        "payload": payload if isinstance(payload, dict) else {},
-        "system": bool(system),
-    }
-    if parent is not None:
-        obj["parent"] = str(parent)
 
-    return _sha256_hex(_json_canonical(obj))
+    obj = canonical_tx_identity(
+        chain_id=chain_id,
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        system=system,
+        parent=parent,
+    )
+    return f"{TX_ID_PREFIX}{_sha256_hex(_json_canonical(obj))}"
 
 
 def compute_tx_id_from_envelope(chain_id: str, env: TxEnvelope) -> str:
@@ -67,29 +92,36 @@ def compute_tx_id_from_envelope(chain_id: str, env: TxEnvelope) -> str:
     )
 
 
-def compute_tx_id_from_dict(chain_id: str, tx: dict[str, Any]) -> str:
-    """
-    Backwards compatible helper for codepaths that still hold a raw dict tx envelope.
-    Unknown extra keys are ignored.
-    """
-    tx_type = tx.get("tx_type", "")
-    signer = tx.get("signer", "")
-    nonce = tx.get("nonce", 0)
-    payload = tx.get("payload", {})
-    parent = tx.get("parent", None)
-    system = tx.get("system", False)
-
-    try:
-        nonce_i = int(nonce)
-    except Exception:
-        nonce_i = 0
-
-    return compute_tx_id(
+def canonical_tx_identity_from_dict(chain_id: str, tx: dict[str, Any]) -> Json:
+    env = TxEnvelope.from_json(tx)
+    return canonical_tx_identity(
         chain_id=str(chain_id),
-        tx_type=str(tx_type),
-        signer=str(signer),
-        nonce=nonce_i,
-        payload=payload if isinstance(payload, dict) else {},
-        system=bool(system),
-        parent=str(parent) if parent is not None else None,
+        tx_type=env.tx_type,
+        signer=env.signer,
+        nonce=int(env.nonce),
+        payload=env.payload,
+        system=bool(env.system),
+        parent=env.parent,
     )
+
+
+def compute_tx_id_from_dict(chain_id: str, tx: dict[str, Any]) -> str:
+    """Compute the canonical ID from a raw transaction envelope.
+
+    Historical aliases accepted by :class:`TxEnvelope` remain accepted, but
+    malformed nonce/payload values are no longer silently normalized into a
+    different transaction identity.
+    """
+
+    env = TxEnvelope.from_json(tx)
+    return compute_tx_id_from_envelope(str(chain_id), env)
+
+
+__all__ = [
+    "TX_ID_PREFIX",
+    "canonical_tx_identity",
+    "canonical_tx_identity_from_dict",
+    "compute_tx_id",
+    "compute_tx_id_from_dict",
+    "compute_tx_id_from_envelope",
+]

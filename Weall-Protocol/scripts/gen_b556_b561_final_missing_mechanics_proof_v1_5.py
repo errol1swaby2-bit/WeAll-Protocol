@@ -11,7 +11,9 @@ from rehearse_economics_activation_locked_completion_v1_5 import run_harness as 
 from rehearse_helper_serial_equivalence_expansion_v1_5 import run_harness as run_helpers
 from rehearse_live_peer_state_sync_mechanics_v1_5 import run_harness as run_state_sync
 from rehearse_multi_operator_storage_workers_v1_5 import run_harness as run_storage
-from rehearse_public_style_validator_network_mechanics_v1_5 import run_harness as run_validator_network
+from rehearse_public_style_validator_network_mechanics_v1_5 import (
+    run_harness as run_validator_network,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "b556_b561_final_missing_mechanics_proof_v1_5.json"
@@ -44,7 +46,9 @@ def build() -> dict[str, Any]:
     ]
     return {
         "schema": "weall.v1_5.batch556_561.final_missing_mechanics_proof",
-        "ok": all(bool(x.get("ok")) for x in (validator, sync, storage, anti_sybil, economics, helpers)),
+        "ok": all(
+            bool(x.get("ok")) for x in (validator, sync, storage, anti_sybil, economics, helpers)
+        ),
         "batch_range": "556-561",
         "public_style_validator_network": validator,
         "live_peer_state_sync": sync,
@@ -64,12 +68,16 @@ def _canon(obj: Any) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--check", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--check", action="store_true")
+    args = ap.parse_args()
     artifact = build()
     text = _canon(artifact)
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("b556_b561_final_missing_mechanics_proof_v1_5.json is stale; rerun generator")
+            raise SystemExit(
+                "b556_b561_final_missing_mechanics_proof_v1_5.json is stale; rerun generator"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is fresh")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

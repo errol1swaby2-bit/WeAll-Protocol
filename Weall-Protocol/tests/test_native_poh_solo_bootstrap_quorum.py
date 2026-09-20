@@ -39,9 +39,27 @@ def _solo_bootstrap_state() -> dict:
             },
         },
         "accounts": {
-            "@founder": {"poh_tier": 2, "nonce": 0, "banned": False, "locked": False, "reputation_milli": 0},
-            "@alice": {"poh_tier": 0, "nonce": 0, "banned": False, "locked": False, "reputation_milli": 0},
-            "@bob": {"poh_tier": 0, "nonce": 0, "banned": False, "locked": False, "reputation_milli": 0},
+            "@founder": {
+                "poh_tier": 2,
+                "nonce": 0,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": 0,
+            },
+            "@alice": {
+                "poh_tier": 0,
+                "nonce": 0,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": 0,
+            },
+            "@bob": {
+                "poh_tier": 0,
+                "nonce": 0,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": 0,
+            },
         },
         "roles": {"validators": {"active_set": ["@founder"]}},
         "poh": {"async_cases": {}},
@@ -64,7 +82,11 @@ def _async_case_to_tier1(state: dict, account: str, *, case_id: str, nonce_base:
             "POH_ASYNC_EVIDENCE_DECLARE",
             account,
             nonce_base + 1,
-            {"case_id": case_id, "evidence_id": f"evidence:{case_id}", "evidence_commitment": f"evidence:{case_id}"},
+            {
+                "case_id": case_id,
+                "evidence_id": f"evidence:{case_id}",
+                "evidence_commitment": f"evidence:{case_id}",
+            },
         ),
     )
     apply_poh_async_evidence_bind(
@@ -92,7 +114,12 @@ def _async_case_to_tier1(state: dict, account: str, *, case_id: str, nonce_base:
     )
     apply_poh_async_review_submit(
         state,
-        _env("POH_ASYNC_REVIEW_SUBMIT", "@founder", nonce_base + 5, {"case_id": case_id, "verdict": "approve"}),
+        _env(
+            "POH_ASYNC_REVIEW_SUBMIT",
+            "@founder",
+            nonce_base + 5,
+            {"case_id": case_id, "verdict": "approve"},
+        ),
     )
     out = apply_poh_async_finalize(
         state,
@@ -141,7 +168,11 @@ def test_async_quorum_expands_with_active_validator_count() -> None:
             "POH_ASYNC_EVIDENCE_DECLARE",
             "@alice",
             2,
-            {"case_id": "async-alice", "evidence_id": "evidence", "evidence_commitment": "evidence"},
+            {
+                "case_id": "async-alice",
+                "evidence_id": "evidence",
+                "evidence_commitment": "evidence",
+            },
         ),
     )
     assert schedule_poh_async_system_txs(state, next_height=2) == 0

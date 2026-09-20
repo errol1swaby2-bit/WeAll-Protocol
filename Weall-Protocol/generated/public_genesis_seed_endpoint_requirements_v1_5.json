@@ -1,21 +1,14 @@
 {
   "checked_in_registry": {
-    "chain_id": "weall-testnet-v1",
-    "errors": [],
-    "network_id": "weall-public-observer-testnet-v1",
-    "seed_api_urls": [
-      "https://api.genesis.weallprotocol.xyz"
+    "chain_id": null,
+    "errors": [
+      "public_seed_registry_missing_seed_registry_signature"
     ],
-    "seed_p2p_urls": [
-      "tls://p2p.genesis.weallprotocol.xyz:30303"
-    ],
-    "signature_status": {
-      "required": true,
-      "signer": "81eaf06a553325a438a98a126bfef417faee784f1363dfd2f4856fd4207f1865",
-      "trust": "pinned",
-      "verified": true
-    },
-    "source_kind": "file",
+    "network_id": null,
+    "seed_api_urls": [],
+    "seed_p2p_urls": [],
+    "signature_status": null,
+    "source_kind": null,
     "validator_endpoint_count": 0
   },
   "failure_codes": [
@@ -42,6 +35,6 @@
     "src/weall/api/public_seed_registry.py",
     "scripts/boot_public_observer_testnet.sh"
   ],
-  "static_launch_gate_passes": true,
+  "static_launch_gate_passes": false,
   "version": "2026-06-public-genesis-launch"
 }

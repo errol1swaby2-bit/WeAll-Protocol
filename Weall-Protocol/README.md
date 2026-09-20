@@ -2,7 +2,7 @@
 
 This directory contains the WeAll backend node/runtime, public API, generated artifacts, Docker/operator helpers, and backend test surfaces for the current local/devnet/public-observer-oriented hardening track.
 
-Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
 This backend README is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
 
@@ -22,10 +22,11 @@ Private/direct/encrypted messaging is not part of the NLnet/public-testnet claim
 | Public validator/BFT readiness | NO-GO | Independent validator/operator evidence remains required. |
 | Live economics | NO-GO | Economics remain locked; do not treat local wallet/status surfaces as live-economics authority. |
 | Automatic upgrade execution | NO-GO | Upgrade records are public metadata only; software apply, migrations, and rollbacks are not enabled. |
+| Production cryptographic audit / post-quantum security | NO-GO | Profile-aware ML-DSA is implemented for covered authority surfaces, but fresh post-transition rehearsal evidence and external cryptographic review remain required. |
 | Legal/compliance approval | NO-GO | Legal materials remain non-lawyer drafts pending review. |
 | Public storage-market readiness | NO-GO | Storage/IPFS tests are not a public storage-provider market claim. |
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+Current tx-canon counts and version are authoritative only in `generated/tx_index.json`; reviewer-facing prose intentionally does not duplicate those mutable values.
 
 Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
 
@@ -143,7 +144,7 @@ The checked-in public-testnet chain commitments, signed seed registry, trust roo
 | Reviewer documents | `docs/reviewer/`, including `docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` |
 | Testnet runbooks | `docs/testnet/` |
 
-The blocker catalog remains explicit: 14 total entries, 7 closed in repository, and 7 open as external evidence or mainnet-hardening gates.
+The blocker catalog remains explicit: 15 total entries, 7 closed in repository, and 8 open as external evidence or mainnet-hardening gates.
 
 ## Major backend surfaces
 
@@ -152,10 +153,10 @@ The blocker catalog remains explicit: 14 total entries, 7 closed in repository, 
 - **Public groups:** public group reads with member-gated participation and administration.
 - **Governance:** public proposal/vote/tally/finalization records, block-height progression, and record-only protocol-upgrade metadata.
 - **Disputes/reviews:** public reports, review assignment, votes, receipts, outcomes, and restricted private-identity-evidence boundaries.
-- **Transaction lifecycle:** tx admission, mempool/status, receipts, block inclusion evidence, and current 236 tx type canon.
+- **Transaction lifecycle:** tx admission, mempool/status, receipts, block inclusion evidence, and current canon metadata from `generated/tx_index.json`.
 - **Node/operator:** readiness/status, discovery, validator authority gates, observer status, release hygiene, and secret guard.
 - **Observer boot:** signed/pinned chain/seed/endpoint checks before public-observer startup.
-- **External evidence packages:** observer, replay, validator/operator, storage/IPFS, legal, upgrade, and helper-topology transcripts.
+- **External evidence packages:** observer, replay, validator/operator, storage/IPFS, legal, upgrade, helper-topology, and post-transition cryptographic review evidence.
 
 ## What is intentionally disabled
 
@@ -222,6 +223,6 @@ PYTHONPATH=src python scripts/compile_v2_spec.py --check
 python scripts/check_v2_spec_clean_checkout.py
 ```
 
-The compiler verifies the 236-entry current compatibility canon, 27-entry target TX canon, complete 150-entry target TX/MSG/SYS/RCP canon, all 159 current route implementations, 755 requirements, 215 parameters, M-001 through M-078, 94 exact state-object contracts, 98 target failure contracts, structured deterministic-CBOR schemas, a pinned signed PDF-extraction attestation, semantic-review digests, append-only stable-ID history, typed mechanism evidence paths, source coverage, commit-bound provenance, and frontend fail-closed truth consumption. See
+The compiler verifies the current compatibility canon, target contract sets, route implementations, requirements, parameters, mechanisms, state-object contracts, failure contracts, deterministic-CBOR schemas, pinned PDF-extraction attestation, semantic-review digests, append-only stable-ID history, typed mechanism evidence paths, source coverage, provenance, and frontend fail-closed truth consumption. Mutable counts are authoritative only in `generated/v2/spec_compilation_manifest.json`; do not copy those counts into reviewer-facing prose. See
 `docs/V2_SPEC_COMPILER.md` for the complete change procedure and assurance
 boundary.

@@ -93,7 +93,10 @@ def test_seeded_demo_juror_role_survives_dynamic_flag_review_gate() -> None:
     assert dispute_id == "dispute:SYSTEM:0"
     assert state["roles"]["jurors"]["by_id"]["@demo-tester-reviewer"]["active"] is True
     assert "@demo-tester-reviewer" in state["roles"]["jurors"]["active_set"]
-    assert state["disputes_by_id"][dispute_id]["jurors"]["@demo-tester-reviewer"]["status"] == "assigned"
+    assert (
+        state["disputes_by_id"][dispute_id]["jurors"]["@demo-tester-reviewer"]["status"]
+        == "assigned"
+    )
 
     ok, meta = eval_gate(
         "Juror",
@@ -111,4 +114,7 @@ def test_dev_boot_restarts_backend_after_demo_seed_so_producer_reloads_roles() -
     assert "restart_backend_after_demo_bootstrap()" in script
     assert "docker compose restart weall_api weall_producer" in script
     assert "seeded demo reviewer role did not survive backend reload" in script
-    assert "restart_backend_after_demo_bootstrap\n\n  log \"writing frontend dev bootstrap manifest" in script
+    assert (
+        'restart_backend_after_demo_bootstrap\n\n  log "writing frontend dev bootstrap manifest'
+        in script
+    )

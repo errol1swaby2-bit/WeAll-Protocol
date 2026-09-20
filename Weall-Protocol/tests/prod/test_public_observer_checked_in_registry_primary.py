@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 
-import weall.api.public_seed_registry as public_seed_registry
 from public_seed_test_helpers import REGISTRY_PUBKEY, signed_registry
+
+import weall.api.public_seed_registry as public_seed_registry
 
 
 def _registry(**overrides) -> dict:

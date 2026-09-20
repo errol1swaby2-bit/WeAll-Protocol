@@ -3,10 +3,13 @@
     "api_read_routes_exercised": [
       "GET /v1/feed?rank=production",
       "GET /v1/session/me",
-      "GET /v1/disputes/{dispute_id}"
+      "GET /v1/disputes/{dispute_id} [uncommitted direct-domain simulation]"
     ],
     "api_write_routes_exercised": [
-      "POST /v1/tx/submit ACCOUNT_REGISTER",
+      "POST /v1/tx/submit ACCOUNT_REGISTER @alice",
+      "POST /v1/tx/submit ACCOUNT_REGISTER @bob",
+      "POST /v1/tx/submit POH_BOOTSTRAP_TIER2_GRANT @alice",
+      "POST /v1/tx/submit POH_BOOTSTRAP_TIER2_GRANT @bob",
       "POST /v1/tx/submit CONTENT_POST_CREATE"
     ],
     "base_public_api_lifecycle_ok": true,

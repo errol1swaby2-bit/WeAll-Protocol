@@ -58,9 +58,13 @@ def run_leader_post_schedulers(
 def run_replay_pre_schedulers(
     state: Json, *, next_height: int, scheduler_set: SchedulerSet | None = None
 ) -> None:
-    # Preserve existing replay behavior. Do not add governance/dispute here until
-    # replay/root regression tests intentionally approve the semantic change.
-    run_core_schedulers(state, next_height=next_height, scheduler_set=scheduler_set)
+    # Replay must derive the same deterministic pre-phase queue/state mutations
+    # as leader construction.  Governance and dispute lifecycle ticks are
+    # consensus-visible scheduler work, not proposer-local conveniences.
+    schedulers = _scheduler_set(scheduler_set)
+    run_core_schedulers(state, next_height=next_height, scheduler_set=schedulers)
+    schedulers.tick_governance_lifecycle(state, next_height=next_height)
+    schedulers.tick_dispute_lifecycle(state, next_height=next_height)
 
 
 def run_replay_post_schedulers(

@@ -17,6 +17,7 @@ def _find_rate_limit_instance(app: FastAPI):
 
 
 def test_rate_limit_prunes_by_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "testnet")
     """TTL eviction prevents unbounded key growth under churn."""
 
     import weall.api.security as sec
@@ -68,6 +69,7 @@ def test_rate_limit_prunes_by_ttl(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_rate_limit_prunes_by_max_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEALL_MODE", "testnet")
     """Size-cap eviction drops oldest keys when max_keys is exceeded."""
 
     import weall.api.security as sec

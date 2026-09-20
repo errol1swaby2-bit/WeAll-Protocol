@@ -19,7 +19,7 @@ ML-DSA is the NIST FIPS 204 digital signature family. ML-KEM is a NIST key-estab
 
 ## Dependency decision record
 
-The repository now pins and requires `cryptography>=48.0.0,<49` for the controlled-testnet PQ signing path. `pq-mldsa-v1` uses pyca/cryptography's ML-DSA hazmat API with the ML-DSA-65 parameter set and a WeAll domain/context string. The adapter fails closed if the ML-DSA backend is unavailable.
+The repository now pins and requires `cryptography>=50.0.0,<51` for the controlled-testnet PQ signing path. `pq-mldsa-v1` uses pyca/cryptography's ML-DSA hazmat API with the ML-DSA-65 parameter set and a WeAll domain/context string. The adapter fails closed if the ML-DSA backend is unavailable.
 
 This pass does not silently emulate ML-DSA and does not add toy signatures. Pure-Python educational packages were not integrated as production protocol signing. liboqs-style bindings remain future candidates for independent comparison, but they introduce system-library and reproducible-build requirements that must be pinned and rehearsed before being added to the default path.
 

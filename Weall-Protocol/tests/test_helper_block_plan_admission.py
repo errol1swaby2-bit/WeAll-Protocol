@@ -27,7 +27,11 @@ def _block(helper_execution: dict) -> dict:
             "chain_id": "c1",
             "view": 0,
             "block_id": "p1",
-            "signatures": [{"signer": "v1", "signature": "x"}, {"signer": "v2", "signature": "x"}, {"signer": "v3", "signature": "x"}],
+            "signatures": [
+                {"signer": "v1", "signature": "x"},
+                {"signer": "v2", "signature": "x"},
+                {"signer": "v3", "signature": "x"},
+            ],
             "validator_epoch": 5,
             "validator_set_hash": "vh",
         },
@@ -39,12 +43,32 @@ def _block(helper_execution: dict) -> dict:
 
 def test_admit_bft_block_rejects_helper_execution_plan_id_mismatch(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
-    monkeypatch.setattr("weall.runtime.block_admission._validate_bft_proposal_leader_view", lambda block, state: (True, None))
-    monkeypatch.setattr("weall.runtime.bft_hotstuff.qc_from_json", lambda qc: type("QC", (), {"chain_id": "c1", "block_id": "p1", "view": 0})())
-    monkeypatch.setattr("weall.runtime.bft_hotstuff.verify_qc", lambda qc, validators, validator_pubkeys: True)
+    monkeypatch.setattr(
+        "weall.runtime.block_admission._validate_bft_proposal_leader_view",
+        lambda block, state: (True, None),
+    )
+    monkeypatch.setattr(
+        "weall.runtime.bft_hotstuff.qc_from_json",
+        lambda qc: type("QC", (), {"chain_id": "c1", "block_id": "p1", "view": 0})(),
+    )
+    monkeypatch.setattr(
+        "weall.runtime.bft_hotstuff.verify_qc", lambda qc, validators, validator_pubkeys: True
+    )
 
-    lanes = [{"lane_id": "L1", "helper_id": "h1", "tx_ids": ["t1"], "descriptor_hash": "d1", "plan_id": "wrong"}]
-    helper_execution = {"enabled": True, "plan_id": canonical_helper_execution_plan_fingerprint(lanes), "lanes": lanes}
+    lanes = [
+        {
+            "lane_id": "L1",
+            "helper_id": "h1",
+            "tx_ids": ["t1"],
+            "descriptor_hash": "d1",
+            "plan_id": "wrong",
+        }
+    ]
+    helper_execution = {
+        "enabled": True,
+        "plan_id": canonical_helper_execution_plan_fingerprint(lanes),
+        "lanes": lanes,
+    }
     ok, rej = admit_bft_block(block=_block(helper_execution), state=_state())
     assert ok is False
     assert rej is not None

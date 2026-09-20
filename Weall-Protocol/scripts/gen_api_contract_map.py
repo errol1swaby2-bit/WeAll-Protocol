@@ -135,7 +135,9 @@ def _route_contract(path: Path, metadata: dict[str, dict[str, Any]]) -> list[dic
             tags = kwargs.get("tags") or [module]
             if not isinstance(tags, list):
                 tags = [str(tags)]
-            route_id = hashlib.sha256(f"{method} {full_path} {rel}:{node.name}".encode("utf-8")).hexdigest()[:16]
+            route_id = hashlib.sha256(
+                f"{method} {full_path} {rel}:{node.name}".encode()
+            ).hexdigest()[:16]
             auth = _route_auth(method, full_path, module, node.name)
             contract = {
                 "route_id": route_id,
@@ -210,8 +212,14 @@ def _render(payload: dict[str, Any]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate or check the v1.5 public API contract inventory.")
-    parser.add_argument("--check", action="store_true", help="fail if the committed generated artifact is missing or stale")
+    parser = argparse.ArgumentParser(
+        description="Generate or check the v1.5 public API contract inventory."
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="fail if the committed generated artifact is missing or stale",
+    )
     args = parser.parse_args(argv)
 
     payload = build_payload()

@@ -38,7 +38,7 @@ jobs:
           pip install -e . --no-deps
           python - <<'PY'
           import fastapi  # noqa: F401
-          import httpx  # noqa: F401
+          import httpx2  # noqa: F401
           import pytest  # noqa: F401
           import weall  # noqa: F401
           PY
@@ -64,6 +64,7 @@ jobs:
             RANGE="HEAD^..HEAD"
           fi
 
+          PY_FILES=()
           mapfile -t PY_FILES < <(
             git -C .. diff --name-only --diff-filter=ACMR "${RANGE}" \
               | awk '/^Weall-Protocol\/.*\.py$/ {sub(/^Weall-Protocol\//, ""); print}'
@@ -94,6 +95,14 @@ jobs:
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Restore historical M2/M3 closure evidence
+        working-directory: .
+        run: |
+          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
 
       - name: Pytest
         run: |

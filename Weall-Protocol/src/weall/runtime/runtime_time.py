@@ -8,7 +8,6 @@ future block timestamp policy changes out of the executor facade.
 """
 
 import time
-from typing import Any
 
 from weall.runtime.protocol_profile import (
     runtime_clock_skew_warn_ms,

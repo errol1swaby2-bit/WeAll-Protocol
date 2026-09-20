@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
 from dataclasses import dataclass
 from typing import Any
+
 from weall.runtime.runtime_env import safe_int as _safe_int
 from weall.runtime.runtime_time import now_ms as _now_ms
-
 from weall.runtime.sqlite_db import SqliteDB, _canon_json
 
 Json = dict[str, Any]
-
 
 
 def _envelope_for_id(env: Json) -> Json:

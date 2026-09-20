@@ -25,7 +25,7 @@
       "uses_reputation_weighting": true
     },
     "feed_status_code": 200,
-    "final_state_root": "3e3f82cfbd2b4fe6d74b3abef0d364b11a0aef74f0797ccf29760bba8d514d7d",
+    "final_state_root": "92dc098c18db5683467e57e9ca0302ca093eb0bc9b37a262405cf4bbd155774a",
     "group_status_code": 200,
     "ok": true,
     "poh_reverification_status": "completed",
@@ -41,6 +41,10 @@
     "537",
     "538"
   ],
+  "freshness": {
+    "input_digest_sha256": "1c667f898b3ab3d7ad5752bc1bfd7759a17559413c77c0585522d3446aaf595c",
+    "mode": "deterministic_input_digest_v1"
+  },
   "locked_boundaries": {
     "automatic_upgrades": false,
     "live_economics": false,

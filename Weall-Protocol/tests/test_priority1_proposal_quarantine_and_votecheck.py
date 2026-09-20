@@ -12,6 +12,7 @@ def _seed_validator_set(ex: WeAllExecutor, validators: list[str], pubs: dict[str
     st = ex.state
     st.setdefault("roles", {}).setdefault("validators", {})["active_set"] = list(validators)
     c = st.setdefault("consensus", {})
+    c.setdefault("phase", {})["current"] = "bft_active"
     c.setdefault("validators", {}).setdefault("registry", {})
     for v in validators:
         c["validators"]["registry"].setdefault(v, {})["pubkey"] = pubs[v]

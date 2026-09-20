@@ -4,7 +4,6 @@ from pathlib import Path
 
 from weall.runtime.helper_contracts import build_helper_contract_map, helper_contract_for_tx
 
-
 ROOT = Path(__file__).resolve().parents[1]
 TX_INDEX = ROOT / "generated" / "tx_index.json"
 
@@ -36,7 +35,9 @@ def test_placeholder_parallel_contracts_require_concrete_instances() -> None:
         for item in contract_map["contracts"]
         if item["helper_eligible"] and item["uses_placeholder_keys"]
     ]
-    assert placeholder_parallel, "expected helper-eligible txs that still require concrete instance coverage"
+    assert placeholder_parallel, (
+        "expected helper-eligible txs that still require concrete instance coverage"
+    )
     for item in placeholder_parallel:
         assert item["proven_helper_eligible"] is False
         assert item["requires_concrete_instance"] is True
@@ -59,7 +60,6 @@ def test_helper_eligible_contracts_have_no_global_barrier_authority() -> None:
     )
 
 
-
 def test_global_authority_placeholders_fail_closed_to_serial() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
     placeholders = [
@@ -67,13 +67,19 @@ def test_global_authority_placeholders_fail_closed_to_serial() -> None:
         for item in contract_map["contracts"]
         if item["reason"] == "global_authority_placeholder"
     ]
-    assert placeholders, "expected placeholder global-authority txs to remain visible in the audit map"
+    assert placeholders, (
+        "expected placeholder global-authority txs to remain visible in the audit map"
+    )
     for item in placeholders:
         assert item["helper_eligible"] is False
         assert item["proven_helper_eligible"] is False
         assert item["has_global_barrier_authority"] is True
         assert item["effective_lane_id"] == "SERIAL"
-        assert item["proof_status"] in {"SERIAL_ONLY", "DEGRADED_TO_SERIAL", "DEGRADED_INSTANCE_REQUIRED"}
+        assert item["proof_status"] in {
+            "SERIAL_ONLY",
+            "DEGRADED_TO_SERIAL",
+            "DEGRADED_INSTANCE_REQUIRED",
+        }
 
 
 def test_helper_proof_contract_for_concrete_tx_is_deterministic() -> None:

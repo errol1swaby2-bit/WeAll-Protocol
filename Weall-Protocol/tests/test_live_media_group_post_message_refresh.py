@@ -33,11 +33,10 @@ def test_create_post_has_group_destination_selector_and_group_payload() -> None:
     assert "api.groups.list({ limit: 250 }" in page
     assert "<select" in page
     assert "Public feed" in page
-    assert "setVisibility(nextGroupId ? \"group\" : \"public\")" in page
-    assert "visibility: composerGroupId ? \"group\" : visibility" in page
+    assert 'setVisibility(nextGroupId ? "group" : "public")' in page
+    assert 'visibility: composerGroupId ? "group" : visibility' in page
     assert "group_id: composerGroupId || null" in page
     assert "Choose a group above to route it into a group feed." in page
-
 
 
 def test_removed_communication_surface_stays_removed() -> None:
@@ -52,7 +51,6 @@ def test_live_room_renders_waiting_remote_tiles_and_fast_polls() -> None:
     assert "Waiting for media from" in page
     assert "window.setTimeout(() => void pollWebRTCSignals(), 750)" in page
     assert "waiting {missingRemoteAccounts.length}" in page
-
 
 
 def test_removed_communication_key_autopublish_surface_stays_removed() -> None:

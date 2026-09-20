@@ -5,7 +5,9 @@ import argparse
 import json
 from typing import Any
 
-from rehearse_public_style_validator_network_mechanics_v1_5 import run_harness as run_public_style_validator
+from rehearse_public_style_validator_network_mechanics_v1_5 import (
+    run_harness as run_public_style_validator,
+)
 
 
 def run_harness() -> dict[str, Any]:
@@ -13,7 +15,12 @@ def run_harness() -> dict[str, Any]:
     follower_results = list(base.get("follower_apply_ok_results") or [])
     follower_errors = list(base.get("follower_apply_errors") or [])
     return {
-        "ok": bool(base.get("ok") and follower_results and all(follower_results) and follower_errors == ["", "", ""]),
+        "ok": bool(
+            base.get("ok")
+            and follower_results
+            and all(follower_results)
+            and follower_errors == ["", "", ""]
+        ),
         "batch": "562",
         "source_batch": str(base.get("batch") or ""),
         "follower_apply_ok_results": follower_results,

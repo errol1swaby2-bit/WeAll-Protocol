@@ -3,6 +3,9 @@ from __future__ import annotations
 import pytest
 
 from weall.runtime.protocol_profile import (
+    PRODUCTION_CONSENSUS_PROFILE,
+    STATE_ROOT_COMMITMENT_VERSION,
+    ProductionConsensusProfile,
     effective_runtime_consensus_posture,
     production_consensus_env_audit,
     runtime_startup_fingerprint,
@@ -56,7 +59,6 @@ def test_prod_effective_posture_ignores_unsafe_raw_env_overrides(
     assert posture["trusted_anchor_required"] is True
 
 
-
 def test_production_consensus_env_audit_detects_alias_conflict(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -67,8 +69,10 @@ def test_production_consensus_env_audit_detects_alias_conflict(
     audit = production_consensus_env_audit()
 
     assert audit["ok"] is False
-    assert "env_alias_conflict:WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR" in audit["violations"]
-
+    assert (
+        "env_alias_conflict:WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR"
+        in audit["violations"]
+    )
 
 
 def test_startup_fingerprint_is_deterministic(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -95,3 +99,27 @@ def test_startup_fingerprint_is_deterministic(monkeypatch: pytest.MonkeyPatch) -
 
     assert a["fingerprint"] == b["fingerprint"]
     assert a["fingerprint"] != c["fingerprint"]
+
+
+def test_state_root_commitment_version_is_profile_and_startup_bound(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WEALL_MODE", "prod")
+    assert (
+        PRODUCTION_CONSENSUS_PROFILE.to_json()["state_root_commitment_version"]
+        == STATE_ROOT_COMMITMENT_VERSION
+    )
+    altered = ProductionConsensusProfile(
+        state_root_commitment_version="weall.state-root.test-alternate"
+    )
+    assert altered.profile_hash() != PRODUCTION_CONSENSUS_PROFILE.profile_hash()
+
+    posture = effective_runtime_consensus_posture()
+    assert posture["state_root_commitment_version"] == STATE_ROOT_COMMITMENT_VERSION
+    fingerprint = runtime_startup_fingerprint(
+        chain_id="weall-prod",
+        node_id="node-root-version",
+        tx_index_hash="abc123",
+        schema_version="1",
+    )
+    assert fingerprint["state_root_commitment_version"] == STATE_ROOT_COMMITMENT_VERSION

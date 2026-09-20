@@ -15,6 +15,7 @@ class _FakeExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         return {
             "chain_id": "weall",

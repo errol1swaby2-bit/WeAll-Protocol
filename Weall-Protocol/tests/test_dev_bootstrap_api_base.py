@@ -15,15 +15,22 @@ def test_full_stack_manifest_points_browser_secret_fetch_at_backend_api():
 
 
 def test_dev_bootstrap_ignores_same_origin_manifest_slash_for_secret_fetch():
-    dev_bootstrap = (repo_root() / "web" / "src" / "lib" / "devBootstrap.ts").read_text(encoding="utf-8")
+    dev_bootstrap = (repo_root() / "web" / "src" / "lib" / "devBootstrap.ts").read_text(
+        encoding="utf-8"
+    )
     assert "function usableApiBase" in dev_bootstrap
     assert "function manifestApiBase" in dev_bootstrap
     assert "manifest.apiBase, manifest.api_base, config.defaultApiBase" in dev_bootstrap
-    assert 'const base = String(manifest.apiBase || config.defaultApiBase || "").trim() || "/"' not in dev_bootstrap
+    assert (
+        'const base = String(manifest.apiBase || config.defaultApiBase || "").trim() || "/"'
+        not in dev_bootstrap
+    )
 
 
 def test_login_page_uses_saved_backend_target_when_manifest_api_base_is_slash():
-    login_page = (repo_root() / "web" / "src" / "pages" / "LoginPage.tsx").read_text(encoding="utf-8")
+    login_page = (repo_root() / "web" / "src" / "pages" / "LoginPage.tsx").read_text(
+        encoding="utf-8"
+    )
     assert "function usableApiBase" in login_page
     assert "function manifestApiBase" in login_page
     assert "manifest?.apiBase, manifest?.api_base, fallback, getApiBase()" in login_page

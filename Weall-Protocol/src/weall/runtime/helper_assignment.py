@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Iterable, List, Mapping, Optional, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
+from weall.runtime.commitments import normalize_validator_ids
 from weall.runtime.helper_capacity import (
     DEFAULT_HELPER_CAPACITY_UNITS,
-    lane_cost_units as compute_lane_cost_units,
     normalize_helper_capacity_map,
+)
+from weall.runtime.helper_capacity import (
+    lane_cost_units as compute_lane_cost_units,
 )
 
 Json = dict[str, object]
 
 
-def normalize_validators(validators: List[str]) -> List[str]:
-    return sorted(set(validators))
+def normalize_validators(validators: list[str]) -> list[str]:
+    return normalize_validator_ids(validators)
 
 
 def _clean_quarantined_helpers(quarantined_helpers: Iterable[str] | None) -> set[str]:
@@ -72,7 +76,7 @@ def choose_helper_from_candidates(
     lane_cost: int = 1,
     quarantined_helpers: Iterable[str] | None = None,
     allow_overcommit: bool = True,
-) -> Optional[str]:
+) -> str | None:
     """
     Deterministically choose the least-loaded healthy helper from an ordered candidate list.
     Falls back to quarantined candidates only if every candidate is quarantined.
@@ -92,13 +96,16 @@ def choose_helper_from_candidates(
     under_capacity = [
         helper_id
         for helper_id in pool
-        if (loads.get(helper_id, 0) + lane_cost) <= max(0, capacities.get(helper_id, DEFAULT_HELPER_CAPACITY_UNITS))
+        if (loads.get(helper_id, 0) + lane_cost)
+        <= max(0, capacities.get(helper_id, DEFAULT_HELPER_CAPACITY_UNITS))
     ]
-    candidate_pool = tuple(under_capacity) if under_capacity else (() if not allow_overcommit else pool)
+    candidate_pool = (
+        tuple(under_capacity) if under_capacity else (() if not allow_overcommit else pool)
+    )
     if not candidate_pool:
         return None
 
-    best_helper: Optional[str] = None
+    best_helper: str | None = None
     best_capacity_units = 1
     best_projected_load = 0
     best_overload = 0
@@ -240,7 +247,7 @@ def assign_helper_for_lane(
     helper_capacity_by_helper: Mapping[str, Any] | None = None,
     lane_cost: int = 1,
     allow_overcommit: bool = True,
-) -> Optional[str]:
+) -> str | None:
     """
     Deterministic helper selection.
 

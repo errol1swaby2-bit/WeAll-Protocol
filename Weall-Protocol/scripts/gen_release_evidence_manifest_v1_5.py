@@ -79,11 +79,26 @@ def _load_json(rel: str) -> Json:
 
 def _artifact(rel: str) -> Json:
     payload = _load_json(rel)
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
-    readiness_no_go_artifact = rel in {
-        "generated/controlled_testnet_go_gate_v1_5.json",
-        "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
-    } and bool(payload) and (payload.get("public_beta_ready") is False or boundaries.get("public_beta_ready") is False)
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
+    readiness_no_go_artifact = (
+        rel
+        in {
+            "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+            "generated/controlled_testnet_go_gate_v1_5.json",
+            "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+        }
+        and bool(payload)
+        and (
+            payload.get("controlled_testnet_mechanisms_complete") is False
+            or payload.get("controlled_testnet_ready_candidate") is False
+            or payload.get("controlled_testnet_candidate") is False
+            or payload.get("controlled_rehearsal_candidate_ready") is False
+            or payload.get("public_beta_ready") is False
+            or boundaries.get("public_beta_ready") is False
+        )
+    )
     artifact_ok = bool(payload.get("ok", True)) if payload else False
     return {
         "path": rel,
@@ -96,20 +111,42 @@ def _artifact(rel: str) -> Json:
 
 
 def _run_git(args: list[str]) -> str:
-    proc = subprocess.run(["git", *args], cwd=ROOT.parent, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=ROOT.parent,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
     return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
 def build() -> Json:
     artifacts = {rel: _artifact(rel) for rel in _TRACKED_ARTIFACTS}
-    all_artifacts_ok = all(item["present"] and item["ok"] and item["file_sha256"] for item in artifacts.values())
+    all_artifacts_ok = all(
+        item["present"] and item["ok"] and item["file_sha256"] for item in artifacts.values()
+    )
+    mechanism_completion_payload = _load_json(
+        "generated/b587_b594_testnet_mechanism_completion_v1_5.json"
+    )
+    controlled_testnet_candidate = bool(
+        mechanism_completion_payload.get("controlled_testnet_ready_candidate") is True
+        and mechanism_completion_payload.get("controlled_testnet_mechanisms_complete") is True
+    )
+    final_gate_payload = _load_json(
+        "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json"
+    )
+    controlled_rehearsal_candidate_allowed = bool(
+        final_gate_payload.get("controlled_rehearsal_candidate_ready")
+    )
     return {
         "schema": "weall.v1_5.release_evidence_manifest",
         "version": "2026-06-b621-release-evidence-hardening",
         "ok": all_artifacts_ok,
         "public_beta_ready": False,
         "mainnet_ready": False,
-        "controlled_testnet_candidate": True,
+        "controlled_testnet_candidate": controlled_testnet_candidate,
         "tracked_manifest_is_commit_agnostic": True,
         "runtime_commit_binding_required": True,
         "why_commit_head_is_not_tracked_here": "A generated file cannot stably contain the commit hash of the commit that contains it; concrete HEAD binding is emitted by --runtime-json and clean-clone gate reports.",
@@ -117,7 +154,7 @@ def build() -> Json:
         "recursive_release_artifacts_checked_by_go_gate_but_not_hashed_here": [
             "generated/controlled_testnet_go_gate_v1_5.json",
             "generated/public_beta_blocker_report_v1_5.json",
-            "generated/release_evidence_manifest_v1_5.json"
+            "generated/release_evidence_manifest_v1_5.json",
         ],
         "release_evidence_gates": {
             "clean_clone_go_gate": {
@@ -135,7 +172,7 @@ def build() -> Json:
                     "generated/public_seed_registry_signature_verification_v1_5.json",
                     "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
                     "generated/public_observer_auto_discovery_proof_v1_5.json",
-                    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
+                    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
                 ],
             },
             "public_validator_endpoint_churn_proof": {
@@ -230,7 +267,7 @@ def build() -> Json:
                 "artifact": "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
                 "runbook": "docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
                 "validator": "PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check",
-                "controlled_rehearsal_candidate_allowed": True,
+                "controlled_rehearsal_candidate_allowed": controlled_rehearsal_candidate_allowed,
                 "public_beta_ready": False,
                 "public_observer_launch_claim_ready": False,
             },
@@ -253,7 +290,11 @@ def build() -> Json:
             "live_economics": False,
             "legal_compliance_ready": False,
         },
-        "artifact_digest": hashlib.sha256(_canon({"artifacts": artifacts, "version": "2026-06-b621-release-evidence-hardening"}).encode("utf-8")).hexdigest(),
+        "artifact_digest": hashlib.sha256(
+            _canon(
+                {"artifacts": artifacts, "version": "2026-06-b621-release-evidence-hardening"}
+            ).encode("utf-8")
+        ).hexdigest(),
     }
 
 
@@ -280,8 +321,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate/check v1.5 release evidence manifest.")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--runtime-json", action="store_true", help="emit concrete git HEAD/worktree/runtime metadata; not suitable as tracked artifact")
-    parser.add_argument("--clean-gate-report", help="optional clean-gate report file to digest in --runtime-json")
+    parser.add_argument(
+        "--runtime-json",
+        action="store_true",
+        help="emit concrete git HEAD/worktree/runtime metadata; not suitable as tracked artifact",
+    )
+    parser.add_argument(
+        "--clean-gate-report", help="optional clean-gate report file to digest in --runtime-json"
+    )
     args = parser.parse_args()
     if args.runtime_json:
         report = Path(args.clean_gate_report).resolve() if args.clean_gate_report else None
@@ -295,7 +342,9 @@ def main() -> int:
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
             raise SystemExit("release_evidence_manifest_v1_5.json is stale; rerun generator")
-        print(f"OK: {OUT.relative_to(ROOT)} is current ({len(payload['tracked_artifacts'])} artifacts)")
+        print(
+            f"OK: {OUT.relative_to(ROOT)} is current ({len(payload['tracked_artifacts'])} artifacts)"
+        )
         return 0 if payload.get("ok") else 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")

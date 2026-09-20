@@ -124,7 +124,10 @@ def test_session_login_accepts_pq_mldsa_profile_under_strict_crypto_mode(monkeyp
         },
     )
     assert r.status_code == 200, r.text
-    assert state["accounts"][account]["session_keys"][session_record_key(session_key)]["sig_profile"] == "pq-mldsa-v1"
+    assert (
+        state["accounts"][account]["session_keys"][session_record_key(session_key)]["sig_profile"]
+        == "pq-mldsa-v1"
+    )
     assert state["accounts"][account]["devices"]["by_id"][device_id]["sig_profile"] == "pq-mldsa-v1"
 
 
@@ -141,7 +144,9 @@ def test_session_login_rejects_missing_profile_under_strict_crypto_mode(monkeypa
         "height": 0,
         "time": int(time.time()),
         "meta": {"chain_id": "weall-testnet-v1", "network_id": "weall-public-observer-testnet-v1"},
-        "accounts": {"@satoshi": {"keys": {"by_id": {}}, "devices": {"by_id": {}}, "session_keys": {}}},
+        "accounts": {
+            "@satoshi": {"keys": {"by_id": {}}, "devices": {"by_id": {}}, "session_keys": {}}
+        },
     }
 
     class Store:

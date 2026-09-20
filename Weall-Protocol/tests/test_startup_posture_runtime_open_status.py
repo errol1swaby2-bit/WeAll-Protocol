@@ -13,14 +13,16 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_startup_posture_surfaces_runtime_open_and_recovery_mode(tmp_path: Path, monkeypatch) -> None:
+def test_startup_posture_surfaces_runtime_open_and_recovery_mode(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)
-    monkeypatch.delenv("WEALL_ALLOW_DIRTY_SIGNING", raising=False)
     monkeypatch.delenv("WEALL_VALIDATOR_SIGNING_ENABLED", raising=False)
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@v1")
 
     db_path = tmp_path / "weall.db"
+    monkeypatch.setenv("WEALL_DB_PATH", str(db_path))
     tx_index_path = tmp_path / "tx_index.json"
     _write_min_tx_index(tx_index_path)
 

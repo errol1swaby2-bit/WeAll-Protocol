@@ -156,7 +156,9 @@ def build() -> Json:
             "storage_market_ready": False,
         },
     }
-    payload["artifact_digest"] = _digest({k: v for k, v in payload.items() if k != "artifact_digest"})
+    payload["artifact_digest"] = _digest(
+        {k: v for k, v in payload.items() if k != "artifact_digest"}
+    )
     return payload
 
 
@@ -165,7 +167,9 @@ def _pretty(obj: Any) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check v1.5 production-helper topology hardening plan artifact.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check v1.5 production-helper topology hardening plan artifact."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -176,12 +180,18 @@ def main() -> int:
         return 0 if payload.get("ok") else 1
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("production_helper_topology_hardening_plan_v1_5.json is stale; rerun generator")
-        print(f"OK: {OUT.relative_to(ROOT)} is current (AUD-618-P1-005 open; production_helper_execution_enabled=false)")
+            raise SystemExit(
+                "production_helper_topology_hardening_plan_v1_5.json is stale; rerun generator"
+            )
+        print(
+            f"OK: {OUT.relative_to(ROOT)} is current (AUD-618-P1-005 open; production_helper_execution_enabled=false)"
+        )
         return 0 if payload.get("ok") else 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
-    print(f"wrote {OUT.relative_to(ROOT)} (AUD-618-P1-005 open; production_helper_execution_enabled=false)")
+    print(
+        f"wrote {OUT.relative_to(ROOT)} (AUD-618-P1-005 open; production_helper_execution_enabled=false)"
+    )
     return 0 if payload.get("ok") else 1
 
 

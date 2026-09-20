@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import copy
-
 import pytest
-
 from public_seed_test_helpers import REGISTRY_PUBKEY, signed_endpoint, signed_registry
+
 from weall.api.public_seed_registry import PublicSeedRegistryError, normalize_public_seed_registry
 
 
@@ -59,7 +57,9 @@ def test_public_genesis_registry_requires_direct_p2p_seed(monkeypatch):
         ("https://[::1]:8443", "public_seed_registry_seed_api_url_not_public"),
     ],
 )
-def test_public_genesis_registry_rejects_private_or_loopback_seed_api(monkeypatch, api_url: str, code: str):
+def test_public_genesis_registry_rejects_private_or_loopback_seed_api(
+    monkeypatch, api_url: str, code: str
+):
     registry = _base_registry()
     registry["seed_api_urls"] = [api_url]
     _assert_registry_rejected(monkeypatch, registry, code)
@@ -73,7 +73,9 @@ def test_public_genesis_registry_rejects_private_or_loopback_seed_api(monkeypatc
         ("tls://[::1]:30303", "public_seed_registry_seed_p2p_url_not_public"),
     ],
 )
-def test_public_genesis_registry_rejects_private_or_loopback_seed_p2p(monkeypatch, p2p_url: str, code: str):
+def test_public_genesis_registry_rejects_private_or_loopback_seed_p2p(
+    monkeypatch, p2p_url: str, code: str
+):
     registry = _base_registry()
     registry["seed_p2p_urls"] = [p2p_url]
     _assert_registry_rejected(monkeypatch, registry, code)
@@ -86,7 +88,9 @@ def test_public_genesis_registry_accepts_public_dns_seed_endpoints(monkeypatch):
     assert out["seed_p2p_urls"] == ["tls://p2p.genesis.weallprotocol.xyz:30303"]
 
 
-def test_public_validator_endpoint_hints_must_not_advertise_private_public_launch_addresses(monkeypatch):
+def test_public_validator_endpoint_hints_must_not_advertise_private_public_launch_addresses(
+    monkeypatch,
+):
     registry = _base_registry()
     registry["validator_endpoints"] = [
         signed_endpoint(
@@ -99,7 +103,9 @@ def test_public_validator_endpoint_hints_must_not_advertise_private_public_launc
             },
         )
     ]
-    _assert_registry_rejected(monkeypatch, registry, "public_validator_endpoint_api_base_url_not_public")
+    _assert_registry_rejected(
+        monkeypatch, registry, "public_validator_endpoint_api_base_url_not_public"
+    )
 
 
 def test_public_validator_endpoint_hints_must_not_advertise_private_p2p_addresses(monkeypatch):

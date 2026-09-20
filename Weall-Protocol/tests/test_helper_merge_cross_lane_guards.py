@@ -24,7 +24,6 @@ def test_helper_merge_rejects_cross_lane_tx_id_conflict() -> None:
     assert decision.code == "cross_lane_tx_id_conflict"
 
 
-
 def test_helper_merge_rejects_cross_lane_receipt_tx_id_conflict() -> None:
     resolutions = (
         HelperLaneResolution(lane_id="L1", helper_id="h1", mode="helper", certificate=None),
@@ -39,7 +38,6 @@ def test_helper_merge_rejects_cross_lane_receipt_tx_id_conflict() -> None:
     )
     assert decision.accepted is False
     assert decision.code == "cross_lane_receipt_tx_id_conflict"
-
 
 
 def test_helper_merge_rejects_duplicate_lane_receipt_tx_ids() -> None:

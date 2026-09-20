@@ -17,12 +17,13 @@ const requiredDashboard = [
 ];
 const requiredTransactions = [
   'lifecycleSteps',
-  'Accepted locally',
-  'Gossiped / pending',
+  'Locally accepted',
+  'Queued / pending',
+  'Forwarded / gossiped',
   'Included in block',
-  'Finalized',
+  'Finalized / confirmed',
   'Removed from mempool',
-  'Propagation lifecycle',
+  'gossip/upstream propagation',
 ];
 const requiredApi = [
   '/v1/status/testnet-capabilities',

@@ -32,7 +32,14 @@ def _lane_setup():
     return lane_plans, lane_plan
 
 
-def _mk_signed_cert(*, helper_id: str, lane_id: str, tx_ids: tuple[str, ...], seed_byte: int, receipts_root: str = "receipts"):
+def _mk_signed_cert(
+    *,
+    helper_id: str,
+    lane_id: str,
+    tx_ids: tuple[str, ...],
+    seed_byte: int,
+    receipts_root: str = "receipts",
+):
     seed = (bytes([seed_byte]) * 32).hex()
     pub = _pub_hex_from_seed(seed)
     cert = sign_helper_certificate(

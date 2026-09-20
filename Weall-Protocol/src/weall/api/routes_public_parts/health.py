@@ -17,15 +17,15 @@ from weall.runtime.helper_status_endpoint_integration import (
     build_readyz_envelope,
 )
 from weall.runtime.helper_status_surface import build_helper_status_surface
-from weall.runtime.runtime_authority import (
-    authority_contract_from_lifecycle,
-    startup_authority_contract_from_app_state,
-)
 from weall.runtime.node_runtime_config import resolve_node_runtime_config_from_env
 from weall.runtime.protocol_profile import (
     runtime_clock_skew_warn_ms,
     runtime_max_block_future_drift_ms,
     runtime_protocol_profile_hash,
+)
+from weall.runtime.runtime_authority import (
+    authority_contract_from_lifecycle,
+    startup_authority_contract_from_app_state,
 )
 
 router = APIRouter()
@@ -44,8 +44,8 @@ _ALLOWED_FALSE = {"0", "false", "no", "n", "off"}
 
 
 def _is_prod() -> bool:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return False
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return (str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod") == "prod"
 
 
@@ -147,18 +147,28 @@ def _try_bft_diagnostics(ex: Any) -> dict[str, object]:
                 return {
                     "stalled": bool(out.get("stalled", False)),
                     "stall_reason": _safe_str(out.get("stall_reason"), "unknown"),
-                    "pending_remote_blocks_count": _safe_int(out.get("pending_remote_blocks_count"), 0),
+                    "pending_remote_blocks_count": _safe_int(
+                        out.get("pending_remote_blocks_count"), 0
+                    ),
                     "pending_candidates_count": _safe_int(out.get("pending_candidates_count"), 0),
                     "pending_missing_qcs_count": _safe_int(out.get("pending_missing_qcs_count"), 0),
-                    "pending_fetch_requests_count": _safe_int(out.get("pending_fetch_requests_count"), 0),
+                    "pending_fetch_requests_count": _safe_int(
+                        out.get("pending_fetch_requests_count"), 0
+                    ),
                     "pending_artifacts_pruned": bool(out.get("pending_artifacts_pruned", False)),
                     "pacemaker_timeout_ms": _safe_int(out.get("pacemaker_timeout_ms"), 0),
                     "clock_skew_warning": bool(out.get("clock_skew_warning", False)),
                     "clock_skew_ahead_ms": _safe_int(out.get("clock_skew_ahead_ms"), 0),
-                    "protocol_profile_hash": _safe_str(out.get("protocol_profile_hash"), runtime_protocol_profile_hash()),
+                    "protocol_profile_hash": _safe_str(
+                        out.get("protocol_profile_hash"), runtime_protocol_profile_hash()
+                    ),
                     "reputation_scale": _safe_int(out.get("reputation_scale"), 0),
-                    "max_block_future_drift_ms": _safe_int(out.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()),
-                    "clock_skew_warn_ms": _safe_int(out.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()),
+                    "max_block_future_drift_ms": _safe_int(
+                        out.get("max_block_future_drift_ms"), runtime_max_block_future_drift_ms()
+                    ),
+                    "clock_skew_warn_ms": _safe_int(
+                        out.get("clock_skew_warn_ms"), runtime_clock_skew_warn_ms()
+                    ),
                 }
         except Exception:
             if _is_prod():
@@ -258,8 +268,6 @@ def _try_peer_counts(app_state: Any) -> dict[str, int | None]:
     return {"connected_peers": connected_peers, "established_sessions": established_sessions}
 
 
-
-
 def _node_lifecycle(request: Request) -> dict[str, Any]:
     ex = getattr(request.app.state, "executor", None)
     if ex is None:
@@ -286,6 +294,7 @@ def _authority_contract(request: Request) -> tuple[dict[str, Any], str]:
     runtime_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
     return runtime_contract, str(runtime_contract.get("contract_source") or "runtime")
 
+
 def _try_helper_release_gate_report(app_state: Any):
     try:
         return getattr(app_state, "helper_release_gate_report", None)
@@ -295,15 +304,26 @@ def _try_helper_release_gate_report(app_state: Any):
 
 def _helper_status_surface(request: Request, chain_id: str) -> Any:
     authority_contract, contract_source = _authority_contract(request)
-    helper_requested = bool(authority_contract.get("helper_requested", resolve_node_runtime_config_from_env().helper_enabled_requested))
+    helper_requested = bool(
+        authority_contract.get(
+            "helper_requested", resolve_node_runtime_config_from_env().helper_enabled_requested
+        )
+    )
     helper_authority_known = any(
         authority_contract.get(key)
-        for key in ("effective_state", "startup_action", "promotion_failure_reasons", "effective_roles")
+        for key in (
+            "effective_state",
+            "startup_action",
+            "promotion_failure_reasons",
+            "effective_roles",
+        )
     )
     status = evaluate_helper_startup(
         config=HelperStartupConfig(
             helper_mode_requested=helper_requested,
-            helper_authority_ok=(not helper_requested) or (not helper_authority_known) or bool(authority_contract.get("helper_effective", False)),
+            helper_authority_ok=(not helper_requested)
+            or (not helper_authority_known)
+            or bool(authority_contract.get("helper_effective", False)),
             chain_id_ok=bool(chain_id),
             protocol_profile_ok=True,
             validator_set_ok=True,
@@ -396,6 +416,7 @@ def _health_payload(request: Request) -> dict[str, object]:
         "consensus_diagnostics": bft_diag,
     }
     from weall.runtime.helper_status_surface import HelperStatusSurface
+
     helper_surface = HelperStatusSurface(
         helper_startup=dict(helper_payload.get("helper_startup") or {}),
         helper_status=str(helper_payload.get("helper_status") or ""),
@@ -445,6 +466,7 @@ def _ready_payload(request: Request) -> dict[str, object]:
 
     helper_payload = _helper_status_surface(request, chain_id or "")
     from weall.runtime.helper_status_surface import HelperStatusSurface
+
     helper_surface = HelperStatusSurface(
         helper_startup=dict(helper_payload.get("helper_startup") or {}),
         helper_status=str(helper_payload.get("helper_status") or ""),

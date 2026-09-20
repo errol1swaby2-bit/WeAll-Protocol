@@ -154,7 +154,7 @@ When sustained-load evidence is captured, store a transcript or JSON evidence fi
 - bottleneck fields such as block admission, execution helper, system queue binding, and post-system emitter wall time;
 - known limitations.
 
-Allowed wording: “Local sustained-load testing reached approximately 2350 TPS under the documented harness” only if a matching evidence artifact exists for the submitted commit. Do not claim global/public-mainnet throughput from a local harness.
+The historical approximately-2350-TPS local result is not a current-tree claim. Do not publish a scalar TPS figure until a fresh exact-commit benchmark with methodology and variance is captured. Do not infer global/public-mainnet throughput from a local harness.
 
 ## Closed-testnet evidence bundle
 

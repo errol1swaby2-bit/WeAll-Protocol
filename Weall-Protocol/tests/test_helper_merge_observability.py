@@ -5,7 +5,9 @@ from weall.runtime.helper_proposal_orchestrator import HelperLaneResolution
 
 
 def _resolution(lane_id: str) -> HelperLaneResolution:
-    return HelperLaneResolution(lane_id=lane_id, helper_id="helper-1", mode="helper", certificate=None)
+    return HelperLaneResolution(
+        lane_id=lane_id, helper_id="helper-1", mode="helper", certificate=None
+    )
 
 
 def test_helper_merge_decision_surfaces_cross_lane_receipt_conflict() -> None:

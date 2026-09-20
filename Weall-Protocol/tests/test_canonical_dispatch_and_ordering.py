@@ -6,9 +6,9 @@ import pytest
 
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
-from weall.runtime.helper_planner import canonicalize_txs
 from weall.runtime.mempool import PersistentMempool
 from weall.runtime.sqlite_db import SqliteDB
+from weall.testing.helper_planner import canonicalize_txs
 
 
 def test_domain_dispatch_rejects_noncanonical_unknown_tx_type() -> None:

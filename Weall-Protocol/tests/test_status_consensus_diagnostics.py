@@ -90,7 +90,6 @@ class _FakeExecutor:
             "poh": {},
         }
 
-
     def tx_index_hash(self) -> str:
         return "txindexhash-obs"
 
@@ -118,7 +117,12 @@ class _FakeExecutor:
                 "attempted": True,
                 "receipt_equivalent": True,
                 "lane_decisions": [
-                    {"lane_id": "l1", "used_helper": True, "fallback_reason": "", "tx_ids": ["tx:1"]},
+                    {
+                        "lane_id": "l1",
+                        "used_helper": True,
+                        "fallback_reason": "",
+                        "tx_ids": ["tx:1"],
+                    },
                     {
                         "lane_id": "l2",
                         "used_helper": False,
@@ -153,8 +157,20 @@ class _FakeExecutor:
                 "TREASURY_SIGNERS_SET": {"treasury_spend_open": 1},
             },
             "recent_events": [
-                {"tx_id": "tx:g1", "tx_type": "GROUP_SIGNERS_SET", "signer": "@alice", "reason": "group_treasury_spend_open", "code": "forbidden"},
-                {"tx_id": "tx:t1", "tx_type": "TREASURY_SIGNERS_SET", "signer": "alice", "reason": "treasury_spend_open", "code": "forbidden"},
+                {
+                    "tx_id": "tx:g1",
+                    "tx_type": "GROUP_SIGNERS_SET",
+                    "signer": "@alice",
+                    "reason": "group_treasury_spend_open",
+                    "code": "forbidden",
+                },
+                {
+                    "tx_id": "tx:t1",
+                    "tx_type": "TREASURY_SIGNERS_SET",
+                    "signer": "alice",
+                    "reason": "treasury_spend_open",
+                    "code": "forbidden",
+                },
             ],
         }
 
@@ -236,13 +252,14 @@ def test_status_consensus_exposes_bft_diagnostics(monkeypatch) -> None:
     assert len(fp["fingerprint"]) == 64
 
 
-def test_status_operator_exposes_runtime_and_peer_diagnostics(monkeypatch) -> None:
+def test_status_operator_exposes_runtime_and_peer_diagnostics(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_NET_ENABLED", "1")
     monkeypatch.setenv("WEALL_ENABLE_PUBLIC_DEBUG", "1")
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@validator-2")
-    monkeypatch.setenv("WEALL_DB_PATH", "./data/test-weall.db")
+    db_path = tmp_path / "test-weall.db"
+    monkeypatch.setenv("WEALL_DB_PATH", str(db_path))
     monkeypatch.setenv("WEALL_BFT_ALLOW_QC_LESS_BLOCKS", "1")
     monkeypatch.setenv("WEALL_BFT_UNSAFE_AUTOCOMMIT", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
@@ -257,7 +274,7 @@ def test_status_operator_exposes_runtime_and_peer_diagnostics(monkeypatch) -> No
     body = r.json()
 
     assert body["ok"] is True
-    assert body["db_path"] == "./data/test-weall.db"
+    assert body["db_path"] == str(db_path)
     assert body["mempool_size"] == 2
     assert body["attestation_pool_size"] == 1
     assert body["block_loop"]["running"] is True
@@ -266,7 +283,12 @@ def test_status_operator_exposes_runtime_and_peer_diagnostics(monkeypatch) -> No
     assert len(body["net"]["peers"]) == 2
     assert body["consensus"]["bft_enabled"] is True
     assert body["consensus"]["validator_account"] == "@validator-2"
-    assert body["operator"]["helper_execution"]["summary"]["fallback_reason_counts"]["plan_id_mismatch"] == 1
+    assert (
+        body["operator"]["helper_execution"]["summary"]["fallback_reason_counts"][
+            "plan_id_mismatch"
+        ]
+        == 1
+    )
     assert body["operator"]["helper_reputation"]["@helper-1"]["accepted"] == 4
     assert body["operator"]["mempool_selection_last"]["policy"] == "canonical"
     assert body["operator"]["mempool_selection_last"]["invalid_count"] == 1

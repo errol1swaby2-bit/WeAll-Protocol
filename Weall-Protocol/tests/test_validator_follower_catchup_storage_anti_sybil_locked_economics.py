@@ -101,8 +101,7 @@ def test_claim_boundaries_and_artifact_freshness() -> None:
         [sys.executable, "scripts/gen_b562_b566_mechanics_hardening_proof_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr

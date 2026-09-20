@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from weall.runtime.helper_certificates import HelperExecutionCertificate, hash_receipts, make_namespace_hash, make_tx_order_hash
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    hash_receipts,
+    make_namespace_hash,
+    make_tx_order_hash,
+)
 from weall.runtime.parallel_execution import (
     LanePlan,
     canonical_lane_plan_fingerprint,
@@ -41,10 +46,24 @@ def _lane(tx_id: str, tx_type: str, lane_id: str, helper_id: str, namespace: str
 
 def _lane_receipts(plan: LanePlan) -> list[Json]:
     tx = plan.txs[0]
-    return [{"tx_id": plan.tx_ids[0], "tx_type": str(tx.get("tx_type") or ""), "ok": True, "path": "serial"}]
+    return [
+        {
+            "tx_id": plan.tx_ids[0],
+            "tx_type": str(tx.get("tx_type") or ""),
+            "ok": True,
+            "path": "serial",
+        }
+    ]
 
 
-def _cert(plan: LanePlan, *, plan_id: str, manifest_hash: str, tx_order_hash: str | None = None, namespace_hash: str | None = None) -> HelperExecutionCertificate:
+def _cert(
+    plan: LanePlan,
+    *,
+    plan_id: str,
+    manifest_hash: str,
+    tx_order_hash: str | None = None,
+    namespace_hash: str | None = None,
+) -> HelperExecutionCertificate:
     return HelperExecutionCertificate(
         chain_id="c1",
         block_height=45,
@@ -55,12 +74,16 @@ def _cert(plan: LanePlan, *, plan_id: str, manifest_hash: str, tx_order_hash: st
         validator_set_hash="vh",
         lane_id=plan.lane_id,
         tx_ids=plan.tx_ids,
-        tx_order_hash=tx_order_hash if tx_order_hash is not None else make_tx_order_hash(plan.tx_ids),
+        tx_order_hash=tx_order_hash
+        if tx_order_hash is not None
+        else make_tx_order_hash(plan.tx_ids),
         receipts_root=hash_receipts(_lane_receipts(plan)),
         write_set_hash="w",
         read_set_hash="r",
         lane_delta_hash="d",
-        namespace_hash=namespace_hash if namespace_hash is not None else make_namespace_hash(plan.namespace_prefixes),
+        namespace_hash=namespace_hash
+        if namespace_hash is not None
+        else make_namespace_hash(plan.namespace_prefixes),
         plan_id=plan_id,
         manifest_hash=manifest_hash,
     )
@@ -77,7 +100,9 @@ def test_mixed_helper_strict_binding_fallbacks_preserve_serial_equivalence() -> 
     helper_certificates = {
         lane_a.lane_id: _cert(lane_a, plan_id=plan_id, manifest_hash="manifest-1"),
         lane_b.lane_id: _cert(lane_b, plan_id="", manifest_hash="manifest-1"),
-        lane_c.lane_id: _cert(lane_c, plan_id=plan_id, manifest_hash="manifest-1", tx_order_hash="wrong-order"),
+        lane_c.lane_id: _cert(
+            lane_c, plan_id=plan_id, manifest_hash="manifest-1", tx_order_hash="wrong-order"
+        ),
     }
     helper_receipts = {
         lane_a.lane_id: _lane_receipts(lane_a),

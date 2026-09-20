@@ -6,7 +6,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from rehearse_anti_sybil_suspicion_review_lifecycle_b585_v1_5 import run_harness as run_anti_sybil_lifecycle
+from rehearse_anti_sybil_suspicion_review_lifecycle_b585_v1_5 import (
+    run_harness as run_anti_sybil_lifecycle,
+)
 from rehearse_helper_equivalence_corpus_b586_v1_5 import run_harness as run_helper_corpus
 from rehearse_storage_ipfs_durability_b584_v1_5 import run_harness as run_storage_durability
 
@@ -25,7 +27,11 @@ def _load_json(rel: str) -> Json:
 
 def _gap_register_truth() -> Json:
     gap = _load_json("generated/v15_implementation_gap_register.json")
-    entries = {item.get("id"): item for item in gap.get("remaining_p0_p1_gaps", []) if isinstance(item, dict)}
+    entries = {
+        item.get("id"): item
+        for item in gap.get("remaining_p0_p1_gaps", [])
+        if isinstance(item, dict)
+    }
     state = entries.get("P1-STATE-ROOT-VECTORS", {})
     econ = entries.get("P1-ECONOMIC-SIMULATION-PACK", {})
     return {
@@ -48,7 +54,11 @@ def _gap_register_truth() -> Json:
 
 def _operator_route_metadata_truth() -> Json:
     contract = _load_json("generated/api_contract_map_v1_5.json")
-    routes = {f"{r.get('method')} {r.get('path')}": r for r in contract.get("routes", []) if isinstance(r, dict)}
+    routes = {
+        f"{r.get('method')} {r.get('path')}": r
+        for r in contract.get("routes", [])
+        if isinstance(r, dict)
+    }
     wanted = [
         "POST /v1/poh/operator/live/init",
         "POST /v1/poh/operator/live/finalize",
@@ -94,13 +104,16 @@ def build() -> Json:
     return {
         "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof",
         "batch_range": "582-586",
-        "ok": all(bool(x.get("ok")) for x in (gap_truth, operator_metadata, storage, anti_sybil, helper)),
+        "ok": all(
+            bool(x.get("ok")) for x in (gap_truth, operator_metadata, storage, anti_sybil, helper)
+        ),
         "gap_register_truth_refresh": gap_truth,
         "poh_operator_route_metadata": operator_metadata,
         "storage_ipfs_durability_rehearsal": storage,
         "anti_sybil_suspicion_review_lifecycle": anti_sybil,
         "helper_equivalence_corpus_expansion": helper,
-        "controlled_testnet_candidate_strengthened": True,
+        "controlled_testnet_candidate_strengthened": False,
+        "controlled_testnet_receipt_order_evidence_strengthened": True,
         "trusted_observer_candidate_strengthened": True,
         "public_beta_ready": False,
         "claim_boundaries": boundaries,
@@ -109,7 +122,7 @@ def build() -> Json:
             "PoH operator routes now have explicit metadata, but operator routes remain env/token gated and do not grant public validator or public PoH authority.",
             "Storage durability now rejects wrong/corrupt content and retrieves from a non-origin local daemon-compatible process, but public decentralized media durability still requires multi-machine operator proof.",
             "Anti-Sybil suspicion records now flow through panel/adjudication/recovery/deletion rehearsals, but complete Sybil resistance and automatic duplicate-human detection remain unclaimed.",
-            "Helper equivalence corpus evidence expanded without activating production helper execution; multi-node helper production proof remains required.",
+            "Helper receipt/order equivalence corpus evidence expanded without activating production helper execution; production block-path state-root equivalence and restart/replay proof remain required.",
         ],
     }
 
@@ -126,7 +139,9 @@ def main() -> int:
     text = _canon(artifact)
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("b582_b586_readiness_truth_and_proof_v1_5.json is stale; rerun generator")
+            raise SystemExit(
+                "b582_b586_readiness_truth_and_proof_v1_5.json is stale; rerun generator"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is fresh")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

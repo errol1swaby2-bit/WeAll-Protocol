@@ -5,9 +5,6 @@ import os
 import subprocess
 import sys
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-
 from public_seed_test_helpers import REGISTRY_PUBKEY
 
 
@@ -28,7 +25,9 @@ def _registry() -> dict:
     }
 
 
-def test_public_seed_registry_signing_script_rejects_placeholders_and_writes_valid_registry(tmp_path):
+def test_public_seed_registry_signing_script_rejects_placeholders_and_writes_valid_registry(
+    tmp_path,
+):
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     privkey = "11" * 32
     input_path = tmp_path / "unsigned.json"
@@ -56,8 +55,7 @@ def test_public_seed_registry_signing_script_rejects_placeholders_and_writes_val
         cwd=root,
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -83,8 +81,7 @@ def test_public_seed_registry_signing_script_rejects_placeholders_and_writes_val
         cwd=root,
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert check.returncode == 0, check.stdout + check.stderr
@@ -113,11 +110,14 @@ def test_public_observer_boot_script_is_fail_closed_and_documents_recovery():
 def test_public_observer_launch_evidence_requirements_generator_check():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     result = subprocess.run(
-        [sys.executable, "scripts/gen_public_observer_launch_evidence_requirements_v1_5.py", "--json"],
+        [
+            sys.executable,
+            "scripts/gen_public_observer_launch_evidence_requirements_v1_5.py",
+            "--json",
+        ],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr

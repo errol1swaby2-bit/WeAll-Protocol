@@ -76,7 +76,7 @@ def main() -> int:
     issues: list[str] = []
 
     try:
-        state, meta = read_db_state(db_path)
+        state, meta = read_db_state(db_path, fail_closed=True)
     except Exception as exc:
         report = {
             "ok": False,
@@ -121,6 +121,7 @@ def main() -> int:
         bundle_integrity = verify_manifest_integrity(
             load_json_object(bundle_path, kind="bootstrap bundle") or {}
         )
+        issues.extend(str(item) for item in bundle_integrity if str(item).strip())
         bundle_report = verify_local_manifest(
             cfg=cfg,
             manifest_path=bundle_path,
@@ -136,7 +137,18 @@ def main() -> int:
 
     authority_contract = {}
     if isinstance(bundle_report, dict):
-        authority_contract = dict(bundle_report.get("compatibility_contract", {}).get("local", {}).get("authority_contract") or {})
+        authority_contract = dict(
+            bundle_report.get("compatibility_contract", {})
+            .get("local", {})
+            .get("authority_contract")
+            or {}
+        )
+
+    bootstrap_report = production_bootstrap_report(cfg)
+    for item in list(bootstrap_report.get("issues") or []):
+        text = str(item or "").strip()
+        if text and text not in issues:
+            issues.append(text)
 
     report = {
         "ok": not issues,
@@ -168,11 +180,18 @@ def main() -> int:
             "observed": observed_anchor,
         },
         "authority_contract": authority_contract if isinstance(authority_contract, dict) else {},
-        "authority_contract_source": str(((authority_contract or {}) if isinstance(authority_contract, dict) else {}).get("contract_source") or "runtime"),
+        "authority_contract_source": str(
+            ((authority_contract or {}) if isinstance(authority_contract, dict) else {}).get(
+                "contract_source"
+            )
+            or "runtime"
+        ),
         "bundle_integrity_issues": bundle_integrity,
         "release_manifest": bundle_report,
-        "compatibility_contract": (bundle_report.get("compatibility_contract") if isinstance(bundle_report, dict) else {}),
-        "bootstrap_report": production_bootstrap_report(cfg),
+        "compatibility_contract": (
+            bundle_report.get("compatibility_contract") if isinstance(bundle_report, dict) else {}
+        ),
+        "bootstrap_report": bootstrap_report,
         "issues": issues,
     }
 

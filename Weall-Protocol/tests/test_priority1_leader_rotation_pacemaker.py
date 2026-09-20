@@ -96,7 +96,8 @@ def test_bft_drive_timeouts_emit_only_for_non_leaders_across_rotating_views(
             _seed_validator_set(ex, validators=validators, pub=vpub)
 
             ex.bft_set_view(view)
-            out = ex.bft_drive_timeouts(now_ms=0)
+            ex._bft.last_progress_ms = 0
+            out = ex.bft_drive_timeouts(now_ms=ex._bft.pacemaker_timeout_ms())
 
             if signer == expected_leader:
                 assert out == []
@@ -140,7 +141,8 @@ def test_timeout_quorum_survives_restart_and_advances_to_next_rotating_leader(
     _seed_validator_set(ex, validators=validators, pub=vpub)
 
     ex.bft_set_view(0)
-    out = ex.bft_drive_timeouts(now_ms=0)
+    ex._bft.last_progress_ms = 0
+    out = ex.bft_drive_timeouts(now_ms=ex._bft.pacemaker_timeout_ms())
     assert isinstance(out, list) and len(out) == 1
     assert str(out[0].get("signer") or "") == "v2"
     assert int(out[0].get("view", -1)) == 0
@@ -154,11 +156,13 @@ def test_timeout_quorum_survives_restart_and_advances_to_next_rotating_leader(
     _seed_validator_set(ex2, validators=validators, pub=vpub)
 
     ex2.bft_set_view(1)
-    out2 = ex2.bft_drive_timeouts(now_ms=0)
+    ex2._bft.last_progress_ms = 0
+    out2 = ex2.bft_drive_timeouts(now_ms=ex2._bft.pacemaker_timeout_ms())
     assert out2 == []  # v2 is leader for view 1
 
     ex2.bft_set_view(2)
-    out3 = ex2.bft_drive_timeouts(now_ms=0)
+    ex2._bft.last_progress_ms = 0
+    out3 = ex2.bft_drive_timeouts(now_ms=ex2._bft.pacemaker_timeout_ms())
     assert isinstance(out3, list) and len(out3) == 1
     assert int(out3[0].get("view", -1)) == 2
     assert str(out3[0].get("signer") or "") == "v2"

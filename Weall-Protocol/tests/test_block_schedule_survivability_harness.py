@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 
 
-
 def _subprocess_env() -> dict[str, str]:
     env = os.environ.copy()
     env.update(
@@ -21,6 +20,7 @@ def _subprocess_env() -> dict[str, str]:
         }
     )
     return env
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -214,11 +214,21 @@ def _assert_non_negative_number(value: object) -> None:
 
 def test_block_schedule_budget_totals_target_interval() -> None:
     root = _repo_root()
-    budget = json.loads((root / "specs" / "block_schedule_survivability_budget_v1_5.json").read_text())
+    budget = json.loads(
+        (root / "specs" / "block_schedule_survivability_budget_v1_5.json").read_text()
+    )
     assert budget["target_block_interval_ms"] == 20_000
     assert sum(int(v) for v in budget["phase_budget_ms"].values()) == 20_000
-    assert budget["phase_budget_ms"]["transaction_execution"] > budget["phase_budget_ms"]["mempool_selection"]
-    assert budget["public_testnet_initial_recommended_limits"]["max_txs_per_block_until_measured_active_profile_passes"] <= 250
+    assert (
+        budget["phase_budget_ms"]["transaction_execution"]
+        > budget["phase_budget_ms"]["mempool_selection"]
+    )
+    assert (
+        budget["public_testnet_initial_recommended_limits"][
+            "max_txs_per_block_until_measured_active_profile_passes"
+        ]
+        <= 250
+    )
 
 
 def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_path: Path) -> None:
@@ -240,7 +250,15 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
         "--out",
         str(out),
     ]
-    result = subprocess.run(cmd, cwd=root, env=_subprocess_env(), text=True, capture_output=True, timeout=60, check=False)
+    result = subprocess.run(
+        cmd,
+        cwd=root,
+        env=_subprocess_env(),
+        text=True,
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
     assert result.returncode == 0, result.stderr + result.stdout
     evidence = json.loads(out.read_text())
     assert evidence["execution_models"] == ["bounded_rollback"]
@@ -256,7 +274,10 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert profile["tx_mempool_insert_wall_ms"] >= 0
     assert profile["tx_duplicate_check_wall_ms"] >= 0
     assert profile["sustain_load"] is False
-    assert profile["txs_per_block_feed_semantics"] == "per_block_initial_submit_count_not_candidate_guarantee"
+    assert (
+        profile["txs_per_block_feed_semantics"]
+        == "per_block_initial_submit_count_not_candidate_guarantee"
+    )
     assert "profile_bottleneck_summary" in profile
     assert len(profile["profile_bottleneck_summary"]["top_5"]) <= 5
     assert profile["block_measurements"], evidence
@@ -305,7 +326,10 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert "execution_time_ms" in block
     assert "state_root_time_ms" in block
     assert "persistence_time_ms" in block
-    assert block["max_txs_per_block_semantics"] == "mempool_candidate_limit_excludes_system_or_derived_txs"
+    assert (
+        block["max_txs_per_block_semantics"]
+        == "mempool_candidate_limit_excludes_system_or_derived_txs"
+    )
     assert block["requested_mempool_candidate_limit"] == 12
     assert block["selected_candidate_tx_count"] <= block["requested_mempool_candidate_limit"]
     assert block["system_or_derived_txs_included"] >= 0
@@ -328,7 +352,9 @@ def test_light_block_schedule_rehearsal_generates_machine_readable_evidence(tmp_
     assert block["sustain_load"] is False
     assert block["per_block_refill_submitted"] == 0
     assert block["per_block_refill_attempts"] == 0
-    assert block["per_block_target_met"] == (block["valid_candidate_count"] >= block["requested_mempool_candidate_limit"])
+    assert block["per_block_target_met"] == (
+        block["valid_candidate_count"] >= block["requested_mempool_candidate_limit"]
+    )
     assert profile["convergence"]["all_nodes_converged"] is True, profile["convergence"]
 
 
@@ -352,12 +378,23 @@ def test_sustain_load_mode_refills_and_reports_per_block_targets(tmp_path: Path)
         "--out",
         str(out),
     ]
-    result = subprocess.run(cmd, cwd=root, env=_subprocess_env(), text=True, capture_output=True, timeout=90, check=False)
+    result = subprocess.run(
+        cmd,
+        cwd=root,
+        env=_subprocess_env(),
+        text=True,
+        capture_output=True,
+        timeout=90,
+        check=False,
+    )
     assert result.returncode == 0, result.stderr + result.stdout
     evidence = json.loads(out.read_text())
     profile = evidence["profiles"][0]
     assert profile["sustain_load"] is True
-    assert profile["txs_per_block_feed_semantics"] == "per_block_initial_submit_count_with_deterministic_candidate_top_up"
+    assert (
+        profile["txs_per_block_feed_semantics"]
+        == "per_block_initial_submit_count_with_deterministic_candidate_top_up"
+    )
     assert len(profile["block_measurements"]) == 2
     for block in profile["block_measurements"]:
         assert block["sustain_load"] is True
@@ -377,8 +414,13 @@ def test_sustain_load_mode_refills_and_reports_per_block_targets(tmp_path: Path)
             assert isinstance(block[field], int)
             assert block[field] >= 0
         assert block["per_block_refill_submitted"] >= 0
-        assert block["per_block_refill_admitted"] + block["per_block_refill_rejected"] <= block["per_block_refill_submitted"]
-        assert block["per_block_target_met"] == (block["valid_candidate_count"] >= block["requested_mempool_candidate_limit"])
+        assert (
+            block["per_block_refill_admitted"] + block["per_block_refill_rejected"]
+            <= block["per_block_refill_submitted"]
+        )
+        assert block["per_block_target_met"] == (
+            block["valid_candidate_count"] >= block["requested_mempool_candidate_limit"]
+        )
         for field in REFILL_DIAGNOSTIC_FIELDS:
             assert field in block
         for field in [
@@ -414,7 +456,9 @@ def test_sustain_load_mode_refills_and_reports_per_block_targets(tmp_path: Path)
             0, block["requested_mempool_candidate_limit"] - block["valid_candidate_count"]
         )
         if block["per_block_target_met"]:
-            assert block["selected_candidate_tx_count"] >= min(block["requested_mempool_candidate_limit"], block["valid_candidate_count"])
+            assert block["selected_candidate_tx_count"] >= min(
+                block["requested_mempool_candidate_limit"], block["valid_candidate_count"]
+            )
             assert block["candidate_top_up_stopped_reason"] == "target_met"
             assert block["per_block_target_shortfall_by_reason"] == {}
     assert profile["aggregate_submit"]["admitted"] >= sum(
@@ -444,7 +488,15 @@ def test_block_schedule_rehearsal_can_compare_deepcopy_and_bounded_rollback(tmp_
         "--out",
         str(out),
     ]
-    result = subprocess.run(cmd, cwd=root, env=_subprocess_env(), text=True, capture_output=True, timeout=90, check=False)
+    result = subprocess.run(
+        cmd,
+        cwd=root,
+        env=_subprocess_env(),
+        text=True,
+        capture_output=True,
+        timeout=90,
+        check=False,
+    )
     assert result.returncode == 0, result.stderr + result.stdout
     evidence = json.loads(out.read_text())
     assert evidence["execution_models"] == ["deepcopy", "bounded_rollback"]
@@ -470,7 +522,10 @@ def test_block_schedule_rehearsal_can_compare_deepcopy_and_bounded_rollback(tmp_
         assert "leader_tx_loop_wall_ms" in block
         assert "follower_tx_loop_wall_ms" in block
         assert "slow_observer_tx_loop_wall_ms" in block
-        assert block["max_txs_per_block_semantics"] == "mempool_candidate_limit_excludes_system_or_derived_txs"
+        assert (
+            block["max_txs_per_block_semantics"]
+            == "mempool_candidate_limit_excludes_system_or_derived_txs"
+        )
         assert block["accepted_tx_ids"]
         assert block["receipt_fingerprint"]
         assert profile["convergence"]["all_nodes_converged"] is True, profile["convergence"]

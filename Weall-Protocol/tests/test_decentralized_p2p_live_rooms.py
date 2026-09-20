@@ -22,7 +22,7 @@ def test_live_room_default_is_decentralized_p2p_descriptor() -> None:
     assert "liveRoomDescriptorFromCommitment" in live
     assert "liveRoomDescriptorText" in live
     assert 'return raw === "centralized-url" ? "centralized-url" : "p2p"' in live
-    assert 'VITE_WEALL_ALLOW_CENTRALIZED_LIVE_ROOM_URL' in live
+    assert "VITE_WEALL_ALLOW_CENTRALIZED_LIVE_ROOM_URL" in live
 
 
 def test_local_rehearsal_defaults_to_p2p_live_transport() -> None:
@@ -31,9 +31,9 @@ def test_local_rehearsal_defaults_to_p2p_live_transport() -> None:
     assert 'LIVE_ROOM_TRANSPORT_MODE="${VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE:-p2p}"' in script
     assert 'LIVE_ROOM_BASE_URL="${VITE_WEALL_LIVE_ROOM_BASE_URL:-}"' in script
     assert 'export VITE_WEALL_LIVE_ROOM_TRANSPORT_MODE="${LIVE_ROOM_TRANSPORT_MODE}"' in script
-    assert 'live_room_transport=${LIVE_ROOM_TRANSPORT_MODE}' in script
-    assert 'controlled-live-room' not in script
-    assert 'https://meet.jit.si' not in script
+    assert "live_room_transport=${LIVE_ROOM_TRANSPORT_MODE}" in script
+    assert "controlled-live-room" not in script
+    assert "https://meet.jit.si" not in script
 
 
 def test_live_room_pages_surface_p2p_descriptor_without_central_url() -> None:

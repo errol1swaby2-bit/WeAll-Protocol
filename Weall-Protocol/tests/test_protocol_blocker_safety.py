@@ -110,7 +110,9 @@ def test_apply_block_rejects_off_slot_constitutional_timestamp(tmp_path: Path, m
     assert rejected.error == "bad_block:ts_not_constitutional_slot"
 
 
-def test_bft_admission_rejects_off_slot_constitutional_timestamp(tmp_path: Path, monkeypatch) -> None:
+def test_bft_admission_rejects_off_slot_constitutional_timestamp(
+    tmp_path: Path, monkeypatch
+) -> None:
     chain_id = "batch598-bft-clock"
     manifest_path = tmp_path / "clock-manifest.json"
     _write_clock_manifest(manifest_path, chain_id=chain_id)
@@ -130,13 +132,17 @@ def test_bft_admission_rejects_off_slot_constitutional_timestamp(tmp_path: Path,
         },
         "txs": [],
     }
-    ok, reject = admit_bft_block(block=block, state={"chain_id": chain_id, "height": 0}, bft_enabled=True)
+    ok, reject = admit_bft_block(
+        block=block, state={"chain_id": chain_id, "height": 0}, bft_enabled=True
+    )
     assert ok is False
     assert reject is not None
     assert reject.code == "bft_block_time_not_constitutional_slot"
 
 
-def test_helper_reputation_is_state_root_committed_and_replayed(tmp_path: Path, monkeypatch) -> None:
+def test_helper_reputation_is_diagnostic_only_and_not_replayed_into_state(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
@@ -147,14 +153,17 @@ def test_helper_reputation_is_state_root_committed_and_replayed(tmp_path: Path, 
     _bootstrap_helper_account(leader)
     _bootstrap_helper_account(follower)
 
-    assert leader.submit_tx(
-        {
-            "tx_type": "CONTENT_POST_CREATE",
-            "signer": "@alice",
-            "nonce": 2,
-            "payload": {"body": "helper root", "visibility": "public", "tags": [], "media": []},
-        }
-    )["ok"] is True
+    assert (
+        leader.submit_tx(
+            {
+                "tx_type": "CONTENT_POST_CREATE",
+                "signer": "@alice",
+                "nonce": 2,
+                "payload": {"body": "helper root", "visibility": "public", "tags": [], "media": []},
+            }
+        )["ok"]
+        is True
+    )
 
     block, new_state, _applied_ids, _invalid_ids, err = leader.build_block_candidate(max_txs=1)
     assert err == ""
@@ -162,13 +171,37 @@ def test_helper_reputation_is_state_root_committed_and_replayed(tmp_path: Path, 
     assert isinstance(new_state, dict)
     helper_execution = block.get("helper_execution")
     assert isinstance(helper_execution, dict)
-    assert "helper_reputation" in new_state
-    assert new_state["helper_reputation"] == helper_execution["helper_reputation"]["state"]
+    helper_reputation = helper_execution["helper_reputation"]
+    assert helper_reputation["transition_policy"] == "diagnostic_only_v1"
+    assert helper_reputation["state_committed"] is False
+    assert new_state.get("helper_reputation") in (None, {})
     assert compute_state_root(new_state) == block["header"]["state_root"]
 
-    meta = follower.apply_block(copy.deepcopy(block))
+    forged = copy.deepcopy(block)
+    forged_rep = forged["helper_execution"]["helper_reputation"]
+    forged_rep["state"] = {
+        "@attacker": {
+            "helper_id": "@attacker",
+            "audits_total": 999,
+            "success_count": 999,
+            "fraud_count": 0,
+            "timeout_count": 0,
+            "quarantine_until_ms": 0,
+            "last_event_ms": 20_000,
+            "last_reason": "forged",
+            "score": 1998,
+            "quarantined": False,
+        }
+    }
+    forged["header"]["helper_execution_root"] = compute_helper_execution_root(
+        helper_execution=forged["helper_execution"]
+    )
+    forged.pop("block_hash", None)
+    forged["block_hash"] = compute_block_hash(header=forged["header"])
+
+    meta = follower.apply_block(forged)
     assert meta.ok is True
-    assert follower.state.get("helper_reputation") == helper_execution["helper_reputation"]["state"]
+    assert follower.state.get("helper_reputation") in (None, {})
 
 
 def test_apply_block_rejects_helper_metadata_plan_mismatch(tmp_path: Path, monkeypatch) -> None:
@@ -182,14 +215,22 @@ def test_apply_block_rejects_helper_metadata_plan_mismatch(tmp_path: Path, monke
     _bootstrap_helper_account(leader)
     _bootstrap_helper_account(follower)
 
-    assert leader.submit_tx(
-        {
-            "tx_type": "CONTENT_POST_CREATE",
-            "signer": "@alice",
-            "nonce": 2,
-            "payload": {"body": "helper replay", "visibility": "public", "tags": [], "media": []},
-        }
-    )["ok"] is True
+    assert (
+        leader.submit_tx(
+            {
+                "tx_type": "CONTENT_POST_CREATE",
+                "signer": "@alice",
+                "nonce": 2,
+                "payload": {
+                    "body": "helper replay",
+                    "visibility": "public",
+                    "tags": [],
+                    "media": [],
+                },
+            }
+        )["ok"]
+        is True
+    )
     block, _new_state, _applied_ids, _invalid_ids, err = leader.build_block_candidate(max_txs=1)
     assert err == ""
     tampered = copy.deepcopy(block)
@@ -199,7 +240,9 @@ def test_apply_block_rejects_helper_metadata_plan_mismatch(tmp_path: Path, monke
     assert isinstance(lanes, list) and lanes
     assert isinstance(lanes[0], dict)
     lanes[0]["plan_id"] = "bad-plan-id"
-    tampered["header"]["helper_execution_root"] = compute_helper_execution_root(helper_execution=helper_execution)
+    tampered["header"]["helper_execution_root"] = compute_helper_execution_root(
+        helper_execution=helper_execution
+    )
     tampered.pop("block_hash", None)
     tampered["block_hash"] = compute_block_hash(header=tampered["header"])
 
@@ -288,15 +331,35 @@ def test_dispute_final_receipt_is_idempotent_before_enforcement_replay() -> None
     assert state["accounts"]["@target"]["restricted"] is True
 
 
-def test_mempool_fetch_for_block_is_restart_stable_with_pinned_time(tmp_path: Path, monkeypatch) -> None:
+def test_mempool_fetch_for_block_is_restart_stable_with_pinned_time(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     db = SqliteDB(path=str(tmp_path / "mempool.db"))
     mp = PersistentMempool(db=db, chain_id="batch598-mempool")
-    assert mp.add({"tx_type": "ACCOUNT_REGISTER", "signer": "@b", "nonce": 2, "payload": {}, "expires_ms": 10_000})["ok"]
-    assert mp.add({"tx_type": "ACCOUNT_REGISTER", "signer": "@a", "nonce": 1, "payload": {}, "expires_ms": 10_000})["ok"]
+    assert mp.add(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@b",
+            "nonce": 2,
+            "payload": {},
+            "expires_ms": 10_000,
+        }
+    )["ok"]
+    assert mp.add(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": "@a",
+            "nonce": 1,
+            "payload": {},
+            "expires_ms": 10_000,
+        }
+    )["ok"]
 
     before = mp.fetch_for_block(limit=10, policy="canonical", now_ms=5_000)
-    restarted = PersistentMempool(db=SqliteDB(path=str(tmp_path / "mempool.db")), chain_id="batch598-mempool")
+    restarted = PersistentMempool(
+        db=SqliteDB(path=str(tmp_path / "mempool.db")), chain_id="batch598-mempool"
+    )
     after = restarted.fetch_for_block(limit=10, policy="canonical", now_ms=5_000)
     assert [item["tx_id"] for item in before] == [item["tx_id"] for item in after]
     assert [item["signer"] for item in after] == ["@a", "@b"]

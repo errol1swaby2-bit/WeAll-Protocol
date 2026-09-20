@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 import pytest
 
 from weall.runtime.domain_dispatch import apply_tx
@@ -12,9 +10,19 @@ from weall.runtime.reviewer_responsibilities import reviewer_lane_active
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _env(tx_type: str, payload: dict, *, signer: str, nonce: int = 1, system: bool = False) -> TxEnvelope:
+def _env(
+    tx_type: str, payload: dict, *, signer: str, nonce: int = 1, system: bool = False
+) -> TxEnvelope:
     parent = f"p:{nonce - 1}" if system else None
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="sig", parent=parent, system=system)
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="sig",
+        parent=parent,
+        system=system,
+    )
 
 
 def _tier2_account(*, reputation_milli: int = 6000) -> dict:
@@ -40,16 +48,36 @@ def _operator_state() -> dict:
     return {
         "height": 10,
         "accounts": {"@op": _tier2_account()},
-        "roles": {"node_operators": {"by_id": {}, "active_set": []}, "jurors": {"by_id": {}, "active_set": []}},
+        "roles": {
+            "node_operators": {"by_id": {}, "active_set": []},
+            "jurors": {"by_id": {}, "active_set": []},
+        },
     }
 
 
 def _activate_operator(state: dict, account: str = "@op") -> None:
-    apply_tx(state, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": account}, signer=account, nonce=1))
-    apply_tx(state, _env("ROLE_NODE_OPERATOR_ACTIVATE", {"account_id": account}, signer="SYSTEM", nonce=2, system=True))
+    apply_tx(
+        state, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": account}, signer=account, nonce=1)
+    )
+    apply_tx(
+        state,
+        _env(
+            "ROLE_NODE_OPERATOR_ACTIVATE",
+            {"account_id": account},
+            signer="SYSTEM",
+            nonce=2,
+            system=True,
+        ),
+    )
 
 
-def _preflight(state: dict, *, roles: tuple[str, ...], helper_requested: bool = False, bft_requested: bool = False):
+def _preflight(
+    state: dict,
+    *,
+    roles: tuple[str, ...],
+    helper_requested: bool = False,
+    bft_requested: bool = False,
+):
     return evaluate_production_preflight(
         state=state,
         node_id="node-1",
@@ -66,9 +94,15 @@ def _preflight(state: dict, *, roles: tuple[str, ...], helper_requested: bool = 
 
 
 def test_role_juror_enroll_no_longer_silently_activates_reviewer_lanes() -> None:
-    state = {"height": 1, "accounts": {"@reviewer": _tier2_account()}, "roles": {"jurors": {"by_id": {}, "active_set": []}}}
+    state = {
+        "height": 1,
+        "accounts": {"@reviewer": _tier2_account()},
+        "roles": {"jurors": {"by_id": {}, "active_set": []}},
+    }
 
-    out = apply_tx(state, _env("ROLE_JUROR_ENROLL", {"account_id": "@reviewer"}, signer="@reviewer", nonce=1))
+    out = apply_tx(
+        state, _env("ROLE_JUROR_ENROLL", {"account_id": "@reviewer"}, signer="@reviewer", nonce=1)
+    )
 
     assert out["applied"] == "ROLE_JUROR_ENROLL"
     assert out["reviewer_lane_policy"] == "exact_lane_opt_in_required"
@@ -78,7 +112,11 @@ def test_role_juror_enroll_no_longer_silently_activates_reviewer_lanes() -> None
 
 
 def test_reviewer_lane_opt_in_is_exact_and_withdrawable() -> None:
-    state = {"height": 1, "accounts": {"@reviewer": _tier2_account()}, "roles": {"jurors": {"by_id": {}, "active_set": []}}}
+    state = {
+        "height": 1,
+        "accounts": {"@reviewer": _tier2_account()},
+        "roles": {"jurors": {"by_id": {}, "active_set": []}},
+    }
 
     out = apply_tx(
         state,
@@ -110,13 +148,17 @@ def test_reviewer_lane_opt_in_is_exact_and_withdrawable() -> None:
     assert reviewer_lane_active(state, "@reviewer", "content_review") is False
 
 
-def test_baseline_node_operator_does_not_start_helper_without_helper_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_baseline_node_operator_does_not_start_helper_without_helper_opt_in(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     state = _operator_state()
     _activate_operator(state)
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pubkey:primary")
 
-    evaluation = evaluate_node_operator_responsibilities(state, "@op", node_pubkey="node-pubkey:primary")
+    evaluation = evaluate_node_operator_responsibilities(
+        state, "@op", node_pubkey="node-pubkey:primary"
+    )
     assert evaluation["baseline"]["active"] is True
     assert evaluation["helper"]["status"] == "not_opted_in"
 
@@ -148,7 +190,9 @@ def test_helper_opt_in_activates_only_helper_service_lane(monkeypatch: pytest.Mo
     )
 
     assert out["applied"] == "NODE_OPERATOR_HELPER_OPT_IN"
-    evaluation = evaluate_node_operator_responsibilities(state, "@op", node_pubkey="node-pubkey:primary")
+    evaluation = evaluate_node_operator_responsibilities(
+        state, "@op", node_pubkey="node-pubkey:primary"
+    )
     assert evaluation["helper"]["active"] is True
     assert evaluation["validator"]["active"] is False
     assert evaluation["storage"]["active"] is False
@@ -160,7 +204,9 @@ def test_helper_opt_in_activates_only_helper_service_lane(monkeypatch: pytest.Mo
     assert "storage_operator" not in result.effective_roles
 
 
-def test_storage_declaration_does_not_make_ipfs_pinning_capacity_active(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_storage_declaration_does_not_make_ipfs_pinning_capacity_active(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     state = _operator_state()
     _activate_operator(state)
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
@@ -170,14 +216,20 @@ def test_storage_declaration_does_not_make_ipfs_pinning_capacity_active(monkeypa
         state,
         _env(
             "NODE_OPERATOR_STORAGE_OPT_IN",
-            {"account_id": "@op", "node_pubkey": "node-pubkey:primary", "declared_capacity_bytes": 1000},
+            {
+                "account_id": "@op",
+                "node_pubkey": "node-pubkey:primary",
+                "declared_capacity_bytes": 1000,
+            },
             signer="@op",
             nonce=3,
         ),
     )
     assert out["applied"] == "NODE_OPERATOR_STORAGE_OPT_IN"
 
-    evaluation = evaluate_node_operator_responsibilities(state, "@op", node_pubkey="node-pubkey:primary")
+    evaluation = evaluate_node_operator_responsibilities(
+        state, "@op", node_pubkey="node-pubkey:primary"
+    )
     assert evaluation["storage"]["status"] == "proof_pending"
     assert evaluation["storage"]["active"] is False
     assert "capacity_proof_pending" in evaluation["storage"]["reasons"]
@@ -202,6 +254,11 @@ def test_foreign_account_cannot_update_helper_or_reviewer_lane() -> None:
     with pytest.raises(ApplyError) as lane_exc:
         apply_tx(
             state,
-            _env("REVIEWER_LANE_OPT_IN", {"account_id": "@op", "lane": "content_review"}, signer="@attacker", nonce=4),
+            _env(
+                "REVIEWER_LANE_OPT_IN",
+                {"account_id": "@op", "lane": "content_review"},
+                signer="@attacker",
+                nonce=4,
+            ),
         )
     assert lane_exc.value.reason == "only_account_can_update_reviewer_lane"

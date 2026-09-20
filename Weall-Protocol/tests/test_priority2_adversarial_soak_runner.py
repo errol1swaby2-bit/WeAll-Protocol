@@ -87,6 +87,10 @@ def test_priority2_adversarial_soak_direct_runner_is_green(tmp_path: Path) -> No
     payload = summary.to_json()
     assert payload["ok"] is True
     assert payload["bft"]["rounds_built"] == 18
+    assert payload["bft"]["converged"] is True
+    assert payload["bft"]["follower_heights"]["v4"] == 18
+    assert payload["bft"]["forced_clock_skew_events"] == 2
+    assert payload["bft"]["forced_clock_skew_warnings"] == 2
     assert (
         payload["consensus_resilience_matrix"]["scenarios"]["delayed_qc_after_leader_turnover"][
             "ok"

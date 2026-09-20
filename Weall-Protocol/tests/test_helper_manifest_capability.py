@@ -1,8 +1,7 @@
-
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Set
 
 
 @dataclass(frozen=True)
@@ -18,14 +17,14 @@ class HelperNode:
 def select_helpers_for_lane(
     *,
     validator_ids: Iterable[str],
-    helpers: Dict[str, HelperNode],
+    helpers: dict[str, HelperNode],
     lane_id: str,
-    required_capabilities: Set[str],
+    required_capabilities: set[str],
     exclude_node_id: str | None = None,
     allow_overcommit: bool = False,
-) -> List[str]:
+) -> list[str]:
     ordered = sorted(dict.fromkeys(validator_ids))
-    eligible: List[HelperNode] = []
+    eligible: list[HelperNode] = []
     for node_id in ordered:
         if exclude_node_id is not None and node_id == exclude_node_id:
             continue
@@ -47,8 +46,12 @@ def test_helper_selection_is_stable_under_validator_order_permutations() -> None
     validators_a = ["val-c", "val-a", "val-b"]
     validators_b = ["val-b", "val-c", "val-a"]
     helpers = {
-        "val-a": HelperNode("val-a", frozenset({"content", "storage"}), max_lanes=2, current_lanes=1),
-        "val-b": HelperNode("val-b", frozenset({"content", "storage"}), max_lanes=2, current_lanes=0),
+        "val-a": HelperNode(
+            "val-a", frozenset({"content", "storage"}), max_lanes=2, current_lanes=1
+        ),
+        "val-b": HelperNode(
+            "val-b", frozenset({"content", "storage"}), max_lanes=2, current_lanes=0
+        ),
         "val-c": HelperNode("val-c", frozenset({"content"}), max_lanes=0, current_lanes=0),
     }
 

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from hashlib import sha256
-import json
-from typing import Any, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from typing import Any
 
+from weall.runtime.commitments import value_sha256
 from weall.runtime.helper_assembly_gate import (
     HelperAssemblyProfile,
     decide_helper_block_assembly,
@@ -15,15 +14,7 @@ from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_fingerprint
 
-
 Json = dict[str, Any]
-
-
-
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
 
 
 def _lane_plan_map(lane_plans: Sequence[LanePlan]) -> dict[str, LanePlan]:
@@ -43,7 +34,9 @@ def _lane_plan_digest(lane_plans: Sequence[LanePlan]) -> tuple[dict[str, Any], .
     return tuple(digest)
 
 
-def _journal_history_consistent(*, journal: HelperLaneJournal | None, plan_id: str, lane_plans: Sequence[LanePlan]) -> tuple[bool, str]:
+def _journal_history_consistent(
+    *, journal: HelperLaneJournal | None, plan_id: str, lane_plans: Sequence[LanePlan]
+) -> tuple[bool, str]:
     if journal is None:
         return True, ""
     expected_lanes = _lane_plan_digest(lane_plans)
@@ -60,11 +53,13 @@ def _journal_history_consistent(*, journal: HelperLaneJournal | None, plan_id: s
         for item in lanes:
             if not isinstance(item, dict):
                 return False, "journal_history_plan_shape_invalid"
-            normalized.append({
-                "lane_id": str(item.get("lane_id") or ""),
-                "helper_id": str(item.get("helper_id") or ""),
-                "tx_ids": list(str(tx_id) for tx_id in list(item.get("tx_ids") or [])),
-            })
+            normalized.append(
+                {
+                    "lane_id": str(item.get("lane_id") or ""),
+                    "helper_id": str(item.get("helper_id") or ""),
+                    "tx_ids": list(str(tx_id) for tx_id in list(item.get("tx_ids") or [])),
+                }
+            )
         normalized.sort(key=lambda item: item["lane_id"])
         if tuple(normalized) != expected_lanes:
             return False, "journal_history_lane_plan_mismatch"
@@ -97,7 +92,7 @@ class HelperRestartSnapshot:
         }
 
     def snapshot_hash(self) -> str:
-        return _sha256_hex(self.to_json())
+        return value_sha256(self.to_json())
 
 
 def build_helper_restart_snapshot(
@@ -126,8 +121,12 @@ def build_helper_restart_snapshot(
         lane_results_by_id=lane_results_by_id,
         serial_equivalence_fn=serial_equivalence_fn,
     )
-    expected_plan_id = str(context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ())))
-    journal_ok, journal_code = _journal_history_consistent(journal=journal, plan_id=expected_plan_id, lane_plans=lane_plans)
+    expected_plan_id = str(
+        context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ()))
+    )
+    journal_ok, journal_code = _journal_history_consistent(
+        journal=journal, plan_id=expected_plan_id, lane_plans=lane_plans
+    )
     if not journal_ok:
         return HelperRestartSnapshot(
             unresolved_lanes=orchestrator.unresolved_lanes(),

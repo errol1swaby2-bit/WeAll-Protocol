@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import pytest
 
 from weall.api.routes_public_parts.status import router as status_router
 
@@ -69,8 +69,11 @@ def _build_test_app(executor: _FakeExecutor) -> FastAPI:
     return app
 
 
-def test_status_operator_prefers_app_startup_authority_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_status_operator_prefers_app_startup_authority_contract(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "startup-authority-status.db"))
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
@@ -90,7 +93,9 @@ def test_status_operator_prefers_app_startup_authority_contract(monkeypatch: pyt
     assert operator_contract["startup_action"] == "app_state_override"
 
 
-def test_status_consensus_prefers_app_startup_authority_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_status_consensus_prefers_app_startup_authority_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")

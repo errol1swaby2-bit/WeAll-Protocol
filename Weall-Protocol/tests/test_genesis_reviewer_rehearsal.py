@@ -33,9 +33,12 @@ def test_full_onboarding_uses_genesis_reviewer_and_partial_live_panel() -> None:
     onboarding = _text("scripts/devnet_full_onboarding_e2e.sh")
     genesis = _text("scripts/devnet_boot_genesis_node.sh")
     assert "Verifying deterministic genesis-bound Live reviewer authority" in onboarding
-    assert "WEALL_GENESIS_REVIEWER_ACCOUNT=\"${OPERATOR_ACCOUNT}\"" in onboarding
+    assert 'WEALL_GENESIS_REVIEWER_ACCOUNT="${OPERATOR_ACCOUNT}"' in onboarding
     assert "1 <= len(jurors) <= 10" in onboarding
-    assert 'WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"' in genesis
+    assert (
+        'WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"'
+        in genesis
+    )
     assert 'WEALL_POH_LIVE_PASS_THRESHOLD_NUM="${WEALL_POH_LIVE_PASS_THRESHOLD_NUM:-1}"' in genesis
 
 
@@ -50,8 +53,7 @@ def test_modified_rehearsal_scripts_are_syntax_valid() -> None:
             ["bash", "-n", str(ROOT / rel)],
             cwd=ROOT,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             timeout=10,
             check=False,
         )

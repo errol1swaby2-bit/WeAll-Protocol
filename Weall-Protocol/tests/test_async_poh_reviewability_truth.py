@@ -15,7 +15,9 @@ def _read(path: Path) -> str:
 
 def _submit_async_body() -> str:
     src = _read(WEB / "src/pages/AccountVerificationPage.tsx")
-    return src.split("async function submitAsyncEvidence()", 1)[1].split("async function submitLiveRequest()", 1)[0]
+    return src.split("async function submitAsyncEvidence()", 1)[1].split(
+        "async function submitLiveRequest()", 1
+    )[0]
 
 
 def test_async_submit_waits_for_nonce_dependencies_before_next_poh_tx() -> None:
@@ -26,7 +28,11 @@ def test_async_submit_waits_for_nonce_dependencies_before_next_poh_tx() -> None:
     assert "submitSignedTxInSequence" in body
     assert "parent: open?.result?.tx_id || null" in body
     assert "parent: declare?.result?.tx_id || null" in body
-    assert body.index('tx_type: "POH_ASYNC_REQUEST_OPEN"') < body.index('tx_type: "POH_ASYNC_EVIDENCE_DECLARE"') < body.index('tx_type: "POH_ASYNC_EVIDENCE_BIND"')
+    assert (
+        body.index('tx_type: "POH_ASYNC_REQUEST_OPEN"')
+        < body.index('tx_type: "POH_ASYNC_EVIDENCE_DECLARE"')
+        < body.index('tx_type: "POH_ASYNC_EVIDENCE_BIND"')
+    )
     assert "pendingReviewability" in body
     assert "case is not reviewable yet" in body
 

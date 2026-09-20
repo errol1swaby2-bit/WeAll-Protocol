@@ -75,6 +75,7 @@ def test_session_login_creates_device_and_session(monkeypatch):
 
     class Ex:
         _ledger_store = Store()
+
         def read_state(self):
             return state
 
@@ -89,18 +90,24 @@ def test_session_login_creates_device_and_session(monkeypatch):
     msg = _canon(account, session_key, ttl_s, issued_at_ms, device_id)
     sig = sign_mldsa(message=msg, privkey=SESSION_LOGIN_PRIVKEY, encoding="base64")
 
-    r = client.post("/v1/session/login", json={
-        "account": account,
-        "session_key": session_key,
-        "ttl_s": ttl_s,
-        "issued_at_ms": issued_at_ms,
-        "device_id": device_id,
-        "pubkey": SESSION_LOGIN_PUBKEY,
-        "sig": sig,
-    })
+    r = client.post(
+        "/v1/session/login",
+        json={
+            "account": account,
+            "session_key": session_key,
+            "ttl_s": ttl_s,
+            "issued_at_ms": issued_at_ms,
+            "device_id": device_id,
+            "pubkey": SESSION_LOGIN_PUBKEY,
+            "sig": sig,
+        },
+    )
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["ok"] is True
     assert session_key not in state["accounts"][account]["session_keys"]
-    assert state["accounts"][account]["session_keys"][session_record_key(session_key)]["active"] is True
+    assert (
+        state["accounts"][account]["session_keys"][session_record_key(session_key)]["active"]
+        is True
+    )
     assert device_id in state["accounts"][account]["devices"]["by_id"]

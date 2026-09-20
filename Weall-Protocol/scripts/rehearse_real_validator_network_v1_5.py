@@ -8,7 +8,12 @@ from copy import deepcopy
 from queue import Empty
 from typing import Any
 
-from weall.runtime.bft_hotstuff import canonical_vote_message, leader_for_view, quorum_threshold, validator_set_hash
+from weall.runtime.bft_hotstuff import (
+    canonical_vote_message,
+    leader_for_view,
+    quorum_threshold,
+    validator_set_hash,
+)
 from weall.runtime.state_hash import compute_state_root
 
 VALIDATORS = ["validator-a", "validator-b", "validator-c", "validator-d"]
@@ -31,10 +36,14 @@ def _node_state(node_id: str, initial: dict[str, Any] | None = None) -> dict[str
 
 
 def _root_without_node_id(state: dict[str, Any]) -> str:
-    return compute_state_root({k: v for k, v in state.items() if k not in {"node_id", "message_log"}})
+    return compute_state_root(
+        {k: v for k, v in state.items() if k not in {"node_id", "message_log"}}
+    )
 
 
-def _worker(node_id: str, inq: mp.Queue, outq: mp.Queue, initial: dict[str, Any] | None = None) -> None:
+def _worker(
+    node_id: str, inq: mp.Queue, outq: mp.Queue, initial: dict[str, Any] | None = None
+) -> None:
     state = _node_state(node_id, initial)
     while True:
         msg = inq.get()
@@ -53,31 +62,56 @@ def _worker(node_id: str, inq: mp.Queue, outq: mp.Queue, initial: dict[str, Any]
                 signer=node_id,
                 validator_set_hash=validator_set_hash(VALIDATORS),
             ).decode("utf-8")
-            state.setdefault("message_log", []).append({"type": "vote", "height": block.get("height"), "view": block.get("view")})
+            state.setdefault("message_log", []).append(
+                {"type": "vote", "height": block.get("height"), "view": block.get("view")}
+            )
             outq.put({"node_id": node_id, "type": "vote", "vote": vote})
             continue
         if kind == "commit":
             block = dict(msg.get("block") or {})
             qc_votes = list(msg.get("qc_votes") or [])
             state["height"] = int(block.get("height") or 0)
-            state.setdefault("committed_blocks", []).append({
-                "height": int(block.get("height") or 0),
-                "view": int(block.get("view") or 0),
-                "block_id": str(block.get("block_id") or ""),
-                "proposer": str(block.get("proposer") or ""),
-                "tx_ids": list(block.get("tx_ids") or []),
-                "qc_votes": sorted(str(v) for v in qc_votes),
-            })
-            outq.put({"node_id": node_id, "type": "committed", "height": state["height"], "root": _root_without_node_id(state)})
+            state.setdefault("committed_blocks", []).append(
+                {
+                    "height": int(block.get("height") or 0),
+                    "view": int(block.get("view") or 0),
+                    "block_id": str(block.get("block_id") or ""),
+                    "proposer": str(block.get("proposer") or ""),
+                    "tx_ids": list(block.get("tx_ids") or []),
+                    "qc_votes": sorted(str(v) for v in qc_votes),
+                }
+            )
+            outq.put(
+                {
+                    "node_id": node_id,
+                    "type": "committed",
+                    "height": state["height"],
+                    "root": _root_without_node_id(state),
+                }
+            )
             continue
         if kind == "sync_blocks":
             blocks = list(msg.get("blocks") or [])
             state["committed_blocks"] = json.loads(json.dumps(blocks, sort_keys=True))
             state["height"] = int(blocks[-1].get("height") or 0) if blocks else 0
-            outq.put({"node_id": node_id, "type": "synced", "height": state["height"], "root": _root_without_node_id(state)})
+            outq.put(
+                {
+                    "node_id": node_id,
+                    "type": "synced",
+                    "height": state["height"],
+                    "root": _root_without_node_id(state),
+                }
+            )
             continue
         if kind == "snapshot":
-            outq.put({"node_id": node_id, "type": "snapshot", "state": state, "root": _root_without_node_id(state)})
+            outq.put(
+                {
+                    "node_id": node_id,
+                    "type": "snapshot",
+                    "state": state,
+                    "root": _root_without_node_id(state),
+                }
+            )
             continue
         outq.put({"node_id": node_id, "type": "error", "reason": f"unknown_message:{kind}"})
 
@@ -151,7 +185,14 @@ def _block(height: int, view: int, tx_ids: list[str] | None = None) -> dict[str,
     }
 
 
-def _commit_round(cluster: _Cluster, *, height: int, view: int, participants: list[str] | None = None, tx_ids: list[str] | None = None) -> dict[str, Any]:
+def _commit_round(
+    cluster: _Cluster,
+    *,
+    height: int,
+    view: int,
+    participants: list[str] | None = None,
+    tx_ids: list[str] | None = None,
+) -> dict[str, Any]:
     participants = list(participants or VALIDATORS)
     block = _block(height, view, tx_ids)
     for node_id in participants:
@@ -159,12 +200,28 @@ def _commit_round(cluster: _Cluster, *, height: int, view: int, participants: li
     votes = [r for r in cluster.recv_many(len(participants)) if r.get("type") == "vote"]
     q = quorum_threshold(len(VALIDATORS))
     if len(votes) < q:
-        return {"height": height, "view": view, "block_id": block["block_id"], "quorum": q, "votes": len(votes), "committed": False}
+        return {
+            "height": height,
+            "view": view,
+            "block_id": block["block_id"],
+            "quorum": q,
+            "votes": len(votes),
+            "committed": False,
+        }
     qc_votes = sorted(str(v.get("node_id")) for v in votes)[:q]
     for node_id in participants:
         cluster.send(node_id, {"type": "commit", "block": block, "qc_votes": qc_votes})
     commits = [r for r in cluster.recv_many(len(participants)) if r.get("type") == "committed"]
-    return {"height": height, "view": view, "block_id": block["block_id"], "proposer": block["proposer"], "quorum": q, "votes": len(votes), "committed": True, "commit_roots": sorted(str(c.get("root")) for c in commits)}
+    return {
+        "height": height,
+        "view": view,
+        "block_id": block["block_id"],
+        "proposer": block["proposer"],
+        "quorum": q,
+        "votes": len(votes),
+        "committed": True,
+        "commit_roots": sorted(str(c.get("root")) for c in commits),
+    }
 
 
 def run_harness() -> dict[str, Any]:
@@ -184,7 +241,9 @@ def run_harness() -> dict[str, Any]:
     restarted = _Cluster(initial_states=snapshots_before)
     try:
         snapshots_after = restarted.snapshots()
-        minority = _commit_round(restarted, height=3, view=2, participants=VALIDATORS[:2], tx_ids=["tx:minority"])
+        minority = _commit_round(
+            restarted, height=3, view=2, participants=VALIDATORS[:2], tx_ids=["tx:minority"]
+        )
     finally:
         restarted.stop()
     roots_after_restart = [_root_without_node_id(snapshots_after[v]) for v in VALIDATORS]
@@ -199,7 +258,12 @@ def run_harness() -> dict[str, Any]:
         lagging.stop()
 
     reference_root = _root_without_node_id(snapshots_after["validator-a"])
-    observer_attempt = {"role": "observer", "can_propose": False, "can_vote": False, "rejected_reason": "observer_not_validator"}
+    observer_attempt = {
+        "role": "observer",
+        "can_propose": False,
+        "can_vote": False,
+        "rejected_reason": "observer_not_validator",
+    }
     ok = bool(
         all(r.get("committed") for r in rounds)
         and len(set(roots_before_restart)) == 1
@@ -217,7 +281,9 @@ def run_harness() -> dict[str, Any]:
         "rounds": rounds,
         "roots_before_restart": roots_before_restart,
         "roots_after_restart": roots_after_restart,
-        "minority_partition_result": "finality_threshold_not_met" if not minority.get("committed") else "unexpected_finality",
+        "minority_partition_result": "finality_threshold_not_met"
+        if not minority.get("committed")
+        else "unexpected_finality",
         "rejoin_root_matches_reference": sync_reply.get("root") == reference_root,
         "observer_attempt": observer_attempt,
     }

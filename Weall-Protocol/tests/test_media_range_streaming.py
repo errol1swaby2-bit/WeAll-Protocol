@@ -95,7 +95,9 @@ def _client(state: dict[str, Any]) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def test_media_proxy_serves_single_byte_range_from_verified_cache(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_serves_single_byte_range_from_verified_cache(
+    tmp_path: Path, monkeypatch
+) -> None:
     data = b"0123456789abcdefghijklmnopqrstuvwxyz"
     cid = _cidv1_raw_sha256(data)
     cache_dir = tmp_path / "cache"
@@ -124,7 +126,9 @@ def test_media_proxy_serves_single_byte_range_from_verified_cache(tmp_path: Path
         assert res.headers.get("content-type", "").startswith("video/mp4")
 
 
-def test_media_proxy_fetches_verifies_then_serves_requested_range_on_cache_miss(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_fetches_verifies_then_serves_requested_range_on_cache_miss(
+    tmp_path: Path, monkeypatch
+) -> None:
     data = b"abcdefghijklmnopqrstuvwxyz0123456789"
     cid = _cidv1_raw_sha256(data)
     calls: list[str] = []
@@ -142,7 +146,9 @@ def test_media_proxy_fetches_verifies_then_serves_requested_range_on_cache_miss(
         res = client.get(f"/v1/media/proxy/{cid}", headers={"Range": "bytes=-8"})
         assert res.status_code == 206, res.text
         assert res.content == data[-8:]
-        assert res.headers.get("content-range") == f"bytes {len(data)-8}-{len(data)-1}/{len(data)}"
+        assert (
+            res.headers.get("content-range") == f"bytes {len(data) - 8}-{len(data) - 1}/{len(data)}"
+        )
         assert res.headers.get("x-weall-media-cache") == "miss-store"
         assert res.headers.get("x-weall-media-byte-verified") == "sha256"
         assert res.headers.get("content-type", "").startswith("audio/mpeg")
@@ -155,7 +161,9 @@ def test_media_proxy_fetches_verifies_then_serves_requested_range_on_cache_miss(
         assert calls == [f"https://provider.example/ipfs/{cid}"]
 
 
-def test_media_proxy_rejects_multi_range_and_unsatisfiable_ranges(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_rejects_multi_range_and_unsatisfiable_ranges(
+    tmp_path: Path, monkeypatch
+) -> None:
     data = b"0123456789"
     cid = _cidv1_raw_sha256(data)
     monkeypatch.setenv("WEALL_MODE", "prod")

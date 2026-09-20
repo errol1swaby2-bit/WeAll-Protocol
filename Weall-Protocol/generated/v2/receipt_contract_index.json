@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "00bcaeda8547ad353d47b360eba62abbb30285ef609d34bda27ddc3fe2d4a785"
+    "source_tree_digest": "2e6d2c4d66dba1f770c1d4f38b637c41033e93941cf78fe6535402ad7d2948e1"
   },
   "rows": [
     {
@@ -815,6 +815,7 @@
       ]
     },
     {
+      "binding": "deterministic_system_queue_multi_causal_context",
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
@@ -822,10 +823,14 @@
         "dispute_id",
         "juror"
       ],
-      "kind": "receipt_only_parent_bound",
+      "kind": "receipt_only_multi_causal_scheduler_bound",
       "parent": "DISPUTE_OPEN",
+      "parents": [
+        "DISPUTE_OPEN",
+        "CONTENT_ESCALATE_TO_DISPUTE"
+      ],
       "primary_mechanism_id": "M-054",
-      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "replay_binding": "block_only_system_queue_bound_multi_causal_deterministic_replay",
       "stable_id": "RCP-2E900F7570707387",
       "status": "current_partial",
       "transaction_id": "TX-0204",
@@ -1862,7 +1867,10 @@
       "fields": [
         "account",
         "applied",
-        "existed"
+        "effective_epoch",
+        "existed",
+        "status",
+        "validator_set_hash"
       ],
       "kind": "user_transaction_apply_result",
       "parent": null,
@@ -3296,6 +3304,7 @@
       "fields": [
         "applied",
         "group_id",
+        "membership_mode",
         "treasury_id"
       ],
       "kind": "user_transaction_apply_result",
@@ -3381,6 +3390,7 @@
         "deduped",
         "group_id",
         "membership",
+        "membership_mode",
         "read_visibility"
       ],
       "kind": "user_transaction_apply_result",
@@ -3402,7 +3412,9 @@
         "account",
         "applied",
         "decision",
-        "group_id"
+        "group_id",
+        "membership_mode",
+        "request_consumed"
       ],
       "kind": "user_transaction_apply_result",
       "parent": null,
@@ -3595,6 +3607,7 @@
         "end_height",
         "group_id",
         "membership",
+        "membership_mode",
         "n_ballots",
         "n_candidates",
         "n_ranked",
@@ -3602,6 +3615,7 @@
         "n_voters",
         "public_ballot_disclosure",
         "read_visibility",
+        "request_consumed",
         "role",
         "seats",
         "signer",
@@ -4026,13 +4040,18 @@
       ]
     },
     {
+      "binding": "deterministic_system_queue_multi_causal_context",
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [],
-      "kind": "receipt_only_parent_bound",
+      "kind": "receipt_only_multi_causal_scheduler_bound",
       "parent": "ACCOUNT_RECOVERY_FINALIZE",
+      "parents": [
+        "ACCOUNT_RECOVERY_FINALIZE",
+        "ACCOUNT_RECOVERY_REQUEST"
+      ],
       "primary_mechanism_id": "M-028",
-      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "replay_binding": "block_only_system_queue_bound_multi_causal_deterministic_replay",
       "stable_id": "RCP-09BBA370F7319EDB",
       "status": "current_partial",
       "transaction_id": "TX-2107",

@@ -4,7 +4,6 @@ import importlib.util
 import re
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTER_ROOT = REPO_ROOT.parent
 
@@ -29,22 +28,28 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_release_docs_match_current_tx_canon_checkpoint() -> None:
+def test_release_docs_do_not_duplicate_mutable_tx_canon_checkpoint() -> None:
     expected_count, expected_version = _load_tx_canon_artifact_constants()
 
-    docs = [
+    current_facing_docs = [
         OUTER_ROOT / "README.md",
-        OUTER_ROOT / "RELEASE_CHECKLIST.md",
         REPO_ROOT / "README.md",
-        REPO_ROOT / "docs" / "PRODUCTION_POSTURE.md",
-        REPO_ROOT / "docs" / "PROTOCOL_VERSIONING_STRATEGY.md",
-        REPO_ROOT / "docs" / "runtime_consensus_profile_snapshot_2026-03-prod.6.md",
+        REPO_ROOT / "docs" / "reviewer" / "CURRENT_READINESS_STATEMENT.md",
+        REPO_ROOT / "docs" / "reviewer" / "CURRENT_TESTNET_READINESS_STATEMENT.md",
     ]
 
-    for path in docs:
+    forbidden_checkpoint = f"{expected_count} tx types, version {expected_version}"
+
+    for path in current_facing_docs:
         text = _read(path)
-        assert str(expected_count) in text, f"{path} does not mention current tx count"
-        assert expected_version in text, f"{path} does not mention current tx canon version"
+        assert forbidden_checkpoint not in text, (
+            f"{path} duplicates mutable tx-canon checkpoint instead of "
+            "referencing generated authoritative artifacts"
+        )
+
+    authoritative = _read(REPO_ROOT / "generated" / "tx_index.json")
+    assert str(expected_count) in authoritative
+    assert expected_version in authoritative
 
 
 def test_release_docs_state_two_tier_native_poh_without_external_identity_authority() -> None:
@@ -92,7 +97,9 @@ def test_release_docs_include_current_production_safety_gates() -> None:
 
     snapshot = _read(REPO_ROOT / "docs" / "runtime_consensus_profile_snapshot_2026-03-prod.6.md")
     assert "2026.03-prod.6" in snapshot
-    assert re.search(r"\b[a-f0-9]{64}\b", snapshot), "snapshot should include a 64-char profile hash"
+    assert re.search(r"\b[a-f0-9]{64}\b", snapshot), (
+        "snapshot should include a 64-char profile hash"
+    )
 
 
 ALLOWED_REHEARSAL_CLAIM = (
@@ -147,11 +154,18 @@ def test_top_level_readme_has_reviewer_verification_and_evidence_map() -> None:
     ):
         assert required_link in text
 
-    assert "236 tx types, version 1.25.0" in text
-    assert "public_beta_ready=false" in text or "public_beta_ready` | `false`" in text or "`public_beta_ready=false`" in text
+    assert "generated/tx_index.json" in text
+    assert (
+        "public_beta_ready=false" in text
+        or "public_beta_ready` | `false`" in text
+        or "`public_beta_ready=false`" in text
+    )
     assert "private, direct, encrypted" in text.lower()
     assert "membership must not gate read visibility" in text.lower()
-    assert "first external observer readiness requires a fresh remote/signed observer run" in text.lower()
+    assert (
+        "first external observer readiness requires a fresh remote/signed observer run"
+        in text.lower()
+    )
 
 
 def test_readme_forbidden_claim_boundaries_are_explicit() -> None:
@@ -172,24 +186,35 @@ def test_readme_forbidden_claim_boundaries_are_explicit() -> None:
         assert phrase in text
 
 
-def test_reviewer_docs_preserve_public_beta_blocker_counts() -> None:
+def test_reviewer_docs_preserve_public_beta_truth_without_duplicating_counts() -> None:
     docs = [
         REPO_ROOT / "docs" / "reviewer" / "CURRENT_READINESS_STATEMENT.md",
         REPO_ROOT / "docs" / "reviewer" / "PUBLIC_BETA_BLOCKER_STATUS.md",
         REPO_ROOT / "docs" / "testnet" / "FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
     ]
+
     for path in docs:
         text = _read(path)
-        assert "14" in text
-        assert "7" in text
         assert "public_beta_ready" in text
         assert "false" in text.lower()
-        assert "p0_open_count" in text
-        assert "p1_open_count" in text
+
+    current_statement = _read(REPO_ROOT / "docs" / "reviewer" / "CURRENT_READINESS_STATEMENT.md")
+    assert "15 total" not in current_statement.lower()
+    assert "7 closed" not in current_statement.lower()
+    assert "8 open" not in current_statement.lower()
+
+    blocker_status = _read(REPO_ROOT / "docs" / "reviewer" / "PUBLIC_BETA_BLOCKER_STATUS.md")
+    assert "generated/public_beta_blocker_report_v1_5.json" in blocker_status
+
+    generated = _read(REPO_ROOT / "generated" / "public_beta_blocker_report_v1_5.json")
+    assert "p0_open_count" in generated
+    assert "p1_open_count" in generated
 
 
 def test_pass29_pre_two_node_flow_audit_is_present_and_bounded() -> None:
-    path = REPO_ROOT / "docs" / "audits" / "comprehensive_protocol_flow_audit_before_two_node_v1_5.md"
+    path = (
+        REPO_ROOT / "docs" / "audits" / "comprehensive_protocol_flow_audit_before_two_node_v1_5.md"
+    )
     text = _read(path)
 
     assert ALLOWED_REHEARSAL_CLAIM in text
@@ -233,7 +258,9 @@ def test_first_15_minutes_guide_is_ordered_and_clean_clone_copy_pasteable() -> N
     assert "pip install -e ." in text
     assert text.index("## Flow inspection checklist") < text.index("## Evidence to capture")
     assert text.index("## Evidence to capture") < text.index("## External evidence boundaries")
-    assert text.index("## Stop conditions") < text.index("## Allowed readiness statement after this journey")
+    assert text.index("## Stop conditions") < text.index(
+        "## Allowed readiness statement after this journey"
+    )
 
     stale_numbered_headings = [
         "## 4. Try one public social action",
@@ -245,7 +272,12 @@ def test_first_15_minutes_guide_is_ordered_and_clean_clone_copy_pasteable() -> N
 
 
 def test_pass30_documentation_evidence_audit_is_present_and_bounded() -> None:
-    path = REPO_ROOT / "docs" / "audits" / "documentation_evidence_package_audit_before_two_node_v1_5.md"
+    path = (
+        REPO_ROOT
+        / "docs"
+        / "audits"
+        / "documentation_evidence_package_audit_before_two_node_v1_5.md"
+    )
     text = _read(path)
 
     assert ALLOWED_REHEARSAL_CLAIM in text
@@ -294,7 +326,9 @@ def test_readme_links_to_final_go_gate_and_current_evidence_artifacts() -> None:
         assert required_link in text
 
 
-def test_evidence_index_separates_generated_local_template_completed_and_external_evidence() -> None:
+def test_evidence_index_separates_generated_local_template_completed_and_external_evidence() -> (
+    None
+):
     text = _read(REPO_ROOT / "docs" / "reviewer" / "EVIDENCE_INDEX.md")
     for phrase in (
         "## Evidence status legend",
@@ -320,11 +354,17 @@ def test_proof_templates_are_clearly_labeled_and_do_not_close_blockers() -> None
         text = _read(path).lower()
         normalized = " ".join(text.split())
         assert "template only" in text, f"{path} must be explicitly template-only"
-        assert "not completed external evidence" in text, f"{path} must say it is not completed external evidence"
-        assert "does not close" in normalized or "do not close" in normalized, f"{path} must not close blockers by itself"
+        assert "not completed external evidence" in text, (
+            f"{path} must say it is not completed external evidence"
+        )
+        assert "does not close" in normalized or "do not close" in normalized, (
+            f"{path} must not close blockers by itself"
+        )
         assert "public beta" in text, f"{path} must preserve public beta claim boundary"
 
-    completed = _read(REPO_ROOT / "docs" / "proofs" / "controlled-devnet-observer-live-gate" / "README.md").lower()
+    completed = _read(
+        REPO_ROOT / "docs" / "proofs" / "controlled-devnet-observer-live-gate" / "README.md"
+    ).lower()
     assert "result: pass" in completed
     assert "controlled-devnet" in completed
     assert "public beta" not in completed or "does not" in completed

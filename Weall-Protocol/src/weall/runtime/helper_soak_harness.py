@@ -1,17 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from weall.runtime.helper_dispatch import HelperDispatchContext
-from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.helper_proposal_loop import (
     HelperProposalCycleInput,
     HelperProposalLoopSummary,
     run_helper_proposal_loop,
 )
 from weall.runtime.parallel_execution import LanePlan
-
 
 Json = dict[str, Any]
 
@@ -67,10 +66,18 @@ def build_helper_soak_cycles(
         height = int(start_height) + offset
         cert = helper_cert_by_height.get(height)
 
-        if plan.helper_every_n > 0 and ((height - int(start_height)) % int(plan.helper_every_n) == 0) and cert is not None:
+        if (
+            plan.helper_every_n > 0
+            and ((height - int(start_height)) % int(plan.helper_every_n) == 0)
+            and cert is not None
+        ):
             events = (
                 {"kind": "start", "started_ms": 1000 * (offset + 1)},
-                {"kind": "cert", "cert": cert, "peer_id": str(getattr(cert, "helper_id", "") or "")},
+                {
+                    "kind": "cert",
+                    "cert": cert,
+                    "peer_id": str(getattr(cert, "helper_id", "") or ""),
+                },
             )
         else:
             events = (
@@ -82,7 +89,9 @@ def build_helper_soak_cycles(
             HelperProposalCycleInput(
                 block_height=height,
                 events=tuple(
-                    __import__("weall.runtime.helper_event_driver", fromlist=["HelperEvent"]).HelperEvent(**event)
+                    __import__(
+                        "weall.runtime.helper_event_driver", fromlist=["HelperEvent"]
+                    ).HelperEvent(**event)
                     for event in events
                 ),
                 lane_results_by_id=dict(lane_results_by_id),

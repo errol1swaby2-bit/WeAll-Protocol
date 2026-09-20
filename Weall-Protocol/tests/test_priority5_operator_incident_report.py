@@ -105,15 +105,16 @@ def test_operator_incident_report_escalates_remote_stall_to_critical(
     assert report["summary"]["pending_fetch_requests_count"] == 2
 
 
-
-def test_operator_incident_report_surfaces_runtime_authority_contract(tmp_path: Path, monkeypatch) -> None:
+def test_operator_incident_report_surfaces_runtime_authority_contract(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator,helper")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "1")
 
-    ex = _make_executor(tmp_path, chain_id="incident-authority")
+    _make_executor(tmp_path, chain_id="incident-authority")
     cfg = load_chain_config()
     cfg = cfg.__class__(
         **{

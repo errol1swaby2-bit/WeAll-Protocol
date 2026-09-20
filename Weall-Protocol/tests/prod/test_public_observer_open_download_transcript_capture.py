@@ -6,7 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -19,8 +18,7 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
         cwd=ROOT,
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
         timeout=45,
     )
@@ -47,7 +45,9 @@ def test_public_observer_open_download_capture_script_is_helpful_and_non_authori
     ]:
         assert required in text
 
-    proc = _run("bash", "scripts/capture_public_observer_open_download_transcript_v1_5.sh", "--help")
+    proc = _run(
+        "bash", "scripts/capture_public_observer_open_download_transcript_v1_5.sh", "--help"
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "Captures the external public-observer open-download transcript package" in proc.stdout
     assert "does not close the blocker" in proc.stdout
@@ -67,25 +67,43 @@ def test_public_observer_open_download_template_keeps_aud_628_open() -> None:
     assert "does not close the blocker" in runbook
     assert "must not close `AUD-628-P1-001`" in launch_transcripts
     assert "public beta readiness" in readme
-    assert "public beta/mainnet/public validator/live economics/automatic upgrade/helper/legal/storage overclaim" in readme
+    assert (
+        "public beta/mainnet/public validator/live economics/automatic upgrade/helper/legal/storage overclaim"
+        in readme
+    )
 
 
 def test_public_observer_launch_evidence_requirements_reference_capture_package() -> None:
-    proc = _run(sys.executable, "scripts/gen_public_observer_launch_evidence_requirements_v1_5.py", "--check")
+    proc = _run(
+        sys.executable,
+        "scripts/gen_public_observer_launch_evidence_requirements_v1_5.py",
+        "--check",
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "public_observer_launch_evidence_requirements_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "public_observer_launch_evidence_requirements_v1_5.json").read_text(
+            encoding="utf-8"
+        )
+    )
     assert payload["public_observer_launch_ready"] is False
     assert payload["public_beta_ready"] is False
     gate_text = json.dumps(payload, sort_keys=True)
     assert "scripts/capture_public_observer_open_download_transcript_v1_5.sh" in gate_text
-    assert "docs/proofs/public-observer-open-download/2026-07-05/TRANSCRIPT_TEMPLATE.md" in gate_text
-    assert "docs/proofs/public-observer-open-download/<date>/<external-operator>/manifest.json" in gate_text
+    assert (
+        "docs/proofs/public-observer-open-download/2026-07-05/TRANSCRIPT_TEMPLATE.md" in gate_text
+    )
+    assert (
+        "docs/proofs/public-observer-open-download/<date>/<external-operator>/manifest.json"
+        in gate_text
+    )
 
 
 def test_public_beta_blocker_report_still_requires_external_observer_transcript() -> None:
     proc = _run(sys.executable, "scripts/gen_public_beta_blocker_report_v1_5.py", "--check")
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "public_beta_blocker_report_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "public_beta_blocker_report_v1_5.json").read_text(encoding="utf-8")
+    )
     assert payload["public_beta_ready"] is False
     blockers = {item["id"]: item for item in payload["blockers"]}
     blocker = blockers["AUD-628-P1-001"]

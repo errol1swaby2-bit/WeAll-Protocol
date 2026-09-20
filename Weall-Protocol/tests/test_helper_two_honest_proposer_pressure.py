@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from helper_audit_testkit import dispatch_context, lane_setup, signed_lane_certificate
+
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 from weall.runtime.parallel_execution import verify_vote_ready_helper_plan
 
@@ -30,7 +31,6 @@ def test_competing_leader_certificate_is_rejected_for_same_height_and_view() -> 
     assert status.code == "leader_mismatch"
 
 
-
 def test_competing_plan_id_certificate_is_rejected_for_same_context() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs, validators=("v1", "v2", "v3"), view=9, leader_id="v1")
@@ -53,13 +53,14 @@ def test_competing_plan_id_certificate_is_rejected_for_same_context() -> None:
     assert status.code == "plan_id_mismatch"
 
 
-
 def test_vote_ready_guard_rejects_competing_plan_even_with_matching_lane_certificate() -> None:
     txs = [
         {"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]},
         {"tx_id": "t2", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},
     ]
-    lane_plans, plan_id = lane_setup(txs=txs, validators=("v1", "v2", "v3", "v4"), view=12, leader_id="v1")
+    lane_plans, plan_id = lane_setup(
+        txs=txs, validators=("v1", "v2", "v3", "v4"), view=12, leader_id="v1"
+    )
     helper_lane = next(plan for plan in lane_plans if str(plan.helper_id or ""))
     cert, _pub = signed_lane_certificate(lane_plan=helper_lane, seed_byte=43, plan_id="remote-plan")
 

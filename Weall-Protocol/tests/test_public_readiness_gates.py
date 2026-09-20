@@ -28,6 +28,8 @@ def test_reviewer_gate_and_ci_are_tracked() -> None:
     assert "tests/test_public_readiness_gates.py" in gate
     assert "Run reviewer readiness gate" in workflow
     assert "reviewer_production_readiness_gate.sh" in workflow
+    assert "fetch-depth: 0" in workflow
+    assert "restore_m2_m3_evidence_from_git.sh" in workflow
 
 
 def test_docs_do_not_overclaim_tokenomics_or_public_network_readiness() -> None:

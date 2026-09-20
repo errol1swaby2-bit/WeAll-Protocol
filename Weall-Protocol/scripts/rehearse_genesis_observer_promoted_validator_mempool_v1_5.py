@@ -8,8 +8,9 @@ import json
 import os
 import sys
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -237,7 +238,9 @@ def _install_promoted_validator_state(executors: list[WeAllExecutor]) -> Json:
     }
     for ex in executors:
         merged = dict(ex.read_state())
-        merged.update({k: v for k, v in state_patch.items() if k not in {"accounts", "roles", "params"}})
+        merged.update(
+            {k: v for k, v in state_patch.items() if k not in {"accounts", "roles", "params"}}
+        )
         merged.setdefault("accounts", {}).update(state_patch["accounts"])
         merged.setdefault("roles", {}).update(state_patch["roles"])
         merged.setdefault("params", {}).update(state_patch["params"])
@@ -258,7 +261,12 @@ def _user_tx(signer: str, nonce: int, label: str) -> Json:
 
 def _tx_msg(tx: Json) -> TxEnvelopeMsg:
     return TxEnvelopeMsg(
-        header=WireHeader(type=MsgType.TX_ENVELOPE, chain_id=CHAIN_ID, schema_version=SCHEMA_VERSION, tx_index_hash=""),
+        header=WireHeader(
+            type=MsgType.TX_ENVELOPE,
+            chain_id=CHAIN_ID,
+            schema_version=SCHEMA_VERSION,
+            tx_index_hash="",
+        ),
         nonce=int(tx.get("nonce") or 0),
         client_tx_id=str(tx.get("client_tx_id") or ""),
         tx=tx,
@@ -271,7 +279,10 @@ def _gossip_to(executor: WeAllExecutor, tx: Json, *, peer_id: str = "peer") -> N
 
 
 def _selection_ids(executor: WeAllExecutor) -> list[str]:
-    return [str(tx.get("tx_id") or "") for tx in executor._mempool.fetch_for_block(limit=100, policy="canonical")]
+    return [
+        str(tx.get("tx_id") or "")
+        for tx in executor._mempool.fetch_for_block(limit=100, policy="canonical")
+    ]
 
 
 def _mempool_snapshot(executor: WeAllExecutor) -> Json:
@@ -294,7 +305,11 @@ def _latest_block(executor: WeAllExecutor) -> Json:
 def run_harness(*, work_dir: str | Path | None = None) -> Json:
     old_env = os.environ.copy()
     try:
-        root_ctx = tempfile.TemporaryDirectory(prefix="weall-b615-rehearsal-") if work_dir is None else None
+        root_ctx = (
+            tempfile.TemporaryDirectory(prefix="weall-b615-rehearsal-")
+            if work_dir is None
+            else None
+        )
         root = Path(root_ctx.name if root_ctx is not None else work_dir).resolve()  # type: ignore[union-attr]
         root.mkdir(parents=True, exist_ok=True)
         with _patched_env(_genesis_env(), clear_weall=True):
@@ -319,7 +334,9 @@ def run_harness(*, work_dir: str | Path | None = None) -> Json:
             # Node A accepts in one order. Node B/C receive the same gossip in
             # intentionally different orders to prove canonical selection is not
             # arrival-order dependent.
-            genesis_admissions = [genesis.submit_tx(dict(tx), ingress="local_fixture") for tx in txs]
+            genesis_admissions = [
+                genesis.submit_tx(dict(tx), ingress="local_fixture") for tx in txs
+            ]
             for tx in reversed(txs):
                 _gossip_to(observer, tx, peer_id="genesis")
             for tx in [txs[1], txs[2], txs[0]]:
@@ -378,7 +395,9 @@ def run_harness(*, work_dir: str | Path | None = None) -> Json:
                 "observer": _make_executor(root, "observer"),
                 "promoted_validator": _make_executor(root, "promoted-validator"),
             }
-            roots_after_restart = {name: compute_state_root(ex.read_state()) for name, ex in restarted.items()}
+            roots_after_restart = {
+                name: compute_state_root(ex.read_state()) for name, ex in restarted.items()
+            }
             mempool_after_restart = {name: _mempool_snapshot(ex) for name, ex in restarted.items()}
 
         with _patched_env(_production_validator_env(), clear_weall=True):
@@ -388,7 +407,9 @@ def run_harness(*, work_dir: str | Path | None = None) -> Json:
                 chain_id=CHAIN_ID,
                 schema_version=SCHEMA_VERSION,
                 tx_index_hash=promoted.tx_index_hash(),
-                runtime_profile_hash=str(readiness.get("runtime_profile_hash") or "runtime-profile:b615"),
+                runtime_profile_hash=str(
+                    readiness.get("runtime_profile_hash") or "runtime-profile:b615"
+                ),
             ).to_json()
 
         ok = all(
@@ -439,7 +460,8 @@ def run_harness(*, work_dir: str | Path | None = None) -> Json:
                 "canonical_converged_before_commit": canonical_converged_before_commit,
                 "duplicate_replay_ignored": duplicate_before == duplicate_after,
                 "invalid_wrong_chain_rejected": invalid_before == invalid_after,
-                "nonce_conflict_rejected": not bool(conflict_result.get("ok")) and str(conflict_result.get("error")) == "mempool_signer_nonce_conflict",
+                "nonce_conflict_rejected": not bool(conflict_result.get("ok"))
+                and str(conflict_result.get("error")) == "mempool_signer_nonce_conflict",
                 "nonce_conflict_result": conflict_result,
                 "after_commit": after_commit,
                 "after_restart": mempool_after_restart,
@@ -463,16 +485,20 @@ def run_harness(*, work_dir: str | Path | None = None) -> Json:
         os.environ.clear()
         os.environ.update(old_env)
         try:
-            if 'root_ctx' in locals() and root_ctx is not None:
+            if "root_ctx" in locals() and root_ctx is not None:
                 root_ctx.cleanup()  # type: ignore[name-defined]
         except Exception:
             pass
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run Batch 615 controlled local Genesis→observer→promoted-validator mempool convergence rehearsal.")
+    parser = argparse.ArgumentParser(
+        description="Run Batch 615 controlled local Genesis→observer→promoted-validator mempool convergence rehearsal."
+    )
     parser.add_argument("--json", action="store_true", help="pretty-print JSON")
-    parser.add_argument("--work-dir", default="", help="optional persistent work directory for debugging")
+    parser.add_argument(
+        "--work-dir", default="", help="optional persistent work directory for debugging"
+    )
     parser.add_argument("--write-report", default="", help="optional path to write the JSON report")
     args = parser.parse_args()
 

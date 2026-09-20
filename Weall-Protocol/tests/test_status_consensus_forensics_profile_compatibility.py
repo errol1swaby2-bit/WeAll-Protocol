@@ -14,7 +14,9 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_status_consensus_forensics_surfaces_profile_compatibility(tmp_path: Path, monkeypatch) -> None:
+def test_status_consensus_forensics_surfaces_profile_compatibility(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator,helper")
@@ -48,7 +50,10 @@ def test_status_consensus_forensics_surfaces_profile_compatibility(tmp_path: Pat
     }
     st["roles"] = {
         "validators": {"active_set": ["@v1", "@v2", "@v3", "@v4"]},
-        "node_operators": {"by_id": {"@v1": {"enrolled": True, "active": True}}, "active_set": ["@v1"]},
+        "node_operators": {
+            "by_id": {"@v1": {"enrolled": True, "active": True}},
+            "active_set": ["@v1"],
+        },
     }
     ex.state = st
     ex._persist_node_lifecycle_meta()  # type: ignore[attr-defined]

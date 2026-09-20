@@ -37,8 +37,10 @@ def test_duplicate_vote_is_suppressed_before_accept_vote() -> None:
     ex = _make_executor()
     calls = {"accept_vote": 0}
 
-    def _accept_vote(self, *, vote_json, validators, vpub):
+    def _accept_vote(self, *, vote_json, validators, vpub, verified_admission=None):
         calls["accept_vote"] += 1
+        if verified_admission is not None and not verified_admission(dict(vote_json)):
+            return None
         return None
 
     ex._bft.accept_vote = MethodType(_accept_vote, ex._bft)
@@ -70,8 +72,10 @@ def test_duplicate_timeout_is_suppressed_before_accept_timeout() -> None:
     ex = _make_executor()
     calls = {"accept_timeout": 0}
 
-    def _accept_timeout(self, *, timeout_json, validators, vpub):
+    def _accept_timeout(self, *, timeout_json, validators, vpub, verified_admission=None):
         calls["accept_timeout"] += 1
+        if verified_admission is not None and not verified_admission(dict(timeout_json)):
+            return None
         return None
 
     ex._bft.accept_timeout = MethodType(_accept_timeout, ex._bft)

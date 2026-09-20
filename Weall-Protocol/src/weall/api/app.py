@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -155,21 +154,13 @@ def _enforce_demo_mode_isolation() -> None:
         raise ApiRuntimeLifecycleError(issue)
 
 
-def _running_under_pytest() -> bool:
-    if "pytest" in sys.modules:
-        return True
-    if os.environ.get("PYTEST_CURRENT_TEST"):
-        return True
-    return False
-
-
 def _module_app_boot_runtime_default() -> bool:
     raw = (os.environ.get("WEALL_API_BOOT_RUNTIME") or "").strip().lower()
     if raw:
         return raw in {"1", "true", "yes", "y", "on"}
 
-    if _running_under_pytest():
-        return False
+    # Tests explicitly set WEALL_API_BOOT_RUNTIME=0 in tests/conftest.py.
+    # Production/default execution boots the runtime unless explicitly disabled.
 
     return True
 
@@ -546,4 +537,5 @@ def create_app(*, boot_runtime: bool) -> FastAPI:
     return app
 
 
-app = create_app(boot_runtime=_module_app_boot_runtime_default())
+# Import-safe convenience app for tests/tools. Production servers use weall.api.asgi:app.
+app = create_app(boot_runtime=False)

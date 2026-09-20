@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -25,6 +26,7 @@ def _load_app() -> FastAPI:
         app.router.routes.extend(list(tx_router.routes))
 
     return app
+
 
 def _find_submit_path(app: FastAPI) -> str | None:
     for route in app.routes:
@@ -81,6 +83,7 @@ def test_tx_submit_invalid_payload_or_not_ready_fails_closed():
 
     assert body.get("ok") is False or "error" in body, body
 
+
 def test_tx_status_unknown_shape_fails_closed_not_5xx():
     app = _load_app()
     status_path = _find_status_path(app)
@@ -100,4 +103,3 @@ def test_tx_status_unknown_shape_fails_closed_not_5xx():
         response = client.get(f"{status_path}{sep}tx_id=unknown-tx-id")
 
     assert response.status_code < 500, response.text
-

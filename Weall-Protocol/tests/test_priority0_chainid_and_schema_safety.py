@@ -5,11 +5,10 @@ from pathlib import Path
 
 import pytest
 from fastapi import FastAPI, Request
-from fastapi.testclient import TestClient
 from fastapi.responses import JSONResponse
+from fastapi.testclient import TestClient
 
 from weall.api.errors import ApiError
-
 from weall.api.routes_public_parts.mempool import router as mempool_router
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.executor import WeAllExecutor
@@ -50,7 +49,12 @@ def _mempool_test_app(executor: WeAllExecutor) -> FastAPI:
     async def _handle_api_error(_request: Request, exc: ApiError):
         return JSONResponse(
             status_code=int(exc.status_code),
-            content={"ok": False, "error": str(exc.code), "message": str(exc.message), "details": exc.details},
+            content={
+                "ok": False,
+                "error": str(exc.code),
+                "message": str(exc.message),
+                "details": exc.details,
+            },
         )
 
     app.include_router(mempool_router, prefix="/v1")

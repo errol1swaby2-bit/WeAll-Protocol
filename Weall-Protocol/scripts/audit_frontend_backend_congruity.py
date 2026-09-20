@@ -47,7 +47,9 @@ def _resolve_layout() -> tuple[Path, Path, Path]:
     candidates: list[tuple[Path, Path, Path]] = []
 
     # Current uploaded/exported layout when this script is run from backend/scripts.
-    candidates.append((SCRIPT_BACKEND_ROOT.parent, SCRIPT_BACKEND_ROOT, SCRIPT_BACKEND_ROOT.parent / "web"))
+    candidates.append(
+        (SCRIPT_BACKEND_ROOT.parent, SCRIPT_BACKEND_ROOT, SCRIPT_BACKEND_ROOT.parent / "web")
+    )
 
     # Historical projects/ layout.
     projects = SCRIPT_BACKEND_ROOT / "projects"
@@ -55,7 +57,9 @@ def _resolve_layout() -> tuple[Path, Path, Path]:
 
     # If invoked from an outer checkout where scripts were copied, try sibling projects.
     outer_projects = SCRIPT_BACKEND_ROOT.parent / "projects"
-    candidates.append((SCRIPT_BACKEND_ROOT.parent, outer_projects / "Weall-Protocol", outer_projects / "web"))
+    candidates.append(
+        (SCRIPT_BACKEND_ROOT.parent, outer_projects / "Weall-Protocol", outer_projects / "web")
+    )
 
     for root, backend, frontend in candidates:
         if (backend / "src" / "weall").is_dir() and (frontend / "src").is_dir():
@@ -351,7 +355,7 @@ def _paths_equivalent(front_ep: str, backend_ep: str) -> bool:
     back = _path_segments(backend_ep)
     if len(front) != len(back):
         return False
-    for a, b in zip(front, back):
+    for a, b in zip(front, back, strict=True):
         if a == b:
             continue
         if _segment_is_param(a) or _segment_is_param(b):

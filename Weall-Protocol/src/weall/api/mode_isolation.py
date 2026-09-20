@@ -30,6 +30,7 @@ _DEV_SESSION_MUTATION_FLAGS = {
 }
 _OPERATOR_POH_FLAGS = {"WEALL_ENABLE_OPERATOR_POH"}
 
+
 def _path_under(child: str | None, parent: str | None) -> bool:
     if not child or not parent:
         return False
@@ -83,7 +84,9 @@ def controlled_devnet_bootstrap_secret_route_allowed(environ: Env | None = None)
 
     devnet_dir = env.get("WEALL_DEVNET_DIR")
     secret_path = env.get("WEALL_DEV_BOOTSTRAP_SECRET_PATH")
-    generated_dir = str(Path(str(devnet_dir or "")).expanduser() / "generated") if devnet_dir else None
+    generated_dir = (
+        str(Path(str(devnet_dir or "")).expanduser() / "generated") if devnet_dir else None
+    )
     return _path_under(secret_path, generated_dir)
 
 
@@ -97,20 +100,29 @@ def dev_bootstrap_secret_route_allowed(environ: Env | None = None) -> bool:
     profile = runtime_profile_name(env)
     if mode in _PRODUCTION_LIKE_MODES or profile in _PRODUCTION_LIKE_MODES:
         return False
-    if profile == "seeded_demo" and mode not in {"prod", "production", "production_like", "devnet", "multi_node_devnet"}:
+    if profile == "seeded_demo" and mode not in {
+        "prod",
+        "production",
+        "production_like",
+        "devnet",
+        "multi_node_devnet",
+    }:
         return True
     return controlled_devnet_bootstrap_secret_route_allowed(env)
-
 
 
 def runtime_profile_name(environ: Env | None = None) -> str:
     env = environ or os.environ
     return (
-        env.get("WEALL_RUNTIME_PROFILE")
-        or env.get("WEALL_PROTOCOL_PROFILE")
-        or env.get("WEALL_PROFILE")
-        or ""
-    ).strip().lower()
+        (
+            env.get("WEALL_RUNTIME_PROFILE")
+            or env.get("WEALL_PROTOCOL_PROFILE")
+            or env.get("WEALL_PROFILE")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
 
 
 def runtime_mode_name(environ: Env | None = None) -> str:
@@ -135,8 +147,11 @@ def is_production_like(environ: Env | None = None) -> bool:
 
 
 def _is_dangerous_mode(mode: str, profile: str) -> bool:
-    return _is_controlled_devnet(mode, profile) or mode in _PRODUCTION_LIKE_MODES or profile in _PRODUCTION_LIKE_MODES
-
+    return (
+        _is_controlled_devnet(mode, profile)
+        or mode in _PRODUCTION_LIKE_MODES
+        or profile in _PRODUCTION_LIKE_MODES
+    )
 
 
 def direct_session_mutation_allowed(environ: Env | None = None) -> bool:
@@ -157,6 +172,7 @@ def direct_session_mutation_allowed(environ: Env | None = None) -> bool:
         and _truthy(env.get("WEALL_ENABLE_DEMO_SEED_ROUTE"))
         and _truthy(env.get("WEALL_ALLOW_DIRECT_SESSION_MUTATION"))
     )
+
 
 def direct_session_mutation_issue(environ: Env | None = None) -> str | None:
     """Return an issue when a request would perform non-transactional session mutation.

@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import hashlib
-import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from weall.runtime.runtime_time import now_ms as _now_ms
 
 from weall.crypto.sig import verify_signature_for_profile
 from weall.crypto.signature_profiles import (
     PQ_MLDSA_V1,
-    mode_requires_explicit_sig_profile,
     normalize_signature_profile_id,
     profile_allowed_for_context,
 )
 from weall.runtime.ancestry import walk_ancestry
+from weall.runtime.commitments import (
+    normalize_validator_ids as _normalize_validator_ids,
+)
+from weall.runtime.commitments import (
+    validator_set_hash as _canonical_validator_set_hash,
+)
+from weall.runtime.runtime_time import now_ms as _now_ms
 from weall.runtime.sqlite_db import _canon_json
 
 Json = dict[str, Any]
@@ -101,7 +106,6 @@ def consensus_contract_summary(validators: list[str] | None = None) -> Json:
     }
 
 
-
 def _as_int(v: Any, default: int = 0) -> int:
     try:
         return int(v)
@@ -131,23 +135,14 @@ def _verify_bft_signature(*, sig_profile: str, message: bytes, sig: str, pubkey:
     profile = _bft_sig_profile(sig_profile)
     if not _bft_sig_allowed(profile):
         return False
-    return verify_signature_for_profile(sig_profile=profile, message=message, sig=sig, pubkey=pubkey)
+    return verify_signature_for_profile(
+        sig_profile=profile, message=message, sig=sig, pubkey=pubkey
+    )
 
 
 def normalize_validators(validators: list[str]) -> list[str]:
-    """
-    Deterministic validator ordering.
-    We sort + de-dup so leader selection is stable even if nodes receive the same set in different orders.
-    """
-    seen: set[str] = set()
-    out: list[str] = []
-    for x in validators or []:
-        s = _as_str(x)
-        if s and s not in seen:
-            seen.add(s)
-            out.append(s)
-    out.sort()
-    return out
+    """Deterministic validator ordering shared by all commitment domains."""
+    return _normalize_validator_ids(validators or [])
 
 
 def quorum_threshold(n: int) -> int:
@@ -273,7 +268,7 @@ def canonical_proposal_message(
 
 
 def validator_set_hash(validators: list[str]) -> str:
-    return hashlib.sha256(_canon_json(normalize_validators(validators)).encode("utf-8")).hexdigest()
+    return _canonical_validator_set_hash(validators or [])
 
 
 # -----------------------------
@@ -327,7 +322,9 @@ class BftVote:
             validator_set_hash=self.validator_set_hash,
             sig_profile=_bft_sig_profile(self.sig_profile),
         )
-        return _verify_bft_signature(sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey)
+        return _verify_bft_signature(
+            sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -362,6 +359,7 @@ class TimeoutCertificate:
     high_qc_id: str
     signer_count: int
     signers: tuple[str, ...]
+    timeouts: tuple[Json, ...] = ()
     validator_epoch: int = 0
     validator_set_hash: str = ""
 
@@ -373,6 +371,7 @@ class TimeoutCertificate:
             "high_qc_id": self.high_qc_id,
             "signer_count": int(self.signer_count),
             "signers": list(self.signers),
+            "timeouts": [dict(item) for item in self.timeouts],
             "validator_epoch": int(self.validator_epoch),
             "validator_set_hash": self.validator_set_hash,
         }
@@ -418,7 +417,9 @@ class BftTimeout:
             validator_set_hash=self.validator_set_hash,
             sig_profile=_bft_sig_profile(self.sig_profile),
         )
-        return _verify_bft_signature(sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey)
+        return _verify_bft_signature(
+            sig_profile=self.sig_profile, message=msg, sig=self.sig, pubkey=self.pubkey
+        )
 
 
 # -----------------------------
@@ -540,10 +541,17 @@ def verify_qc(
         if signer not in vset:
             continue
 
-        pubkey = _as_str(vj.get("pubkey") or "") or _as_str(pubmap.get(signer) or "")
+        registered_pubkey = _as_str(pubmap.get(signer) or "")
+        embedded_pubkey = _as_str(vj.get("pubkey") or "")
         sig = _as_str(vj.get("sig") or "")
-        if not pubkey or not sig:
+        # Consensus authority comes only from the canonical validator registry.
+        # An artifact may repeat that key for transport/debugging purposes, but
+        # it must never substitute a different key for a registered validator.
+        if not registered_pubkey or not sig:
             continue
+        if embedded_pubkey and embedded_pubkey != registered_pubkey:
+            continue
+        pubkey = registered_pubkey
 
         vote_chain_id = _as_str(vj.get("chain_id") or qc.chain_id)
         vote_view = _as_int(vj.get("view"), qc.view)
@@ -620,11 +628,17 @@ def verify_proposal_json(
     if proposer not in vset:
         return False
     pubmap = dict(vpub or {})
-    pubkey = _as_str(proposal.get("proposer_pubkey") or pubmap.get(proposer) or "")
+    registered_pubkey = _as_str(pubmap.get(proposer) or "")
+    embedded_pubkey = _as_str(proposal.get("proposer_pubkey") or "")
     sig = _as_str(proposal.get("proposer_sig") or "")
-    if not pubkey or not sig or not _as_str(proposal.get("block_hash") or ""):
+    if not registered_pubkey or not sig or not _as_str(proposal.get("block_hash") or ""):
         return False
-    sig_profile = _bft_sig_profile(proposal.get("proposer_sig_profile") or proposal.get("sig_profile"))
+    if embedded_pubkey and embedded_pubkey != registered_pubkey:
+        return False
+    pubkey = registered_pubkey
+    sig_profile = _bft_sig_profile(
+        proposal.get("proposer_sig_profile") or proposal.get("sig_profile")
+    )
     msg = canonical_proposal_message(
         chain_id=_as_str(proposal.get("chain_id") or ""),
         view=_as_int(proposal.get("view"), 0),
@@ -664,16 +678,23 @@ class HotStuffBFT:
         # Persisted so restarts cannot accidentally double-vote.
         self.last_voted_view: int = -1
         self.last_voted_block_id: str = ""
+        self.last_voted_block_hash: str = ""
 
         # Local proposal safety (prevents same-view proposal equivocation by this
-        # node across crashes/restarts).
+        # node across crashes/restarts).  The exact signed BFT artifact is bound
+        # by both semantic block_id and canonical block_hash.
         self.last_proposed_view: int = -1
         self.last_proposed_block_id: str = ""
+        self.last_proposed_block_hash: str = ""
 
         # vote cache: (view, block_id, block_hash) -> signer -> vote_json
         self._votes: dict[tuple[int, str, str], dict[str, Json]] = {}
         # timeout cache: view -> signer -> timeout_json
         self._timeouts: dict[int, dict[str, Json]] = {}
+        # Buckets restored from durable state are structural data only until
+        # their signed artifacts are revalidated against the active registry.
+        self._restored_vote_buckets_pending_revalidation: set[tuple[int, str, str]] = set()
+        self._restored_liveness_views_pending_revalidation: set[int] = set()
 
         # Restart-safe liveness caches. These are node-local hints only and are
         # persisted under the non-consensus ``bft`` subtree so restarts during a
@@ -689,6 +710,7 @@ class HotStuffBFT:
         # threshold of timeout messages and persist that recovery hint across
         # restarts.
         self.last_timeout_certificate: TimeoutCertificate | None = None
+        self._last_timeout_certificate_verified: bool = False
 
         self.last_progress_ms: int = _now_ms()
         # Adaptive pacemaker state. This is node-local and only affects when we
@@ -722,9 +744,15 @@ class HotStuffBFT:
         self.finalized_view = _as_int(b.get("finalized_view"), self.finalized_view)
         self.last_voted_view = _as_int(b.get("last_voted_view"), self.last_voted_view)
         self.last_voted_block_id = _as_str(b.get("last_voted_block_id") or self.last_voted_block_id)
+        self.last_voted_block_hash = _as_str(
+            b.get("last_voted_block_hash") or self.last_voted_block_hash
+        )
         self.last_proposed_view = _as_int(b.get("last_proposed_view"), self.last_proposed_view)
         self.last_proposed_block_id = _as_str(
             b.get("last_proposed_block_id") or self.last_proposed_block_id
+        )
+        self.last_proposed_block_hash = _as_str(
+            b.get("last_proposed_block_hash") or self.last_proposed_block_hash
         )
         self.timeout_base_ms = max(250, _as_int(b.get("timeout_base_ms"), self.timeout_base_ms))
         self.timeout_backoff_exp = max(
@@ -734,8 +762,15 @@ class HotStuffBFT:
             0, _as_int(b.get("timeout_backoff_cap"), self.timeout_backoff_cap)
         )
         self.last_timeout_view = _as_int(b.get("last_timeout_view"), self.last_timeout_view)
-        self.last_progress_ms = _as_int(b.get("last_progress_ms"), self.last_progress_ms)
+        # ``last_progress_ms`` is a process-local pacemaker anchor. Persisted wall-clock
+        # values are not safe to reuse after restart because the host clock may move
+        # backwards or forwards while the process is down. Rebase the deadline to the
+        # current clock on every authoritative state load; durable safety state is kept
+        # separately from this local liveness timer.
+        self.last_progress_ms = _now_ms()
 
+        self.last_timeout_certificate = None
+        self._last_timeout_certificate_verified = False
         tcj = b.get("last_timeout_certificate")
         if isinstance(tcj, dict):
             signers_any = tcj.get("signers")
@@ -745,16 +780,25 @@ class HotStuffBFT:
                     ss = _as_str(s)
                     if ss:
                         signers.append(ss)
+            timeouts_any = tcj.get("timeouts")
+            timeouts: list[Json] = []
+            if isinstance(timeouts_any, list):
+                for item in timeouts_any:
+                    if isinstance(item, dict):
+                        timeouts.append(dict(item))
             self.last_timeout_certificate = TimeoutCertificate(
                 chain_id=_as_str(tcj.get("chain_id") or self.chain_id),
                 view=_as_int(tcj.get("view"), 0),
                 high_qc_id=_as_str(tcj.get("high_qc_id") or ""),
                 signer_count=max(0, _as_int(tcj.get("signer_count"), len(signers))),
                 signers=tuple(signers),
+                timeouts=tuple(timeouts),
                 validator_epoch=_as_int(tcj.get("validator_epoch"), 0),
                 validator_set_hash=_as_str(tcj.get("validator_set_hash") or ""),
             )
 
+        self._votes = {}
+        self._restored_vote_buckets_pending_revalidation = set()
         votes_any = b.get("pending_votes")
         if isinstance(votes_any, list):
             restored_votes: dict[tuple[int, str, str], dict[str, Json]] = {}
@@ -777,7 +821,10 @@ class HotStuffBFT:
                 if bucket:
                     restored_votes[(int(view), block_id, block_hash)] = bucket
             self._votes = restored_votes
+            self._restored_vote_buckets_pending_revalidation = set(restored_votes)
 
+        self._timeouts = {}
+        self._restored_liveness_views_pending_revalidation = set()
         timeouts_any = b.get("pending_timeouts")
         if isinstance(timeouts_any, list):
             restored_timeouts: dict[int, dict[str, Json]] = {}
@@ -798,6 +845,7 @@ class HotStuffBFT:
                 if bucket:
                     restored_timeouts[int(view)] = bucket
             self._timeouts = restored_timeouts
+            self._restored_liveness_views_pending_revalidation = set(restored_timeouts)
 
         self._prune_local_liveness_caches()
 
@@ -808,9 +856,14 @@ class HotStuffBFT:
             "finalized_view": int(self.finalized_view),
             "last_voted_view": int(self.last_voted_view),
             "last_voted_block_id": self.last_voted_block_id,
+            "last_voted_block_hash": self.last_voted_block_hash,
             "last_proposed_view": int(self.last_proposed_view),
             "last_proposed_block_id": self.last_proposed_block_id,
-            "last_progress_ms": int(self.last_progress_ms),
+            "last_proposed_block_hash": self.last_proposed_block_hash,
+            # Process-local pacemaker time is intentionally not durable.
+            # ``load_from_state`` rebases ``last_progress_ms`` to the current
+            # host clock, so exporting it would make durable BFT snapshots
+            # nondeterministic without providing restart semantics.
             "timeout_base_ms": int(self.timeout_base_ms),
             "timeout_backoff_exp": int(self.timeout_backoff_exp),
             "timeout_backoff_cap": int(self.timeout_backoff_cap),
@@ -820,7 +873,7 @@ class HotStuffBFT:
             out["high_qc"] = self.high_qc.to_json()
         if self.locked_qc is not None:
             out["locked_qc"] = self.locked_qc.to_json()
-        if self.last_timeout_certificate is not None:
+        if self.last_timeout_certificate is not None and self._last_timeout_certificate_verified:
             out["last_timeout_certificate"] = self.last_timeout_certificate.to_json()
         pending_votes: list[Json] = []
         for key in sorted(
@@ -894,6 +947,7 @@ class HotStuffBFT:
             )[-int(self.max_persisted_vote_buckets) :]
             pruned_votes = {k: pruned_votes[k] for k in keep}
         self._votes = pruned_votes
+        self._restored_vote_buckets_pending_revalidation.intersection_update(pruned_votes.keys())
 
         timeout_items = sorted((int(view), bucket) for view, bucket in self._timeouts.items())
         pruned_timeouts: dict[int, dict[str, Json]] = {}
@@ -913,6 +967,9 @@ class HotStuffBFT:
             ]
             pruned_timeouts = {int(v): pruned_timeouts[int(v)] for v in keep_views}
         self._timeouts = pruned_timeouts
+        self._restored_liveness_views_pending_revalidation.intersection_update(
+            pruned_timeouts.keys()
+        )
 
     def pacemaker_timeout_ms(self) -> int:
         exp = max(0, min(int(self.timeout_backoff_exp), int(self.timeout_backoff_cap)))
@@ -935,9 +992,297 @@ class HotStuffBFT:
         tc = self.last_timeout_certificate
         if tc is None:
             return None
+        if not self._last_timeout_certificate_verified:
+            return None
         if tc.chain_id != self.chain_id:
             return None
         return tc
+
+    def revalidate_safety_proofs(
+        self,
+        *,
+        validators: list[str],
+        vpub: dict[str, str] | None = None,
+        validator_epoch: int = 0,
+        validator_set_hash_expected: str = "",
+        strict_epoch_binding: bool = True,
+    ) -> bool:
+        """Revalidate restored highQC/lockedQC before validator signing resumes.
+
+        Network-delivered QCs cross signature, membership, epoch, and validator-set
+        checks before they can affect HotStuff safety state.  Durable QCs must cross
+        the same trust boundary after restart; structural JSON decoding is not proof
+        of quorum authority.
+        """
+
+        candidates: list[QuorumCert] = []
+        if self.high_qc is not None:
+            candidates.append(self.high_qc)
+        if self.locked_qc is not None and all(self.locked_qc is not qc for qc in candidates):
+            candidates.append(self.locked_qc)
+        if not candidates:
+            return True
+
+        vset = normalize_validators(validators)
+        if not vset:
+            return False
+        expected_epoch = int(validator_epoch)
+        expected_set_hash = str(validator_set_hash_expected or "").strip()
+        if expected_epoch > 0 and not expected_set_hash:
+            expected_set_hash = validator_set_hash(vset)
+
+        for qc in candidates:
+            if str(qc.chain_id or "") != self.chain_id:
+                return False
+            qc_epoch = int(qc.validator_epoch)
+            qc_set_hash = str(qc.validator_set_hash or "").strip()
+            if expected_epoch > 0:
+                if strict_epoch_binding:
+                    if qc_epoch != expected_epoch:
+                        return False
+                    if not qc_set_hash or qc_set_hash != expected_set_hash:
+                        return False
+                else:
+                    if qc_epoch > 0 and qc_epoch != expected_epoch:
+                        return False
+                    if qc_set_hash and expected_set_hash and qc_set_hash != expected_set_hash:
+                        return False
+            if not verify_qc(qc=qc, validators=vset, vpub=vpub, require_threshold=True):
+                return False
+        return True
+
+    def revalidate_liveness_proof(
+        self,
+        *,
+        validators: list[str],
+        vpub: dict[str, str] | None = None,
+        validator_epoch: int = 0,
+        validator_set_hash_expected: str = "",
+    ) -> bool:
+        """Revalidate a restored local timeout proof before it can affect liveness."""
+
+        tc = self.last_timeout_certificate
+        self._last_timeout_certificate_verified = False
+        if tc is None:
+            return False
+        if tc.chain_id != self.chain_id:
+            self.last_timeout_certificate = None
+            return False
+
+        vset = normalize_validators(validators)
+        vset_members = set(vset)
+        threshold = quorum_threshold(len(vset))
+        if threshold <= 0:
+            self.last_timeout_certificate = None
+            return False
+
+        expected_epoch = int(validator_epoch)
+        if expected_epoch > 0 and int(tc.validator_epoch) != expected_epoch:
+            self.last_timeout_certificate = None
+            return False
+
+        expected_set_hash = str(validator_set_hash_expected or "").strip()
+        if not expected_set_hash and vset:
+            expected_set_hash = validator_set_hash(vset)
+        if expected_set_hash and str(tc.validator_set_hash or "").strip() != expected_set_hash:
+            self.last_timeout_certificate = None
+            return False
+
+        proofs = tuple(item for item in tc.timeouts if isinstance(item, dict))
+        if len(proofs) < threshold or len(proofs) > int(self.max_timeouts_per_bucket):
+            self.last_timeout_certificate = None
+            return False
+
+        pubmap = dict(vpub or {})
+        verified: dict[str, Json] = {}
+        for item in proofs:
+            signer = _as_str(item.get("signer") or "")
+            if not signer or signer in verified or signer not in vset_members:
+                self.last_timeout_certificate = None
+                return False
+            registered_pubkey = _as_str(pubmap.get(signer) or "")
+            embedded_pubkey = _as_str(item.get("pubkey") or "")
+            if not registered_pubkey or (embedded_pubkey and embedded_pubkey != registered_pubkey):
+                self.last_timeout_certificate = None
+                return False
+            tmo = BftTimeout(
+                chain_id=_as_str(item.get("chain_id") or ""),
+                view=_as_int(item.get("view"), -1),
+                high_qc_id=_as_str(item.get("high_qc_id") or ""),
+                signer=signer,
+                pubkey=registered_pubkey,
+                sig=_as_str(item.get("sig") or ""),
+                sig_profile=_bft_sig_profile(
+                    item.get("sig_profile") or item.get("signature_profile")
+                ),
+                validator_epoch=_as_int(item.get("validator_epoch"), 0),
+                validator_set_hash=_as_str(item.get("validator_set_hash") or ""),
+            )
+            if tmo.chain_id != tc.chain_id or int(tmo.view) != int(tc.view):
+                self.last_timeout_certificate = None
+                return False
+            if int(tmo.validator_epoch) != int(tc.validator_epoch):
+                self.last_timeout_certificate = None
+                return False
+            if str(tmo.validator_set_hash or "") != str(tc.validator_set_hash or ""):
+                self.last_timeout_certificate = None
+                return False
+            if not tmo.verify():
+                self.last_timeout_certificate = None
+                return False
+            verified[signer] = tmo.to_json()
+
+        signers = tuple(sorted(verified))
+        if tuple(tc.signers) != signers or int(tc.signer_count) != len(signers):
+            self.last_timeout_certificate = None
+            return False
+
+        high_qc_counts: dict[str, int] = {}
+        for item in verified.values():
+            qid = _as_str(item.get("high_qc_id") or "")
+            if qid:
+                high_qc_counts[qid] = int(high_qc_counts.get(qid, 0)) + 1
+        chosen_high_qc_id = ""
+        if high_qc_counts:
+            chosen_high_qc_id = sorted(
+                high_qc_counts.items(), key=lambda kv: (-int(kv[1]), str(kv[0]))
+            )[0][0]
+        elif self.high_qc is not None:
+            chosen_high_qc_id = str(self.high_qc.block_id or "")
+        if str(tc.high_qc_id or "") != str(chosen_high_qc_id or ""):
+            self.last_timeout_certificate = None
+            return False
+
+        self._last_timeout_certificate_verified = True
+        return True
+
+    def _revalidate_restored_bucket(
+        self,
+        *,
+        key: tuple[int, str, str],
+        bucket: dict[str, Json],
+        validators: list[str],
+        vpub: dict[str, str],
+        parent_id_expected: str,
+        validator_epoch: int,
+        validator_set_hash_expected: str,
+    ) -> dict[str, Json]:
+        """Return only durable votes that still prove authority for this bucket."""
+
+        view, block_id, block_hash = key
+        members = set(normalize_validators(validators))
+        expected_parent_id = str(parent_id_expected or "")
+        expected_epoch = int(validator_epoch)
+        expected_set_hash = str(validator_set_hash_expected or "").strip()
+        verified: dict[str, Json] = {}
+
+        for stored_signer in sorted(bucket):
+            item = bucket.get(stored_signer)
+            if not isinstance(item, dict):
+                continue
+            signer = _as_str(item.get("signer") or "")
+            if not signer or signer != str(stored_signer) or signer in verified:
+                continue
+            if signer not in members:
+                continue
+            registered_pubkey = _as_str(vpub.get(signer) or "")
+            embedded_pubkey = _as_str(item.get("pubkey") or "")
+            if not registered_pubkey or (embedded_pubkey and embedded_pubkey != registered_pubkey):
+                continue
+
+            artifact = BftVote(
+                chain_id=_as_str(item.get("chain_id") or ""),
+                view=_as_int(item.get("view"), -1),
+                block_id=_as_str(item.get("block_id") or ""),
+                block_hash=_as_str(item.get("block_hash") or ""),
+                parent_id=_as_str(item.get("parent_id") or ""),
+                signer=signer,
+                pubkey=registered_pubkey,
+                sig=_as_str(item.get("sig") or ""),
+                sig_profile=_bft_sig_profile(
+                    item.get("sig_profile") or item.get("signature_profile")
+                ),
+                validator_epoch=_as_int(item.get("validator_epoch"), 0),
+                validator_set_hash=_as_str(item.get("validator_set_hash") or ""),
+            )
+            if artifact.chain_id != self.chain_id:
+                continue
+            if int(artifact.view) != int(view):
+                continue
+            if artifact.block_id != block_id or artifact.block_hash != block_hash:
+                continue
+            if artifact.parent_id != expected_parent_id:
+                continue
+            if expected_epoch > 0 and int(artifact.validator_epoch) != expected_epoch:
+                continue
+            if expected_set_hash and str(artifact.validator_set_hash or "") != expected_set_hash:
+                continue
+            try:
+                if not artifact.verify():
+                    continue
+            except Exception:
+                continue
+            verified[signer] = artifact.to_json()
+        return verified
+
+    def _revalidate_pending_liveness_bucket(
+        self,
+        *,
+        view: int,
+        bucket: dict[str, Json],
+        validators: list[str],
+        vpub: dict[str, str],
+        validator_epoch: int,
+        validator_set_hash_expected: str,
+    ) -> dict[str, Json]:
+        """Return only durable liveness artifacts that still prove authority."""
+
+        vset = normalize_validators(validators)
+        members = set(vset)
+        expected_epoch = int(validator_epoch)
+        expected_set_hash = str(validator_set_hash_expected or "").strip()
+        verified: dict[str, Json] = {}
+
+        for stored_signer in sorted(bucket):
+            item = bucket.get(stored_signer)
+            if not isinstance(item, dict):
+                continue
+            signer = _as_str(item.get("signer") or "")
+            if not signer or signer != str(stored_signer) or signer in verified:
+                continue
+            if signer not in members:
+                continue
+            registered_pubkey = _as_str(vpub.get(signer) or "")
+            embedded_pubkey = _as_str(item.get("pubkey") or "")
+            if not registered_pubkey or (embedded_pubkey and embedded_pubkey != registered_pubkey):
+                continue
+
+            artifact = BftTimeout(
+                chain_id=_as_str(item.get("chain_id") or ""),
+                view=_as_int(item.get("view"), -1),
+                high_qc_id=_as_str(item.get("high_qc_id") or ""),
+                signer=signer,
+                pubkey=registered_pubkey,
+                sig=_as_str(item.get("sig") or ""),
+                sig_profile=_bft_sig_profile(
+                    item.get("sig_profile") or item.get("signature_profile")
+                ),
+                validator_epoch=_as_int(item.get("validator_epoch"), 0),
+                validator_set_hash=_as_str(item.get("validator_set_hash") or ""),
+            )
+            if artifact.chain_id != self.chain_id or int(artifact.view) != int(view):
+                continue
+            if expected_epoch > 0 and int(artifact.validator_epoch) != expected_epoch:
+                continue
+            if expected_set_hash and str(artifact.validator_set_hash or "") != expected_set_hash:
+                continue
+            try:
+                if not artifact.verify():
+                    continue
+            except Exception:
+                continue
+            verified[signer] = artifact.to_json()
+        return verified
 
     # ---- core rules ----
 
@@ -1018,60 +1363,72 @@ class HotStuffBFT:
             return False
         return is_descendant(blocks, candidate=bid, ancestor=high_block_id)
 
-    def record_local_vote(self, *, view: int, block_id: str) -> bool:
+    def record_local_vote(self, *, view: int, block_id: str, block_hash: str = "") -> bool:
         """Record a local vote if safe.
 
         Safety rules:
           - monotonic view voting (cannot vote below last_voted_view)
-          - no equivocation within the same view (same view must use same block_id)
+          - no equivocation within the same view
+          - when a canonical block hash is supplied, same-view idempotence
+            requires both block_id and block_hash to match the prior signed
+            artifact
 
-        Returns True if vote may proceed and was recorded.
+        Legacy direct callers may omit ``block_hash``.  A persisted legacy
+        cursor that has no hash fails closed if a same-view production call
+        later supplies one; the node must advance view rather than guess which
+        exact artifact was signed before the upgrade.
         """
         v = int(view)
         bid = str(block_id).strip()
+        bh = str(block_hash or "").strip()
         if not bid:
             return False
 
-        # Refuse to vote in the past.
         if v < int(self.last_voted_view):
             return False
 
-        # Same-view equivocation guard.
-        if (
-            v == int(self.last_voted_view)
-            and self.last_voted_block_id
-            and bid != self.last_voted_block_id
-        ):
-            return False
+        if v == int(self.last_voted_view):
+            if self.last_voted_block_id and bid != self.last_voted_block_id:
+                return False
+            prior_hash = str(self.last_voted_block_hash or "").strip()
+            if prior_hash or bh:
+                if not prior_hash or not bh or bh != prior_hash:
+                    return False
 
         self.last_voted_view = v
         self.last_voted_block_id = bid
+        self.last_voted_block_hash = bh
         return True
 
-    def record_local_proposal(self, *, view: int, block_id: str) -> bool:
+    def record_local_proposal(self, *, view: int, block_id: str, block_hash: str = "") -> bool:
         """Record a local proposal if safe.
 
-        Safety rules mirror local vote safety so a restarted leader cannot sign two
-        different proposals for the same view. Re-emitting the same proposal for the
-        same view is treated as idempotent and is allowed.
+        Proposal anti-equivocation binds the exact BFT artifact being signed.
+        ``block_id`` remains the semantic ancestry identifier while
+        ``block_hash`` commits the canonical header/state execution result.
+        Re-emission in the same view is idempotent only when both identifiers
+        match.
         """
         v = int(view)
         bid = str(block_id).strip()
+        bh = str(block_hash or "").strip()
         if not bid:
             return False
 
         if v < int(self.last_proposed_view):
             return False
 
-        if (
-            v == int(self.last_proposed_view)
-            and self.last_proposed_block_id
-            and bid != self.last_proposed_block_id
-        ):
-            return False
+        if v == int(self.last_proposed_view):
+            if self.last_proposed_block_id and bid != self.last_proposed_block_id:
+                return False
+            prior_hash = str(self.last_proposed_block_hash or "").strip()
+            if prior_hash or bh:
+                if not prior_hash or not bh or bh != prior_hash:
+                    return False
 
         self.last_proposed_view = v
         self.last_proposed_block_id = bid
+        self.last_proposed_block_hash = bh
         return True
 
     def observe_qc(self, *, blocks: dict[str, Any], qc: QuorumCert) -> str | None:
@@ -1145,7 +1502,12 @@ class HotStuffBFT:
     # ---- vote aggregation ----
 
     def accept_vote(
-        self, *, vote_json: Json, validators: list[str], vpub: dict[str, str]
+        self,
+        *,
+        vote_json: Json,
+        validators: list[str],
+        vpub: dict[str, str],
+        verified_admission: Callable[[Json], bool] | None = None,
     ) -> QuorumCert | None:
         """
         Accept a VOTE, cache it, and if threshold reached for (view, block_id) return a QC.
@@ -1164,7 +1526,9 @@ class HotStuffBFT:
             signer=_as_str(vote_json.get("signer") or ""),
             pubkey=_as_str(vote_json.get("pubkey") or ""),
             sig=_as_str(vote_json.get("sig") or ""),
-            sig_profile=_bft_sig_profile(vote_json.get("sig_profile") or vote_json.get("signature_profile")),
+            sig_profile=_bft_sig_profile(
+                vote_json.get("sig_profile") or vote_json.get("signature_profile")
+            ),
             validator_epoch=_as_int(vote_json.get("validator_epoch"), 0),
             validator_set_hash=_as_str(vote_json.get("validator_set_hash") or ""),
         )
@@ -1177,9 +1541,12 @@ class HotStuffBFT:
         vset = set(normalize_validators(validators))
         if vote.signer not in vset:
             return None
-        pubkey = vote.pubkey or _as_str(vpub.get(vote.signer) or "")
-        if not pubkey:
+        registered_pubkey = _as_str(vpub.get(vote.signer) or "")
+        if not registered_pubkey:
             return None
+        if vote.pubkey and vote.pubkey != registered_pubkey:
+            return None
+        pubkey = registered_pubkey
         vote2 = BftVote(
             chain_id=vote.chain_id,
             view=int(vote.view),
@@ -1196,14 +1563,32 @@ class HotStuffBFT:
         if not vote2.verify():
             return None
 
+        validated_vote_json = vote2.to_json()
+        if verified_admission is not None and not bool(
+            verified_admission(dict(validated_vote_json))
+        ):
+            return None
+
         key = (int(vote2.view), vote2.block_id, vote2.block_hash)
         bucket = self._votes.get(key)
         if bucket is None:
             bucket = {}
             self._votes[key] = bucket
+        elif key in self._restored_vote_buckets_pending_revalidation:
+            bucket = self._revalidate_restored_bucket(
+                key=key,
+                bucket=bucket,
+                validators=validators,
+                vpub=vpub,
+                parent_id_expected=vote2.parent_id,
+                validator_epoch=int(vote2.validator_epoch),
+                validator_set_hash_expected=str(vote2.validator_set_hash or ""),
+            )
+            self._votes[key] = bucket
+            self._restored_vote_buckets_pending_revalidation.discard(key)
         # cache only first per signer (prevents duplicates)
         if vote2.signer not in bucket:
-            bucket[vote2.signer] = vote2.to_json()
+            bucket[vote2.signer] = dict(validated_vote_json)
         self._prune_local_liveness_caches()
 
         th = quorum_threshold(len(vset))
@@ -1227,7 +1612,12 @@ class HotStuffBFT:
     # ---- timeout aggregation ----
 
     def accept_timeout(
-        self, *, timeout_json: Json, validators: list[str], vpub: dict[str, str]
+        self,
+        *,
+        timeout_json: Json,
+        validators: list[str],
+        vpub: dict[str, str],
+        verified_admission: Callable[[Json], bool] | None = None,
     ) -> int | None:
         """
         Accept TIMEOUT; if threshold reached for view, return new_view to advance to.
@@ -1244,7 +1634,9 @@ class HotStuffBFT:
             signer=_as_str(timeout_json.get("signer") or ""),
             pubkey=_as_str(timeout_json.get("pubkey") or ""),
             sig=_as_str(timeout_json.get("sig") or ""),
-            sig_profile=_bft_sig_profile(timeout_json.get("sig_profile") or timeout_json.get("signature_profile")),
+            sig_profile=_bft_sig_profile(
+                timeout_json.get("sig_profile") or timeout_json.get("signature_profile")
+            ),
             validator_epoch=_as_int(timeout_json.get("validator_epoch"), 0),
             validator_set_hash=_as_str(timeout_json.get("validator_set_hash") or ""),
         )
@@ -1254,9 +1646,12 @@ class HotStuffBFT:
         vset = set(normalize_validators(validators))
         if tmo.signer not in vset:
             return None
-        pubkey = tmo.pubkey or _as_str(vpub.get(tmo.signer) or "")
-        if not pubkey:
+        registered_pubkey = _as_str(vpub.get(tmo.signer) or "")
+        if not registered_pubkey:
             return None
+        if tmo.pubkey and tmo.pubkey != registered_pubkey:
+            return None
+        pubkey = registered_pubkey
 
         tmo2 = BftTimeout(
             chain_id=tmo.chain_id,
@@ -1275,12 +1670,30 @@ class HotStuffBFT:
         v = int(tmo2.view)
         if v < int(self.view):
             return None
+
+        validated_timeout_json = tmo2.to_json()
+        if verified_admission is not None and not bool(
+            verified_admission(dict(validated_timeout_json))
+        ):
+            return None
+
         bucket = self._timeouts.get(v)
         if bucket is None:
             bucket = {}
             self._timeouts[v] = bucket
+        elif v in self._restored_liveness_views_pending_revalidation:
+            bucket = self._revalidate_pending_liveness_bucket(
+                view=v,
+                bucket=bucket,
+                validators=validators,
+                vpub=vpub,
+                validator_epoch=int(tmo2.validator_epoch),
+                validator_set_hash_expected=str(tmo2.validator_set_hash or ""),
+            )
+            self._timeouts[v] = bucket
+            self._restored_liveness_views_pending_revalidation.discard(v)
         if tmo2.signer not in bucket:
-            bucket[tmo2.signer] = tmo2.to_json()
+            bucket[tmo2.signer] = dict(validated_timeout_json)
         self._prune_local_liveness_caches()
 
         th = quorum_threshold(len(vset))
@@ -1303,15 +1716,20 @@ class HotStuffBFT:
                 chosen_high_qc_id = str(self.high_qc.block_id or "")
 
             signers = tuple(sorted(str(s) for s in bucket.keys() if str(s)))
+            timeout_proofs = tuple(
+                dict(bucket[s]) for s in signers if isinstance(bucket.get(s), dict)
+            )
             self.last_timeout_certificate = TimeoutCertificate(
                 chain_id=self.chain_id,
                 view=int(v),
                 high_qc_id=str(chosen_high_qc_id or ""),
                 signer_count=len(signers),
                 signers=signers,
+                timeouts=timeout_proofs,
                 validator_epoch=int(tmo2.validator_epoch),
                 validator_set_hash=str(tmo2.validator_set_hash or ""),
             )
+            self._last_timeout_certificate_verified = True
 
             new_view = v + 1
             self.bump_view(new_view)
@@ -1320,6 +1738,7 @@ class HotStuffBFT:
                 stale = [vv for vv in self._timeouts.keys() if int(vv) <= v]
                 for vv in stale:
                     del self._timeouts[int(vv)]
+                    self._restored_liveness_views_pending_revalidation.discard(int(vv))
             except Exception:
                 pass
             self._prune_local_liveness_caches()

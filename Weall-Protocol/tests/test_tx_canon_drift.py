@@ -13,7 +13,6 @@ from weall.runtime.tx_contracts import (
 )
 from weall.runtime.tx_schema import model_for_tx_type
 
-
 TX_TYPE = "POH_LIVE_JUROR_REPLACE"
 
 

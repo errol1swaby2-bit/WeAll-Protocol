@@ -32,6 +32,15 @@ def test_public_testnet_v1_chain_identity_is_pinned_and_deterministic() -> None:
     assert ledger["params"]["public_mainnet_enabled"] is False
     assert ledger["params"]["public_testnet_v1"] is True
     assert ledger["params"]["resettable_testnet"] is True
+    meta = ledger["meta"]
+    assert meta["state_root_commitment_version"] == "weall.state-root.v2"
+    assert meta["production_consensus_profile_hash"] == manifest.protocol_profile_hash
+    assert meta["schema_version"] == manifest.schema_version
+    assert meta["tx_index_hash"] == manifest.tx_index_hash
+    assert meta["mempool_selection_policy"] == "canonical"
+    assert meta["helper_execution_profile_hash"]
+    assert meta["genesis_bootstrap_profile_hash"]
+    assert int(meta["recent_block_anchor_activation_height"]) == 1
     assert compute_state_root(ledger) == manifest.genesis_state_root
 
     assert commitments["network_id"] == manifest.raw["network_id"]

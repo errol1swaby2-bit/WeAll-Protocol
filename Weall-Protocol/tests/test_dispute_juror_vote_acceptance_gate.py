@@ -25,7 +25,9 @@ def _session(account: str) -> dict[str, Any]:
     return {"session_keys": {key: {"active": True, "issued_at_ts": 1_800_000_000, "ttl_s": 3600}}}
 
 
-def _state(*, juror_status: str = "assigned", attendance: dict[str, Any] | None = None) -> dict[str, Any]:
+def _state(
+    *, juror_status: str = "assigned", attendance: dict[str, Any] | None = None
+) -> dict[str, Any]:
     juror_record: dict[str, Any] = {"status": juror_status, "assigned_at_nonce": 1}
     if attendance is not None:
         juror_record["attendance"] = attendance
@@ -75,7 +77,9 @@ def test_dispute_vote_submit_cannot_implicitly_accept_assigned_juror() -> None:
     state = _state()
 
     try:
-        apply_dispute(state, _env("DISPUTE_VOTE_SUBMIT", "@juror", 2, {"dispute_id": "disp-1", "vote": "yes"}))
+        apply_dispute(
+            state, _env("DISPUTE_VOTE_SUBMIT", "@juror", 2, {"dispute_id": "disp-1", "vote": "yes"})
+        )
     except DisputeApplyError as exc:
         assert exc.code == "forbidden"
         assert exc.reason == "juror_not_present"
@@ -91,10 +95,18 @@ def test_dispute_vote_submit_cannot_implicitly_accept_assigned_juror() -> None:
 
 def test_dispute_vote_submit_after_accept_preserves_vote_and_reputation() -> None:
     state = _state()
-    accept = apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", "@juror", 2, {"dispute_id": "disp-1"})) or {}
+    accept = (
+        apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", "@juror", 2, {"dispute_id": "disp-1"}))
+        or {}
+    )
     assert accept["applied"] == "DISPUTE_JUROR_ACCEPT"
 
-    vote = apply_dispute(state, _env("DISPUTE_VOTE_SUBMIT", "@juror", 3, {"dispute_id": "disp-1", "vote": "yes"})) or {}
+    vote = (
+        apply_dispute(
+            state, _env("DISPUTE_VOTE_SUBMIT", "@juror", 3, {"dispute_id": "disp-1", "vote": "yes"})
+        )
+        or {}
+    )
     assert vote["applied"] == "DISPUTE_VOTE_SUBMIT"
     dispute = state["disputes_by_id"]["disp-1"]
     assert dispute["jurors"]["@juror"]["status"] == "completed"
@@ -130,7 +142,9 @@ def test_dispute_vote_template_allows_accepted_present_juror(monkeypatch) -> Non
     monkeypatch.setenv("WEALL_API_MODE", "dev")
     monkeypatch.setenv("WEALL_ALLOW_INSECURE_LOCALHOST", "1")
     app = create_app(boot_runtime=False)
-    app.state.executor = _FakeExecutor(_state(juror_status="accepted", attendance={"present": True, "at_nonce": 2}))
+    app.state.executor = _FakeExecutor(
+        _state(juror_status="accepted", attendance={"present": True, "at_nonce": 2})
+    )
     client = TestClient(app, raise_server_exceptions=False)
 
     response = client.post(

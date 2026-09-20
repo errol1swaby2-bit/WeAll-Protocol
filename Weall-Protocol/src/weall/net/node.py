@@ -8,20 +8,22 @@ from collections import OrderedDict
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlsplit
 
+from weall.api.public_seed_registry import public_testnet_enabled
 from weall.net.codec import decode_message, encode_message
-from weall.net.handshake import (
-    HandshakeConfig,
-    HandshakeRejected,
-    HandshakeState,
-    begin_outbound_handshake,
-)
 from weall.net.gossip import (
     PeerAddrGossipConfig,
     filter_peer_addr_records,
     is_supported_peer_uri,
     make_peer_addr_record,
     normalize_peer_uri,
+)
+from weall.net.handshake import (
+    HandshakeConfig,
+    HandshakeRejected,
+    HandshakeState,
+    begin_outbound_handshake,
 )
 from weall.net.messages import (
     BftProposalMsg,
@@ -39,14 +41,15 @@ from weall.net.messages import (
     WireMessage,
 )
 from weall.net.peer_identity import verify_peer_hello_identity
+from weall.net.peer_store import PeerSecurityStore
 from weall.net.router import Router
 from weall.net.state_sync import StateSyncService
 from weall.net.transport import Connection, PeerAddr, Transport, WirePacket
 from weall.net.transport_memory import InMemoryTransport
 from weall.net.transport_tcp import TcpTransport
 from weall.net.transport_tls import TlsTransport
-from weall.api.public_seed_registry import public_testnet_enabled
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
 from weall.runtime.protocol_profile import (
     active_consensus_profile,
     runtime_protocol_profile_hash,
@@ -76,8 +79,8 @@ def _env_int(key: str, default: int = 0) -> int:
         return int(str(v).strip() or str(default))
     except Exception as exc:
         mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
-        if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-            mode = "test"
+        # Runtime posture is explicit; tests configure WEALL_MODE in the harness.
+        # No process/test-runner detection is permitted here.
         if mode == "prod":
             raise ValueError(f"invalid_integer_env:{key}") from exc
         return int(default)
@@ -200,8 +203,10 @@ class PeerPolicy:
 class _PeerRec:
     peer_id: str
     router: Router
+    security_key: str = ""
     strikes: int = 0
     banned_until_ms: int = 0
+    security_score: float = 0.0
 
     # per-peer limiter state
     last_refill_ms: int = 0
@@ -255,8 +260,8 @@ def _make_transport(cfg: NetConfig) -> Transport:
         )
 
     mode = str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        mode = "test"
+    # Runtime posture is explicit; tests configure WEALL_MODE in the harness.
+    # No process/test-runner detection is permitted here.
     if mode == "prod" and str(os.environ.get("WEALL_NET_TRANSPORT") or "").strip():
         raise RuntimeError("invalid_net_transport")
     return InMemoryTransport()
@@ -288,6 +293,7 @@ class NetNode:
         ledger_provider: Callable[[], Json] | None = None,
         sync_service: StateSyncService | None = None,
         transport: Transport | None = None,
+        peer_security_store: PeerSecurityStore | None = None,
     ) -> None:
         self.cfg = cfg
         self.peer_policy = peer_policy or PeerPolicy()
@@ -301,6 +307,7 @@ class NetNode:
         self.peer_addr_provider = peer_addr_provider
         self.ledger_provider = ledger_provider
         self.sync_service = sync_service
+        self._peer_security_store = peer_security_store
 
         self.transport: Transport = transport or _make_transport(cfg)
 
@@ -334,13 +341,88 @@ class NetNode:
         self._sync_responses: OrderedDict[str, StateSyncResponseMsg] = OrderedDict()
         self._sync_requests: OrderedDict[str, tuple[str, int]] = OrderedDict()
         self._sync_completed: OrderedDict[tuple[str, str], int] = OrderedDict()
+        self._peer_security_retention_ms: int = max(
+            0, _env_int("WEALL_PEER_SECURITY_RETENTION_MS", 7 * 24 * 60 * 60 * 1000)
+        )
+        self._peer_security_prune_interval_ms: int = max(
+            1_000, _env_int("WEALL_PEER_SECURITY_PRUNE_INTERVAL_MS", 60_000)
+        )
+        self._last_peer_security_prune_ms: int = 0
 
     # ----------------------------
     # Peer state + rate limiting
     # ----------------------------
 
+    @staticmethod
+    def _peer_security_transport_key(peer_id: str) -> str:
+        pid = str(peer_id or "").strip()
+        if not pid:
+            return ""
+        try:
+            parsed = urlsplit(pid)
+            if parsed.scheme in {"tcp", "tls"} and parsed.hostname:
+                return f"transport-host:{parsed.hostname.lower()}"
+        except Exception:
+            pass
+        return f"transport:{pid}"
+
+    @staticmethod
+    def _peer_security_identity_key(account_id: str) -> str:
+        account = str(account_id or "").strip()
+        return f"identity-account:{account}" if account else ""
+
+    def _maybe_prune_peer_security(self, *, now_ms: int | None = None) -> None:
+        store = self._peer_security_store
+        if store is None:
+            return
+        now = int(_now_ms() if now_ms is None else now_ms)
+        if now - int(self._last_peer_security_prune_ms) < int(
+            self._peer_security_prune_interval_ms
+        ):
+            return
+        store.prune_expired(
+            now_ms=now,
+            retention_ms=int(self._peer_security_retention_ms),
+        )
+        self._last_peer_security_prune_ms = now
+
+    def _bind_authenticated_peer_security(self, rec: _PeerRec) -> None:
+        key = self._peer_security_identity_key(rec.identity_account)
+        if not key:
+            return
+        store = self._peer_security_store
+        if store is not None:
+            saved = store.load(key)
+            if saved is not None:
+                rec.strikes = max(int(rec.strikes), max(0, int(saved.strikes)))
+                rec.banned_until_ms = max(
+                    int(rec.banned_until_ms), max(0, int(saved.banned_until_ms))
+                )
+                rec.security_score = min(float(rec.security_score), float(saved.score))
+        rec.security_key = key
+        self._persist_peer_security(rec)
+
+    def _persist_peer_security(self, rec: _PeerRec) -> None:
+        store = self._peer_security_store
+        if store is None:
+            return
+        key = str(rec.security_key or self._peer_security_transport_key(rec.peer_id)).strip()
+        if not key:
+            return
+        store.upsert(
+            peer_id=key,
+            strikes=int(rec.strikes),
+            banned_until_ms=int(rec.banned_until_ms),
+            score=float(rec.security_score),
+        )
+
     def is_banned(self, peer_id: str) -> bool:
         rec = self._peers.get(peer_id)
+        if rec is None and self._peer_security_store is not None:
+            key = self._peer_security_transport_key(peer_id)
+            saved = self._peer_security_store.load(key) if key else None
+            if saved is not None:
+                return int(saved.banned_until_ms) > _now_ms()
         if not rec:
             return False
         return rec.banned_until_ms > _now_ms()
@@ -348,6 +430,7 @@ class NetNode:
     def _ban(self, rec: _PeerRec, *, cooldown_ms: int | None = None) -> None:
         cd = int(cooldown_ms if cooldown_ms is not None else self.peer_policy.ban_cooldown_ms)
         rec.banned_until_ms = max(rec.banned_until_ms, _now_ms() + cd)
+        self._persist_peer_security(rec)
 
     def _strike(self, rec: _PeerRec, weight: int) -> None:
         if weight <= 0:
@@ -355,6 +438,8 @@ class NetNode:
         rec.strikes += int(weight)
         if rec.strikes >= int(self.peer_policy.max_strikes):
             self._ban(rec)
+            return
+        self._persist_peer_security(rec)
 
     def _refill_limits(self, rec: _PeerRec, now_ms: int) -> None:
         if rec.last_refill_ms == 0:
@@ -395,6 +480,14 @@ class NetNode:
             return
         cutoff = int(now_ms) - ttl_ms
         try:
+            # This cache is node-local abuse hardening, not consensus truth. If the
+            # host wall clock moves backward, timestamps already in the cache may
+            # appear to be arbitrarily far in the future and suppress legitimate
+            # traffic until that old coordinate is reached again. Fail open and
+            # rebase the bounded cache instead.
+            if any(int(last_seen_ms) > int(now_ms) for last_seen_ms in cache.values()):
+                cache.clear()
+                return
             while cache:
                 _digest, last_seen_ms = next(iter(cache.items()))
                 if int(last_seen_ms) > cutoff and len(cache) <= cap:
@@ -528,6 +621,14 @@ class NetNode:
         return False
 
     def _is_validator(self, ledger: Json, account_id: str) -> bool:
+        """Resolve BFT network authority from the canonical consensus set.
+
+        Role membership records eligibility/lifecycle state; it must not grant
+        consensus-network authority when an explicit validator set exists.
+        """
+        explicit = consensus_active_validator_ids(ledger)
+        if explicit is not None:
+            return str(account_id).strip() in set(explicit)
         roles = ledger.get("roles")
         if not isinstance(roles, dict):
             return False
@@ -539,29 +640,38 @@ class NetNode:
 
     def _handshake_validator_epoch(self) -> int:
         ledger = self._get_ledger() or {}
+        generation = consensus_validator_generation(ledger)
+        if generation is not None:
+            return int(generation)
+
         consensus = ledger.get("consensus") if isinstance(ledger, dict) else {}
         if isinstance(consensus, dict):
             epochs = consensus.get("epochs")
             if isinstance(epochs, dict):
                 try:
-                    cur = int(epochs.get("current") or 0)
-                    if cur > 0:
-                        return cur
-                except Exception:
-                    pass
-            validator_set = consensus.get("validator_set")
-            if isinstance(validator_set, dict):
-                try:
-                    cur2 = int(validator_set.get("epoch") or 0)
-                    if cur2 > 0:
-                        return cur2
+                    legacy_epoch = int(epochs.get("current") or 0)
+                    if legacy_epoch > 0:
+                        return legacy_epoch
                 except Exception:
                     pass
         return 0
 
     def _handshake_validator_set_hash(self) -> str:
         ledger = self._get_ledger() or {}
+        explicit = consensus_active_validator_ids(ledger)
         consensus = ledger.get("consensus") if isinstance(ledger, dict) else {}
+        if explicit is not None:
+            validator_set = consensus.get("validator_set") if isinstance(consensus, dict) else None
+            if not isinstance(validator_set, dict) or not isinstance(
+                validator_set.get("active_set"), list
+            ):
+                return ""
+            have = str(validator_set.get("set_hash") or "").strip()
+            if have:
+                return have
+            vals = _normalize_validators(explicit)
+            return _canonical_validator_set_hash(vals) if vals else ""
+
         if isinstance(consensus, dict):
             validator_set = consensus.get("validator_set")
             if isinstance(validator_set, dict):
@@ -576,7 +686,6 @@ class NetNode:
             return ""
         return _canonical_validator_set_hash(vals)
 
-
     def _handshake_genesis_bootstrap_profile(self) -> Json:
         ledger = self._get_ledger() or {}
         meta = ledger.get("meta") if isinstance(ledger, dict) else {}
@@ -587,7 +696,6 @@ class NetNode:
         return {}
 
     def _handshake_genesis_bootstrap_profile_hash(self) -> str:
-        profile = self._handshake_genesis_bootstrap_profile()
         ledger = self._get_ledger() or {}
         meta = ledger.get("meta") if isinstance(ledger, dict) else {}
         if isinstance(meta, dict):
@@ -626,6 +734,7 @@ class NetNode:
         rec.identity_ok = True
         rec.identity_account = account_id
         rec.identity_pubkey = pubkey
+        self._bind_authenticated_peer_security(rec)
 
     def _enforce_bft_identity_gate(self, rec: _PeerRec, msg: BftVoteMsg) -> None:
         if not (
@@ -1037,7 +1146,15 @@ class NetNode:
             on_peer_addr=_on_peer_addr,
         )
 
-        rec = _PeerRec(peer_id=peer_id, router=router)
+        security_key = self._peer_security_transport_key(peer_id)
+        rec = _PeerRec(peer_id=peer_id, router=router, security_key=security_key)
+        if self._peer_security_store is not None:
+            self._maybe_prune_peer_security()
+            saved = self._peer_security_store.load(security_key) if security_key else None
+            if saved is not None:
+                rec.strikes = max(0, int(saved.strikes))
+                rec.banned_until_ms = max(0, int(saved.banned_until_ms))
+                rec.security_score = float(saved.score)
         rec.last_seen_ms = _now_ms()
         self._peers[peer_id] = rec
         return rec
@@ -1116,9 +1233,20 @@ class NetNode:
         if established and int(rec.established_at_ms) <= 0:
             rec.established_at_ms = int(now)
         mtype = getattr(getattr(msg, "header", None), "type", None)
+        # BFT artifacts intentionally bypass this raw-payload duplicate cache.
+        # Proposal/vote/QC/timeout retry safety is decided by the downstream
+        # trust-aware BFT caches only after authentication/admission. Recording
+        # them here would let a pre-auth packet suppress an exact later retry.
+        raw_duplicate_bypass_types = {
+            MsgType.BFT_PROPOSAL,
+            MsgType.BFT_VOTE,
+            MsgType.BFT_QC,
+            MsgType.BFT_TIMEOUT,
+        }
         if (
             established
             and mtype not in {MsgType.PEER_HELLO, MsgType.PEER_HELLO_ACK}
+            and mtype not in raw_duplicate_bypass_types
             and self._is_duplicate_payload(rec, payload, now_ms=now)
         ):
             return
@@ -1349,6 +1477,7 @@ class NetNode:
                     "account_id": str(rec.identity_account or ""),
                     "pubkey": str(rec.identity_pubkey or ""),
                     "strikes": int(rec.strikes),
+                    "security_score": float(rec.security_score),
                     "banned": self.is_banned(peer_id),
                     "banned_until_ms": int(rec.banned_until_ms),
                     "last_error": last_error,

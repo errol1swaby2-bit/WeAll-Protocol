@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from weall.net.messages import JsonObject, WireMessage
+from weall.net.messages import WireHeader as _WireHeader
+
+# Dataclass-generated subclass __init__ annotations inherit the base field name
+# and resolve it against this module at runtime. Keep the name available here.
+WireHeader = _WireHeader
 
 
 @dataclass(frozen=True, slots=True)

@@ -6,7 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build_node_operator_onboarding_bundle.py"
 VERIFY_SCRIPT = REPO_ROOT / "scripts" / "verify_node_operator_onboarding_bundle.py"
@@ -63,8 +62,7 @@ def test_bundle_builder_emits_authority_only(tmp_path: Path) -> None:
         ],
         cwd=REPO_ROOT,
         check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
 
@@ -98,8 +96,7 @@ def test_verifier_accepts_legacy_authority_section_read_only(tmp_path: Path) -> 
         [sys.executable, str(VERIFY_SCRIPT), "--bundle", str(bundle_path), "--json"],
         cwd=REPO_ROOT,
         check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
 
@@ -119,8 +116,7 @@ def test_verifier_accepts_legacy_authority_section_read_only(tmp_path: Path) -> 
         ],
         cwd=REPO_ROOT,
         check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
 

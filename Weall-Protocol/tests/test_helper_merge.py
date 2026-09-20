@@ -70,7 +70,9 @@ def test_verify_materialized_lane_result_accepts_matching_hashes() -> None:
         namespace_prefixes=["content:"],
         read_set=["content:post:1"],
         write_set=["content:post:1"],
-        delta_ops=[HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "hello"})],
+        delta_ops=[
+            HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "hello"})
+        ],
         receipts=[{"tx_id": "tx-1", "ok": True}],
     )
     status = verify_materialized_lane_result(result)
@@ -86,7 +88,9 @@ def test_verify_materialized_lane_result_rejects_bad_delta_hash() -> None:
         namespace_prefixes=["content:"],
         read_set=["content:post:1"],
         write_set=["content:post:1"],
-        delta_ops=[HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "hello"})],
+        delta_ops=[
+            HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "hello"})
+        ],
         receipts=[{"tx_id": "tx-1", "ok": True}],
     )
     bad = MaterializedLaneResult(
@@ -138,7 +142,9 @@ def test_merge_materialized_lane_results_is_deterministic_across_arrival_order()
         namespace_prefixes=["content:"],
         read_set=["content:post:1"],
         write_set=["content:post:1"],
-        delta_ops=[HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "alpha"})],
+        delta_ops=[
+            HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "alpha"})
+        ],
         receipts=[{"tx_id": "tx-1", "ok": True}],
     )
     social = _materialized_result(
@@ -167,7 +173,9 @@ def test_merge_materialized_lane_results_matches_serial_replay_for_disjoint_lane
         namespace_prefixes=["content:"],
         read_set=["content:post:1"],
         write_set=["content:post:1"],
-        delta_ops=[HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "alpha"})],
+        delta_ops=[
+            HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "alpha"})
+        ],
         receipts=[{"tx_id": "tx-1", "ok": True}],
     )
     social = _materialized_result(
@@ -203,7 +211,9 @@ def test_merge_materialized_lane_results_falls_back_on_overlap() -> None:
         namespace_prefixes=["content:"],
         read_set=["content:post:1"],
         write_set=["content:post:1"],
-        delta_ops=[HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "alpha"})],
+        delta_ops=[
+            HelperDeltaOp(op="set", path="namespaced/content:post:1", value={"body": "alpha"})
+        ],
         receipts=[{"tx_id": "tx-1", "ok": True}],
     )
     economy = _materialized_result(
@@ -230,7 +240,9 @@ def test_verify_materialized_lane_result_rejects_delta_outside_declared_write_sc
         namespace_prefixes=["content:"],
         read_set=["content:post:1"],
         write_set=["content:post:1"],
-        delta_ops=[HelperDeltaOp(op="set", path="namespaced/content:post:2", value={"body": "hello"})],
+        delta_ops=[
+            HelperDeltaOp(op="set", path="namespaced/content:post:2", value={"body": "hello"})
+        ],
         receipts=[{"tx_id": "tx-1", "ok": True}],
     )
     status = verify_materialized_lane_result(result)

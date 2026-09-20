@@ -36,8 +36,8 @@ _ALLOWED_FALSE = {"0", "false", "no", "n", "off"}
 
 
 def _is_prod() -> bool:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return False
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return (str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod") == "prod"
 
 
@@ -2158,10 +2158,12 @@ def _bridge_payload_for_signal(rec: Json, spec: Json | None = None) -> Json:
 def _webrtc_signal_queue_path() -> Path:
     raw = str(os.environ.get("WEALL_WEBRTC_SIGNAL_QUEUE_PATH") or "").strip()
     if raw:
-        return Path(raw)
+        return Path(raw).expanduser()
     return (
-        Path(os.environ.get("WEALL_RUNTIME_DIR") or "data") / "webrtc_signal_bridge_tx_queue.json"
-    )
+        Path(os.environ["WEALL_RUNTIME_DIR"]).expanduser()
+        if os.environ.get("WEALL_RUNTIME_DIR")
+        else Path.home() / ".local" / "share" / "weall" / "runtime"
+    ) / "webrtc_signal_bridge_tx_queue.json"
 
 
 def _webrtc_signal_queue_lock():

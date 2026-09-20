@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTER_ROOT = REPO_ROOT.parent
 WEB_ROOT = OUTER_ROOT / "web"
@@ -32,7 +31,7 @@ def test_frontend_routes_do_not_require_removed_user_tier_or_noop_message_fab() 
 
     # Production route metadata must not expose a no-op messages FAB.
     assert 'fab: "message"' not in text
-    assert "case \"message\"" not in text
+    assert 'case "message"' not in text
 
     fab_type = re.search(r"type FabAction = .*?;", text, flags=re.S)
     assert fab_type is not None

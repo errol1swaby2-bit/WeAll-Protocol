@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Set
 
 
 @dataclass(frozen=True)
@@ -16,11 +16,11 @@ class HelperManifest:
 def derive_assignment_fallback(
     *,
     validator_ids: Iterable[str],
-    manifests: Dict[str, HelperManifest],
-    required_capabilities: Set[str],
+    manifests: dict[str, HelperManifest],
+    required_capabilities: set[str],
 ) -> str:
     ordered = sorted(dict.fromkeys(validator_ids))
-    eligible: List[HelperManifest] = []
+    eligible: list[HelperManifest] = []
     for node_id in ordered:
         manifest = manifests.get(node_id)
         if manifest is None:

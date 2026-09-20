@@ -98,7 +98,7 @@ def test_qc_less_blocks_remain_forbidden_in_prod_even_with_rollout_flag(
             "chain_id": "test-chain",
             "height": 1,
             "prev_block_hash": "00" * 32,
-            "block_ts_ms": 1000,
+            "block_ts_ms": 20_000,
             "tx_ids": [],
             "receipts_root": "r",
             "state_root": "s",

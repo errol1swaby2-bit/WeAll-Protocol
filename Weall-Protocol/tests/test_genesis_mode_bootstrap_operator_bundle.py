@@ -42,10 +42,9 @@ def test_genesis_mode_uses_validator_identity_and_enables_operator_bundle(
     validators_role = st["roles"]["validators"]
     assert acct in list(validators_role.get("active_set") or [])
 
-    consensus_registry = (((st.get("consensus") or {}).get("validators") or {}).get("registry") or {})
+    consensus_registry = ((st.get("consensus") or {}).get("validators") or {}).get("registry") or {}
     assert consensus_registry[acct]["pubkey"] == pub
 
     params = st["params"]
     assert params["bootstrap_founder_account"] == acct
     assert params["bootstrap_allowlist"][acct]["pubkey"] == pub
-

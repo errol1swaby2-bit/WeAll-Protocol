@@ -10,11 +10,23 @@ from weall.runtime.tx_schema import validate_tx_envelope
 
 
 def _acct_env(account: str, nonce: int, payload: dict) -> TxEnvelope:
-    return TxEnvelope(tx_type="ACCOUNT_REGISTER", signer=account, nonce=nonce, payload={"pubkey": f"pk:{account}", **payload}, sig="sig")
+    return TxEnvelope(
+        tx_type="ACCOUNT_REGISTER",
+        signer=account,
+        nonce=nonce,
+        payload={"pubkey": f"pk:{account}", **payload},
+        sig="sig",
+    )
 
 
 def _policy_env(account: str, nonce: int, payload: dict) -> TxEnvelope:
-    return TxEnvelope(tx_type="ACCOUNT_SECURITY_POLICY_SET", signer=account, nonce=nonce, payload=payload, sig="sig")
+    return TxEnvelope(
+        tx_type="ACCOUNT_SECURITY_POLICY_SET",
+        signer=account,
+        nonce=nonce,
+        payload=payload,
+        sig="sig",
+    )
 
 
 def test_account_register_rejects_non_inspectable_protocol_key_material() -> None:
@@ -33,11 +45,13 @@ def test_account_security_policy_rejects_non_inspectable_protocol_key_material()
 
 def test_account_security_policy_schema_rejects_non_inspectable_protocol_fields() -> None:
     with pytest.raises(ValidationError) as excinfo:
-        validate_tx_envelope({
-            "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
-            "signer": "alice",
-            "nonce": 2,
-            "sig": "sig",
-            "payload": {"encrypted" + "_payload": {"k": "opaque"}},
-        })
+        validate_tx_envelope(
+            {
+                "tx_type": "ACCOUNT_SECURITY_POLICY_SET",
+                "signer": "alice",
+                "nonce": 2,
+                "sig": "sig",
+                "payload": {"encrypted" + "_payload": {"k": "opaque"}},
+            }
+        )
     assert "encrypted" + "_payload" in str(excinfo.value)

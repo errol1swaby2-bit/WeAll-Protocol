@@ -64,7 +64,6 @@ class _FakeExecutor:
             "poh": {},
         }
 
-
     def tx_index_hash(self) -> str:
         return "txindexhash-obs"
 

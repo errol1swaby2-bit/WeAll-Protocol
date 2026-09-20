@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-import json
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from weall.runtime.chain_config import ChainConfig, production_bootstrap_issues, validate_runtime_env
+from weall.runtime.chain_config import (
+    ChainConfig,
+    production_bootstrap_issues,
+    validate_runtime_env,
+)
 
 
 def _cfg(tmp_path: Path) -> ChainConfig:
@@ -51,7 +54,9 @@ def _clear_prod_env(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(name, raising=False)
 
 
-def test_production_validator_service_requires_bft_enabled(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_production_validator_service_requires_bft_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _clear_prod_env(monkeypatch)
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
@@ -61,13 +66,19 @@ def test_production_validator_service_requires_bft_enabled(tmp_path: Path, monke
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
 
     issues = production_bootstrap_issues(_cfg(tmp_path))
-    assert any("production validator intent requires WEALL_BFT_ENABLED=1" in item for item in issues)
+    assert any(
+        "production validator intent requires WEALL_BFT_ENABLED=1" in item for item in issues
+    )
 
-    with pytest.raises(RuntimeError, match="production validator intent requires WEALL_BFT_ENABLED=1"):
+    with pytest.raises(
+        RuntimeError, match="production validator intent requires WEALL_BFT_ENABLED=1"
+    ):
         validate_runtime_env()
 
 
-def test_validator_signing_requires_bft_enabled(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validator_signing_requires_bft_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _clear_prod_env(monkeypatch)
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "0")
@@ -75,13 +86,19 @@ def test_validator_signing_requires_bft_enabled(tmp_path: Path, monkeypatch: pyt
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")
 
     issues = production_bootstrap_issues(_cfg(tmp_path))
-    assert any("production validator intent requires WEALL_BFT_ENABLED=1" in item for item in issues)
+    assert any(
+        "production validator intent requires WEALL_BFT_ENABLED=1" in item for item in issues
+    )
 
-    with pytest.raises(RuntimeError, match="production validator intent requires WEALL_BFT_ENABLED=1"):
+    with pytest.raises(
+        RuntimeError, match="production validator intent requires WEALL_BFT_ENABLED=1"
+    ):
         validate_runtime_env()
 
 
-def test_explicit_observer_without_validator_intent_may_run_without_bft(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_explicit_observer_without_validator_intent_may_run_without_bft(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _clear_prod_env(monkeypatch)
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-prod")

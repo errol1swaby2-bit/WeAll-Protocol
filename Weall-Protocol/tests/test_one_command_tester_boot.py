@@ -30,8 +30,8 @@ def test_one_command_tester_node_installs_bundle_and_runtime_outside_repo() -> N
     assert "install_node_operator_onboarding_bundle.py" in script
     assert "verify_node_operator_onboarding_bundle.py" in script
     assert "${HOME}/.weall/tester-node" in script
-    assert "WEALL_DB_PATH=\"${RUNTIME_DIR}/observer.db\"" in script
-    assert "WEALL_TX_QUEUE_PATH=\"${RUNTIME_DIR}/observer_tx_queue.json\"" in script
+    assert 'WEALL_DB_PATH="${RUNTIME_DIR}/observer.db"' in script
+    assert 'WEALL_TX_QUEUE_PATH="${RUNTIME_DIR}/observer_tx_queue.json"' in script
     assert "WEALL_TX_UPSTREAM_URLS" in script
 
 

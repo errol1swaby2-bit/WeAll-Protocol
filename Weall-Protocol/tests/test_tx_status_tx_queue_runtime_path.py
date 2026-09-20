@@ -17,6 +17,18 @@ def test_public_tx_status_tx_queue_read_is_best_effort() -> None:
     assert "_tx_queue_record_for(_read_tx_queue_best_effort(), tx_id)" in tx
 
 
+def test_runtime_queue_defaults_stay_outside_repository_data_tree() -> None:
+    tx = _read("src/weall/api/routes_public_parts/tx.py")
+    poh = _read("src/weall/api/routes_public_parts/poh.py")
+
+    for src in (tx, poh):
+        assert 'or "data"' not in src
+        assert 'Path.home() / ".local" / "share" / "weall" / "runtime"' in src
+
+    assert '"observer_tx_queue.json"' in tx
+    assert '"webrtc_signal_bridge_tx_queue.json"' in poh
+
+
 def test_docker_genesis_runtime_paths_are_writable_volume_bound() -> None:
     compose = _read("docker-compose.genesis.yml")
 

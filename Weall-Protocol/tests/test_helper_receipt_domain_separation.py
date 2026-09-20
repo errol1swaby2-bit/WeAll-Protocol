@@ -24,29 +24,167 @@ def _mk_receipt():
 
 def test_helper_receipt_accepts_matching_domain() -> None:
     pub, receipt = _mk_receipt()
-    assert verify_helper_receipt(
-        receipt,
-        helper_pubkey=pub,
-        expected_chain_id="c1",
-        expected_height=10,
-        expected_validator_epoch=3,
-        expected_validator_set_hash="vh",
-        expected_parent_block_id="p1",
-        expected_lane_id="L1",
-        expected_helper_id="h1",
-        expected_plan_id="plan-1",
-        expected_ordered_tx_ids=("t1", "t2"),
-    ) is True
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is True
+    )
 
 
 def test_helper_receipt_rejects_domain_mismatches() -> None:
     pub, receipt = _mk_receipt()
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c2", expected_height=10, expected_validator_epoch=3, expected_validator_set_hash="vh", expected_parent_block_id="p1", expected_lane_id="L1", expected_helper_id="h1", expected_plan_id="plan-1", expected_ordered_tx_ids=("t1", "t2")) is False
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c1", expected_height=11, expected_validator_epoch=3, expected_validator_set_hash="vh", expected_parent_block_id="p1", expected_lane_id="L1", expected_helper_id="h1", expected_plan_id="plan-1", expected_ordered_tx_ids=("t1", "t2")) is False
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c1", expected_height=10, expected_validator_epoch=4, expected_validator_set_hash="vh", expected_parent_block_id="p1", expected_lane_id="L1", expected_helper_id="h1", expected_plan_id="plan-1", expected_ordered_tx_ids=("t1", "t2")) is False
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c1", expected_height=10, expected_validator_epoch=3, expected_validator_set_hash="other", expected_parent_block_id="p1", expected_lane_id="L1", expected_helper_id="h1", expected_plan_id="plan-1", expected_ordered_tx_ids=("t1", "t2")) is False
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c1", expected_height=10, expected_validator_epoch=3, expected_validator_set_hash="vh", expected_parent_block_id="p2", expected_lane_id="L1", expected_helper_id="h1", expected_plan_id="plan-1", expected_ordered_tx_ids=("t1", "t2")) is False
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c1", expected_height=10, expected_validator_epoch=3, expected_validator_set_hash="vh", expected_parent_block_id="p1", expected_lane_id="L2", expected_helper_id="h1", expected_plan_id="plan-1", expected_ordered_tx_ids=("t1", "t2")) is False
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c1", expected_height=10, expected_validator_epoch=3, expected_validator_set_hash="vh", expected_parent_block_id="p1", expected_lane_id="L1", expected_helper_id="h2", expected_plan_id="plan-1", expected_ordered_tx_ids=("t1", "t2")) is False
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c1", expected_height=10, expected_validator_epoch=3, expected_validator_set_hash="vh", expected_parent_block_id="p1", expected_lane_id="L1", expected_helper_id="h1", expected_plan_id="plan-2", expected_ordered_tx_ids=("t1", "t2")) is False
-    assert verify_helper_receipt(receipt, helper_pubkey=pub, expected_chain_id="c1", expected_height=10, expected_validator_epoch=3, expected_validator_set_hash="vh", expected_parent_block_id="p1", expected_lane_id="L1", expected_helper_id="h1", expected_plan_id="plan-1", expected_ordered_tx_ids=("t2", "t1")) is False
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c2",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is False
+    )
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=11,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is False
+    )
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=4,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is False
+    )
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="other",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is False
+    )
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p2",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is False
+    )
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L2",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is False
+    )
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h2",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is False
+    )
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-2",
+            expected_ordered_tx_ids=("t1", "t2"),
+        )
+        is False
+    )
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t2", "t1"),
+        )
+        is False
+    )

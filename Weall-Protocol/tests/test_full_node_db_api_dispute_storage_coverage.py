@@ -15,16 +15,40 @@ if str(ROOT / "scripts") not in sys.path:
 
 
 def _run_json(script: str) -> dict[str, Any]:
-    proc = subprocess.run([sys.executable, str(ROOT / "scripts" / script), "--json"], cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / script), "--json"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
     return json.loads(proc.stdout)
 
 
 def _proof() -> dict[str, Any]:
-    return json.loads((ROOT / "generated" / "b534_b538_completion_proof_v1_5.json").read_text(encoding="utf-8"))
+    return json.loads(
+        (ROOT / "generated" / "b534_b538_completion_proof_v1_5.json").read_text(encoding="utf-8")
+    )
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any] | None = None, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload or {}, sig="sig", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict[str, Any] | None = None,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload or {},
+        sig="sig",
+        system=system,
+        parent=parent,
+    )
 
 
 def test_full_node_process_validator_rehearsal_uses_fastapi_processes() -> None:
@@ -75,8 +99,17 @@ def test_dispute_appeal_remedy_can_reinstate_account_and_role_eligibility() -> N
     state: dict[str, Any] = {
         "height": 5,
         "accounts": {
-            "@target": {"poh_tier": 2, "restricted": True, "locked": True, "latest_restriction": "review"},
-            "@juror": {"poh_tier": 2, "dispute_juror_eligible": False, "dispute_juror_suspended_reason": "assigned_dispute_vote_missed"},
+            "@target": {
+                "poh_tier": 2,
+                "restricted": True,
+                "locked": True,
+                "latest_restriction": "review",
+            },
+            "@juror": {
+                "poh_tier": 2,
+                "dispute_juror_eligible": False,
+                "dispute_juror_suspended_reason": "assigned_dispute_vote_missed",
+            },
             "SYSTEM": {"poh_tier": 0},
         },
         "disputes_by_id": {
@@ -88,11 +121,45 @@ def test_dispute_appeal_remedy_can_reinstate_account_and_role_eligibility() -> N
                 "appeals": [{"by": "@target"}],
                 "assigned_jurors": ["@juror"],
                 "votes": {"@juror": {"vote": "yes"}},
-                "resolution": {"summary": "restrict", "actions": [{"tx_type": "ACCOUNT_RESTRICTION_SET", "payload": {"account_id": "@target", "restriction": "review"}}]},
+                "resolution": {
+                    "summary": "restrict",
+                    "actions": [
+                        {
+                            "tx_type": "ACCOUNT_RESTRICTION_SET",
+                            "payload": {"account_id": "@target", "restriction": "review"},
+                        }
+                    ],
+                },
             }
         },
     }
-    out = apply_dispute(state, _env("DISPUTE_FINAL_RECEIPT", "SYSTEM", 1, {"dispute_id": "d-remedy", "appeal_resolution": {"decision": "modify", "actions": [{"tx_type": "ACCOUNT_REINSTATE", "payload": {"account_id": "@target"}}, {"tx_type": "ROLE_ELIGIBILITY_SET", "payload": {"account_id": "@juror", "role": "dispute_juror", "eligible": True}}]}}, system=True, parent="d"))
+    out = apply_dispute(
+        state,
+        _env(
+            "DISPUTE_FINAL_RECEIPT",
+            "SYSTEM",
+            1,
+            {
+                "dispute_id": "d-remedy",
+                "appeal_resolution": {
+                    "decision": "modify",
+                    "actions": [
+                        {"tx_type": "ACCOUNT_REINSTATE", "payload": {"account_id": "@target"}},
+                        {
+                            "tx_type": "ROLE_ELIGIBILITY_SET",
+                            "payload": {
+                                "account_id": "@juror",
+                                "role": "dispute_juror",
+                                "eligible": True,
+                            },
+                        },
+                    ],
+                },
+            },
+            system=True,
+            parent="d",
+        ),
+    )
     assert out["applied"] == "DISPUTE_FINAL_RECEIPT"
     assert state["accounts"]["@target"]["restricted"] is False
     assert state["accounts"]["@target"]["locked"] is False
@@ -114,6 +181,8 @@ def test_storage_operator_durability_rehearses_failure_reassignment_and_retrieva
 def test_generated_proof_artifact_preserves_locks() -> None:
     proof = _proof()
     assert proof["ok"] is True
+    assert proof["freshness"]["mode"] == "deterministic_input_digest_v1"
+    assert len(proof["freshness"]["input_digest_sha256"]) == 64
     assert proof["validator_rehearsal"]["process_model"] == "actual_fastapi_uvicorn_processes"
     assert proof["replay_sync"]["source_db_backed"] is True
     assert proof["api_lifecycle"]["ok"] is True
@@ -124,3 +193,22 @@ def test_generated_proof_artifact_preserves_locks() -> None:
         "production_helpers": False,
         "public_validators": False,
     }
+
+
+def test_b534_freshness_check_is_deterministic_and_live_verification_is_explicit() -> None:
+    check = subprocess.run(
+        [sys.executable, "scripts/gen_b534_b538_completion_proof_v1_5.py", "--check"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert check.returncode == 0, check.stdout + check.stderr
+    live = subprocess.run(
+        [sys.executable, "scripts/gen_b534_b538_completion_proof_v1_5.py", "--verify-live"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert live.returncode == 0, live.stdout + live.stderr

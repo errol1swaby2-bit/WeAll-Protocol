@@ -4,7 +4,6 @@ from weall.runtime.helper_certificates import HelperExecutionCertificate, make_n
 from weall.runtime.parallel_execution import merge_helper_lane_results, plan_parallel_execution
 
 
-
 def _serial_executor(txs: list[dict]) -> tuple[list[dict], dict]:
     receipts = []
     for tx in txs:
@@ -19,14 +18,12 @@ def _serial_executor(txs: list[dict]) -> tuple[list[dict], dict]:
     return receipts, {"count": len(receipts)}
 
 
-
 def _make_tx(tx_id: str, tx_type: str, prefix: str) -> dict:
     return {
         "tx_id": tx_id,
         "tx_type": tx_type,
         "state_prefixes": [prefix],
     }
-
 
 
 def test_missing_helper_certificate_falls_back_to_serial_and_preserves_order() -> None:
@@ -58,7 +55,6 @@ def test_missing_helper_certificate_falls_back_to_serial_and_preserves_order() -
     )
     assert [rec["tx_id"] for rec in result.receipts] == ["t1", "t2"]
     assert all(rec["path"] == "serial" for rec in result.receipts)
-
 
 
 def test_invalid_namespace_certificate_is_rejected_and_serialized() -> None:
@@ -101,13 +97,16 @@ def test_invalid_namespace_certificate_is_rejected_and_serialized() -> None:
             "validator_epoch": 2,
             "validator_set_hash": "vh",
             "helper_receipts": {
-                lane.lane_id: [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "ok": True, "path": "helper"}]
+                lane.lane_id: [
+                    {"tx_id": "t1", "tx_type": "CONTENT_CREATE", "ok": True, "path": "helper"}
+                ]
             },
         },
     )
     assert result.receipts[0]["path"] == "serial"
-    assert any(decision.fallback_reason == "namespace_scope_invalid" for decision in result.lane_decisions)
-
+    assert any(
+        decision.fallback_reason == "namespace_scope_invalid" for decision in result.lane_decisions
+    )
 
 
 def test_helper_receipts_merge_deterministically_when_valid() -> None:

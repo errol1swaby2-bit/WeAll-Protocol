@@ -15,7 +15,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
         block_id=block_id,
         block_hash=f"{block_id}-h",
         parent_id=parent_id,
-        votes=tuple(),
+        votes=({"signer": "alice"},),
     )
 
 
@@ -122,12 +122,12 @@ def test_proposal_sender_budget_drops_third_distinct_proposal(monkeypatch) -> No
         proposal["block_hash"] = f"{block_id}-h"
         assert ex.bft_on_proposal(proposal) is None
 
-    assert calls == {"admit": 2}
+    assert calls == {"admit": 3}
     assert len(ex._recent_bft_sender_budgets) == 1
     assert ex._recent_bft_sender_budgets["alice"][1] == 2
 
 
-def test_qc_sender_budget_drops_third_distinct_qc() -> None:
+def test_qc_relay_does_not_charge_embedded_validator_sender_budget() -> None:
     ex = _make_executor()
     calls = {"verify": 0}
 
@@ -155,8 +155,8 @@ def test_qc_sender_budget_drops_third_distinct_qc() -> None:
         }
         assert ex.bft_on_qc(qcj) is None
 
-    assert calls == {"verify": 2}
-    assert ex._recent_bft_sender_budgets["alice"][1] == 2
+    assert calls == {"verify": 3}
+    assert ex._recent_bft_sender_budgets == {}
 
 
 def test_vote_sender_budget_is_fair_across_senders() -> None:
@@ -164,8 +164,10 @@ def test_vote_sender_budget_is_fair_across_senders() -> None:
     ex._bft_sender_budget_per_window = 1
     calls = {"accept_vote": 0}
 
-    def _accept_vote(self, *, vote_json, validators, vpub):
+    def _accept_vote(self, *, vote_json, validators, vpub, verified_admission=None):
         calls["accept_vote"] += 1
+        if verified_admission is not None and not verified_admission(dict(vote_json)):
+            return None
         return None
 
     ex._bft.accept_vote = MethodType(_accept_vote, ex._bft)
@@ -197,7 +199,7 @@ def test_vote_sender_budget_is_fair_across_senders() -> None:
     assert ex.bft_handle_vote(alice_vote_2) is None
     assert ex.bft_handle_vote(bob_vote) is None
 
-    assert calls == {"accept_vote": 2}
+    assert calls == {"accept_vote": 3}
     assert ex._recent_bft_sender_budgets["alice"][1] == 1
     assert ex._recent_bft_sender_budgets["bob"][1] == 1
 
@@ -206,8 +208,10 @@ def test_timeout_sender_budget_drops_third_distinct_timeout() -> None:
     ex = _make_executor()
     calls = {"accept_timeout": 0}
 
-    def _accept_timeout(self, *, timeout_json, validators, vpub):
+    def _accept_timeout(self, *, timeout_json, validators, vpub, verified_admission=None):
         calls["accept_timeout"] += 1
+        if verified_admission is not None and not verified_admission(dict(timeout_json)):
+            return None
         return None
 
     ex._bft.accept_timeout = MethodType(_accept_timeout, ex._bft)
@@ -226,5 +230,5 @@ def test_timeout_sender_budget_drops_third_distinct_timeout() -> None:
         }
         assert ex.bft_handle_timeout(timeout) is None
 
-    assert calls == {"accept_timeout": 2}
+    assert calls == {"accept_timeout": 3}
     assert ex._recent_bft_sender_budgets["alice"][1] == 2

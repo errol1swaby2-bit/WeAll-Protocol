@@ -195,7 +195,7 @@
     {
       "category": "generated",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
-      "match_count": 1,
+      "match_count": 2,
       "path": "generated/v2/source_coverage_map.json"
     },
     {
@@ -250,6 +250,12 @@
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "specs/v2/source/source_mappings.json"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "specs/v2/source/stable_ids.json"
     },
     {
@@ -298,6 +304,30 @@
       "category": "backend/runtime",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "src/weall/runtime/bft_outbound.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/bft_outbox_store.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/bft_runtime_adapter.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "src/weall/runtime/executor.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "src/weall/runtime/poh/evidence_lifecycle.py"
     },
     {
@@ -310,7 +340,19 @@
       "category": "backend/runtime",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "src/weall/runtime/sqlite_db.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "src/weall/runtime/tx_schema.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_ai_integrity_runtime_contracts.py"
     },
     {
       "category": "tests",
@@ -328,6 +370,12 @@
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "tests/test_fresh_ai_error_closure.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "tests/test_frontend_poh_media_and_live_room.py"
     },
     {
@@ -340,6 +388,18 @@
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "tests/test_helper_dispatch_and_receipt_safety.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_helper_nonce_reputation_safety.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "tests/test_m2_complete_security_and_lifecycle.py"
     },
     {
@@ -347,6 +407,18 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "tests/test_native_async_demo_scripts.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_pb001bam_inflight_local_bft_emission_branch_atomicity.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_pb001by_pacemaker_timeout_emission.py"
     },
     {
       "category": "tests",
@@ -375,6 +447,24 @@
     {
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_priority1_duplicate_bft_artifact_suppression.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_priority1_executor_restart_qc_recovery.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_priority1_pending_qc_cache_safety.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 2,
       "path": "tests/test_public_only_protocol_redesign.py"
     },
@@ -389,6 +479,12 @@
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
       "path": "tests/test_restricted_poh_session_and_webrtc_transport.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_state_sync_bft_branch_reset.py"
     }
   ],
   "inventory_classification": {
@@ -408,7 +504,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 58,
+  "inventory_hit_count": 74,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

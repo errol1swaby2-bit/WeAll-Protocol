@@ -21,10 +21,13 @@ from weall.runtime.bft_hotstuff import (
     QuorumCert,
 )
 from weall.runtime.bft_journal import BftJournal
+from weall.runtime.bft_outbox_store import BftOutboxStore
 from weall.runtime.block_admission import admit_bft_block, admit_bft_commit_block
+from weall.runtime.block_commitment_validation import ensure_complete_block_commitments
 from weall.runtime.block_hash import (
     RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT,
     ensure_block_hash,
+    ensure_canonical_block_hash,
 )
 from weall.runtime.chain_config import load_chain_config
 from weall.runtime.executor_boot import prepare_executor_init_paths
@@ -34,6 +37,7 @@ from weall.runtime.mempool import PersistentMempool
 from weall.runtime.protocol_profile import (
     PRODUCTION_CONSENSUS_PROFILE,
     PROTOCOL_VERSION,
+    STATE_ROOT_COMMITMENT_VERSION,
     runtime_clock_skew_warn_ms,
     runtime_max_block_future_drift_ms,
     runtime_startup_clock_hard_fail_ms,
@@ -380,6 +384,7 @@ class WeAllExecutor:
         node_id: str,
         chain_id: str,
         tx_index_path: str,
+        aux_db_path: str | None = None,
     ) -> None:
         self.node_id = str(node_id)
         self.chain_id = str(chain_id)
@@ -388,6 +393,7 @@ class WeAllExecutor:
         _init_paths = prepare_executor_init_paths(
             db_path=str(db_path),
             tx_index_path=self.tx_index_path,
+            aux_db_path=aux_db_path,
         )
         self.db_path = _init_paths.db_path
         db_file_existed_before_init = _init_paths.db_file_existed_before_init
@@ -414,6 +420,12 @@ class WeAllExecutor:
         if helper_fast_path_requested and not self._helper_mode_enabled_default:
             raise ExecutorError(
                 "helper fast path requires WEALL_HELPER_MODE_ENABLED=1. Refuse to start."
+            )
+        if _mode() == "prod" and helper_fast_path_requested:
+            raise ExecutorError(
+                "helper_fast_path_production_integration_not_ready: "
+                "the BFT leader proposal lifecycle does not yet collect/finalize helper "
+                "certificates before block construction"
             )
         self._helper_fast_path_enabled_default = bool(
             self._helper_mode_enabled_default and helper_fast_path_requested
@@ -454,6 +466,14 @@ class WeAllExecutor:
         )
         self._known_block_ids_by_hash: OrderedDict[str, str] = OrderedDict()
 
+        # Preserve the raw persisted duplicate timestamp only as startup diagnostic
+        # evidence. DB consistency immediately rebinds state["tip_ts_ms"] to the
+        # canonical persisted tip block so the duplicate can never influence
+        # consensus after restart.
+        self._startup_persisted_tip_ts_ms = _safe_int(self.state.get("tip_ts_ms"), 0)
+        self._startup_canonical_tip_ts_ms = self._startup_persisted_tip_ts_ms
+        self._startup_tip_ts_rebound = False
+
         # Fail-closed if on-disk DB invariants do not match the snapshot.
         self._check_db_consistency_fail_closed()
 
@@ -461,6 +481,9 @@ class WeAllExecutor:
         st_chain_id = str(self.state.get("chain_id") or "").strip()
         meta = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
         st_protocol_version = str(meta.get("protocol_version") or "").strip()
+        st_state_root_commitment_version = str(
+            meta.get("state_root_commitment_version") or ""
+        ).strip()
         st_profile_hash = str(meta.get("production_consensus_profile_hash") or "").strip()
         st_schema_version = str(meta.get("schema_version") or "").strip()
         st_tx_index_hash = str(meta.get("tx_index_hash") or "").strip()
@@ -540,6 +563,20 @@ class WeAllExecutor:
             raise ExecutorError(
                 f"protocol_version mismatch: db={st_protocol_version!r} binary={PROTOCOL_VERSION!r}. Refuse to start."
             )
+        if (
+            st_state_root_commitment_version
+            and st_state_root_commitment_version != STATE_ROOT_COMMITMENT_VERSION
+        ):
+            raise ExecutorError(
+                "state_root_commitment_version mismatch: "
+                f"db={st_state_root_commitment_version!r} "
+                f"binary={STATE_ROOT_COMMITMENT_VERSION!r}. Refuse to start."
+            )
+        if int(self.state.get("height") or 0) > 0 and not st_state_root_commitment_version:
+            raise ExecutorError(
+                "state_root_commitment_version missing on committed ledger; "
+                "pre-v2 state-root databases require an explicit prelaunch rebuild/migration"
+            )
         if st_profile_hash and st_profile_hash != expected_profile_hash:
             raise ExecutorError(
                 f"production_consensus_profile_hash mismatch: db={st_profile_hash!r} binary={expected_profile_hash!r}. Refuse to start."
@@ -613,6 +650,7 @@ class WeAllExecutor:
             meta = {}
             self.state["meta"] = meta
         meta.setdefault("protocol_version", PROTOCOL_VERSION)
+        meta.setdefault("state_root_commitment_version", STATE_ROOT_COMMITMENT_VERSION)
         meta["production_consensus_profile"] = PRODUCTION_CONSENSUS_PROFILE.to_json()
         meta["production_consensus_profile_hash"] = expected_profile_hash
         meta.setdefault("schema_version", self._schema_version_cached)
@@ -635,10 +673,18 @@ class WeAllExecutor:
             PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required
         )
         meta["startup_clock_hard_fail_ms"] = STARTUP_CLOCK_HARD_FAIL_MS
-        self._startup_clock_observer_required = False
-        self._startup_clock_observer_reason = ""
+        persisted_clock_warning = (
+            meta.get("clock_warning") if isinstance(meta.get("clock_warning"), dict) else {}
+        )
+        self._startup_clock_observer_required = bool(
+            _mode() == "prod" and bool(persisted_clock_warning.get("observer_mode_forced", False))
+        )
+        self._startup_clock_observer_reason = (
+            "clock_skew_warning" if self._startup_clock_observer_required else ""
+        )
         if (
             not st_chain_id
+            or not st_state_root_commitment_version
             or not st_profile_hash
             or not st_schema_version
             or not st_tx_index_hash
@@ -659,17 +705,32 @@ class WeAllExecutor:
             self._ledger_store.write(self.state)
 
         wall_now_ms = _now_ms()
-        tip_ts_ms = _safe_int(self.state.get("tip_ts_ms"), 0)
-        clock_skew_ahead_ms = max(0, int(tip_ts_ms) - int(wall_now_ms)) if tip_ts_ms > 0 else 0
+        canonical_tip_ts_ms = _safe_int(self.state.get("tip_ts_ms"), 0)
+        persisted_tip_ts_ms = _safe_int(
+            getattr(self, "_startup_persisted_tip_ts_ms", canonical_tip_ts_ms),
+            canonical_tip_ts_ms,
+        )
+        # Consensus consumes only the rebound canonical timestamp. The raw
+        # persisted duplicate remains diagnostic-only, but catastrophic future
+        # corruption must still force the operator-safe observer posture instead
+        # of disappearing during canonicalization.
+        diagnostic_tip_ts_ms = max(int(canonical_tip_ts_ms), int(persisted_tip_ts_ms))
+        clock_skew_ahead_ms = (
+            max(0, int(diagnostic_tip_ts_ms) - int(wall_now_ms)) if diagnostic_tip_ts_ms > 0 else 0
+        )
         catastrophic_skew = bool(clock_skew_ahead_ms > STARTUP_CLOCK_HARD_FAIL_MS)
         if clock_skew_ahead_ms > CLOCK_SKEW_WARN_MS:
-            self._startup_clock_observer_required = bool(_mode() == "prod" and catastrophic_skew)
-            self._startup_clock_observer_reason = (
-                "clock_skew_ahead" if self._startup_clock_observer_required else ""
-            )
+            current_clock_observer_required = bool(_mode() == "prod" and catastrophic_skew)
+            if current_clock_observer_required:
+                self._startup_clock_observer_required = True
+                self._startup_clock_observer_reason = "clock_skew_ahead"
             meta["clock_warning"] = {
                 "wall_now_ms": int(wall_now_ms),
-                "tip_ts_ms": int(tip_ts_ms),
+                "tip_ts_ms": int(canonical_tip_ts_ms),
+                "canonical_tip_ts_ms": int(canonical_tip_ts_ms),
+                "persisted_tip_ts_ms": int(persisted_tip_ts_ms),
+                "diagnostic_tip_ts_ms": int(diagnostic_tip_ts_ms),
+                "tip_ts_rebound": bool(getattr(self, "_startup_tip_ts_rebound", False)),
                 "skew_ms": int(clock_skew_ahead_ms),
                 "warning_threshold_ms": int(CLOCK_SKEW_WARN_MS),
                 "startup_hard_fail_threshold_ms": int(STARTUP_CLOCK_HARD_FAIL_MS),
@@ -681,6 +742,10 @@ class WeAllExecutor:
                 "observer_mode_forced": bool(self._startup_clock_observer_required),
                 "consensus_impact": "operator_warning_only",
             }
+            self._ledger_store.write(self.state)
+        elif bool(getattr(self, "_startup_tip_ts_rebound", False)):
+            # Persist the canonical rebound even when the discarded duplicate was
+            # not far enough ahead to warrant a clock warning.
             self._ledger_store.write(self.state)
 
         # Back-compat / migration: ensure tip fields exist.
@@ -696,6 +761,19 @@ class WeAllExecutor:
         # Canon tx index.
         self.tx_index: TxIndex = TxIndex.load_from_file(self.tx_index_path)
 
+        # Process-local canonical-branch generation. Destructive checkpoint
+        # replacement increments this after branch-local BFT truth is purged so
+        # long-lived networking/resource guards can invalidate their own
+        # branch-scoped acceptance caches without persisting a wall-clock or
+        # transport-derived branch identity.
+        self._bft_branch_generation: int = 0
+        # Serialize destructive checkpoint replacement against every public BFT
+        # mutation/read used by networking and every canonical ledger mutation.
+        # A checkpoint's branch decision, BFT reset, ledger install, block commit,
+        # and in-memory publication must belong to one process-local ordering
+        # domain so no old-branch work can commit after a newer branch is adopted.
+        self._bft_branch_lock = threading.RLock()
+
         # BFT engine (HotStuff)
         self._bft = HotStuffBFT(chain_id=self.chain_id)
         self._bft.load_from_state(self.state)
@@ -705,12 +783,39 @@ class WeAllExecutor:
         self._bft.timeout_backoff_cap = max(
             0, _safe_int(os.environ.get("WEALL_BFT_TIMEOUT_BACKOFF_CAP"), 4)
         )
+        self._bft_restart_safety_ok = self._bft.revalidate_safety_proofs(
+            validators=self._active_validators(),
+            vpub=self._validator_pubkeys(),
+            validator_epoch=self._current_validator_epoch(),
+            validator_set_hash_expected=self._current_validator_set_hash(),
+            strict_epoch_binding=self._bft_strict_epoch_binding_enabled(),
+        )
+        self._bft.revalidate_liveness_proof(
+            validators=self._active_validators(),
+            vpub=self._validator_pubkeys(),
+            validator_epoch=self._current_validator_epoch(),
+            validator_set_hash_expected=self._current_validator_set_hash(),
+        )
 
         journal_path = os.environ.get("WEALL_BFT_JOURNAL_PATH") or f"{db_path}.bft_journal.jsonl"
         self._bft_journal = BftJournal(
             path=str(journal_path),
             max_events=_safe_int(os.environ.get("WEALL_BFT_JOURNAL_MAX_EVENTS"), 2000),
         )
+        # A checkpoint install is a canonical branch boundary. If the process
+        # crashed after committing the ledger checkpoint but before clearing the
+        # separate auxiliary BFT DB, reconcile it before restoring any durable
+        # outbox/frontier state or journal restart hints.
+        self._reconcile_aux_bft_checkpoint_reset()
+        self._bft_outbox_store = BftOutboxStore(
+            db=self._aux_db,
+            max_pending=max(1, _safe_int(os.environ.get("WEALL_BFT_OUTBOX_MAX_PENDING"), 10_000)),
+        )
+        if not self._bft_outbox_store.legacy_migration_complete():
+            legacy_restart = self._bft_journal.bootstrap_state(strict=True)
+            self._bft_outbox_store.import_legacy_pending_once(
+                list(legacy_restart.get("pending_outbound") or [])
+            )
         helper_lane_dir = str(os.environ.get("WEALL_HELPER_LANE_JOURNAL_DIR") or "").strip()
         if helper_lane_dir:
             self._helper_lane_journal_dir = helper_lane_dir
@@ -822,6 +927,8 @@ class WeAllExecutor:
         self._proposal_validation_semaphore = threading.BoundedSemaphore(
             self._proposal_validation_limit
         )
+        self._votecheck_lock = threading.RLock()
+        self._spec_exec_slot_seq: int = 0
         self._proposal_peer_budget_window_ms: int = max(
             100, _safe_int(os.environ.get("WEALL_BFT_VOTECHECK_PEER_WINDOW_MS"), 1000)
         )
@@ -854,6 +961,11 @@ class WeAllExecutor:
             1, _safe_int(os.environ.get("WEALL_BFT_RECENT_TIMEOUTS"), 4096)
         )
         self._recent_bft_timeouts: OrderedDict[str, int] = OrderedDict()
+        # Raw transport-shape aliases are recorded only after authenticated
+        # runtime admission. They are branch-local acceptance evidence and must
+        # be reset alongside the canonical BFT duplicate-suppression caches.
+        self._max_recent_bft_admission_aliases: int = int(self._max_recent_bft_proposals)
+        self._recent_bft_admission_aliases: OrderedDict[str, int] = OrderedDict()
         self._max_recent_bft_sender_budgets: int = max(
             1, _safe_int(os.environ.get("WEALL_BFT_RECENT_SENDERS"), 4096)
         )
@@ -907,6 +1019,7 @@ class WeAllExecutor:
         self._validator_signing_enabled: bool = True
         self._observer_mode_forced: bool = False
         self._signing_block_reason: str = ""
+        self._post_commit_housekeeping_error: str = ""
         self._node_lifecycle_effective_state: str = ""
         self._service_roles_effective: tuple[str, ...] = ()
         self._helper_mode_enabled_effective: bool = False
@@ -1003,11 +1116,6 @@ class WeAllExecutor:
 
         return _impl._effective_signing_block_reason(self)
 
-    def _pytest_local_missing_vrf_allowed(self) -> bool:
-        from weall.runtime import runtime_posture as _impl
-
-        return _impl._pytest_local_missing_vrf_allowed(self)
-
     def _explicit_validator_signing_override(self) -> bool:
         from weall.runtime import runtime_posture as _impl
 
@@ -1032,6 +1140,155 @@ class WeAllExecutor:
         from weall.runtime import bft_runtime_adapter as _impl
 
         return _impl._restore_bft_restart_hints(self)
+
+    def _ledger_checkpoint_block_hash(self) -> str:
+        try:
+            with self._db.connection() as con:
+                row = con.execute(
+                    "SELECT value FROM meta WHERE key='checkpoint_block_hash' LIMIT 1;"
+                ).fetchone()
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_marker_read_failed") from exc
+        if row is None:
+            return ""
+        try:
+            return str(row["value"] or "").strip()
+        except Exception:
+            try:
+                return str(row[0] or "").strip()
+            except Exception:
+                return ""
+
+    def _reset_aux_bft_state_for_checkpoint(self, *, checkpoint_hash: str) -> None:
+        checkpoint = str(checkpoint_hash or "").strip()
+        if not checkpoint:
+            raise ExecutorError("state_sync_checkpoint_bft_reset_hash_missing")
+        try:
+            with self._aux_db.write_tx() as con:
+                # The auxiliary DB owns branch-local ingress/recovery state. A
+                # destructive checkpoint invalidates every artifact tied to the
+                # discarded branch, not only HotStuff frontier/outbox rows.
+                con.execute("DELETE FROM bft_pending_artifacts;")
+                con.execute("DELETE FROM bft_outbox;")
+                con.execute("DELETE FROM attestations;")
+                con.execute(
+                    "INSERT INTO meta(key, value) VALUES('state_sync_bft_reset_checkpoint_hash', ?) "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value;",
+                    (checkpoint,),
+                )
+                # Version the auxiliary reset contract so nodes upgraded from a
+                # build that only purged BFT rows do not trust an old matching
+                # checkpoint marker while stale attestations remain present.
+                con.execute(
+                    "INSERT INTO meta(key, value) VALUES('state_sync_aux_branch_reset_version', '2') "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value;"
+                )
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_aux_bft_reset_failed") from exc
+
+    def _reconcile_aux_bft_checkpoint_reset(self) -> bool:
+        checkpoint = self._ledger_checkpoint_block_hash()
+        if not checkpoint:
+            return False
+        try:
+            with self._aux_db.connection() as con:
+                row = con.execute(
+                    "SELECT value FROM meta "
+                    "WHERE key='state_sync_bft_reset_checkpoint_hash' LIMIT 1;"
+                ).fetchone()
+                version_row = con.execute(
+                    "SELECT value FROM meta "
+                    "WHERE key='state_sync_aux_branch_reset_version' LIMIT 1;"
+                ).fetchone()
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_aux_bft_marker_read_failed") from exc
+        marker = ""
+        if row is not None:
+            try:
+                marker = str(row["value"] or "").strip()
+            except Exception:
+                try:
+                    marker = str(row[0] or "").strip()
+                except Exception:
+                    marker = ""
+        reset_version = ""
+        if version_row is not None:
+            try:
+                reset_version = str(version_row["value"] or "").strip()
+            except Exception:
+                try:
+                    reset_version = str(version_row[0] or "").strip()
+                except Exception:
+                    reset_version = ""
+        if marker == checkpoint and reset_version == "2":
+            return False
+
+        # Journal reset is written first. If the process crashes before the aux
+        # transaction below commits, startup still sees a marker mismatch and
+        # retries the purge; if it crashes after the aux commit, restart hints
+        # have already been separated from the discarded branch.
+        try:
+            self._bft_journal.append(
+                "bft_checkpoint_reset",
+                chain_id=self.chain_id,
+                node_id=self.node_id,
+                checkpoint_hash=checkpoint,
+            )
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_bft_journal_reset_failed") from exc
+        self._reset_aux_bft_state_for_checkpoint(checkpoint_hash=checkpoint)
+        return True
+
+    def _clear_in_memory_bft_branch_state(self) -> None:
+        # Every cache below is branch-local or derived from branch-local BFT
+        # artifacts. None may survive destructive checkpoint replacement.
+        for name in (
+            "_known_block_hashes",
+            "_known_block_ids_by_hash",
+            "_pending_candidates",
+            "_pending_candidate_ids_by_hash",
+            "_pending_remote_blocks",
+            "_pending_remote_block_ids_by_hash",
+            "_quarantined_remote_blocks",
+            "_quarantined_remote_block_ids_by_hash",
+            "_pending_missing_qcs",
+            "_pending_missing_qcs_by_hash",
+            "_conflicted_block_ids",
+            "_conflicted_block_hashes",
+            "_votecheck_cache",
+            "_proposal_peer_budget",
+            "_recent_bft_proposals",
+            "_recent_bft_qcs",
+            "_recent_bft_votes",
+            "_recent_bft_timeouts",
+            "_recent_bft_admission_aliases",
+            "_recent_bft_sender_budgets",
+        ):
+            cache = getattr(self, name, None)
+            clear = getattr(cache, "clear", None)
+            if callable(clear):
+                clear()
+        self._missing_parent_fetch_cursor = 0
+        self._missing_qc_fetch_cursor = 0
+        self._bft_branch_generation = (
+            max(0, int(getattr(self, "_bft_branch_generation", 0) or 0)) + 1
+        )
+
+    def _reset_bft_branch_state_for_checkpoint(self, *, checkpoint_hash: str) -> None:
+        checkpoint = str(checkpoint_hash or "").strip()
+        if not checkpoint:
+            raise ExecutorError("state_sync_checkpoint_bft_reset_hash_missing")
+        try:
+            self._bft_journal.append(
+                "bft_checkpoint_reset",
+                chain_id=self.chain_id,
+                node_id=self.node_id,
+                checkpoint_hash=checkpoint,
+            )
+        except Exception as exc:
+            raise ExecutorError("state_sync_checkpoint_bft_journal_reset_failed") from exc
+        self._reset_aux_bft_state_for_checkpoint(checkpoint_hash=checkpoint)
+        self._clear_in_memory_bft_branch_state()
 
     def _bft_record_event(self, event: str, **payload: Any) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
@@ -1069,6 +1326,13 @@ class WeAllExecutor:
         from weall.runtime import bft_runtime_adapter as _impl
 
         return _impl.bft_mark_outbound_sent(self, kind, payload)
+
+    def bft_send_local_artifact_if_current(self, kind: str, payload: Json, send_fn) -> bool:
+        """Serialize local consensus emission against destructive branch replacement."""
+        from weall.runtime import bft_runtime_adapter as _impl
+
+        with self._bft_branch_guard_lock():
+            return bool(_impl.bft_send_local_artifact_if_current(self, kind, payload, send_fn))
 
     def bft_pending_outbound_messages(self) -> list[Json]:
         from weall.runtime import bft_runtime_adapter as _impl
@@ -1126,25 +1390,61 @@ class WeAllExecutor:
                 "Refuse to start."
             )
 
-        blk = self.get_block_by_height(st_h)
+        try:
+            blk = self.get_block_by_height(st_h)
+        except Exception as exc:
+            raise ExecutorError(
+                "db_invariant_violation: persisted tip block hash binding is invalid. Refuse to start."
+            ) from exc
         if blk is None:
             raise ExecutorError(
                 f"db_invariant_violation: snapshot height {st_h} has no persisted block. Refuse to start."
             )
 
         try:
-            blk2, bh = ensure_block_hash(blk)
+            blk2, binding = ensure_complete_block_commitments(block=blk, chain_id=self.chain_id)
+            bh = binding.block_hash
             st_tip_hash = str(self.state.get("tip_hash") or "").strip()
             if st_tip_hash and st_tip_hash != str(bh):
                 raise ExecutorError(
                     "db_invariant_violation: snapshot tip_hash does not match persisted block hash. Refuse to start."
                 )
+
+            header = blk2.get("header") if isinstance(blk2.get("header"), dict) else {}
+            committed_state_root = str(header.get("state_root") or "").strip()
+            if not committed_state_root:
+                raise ExecutorError(
+                    "db_invariant_violation: persisted tip block is missing state_root. Refuse to start."
+                )
+            from weall.runtime.state_hash import compute_state_root
+
+            snapshot_state_root = str(compute_state_root(self.state) or "").strip()
+            if snapshot_state_root != committed_state_root:
+                raise ExecutorError(
+                    "db_invariant_violation: snapshot state_root does not match persisted tip block state_root. Refuse to start."
+                )
+
             if not st_tip_hash:
                 self.state["tip_hash"] = str(bh)
-            if not _safe_int(self.state.get("tip_ts_ms"), 0):
-                self.state["tip_ts_ms"] = _safe_int(
-                    blk2.get("block_ts_ms") or blk2.get("created_ms"), 0
-                )
+            # tip_ts_ms is intentionally excluded from the state root, but legacy
+            # clock modes consume it. Never trust a duplicate persisted value:
+            # bind it unconditionally to the canonical persisted tip block. Keep
+            # any disagreement only in startup-only diagnostic fields so a corrupt
+            # future timestamp can still trigger the observer safety posture.
+            canonical_tip_ts_ms = _safe_int(blk2.get("block_ts_ms") or blk2.get("created_ms"), 0)
+            persisted_tip_ts_ms = _safe_int(
+                getattr(
+                    self,
+                    "_startup_persisted_tip_ts_ms",
+                    self.state.get("tip_ts_ms"),
+                ),
+                0,
+            )
+            self._startup_canonical_tip_ts_ms = int(canonical_tip_ts_ms)
+            self._startup_tip_ts_rebound = bool(
+                int(persisted_tip_ts_ms) != int(canonical_tip_ts_ms)
+            )
+            self.state["tip_ts_ms"] = int(canonical_tip_ts_ms)
         except ExecutorError:
             raise
         except Exception:
@@ -1192,6 +1492,11 @@ class WeAllExecutor:
         from weall.runtime import diagnostics as _impl
 
         return _impl.get_tx_status(self, tx_id)
+
+    def read_cached_state(self) -> Json:
+        from weall.runtime import diagnostics as _impl
+
+        return _impl.read_cached_state(self)
 
     def read_state(self) -> Json:
         from weall.runtime import diagnostics as _impl
@@ -1299,7 +1604,7 @@ class WeAllExecutor:
         context = self._submit_context_for_ingress(ingress)
         state = self.read_state()
         ledger = LedgerView.from_ledger(state)
-        current_height = _safe_int(self.state.get("height"), 0)
+        current_height = _safe_int(state.get("height"), 0)
 
         pending_cursors: dict[str, int] = {}
         chain_nonces: dict[str, int] = {}
@@ -1440,6 +1745,7 @@ class WeAllExecutor:
         context = self._submit_context_for_ingress(ingress)
 
         state = self.read_state()
+        admission_height = _safe_int(state.get("height"), 0)
         ledger = LedgerView.from_ledger(state)
         verdict = admit_tx(tx=env, ledger=ledger, canon=self.tx_index, context=context)
         if (
@@ -1473,7 +1779,7 @@ class WeAllExecutor:
                 "details": verdict.details,
             }
 
-        return self._mempool.add(env, current_height=_safe_int(self.state.get("height"), 0))
+        return self._mempool.add(env, current_height=int(admission_height))
 
     def submit_attestation(self, env: Json) -> Json:
         if not isinstance(env, dict):
@@ -1508,14 +1814,18 @@ class WeAllExecutor:
                 "details": {"signer": signer, "payload_validator": payload_validator},
             }
 
-        normalized_payload = dict(payload)
-        normalized_payload["validator"] = signer
+        # Preserve the exact signed payload. ``payload.validator`` is optional;
+        # when present it must match the signer, but omission must not cause the
+        # executor to mutate the signed transaction before re-verification.
         normalized = dict(env)
-        normalized["payload"] = normalized_payload
-        normalized["block_id"] = str(
-            normalized_payload.get("block_id") or normalized_payload.get("id") or ""
-        ).strip()
-        return self._att_pool.add(normalized)
+        normalized["payload"] = dict(payload)
+
+        # BLOCK_ATTEST is a canonical validator transaction, not a separate
+        # local-only consensus message.  Route it through the same persistent
+        # mempool/admission path as every other user transaction so nonce
+        # uniqueness, tx-id derivation, deterministic selection, restart, and
+        # block replay share one authority boundary.
+        return self.submit_tx(normalized, ingress="http")
 
     # ----------------------------
     # Simple block producer (SQLite-backed)
@@ -1595,7 +1905,8 @@ class WeAllExecutor:
     ) -> ExecutorMeta:
         from weall.runtime import block_builder as _impl
 
-        return _impl.produce_block(self, max_txs=max_txs, allow_empty=allow_empty)
+        with self._bft_branch_guard_lock():
+            return _impl.produce_block(self, max_txs=max_txs, allow_empty=allow_empty)
 
     # ----------------------------
     # Block candidate builder (proposal)
@@ -1609,17 +1920,22 @@ class WeAllExecutor:
         force_ts_ms: int | None = None,
         helper_certificates: dict[str, HelperExecutionCertificate] | None = None,
         helper_receipts_by_lane: dict[str, list[Json]] | None = None,
+        bft_justify_qc: Json | None = None,
+        proposer: str = "",
     ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
         from weall.runtime import block_builder as _impl
 
-        return _impl.build_block_candidate(
-            self,
-            max_txs=max_txs,
-            allow_empty=allow_empty,
-            force_ts_ms=force_ts_ms,
-            helper_certificates=helper_certificates,
-            helper_receipts_by_lane=helper_receipts_by_lane,
-        )
+        with self._bft_branch_guard_lock():
+            return _impl.build_block_candidate(
+                self,
+                max_txs=max_txs,
+                allow_empty=allow_empty,
+                force_ts_ms=force_ts_ms,
+                helper_certificates=helper_certificates,
+                helper_receipts_by_lane=helper_receipts_by_lane,
+                bft_justify_qc=bft_justify_qc,
+                proposer=proposer,
+            )
 
     # ----------------------------
     # Commit candidate
@@ -1635,9 +1951,14 @@ class WeAllExecutor:
     ) -> ExecutorMeta:
         from weall.runtime import block_commit as _impl
 
-        return _impl.commit_block_candidate(
-            self, block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids
-        )
+        with self._bft_branch_guard_lock():
+            return _impl.commit_block_candidate(
+                self,
+                block=block,
+                new_state=new_state,
+                applied_ids=applied_ids,
+                invalid_ids=invalid_ids,
+            )
 
     # ----------------------------
     # Apply a received block (network / sync)
@@ -1646,7 +1967,8 @@ class WeAllExecutor:
     def apply_block(self, block: Json) -> ExecutorMeta:
         from weall.runtime import block_replay as _impl
 
-        return _impl.apply_block(self, block)
+        with self._bft_branch_guard_lock():
+            return _impl.apply_block(self, block)
 
     # ----------------------------
     # Network-facing BFT adapters
@@ -1757,30 +2079,72 @@ class WeAllExecutor:
 
         return _impl._bft_artifact_shape_fast_fail(self, kind, payload)
 
+    def bft_artifact_dedupe_key(self, kind: str, artifact: Json) -> str:
+        from weall.runtime import bft_runtime_adapter as _impl
+
+        with self._bft_branch_guard_lock():
+            return _impl.bft_artifact_dedupe_key(self, kind, artifact)
+
+    def bft_artifact_was_accepted(self, kind: str, artifact: Json) -> bool:
+        from weall.runtime import bft_runtime_adapter as _impl
+
+        with self._bft_branch_guard_lock():
+            return _impl.bft_artifact_was_accepted(self, kind, artifact)
+
+    def bft_run_postauth_side_effect_if_current(
+        self,
+        kind: str,
+        artifact: Json,
+        side_effect,
+    ) -> bool:
+        """Serialize inbound post-auth BFT effects against branch replacement."""
+        from weall.runtime import bft_runtime_adapter as _impl
+
+        with self._bft_branch_guard_lock():
+            return bool(
+                _impl.bft_run_postauth_side_effect_if_current(
+                    self,
+                    kind,
+                    artifact,
+                    side_effect,
+                )
+            )
+
     def bft_on_proposal(self, proposal: Json) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_on_proposal(self, proposal)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_on_proposal(self, proposal)
 
     def bft_on_vote(self, vote: Json) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_on_vote(self, vote)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_on_vote(self, vote)
 
     def bft_on_qc(self, qcj: Json) -> ExecutorMeta | None:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_on_qc(self, qcj)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_on_qc(self, qcj)
 
-    def bft_on_timeout(self, timeoutj: Json) -> Json | None:
+    def bft_on_timeout(self, timeoutj: Json) -> int | None:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_on_timeout(self, timeoutj)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_on_timeout(self, timeoutj)
+
+    def bft_timeout_was_accepted(self, timeoutj: Json) -> bool:
+        from weall.runtime import bft_runtime_adapter as _impl
+
+        with self._bft_branch_guard_lock():
+            return _impl.bft_timeout_was_accepted(self, timeoutj)
 
     def bft_drive_timeouts(self, now_ms: int) -> list[Json]:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_drive_timeouts(self, now_ms)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_drive_timeouts(self, now_ms)
 
     # ----------------------------
     # BFT helpers
@@ -1950,10 +2314,10 @@ class WeAllExecutor:
 
         return _impl._qc_identity_conflicts(self, qcj, source=source)
 
-    def _block_identity_conflicts(self, block: Json) -> bool:
+    def _block_identity_conflicts(self, block: Json, *, record_conflicts: bool = True) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl._block_identity_conflicts(self, block)
+        return _impl._block_identity_conflicts(self, block, record_conflicts=record_conflicts)
 
     def _block_height_hint(self, block: Json) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
@@ -2130,10 +2494,30 @@ class WeAllExecutor:
 
         return _impl.bft_diagnostics(self)
 
-    def bft_cache_remote_block(self, block_json: Json) -> bool:
+    def bft_cache_remote_block(
+        self,
+        block_json: Json,
+        *,
+        expected_block_hash: str = "",
+        expected_branch_generation: int | None = None,
+    ) -> bool:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_cache_remote_block(self, block_json)
+        with self._bft_branch_guard_lock():
+            # A network fetch descriptor is branch-local identity truth. Recheck
+            # its process-local generation only after acquiring the same lock used
+            # by destructive checkpoint replacement, closing the last TOCTOU gap
+            # between a network-side generation check and cache mutation.
+            if (
+                expected_branch_generation is not None
+                and int(expected_branch_generation) != self.bft_branch_generation()
+            ):
+                return False
+            return _impl.bft_cache_remote_block(
+                self,
+                block_json,
+                expected_block_hash=expected_block_hash,
+            )
 
     def _ensure_pending_fetch_budgets(self) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
@@ -2175,20 +2559,43 @@ class WeAllExecutor:
 
         return _impl.bft_recent_rejection_summary(self, limit=limit)
 
+    def _bft_branch_guard_lock(self) -> threading.RLock:
+        """Return the process-local canonical-branch mutation lock.
+
+        The historical name is retained because BFT replacement introduced this
+        guard, but the same lock now serializes canonical ledger commit/replay and
+        destructive state-sync publication. Production executors create it during
+        ``__init__``. A few focused security tests intentionally construct a
+        minimal executor with ``__new__``; lazily creating the same lock there
+        preserves those harnesses without weakening the initialized runtime path.
+        """
+        lock = getattr(self, "_bft_branch_lock", None)
+        if lock is None:
+            lock = threading.RLock()
+            self._bft_branch_lock = lock
+        return lock
+
+    def bft_branch_generation(self) -> int:
+        """Return the process-local destructive-checkpoint branch generation."""
+        return max(0, int(getattr(self, "_bft_branch_generation", 0) or 0))
+
     def bft_current_view(self) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_current_view(self)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_current_view(self)
 
     def bft_current_validator_epoch(self) -> int:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_current_validator_epoch(self)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_current_validator_epoch(self)
 
     def bft_current_validator_set_hash(self) -> str:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_current_validator_set_hash(self)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_current_validator_set_hash(self)
 
     def bft_set_view(self, view: int) -> None:
         from weall.runtime import bft_runtime_adapter as _impl
@@ -2223,7 +2630,8 @@ class WeAllExecutor:
     def bft_leader_propose(self, *, max_txs: int = 1000) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_leader_propose(self, max_txs=max_txs)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_leader_propose(self, max_txs=max_txs)
 
     def bft_handle_vote(self, vote_json: Json) -> QuorumCert | None:
         from weall.runtime import bft_runtime_adapter as _impl
@@ -2257,7 +2665,8 @@ class WeAllExecutor:
     def bft_timeout_check(self) -> Json | None:
         from weall.runtime import bft_runtime_adapter as _impl
 
-        return _impl.bft_timeout_check(self)
+        with self._bft_branch_guard_lock():
+            return _impl.bft_timeout_check(self)
 
     # ----------------------------
     # Block + history APIs
@@ -2282,7 +2691,8 @@ class WeAllExecutor:
                 return None
             blk = json.loads(str(row["block_json"]))
             if isinstance(blk, dict):
-                blk, bh = ensure_block_hash(blk)
+                blk, binding = ensure_complete_block_commitments(block=blk, chain_id=self.chain_id)
+                bh = binding.block_hash
                 self._cache_known_block_hash(str(blk.get("block_id") or ""), str(bh))
             return blk
 
@@ -2295,7 +2705,8 @@ class WeAllExecutor:
                 return None
             blk = json.loads(str(row["block_json"]))
             if isinstance(blk, dict):
-                blk, bh = ensure_block_hash(blk)
+                blk, binding = ensure_complete_block_commitments(block=blk, chain_id=self.chain_id)
+                bh = binding.block_hash
                 self._cache_known_block_hash(str(blk.get("block_id") or ""), str(bh))
             return blk
 
@@ -2308,7 +2719,8 @@ class WeAllExecutor:
                 return None
             blk = json.loads(str(row["block_json"]))
             if isinstance(blk, dict):
-                blk, bh = ensure_block_hash(blk)
+                blk, binding = ensure_complete_block_commitments(block=blk, chain_id=self.chain_id)
+                bh = binding.block_hash
                 self._cache_known_block_hash(str(blk.get("block_id") or ""), str(bh))
             return blk
 
@@ -2342,6 +2754,25 @@ class WeAllExecutor:
         trusted_anchor: Json | None = None,
         allow_snapshot_bootstrap: bool = False,
     ) -> list[ExecutorMeta]:
+        # State-sync can be invoked by an API worker while the dedicated network
+        # thread is concurrently processing HotStuff messages.  Serialize the
+        # whole verified apply operation with public BFT mutation/read surfaces
+        # so a destructive checkpoint cannot race local signing or branch-local
+        # ingress between its safety guard and reset/rebuild.
+        with self._bft_branch_guard_lock():
+            return self._apply_state_sync_response_locked(
+                resp,
+                trusted_anchor=trusted_anchor,
+                allow_snapshot_bootstrap=allow_snapshot_bootstrap,
+            )
+
+    def _apply_state_sync_response_locked(
+        self,
+        resp: StateSyncResponseMsg,
+        *,
+        trusted_anchor: Json | None = None,
+        allow_snapshot_bootstrap: bool = False,
+    ) -> list[ExecutorMeta]:
         """Verify and deterministically apply a state-sync response.
 
         Safety properties:
@@ -2356,6 +2787,10 @@ class WeAllExecutor:
         if not isinstance(resp, StateSyncResponseMsg):
             raise ExecutorError("bad_state_sync_response_type")
 
+        post_commit_error = str(getattr(self, "_post_commit_housekeeping_error", "") or "")
+        if post_commit_error:
+            raise ExecutorError(f"executor_unhealthy:{post_commit_error}")
+
         svc = self._state_sync_service()
         try:
             svc.verify_response(resp, trusted_anchor=trusted_anchor)
@@ -2368,15 +2803,132 @@ class WeAllExecutor:
         if resp.snapshot is not None:
             if not allow_snapshot_bootstrap:
                 raise ExecutorError("state_sync_snapshot_requires_explicit_allow")
-            if int(self.state.get("height") or 0) != 0:
-                raise ExecutorError("state_sync_snapshot_only_allowed_on_empty_ledger")
+
+            # A checkpoint snapshot is canonical application state, not a vehicle
+            # for replacing this node's anti-equivocation history. Refuse the
+            # destructive checkpoint path after this node has signed/proposed in
+            # HotStuff; a validator with local signing history must recover via a
+            # non-destructive/delta path or an explicit operator recovery flow.
+            if (
+                int(getattr(self._bft, "last_voted_view", -1)) >= 0
+                or int(getattr(self._bft, "last_proposed_view", -1)) >= 0
+                or int(getattr(self._bft, "last_timeout_view", -1)) >= 0
+            ):
+                raise ExecutorError("state_sync_snapshot_local_signing_history_present")
+
             snap = dict(resp.snapshot)
+            if "bft" in snap:
+                raise ExecutorError("state_sync_snapshot_contains_node_local_bft")
             snap_chain = str(snap.get("chain_id") or self.chain_id).strip()
             if snap_chain != self.chain_id:
                 raise ExecutorError("state_sync_snapshot_chain_mismatch")
+
+            local_height = int(self.state.get("height") or 0)
+            snapshot_height = int(snap.get("height") or 0)
+            if snapshot_height <= 0:
+                raise ExecutorError("state_sync_snapshot_nonzero_height_required")
+            if local_height > 0 and snapshot_height <= local_height:
+                raise ExecutorError("state_sync_snapshot_must_advance_local_height")
+
+            required_anchor_fields = ("height", "tip_hash", "state_root", "snapshot_hash")
+            if not isinstance(trusted_anchor, dict) or any(
+                trusted_anchor.get(key) in (None, "") for key in required_anchor_fields
+            ):
+                raise ExecutorError("state_sync_snapshot_requires_fully_pinned_anchor")
+
+            checkpoint_blocks = list(resp.blocks or ())
+            if len(checkpoint_blocks) != 1 or not isinstance(checkpoint_blocks[0], dict):
+                raise ExecutorError("state_sync_snapshot_checkpoint_missing")
+            checkpoint = dict(checkpoint_blocks[0])
+            checkpoint2, checkpoint_binding = ensure_complete_block_commitments(
+                block=checkpoint, chain_id=self.chain_id
+            )
+            checkpoint_hash = checkpoint_binding.block_hash
+
+            # Reconstruct receiver-local/runtime-only fields rather than importing
+            # them from the snapshot peer. Canonical meta fields in the verified
+            # snapshot override any stale local copy; non-consensus local meta is
+            # preserved. The duplicate tip timestamp is rebound to the canonical
+            # checkpoint block before persistence.
+            from weall.runtime.state_hash import consensus_state_root_view
+
+            local_meta = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
+            local_consensus_meta = consensus_state_root_view({"meta": local_meta}).get("meta", {})
+            local_runtime_meta = {
+                str(key): value
+                for key, value in local_meta.items()
+                if str(key) not in local_consensus_meta
+            }
+            remote_meta = snap.get("meta") if isinstance(snap.get("meta"), dict) else {}
+            merged_meta = dict(local_runtime_meta)
+            merged_meta.update(remote_meta)
+            if merged_meta:
+                snap["meta"] = merged_meta
+            else:
+                snap.pop("meta", None)
+
+            local_created_ms = self.state.get("created_ms")
+            if isinstance(local_created_ms, int) and not isinstance(local_created_ms, bool):
+                snap["created_ms"] = int(local_created_ms)
+            snap["tip_hash"] = str(checkpoint_hash or "")
+            checkpoint_ts_ms = _safe_int(
+                checkpoint2.get("block_ts_ms") or checkpoint2.get("created_ms"), 0
+            )
+            snap["tip_ts_ms"] = max(0, int(checkpoint_ts_ms))
+
+            # The checkpoint has already passed the trusted-anchor/snapshot
+            # verification above. Clear branch-local BFT recovery state *before*
+            # committing the canonical ledger replacement. This ordering is
+            # deliberately fail-closed across two SQLite files: if auxiliary
+            # cleanup succeeds but ledger installation fails, the old branch may
+            # lose liveness hints but cannot leak signed/replay obligations into a
+            # future branch. The inverse ordering could commit the new ledger and
+            # then fail while stale outbound/frontier state remained replayable.
+            self._reset_bft_branch_state_for_checkpoint(checkpoint_hash=str(checkpoint_hash or ""))
+
+            try:
+                self._ledger_store.install_state_sync_checkpoint(
+                    state=snap,
+                    checkpoint_block=checkpoint,
+                )
+            except Exception as exc:
+                raise ExecutorError(f"state_sync_checkpoint_install_failed:{exc}") from exc
+
             self.state = snap
-            self._ledger_store.write(self.state)
-            self._check_db_consistency_fail_closed()
+
+            # The ledger checkpoint is durable now. Runtime/BFT reconstruction
+            # cannot roll it back, so any failure below must preserve that truth
+            # and force this process out of active execution until restart.
+            try:
+                # Never retain or import peer BFT runtime state across a destructive
+                # checkpoint install. Rebuild a fresh local engine from the adopted
+                # canonical ledger. The guard above ensures this reset cannot erase
+                # local vote/proposal anti-equivocation history.
+                self._bft = HotStuffBFT(chain_id=self.chain_id)
+                self._bft.timeout_base_ms = max(
+                    250, _safe_int(os.environ.get("WEALL_BFT_TIMEOUT_BASE_MS"), 10_000)
+                )
+                self._bft.timeout_backoff_cap = max(
+                    0, _safe_int(os.environ.get("WEALL_BFT_TIMEOUT_BACKOFF_CAP"), 4)
+                )
+                self._cache_known_block_hash(
+                    str(checkpoint2.get("block_id") or ""),
+                    str(checkpoint_hash or ""),
+                )
+                self._persist_bft_state()
+                self._check_db_consistency_fail_closed()
+            except Exception as exc:
+                post_commit_error = (
+                    f"state_sync_checkpoint_post_commit_failed:{type(exc).__name__}:{str(exc)}"
+                )
+                self._post_commit_housekeeping_error = post_commit_error
+                self._validator_signing_enabled = False
+                self._observer_mode_forced = True
+                self._signing_block_reason = "state_sync_checkpoint_post_commit_failed"
+                self.block_loop_unhealthy = True
+                raise ExecutorError(
+                    f"state_sync_checkpoint_committed_restart_required:{post_commit_error}"
+                ) from exc
             return []
 
         metas: list[ExecutorMeta] = []
@@ -2386,7 +2938,7 @@ class WeAllExecutor:
         for blk in list(resp.blocks or ()):
             if not isinstance(blk, dict):
                 raise ExecutorError("state_sync_delta_bad_block")
-            blk2, _ = ensure_block_hash(dict(blk))
+            blk2, _ = ensure_canonical_block_hash(dict(blk))
             bid = str(blk2.get("block_id") or "").strip()
             h = self._block_height_hint(blk2)
             if h <= 0 or not bid:
@@ -2466,6 +3018,10 @@ class WeAllExecutor:
         if not hasattr(net_node, "request_state_sync"):
             raise ExecutorError("state_sync_transport_missing_request_state_sync")
 
+        post_commit_error = str(getattr(self, "_post_commit_housekeeping_error", "") or "")
+        if post_commit_error:
+            raise ExecutorError(f"executor_unhealthy:{post_commit_error}")
+
         target_height = _safe_int((trusted_anchor or {}).get("height"), 0)
         finalized_target_height = _safe_int((trusted_anchor or {}).get("finalized_height"), 0)
         enforce_finalized_anchor = bool(
@@ -2526,8 +3082,20 @@ class WeAllExecutor:
             if resp is None:
                 raise ExecutorError("state_sync_timeout")
 
+            allow_checkpoint_snapshot = bool(
+                resp.snapshot is not None
+                and isinstance(trusted_anchor, dict)
+                and all(
+                    trusted_anchor.get(key) not in (None, "")
+                    for key in ("height", "tip_hash", "state_root", "snapshot_hash")
+                )
+            )
             try:
-                metas = self.apply_state_sync_response(resp, trusted_anchor=trusted_anchor)
+                metas = self.apply_state_sync_response(
+                    resp,
+                    trusted_anchor=trusted_anchor,
+                    allow_snapshot_bootstrap=allow_checkpoint_snapshot,
+                )
             except ExecutorError as exc:
                 if str(exc) == "state_sync_delta_no_progress":
                     raise ExecutorError("state_sync_no_progress") from exc

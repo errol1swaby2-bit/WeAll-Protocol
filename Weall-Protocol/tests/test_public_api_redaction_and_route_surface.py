@@ -107,7 +107,9 @@ def test_public_state_snapshot_redacts_session_device_and_restricted_poh_fields(
     assert "do-not-expose" not in str(body)
 
 
-def test_public_account_lookup_redacts_session_keys_but_owner_lookup_can_reveal_restricted_state() -> None:
+def test_public_account_lookup_redacts_session_keys_but_owner_lookup_can_reveal_restricted_state() -> (
+    None
+):
     state = _state()
     client = _client(state)
 

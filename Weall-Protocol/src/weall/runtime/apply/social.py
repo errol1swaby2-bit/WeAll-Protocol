@@ -25,8 +25,8 @@ Design notes:
 from dataclasses import dataclass
 from typing import Any
 
-from weall.runtime.tx_admission import TxEnvelope
 from weall.runtime.poh.state import effective_poh_tier
+from weall.runtime.tx_admission import TxEnvelope
 
 Json = dict[str, Any]
 
@@ -93,7 +93,9 @@ def _require_min_poh_tier(state: Json, *, signer: str, min_tier: int, action: st
     accounts = state.get("accounts")
     acct = accounts.get(signer) if isinstance(accounts, dict) else None
     if not isinstance(acct, dict):
-        raise SocialApplyError("forbidden", "account_not_registered", {"account": signer, "action": action})
+        raise SocialApplyError(
+            "forbidden", "account_not_registered", {"account": signer, "action": action}
+        )
     if bool(acct.get("banned", False)):
         raise SocialApplyError("forbidden", "account_banned", {"account": signer, "action": action})
     if bool(acct.get("locked", False)):
@@ -105,7 +107,6 @@ def _require_min_poh_tier(state: Json, *, signer: str, min_tier: int, action: st
             "insufficient_poh_tier",
             {"account": signer, "poh_tier": tier, "required": int(min_tier), "action": action},
         )
-
 
 
 # ---------------------------------------------------------------------------

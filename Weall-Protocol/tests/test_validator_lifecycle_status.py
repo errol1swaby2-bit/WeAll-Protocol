@@ -62,12 +62,18 @@ class _FakeExecutor:
             },
         }
 
-
     def tx_index_hash(self) -> str:
         return "txhash"
 
     def bft_diagnostics(self) -> dict[str, object]:
-        return {"view": 4, "stalled": False, "stall_reason": "idle", "protocol_profile_hash": "pfh", "schema_version": "1", "tx_index_hash": "txhash"}
+        return {
+            "view": 4,
+            "stalled": False,
+            "stall_reason": "idle",
+            "protocol_profile_hash": "pfh",
+            "schema_version": "1",
+            "tx_index_hash": "txhash",
+        }
 
     def validator_signing_enabled(self) -> bool:
         return False
@@ -82,8 +88,9 @@ class _FakeExecutor:
         return "sethash-2"
 
 
-def test_status_operator_surfaces_pending_validator_lifecycle(monkeypatch) -> None:
+def test_status_operator_surfaces_pending_validator_lifecycle(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_DB_PATH", str(tmp_path / "validator-lifecycle-status.db"))
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@candidate")
 
     app = create_app(boot_runtime=False)

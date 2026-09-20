@@ -38,7 +38,12 @@ def _ensure_responsibility_defaults(rec: Json) -> None:
         rec["responsibilities"] = responsibilities
     responsibilities.setdefault(
         "validator",
-        {"opted_in": False, "active": False, "readiness_status": "not_requested", "reputation_required_milli": 5000},
+        {
+            "opted_in": False,
+            "active": False,
+            "readiness_status": "not_requested",
+            "reputation_required_milli": 5000,
+        },
     )
     responsibilities.setdefault(
         "storage",
@@ -65,7 +70,11 @@ def schedule_node_operator_system_txs(state: Json, *, next_height: int) -> int:
     ops = roles.get("node_operators") if isinstance(roles.get("node_operators"), dict) else {}
     by_id = ops.get("by_id") if isinstance(ops, dict) else {}
     active_set_raw = ops.get("active_set") if isinstance(ops, dict) else []
-    active_set = {str(v).strip() for v in active_set_raw if str(v).strip()} if isinstance(active_set_raw, list) else set()
+    active_set = (
+        {str(v).strip() for v in active_set_raw if str(v).strip()}
+        if isinstance(active_set_raw, list)
+        else set()
+    )
     if not isinstance(by_id, dict):
         return 0
 
@@ -80,7 +89,9 @@ def schedule_node_operator_system_txs(state: Json, *, next_height: int) -> int:
             continue
         _ensure_responsibility_defaults(rec)
         evaluation = evaluate_baseline_node_operator(state, account_id)
-        rec["activation_check"] = "eligible" if evaluation.eligible else first_blocking_reason(evaluation)
+        rec["activation_check"] = (
+            "eligible" if evaluation.eligible else first_blocking_reason(evaluation)
+        )
         rec["responsibility_status"] = {"baseline": evaluation.as_dict()}
         by_id[account_id] = rec
         if not evaluation.eligible:

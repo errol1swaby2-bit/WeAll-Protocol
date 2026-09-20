@@ -79,8 +79,16 @@ def _visibility_state() -> dict[str, Any]:
         "height": 3,
         "time": 10,
         "accounts": {
-            "@member": {"nonce": 0, "poh_tier": 2, "session_keys": {"member-session": {"active": True}}},
-            "@outsider": {"nonce": 0, "poh_tier": 2, "session_keys": {"outsider-session": {"active": True}}},
+            "@member": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "session_keys": {"member-session": {"active": True}},
+            },
+            "@outsider": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "session_keys": {"outsider-session": {"active": True}},
+            },
         },
         "groups_by_id": {
             "gpub": {
@@ -209,7 +217,9 @@ def test_observer_state_sync_request_includes_trusted_anchor(monkeypatch) -> Non
             return {"ok": True, "chain_id": "batch366"}
         raise AssertionError(path)
 
-    def fake_post(url: str, path: str, payload: dict[str, Any], *, timeout_s: int) -> dict[str, Any]:
+    def fake_post(
+        url: str, path: str, payload: dict[str, Any], *, timeout_s: int
+    ) -> dict[str, Any]:
         captured["url"] = url
         captured["path"] = path
         captured["payload"] = payload
@@ -220,6 +230,7 @@ def test_observer_state_sync_request_includes_trusted_anchor(monkeypatch) -> Non
 
         def read_state(self):
             return self.snapshot()
+
         def snapshot(self) -> dict[str, Any]:
             return {"chain_id": "batch366", "height": 2}
 
@@ -240,7 +251,9 @@ def test_observer_state_sync_request_includes_trusted_anchor(monkeypatch) -> Non
     assert captured["payload"]["selector"] == {"tx_id": "tx:abc", "trusted_anchor": anchor}
 
 
-def test_media_proxy_redacts_provider_url_from_headers_and_errors(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_redacts_provider_url_from_headers_and_errors(
+    tmp_path: Path, monkeypatch
+) -> None:
     good = b"batch366 media bytes"
     cid = _cidv1_raw_sha256(good)
     internal = f"https://lan.internal.example/ipfs/{cid}"

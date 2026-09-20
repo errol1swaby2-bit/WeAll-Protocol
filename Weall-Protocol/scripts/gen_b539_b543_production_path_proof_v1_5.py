@@ -6,10 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from rehearse_live_storage_worker_durability_v1_5 import run_harness as run_storage
 from rehearse_production_bft_path_v1_5 import run_harness as run_bft
 from rehearse_production_block_commit_replay_v1_5 import run_harness as run_replay
 from rehearse_public_api_write_lifecycle_v1_5 import run_harness as run_api
-from rehearse_live_storage_worker_durability_v1_5 import run_harness as run_storage
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "b539_b543_production_path_proof_v1_5.json"

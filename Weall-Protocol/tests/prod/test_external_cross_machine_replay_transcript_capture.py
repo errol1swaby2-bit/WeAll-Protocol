@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -21,8 +20,7 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
         cwd=ROOT,
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
         timeout=45,
     )
@@ -34,7 +32,9 @@ def _read(rel: str) -> str:
 
 def _digest_without_self(payload: dict[str, Any]) -> str:
     material = {k: v for k, v in payload.items() if k != "transcript_digest"}
-    return hashlib.sha256(json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def _sample_transcript() -> dict[str, Any]:
@@ -49,8 +49,14 @@ def _sample_transcript() -> dict[str, Any]:
         "operator_attestation": "external_replay_operator_signed",
         "external_attestation_attached": True,
         "machine_summaries": {
-            "external-replay-machine-a-20260705": {"replay_consistency_ok": True, "fresh_node_replay_sync_ok": True},
-            "external-replay-machine-b-20260705": {"replay_consistency_ok": True, "fresh_node_replay_sync_ok": True},
+            "external-replay-machine-a-20260705": {
+                "replay_consistency_ok": True,
+                "fresh_node_replay_sync_ok": True,
+            },
+            "external-replay-machine-b-20260705": {
+                "replay_consistency_ok": True,
+                "fresh_node_replay_sync_ok": True,
+            },
         },
         "state_root_vectors_sha256": "a" * 64,
         "tx_index_hash_by_machine": {
@@ -108,7 +114,9 @@ def test_external_cross_machine_replay_capture_script_is_helpful_and_non_authori
     ]:
         assert required in text
 
-    proc = _run("bash", "scripts/capture_external_cross_machine_replay_transcript_v1_5.sh", "--help")
+    proc = _run(
+        "bash", "scripts/capture_external_cross_machine_replay_transcript_v1_5.sh", "--help"
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "Captures one machine's replay evidence packet" in proc.stdout
     assert "does not close AUD-618-P1-003" in proc.stdout
@@ -117,7 +125,9 @@ def test_external_cross_machine_replay_capture_script_is_helpful_and_non_authori
 def test_external_cross_machine_replay_docs_and_template_keep_blocker_open() -> None:
     runbook = _read("docs/testnet/EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md")
     readme = _read("docs/proofs/external-cross-machine-replay/2026-07-05/README.md")
-    template = _read("docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json")
+    template = _read(
+        "docs/proofs/external-cross-machine-replay/2026-07-05/TRANSCRIPT_TEMPLATE.json"
+    )
     first_15 = _read("docs/testnet/FIRST_15_MINUTES.md")
     status = _read("docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md")
 
@@ -132,10 +142,18 @@ def test_external_cross_machine_replay_docs_and_template_keep_blocker_open() -> 
     assert "only external evidence" in status
 
 
-def test_external_cross_machine_replay_schema_and_validator_accept_real_shape(tmp_path: Path) -> None:
-    proc = _run(sys.executable, "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check")
+def test_external_cross_machine_replay_schema_and_validator_accept_real_shape(
+    tmp_path: Path,
+) -> None:
+    proc = _run(
+        sys.executable, "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check"
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "external_operator_transcript_requirements_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "external_operator_transcript_requirements_v1_5.json").read_text(
+            encoding="utf-8"
+        )
+    )
     schemas = payload["schemas"]
     assert "external_cross_machine_replay_transcript" in schemas
     schema = schemas["external_cross_machine_replay_transcript"]
@@ -144,7 +162,9 @@ def test_external_cross_machine_replay_schema_and_validator_accept_real_shape(tm
     assert payload["public_beta_ready"] is False
 
     transcript_path = tmp_path / "external-cross-machine-replay-transcript.json"
-    transcript_path.write_text(json.dumps(_sample_transcript(), indent=2, sort_keys=True), encoding="utf-8")
+    transcript_path.write_text(
+        json.dumps(_sample_transcript(), indent=2, sort_keys=True), encoding="utf-8"
+    )
     validate = _run(
         sys.executable,
         "scripts/validate_external_operator_transcript_v1_5.py",
@@ -165,7 +185,9 @@ def test_public_beta_and_release_artifacts_reference_external_cross_machine_repl
         proc = _run(sys.executable, f"scripts/{script}", "--check")
         assert proc.returncode == 0, proc.stdout + proc.stderr
 
-    report = json.loads((ROOT / "generated" / "public_beta_blocker_report_v1_5.json").read_text(encoding="utf-8"))
+    report = json.loads(
+        (ROOT / "generated" / "public_beta_blocker_report_v1_5.json").read_text(encoding="utf-8")
+    )
     blockers = {row["id"]: row for row in report["blockers"]}
     blocker = blockers["AUD-618-P1-003"]
     assert blocker["gate_status"] == "gate_present_external_transcript_required"
@@ -173,7 +195,9 @@ def test_public_beta_and_release_artifacts_reference_external_cross_machine_repl
     assert "matching tx-index hash transcript" in blocker["remaining_external_evidence"]
     assert report["public_beta_ready"] is False
 
-    manifest = json.loads((ROOT / "generated" / "release_evidence_manifest_v1_5.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (ROOT / "generated" / "release_evidence_manifest_v1_5.json").read_text(encoding="utf-8")
+    )
     gate = manifest["release_evidence_gates"]["external_cross_machine_replay_transcript"]
     assert gate["blocker"] == "AUD-618-P1-003"
     assert gate["required_before_public_beta"] is True

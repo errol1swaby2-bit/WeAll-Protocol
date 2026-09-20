@@ -30,6 +30,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 - validator epoch
 - validator-set hash
 - state schema version
+- state-root commitment version
 - production consensus profile hash
 - consensus-affecting tx payload limits
 
@@ -59,7 +60,8 @@ A validator must fail closed if:
 Current audited production profile:
 
 - protocol version: `2026.03-prod.6`
-- protocol profile hash: `a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6`
+- state-root commitment version: `weall.state-root.v2`
+- protocol profile hash: `0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25`
 - transaction canon: `236 tx types, version 1.25.0`
 
 The production profile includes tx payload limits. Public validators must not

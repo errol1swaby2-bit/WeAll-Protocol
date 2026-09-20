@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Any
@@ -150,7 +151,7 @@ def _require_evidence_paths_declared(
     *,
     field: str,
     row_id: str,
-    manifest_paths: set[str],
+    manifest_paths: set[str] | None,
 ) -> int:
     checked = 0
     for value in values:
@@ -160,15 +161,16 @@ def _require_evidence_paths_declared(
                 f"m3_traceability_evidence_outside_artifact_root:{row_id}:{field}:{value}"
             )
 
-        exact = normalized in manifest_paths
-        prefix = normalized + "/"
-        contains_bound_artifact = any(
-            evidence_path.startswith(prefix) for evidence_path in manifest_paths
-        )
-        if not exact and not contains_bound_artifact:
-            raise ContractError(
-                f"m3_traceability_evidence_not_manifest_bound:{row_id}:{field}:{value}"
+        if manifest_paths is not None:
+            exact = normalized in manifest_paths
+            prefix = normalized + "/"
+            contains_bound_artifact = any(
+                evidence_path.startswith(prefix) for evidence_path in manifest_paths
             )
+            if not exact and not contains_bound_artifact:
+                raise ContractError(
+                    f"m3_traceability_evidence_not_manifest_bound:{row_id}:{field}:{value}"
+                )
 
         repository_path = _resolve_repository_path(normalized)
         if repository_path.exists() and repository_path.is_symlink():
@@ -177,10 +179,23 @@ def _require_evidence_paths_declared(
     return checked
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Validate M3 requirement traceability in source-only or formal-closure mode."
+    )
+    parser.add_argument(
+        "--source-only",
+        action="store_true",
+        help=(
+            "validate controlling requirements, implementation paths, tests, and evidence-path "
+            "scope without requiring a freeze-bound evidence manifest"
+        ),
+    )
+    args = parser.parse_args(argv)
+
     trace = _load(TRACE_PATH)
     crosswalk = _load(CROSSWALK_PATH)
-    manifest_paths = _manifest_evidence_paths()
+    manifest_paths = None if args.source_only else _manifest_evidence_paths()
 
     if trace.get("schema_version") != 1 or crosswalk.get("schema_version") != 1:
         raise ContractError("m3_traceability_schema_version")
@@ -279,11 +294,19 @@ def main() -> int:
             )
         )
 
-    non_closed_rows = sorted(
-        row_id for row_id, row in rows.items() if row.get("status") != "closed"
+    required_status = (
+        "implemented_requires_integrated_evidence" if args.source_only else "closed"
     )
-    if non_closed_rows:
-        raise ContractError("m3_traceability_requirement_not_closed:" + ",".join(non_closed_rows))
+    wrong_status_rows = sorted(
+        row_id for row_id, row in rows.items() if row.get("status") != required_status
+    )
+    if wrong_status_rows:
+        code = (
+            "m3_traceability_requirement_not_source_ready"
+            if args.source_only
+            else "m3_traceability_requirement_not_closed"
+        )
+        raise ContractError(code + ":" + ",".join(wrong_status_rows))
 
     mechanism_rows = crosswalk.get("mechanism_scope")
     if not isinstance(mechanism_rows, list):
@@ -344,8 +367,13 @@ def main() -> int:
             row_id=deliverable_id,
             manifest_paths=manifest_paths,
         )
-        if item.get("status") != "closed":
-            raise ContractError(f"m3_crosswalk_deliverable_not_closed:{deliverable_id}")
+        if item.get("status") != required_status:
+            code = (
+                "m3_crosswalk_deliverable_not_source_ready"
+                if args.source_only
+                else "m3_crosswalk_deliverable_not_closed"
+            )
+            raise ContractError(f"{code}:{deliverable_id}")
 
     corrections = crosswalk.get("implemented_protocol_corrections")
     if not isinstance(corrections, list):
@@ -405,8 +433,9 @@ def main() -> int:
     if REQUIRED_MECHANISMS.intersection(excluded_mechanisms):
         raise ContractError("m3_crosswalk_scoped_mechanism_excluded")
 
+    mode = "source-only" if args.source_only else "formal-closure"
     print(
-        "OK: M3 traceability validated "
+        f"OK: M3 traceability validated ({mode}) "
         f"{len(rows)} requirements, "
         f"{len(cross_mechanisms)} mechanisms, "
         f"{len(deliverable_ids)} deliverables, "

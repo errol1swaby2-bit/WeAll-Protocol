@@ -13,6 +13,7 @@ from weall.runtime.system_tx_engine import (
     prune_emitted_system_queue,
     system_queue_phase_for_id,
 )
+from weall.testing.prod_fixtures import install_prod_node_keys, seed_active_validator
 from weall.testing.sigtools import deterministic_mldsa_keypair
 
 
@@ -43,7 +44,9 @@ def test_prod_build_block_candidate_fails_closed_on_nonce_side_effect_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    node_pub, _ = install_prod_node_keys(monkeypatch, label="executor-fail-closed-build")
     ex = _mk_executor(tmp_path, "leader")
+    seed_active_validator(ex, account="@validator", pubkey=node_pub)
     _submit_register(ex)
 
     def boom(*args, **kwargs):
@@ -66,7 +69,9 @@ def test_prod_apply_block_fails_closed_on_nonce_side_effect_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    node_pub, _ = install_prod_node_keys(monkeypatch, label="executor-fail-closed-apply")
     leader = _mk_executor(tmp_path, "leader")
+    seed_active_validator(leader, account="@validator", pubkey=node_pub)
     _submit_register(leader)
     block, _new_state, _applied_ids, _invalid_ids, err = leader.build_block_candidate(
         max_txs=10, allow_empty=False
@@ -75,6 +80,7 @@ def test_prod_apply_block_fails_closed_on_nonce_side_effect_error(
     assert isinstance(block, dict)
 
     follower = _mk_executor(tmp_path, "follower")
+    seed_active_validator(follower, account="@validator", pubkey=node_pub)
 
     def boom(*args, **kwargs):
         raise NonceSideEffectError("boom")
@@ -91,7 +97,9 @@ def test_prod_commit_block_candidate_fails_closed_on_corrupt_system_queue_prune(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
+    node_pub, _ = install_prod_node_keys(monkeypatch, label="executor-fail-closed-commit")
     ex = _mk_executor(tmp_path, "leader")
+    seed_active_validator(ex, account="@validator", pubkey=node_pub)
 
     block, new_state, applied_ids, invalid_ids, err = ex.build_block_candidate(
         max_txs=0, allow_empty=True

@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from weall.testing.prod_fixtures import write_strict_prod_chain_manifest
+
 
 def _write_db(db_path: Path, state: dict[str, object]) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -59,9 +61,17 @@ def _cfg_payload(db_path: Path, tx_index_path: Path) -> dict[str, object]:
 
 
 def _prod_env(cfg_path: Path) -> dict[str, str]:
+    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    manifest = write_strict_prod_chain_manifest(
+        cfg_path.with_name("strict-prod-chain-manifest.json"),
+        chain_id=str(cfg["chain_id"]),
+        tx_index_path=str(cfg["tx_index_path"]),
+    )
     return {
         **dict(os.environ),
         "WEALL_CHAIN_CONFIG_PATH": str(cfg_path),
+        "WEALL_CHAIN_MANIFEST_PATH": str(manifest),
+        "WEALL_REQUIRE_CHAIN_MANIFEST": "1",
         "WEALL_MODE": "prod",
         "WEALL_NET_ENABLED": "1",
         "WEALL_BFT_ENABLED": "1",

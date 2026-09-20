@@ -17,18 +17,23 @@ def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     assert report["ok"] is True
     assert report["public_beta_ready"] is False
     assert report["mainnet_ready"] is False
-    assert report["controlled_testnet_candidate"] is True
+    assert report["controlled_testnet_candidate"] is False
     assert report["blocker_count"] == report["blocker_catalog_count"]
     assert report["blocker_catalog_count"] >= 13
     assert report["remaining_blocker_count"] == report["open_blocker_count"]
     assert report["closed_blocker_count"] == report["closed_in_repository_count"]
-    assert report["closed_in_repository_count"] + report["remaining_blocker_count"] == report["blocker_catalog_count"]
+    assert (
+        report["closed_in_repository_count"] + report["remaining_blocker_count"]
+        == report["blocker_catalog_count"]
+    )
     assert report["remaining_external_evidence_required_count"] == report["remaining_blocker_count"]
     assert report["p0_open_count"] == 4
     assert report["p1_open_count"] == 4
     assert report["p2_open_count"] == 0
     assert report["p3_open_count"] == 0
-    assert "Compatibility alias for blocker_catalog_count" in report["count_meanings"]["blocker_count"]
+    assert (
+        "Compatibility alias for blocker_catalog_count" in report["count_meanings"]["blocker_count"]
+    )
     assert report["public_beta_blockers_remaining"] is True
     assert report["evidence_inventory_ok"] is True
     assert "ok_meaning" in report
@@ -70,6 +75,10 @@ def test_public_beta_blocker_report_is_conservative_and_complete() -> None:
     assert by_id["AUD-618-P2-002"]["gate_status"] == "closed_as_frontend_source_gate"
     assert by_id["AUD-618-P2-003"]["gate_status"] == "closed_as_frontend_source_gate"
     assert report["evidence_gate_summaries"]["frontend_p2_ux_observability"]["ok"] is True
+    clean_clone = report["evidence_gate_summaries"]["clean_clone_gate"]
+    assert "root_gate_executable_in_this_checkout" not in clean_clone
+    assert clean_clone["root_gate_executable_required"] is True
+    assert clean_clone["root_gate_executable_runtime_check_required"] is True
 
 
 def test_generated_public_beta_blocker_report_is_fresh() -> None:
@@ -77,16 +86,20 @@ def test_generated_public_beta_blocker_report_is_fresh() -> None:
         [sys.executable, "scripts/gen_public_beta_blocker_report_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "public_beta_blocker_report_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "public_beta_blocker_report_v1_5.json").read_text(encoding="utf-8")
+    )
     assert payload["schema"] == "weall.v1_5.public_beta_blocker_report"
     assert payload["public_beta_ready"] is False
     assert payload["blocker_count"] == payload["blocker_catalog_count"]
-    assert payload["closed_in_repository_count"] + payload["remaining_blocker_count"] == payload["blocker_catalog_count"]
+    assert (
+        payload["closed_in_repository_count"] + payload["remaining_blocker_count"]
+        == payload["blocker_catalog_count"]
+    )
     assert payload["p0_open_count"] == 4
     assert payload["p1_open_count"] == 4
     assert payload["p2_open_count"] == 0
@@ -98,12 +111,13 @@ def test_api_response_vectors_are_expanded() -> None:
         [sys.executable, "scripts/gen_api_response_vectors_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "api_response_vectors_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "api_response_vectors_v1_5.json").read_text(encoding="utf-8")
+    )
     assert payload["vector_count"] >= 24
     route_keys = {row["route_key"] for row in payload["vectors"]}
     assert "GET /v1/status/testnet-capabilities" in route_keys
@@ -116,7 +130,9 @@ def test_api_response_vectors_are_expanded() -> None:
 def test_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> None:
     from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
-    surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    surface = build_testnet_capability_surface(
+        {"params": {"launch_phase": "public_beta_candidate"}}
+    )
     summary = surface["public_beta_blocker_report"]
     assert summary["present"] is True
     assert summary["ok"] is True
@@ -124,12 +140,16 @@ def test_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> 
     assert summary["mainnet_ready"] is False
     assert summary["blocker_count"] >= 13
     assert summary["blocker_catalog_count"] == summary["blocker_count"]
-    assert summary["closed_in_repository_count"] + summary["remaining_blocker_count"] == summary["blocker_catalog_count"]
+    assert (
+        summary["closed_in_repository_count"] + summary["remaining_blocker_count"]
+        == summary["blocker_catalog_count"]
+    )
     assert summary["p0_open_count"] == 4
     assert summary["p1_open_count"] == 4
     assert "public_validator_join" in surface["blocked_capabilities"]
     assert "production_helper_execution" in surface["blocked_capabilities"]
-    assert surface["controlled_mechanism_artifact_blockers"] == []
+    assert surface["controlled_mechanism_artifact_blockers"] == ["b587_b594_mechanism_completion"]
+    assert surface["controlled_testnet_mechanisms_complete"] is False
     upgrade = surface["protocol_upgrade_lifecycle"]
     assert upgrade["activation_clock"] == "block_height"
     assert upgrade["activation_record_only"] is True
@@ -148,21 +168,25 @@ def test_controlled_go_gate_references_public_beta_blockers() -> None:
         [sys.executable, "scripts/run_controlled_testnet_go_gate_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "controlled_testnet_go_gate_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "controlled_testnet_go_gate_v1_5.json").read_text(encoding="utf-8")
+    )
     summary = payload["public_beta_blocker_report_summary"]
     assert summary["ok"] is True
     assert summary["public_beta_ready"] is False
     assert summary["mainnet_ready"] is False
     assert summary["blocker_count"] >= 13
     assert summary["blocker_catalog_count"] == summary["blocker_count"]
-    assert summary["closed_in_repository_count"] + summary["remaining_blocker_count"] == summary["blocker_catalog_count"]
+    assert (
+        summary["closed_in_repository_count"] + summary["remaining_blocker_count"]
+        == summary["blocker_catalog_count"]
+    )
     assert summary["p0_open_count"] == 4
     assert summary["p1_open_count"] == 4
-    assert payload["controlled_testnet_go_gate_ready_to_run"] is True
-    assert payload["controlled_testnet_candidate"] is True
+    assert payload["controlled_testnet_go_gate_ready_to_run"] is False
+    assert payload["controlled_testnet_candidate"] is False
     assert payload["public_readiness_claim_requires_external_evidence"] is True

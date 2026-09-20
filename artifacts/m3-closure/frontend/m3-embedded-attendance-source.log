@@ -1,5 +1,0 @@
-
-> weall-web@0.1.0 test:m3-transcript-attendance-source
-> node scripts/test_m3_transcript_attendance_source.mjs
-
-M3 embedded attendance transcript source checks passed

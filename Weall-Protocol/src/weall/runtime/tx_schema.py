@@ -336,7 +336,18 @@ class PohTier2RequestOpenPayload(_StrictModel):
 
 class PohTier2JurorAssignPayload(_StrictModel):
     case_id: str = Field(..., min_length=1)
-    juror_id: str = Field(..., min_length=1)
+    jurors: list[str] = Field(..., min_length=1)
+    n_jurors: int | None = Field(default=None, ge=1)
+    min_total_reviews: int | None = Field(default=None, ge=0)
+    pass_threshold: int | None = Field(default=None, ge=0)
+    fail_max: int | None = Field(default=None, ge=0)
+    min_rep_milli: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _check_jurors(self) -> PohTier2JurorAssignPayload:
+        if len(set(self.jurors)) != len(self.jurors):
+            raise ValueError("jurors must be unique")
+        return self
 
 
 class PohTier2JurorAcceptPayload(_StrictModel):
@@ -1106,6 +1117,15 @@ class _PublicGroupPermissionsPayload(_StrictModel):
 class GroupCreatePayload(_PublicGroupPermissionsPayload):
     group_id: str = Field(..., min_length=1)
     charter: str | None = None
+    membership_mode: str = Field(default="open", min_length=1)
+
+    @model_validator(mode="after")
+    def _membership_mode_supported(self):
+        mode = str(self.membership_mode or "open").strip().lower()
+        if mode not in {"open", "approval_required"}:
+            raise ValueError("UNSUPPORTED_GROUP_MEMBERSHIP_MODE")
+        self.membership_mode = mode
+        return self
 
 
 class GroupUpdatePayload(_PublicGroupPermissionsPayload):

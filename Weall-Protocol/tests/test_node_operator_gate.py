@@ -3,7 +3,14 @@ from __future__ import annotations
 from weall.runtime.gate_expr import eval_gate
 
 
-def _ledger(*, tier: int = 2, active: bool = True, banned: bool = False, locked: bool = False, suspended_record: bool = False) -> dict:
+def _ledger(
+    *,
+    tier: int = 2,
+    active: bool = True,
+    banned: bool = False,
+    locked: bool = False,
+    suspended_record: bool = False,
+) -> dict:
     return {
         "accounts": {
             "@op": {
@@ -21,7 +28,9 @@ def _ledger(*, tier: int = 2, active: bool = True, banned: bool = False, locked:
                         "enrolled": True,
                         "active": active,
                         "suspended": suspended_record,
-                        "status": "suspended" if suspended_record else ("active" if active else "pending"),
+                        "status": "suspended"
+                        if suspended_record
+                        else ("active" if active else "pending"),
                     }
                 },
                 "active_set": ["@op"] if active else [],
@@ -47,6 +56,13 @@ def test_node_operator_gate_rejects_missing_active_role() -> None:
 
 
 def test_node_operator_gate_rejects_banned_or_locked_or_suspended_operator() -> None:
-    assert eval_gate("NodeOperator", signer="@op", state=_ledger(banned=True), payload={})[0] is False
-    assert eval_gate("NodeOperator", signer="@op", state=_ledger(locked=True), payload={})[0] is False
-    assert eval_gate("NodeOperator", signer="@op", state=_ledger(suspended_record=True), payload={})[0] is False
+    assert (
+        eval_gate("NodeOperator", signer="@op", state=_ledger(banned=True), payload={})[0] is False
+    )
+    assert (
+        eval_gate("NodeOperator", signer="@op", state=_ledger(locked=True), payload={})[0] is False
+    )
+    assert (
+        eval_gate("NodeOperator", signer="@op", state=_ledger(suspended_record=True), payload={})[0]
+        is False
+    )

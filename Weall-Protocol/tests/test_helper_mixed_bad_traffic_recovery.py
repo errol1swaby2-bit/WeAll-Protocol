@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
-from weall.runtime.helper_certificates import HelperExecutionCertificate, make_namespace_hash, sign_helper_certificate
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    make_namespace_hash,
+    sign_helper_certificate,
+)
 from weall.runtime.helper_dispatch import HelperCertificateStore, HelperDispatchContext
-from weall.runtime.parallel_execution import canonical_lane_plan_fingerprint, plan_parallel_execution
+from weall.runtime.parallel_execution import (
+    canonical_lane_plan_fingerprint,
+    plan_parallel_execution,
+)
 
 
 def _pub_hex_from_seed(seed_hex: str) -> str:
@@ -42,7 +49,15 @@ def _make_store_and_plan():
     return lane_plan, plan_id, seed, store
 
 
-def _signed_cert(*, lane_plan, plan_id: str, seed: str, view: int = 7, block_height: int = 22, helper_id: str | None = None):
+def _signed_cert(
+    *,
+    lane_plan,
+    plan_id: str,
+    seed: str,
+    view: int = 7,
+    block_height: int = 22,
+    helper_id: str | None = None,
+):
     return sign_helper_certificate(
         HelperExecutionCertificate(
             chain_id="c1",
@@ -71,16 +86,22 @@ def test_mixed_stale_then_valid_then_duplicate_recovers_canonically() -> None:
     store.start_request(lane_id=lane_plan.lane_id, started_ms=1000)
 
     stale = _signed_cert(lane_plan=lane_plan, plan_id=plan_id, seed=seed, view=6)
-    stale_status = store.ingest_certificate(cert=stale, peer_id=str(lane_plan.helper_id), now_ms=1001)
+    stale_status = store.ingest_certificate(
+        cert=stale, peer_id=str(lane_plan.helper_id), now_ms=1001
+    )
     assert stale_status.accepted is False
     assert stale_status.code == "stale_certificate"
 
     valid = _signed_cert(lane_plan=lane_plan, plan_id=plan_id, seed=seed)
-    valid_status = store.ingest_certificate(cert=valid, peer_id=str(lane_plan.helper_id), now_ms=1002)
+    valid_status = store.ingest_certificate(
+        cert=valid, peer_id=str(lane_plan.helper_id), now_ms=1002
+    )
     assert valid_status.accepted is True
     assert valid_status.code == "accepted"
 
-    duplicate_status = store.ingest_certificate(cert=valid, peer_id=str(lane_plan.helper_id), now_ms=1003)
+    duplicate_status = store.ingest_certificate(
+        cert=valid, peer_id=str(lane_plan.helper_id), now_ms=1003
+    )
     assert duplicate_status.accepted is False
     assert duplicate_status.code == "duplicate_certificate"
 
@@ -90,12 +111,16 @@ def test_mixed_plan_mismatch_then_valid_helper_certificate_still_accepts() -> No
     store.start_request(lane_id=lane_plan.lane_id, started_ms=1000)
 
     wrong_plan_cert = _signed_cert(lane_plan=lane_plan, plan_id="wrong-plan", seed=seed)
-    wrong_plan = store.ingest_certificate(cert=wrong_plan_cert, peer_id=str(lane_plan.helper_id), now_ms=1001)
+    wrong_plan = store.ingest_certificate(
+        cert=wrong_plan_cert, peer_id=str(lane_plan.helper_id), now_ms=1001
+    )
     assert wrong_plan.accepted is False
     assert wrong_plan.code == "plan_id_mismatch"
 
     valid = _signed_cert(lane_plan=lane_plan, plan_id=plan_id, seed=seed)
-    valid_status = store.ingest_certificate(cert=valid, peer_id=str(lane_plan.helper_id), now_ms=1002)
+    valid_status = store.ingest_certificate(
+        cert=valid, peer_id=str(lane_plan.helper_id), now_ms=1002
+    )
     assert valid_status.accepted is True
     assert valid_status.code == "accepted"
 
@@ -109,6 +134,8 @@ def test_expired_window_then_later_valid_message_stays_fail_closed() -> None:
     assert expired.accepted is False
     assert expired.code == "request_window_closed"
 
-    later_retry = store.ingest_certificate(cert=valid, peer_id=str(lane_plan.helper_id), now_ms=1051)
+    later_retry = store.ingest_certificate(
+        cert=valid, peer_id=str(lane_plan.helper_id), now_ms=1051
+    )
     assert later_retry.accepted is False
     assert later_retry.code == "duplicate_certificate"

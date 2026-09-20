@@ -67,7 +67,11 @@ def _bundle(path: Path, *, profile_hash: str = "3" * 64) -> Path:
                     "bft_enabled": False,
                     "helper_authority_enabled": False,
                     "block_loop_autostart": False,
-                    "allowed_onboarding_transactions": ["ACCOUNT_REGISTER", "PEER_ADVERTISE", "POH_ASYNC_REQUEST_OPEN"],
+                    "allowed_onboarding_transactions": [
+                        "ACCOUNT_REGISTER",
+                        "PEER_ADVERTISE",
+                        "POH_ASYNC_REQUEST_OPEN",
+                    ],
                 },
             },
             sort_keys=True,
@@ -82,11 +86,18 @@ def test_observer_bundle_verifier_rejects_protocol_profile_hash_mismatch(tmp_pat
     bundle = _bundle(tmp_path / "bundle.json", profile_hash="b" * 64)
 
     proc = subprocess.run(
-        [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(manifest), "--json"],
+        [
+            sys.executable,
+            str(VERIFY),
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(manifest),
+            "--json",
+        ],
         cwd=ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
 
@@ -100,11 +111,18 @@ def test_verifier_exports_expected_protocol_profile_hash(tmp_path: Path) -> None
     bundle = _bundle(tmp_path / "bundle.json", profile_hash="a" * 64)
 
     proc = subprocess.run(
-        [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(manifest), "--emit-shell-env"],
+        [
+            sys.executable,
+            str(VERIFY),
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(manifest),
+            "--emit-shell-env",
+        ],
         cwd=ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
 
@@ -128,7 +146,9 @@ def test_promoted_validator_scripts_use_bft_minimum_and_stable_validator_set_has
 def test_consensus_validator_set_is_authoritative_over_role_active_set() -> None:
     state = {
         "roles": {"validators": {"active_set": ["role-only"]}},
-        "consensus": {"validator_set": {"active_set": ["consensus-only"], "set_hash": "hash", "epoch": 1}},
+        "consensus": {
+            "validator_set": {"active_set": ["consensus-only"], "set_hash": "hash", "epoch": 1}
+        },
     }
     assert _get_active_validators_from_state(state) == ["consensus-only"]
 
@@ -139,6 +159,15 @@ def test_production_tx_canon_verify_only_rejects_missing_or_stale_artifact(tmp_p
         _verify_tx_index_artifact_only(str(missing))
 
     stale = tmp_path / "tx-index.json"
-    stale.write_text(json.dumps({"source_sha256": "wrong", "tx_types": [{"name": "ACCOUNT_REGISTER"}], "by_name": {"ACCOUNT_REGISTER": 0}}), encoding="utf-8")
+    stale.write_text(
+        json.dumps(
+            {
+                "source_sha256": "wrong",
+                "tx_types": [{"name": "ACCOUNT_REGISTER"}],
+                "by_name": {"ACCOUNT_REGISTER": 0},
+            }
+        ),
+        encoding="utf-8",
+    )
     with pytest.raises(RuntimeError, match="source_sha256 mismatch"):
         _verify_tx_index_artifact_only(str(stale))

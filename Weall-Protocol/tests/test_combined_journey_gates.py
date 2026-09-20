@@ -115,7 +115,7 @@ def _run_activation_and_transfer(state: dict[str, Any]) -> dict[str, Any]:
                 "proposal_id": proposal_id,
                 "title": "Activate economics",
                 "body": "Enable WeCoin transfers after the genesis lock.",
-                "rules": {"start_stage": "voting"},
+                "rules": {"start_stage": "voting", "auto_progress_enabled": False},
                 "actions": [action],
             },
         ),

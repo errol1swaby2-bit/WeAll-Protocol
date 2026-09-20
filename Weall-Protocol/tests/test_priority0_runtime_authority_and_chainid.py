@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import pytest
 
 from weall.api.routes_public_parts.health import router as health_router
 from weall.api.routes_public_parts.helper_readiness import router as helper_readiness_router
@@ -28,6 +28,7 @@ def _all_green_report():
 class _FakeExecutor:
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         return {"chain_id": "weall-test", "node_id": "node-1", "height": 1, "tip": "tip-1"}
 
@@ -121,8 +122,16 @@ def test_executor_boot_requires_explicit_chain_id_in_prod(monkeypatch: pytest.Mo
         boot_config_from_env()
 
 
-def test_persistent_mempool_requires_explicit_chain_id_in_prod(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+def test_persistent_mempool_requires_explicit_chain_id_in_prod(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
-    with pytest.raises(ValueError, match="PersistentMempool requires an explicit chain_id in production"):
-        PersistentMempool(db=__import__("weall.runtime.sqlite_db", fromlist=["SqliteDB"]).SqliteDB(path=str(tmp_path / "mempool.db")))
+    with pytest.raises(
+        ValueError, match="PersistentMempool requires an explicit chain_id in production"
+    ):
+        PersistentMempool(
+            db=__import__("weall.runtime.sqlite_db", fromlist=["SqliteDB"]).SqliteDB(
+                path=str(tmp_path / "mempool.db")
+            )
+        )

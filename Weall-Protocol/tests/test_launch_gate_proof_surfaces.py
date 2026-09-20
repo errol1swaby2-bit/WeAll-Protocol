@@ -24,7 +24,9 @@ def _env(
             "payload": payload or {},
             "sig": "sig",
             "system": bool(system),
-            "parent": parent if parent is not None else (f"p:{tx_type}:{nonce}" if system else None),
+            "parent": parent
+            if parent is not None
+            else (f"p:{tx_type}:{nonce}" if system else None),
         }
     )
 
@@ -56,7 +58,11 @@ def test_live_economics_stays_locked_without_governance_preconditions() -> None:
 
     with pytest.raises(ApplyError) as before_unlock:
         apply_tx(state, _env("BALANCE_TRANSFER", "@alice", 1, {"to": "@bob", "amount": 5}))
-    assert before_unlock.value.reason in {"economics_time_locked", "economics are time-locked", "economics are disabled"}
+    assert before_unlock.value.reason in {
+        "economics_time_locked",
+        "economics are time-locked",
+        "economics are disabled",
+    }
 
     state["time"] = state["params"]["economic_unlock_time"]
     with pytest.raises(ApplyError) as before_activation:

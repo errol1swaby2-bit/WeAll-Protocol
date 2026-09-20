@@ -145,7 +145,13 @@ def test_poh_tier2_juror_accept_decline_are_durable_and_review_locks() -> None:
             }
         },
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0.0},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "reputation": 0.0,
+            },
             "j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 0.9},
             "j2": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 0.9},
         },
@@ -153,7 +159,12 @@ def test_poh_tier2_juror_accept_decline_are_durable_and_review_locks() -> None:
 
     m0 = apply_tx(
         st,
-        _env("POH_TIER2_REQUEST_OPEN", {"account_id": "alice", "video_commitment": "cmt:vid2"}, signer="alice", nonce=1),
+        _env(
+            "POH_TIER2_REQUEST_OPEN",
+            {"account_id": "alice", "video_commitment": "cmt:vid2"},
+            signer="alice",
+            nonce=1,
+        ),
     )
     case_id = str(m0["case_id"])
 
@@ -161,7 +172,14 @@ def test_poh_tier2_juror_accept_decline_are_durable_and_review_locks() -> None:
         st,
         _env(
             "POH_TIER2_JUROR_ASSIGN",
-            {"case_id": case_id, "jurors": ["j1", "j2"], "n_jurors": 2, "min_total_reviews": 1, "pass_threshold": 1, "fail_max": 1},
+            {
+                "case_id": case_id,
+                "jurors": ["j1", "j2"],
+                "n_jurors": 2,
+                "min_total_reviews": 1,
+                "pass_threshold": 1,
+                "fail_max": 1,
+            },
             signer="SYSTEM",
             nonce=2,
             system=True,
@@ -169,8 +187,12 @@ def test_poh_tier2_juror_accept_decline_are_durable_and_review_locks() -> None:
         ),
     )
 
-    apply_tx(st, _env("POH_TIER2_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 10}, signer="j1", nonce=1))
-    apply_tx(st, _env("POH_TIER2_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 11}, signer="j2", nonce=1))
+    apply_tx(
+        st, _env("POH_TIER2_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": 10}, signer="j1", nonce=1)
+    )
+    apply_tx(
+        st, _env("POH_TIER2_JUROR_DECLINE", {"case_id": case_id, "ts_ms": 11}, signer="j2", nonce=1)
+    )
 
     j1 = st["poh"]["tier2_cases"][case_id]["jurors"]["j1"]
     j2 = st["poh"]["tier2_cases"][case_id]["jurors"]["j2"]
@@ -179,16 +201,37 @@ def test_poh_tier2_juror_accept_decline_are_durable_and_review_locks() -> None:
     assert j2["status"] == "declined"
     assert j2["accepted"] is False
 
-    apply_tx(st, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j1", nonce=2))
+    apply_tx(
+        st,
+        _env(
+            "POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j1", nonce=2
+        ),
+    )
     try:
-        apply_tx(st, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "fail"}, signer="j1", nonce=3))
+        apply_tx(
+            st,
+            _env(
+                "POH_TIER2_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": "fail"},
+                signer="j1",
+                nonce=3,
+            ),
+        )
     except Exception as exc:  # noqa: BLE001
         assert str(getattr(exc, "reason", "")) == "review_already_submitted"
     else:
         raise AssertionError("Tier2 review vote overwrite should be rejected")
 
     try:
-        apply_tx(st, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j2", nonce=2))
+        apply_tx(
+            st,
+            _env(
+                "POH_TIER2_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": "pass"},
+                signer="j2",
+                nonce=2,
+            ),
+        )
     except Exception as exc:  # noqa: BLE001
         assert str(getattr(exc, "reason", "")) == "juror_declined"
     else:

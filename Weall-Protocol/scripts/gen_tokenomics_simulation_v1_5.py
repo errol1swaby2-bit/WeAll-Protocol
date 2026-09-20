@@ -152,7 +152,10 @@ def main() -> int:
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
     out = Path(args.out)
-    data = json.dumps(build_payload(args.sample_epochs), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    data = (
+        json.dumps(build_payload(args.sample_epochs), indent=2, sort_keys=True, ensure_ascii=False)
+        + "\n"
+    )
     if args.json:
         print(data, end="")
         return 0

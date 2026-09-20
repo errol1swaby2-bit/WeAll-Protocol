@@ -48,7 +48,9 @@ def _state_with_upheld_review(stage="juror_review"):
                 "required_votes": 1,
                 "eligible_validator_count": 1,
                 "opened_by": "SYSTEM",
-                "jurors": {"@devnet-genesis": {"status": "accepted", "attendance": {"present": True}}},
+                "jurors": {
+                    "@devnet-genesis": {"status": "accepted", "attendance": {"present": True}}
+                },
                 "votes": {"@devnet-genesis": {"vote": "yes", "at_nonce": 37}},
             }
         },
@@ -59,7 +61,9 @@ def _state_with_upheld_review(stage="juror_review"):
 def test_upheld_review_hides_from_account_feed_even_before_resolution_stage():
     st = _state_with_upheld_review(stage="juror_review")
 
-    assert _content_target_hidden_by_review(st, "post:@errol:13", st["content"]["posts"]["post:@errol:13"])
+    assert _content_target_hidden_by_review(
+        st, "post:@errol:13", st["content"]["posts"]["post:@errol:13"]
+    )
     rows = _iter_posts_by_author(st, author="@errol")
     ids = {row.get("id") or row.get("post_id") for row in rows}
     assert "post:@errol:13" not in ids

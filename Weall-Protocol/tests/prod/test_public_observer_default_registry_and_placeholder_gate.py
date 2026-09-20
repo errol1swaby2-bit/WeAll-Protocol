@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 
 from fastapi.testclient import TestClient
-
 from public_seed_test_helpers import REGISTRY_PUBKEY, signed_registry
+
 from weall.api.app import create_app
 from weall.api.public_seed_registry import public_seed_registry_default_path
 
@@ -38,7 +38,9 @@ def _public_env(monkeypatch) -> None:
     monkeypatch.delenv("WEALL_PUBLIC_TESTNET_DEFAULT_SEED_REGISTRY_PATH", raising=False)
 
 
-def test_public_seed_registry_default_path_finds_configs_directory_from_outer_root(tmp_path, monkeypatch):
+def test_public_seed_registry_default_path_finds_configs_directory_from_outer_root(
+    tmp_path, monkeypatch
+):
     registry_dir = tmp_path / "Weall-Protocol" / "configs"
     registry_dir.mkdir(parents=True)
     registry_path = registry_dir / "public_testnet_seed_registry.json"
@@ -54,7 +56,9 @@ def test_public_seed_registry_default_path_finds_configs_directory_from_outer_ro
     assert r.json()["seed_registry_signature_status"]["verified"] is True
 
 
-def test_public_seed_registry_default_path_finds_configs_directory_from_backend_root(tmp_path, monkeypatch):
+def test_public_seed_registry_default_path_finds_configs_directory_from_backend_root(
+    tmp_path, monkeypatch
+):
     registry_dir = tmp_path / "configs"
     registry_dir.mkdir(parents=True)
     registry_path = registry_dir / "public_testnet_seed_registry.json"

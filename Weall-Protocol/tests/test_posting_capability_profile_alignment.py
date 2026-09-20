@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 ACCOUNT_PAGE = ROOT / "web" / "src" / "pages" / "Account.tsx"
 ONBOARDING = ROOT / "web" / "src" / "lib" / "onboarding.ts"
@@ -10,7 +9,9 @@ CREATE_POST_PAGE = ROOT / "web" / "src" / "pages" / "CreatePostPage.tsx"
 def test_profile_posting_gate_matches_protocol_live_verification_gate() -> None:
     src = ACCOUNT_PAGE.read_text(encoding="utf-8")
     assert "const canPost = tier >= 2 && accountExists && !banned && !locked;" in src
-    assert "const canPost = tier >= 2 && accountExists && !banned && !locked && reputation" not in src
+    assert (
+        "const canPost = tier >= 2 && accountExists && !banned && !locked && reputation" not in src
+    )
     assert "higher-trust posting band" not in src
 
 

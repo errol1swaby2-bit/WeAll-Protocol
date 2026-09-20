@@ -3,12 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.runtime.bft_hotstuff import BftTimeout
 from weall.runtime.executor import WeAllExecutor
@@ -32,6 +26,7 @@ def _seed_validator_set(ex: WeAllExecutor, *, validators: list[str], pub: dict[s
     st["roles"].setdefault("validators", {})
     st["roles"]["validators"]["active_set"] = list(validators)
     st.setdefault("consensus", {})
+    st["consensus"].setdefault("phase", {})["current"] = "bft_active"
     st["consensus"].setdefault("validators", {})
     st["consensus"]["validators"].setdefault("registry", {})
     for v in validators:
@@ -139,8 +134,14 @@ def test_bft_timeout_recovery_persists_view_and_ignores_stale_messages(tmp_path:
 
         old = {
             k: os.environ.get(k)
-            for k in ("WEALL_VALIDATOR_ACCOUNT", "WEALL_NODE_PUBKEY", "WEALL_NODE_PRIVKEY")
+            for k in (
+                "WEALL_MODE",
+                "WEALL_VALIDATOR_ACCOUNT",
+                "WEALL_NODE_PUBKEY",
+                "WEALL_NODE_PRIVKEY",
+            )
         }
+        os.environ["WEALL_MODE"] = "testnet"
         os.environ["WEALL_VALIDATOR_ACCOUNT"] = signer
         os.environ["WEALL_NODE_PUBKEY"] = vpub[signer]
         os.environ["WEALL_NODE_PRIVKEY"] = vpriv[signer]

@@ -52,7 +52,11 @@ class TxEnvelope(BaseModel):
                 signer=str(v.get("signer") or ""),
                 nonce=int(v.get("nonce") or 0),
                 payload=payload if isinstance(payload, dict) else {"value": payload},
-                sig=str((v.get("signature") if isinstance(v.get("signature"), dict) else {}).get("sig") or v.get("sig") or ""),
+                sig=str(
+                    (v.get("signature") if isinstance(v.get("signature"), dict) else {}).get("sig")
+                    or v.get("sig")
+                    or ""
+                ),
                 sig_profile=str(v.get("sig_profile") or ""),
                 signature=v.get("signature") if isinstance(v.get("signature"), dict) else {},
                 network_id=str(v.get("network_id") or ""),

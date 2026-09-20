@@ -6,9 +6,11 @@ import os
 import sqlite3
 from pathlib import Path
 from typing import Any
-from weall.runtime.json_tools import canonical_json_str
 
+from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
+from weall.runtime.json_tools import canonical_json_str
 from weall.runtime.runtime_authority import authority_contract_from_lifecycle
+from weall.runtime.state_hash import compute_state_root
 
 Json = dict[str, Any]
 
@@ -100,6 +102,10 @@ def _resolve_path(path: str | Path) -> Path:
     return (_repo_root() / p).resolve()
 
 
+class BootstrapStateReadError(RuntimeError):
+    pass
+
+
 def _empty_state() -> tuple[Json, Json]:
     state: Json = {
         "meta": {
@@ -127,7 +133,7 @@ def _empty_state() -> tuple[Json, Json]:
     return state, meta
 
 
-def read_db_state(db_path: str | Path) -> tuple[Json, Json]:
+def read_db_state(db_path: str | Path, *, fail_closed: bool = False) -> tuple[Json, Json]:
     resolved = _resolve_path(db_path)
     if not resolved.is_file():
         return _empty_state()
@@ -142,12 +148,24 @@ def read_db_state(db_path: str | Path) -> tuple[Json, Json]:
 
             row = con.execute("SELECT state_json FROM ledger_state WHERE id = 1").fetchone()
             if row is None or not row[0]:
+                if fail_closed:
+                    raise BootstrapStateReadError("ledger_state missing")
                 state, fallback_meta = _empty_state()
                 fallback_meta.update(meta)
                 return state, fallback_meta
 
-            raw_state = json.loads(str(row[0]))
+            try:
+                raw_state = json.loads(str(row[0]))
+            except Exception as exc:
+                if fail_closed:
+                    raise BootstrapStateReadError("ledger_state invalid JSON") from exc
+                state, fallback_meta = _empty_state()
+                fallback_meta.update(meta)
+                return state, fallback_meta
+
             if not isinstance(raw_state, dict):
+                if fail_closed:
+                    raise BootstrapStateReadError("ledger_state is not an object")
                 state, fallback_meta = _empty_state()
                 fallback_meta.update(meta)
                 return state, fallback_meta
@@ -157,7 +175,12 @@ def read_db_state(db_path: str | Path) -> tuple[Json, Json]:
             if not isinstance(state_meta, dict):
                 state_meta = {}
             merged_meta: Json = {
-                "chain_id": str(state_meta.get("chain_id") or meta.get("chain_id") or ""),
+                "chain_id": str(
+                    state.get("chain_id")
+                    or state_meta.get("chain_id")
+                    or meta.get("chain_id")
+                    or ""
+                ),
                 "schema_version": str(
                     meta.get("schema_version") or state_meta.get("schema_version") or "1"
                 ),
@@ -174,23 +197,23 @@ def read_db_state(db_path: str | Path) -> tuple[Json, Json]:
             return state, merged_meta
         finally:
             con.close()
-    except Exception:
+    except BootstrapStateReadError:
+        raise
+    except Exception as exc:
+        if fail_closed:
+            raise BootstrapStateReadError(f"failed to read bootstrap state: {exc}") from exc
         return _empty_state()
 
 
 def _normalized_validators_from_state(state: Json) -> list[str]:
-    consensus = state.get("consensus")
     roles = state.get("roles")
+
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return list(explicit)
+
     validators: list[str] = []
-
-    if isinstance(consensus, dict):
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict):
-            active = validator_set.get("active_set")
-            if isinstance(active, list):
-                validators.extend(str(x).strip() for x in active if str(x).strip())
-
-    if not validators and isinstance(roles, dict):
+    if isinstance(roles, dict):
         validators_role = roles.get("validators")
         if isinstance(validators_role, dict):
             active = validators_role.get("active_set")
@@ -202,18 +225,22 @@ def _normalized_validators_from_state(state: Json) -> list[str]:
 
 def validator_epoch_and_hash(state: Json) -> tuple[int, str, list[str]]:
     consensus = state.get("consensus")
-    epoch = 0
+    generation = consensus_validator_generation(state)
+    epoch = int(generation) if generation is not None else 0
     set_hash = ""
+    explicit = consensus_active_validator_ids(state)
     if isinstance(consensus, dict):
-        epochs = consensus.get("epochs")
-        if isinstance(epochs, dict):
-            try:
-                epoch = int(epochs.get("current") or 0)
-            except Exception:
-                epoch = 0
         validator_set = consensus.get("validator_set")
         if isinstance(validator_set, dict):
-            set_hash = str(validator_set.get("set_hash") or "").strip()
+            if explicit is None or isinstance(validator_set.get("active_set"), list):
+                set_hash = str(validator_set.get("set_hash") or "").strip()
+        if generation is None:
+            epochs = consensus.get("epochs")
+            if isinstance(epochs, dict):
+                try:
+                    epoch = int(epochs.get("current") or 0)
+                except Exception:
+                    epoch = 0
 
     normalized = _normalized_validators_from_state(state)
     if not set_hash:
@@ -222,15 +249,33 @@ def validator_epoch_and_hash(state: Json) -> tuple[int, str, list[str]]:
 
 
 def build_anchor_from_state(state: Json) -> Json:
+    if not isinstance(state, dict):
+        raise TypeError("state must be a JSON object")
+
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    chain = state.get("chain") if isinstance(state.get("chain"), dict) else {}
+    legacy_chain = state.get("chain") if isinstance(state.get("chain"), dict) else {}
+    finalized = state.get("finalized") if isinstance(state.get("finalized"), dict) else {}
     bft = state.get("bft") if isinstance(state.get("bft"), dict) else {}
+
+    chain_id = str(state.get("chain_id") or meta.get("chain_id") or "")
+    height = int(state.get("height") or legacy_chain.get("height") or 0)
+    tip_hash = str(
+        state.get("tip_hash")
+        or state.get("tip")
+        or legacy_chain.get("block_hash")
+        or legacy_chain.get("block_id")
+        or ""
+    )
+    finalized_height = int(finalized.get("height") or bft.get("finalized_height") or 0)
+    finalized_block_id = str(finalized.get("block_id") or bft.get("finalized_block_id") or "")
+
     anchor_payload = {
-        "chain_id": str(meta.get("chain_id") or ""),
-        "height": int(chain.get("height") or 0),
-        "tip_hash": str(chain.get("block_hash") or chain.get("block_id") or ""),
-        "finalized_height": int(bft.get("finalized_height") or 0),
-        "finalized_block_id": str(bft.get("finalized_block_id") or ""),
+        "chain_id": chain_id,
+        "height": height,
+        "tip_hash": tip_hash,
+        "state_root": compute_state_root(state),
+        "finalized_height": finalized_height,
+        "finalized_block_id": finalized_block_id,
     }
     return {
         **anchor_payload,
@@ -248,6 +293,7 @@ def verify_anchor(*, expected: Json | None, observed: Json | None) -> list[str]:
         "chain_id",
         "height",
         "tip_hash",
+        "state_root",
         "finalized_height",
         "finalized_block_id",
         "snapshot_hash",
@@ -395,7 +441,7 @@ def build_manifest(cfg: Any, *, db_path: Path, tx_index_path: Path) -> Json:
         chain_config_compatibility_payload,
     )
 
-    state, meta = read_db_state(db_path)
+    state, meta = read_db_state(db_path, fail_closed=True)
     tx_index_hash = _sha256_file(tx_index_path) if Path(tx_index_path).is_file() else ""
     validator_epoch, validator_set_hash_value, normalized_validators = validator_epoch_and_hash(
         state
@@ -416,10 +462,18 @@ def build_manifest(cfg: Any, *, db_path: Path, tx_index_path: Path) -> Json:
         validator_set_hash_value=validator_set_hash_value,
     )
     state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    lifecycle = state_meta.get("node_lifecycle") if isinstance(state_meta.get("node_lifecycle"), dict) else {}
+    lifecycle = (
+        state_meta.get("node_lifecycle")
+        if isinstance(state_meta.get("node_lifecycle"), dict)
+        else {}
+    )
     authority_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
     authority_contract_hash = _sha256_hex(canon_json(authority_contract).encode("utf-8"))
-    genesis_bootstrap_profile = state_meta.get("genesis_bootstrap_profile") if isinstance(state_meta.get("genesis_bootstrap_profile"), dict) else {}
+    genesis_bootstrap_profile = (
+        state_meta.get("genesis_bootstrap_profile")
+        if isinstance(state_meta.get("genesis_bootstrap_profile"), dict)
+        else {}
+    )
     genesis_bootstrap_profile_hash = str(state_meta.get("genesis_bootstrap_profile_hash") or "")
     manifest: Json = {
         "chain_id": str(cfg.chain_id or ""),
@@ -454,11 +508,17 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
     issues.extend(verify_manifest_integrity(manifest))
     issues.extend(_verify_manifest_signature(manifest, expected_pubkey=expected_pubkey))
 
-    state, meta = read_db_state(cfg.db_path)
+    state, meta = read_db_state(cfg.db_path, fail_closed=True)
     tx_index_path = Path(cfg.tx_index_path).resolve()
     state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    local_genesis_bootstrap_profile = state_meta.get("genesis_bootstrap_profile") if isinstance(state_meta.get("genesis_bootstrap_profile"), dict) else {}
-    local_genesis_bootstrap_profile_hash = str(state_meta.get("genesis_bootstrap_profile_hash") or "")
+    local_genesis_bootstrap_profile = (
+        state_meta.get("genesis_bootstrap_profile")
+        if isinstance(state_meta.get("genesis_bootstrap_profile"), dict)
+        else {}
+    )
+    local_genesis_bootstrap_profile_hash = str(
+        state_meta.get("genesis_bootstrap_profile_hash") or ""
+    )
     local_tx_index_hash = _sha256_file(tx_index_path) if tx_index_path.is_file() else ""
     validator_epoch, validator_set_hash_value, normalized_validators = validator_epoch_and_hash(
         state
@@ -482,9 +542,15 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
     local_chain_cfg = chain_config_compatibility_payload(cfg)
     local_chain_cfg_hash = chain_config_compatibility_hash(cfg)
     state_meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    lifecycle = state_meta.get("node_lifecycle") if isinstance(state_meta.get("node_lifecycle"), dict) else {}
+    lifecycle = (
+        state_meta.get("node_lifecycle")
+        if isinstance(state_meta.get("node_lifecycle"), dict)
+        else {}
+    )
     local_authority_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
-    local_authority_contract_hash = _sha256_hex(canon_json(local_authority_contract).encode("utf-8"))
+    local_authority_contract_hash = _sha256_hex(
+        canon_json(local_authority_contract).encode("utf-8")
+    )
 
     mismatches: list[str] = []
     field_status: Json = {}
@@ -589,7 +655,9 @@ def verify_local_manifest(*, cfg: Any, manifest_path: Path, expected_pubkey: str
             "authority_contract": manifest.get("authority_contract"),
             "authority_contract_hash": str(manifest.get("authority_contract_hash") or ""),
             "genesis_bootstrap_profile": manifest.get("genesis_bootstrap_profile"),
-            "genesis_bootstrap_profile_hash": str(manifest.get("genesis_bootstrap_profile_hash") or ""),
+            "genesis_bootstrap_profile_hash": str(
+                manifest.get("genesis_bootstrap_profile_hash") or ""
+            ),
         },
         "trusted_anchor_mismatches": list(anchor_issues),
     }

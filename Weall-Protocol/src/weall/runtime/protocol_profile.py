@@ -3,12 +3,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from weall.runtime.reputation_units import REPUTATION_SCALE
 
 PROTOCOL_VERSION = "2026.03-prod.6"
+STATE_ROOT_COMMITMENT_VERSION = "weall.state-root.v2"
 GENESIS_CREATED_MS = 0
 DEFAULT_MAX_BLOCK_FUTURE_DRIFT_MS = 2 * 60 * 1000
 DEFAULT_CLOCK_SKEW_WARN_MS = 30 * 1000
@@ -25,6 +27,7 @@ DEFAULT_MAX_TX_PAYLOAD_NODES = 50_000
 @dataclass(frozen=True, slots=True)
 class ProductionConsensusProfile:
     protocol_version: str = PROTOCOL_VERSION
+    state_root_commitment_version: str = STATE_ROOT_COMMITMENT_VERSION
     sigverify_required: bool = True
     legacy_sig_domain_allowed: bool = False
     qc_less_blocks_allowed: bool = False
@@ -52,6 +55,7 @@ class ProductionConsensusProfile:
     def to_json(self) -> dict[str, object]:
         return {
             "protocol_version": self.protocol_version,
+            "state_root_commitment_version": self.state_root_commitment_version,
             "sigverify_required": bool(self.sigverify_required),
             "legacy_sig_domain_allowed": bool(self.legacy_sig_domain_allowed),
             "qc_less_blocks_allowed": bool(self.qc_less_blocks_allowed),
@@ -87,6 +91,39 @@ class ProductionConsensusProfile:
 PRODUCTION_CONSENSUS_PROFILE = ProductionConsensusProfile()
 
 
+CANONICAL_SIGNATURE_REQUIRED_CHAIN_IDS: frozenset[str] = frozenset(
+    {"weall-prod", "weall-testnet-v1", "weall-controlled-devnet"}
+)
+BLOCK_TX_SIGNATURE_POLICY_REQUIRED = "required"
+BLOCK_TX_SIGNATURE_POLICY_LOCAL_FIXTURE = "optional_local_fixture"
+
+
+def block_tx_signature_policy(state: Mapping[str, Any] | None = None, *, chain_id: str = "") -> str:
+    """Resolve block transaction signature policy from chain identity, never process mode.
+
+    Canonical production, public-testnet, and controlled-devnet identities always
+    require signatures.  Non-canonical chains retain an explicit local-fixture
+    compatibility policy so unit tests and isolated developer chains can use
+    unsigned fixtures without creating a prod/dev consensus split.
+    """
+
+    st = state if isinstance(state, Mapping) else {}
+    params = st.get("params") if isinstance(st.get("params"), Mapping) else {}
+    raw = str(params.get("block_tx_signature_policy") or "").strip().lower()
+    if raw in {BLOCK_TX_SIGNATURE_POLICY_REQUIRED, BLOCK_TX_SIGNATURE_POLICY_LOCAL_FIXTURE}:
+        return raw
+    resolved_chain_id = str(chain_id or st.get("chain_id") or "").strip()
+    if resolved_chain_id in CANONICAL_SIGNATURE_REQUIRED_CHAIN_IDS:
+        return BLOCK_TX_SIGNATURE_POLICY_REQUIRED
+    return BLOCK_TX_SIGNATURE_POLICY_LOCAL_FIXTURE
+
+
+def block_tx_signatures_required(
+    state: Mapping[str, Any] | None = None, *, chain_id: str = ""
+) -> bool:
+    return block_tx_signature_policy(state, chain_id=chain_id) == BLOCK_TX_SIGNATURE_POLICY_REQUIRED
+
+
 @dataclass(frozen=True, slots=True)
 class _EnvCheck:
     kind: str
@@ -99,8 +136,8 @@ def _mode() -> str:
     explicit = os.environ.get("WEALL_MODE")
     if explicit is not None:
         return str(explicit or "prod").strip().lower() or "prod"
-    if os.environ.get("PYTEST_CURRENT_TEST"):
-        return "test"
+    # Tests explicitly configure WEALL_MODE=test; production code does not infer
+    # posture from process/test-runner state.
     if str(os.environ.get("WEALL_UNSAFE_DEV") or "").strip() == "1":
         return "testnet"
     return "prod"
@@ -301,6 +338,7 @@ def production_consensus_env_audit() -> dict[str, Any]:
 
     canonical_payload = {
         "protocol_version": str(p.protocol_version),
+        "state_root_commitment_version": str(p.state_root_commitment_version),
         "protocol_profile_hash": str(p.profile_hash()),
         "mode": mode,
         "checks": [
@@ -408,6 +446,7 @@ def effective_runtime_consensus_posture() -> dict[str, object]:
             "startup_clock_hard_fail_ms": int(p.startup_clock_hard_fail_ms),
             "max_block_time_advance_ms": int(p.max_block_time_advance_ms),
             "protocol_version": str(p.protocol_version),
+            "state_root_commitment_version": str(p.state_root_commitment_version),
             "protocol_profile_hash": str(p.profile_hash()),
             "vrf_required": bool(p.vrf_required),
             "timestamp_rule": str(p.timestamp_rule),
@@ -470,7 +509,9 @@ def effective_runtime_consensus_posture() -> dict[str, object]:
         "max_tx_payload_dict_keys": int(
             _env_int("WEALL_MAX_TX_PAYLOAD_DICT_KEYS", p.max_tx_payload_dict_keys)
         ),
-        "max_tx_payload_str_len": int(_env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", p.max_tx_payload_str_len)),
+        "max_tx_payload_str_len": int(
+            _env_int("WEALL_MAX_TX_PAYLOAD_STR_LEN", p.max_tx_payload_str_len)
+        ),
         "max_tx_payload_nodes": int(_env_int("WEALL_MAX_TX_PAYLOAD_NODES", p.max_tx_payload_nodes)),
         "consensus_env_audit_ok": bool(env_audit["ok"]),
         "consensus_env_audit_fingerprint": str(env_audit["audit_fingerprint"]),
@@ -563,6 +604,7 @@ def runtime_startup_fingerprint(
         "chain_id": str(chain_id or ""),
         "node_id": str(node_id or ""),
         "protocol_version": str(p.protocol_version),
+        "state_root_commitment_version": str(p.state_root_commitment_version),
         "protocol_profile_hash": str(p.profile_hash()),
         "schema_version": str(schema_version or ""),
         "tx_index_hash": str(tx_index_hash or ""),
@@ -601,7 +643,9 @@ def runtime_startup_fingerprint(
         "max_tx_payload_dict_keys": int(
             posture.get("max_tx_payload_dict_keys", p.max_tx_payload_dict_keys)
         ),
-        "max_tx_payload_str_len": int(posture.get("max_tx_payload_str_len", p.max_tx_payload_str_len)),
+        "max_tx_payload_str_len": int(
+            posture.get("max_tx_payload_str_len", p.max_tx_payload_str_len)
+        ),
         "max_tx_payload_nodes": int(posture.get("max_tx_payload_nodes", p.max_tx_payload_nodes)),
         "consensus_env_audit_ok": bool(posture.get("consensus_env_audit_ok", False)),
         "consensus_env_audit_fingerprint": str(

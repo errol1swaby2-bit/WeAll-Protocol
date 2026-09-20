@@ -33,6 +33,9 @@ from typing import Any
 from weall.runtime.apply.dispute import dispute_open, select_dispute_panel  # type: ignore
 from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
+from weall.runtime.commitments import (
+    consensus_active_validator_ids,  # noqa: E402 -- legacy module docstring follows __future__ import
+)
 from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.reputation_accrual import (
     content_reputation_maturity_blocks,
@@ -449,6 +452,13 @@ def _active_juror_accounts(state: Json) -> list[str]:
 
 
 def _active_validator_accounts(state: Json) -> list[str]:
+    consensus = state.get("consensus")
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return _canonical_account_list(
+            [_resolve_account_identity(state, item) for item in explicit]
+        )
+
     active_from_roles = _active_role_accounts(
         state,
         "validators",
@@ -457,18 +467,7 @@ def _active_validator_accounts(state: Json) -> list[str]:
     if active_from_roles:
         return active_from_roles
 
-    consensus = state.get("consensus")
     if isinstance(consensus, dict):
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict):
-            active = _canonical_account_list(
-                [
-                    _resolve_account_identity(state, item)
-                    for item in _canonical_account_list(validator_set.get("active_set"))
-                ]
-            )
-            if active:
-                return active
         validators = consensus.get("validators")
         if isinstance(validators, dict):
             registry = validators.get("registry")
@@ -1731,8 +1730,16 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
                     parent="CONTENT_ESCALATE_TO_DISPUTE",
                     phase="post",
                 )
-        except Exception:
-            pass
+        except Exception as exc:
+            raise ContentApplyError(
+                "domain_error",
+                "system_followup_enqueue_failed",
+                {
+                    "tx_type": str(env.tx_type or ""),
+                    "followup_tx_type": "DISPUTE_JUROR_ASSIGN",
+                    "error_type": type(exc).__name__,
+                },
+            ) from exc
 
     # Enqueue a receipt-only audit record (system-emitted) for downstream tooling.
     try:
@@ -1746,9 +1753,16 @@ def _apply_content_escalate_to_dispute(state: Json, env: TxEnvelope) -> Json:
             parent="CONTENT_ESCALATE_TO_DISPUTE",
             phase="post",
         )
-    except Exception:
-        # fail-soft here; the escalation itself is the authoritative state transition.
-        pass
+    except Exception as exc:
+        raise ContentApplyError(
+            "domain_error",
+            "system_followup_enqueue_failed",
+            {
+                "tx_type": str(env.tx_type or ""),
+                "followup_tx_type": "FLAG_ESCALATION_RECEIPT",
+                "error_type": type(exc).__name__,
+            },
+        ) from exc
 
     return {
         "applied": "CONTENT_ESCALATE_TO_DISPUTE",

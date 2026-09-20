@@ -19,7 +19,7 @@ def test_helper_merge_rejects_certificate_plan_id_mismatch() -> None:
         lane_id="L1",
         tx_ids=("t1",),
         tx_order_hash="order",
-        receipts_root='bad',
+        receipts_root="bad",
         write_set_hash="writes",
         read_set_hash="reads",
         lane_delta_hash="deltahash",

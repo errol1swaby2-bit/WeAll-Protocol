@@ -49,7 +49,11 @@ def test_bootstrap_dev_preserves_requested_helper_profile(tmp_path: Path, monkey
     assert lifecycle["effective_state"] == "bootstrap_registration"
 
     meta = ex.read_state().get("meta", {})
-    helper_profile = meta.get("helper_execution_profile") if isinstance(meta.get("helper_execution_profile"), dict) else {}
+    helper_profile = (
+        meta.get("helper_execution_profile")
+        if isinstance(meta.get("helper_execution_profile"), dict)
+        else {}
+    )
     assert helper_profile.get("helper_mode_enabled") is True
     assert helper_profile.get("helper_fast_path_enabled") is True
 

@@ -23,6 +23,7 @@ class _FakeExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         return {"chain_id": "weall", "node_id": "node-1", "height": 1, "tip": "tip-1"}
 

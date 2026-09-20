@@ -1,14 +1,13 @@
 from weall.crypto.signature_profiles import (
     LEGACY_ED25519_V1,
-    PQ_MLKEM_V1,
     PQ_MLDSA_V1,
+    PQ_MLKEM_V1,
     PQ_SLHDSA_V1,
     get_signature_profile,
     mode_requires_explicit_sig_profile,
     profile_allowed_for_context,
     signature_profile_registry_json,
 )
-
 
 
 def test_signature_profile_registry_is_deterministic_and_fail_closed(monkeypatch):
@@ -46,6 +45,8 @@ def test_closed_testnet_default_allows_pq_and_rejects_disabled_legacy_ed25519(mo
 def test_chain_allowlist_cannot_reenable_disabled_legacy_ed25519(monkeypatch):
     monkeypatch.setenv("WEALL_CRYPTO_MODE", "closed-testnet")
     chain_config = {"crypto": {"allowed_signature_profiles": [LEGACY_ED25519_V1]}}
-    ok, reason = profile_allowed_for_context(LEGACY_ED25519_V1, chain_config=chain_config, require_verifier=False)
+    ok, reason = profile_allowed_for_context(
+        LEGACY_ED25519_V1, chain_config=chain_config, require_verifier=False
+    )
     assert ok is False
     assert reason == "signature_profile_disabled"

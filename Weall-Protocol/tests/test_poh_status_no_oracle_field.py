@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from weall.runtime.poh.state import canonical_account_poh_status, revoke_account_poh_status, set_account_poh_status
+import copy
+
+from weall.runtime.poh.state import (
+    canonical_account_poh_status,
+    revoke_account_poh_status,
+    set_account_poh_status,
+)
+from weall.runtime.state_hash import compute_state_root
 
 
 def test_set_account_poh_status_writes_provider_neutral_issuer_authority_id() -> None:
@@ -73,3 +80,15 @@ def test_revoke_preserves_issuer_authority_id_without_legacy_key() -> None:
 
     assert rec["issuer_authority_id"] == "live-case-authority"
     assert "issuer_oracle_id" not in rec
+
+
+def test_canonical_poh_status_read_does_not_mutate_root_visible_state() -> None:
+    state = {"height": 0, "accounts": {"@alice": {"poh_tier": 2}}, "poh": {}}
+    before = copy.deepcopy(state)
+    root_before = compute_state_root(state)
+
+    status = canonical_account_poh_status(state, "@alice")
+
+    assert status["poh_tier"] == 2
+    assert state == before
+    assert compute_state_root(state) == root_before

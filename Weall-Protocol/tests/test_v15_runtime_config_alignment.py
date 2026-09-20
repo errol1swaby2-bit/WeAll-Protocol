@@ -11,14 +11,18 @@ from weall.runtime.chain_config import ChainConfig, load_chain_config, validate_
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _cfg(*, mode: str = "prod", block_interval_ms: int | None = None, block_reward: int = 0) -> ChainConfig:
+def _cfg(
+    *, mode: str = "prod", block_interval_ms: int | None = None, block_reward: int = 0
+) -> ChainConfig:
     return ChainConfig(
         chain_id="weall-prod" if mode == "prod" else "weall-testnet-0",
         node_id="node-a",
         mode=mode,
         db_path="./data/weall.db",
         tx_index_path="./generated/tx_index.json",
-        block_interval_ms=(TARGET_BLOCK_INTERVAL_SECONDS * 1000 if block_interval_ms is None else block_interval_ms),
+        block_interval_ms=(
+            TARGET_BLOCK_INTERVAL_SECONDS * 1000 if block_interval_ms is None else block_interval_ms
+        ),
         max_txs_per_block=1000,
         block_reward=block_reward,
         api_host="127.0.0.1",
@@ -41,7 +45,9 @@ def test_v15_prod_and_testnet_configs_reject_legacy_block_reward() -> None:
             validate_chain_config(_cfg(mode=mode, block_reward=1))
 
 
-def test_v15_dev_config_default_block_interval_is_20_seconds(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_v15_dev_config_default_block_interval_is_20_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.delenv("WEALL_CHAIN_CONFIG_PATH", raising=False)
     monkeypatch.delenv("WEALL_CHAIN_MANIFEST_PATH", raising=False)

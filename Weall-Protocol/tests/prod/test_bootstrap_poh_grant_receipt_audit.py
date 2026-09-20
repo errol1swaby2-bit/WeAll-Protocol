@@ -7,7 +7,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_production_genesis_bootstrap_grant_is_visible_and_receipt_backed() -> None:
-    genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
+    genesis = json.loads(
+        (ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8")
+    )
     accounts = genesis["accounts"]
     founder = accounts["@errol-genesis"]
     grant_id = founder["poh_bootstrap_grant_id"]

@@ -14,11 +14,22 @@ QUICKSTART = ROOT / "docs" / "NEW_NODE_OPERATOR_QUICKSTART.md"
 SMOKE = ROOT / "scripts" / "operator_onboarding_smoke.sh"
 
 
-def _env(tx_type: str, payload: dict, *, signer: str = "@op", system: bool = False, nonce: int = 1) -> dict:
-    return {"tx_type": tx_type, "signer": signer, "nonce": nonce, "payload": payload, "sig": "", "system": system}
+def _env(
+    tx_type: str, payload: dict, *, signer: str = "@op", system: bool = False, nonce: int = 1
+) -> dict:
+    return {
+        "tx_type": tx_type,
+        "signer": signer,
+        "nonce": nonce,
+        "payload": payload,
+        "sig": "",
+        "system": system,
+    }
 
 
-def _state(*, tier: int = 2, active: bool = True, banned: bool = False, locked: bool = False) -> dict:
+def _state(
+    *, tier: int = 2, active: bool = True, banned: bool = False, locked: bool = False
+) -> dict:
     return {
         "accounts": {
             "@op": {
@@ -101,12 +112,24 @@ def test_active_node_operator_can_declare_storage_capacity_but_not_prove_it(monk
 def test_storage_opt_in_requires_active_node_operator_tier2_and_registered_node_key() -> None:
     inactive = _state(tier=2, active=False)
     with pytest.raises(Exception) as exc1:
-        apply_tx(inactive, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "storage_opt_in": True, "declared_capacity_bytes": 1}))
+        apply_tx(
+            inactive,
+            _env(
+                "ROLE_NODE_OPERATOR_ENROLL",
+                {"account_id": "@op", "storage_opt_in": True, "declared_capacity_bytes": 1},
+            ),
+        )
     assert "node_operator_status_required" in str(exc1.value)
 
     tier1 = _state(tier=1, active=True)
     with pytest.raises(Exception) as exc2:
-        apply_tx(tier1, _env("ROLE_NODE_OPERATOR_ENROLL", {"account_id": "@op", "storage_opt_in": True, "declared_capacity_bytes": 1}))
+        apply_tx(
+            tier1,
+            _env(
+                "ROLE_NODE_OPERATOR_ENROLL",
+                {"account_id": "@op", "storage_opt_in": True, "declared_capacity_bytes": 1},
+            ),
+        )
     assert "live_verification_required" in str(exc2.value)
 
     wrong_key = _state(tier=2, active=True)
@@ -115,7 +138,12 @@ def test_storage_opt_in_requires_active_node_operator_tier2_and_registered_node_
             wrong_key,
             _env(
                 "ROLE_NODE_OPERATOR_ENROLL",
-                {"account_id": "@op", "storage_opt_in": True, "declared_capacity_bytes": 1, "node_pubkey": "other"},
+                {
+                    "account_id": "@op",
+                    "storage_opt_in": True,
+                    "declared_capacity_bytes": 1,
+                    "node_pubkey": "other",
+                },
             ),
         )
     assert "node_key_not_registered" in str(exc3.value)
@@ -140,9 +168,15 @@ def test_proven_capacity_is_the_allocation_boundary(monkeypatch) -> None:
     assert not _preflight(st).passed
 
     proven = json.loads(json.dumps(st))
-    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]["proven_capacity_bytes"] = 1_000_000_000
-    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]["proof_status"] = "verified"
-    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]["proof_expires_height"] = 100
+    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"][
+        "proven_capacity_bytes"
+    ] = 1_000_000_000
+    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"][
+        "proof_status"
+    ] = "verified"
+    proven["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"][
+        "proof_expires_height"
+    ] = 100
     result = _preflight(proven)
     assert result.passed
     assert result.effective_roles == ("general_service", "storage_operator")

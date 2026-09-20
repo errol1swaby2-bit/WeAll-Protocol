@@ -9,7 +9,6 @@ from pydantic import ValidationError
 
 from weall.api.errors import ApiError
 from weall.api.routes_public_parts.common import (
-    _att_pool,
     _executor,
     _read_json_limited,
     _require_registered_signer_for_attestation,
@@ -46,20 +45,16 @@ def _validate_public_attestation_chain_id(*, body: dict, expected_chain_id: str)
 @router.post("/consensus/attest/submit")
 async def consensus_attest_submit(request: Request):
     """
-    Submit a validator attestation into the SQLite-backed attestation pool.
+    Submit a signed canonical BLOCK_ATTEST transaction.
 
     Mounted under /v1 by routes_public.py, so the full path is:
       POST /v1/consensus/attest/submit
 
-    The pool persists attestations keyed by a derived att_id (not trusted from client),
-    and also stores a block_id column for efficient fetch.
-
-    We derive block_id from the payload and set it on the top-level envelope before
-    persistence to match the SQLite schema.
+    BLOCK_ATTEST follows normal canonical transaction admission and persistent
+    mempool semantics.  The route must not add unsigned convenience fields or
+    divert the transaction into a separate local-only pool.
     """
     ex = _executor(request)
-    ap = _att_pool(request)
-
     body = await _read_json_limited(
         request, max_bytes_env="WEALL_MAX_HTTP_TX_BYTES", default_max_bytes=256 * 1024
     )
@@ -136,15 +131,16 @@ async def consensus_attest_submit(request: Request):
             {"signer": signer, "payload_validator": payload_validator},
         )
 
-    normalized_payload = dict(payload)
-    normalized_payload["validator"] = signer
-    body["payload"] = normalized_payload
-    body["block_id"] = block_id
-
-    if hasattr(ex, "submit_attestation"):
-        meta = ex.submit_attestation(body)
-    else:
-        meta = ap.add(body)
+    # Do not normalize the signed envelope after signature verification.
+    # payload.validator is optional; when supplied it was checked above.
+    submit = getattr(ex, "submit_attestation", None)
+    if not callable(submit):
+        raise ApiError.internal(
+            "not_ready",
+            "canonical attestation submission is not available",
+            {"tx_type": tx_type},
+        )
+    meta = submit(body)
 
     if not isinstance(meta, dict) or not meta.get("ok"):
         raise ApiError.forbidden(
@@ -153,13 +149,21 @@ async def consensus_attest_submit(request: Request):
             {"details": meta if isinstance(meta, dict) else {"meta": str(meta)}},
         )
 
-    att_id = str(meta.get("att_id") or "").strip()
-    ap_size = int(getattr(ap, "size", lambda: 0)() if ap is not None else 0)
+    tx_id = str(meta.get("tx_id") or "").strip()
+    if not tx_id:
+        raise ApiError.internal(
+            "submission_missing_tx_id",
+            "canonical attestation submission did not return a tx id",
+            {"block_id": block_id},
+        )
+    mp = getattr(ex, "mempool", None)
+    mp_size = int(getattr(mp, "size", lambda: 0)() if mp is not None else 0)
 
     return {
         "ok": True,
-        "att_id": att_id,
-        "attestation_pool_size": ap_size,
+        "tx_id": tx_id,
+        "status": "already_known" if bool(meta.get("already_known")) else "accepted",
+        "mempool_size": mp_size,
         "block_id": block_id,
     }
 
@@ -193,17 +197,29 @@ def consensus_block_production_readiness(request: Request):
     ex = _executor(request)
     st = _snapshot(request)
     meta = st.get("meta") if isinstance(st.get("meta"), dict) else {}
-    mode = str(meta.get("mode") or meta.get("runtime_mode") or os.environ.get("WEALL_MODE") or "").strip().lower()
-    observer_mode = bool(meta.get("observer_mode", False)) or _value_boolish(ex, "observer_mode", False)
+    mode = (
+        str(meta.get("mode") or meta.get("runtime_mode") or os.environ.get("WEALL_MODE") or "")
+        .strip()
+        .lower()
+    )
+    observer_mode = bool(meta.get("observer_mode", False)) or _value_boolish(
+        ex, "observer_mode", False
+    )
     block_loop_running = bool(getattr(ex, "block_loop_running", False))
     block_loop_unhealthy = bool(getattr(ex, "block_loop_unhealthy", False))
     last_error = str(getattr(ex, "block_loop_last_error", "") or "").strip()
     height = int(st.get("height") or 0) if isinstance(st, dict) else 0
     bft_enabled = _boolish(meta.get("bft_enabled")) or _value_boolish(ex, "bft_enabled", False)
-    validator_signing = _boolish(meta.get("validator_signing_enabled")) or _value_boolish(ex, "validator_signing_enabled", False)
+    validator_signing = _boolish(meta.get("validator_signing_enabled")) or _value_boolish(
+        ex, "validator_signing_enabled", False
+    )
 
-    production_profile_candidate = bool(mode == "prod" and not observer_mode and not block_loop_unhealthy)
-    can_locally_produce = bool(block_loop_running and not block_loop_unhealthy and not observer_mode)
+    production_profile_candidate = bool(
+        mode == "prod" and not observer_mode and not block_loop_unhealthy
+    )
+    can_locally_produce = bool(
+        block_loop_running and not block_loop_unhealthy and not observer_mode
+    )
 
     return {
         "ok": True,
@@ -226,6 +242,7 @@ def consensus_block_production_readiness(request: Request):
         "public_multi_validator_bft_ready": False,
         "claim": "This is read-only block production posture evidence. It does not grant authority or prove public multi-validator BFT.",
     }
+
 
 def _as_dict_any(v: Any) -> dict[str, Any]:
     return v if isinstance(v, dict) else {}
@@ -319,4 +336,3 @@ def consensus_block_production_proof(request: Request):
     readiness = consensus_block_production_readiness(request)
     proof["readiness"] = readiness
     return proof
-

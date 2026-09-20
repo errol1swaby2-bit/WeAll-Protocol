@@ -42,7 +42,6 @@ def _manifest(path: Path, *, chain_id: str, tx_index_hash: str) -> Path:
             "constitution_hash": "f" * 64,
             "constitution_traceability_hash": "1" * 64,
             "constitution_document_path": "docs/constitution/WEALL_GENESIS_CONSTITUTION_DRAFT_2.md",
-
             "genesis_time_ms": 0,
             "constitutional_clock": {
                 "enabled": True,
@@ -84,7 +83,9 @@ def test_chain_manifest_status_accepts_pinned_tx_index(tmp_path: Path) -> None:
 def test_chain_manifest_status_rejects_wrong_tx_index(tmp_path: Path) -> None:
     tx_index = tmp_path / "tx_index.json"
     _write_tx_index(tx_index)
-    manifest_path = _manifest(tmp_path / "chain.json", chain_id="weall-prod", tx_index_hash="d" * 64)
+    manifest_path = _manifest(
+        tmp_path / "chain.json", chain_id="weall-prod", tx_index_hash="d" * 64
+    )
 
     manifest = load_chain_manifest(str(manifest_path), required=True)
     status = chain_manifest_status(
@@ -99,9 +100,7 @@ def test_chain_manifest_status_rejects_wrong_tx_index(tmp_path: Path) -> None:
     assert "chain_manifest_tx_index_hash_mismatch" in status["issues"]
 
 
-def test_boot_config_uses_required_manifest_chain_id(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_boot_config_uses_required_manifest_chain_id(tmp_path: Path, monkeypatch) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = _manifest(tmp_path / "chain.json", chain_id="weall-prod", tx_index_hash=tx_hash)
@@ -118,9 +117,7 @@ def test_boot_config_uses_required_manifest_chain_id(
     assert cfg.tx_index_path == str(tx_index)
 
 
-def test_load_chain_config_surfaces_manifest_metadata(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_load_chain_config_surfaces_manifest_metadata(tmp_path: Path, monkeypatch) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = _manifest(tmp_path / "chain.json", chain_id="weall-prod", tx_index_hash=tx_hash)

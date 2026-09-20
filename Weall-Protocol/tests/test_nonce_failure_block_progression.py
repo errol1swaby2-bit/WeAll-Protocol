@@ -16,7 +16,9 @@ def _mk_executor(tmp_path: Path, name: str) -> WeAllExecutor:
     )
 
 
-def _signed(ex: WeAllExecutor, *, signer: str, nonce: int, tx_type: str, payload: dict, priv_hex: str) -> dict:
+def _signed(
+    ex: WeAllExecutor, *, signer: str, nonce: int, tx_type: str, payload: dict, priv_hex: str
+) -> dict:
     tx = {
         "tx_type": tx_type,
         "signer": signer,
@@ -43,9 +45,13 @@ def test_failed_block_apply_does_not_consume_nonce(tmp_path: Path) -> None:
     )
     assert leader.submit_tx(register)["ok"] is True
 
-    block1, state1, applied1, invalid1, err1 = leader.build_block_candidate(max_txs=10, allow_empty=False)
+    block1, state1, applied1, invalid1, err1 = leader.build_block_candidate(
+        max_txs=10, allow_empty=False
+    )
     assert err1 == ""
-    meta1 = leader.commit_block_candidate(block=block1, new_state=state1, applied_ids=applied1, invalid_ids=invalid1)
+    meta1 = leader.commit_block_candidate(
+        block=block1, new_state=state1, applied_ids=applied1, invalid_ids=invalid1
+    )
     assert meta1.ok is True
     assert leader.state["accounts"][signer]["nonce"] == 1
 
@@ -59,7 +65,9 @@ def test_failed_block_apply_does_not_consume_nonce(tmp_path: Path) -> None:
     )
     assert leader.submit_tx(fail_tx)["ok"] is True
 
-    block2, state2, _applied2, invalid2, err2 = leader.build_block_candidate(max_txs=10, allow_empty=False)
+    block2, state2, _applied2, invalid2, err2 = leader.build_block_candidate(
+        max_txs=10, allow_empty=False
+    )
     assert err2 == ""
     assert isinstance(block2, dict)
     assert len(invalid2) == 1

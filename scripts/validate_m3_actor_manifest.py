@@ -10,11 +10,14 @@ from typing import Any
 from m3_evidence_contract import (
     ACTION_MIN_COUNTS,
     ACTION_TX_TYPES,
+    APPEAL_REVIEWER_ROLE_PREFIX,
     EMBEDDED_ATTENDANCE_EVIDENCE_KIND,
     EMBEDDED_ATTENDANCE_LABELS,
-    APPEAL_REVIEWER_ROLE_PREFIX,
-    action_requires_manifest_actor_binding,
     EXPECTED_NEGATIVE_ERROR_CODES,
+    EXPECTED_NEGATIVE_ERROR_REASONS,
+    EXPECTED_NEGATIVE_REJECTION_LAYERS,
+    INLINE_SYSTEM_ACTION_LABELS,
+    INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND,
     MIN_REVIEWERS_PER_PANEL_POOL,
     NEGATIVE_TX_TYPES,
     ORIGINAL_REVIEWER_ROLE_PREFIX,
@@ -22,9 +25,11 @@ from m3_evidence_contract import (
     REQUIRED_HUMAN_ROLES,
     REQUIRED_NEGATIVE_LABELS,
     SYSTEM_ACTION_LABELS,
+    action_requires_manifest_actor_binding,
     role_allowed_for_action,
     role_allowed_for_negative,
     validate_embedded_attendance_pairs,
+    validate_inline_system_transitions,
     validate_public_actor_transcript,
 )
 
@@ -139,6 +144,7 @@ def main() -> int:
         "negative_post_id",
         "negative_group_id",
         "negative_dispute_id",
+        "negative_appeal_dispute_id",
         "negative_proposal_id",
     ):
         journey_public[field] = _required_text(journey.get(field), f"journey.{field}")
@@ -172,6 +178,10 @@ def main() -> int:
             and raw.get("evidence_kind") != EMBEDDED_ATTENDANCE_EVIDENCE_KIND
         ):
             raise SystemExit(f"m3_actor_transcript_attendance_evidence_kind_invalid:{tx_id}")
+        if label in INLINE_SYSTEM_ACTION_LABELS:
+            if raw.get("evidence_kind") != INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND:
+                raise SystemExit(f"m3_actor_transcript_inline_evidence_kind_invalid:{tx_id}")
+            _required_text(raw.get("trigger_tx_id"), f"actions[{index}].trigger_tx_id")
         if tx_type not in ACTION_TX_TYPES[label]:
             raise SystemExit(f"m3_actor_transcript_action_tx_type_invalid:{label}:{tx_type}")
         if raw.get("status") != "confirmed":
@@ -190,6 +200,7 @@ def main() -> int:
         action_counts[label] = action_counts.get(label, 0) + 1
     try:
         validate_embedded_attendance_pairs(actions)
+        validate_inline_system_transitions(actions)
     except ValueError as exc:
         raise SystemExit(f"m3_actor_transcript_{exc}") from exc
     for label, minimum in ACTION_MIN_COUNTS.items():
@@ -215,6 +226,20 @@ def main() -> int:
             raise SystemExit(f"m3_actor_negative_tx_type_invalid:{label}:{tx_type}")
         if error_code != EXPECTED_NEGATIVE_ERROR_CODES[label]:
             raise SystemExit(f"m3_actor_negative_error_code_invalid:{label}:{error_code}")
+        error_reason = _required_text(
+            raw.get("expected_error_reason"),
+            f"negative_attempts[{index}].expected_error_reason",
+        )
+        if error_reason != EXPECTED_NEGATIVE_ERROR_REASONS[label]:
+            raise SystemExit(f"m3_actor_negative_error_reason_invalid:{label}:{error_reason}")
+        rejection_layer = _required_text(
+            raw.get("expected_rejection_layer"),
+            f"negative_attempts[{index}].expected_rejection_layer",
+        )
+        if rejection_layer != EXPECTED_NEGATIVE_REJECTION_LAYERS[label]:
+            raise SystemExit(
+                f"m3_actor_negative_rejection_layer_invalid:{label}:{rejection_layer}"
+            )
         if not isinstance(raw.get("payload"), dict):
             raise SystemExit(f"m3_actor_negative_payload_invalid:{label}")
         if account not in accounts or role not in roles:

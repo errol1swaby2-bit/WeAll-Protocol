@@ -15,13 +15,15 @@ QUORUM = 3
 
 
 def _h(obj: Any) -> str:
-    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 @dataclass
 class GossipNode:
     node_id: str
-    input_queue: "queue.Queue[dict[str, Any]]" = field(default_factory=queue.Queue)
+    input_queue: queue.Queue[dict[str, Any]] = field(default_factory=queue.Queue)
     mempool: dict[str, dict[str, Any]] = field(default_factory=dict)
     votes_seen: dict[str, set[str]] = field(default_factory=dict)
     committed_blocks: dict[int, dict[str, Any]] = field(default_factory=dict)
@@ -32,7 +34,7 @@ class GossipNode:
     events: list[dict[str, Any]] = field(default_factory=list)
     thread: threading.Thread | None = None
 
-    def start(self, network: "Network") -> None:
+    def start(self, network: Network) -> None:
         self.thread = threading.Thread(target=self._run, args=(network,), daemon=True)
         self.thread.start()
 
@@ -42,40 +44,55 @@ class GossipNode:
         if self.thread:
             self.thread.join(timeout=1.0)
 
-    def _run(self, network: "Network") -> None:
+    def _run(self, network: Network) -> None:
         while self.running:
             try:
                 msg = self.input_queue.get(timeout=0.05)
             except queue.Empty:
                 continue
-            t = msg.get("type")
-            if t == "stop":
-                break
-            if t == "tx":
-                tx = dict(msg.get("tx") or {})
-                txid = str(tx.get("tx_id") or _h(tx))
-                tx["tx_id"] = txid
-                self.mempool[txid] = tx
-                self.events.append({"event": "tx_accept", "tx_id": txid})
-            elif t == "proposal":
-                block = dict(msg.get("block") or {})
-                if self.partition != block.get("partition", "majority"):
-                    self.events.append({"event": "proposal_ignored_partition", "block_id": block.get("block_id")})
-                    continue
-                vote = {"type": "vote", "block_id": block.get("block_id"), "height": block.get("height"), "voter": self.node_id, "partition": self.partition}
-                network.gossip(self.node_id, vote)
-                self.events.append({"event": "vote_sent", "block_id": vote["block_id"]})
-            elif t == "vote":
-                block_id = str(msg.get("block_id") or "")
-                if self.partition != msg.get("partition", self.partition):
-                    continue
-                self.votes_seen.setdefault(block_id, set()).add(str(msg.get("voter") or ""))
-            elif t == "commit":
-                block = dict(msg.get("block") or {})
-                self._commit(block)
-            elif t == "catchup":
-                for block in list(msg.get("blocks") or []):
-                    self._commit(dict(block))
+            network.worker_started()
+            try:
+                t = msg.get("type")
+                if t == "stop":
+                    break
+                if t == "tx":
+                    tx = dict(msg.get("tx") or {})
+                    txid = str(tx.get("tx_id") or _h(tx))
+                    tx["tx_id"] = txid
+                    self.mempool[txid] = tx
+                    self.events.append({"event": "tx_accept", "tx_id": txid})
+                elif t == "proposal":
+                    block = dict(msg.get("block") or {})
+                    if self.partition != block.get("partition", "majority"):
+                        self.events.append(
+                            {
+                                "event": "proposal_ignored_partition",
+                                "block_id": block.get("block_id"),
+                            }
+                        )
+                        continue
+                    vote = {
+                        "type": "vote",
+                        "block_id": block.get("block_id"),
+                        "height": block.get("height"),
+                        "voter": self.node_id,
+                        "partition": self.partition,
+                    }
+                    network.gossip(self.node_id, vote)
+                    self.events.append({"event": "vote_sent", "block_id": vote["block_id"]})
+                elif t == "vote":
+                    block_id = str(msg.get("block_id") or "")
+                    if self.partition != msg.get("partition", self.partition):
+                        continue
+                    self.votes_seen.setdefault(block_id, set()).add(str(msg.get("voter") or ""))
+                elif t == "commit":
+                    block = dict(msg.get("block") or {})
+                    self._commit(block)
+                elif t == "catchup":
+                    for block in list(msg.get("blocks") or []):
+                        self._commit(dict(block))
+            finally:
+                network.worker_finished()
 
     def _commit(self, block: dict[str, Any]) -> None:
         height = int(block.get("height") or 0)
@@ -83,7 +100,14 @@ class GossipNode:
             return
         prev = self.root
         tx_ids = list(block.get("tx_ids") or [])
-        self.root = _h({"prev": prev, "height": height, "tx_ids": tx_ids, "block_id": block.get("block_id", "")})
+        self.root = _h(
+            {
+                "prev": prev,
+                "height": height,
+                "tx_ids": tx_ids,
+                "block_id": block.get("block_id", ""),
+            }
+        )
         self.height = height
         self.committed_blocks[height] = {**block, "state_root": self.root}
         self.events.append({"event": "commit", "height": height, "root": self.root})
@@ -96,6 +120,46 @@ class Network:
         self.dropped: list[dict[str, Any]] = []
         self.delay_ms = {"tx": 3, "proposal": 11, "vote": 7, "commit": 5, "catchup": 1}
         self.partition_groups = {n: "majority" for n in VALIDATORS}
+        self._work = threading.Condition()
+        self._pending_deliveries = 0
+        self._active_workers = 0
+
+    def worker_started(self) -> None:
+        with self._work:
+            self._active_workers += 1
+            self._work.notify_all()
+
+    def worker_finished(self) -> None:
+        with self._work:
+            self._active_workers -= 1
+            self._work.notify_all()
+
+    def _delivery_scheduled(self) -> None:
+        with self._work:
+            self._pending_deliveries += 1
+            self._work.notify_all()
+
+    def _delivery_completed(self, record: dict[str, Any]) -> None:
+        with self._work:
+            self.deliveries.append(record)
+            self._pending_deliveries -= 1
+            self._work.notify_all()
+
+    def wait_for_idle(self, *, timeout: float = 2.0) -> bool:
+        deadline = time.monotonic() + timeout
+        with self._work:
+            while True:
+                queues_empty = all(node.input_queue.empty() for node in self.nodes.values())
+                if self._pending_deliveries == 0 and self._active_workers == 0 and queues_empty:
+                    return True
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return False
+                self._work.wait(timeout=min(remaining, 0.01))
+
+    def require_idle(self, stage: str, *, timeout: float = 2.0) -> None:
+        if not self.wait_for_idle(timeout=timeout):
+            raise RuntimeError(f"network_did_not_quiesce:{stage}")
 
     def start(self) -> None:
         for n in self.nodes.values():
@@ -126,15 +190,28 @@ class Network:
                 continue
             # Deterministic short delay/reordering: deliver votes before proposals sometimes by relying on different delays.
             delay = self.delay_ms.get(str(msg.get("type")), 1) / 1000.0
-            def deliver(target=node, payload=dict(msg), rec=record) -> None:
-                target.input_queue.put(payload)
-                self.deliveries.append(rec)
+            self._delivery_scheduled()
+            payload = dict(msg)
+
+            def deliver(target=node, payload=payload, rec=record) -> None:
+                try:
+                    target.input_queue.put(payload)
+                finally:
+                    self._delivery_completed(rec)
+
             timer = threading.Timer(delay, deliver)
             timer.daemon = True
             timer.start()
 
-    def propose(self, leader: str, *, height: int, tx_ids: list[str], partition: str = "majority") -> dict[str, Any]:
-        block = {"height": height, "tx_ids": sorted(tx_ids), "proposer": leader, "partition": partition}
+    def propose(
+        self, leader: str, *, height: int, tx_ids: list[str], partition: str = "majority"
+    ) -> dict[str, Any]:
+        block = {
+            "height": height,
+            "tx_ids": sorted(tx_ids),
+            "proposer": leader,
+            "partition": partition,
+        }
         block["block_id"] = _h(block)
         self.gossip(leader, {"type": "proposal", "block": block})
         return block
@@ -153,46 +230,59 @@ def run_harness() -> dict[str, Any]:
     net.start()
     try:
         # 1. Autonomous tx gossip into all validators.
-        txs = [{"signer": "@alice", "nonce": 1}, {"signer": "@bob", "nonce": 1}, {"signer": "@carol", "nonce": 1}]
+        txs = [
+            {"signer": "@alice", "nonce": 1},
+            {"signer": "@bob", "nonce": 1},
+            {"signer": "@carol", "nonce": 1},
+        ]
         for tx in txs:
             payload = {**tx, "tx_id": _h(tx)}
             net.nodes["v-a"].input_queue.put({"type": "tx", "tx": payload})
             net.gossip("v-a", {"type": "tx", "tx": payload})
-        time.sleep(0.15)
+        net.require_idle("tx_gossip")
         mempool_counts = {n: len(node.mempool) for n, node in net.nodes.items()}
 
         # 2. Majority partition finalizes height 1 via proposal/vote/QC/commit gossip.
         block1 = net.propose("v-a", height=1, tx_ids=list(net.nodes["v-a"].mempool.keys()))
-        time.sleep(0.25)
+        net.require_idle("height1_votes")
         qc1 = net.commit_if_quorum("v-a", block1)
-        time.sleep(0.15)
-        roots_after_h1 = {n: node.root for n, node in net.nodes.items()}
-
+        net.require_idle("height1_commit")
         # 3. Minority partition cannot finalize.
-        net.set_partition({"v-a": "majority", "v-b": "majority", "v-c": "minority", "v-d": "minority"})
+        net.set_partition(
+            {"v-a": "majority", "v-b": "majority", "v-c": "minority", "v-d": "minority"}
+        )
         block2_minority = net.propose("v-c", height=2, tx_ids=[], partition="minority")
-        time.sleep(0.15)
+        net.require_idle("minority_votes")
         qc_minority = net.commit_if_quorum("v-c", block2_minority)
 
         # 4. Rejoin, finalize height 2, restart/churn v-d, then catch up from peers.
         net.set_partition({n: "majority" for n in VALIDATORS})
         block2 = net.propose("v-a", height=2, tx_ids=[])
-        time.sleep(0.25)
+        net.require_idle("height2_votes")
         qc2 = net.commit_if_quorum("v-a", block2)
-        time.sleep(0.15)
+        net.require_idle("height2_commit")
         restarted_old_root = net.nodes["v-d"].root
         net.nodes["v-d"].stop()
         net.nodes["v-d"] = GossipNode("v-d")
         net.nodes["v-d"].partition = "majority"
         net.nodes["v-d"].start(net)
-        committed = [net.nodes["v-a"].committed_blocks[h] for h in sorted(net.nodes["v-a"].committed_blocks)]
+        committed = [
+            net.nodes["v-a"].committed_blocks[h] for h in sorted(net.nodes["v-a"].committed_blocks)
+        ]
         net.nodes["v-d"].input_queue.put({"type": "catchup", "blocks": committed})
-        time.sleep(0.15)
+        net.require_idle("restart_catchup")
         roots_final = {n: node.root for n, node in net.nodes.items()}
         heights_final = {n: node.height for n, node in net.nodes.items()}
 
         return {
-            "ok": bool(all(c == 3 for c in mempool_counts.values()) and qc1 and qc2 and not qc_minority and len(set(roots_final.values())) == 1 and set(heights_final.values()) == {2}),
+            "ok": bool(
+                all(c == 3 for c in mempool_counts.values())
+                and qc1
+                and qc2
+                and not qc_minority
+                and len(set(roots_final.values())) == 1
+                and set(heights_final.values()) == {2}
+            ),
             "batch": "567",
             "node_count": len(VALIDATORS),
             "autonomous_loop_model": "threaded_validator_gossip_loops",
@@ -219,7 +309,9 @@ def run_harness() -> dict[str, Any]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

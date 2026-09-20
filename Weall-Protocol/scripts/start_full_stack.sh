@@ -139,7 +139,7 @@ ensure_backend_port_is_clear() {
 
   if ss -ltn "( sport = :${BACKEND_PORT} )" | grep -q ":${BACKEND_PORT}"; then
     log "stale backend appears to still own port ${BACKEND_PORT}; attempting cleanup"
-    pkill -f 'gunicorn weall.api.app:app' >/dev/null 2>&1 || true
+    pkill -f 'gunicorn weall.api.asgi:app' >/dev/null 2>&1 || true
   fi
 
   if ! wait_for_port_free "$BACKEND_PORT" "$PORT_WAIT_SECONDS"; then

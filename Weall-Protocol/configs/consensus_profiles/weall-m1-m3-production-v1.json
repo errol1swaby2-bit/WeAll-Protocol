@@ -1,0 +1,50 @@
+{
+  "activation_projection": {
+    "ballot_profile": "root-committed-params",
+    "block_tx_signature_policy": "chain-state-or-canonical-chain-id",
+    "consensus_error_policy": "fail_closed",
+    "helper_execution_profile": "startup-pinned-profile",
+    "helper_reputation_transition_policy": "diagnostic_only_v1",
+    "runtime_mode_consensus_authority": false,
+    "scheduler_error_policy": "fail_closed"
+  },
+  "chain_identity_commitment": {
+    "field": "protocol_profile_hash",
+    "manifests": [
+      "configs/chains/weall-genesis.json",
+      "configs/chains/weall-testnet-v1.json",
+      "configs/chains/weall-controlled-devnet.json"
+    ]
+  },
+  "manifest_hash": "36994b7a43bda8e5f51d4e8f491f3bafab4f13407ca6f78e6daffc71b461066f",
+  "manifest_id": "weall-m1-m3-production-v1",
+  "protocol_profile": {
+    "clock_skew_warn_ms": 30000,
+    "handshake_requires_profile_match": true,
+    "handshake_requires_validator_epoch_match_for_bft": true,
+    "legacy_sig_domain_allowed": false,
+    "max_block_future_drift_ms": 120000,
+    "max_block_time_advance_ms": 60000,
+    "max_tx_payload_bytes": 65536,
+    "max_tx_payload_depth": 20,
+    "max_tx_payload_dict_keys": 2000,
+    "max_tx_payload_list_len": 2000,
+    "max_tx_payload_nodes": 50000,
+    "max_tx_payload_str_len": 65536,
+    "monotonic_block_timestamps_required": true,
+    "proposal_requires_justify_qc": true,
+    "protocol_version": "2026.03-prod.6",
+    "qc_less_blocks_allowed": false,
+    "reputation_scale": 1000,
+    "sigverify_required": true,
+    "startup_clock_hard_fail_ms": 86400000,
+    "startup_clock_sanity_required": false,
+    "state_root_commitment_version": "weall.state-root.v2",
+    "timestamp_rule": "chain_time_successor_only",
+    "trusted_anchor_required": true,
+    "unsafe_autocommit_allowed": false,
+    "vrf_required": true
+  },
+  "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
+  "schema": "weall.consensus_profile_manifest.v1"
+}

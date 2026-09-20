@@ -8,12 +8,6 @@ from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.runtime.executor import WeAllExecutor
 
@@ -120,6 +114,7 @@ assert meta.ok is True
         env["DB_PATH"] = db_path
         env["TX_INDEX"] = tx_index_path
         env["SIGNER"] = f"@user{i}"
+        env["WEALL_MODE"] = "test"
         env["WEALL_TEST_SLEEP_AFTER_BLOCK_INSERT_MS"] = "5000"
         env["WEALL_TEST_MARKER_PATH"] = str(marker)
 
@@ -353,6 +348,7 @@ assert meta.ok is True
         env["DB_PATH"] = db_exec
         env["TX_INDEX"] = tx_index_path
         env["SIGNER"] = f"@mix{i}"
+        env["WEALL_MODE"] = "test"
         env["WEALL_TEST_SLEEP_AFTER_BLOCK_INSERT_MS"] = "5000"
         env["WEALL_TEST_MARKER_PATH"] = str(marker)
 

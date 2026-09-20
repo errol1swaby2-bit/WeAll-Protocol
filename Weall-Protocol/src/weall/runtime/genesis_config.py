@@ -42,7 +42,9 @@ def load_genesis(path: str) -> GenesisConfig:
         acct = str(rec.get("account") or "").strip()
         pk = str(rec.get("pubkey") or "").strip()
         if acct and pk:
-            vals.append(GenesisValidator(account=acct, pubkey=pk, active=bool(rec.get("active", True))))
+            vals.append(
+                GenesisValidator(account=acct, pubkey=pk, active=bool(rec.get("active", True)))
+            )
 
     active_set = obj.get("active_set")
     if isinstance(active_set, list):
@@ -75,7 +77,9 @@ def apply_genesis_config_to_ledger_state(state: Json, cfg: GenesisConfig) -> tup
         if params.get("poh_bootstrap_open") is True:
             params["poh_bootstrap_mode"] = "open"
             changed = True
-        elif isinstance(params.get("bootstrap_allowlist"), dict) and params.get("bootstrap_allowlist"):
+        elif isinstance(params.get("bootstrap_allowlist"), dict) and params.get(
+            "bootstrap_allowlist"
+        ):
             params["poh_bootstrap_mode"] = "allowlist"
             changed = True
 

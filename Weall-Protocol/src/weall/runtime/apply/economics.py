@@ -91,12 +91,9 @@ def _ensure_params(state: Json) -> Json:
     return params
 
 
-
-
 def _activation_precondition_report(state: Json) -> Json:
     econ = _ensure_econ_root(state)
     sim = state.get("tokenomics_simulation")
-    launch = state.get("launch_disabled_matrix")
     treasury_wallets = state.get("treasury_wallets")
     reward_policy = econ.get("reward_policy")
     wallet_policy = econ.get("wallet_policy")
@@ -104,11 +101,17 @@ def _activation_precondition_report(state: Json) -> Json:
     treasury_policy = econ.get("treasury_accountability_policy")
     transfer_policy = econ.get("transfer_receipt_policy")
     checks = {
-        "tokenomics_simulation_present": isinstance(sim, dict) or bool(econ.get("tokenomics_simulation_hash")),
+        "tokenomics_simulation_present": isinstance(sim, dict)
+        or bool(econ.get("tokenomics_simulation_hash")),
         "reward_policy_present": isinstance(reward_policy, dict),
-        "reward_recipient_eligibility_present": isinstance(reward_policy, dict) and (isinstance(reward_policy.get("recipient_eligibility"), dict) or isinstance(reward_policy.get("eligible_roles"), list)),
+        "reward_recipient_eligibility_present": isinstance(reward_policy, dict)
+        and (
+            isinstance(reward_policy.get("recipient_eligibility"), dict)
+            or isinstance(reward_policy.get("eligible_roles"), list)
+        ),
         "wallet_policy_present": isinstance(wallet_policy, dict),
-        "wallet_initialization_policy_present": isinstance(wallet_policy, dict) and bool(wallet_policy.get("initialization")),
+        "wallet_initialization_policy_present": isinstance(wallet_policy, dict)
+        and bool(wallet_policy.get("initialization")),
         "treasury_wallets_present": isinstance(treasury_wallets, dict) and bool(treasury_wallets),
         "treasury_accountability_policy_present": isinstance(treasury_policy, dict),
         "anti_farming_policy_present": isinstance(anti_farming, dict),
@@ -126,12 +129,28 @@ def _activation_precondition_report(state: Json) -> Json:
         "fee_free_civic_policy_present",
         "activation_authority_system",
     ]
-    strict_v2 = bool(_as_dict(_as_dict(state.get("params")).get("economics", {})).get("strict_activation_preconditions_v2") or _as_dict(state.get("params")).get("economics_strict_activation_preconditions_v2"))
+    strict_v2 = bool(
+        _as_dict(_as_dict(state.get("params")).get("economics", {})).get(
+            "strict_activation_preconditions_v2"
+        )
+        or _as_dict(state.get("params")).get("economics_strict_activation_preconditions_v2")
+    )
     if strict_v2:
-        required.extend(["treasury_accountability_policy_present", "anti_farming_policy_present", "transfer_receipt_policy_present"])
+        required.extend(
+            [
+                "treasury_accountability_policy_present",
+                "anti_farming_policy_present",
+                "transfer_receipt_policy_present",
+            ]
+        )
     missing = [k for k in required if not bool(checks.get(k))]
     advisory_missing = [k for k, ok in sorted(checks.items()) if not bool(ok) and k not in missing]
-    return {"checks": checks, "missing": missing, "advisory_missing": advisory_missing, "ready": not missing}
+    return {
+        "checks": checks,
+        "missing": missing,
+        "advisory_missing": advisory_missing,
+        "ready": not missing,
+    }
 
 
 def _require_activation_preconditions(state: Json) -> Json:
@@ -143,6 +162,7 @@ def _require_activation_preconditions(state: Json) -> Json:
             {"missing": report.get("missing", []), "checks": report.get("checks", {})},
         )
     return report
+
 
 def _ensure_econ_root(state: Json) -> Json:
     econ = state.get("economics")
@@ -159,8 +179,6 @@ def _ensure_econ_root(state: Json) -> Json:
     econ.setdefault("rate_limit_strikes", [])
     econ.setdefault("fee_payments", [])
     return econ
-
-
 
 
 def economics_locked_read_models(state: Json) -> Json:
@@ -203,7 +221,16 @@ def economics_locked_read_models(state: Json) -> Json:
     }
 
 
-def record_locked_transfer_attempt(state: Json, *, transfer_id: str, from_account: str, to_account: str, amount: int, status: str, reason: str) -> Json:
+def record_locked_transfer_attempt(
+    state: Json,
+    *,
+    transfer_id: str,
+    from_account: str,
+    to_account: str,
+    amount: int,
+    status: str,
+    reason: str,
+) -> Json:
     econ = _ensure_econ_root(state)
     transfers = econ.setdefault("transfers", {})
     pending = transfers.setdefault("pending", {})
@@ -226,7 +253,16 @@ def record_locked_transfer_attempt(state: Json, *, transfer_id: str, from_accoun
     return dict(rec)
 
 
-def record_locked_reward_claim(state: Json, *, claim_id: str, account_id: str, epoch: int, amount: int, status: str, reason: str = "") -> Json:
+def record_locked_reward_claim(
+    state: Json,
+    *,
+    claim_id: str,
+    account_id: str,
+    epoch: int,
+    amount: int,
+    status: str,
+    reason: str = "",
+) -> Json:
     econ = _ensure_econ_root(state)
     ledger = econ.setdefault("reward_claim_ledger", {"claims": {}, "by_epoch": {}})
     claims = ledger.setdefault("claims", {})
@@ -250,7 +286,15 @@ def record_locked_reward_claim(state: Json, *, claim_id: str, account_id: str, e
     return dict(rec)
 
 
-def record_treasury_report(state: Json, *, report_id: str, period: str, opening_balance: int, closing_balance: int, spends: list[Json] | None = None) -> Json:
+def record_treasury_report(
+    state: Json,
+    *,
+    report_id: str,
+    period: str,
+    opening_balance: int,
+    closing_balance: int,
+    spends: list[Json] | None = None,
+) -> Json:
     econ = _ensure_econ_root(state)
     reports_root = econ.setdefault("treasury_reports", {"reports": {}, "events": []})
     reports = reports_root.setdefault("reports", {})
@@ -288,7 +332,12 @@ def economics_locked_long_run_stress_summary(
 
     econ = _ensure_econ_root(state)
     params = _ensure_params(state)
-    actors = sorted({_as_str(a).strip() for a in (accounts or []) if _as_str(a).strip()}) or ["alice", "bob", "carol", "dave"]
+    actors = sorted({_as_str(a).strip() for a in (accounts or []) if _as_str(a).strip()}) or [
+        "alice",
+        "bob",
+        "carol",
+        "dave",
+    ]
     epoch_count = max(1, min(_as_int(epochs, 16), 10_000))
     max_per_epoch = max(1, min(_as_int(max_claims_per_epoch, 3), 100))
     accepted_claims: list[Json] = []
@@ -299,22 +348,48 @@ def economics_locked_long_run_stress_summary(
         for i, actor in enumerate(actors):
             # Every fifth epoch intentionally repeats the same work id to prove duplicate farming rejection.
             work_id = f"work:{actor}:{epoch if epoch % 5 else epoch - 1}:{i % 2}"
-            key = f"{epoch}:{actor}"
             actor_epochs = per_actor_epoch.setdefault(actor, {})
             actor_epochs.setdefault(str(epoch), 0)
             if work_id in seen_work:
-                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "duplicate_work_id"})
+                rejected_claims.append(
+                    {
+                        "epoch": epoch,
+                        "account_id": actor,
+                        "work_id": work_id,
+                        "reason": "duplicate_work_id",
+                    }
+                )
                 continue
             if actor_epochs[str(epoch)] >= max_per_epoch:
-                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "max_claims_per_epoch"})
+                rejected_claims.append(
+                    {
+                        "epoch": epoch,
+                        "account_id": actor,
+                        "work_id": work_id,
+                        "reason": "max_claims_per_epoch",
+                    }
+                )
                 continue
             if actor.startswith("locked") or actor.startswith("banned"):
-                rejected_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "recipient_not_eligible"})
+                rejected_claims.append(
+                    {
+                        "epoch": epoch,
+                        "account_id": actor,
+                        "work_id": work_id,
+                        "reason": "recipient_not_eligible",
+                    }
+                )
                 continue
             seen_work.add(work_id)
             actor_epochs[str(epoch)] += 1
-            accepted_claims.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "amount": 1})
-    rejected_transfer = {"status": "failed", "reason": "economics_disabled", "height": _as_int(state.get("height"), 0)}
+            accepted_claims.append(
+                {"epoch": epoch, "account_id": actor, "work_id": work_id, "amount": 1}
+            )
+    rejected_transfer = {
+        "status": "failed",
+        "reason": "economics_disabled",
+        "height": _as_int(state.get("height"), 0),
+    }
     sim_id = f"locked-econ-stress:{epoch_count}:{len(actors)}:{max_per_epoch}"
     simulations = econ.setdefault("locked_stress_simulations", {})
     rec = {
@@ -323,9 +398,15 @@ def economics_locked_long_run_stress_summary(
         "account_count": len(actors),
         "accepted_claim_count": len(accepted_claims),
         "rejected_claim_count": len(rejected_claims),
-        "duplicate_work_rejections": sum(1 for r in rejected_claims if r.get("reason") == "duplicate_work_id"),
-        "recipient_eligibility_rejections": sum(1 for r in rejected_claims if r.get("reason") == "recipient_not_eligible"),
-        "max_claim_rejections": sum(1 for r in rejected_claims if r.get("reason") == "max_claims_per_epoch"),
+        "duplicate_work_rejections": sum(
+            1 for r in rejected_claims if r.get("reason") == "duplicate_work_id"
+        ),
+        "recipient_eligibility_rejections": sum(
+            1 for r in rejected_claims if r.get("reason") == "recipient_not_eligible"
+        ),
+        "max_claim_rejections": sum(
+            1 for r in rejected_claims if r.get("reason") == "max_claims_per_epoch"
+        ),
         "treasury_report_epochs": epoch_count,
         "pending_failed_transfer_read_model_present": True,
         "economics_enabled": bool(params.get("economics_enabled")),
@@ -357,8 +438,20 @@ def economics_locked_sybil_farming_adversarial_summary(
     params = _ensure_params(state)
     epoch_count = max(1, min(_as_int(epochs, 36), 20_000))
     max_claims = max(1, min(_as_int(max_claims_per_epoch, 2), 100))
-    honest = sorted({_as_str(a).strip() for a in (honest_accounts or ["alice", "bob", "carol"]) if _as_str(a).strip()})
-    sybils = sorted({_as_str(a).strip() for a in (sybil_accounts or ["sybil-a", "sybil-b", "sybil-c", "sybil-d"]) if _as_str(a).strip()})
+    honest = sorted(
+        {
+            _as_str(a).strip()
+            for a in (honest_accounts or ["alice", "bob", "carol"])
+            if _as_str(a).strip()
+        }
+    )
+    sybils = sorted(
+        {
+            _as_str(a).strip()
+            for a in (sybil_accounts or ["sybil-a", "sybil-b", "sybil-c", "sybil-d"])
+            if _as_str(a).strip()
+        }
+    )
     accepted: list[Json] = []
     rejected: list[Json] = []
     seen_work: set[str] = set()
@@ -371,15 +464,36 @@ def economics_locked_sybil_farming_adversarial_summary(
             work_id = base if actor.startswith("sybil") else f"{base}:{actor}"
             key = f"{epoch}:{actor}"
             if work_id in seen_work:
-                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "duplicate_or_ring_reused_work"})
+                rejected.append(
+                    {
+                        "epoch": epoch,
+                        "account_id": actor,
+                        "work_id": work_id,
+                        "reason": "duplicate_or_ring_reused_work",
+                    }
+                )
                 continue
             if actor.startswith("sybil"):
-                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "sybil_ring_recipient_not_eligible"})
+                rejected.append(
+                    {
+                        "epoch": epoch,
+                        "account_id": actor,
+                        "work_id": work_id,
+                        "reason": "sybil_ring_recipient_not_eligible",
+                    }
+                )
                 seen_work.add(work_id)
                 continue
             per_epoch_actor[key] = per_epoch_actor.get(key, 0) + 1
             if per_epoch_actor[key] > max_claims:
-                rejected.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "reason": "max_claims_per_epoch"})
+                rejected.append(
+                    {
+                        "epoch": epoch,
+                        "account_id": actor,
+                        "work_id": work_id,
+                        "reason": "max_claims_per_epoch",
+                    }
+                )
                 continue
             seen_work.add(work_id)
             accepted.append({"epoch": epoch, "account_id": actor, "work_id": work_id, "amount": 1})
@@ -392,9 +506,15 @@ def economics_locked_sybil_farming_adversarial_summary(
         "sybil_account_count": len(sybils),
         "accepted_claim_count": len(accepted),
         "rejected_claim_count": len(rejected),
-        "duplicate_or_ring_reuse_rejections": sum(1 for r in rejected if r.get("reason") == "duplicate_or_ring_reused_work"),
-        "sybil_recipient_rejections": sum(1 for r in rejected if r.get("reason") == "sybil_ring_recipient_not_eligible"),
-        "max_claim_rejections": sum(1 for r in rejected if r.get("reason") == "max_claims_per_epoch"),
+        "duplicate_or_ring_reuse_rejections": sum(
+            1 for r in rejected if r.get("reason") == "duplicate_or_ring_reused_work"
+        ),
+        "sybil_recipient_rejections": sum(
+            1 for r in rejected if r.get("reason") == "sybil_ring_recipient_not_eligible"
+        ),
+        "max_claim_rejections": sum(
+            1 for r in rejected if r.get("reason") == "max_claims_per_epoch"
+        ),
         "economics_enabled": bool(params.get("economics_enabled")),
         "live_mutation_enabled": False,
         "balances_mutated": False,
@@ -404,6 +524,7 @@ def economics_locked_sybil_farming_adversarial_summary(
     }
     econ.setdefault("locked_sybil_farming_simulations", {})[sim_id] = rec
     return dict(rec)
+
 
 def _wrap_time_lock(state: Json) -> None:
     """
@@ -435,7 +556,6 @@ def _wrap_disabled(state: Json, tx_type: str) -> None:
         if "time-locked" in msg or "time locked" in msg or "time_locked" in msg:
             raise EconomicsApplyError("forbidden", "economics_time_locked", {"tx_type": tx_type})
         raise EconomicsApplyError("forbidden", "economics_disabled", {"tx_type": tx_type})
-
 
 
 _RATE_LIMIT_MIN_WINDOW_MS = 1_000
@@ -498,7 +618,9 @@ def _bounded_rate_limit_int(raw: Any, *, field: str, minimum: int, maximum: int)
     try:
         value = int(raw)
     except Exception as exc:
-        raise EconomicsApplyError("invalid_payload", f"bad_rate_limit_{field}", {field: raw}) from exc
+        raise EconomicsApplyError(
+            "invalid_payload", f"bad_rate_limit_{field}", {field: raw}
+        ) from exc
     if value < int(minimum) or value > int(maximum):
         raise EconomicsApplyError(
             "forbidden",
@@ -510,7 +632,9 @@ def _bounded_rate_limit_int(raw: Any, *, field: str, minimum: int, maximum: int)
 
 def _validate_rate_limit_rule(scope: str, rule: Json) -> Json:
     if not isinstance(rule, dict):
-        raise EconomicsApplyError("invalid_payload", "rate_limit_rule_must_be_object", {"scope": scope})
+        raise EconomicsApplyError(
+            "invalid_payload", "rate_limit_rule_must_be_object", {"scope": scope}
+        )
 
     extras = sorted(
         str(k)
@@ -559,7 +683,9 @@ def _normalize_rate_limit_policy_payload(payload: Json) -> Json:
     allowed_top = {"scope", "window_ms", "limit", "policy"}
     extras = sorted(str(k) for k in payload.keys() if str(k) not in allowed_top)
     if extras:
-        raise EconomicsApplyError("forbidden", "rate_limit_policy_field_not_allowed", {"fields": extras})
+        raise EconomicsApplyError(
+            "forbidden", "rate_limit_policy_field_not_allowed", {"fields": extras}
+        )
 
     rules: dict[str, Json] = {}
 
@@ -640,7 +766,10 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
         desired = _as_bool(payload.get("enabled"), True)
 
     activation_report: Json | None = None
-    if bool(desired) and (_as_bool(payload.get("enforce_preconditions"), False) or bool(params.get("economics_activation_preconditions_required", False))):
+    if bool(desired) and (
+        _as_bool(payload.get("enforce_preconditions"), False)
+        or bool(params.get("economics_activation_preconditions_required", False))
+    ):
         activation_report = _require_activation_preconditions(state)
 
     current = bool(params.get("economics_enabled", False))
@@ -749,11 +878,15 @@ def _apply_fee_pay(state: Json, env: TxEnvelope) -> Json:
             {"signer": signer, "from_account_id": from_account},
         )
     if not from_account:
-        raise EconomicsApplyError("invalid_payload", "missing_from_account", {"tx_type": env.tx_type})
+        raise EconomicsApplyError(
+            "invalid_payload", "missing_from_account", {"tx_type": env.tx_type}
+        )
 
     amount = _as_int(payload.get("amount"), 0)
     if amount < 0:
-        raise EconomicsApplyError("invalid_payload", "bad_amount", {"amount": payload.get("amount")})
+        raise EconomicsApplyError(
+            "invalid_payload", "bad_amount", {"amount": payload.get("amount")}
+        )
 
     to_account = _as_str(
         payload.get("to_account_id")
@@ -866,9 +999,7 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
 
     purpose = _as_str(payload.get("purpose")).strip()
     content_id = _as_str(
-        payload.get("content_id")
-        or payload.get("target_id")
-        or payload.get("post_id")
+        payload.get("content_id") or payload.get("target_id") or payload.get("post_id")
     ).strip()
     memo = _as_str(payload.get("memo"))[:280]
 
@@ -952,11 +1083,14 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
         "deduped": False,
     }
 
+
 def _apply_rate_limit_strike_apply(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     payload = _as_dict(env.payload)
     econ = _ensure_econ_root(state)
-    target = _as_str(payload.get("target") or payload.get("account") or payload.get("account_id")).strip()
+    target = _as_str(
+        payload.get("target") or payload.get("account") or payload.get("account_id")
+    ).strip()
     if not target:
         raise EconomicsApplyError("invalid_payload", "missing_rate_limit_strike_target", {})
     _require_existing_account(state, target, field="target")

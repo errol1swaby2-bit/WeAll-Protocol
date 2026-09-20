@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
-
 from weall.net.codec import decode_message, encode_message
 from weall.net.gossip import (
     PeerAddrGossipConfig,
@@ -28,6 +26,7 @@ class _SimpleExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self) -> dict[str, Any]:
         return {}
 
@@ -198,7 +197,9 @@ def test_netnode_accepts_peer_addr_records_via_callback() -> None:
     )
     node._ensure_peer("peer-x")
 
-    node._handle_peer_addr("peer-x", PeerAddrMsg(header=_header(MsgType.PEER_ADDR), addrs=(good, bad)))
+    node._handle_peer_addr(
+        "peer-x", PeerAddrMsg(header=_header(MsgType.PEER_ADDR), addrs=(good, bad))
+    )
 
     assert accepted == [("peer-x", (good,))]
     dbg = node.peers_debug()
@@ -208,9 +209,7 @@ def test_netnode_accepts_peer_addr_records_via_callback() -> None:
     assert peer["addr_records_rejected"] == 1
 
 
-def test_net_loop_merges_learned_addr_records_into_peer_store(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_net_loop_merges_learned_addr_records_into_peer_store(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "test")
     peers_file = tmp_path / "peers.txt"
     monkeypatch.setenv("WEALL_PEERS_FILE", str(peers_file))

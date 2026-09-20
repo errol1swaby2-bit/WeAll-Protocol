@@ -65,8 +65,7 @@ def test_startup_migrates_legacy_mempool_nonce_column_and_backfills(tmp_path: Pa
 
     with pool.db.connection() as con2:
         cols = {
-            str(row["name"]): row
-            for row in con2.execute("PRAGMA table_info(mempool);").fetchall()
+            str(row["name"]): row for row in con2.execute("PRAGMA table_info(mempool);").fetchall()
         }
         assert "nonce" in cols
         row = con2.execute(

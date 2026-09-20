@@ -40,6 +40,8 @@ def test_frontend_primary_poh_flow_has_no_removed_email_adapter_markers() -> Non
         text = path.read_text(encoding="utf-8", errors="replace")
         for marker in FORBIDDEN_PRIMARY_FLOW_MARKERS:
             if marker in text:
-                hits.append(f"{path.relative_to(OUTER)} contains removed primary-flow marker {marker!r}")
+                hits.append(
+                    f"{path.relative_to(OUTER)} contains removed primary-flow marker {marker!r}"
+                )
 
     assert not hits, "\n".join(hits)

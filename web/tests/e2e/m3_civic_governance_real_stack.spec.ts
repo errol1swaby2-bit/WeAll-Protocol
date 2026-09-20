@@ -25,6 +25,7 @@ type M3Action = {
   subject_id: string;
   status: "confirmed";
   evidence_kind?: string;
+  trigger_tx_id?: string;
 };
 
 type M3NegativeAttempt = {
@@ -36,6 +37,8 @@ type M3NegativeAttempt = {
   subject_id: string;
   precondition_tx_id?: string;
   expected_error_code: string;
+  expected_error_reason: string;
+  expected_rejection_layer: "admission" | "apply";
 };
 
 type M3TransactionTranscript = {
@@ -55,6 +58,7 @@ type M3Journey = {
   negative_post_id: string;
   negative_group_id: string;
   negative_dispute_id: string;
+  negative_appeal_dispute_id: string;
   negative_proposal_id: string;
   transaction_transcript: string;
   expected_dispute_stage?: string;
@@ -74,8 +78,10 @@ type M3ActorManifest = {
 
 const REQUIRED_SINGLETON_ROLES = ["author_proposer", "member_reporter_voter", "nonmember_ineligible"] as const;
 const FRONTEND_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:5173";
-const TERMINAL_SUCCESS = new Set(["confirmed", "committed", "finalized"]);
+const TERMINAL_SUCCESS = new Set(["confirmed", "committed", "finalized", "local_confirmed"]);
+const TERMINAL_FAILURE = new Set(["rejected", "failed"]);
 const EMBEDDED_ATTENDANCE_EVIDENCE_KIND = "acceptance_embedded_attendance";
+const INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND = "inline_system_transition";
 
 const ATTENDANCE_ACCEPTANCE_LABEL = new Map<string, string>([
   ["original_panel_attendance", "original_panel_acceptance"],
@@ -162,6 +168,7 @@ function loadActorManifest(): { manifest: M3ActorManifest; transcript: M3Transac
     negative_post_id: journey.negative_post_id,
     negative_group_id: journey.negative_group_id,
     negative_dispute_id: journey.negative_dispute_id,
+    negative_appeal_dispute_id: journey.negative_appeal_dispute_id,
     negative_proposal_id: journey.negative_proposal_id,
   })) {
     expect(String(value || "").trim(), `journey.${field} is required`).not.toBe("");
@@ -235,53 +242,98 @@ function findMember(items: any[], account: string): boolean {
   });
 }
 
-function errorCodeFrom(value: any): string {
-  const candidates = [
-    value?.code,
-    value?.payload?.error?.code,
-    value?.payload?.code,
-    value?.payload?.error?.details?.reason,
-    value?.payload?.error?.details?.code,
-    value?.body?.error?.code,
-    value?.body?.code,
-    value?.body?.error?.details?.reason,
-    value?.body?.error?.details?.code,
-  ];
-  return String(candidates.find((item) => String(item || "").trim()) || "").trim();
-}
+type NegativeSubmissionResult = {
+  submitted: boolean;
+  tx_id: string;
+  code: string;
+  reason: string;
+  message: string;
+};
 
-async function submitExpectedFailure(
+async function submitNegativeAttempt(
   page: Page,
   backend: string,
   attempt: M3NegativeAttempt,
-): Promise<{ ok: boolean; code: string; message: string }> {
+): Promise<NegativeSubmissionResult> {
   return page.evaluate(async ({ backendValue, attemptValue }) => {
     const sessionModule = await import("/src/auth/session.ts");
+    const errorContract = (error: any): { code: string; reason: string } => {
+      const payload = error?.payload && typeof error.payload === "object" ? error.payload : {};
+      const payloadError = payload?.error && typeof payload.error === "object" ? payload.error : {};
+      const payloadDetails = payloadError?.details && typeof payloadError.details === "object" ? payloadError.details : {};
+      const nestedDetails = payloadDetails?.details && typeof payloadDetails.details === "object" ? payloadDetails.details : {};
+      const body = error?.body && typeof error.body === "object" ? error.body : {};
+      const bodyError = body?.error && typeof body.error === "object" ? body.error : {};
+      const bodyDetails = bodyError?.details && typeof bodyError.details === "object" ? bodyError.details : {};
+      const nestedBodyDetails = bodyDetails?.details && typeof bodyDetails.details === "object" ? bodyDetails.details : {};
+      const code = String(
+        error?.code
+        || payloadError?.code
+        || payload?.code
+        || bodyError?.code
+        || body?.code
+        || "",
+      ).trim();
+      const reason = String(
+        nestedDetails?.reason
+        || payloadDetails?.reason
+        || nestedBodyDetails?.reason
+        || bodyDetails?.reason
+        || payload?.reason
+        || body?.reason
+        || "",
+      ).trim();
+      return { code, reason };
+    };
+
     try {
-      await sessionModule.submitSignedTx({
+      const result = await sessionModule.submitSignedTx({
         account: attemptValue.account,
         tx_type: attemptValue.tx_type,
         payload: attemptValue.payload,
         base: backendValue,
         headers: sessionModule.getAuthHeaders(attemptValue.account),
       });
-      return { ok: true, code: "", message: "unexpected_success" };
+      const txId = String(result?.tx_id || result?.existing_tx_id || "").trim();
+      return { submitted: true, tx_id: txId, code: "", reason: "", message: "submitted" };
     } catch (error: any) {
-      const candidates = [
-        error?.code,
-        error?.payload?.error?.code,
-        error?.payload?.code,
-        error?.payload?.error?.details?.reason,
-        error?.payload?.error?.details?.code,
-        error?.body?.error?.code,
-        error?.body?.code,
-        error?.body?.error?.details?.reason,
-        error?.body?.error?.details?.code,
-      ];
-      const code = String(candidates.find((item) => String(item || "").trim()) || "").trim();
-      return { ok: false, code, message: String(error?.message || error) };
+      const contract = errorContract(error);
+      return {
+        submitted: false,
+        tx_id: "",
+        code: contract.code,
+        reason: contract.reason,
+        message: String(error?.message || error),
+      };
     }
   }, { backendValue: backend, attemptValue: attempt });
+}
+
+async function waitForApplyRejection(
+  request: APIRequestContext,
+  backend: string,
+  txId: string,
+  timeoutMs = 120_000,
+): Promise<any> {
+  const started = Date.now();
+  let last: any = null;
+  while (Date.now() - started < timeoutMs) {
+    last = await getJson(request, backend, `/v1/tx/status/${encodeURIComponent(txId)}`);
+    const status = String(last?.status || last?.phase || "").trim().toLowerCase();
+    if (TERMINAL_FAILURE.has(status)) return last;
+    if (TERMINAL_SUCCESS.has(status)) {
+      throw new Error(`expected apply rejection but ${txId} reported success: ${JSON.stringify(last)}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 350));
+  }
+  throw new Error(`apply rejection status timeout for ${txId}: ${JSON.stringify(last)}`);
+}
+
+async function resyncActorNonceAfterApplyRejection(page: Page, backend: string, account: string): Promise<void> {
+  await page.evaluate(async ({ backendValue, accountValue }) => {
+    const sessionModule = await import("/src/auth/session.ts");
+    await sessionModule.syncNonceReservation(accountValue, backendValue);
+  }, { backendValue: backend, accountValue: account });
 }
 
 test.describe.configure({ mode: "serial" });
@@ -325,6 +377,50 @@ test("M3 independent actors complete the signed civic and governance journey", a
 
       priorRecords.push(action);
       seen.set(action.tx_id, priorRecords);
+
+      if (action.evidence_kind === INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND) {
+        expect(action.label).toBe("dispute_resolution");
+        expect(action.tx_type).toBe("DISPUTE_RESOLVE");
+        expect(action.role).toBe("system_scheduler");
+        expect(action.account).toBe("SYSTEM");
+        const triggerTxId = String(action.trigger_tx_id || "").trim();
+        expect(triggerTxId).toMatch(/^tx:/);
+        expect(action.tx_id).toBe(`inline:${triggerTxId}:${action.tx_type}`);
+
+        const triggerRows = transcript.actions.filter((item) => item.tx_id === triggerTxId);
+        expect(triggerRows).toHaveLength(1);
+        const trigger = triggerRows[0];
+        expect(trigger.label).toBe("original_panel_ballots");
+        expect(trigger.tx_type).toBe("DISPUTE_VOTE_SUBMIT");
+        expect(trigger.subject_id).toBe(action.subject_id);
+        expect(trigger.status).toBe("confirmed");
+
+        const triggerStatus = await getJson(
+          request,
+          backend,
+          `/v1/tx/status/${encodeURIComponent(triggerTxId)}`,
+        );
+        expect(
+          TERMINAL_SUCCESS.has(
+            String(triggerStatus.status || triggerStatus.phase || "").toLowerCase(),
+          ),
+          JSON.stringify(triggerStatus),
+        ).toBe(true);
+        expect(String(triggerStatus.tx_type || "")).toBe("DISPUTE_VOTE_SUBMIT");
+        expect(String(triggerStatus.signer || "")).toBe(trigger.account);
+
+        const disputeBody = await getJson(
+          request,
+          backend,
+          `/v1/disputes/${encodeURIComponent(action.subject_id)}`,
+        );
+        const dispute = disputeBody.dispute || disputeBody;
+        expect(dispute.resolved).toBe(true);
+        expect(dispute.resolution).toBeTruthy();
+        expect(String(action.subject_id || "").trim()).not.toBe("");
+        expect(action.status).toBe("confirmed");
+        continue;
+      }
 
       const status = await getJson(
         request,
@@ -434,6 +530,15 @@ test("M3 independent actors complete the signed civic and governance journey", a
   await test.step("negative fixture subjects remain active", async () => {
     const negativeGroup = await getJson(request, backend, `/v1/groups/${encodeURIComponent(journey.negative_group_id)}`);
     expect(String(negativeGroup.group?.id || negativeGroup.group?.group_id || "")).toBe(journey.negative_group_id);
+    const groupAttempt = transcript.negative_attempts.find((attempt) => attempt.label === "nonmember_group_write_rejected");
+    expect(groupAttempt).toBeTruthy();
+    expect(groupAttempt?.role.startsWith("reviewer_"), "group-authority negative must use a Tier2 reviewer").toBe(true);
+    const negativeMembers = await getJson(
+      request,
+      backend,
+      `/v1/groups/${encodeURIComponent(journey.negative_group_id)}/members?limit=500`,
+    );
+    expect(findMember(negativeMembers.members || negativeMembers.items || [], String(groupAttempt?.account || ""))).toBe(false);
 
     const negativeDisputeBody = await getJson(request, backend, `/v1/disputes/${encodeURIComponent(journey.negative_dispute_id)}`);
     const negativeDispute = negativeDisputeBody.dispute || negativeDisputeBody;
@@ -450,6 +555,17 @@ test("M3 independent actors complete the signed civic and governance journey", a
     const nonselectedAttempt = transcript.negative_attempts.find((attempt) => attempt.label === "nonselected_reviewer_vote_rejected");
     expect(nonselectedAttempt).toBeTruthy();
     expect(selected.has(String(nonselectedAttempt?.account || "")), "nonselected reviewer fixture is actually selected").toBe(false);
+
+    const negativeAppealBody = await getJson(
+      request,
+      backend,
+      `/v1/disputes/${encodeURIComponent(journey.negative_appeal_dispute_id)}`,
+    );
+    const negativeAppealDispute = negativeAppealBody.dispute || negativeAppealBody;
+    expect(String(negativeAppealDispute.stage || "").toLowerCase()).toBe("appeal_window");
+    expect(String(negativeAppealDispute.target_owner || negativeAppealDispute.target_author || "")).toBe(author.account);
+    expect(journey.negative_appeal_dispute_id).not.toBe(journey.dispute_id);
+    expect(journey.negative_appeal_dispute_id).not.toBe(journey.negative_dispute_id);
 
     const negativeProposalBody = await getJson(request, backend, `/v1/gov/proposals/${encodeURIComponent(journey.negative_proposal_id)}`);
     const negativeProposal = negativeProposalBody.proposal || negativeProposalBody;
@@ -473,11 +589,32 @@ test("M3 independent actors complete the signed civic and governance journey", a
       const context = await openActorContext(browser, actor);
       try {
         const page = await assertActorSession(context, actor, "/#/transactions");
-        const result = await submitExpectedFailure(page, backend, attempt);
-        expect(result.ok, `${attempt.label} unexpectedly succeeded`).toBe(false);
-        const combined = `${result.code} ${result.message}`;
-        expect(combined, `${attempt.label} did not expose expected failure: ${JSON.stringify(result)}`).toContain(attempt.expected_error_code);
-        expect(errorCodeFrom(result) || result.code || result.message).not.toBe("");
+        const result = await submitNegativeAttempt(page, backend, attempt);
+        expect(["admission", "apply"]).toContain(attempt.expected_rejection_layer);
+        expect(String(attempt.expected_error_code || "").trim()).not.toBe("");
+        expect(String(attempt.expected_error_reason || "").trim()).not.toBe("");
+
+        if (attempt.expected_rejection_layer === "admission") {
+          expect(result.submitted, `${attempt.label} must fail at public admission`).toBe(false);
+          expect(result.code, `${attempt.label} admission code mismatch: ${JSON.stringify(result)}`).toBe(
+            attempt.expected_error_code,
+          );
+          expect(result.reason, `${attempt.label} admission reason mismatch: ${JSON.stringify(result)}`).toBe(
+            attempt.expected_error_reason,
+          );
+        } else {
+          expect(result.submitted, `${attempt.label} must be admitted before deterministic apply rejection`).toBe(true);
+          expect(result.tx_id, `${attempt.label} admitted submission did not return tx_id`).not.toBe("");
+          const rejected = await waitForApplyRejection(request, backend, result.tx_id);
+          expect(String(rejected.status || "").toLowerCase()).toBe("rejected");
+          expect(rejected.apply_ok).toBe(false);
+          expect(String(rejected.code || ""), JSON.stringify(rejected)).toBe(attempt.expected_error_code);
+          expect(String(rejected.reason || ""), JSON.stringify(rejected)).toBe(attempt.expected_error_reason);
+          expect(String(rejected.block_id || "").trim(), JSON.stringify(rejected)).not.toBe("");
+          expect(Number(rejected.height || 0), JSON.stringify(rejected)).toBeGreaterThan(0);
+          expect(rejected.local_state_synced).toBe(true);
+          await resyncActorNonceAfterApplyRejection(page, backend, attempt.account);
+        }
         await page.close();
       } finally {
         await context.close();

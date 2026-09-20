@@ -19,7 +19,9 @@ def _write_tx_index(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _manifest_obj(*, tx_index_hash: str, authority_key: str = "c" * 64, profile_hash: str = "e" * 64) -> dict:
+def _manifest_obj(
+    *, tx_index_hash: str, authority_key: str = "c" * 64, profile_hash: str = "e" * 64
+) -> dict:
     return {
         "version": 1,
         "chain_id": "weall-prod",
@@ -133,7 +135,9 @@ def test_strict_production_manifest_accepts_pinned_trust_root(tmp_path: Path) ->
     assert status["tx_index_hash_matches"] is True
 
 
-def test_production_preflight_rejects_placeholder_manifest_trust_root(tmp_path: Path, monkeypatch) -> None:
+def test_production_preflight_rejects_placeholder_manifest_trust_root(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_index = tmp_path / "tx_index.json"
     tx_hash = _write_tx_index(tx_index)
     manifest_path = tmp_path / "manifest.json"

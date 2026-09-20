@@ -26,7 +26,10 @@ def _digest(obj: Any) -> str:
 
 
 def build_transcript() -> Json:
-    state_roots = {node: "732fac2dd801a3531c2c5e08129b4708b051f6c6f2318f99648af9718640ed60" for node in ("v-a", "v-b", "v-c", "v-d")}
+    state_roots = {
+        node: "732fac2dd801a3531c2c5e08129b4708b051f6c6f2318f99648af9718640ed60"
+        for node in ("v-a", "v-b", "v-c", "v-d")
+    }
     core = {
         "schema": "weall.v1_5.public_validator_operator_transcript",
         "blocker": "AUD-618-P0-001",
@@ -52,7 +55,12 @@ def build_transcript() -> Json:
         "observer_vote_rejected": True,
         "fresh_node_catchup": True,
         "restart_replay": True,
-        "operator_signatures": ["external-signature-required-a", "external-signature-required-b", "external-signature-required-c", "external-signature-required-d"],
+        "operator_signatures": [
+            "external-signature-required-a",
+            "external-signature-required-b",
+            "external-signature-required-c",
+            "external-signature-required-d",
+        ],
         "claim_boundaries": {
             "public_validator_enabled": False,
             "public_multi_validator_bft": False,
@@ -68,14 +76,27 @@ def build_transcript() -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Emit a v1.5 external public-validator operator transcript scaffold.")
+    parser = argparse.ArgumentParser(
+        description="Emit a v1.5 external public-validator operator transcript scaffold."
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     payload = build_transcript()
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
         return 0
-    print(json.dumps({"ok": True, "transcript_digest": payload["transcript_digest"], "public_validator_enabled": False, "external_attestation_required": True}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "transcript_digest": payload["transcript_digest"],
+                "public_validator_enabled": False,
+                "external_attestation_required": True,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

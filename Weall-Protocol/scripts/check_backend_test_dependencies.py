@@ -16,7 +16,10 @@ for module_name, requirement in REQUIRED.items():
 
 if missing:
     print("backend_test_dependencies_missing:" + ",".join(missing), file=sys.stderr)
-    print("Install the backend package with test extras before running the full suite:", file=sys.stderr)
+    print(
+        "Install the backend package with test extras before running the full suite:",
+        file=sys.stderr,
+    )
     print("  cd Weall-Protocol && python -m pip install -e '.[test]'", file=sys.stderr)
     raise SystemExit(1)
 

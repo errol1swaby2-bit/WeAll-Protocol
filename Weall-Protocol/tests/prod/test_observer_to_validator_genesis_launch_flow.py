@@ -12,8 +12,7 @@ def test_observer_to_validator_genesis_launch_flow_has_protocol_gates_not_manual
         [sys.executable, "scripts/gen_observer_to_validator_launch_flow_v1_5.py", "--json"],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -30,7 +29,9 @@ def test_observer_to_validator_genesis_launch_flow_has_protocol_gates_not_manual
 
 def test_public_observer_quickstart_documents_first_and_second_observer_without_admin_shortcut():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    quickstart = open(os.path.join(root, "docs", "PUBLIC_OBSERVER_TESTNET_QUICKSTART.md"), encoding="utf-8").read()
+    quickstart = open(
+        os.path.join(root, "docs", "PUBLIC_OBSERVER_TESTNET_QUICKSTART.md"), encoding="utf-8"
+    ).read()
     readme = open(os.path.join(root, "..", "README.md"), encoding="utf-8").read()
 
     assert "## First and second observer runbook" in quickstart

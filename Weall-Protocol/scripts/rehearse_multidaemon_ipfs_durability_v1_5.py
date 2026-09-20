@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import json
 import multiprocessing as mp
-import os
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -39,10 +38,20 @@ def _daemon(name: str, input_queue: mp.Queue, tx_queue: mp.Queue, root: str) -> 
             cid = str(cmd["cid"])
             p = base / cid
             ok = p.exists() and cid in pins
-            tx_queue.put({"operator": name, "op": "cat", "ok": ok, "cid": cid, "sha256": hashlib.sha256(p.read_bytes()).hexdigest() if ok else ""})
+            tx_queue.put(
+                {
+                    "operator": name,
+                    "op": "cat",
+                    "ok": ok,
+                    "cid": cid,
+                    "sha256": hashlib.sha256(p.read_bytes()).hexdigest() if ok else "",
+                }
+            )
         elif op == "replicate":
-            cid = str(cmd["cid"]); data = bytes.fromhex(cmd["data_hex"])
-            (base / cid).write_bytes(data); pins.add(cid)
+            cid = str(cmd["cid"])
+            data = bytes.fromhex(cmd["data_hex"])
+            (base / cid).write_bytes(data)
+            pins.add(cid)
             tx_queue.put({"operator": name, "op": "replicate", "ok": True, "cid": cid})
 
 
@@ -55,7 +64,10 @@ def run_harness() -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="weall-ipfs-daemons-") as td:
         tx_queue: mp.Queue = mp.Queue()
         input_queuees = {op: mp.Queue() for op in operators}
-        procs = {op: mp.Process(target=_daemon, args=(op, input_queuees[op], tx_queue, td), daemon=True) for op in operators}
+        procs = {
+            op: mp.Process(target=_daemon, args=(op, input_queuees[op], tx_queue, td), daemon=True)
+            for op in operators
+        }
         for p in procs.values():
             p.start()
         try:
@@ -67,13 +79,20 @@ def run_harness() -> dict[str, Any]:
             input_queuees[source].put({"op": "pin", "cid": cid})
             pin = _get(tx_queue)
             failed = "op-b"
-            procs[failed].terminate(); procs[failed].join(timeout=1.0)
+            procs[failed].terminate()
+            procs[failed].join(timeout=1.0)
             replacement = "op-c"
             input_queuees[replacement].put({"op": "replicate", "cid": cid, "data_hex": data.hex()})
             repl = _get(tx_queue)
             input_queuees[replacement].put({"op": "cat", "cid": cid})
             cat = _get(tx_queue)
-            ok = bool(add["ok"] and pin["ok"] and repl["ok"] and cat["ok"] and cat["sha256"] == hashlib.sha256(data).hexdigest())
+            ok = bool(
+                add["ok"]
+                and pin["ok"]
+                and repl["ok"]
+                and cat["ok"]
+                and cat["sha256"] == hashlib.sha256(data).hexdigest()
+            )
             return {
                 "ok": ok,
                 "batch": "574",
@@ -95,16 +114,22 @@ def run_harness() -> dict[str, Any]:
                 "public_decentralized_media_claimed": False,
             }
         finally:
-            for op, q in input_queuees.items():
-                try: q.put({"op": "stop"})
-                except Exception: pass
+            for q in input_queuees.values():
+                try:
+                    q.put({"op": "stop"})
+                except Exception:
+                    pass
             for p in procs.values():
-                if p.is_alive(): p.terminate()
+                if p.is_alive():
+                    p.terminate()
                 p.join(timeout=1.0)
 
 
 def main() -> int:
-    argparse.ArgumentParser().parse_args(); print(json.dumps(run_harness(), sort_keys=True, indent=2)); return 0
+    argparse.ArgumentParser().parse_args()
+    print(json.dumps(run_harness(), sort_keys=True, indent=2))
+    return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

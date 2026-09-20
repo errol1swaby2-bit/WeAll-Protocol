@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 OUTER_ROOT = ROOT.parent
 SCRIPT = OUTER_ROOT / "scripts" / "run_clean_clone_go_gate_v1_5.sh"
@@ -21,7 +20,9 @@ def test_clean_clone_gate_uses_backend_virtualenv_before_install() -> None:
     assert 'export VIRTUAL_ENV="${BACKEND_VENV_DIR}"' in text
     assert 'export PATH="${BACKEND_VENV_DIR}/bin:${PATH}"' in text
 
-    assert text.index("ensure_backend_venv") < text.index('echo "== Installing backend dependencies =="')
+    assert text.index("ensure_backend_venv") < text.index(
+        'echo "== Installing backend dependencies =="'
+    )
     assert 'run_backend "${PYTHON_BIN}" -m pip install -r requirements-dev.lock' in text
 
 

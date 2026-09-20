@@ -9,8 +9,8 @@ from weall.env import load_dotenv_if_present
 
 
 def _mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -54,7 +54,7 @@ def main() -> None:
     load_dotenv_if_present()
 
     # Import after dotenv load (prevents "config read before env" surprises)
-    from weall.api.app import create_app, _module_app_boot_runtime_default
+    from weall.api.app import _module_app_boot_runtime_default, create_app
 
     host = _env_str("WEALL_API_HOST", "127.0.0.1")
     port = _env_int("WEALL_API_PORT", 8080)

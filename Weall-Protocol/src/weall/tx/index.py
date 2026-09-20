@@ -10,6 +10,7 @@ from __future__ import annotations
 from weall.tx.canon import (  # noqa: F401
     CanonError,
     TxIndex,
-    load_tx_index_auto,
     load_tx_index_json,
 )
+
+__all__ = ["CanonError", "TxIndex", "load_tx_index_json"]

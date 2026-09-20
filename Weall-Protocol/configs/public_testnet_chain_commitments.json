@@ -1,17 +1,17 @@
 {
   "chain_id": "weall-testnet-v1",
   "economics_active": false,
-  "genesis_hash": "b1037dd45a1635e99e0e635d27ba9920c21ad3103071b9daada0840be498fa91",
-  "genesis_state_root": "b1037dd45a1635e99e0e635d27ba9920c21ad3103071b9daada0840be498fa91",
+  "genesis_hash": "f2796de68e743bd54fbdce3689891b23eeda0e4a7d2f55a9485d55fbca6ecca0",
+  "genesis_state_root": "f2796de68e743bd54fbdce3689891b23eeda0e4a7d2f55a9485d55fbca6ecca0",
   "network_id": "weall-public-observer-testnet-v1",
   "notes": [
     "These commitments are the repo-pinned identity for the resettable public observer testnet v1.",
     "Seed registries must match all hash commitments before fresh observers accept discovery metadata.",
     "Discovery-level verification does not grant validator authority."
   ],
-  "protocol_profile_hash": "a155300bfec3f3339b49cbe80e61223ec1be1cbed695114cd4438d10075f4eb6",
+  "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
   "resettable_testnet": true,
   "source_genesis_ledger": "configs/genesis.ledger.testnet-v1.json",
   "source_manifest": "configs/chains/weall-testnet-v1.json",
-  "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+  "tx_index_hash": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
 }

@@ -8,14 +8,18 @@ from weall.runtime.tx_admission_types import TxEnvelope
 
 
 def _env(payload: dict) -> TxEnvelope:
-    return TxEnvelope(tx_type="FEE_POLICY_SET", signer="SYSTEM", nonce=1, payload=payload, sig="", system=True)
+    return TxEnvelope(
+        tx_type="FEE_POLICY_SET", signer="SYSTEM", nonce=1, payload=payload, sig="", system=True
+    )
 
 
 def _state() -> dict:
     return {
         "time": 1_000,
         "params": {"genesis_time": 0, "economic_unlock_time": 1, "economics_enabled": True},
-        "economics": {"fee_policy": {"transfer_fee_int": 0, "post_fee_int": 0, "comment_fee_int": 0}},
+        "economics": {
+            "fee_policy": {"transfer_fee_int": 0, "post_fee_int": 0, "comment_fee_int": 0}
+        },
         "accounts": {},
     }
 

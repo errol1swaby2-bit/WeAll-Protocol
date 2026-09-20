@@ -57,9 +57,13 @@ def reset_rollback_diagnostics() -> None:
         counter.clear()
 
 
-def _top_counter_items(counter: Counter[str], *, value_key: str = "count") -> list[dict[str, int | str]]:
+def _top_counter_items(
+    counter: Counter[str], *, value_key: str = "count"
+) -> list[dict[str, int | str]]:
     items = sorted(counter.items(), key=lambda item: (-int(item[1]), str(item[0])))
-    return [{"path": str(path), value_key: int(value)} for path, value in items[:_ROLLBACK_TOP_LIMIT]]
+    return [
+        {"path": str(path), value_key: int(value)} for path, value in items[:_ROLLBACK_TOP_LIMIT]
+    ]
 
 
 def get_rollback_diagnostics() -> dict[str, Any]:
@@ -67,18 +71,31 @@ def get_rollback_diagnostics() -> dict[str, Any]:
 
     out: dict[str, Any] = dict(_ROLLBACK_DIAGNOSTICS_TEMPLATE)
     out.update(_ROLLBACK_DIAGNOSTICS)
-    out["rollback_top_snapshot_paths"] = _top_counter_items(_ROLLBACK_PATH_COUNTERS["rollback_top_snapshot_paths"])
-    out["rollback_top_snapshot_prefixes"] = _top_counter_items(_ROLLBACK_PATH_COUNTERS["rollback_top_snapshot_prefixes"])
+    out["rollback_top_snapshot_paths"] = _top_counter_items(
+        _ROLLBACK_PATH_COUNTERS["rollback_top_snapshot_paths"]
+    )
+    out["rollback_top_snapshot_prefixes"] = _top_counter_items(
+        _ROLLBACK_PATH_COUNTERS["rollback_top_snapshot_prefixes"]
+    )
     out["rollback_top_snapshot_paths_by_estimated_bytes"] = _top_counter_items(
         _ROLLBACK_PATH_COUNTERS["rollback_top_snapshot_paths_by_estimated_bytes"],
         value_key="bytes_estimate",
     )
-    out["rollback_top_dict_snapshot_paths"] = _top_counter_items(_ROLLBACK_PATH_COUNTERS["rollback_top_dict_snapshot_paths"])
-    out["rollback_top_list_snapshot_paths"] = _top_counter_items(_ROLLBACK_PATH_COUNTERS["rollback_top_list_snapshot_paths"])
-    out["rollback_top_duplicate_snapshot_paths"] = _top_counter_items(_ROLLBACK_PATH_COUNTERS["rollback_top_duplicate_snapshot_paths"])
+    out["rollback_top_dict_snapshot_paths"] = _top_counter_items(
+        _ROLLBACK_PATH_COUNTERS["rollback_top_dict_snapshot_paths"]
+    )
+    out["rollback_top_list_snapshot_paths"] = _top_counter_items(
+        _ROLLBACK_PATH_COUNTERS["rollback_top_list_snapshot_paths"]
+    )
+    out["rollback_top_duplicate_snapshot_paths"] = _top_counter_items(
+        _ROLLBACK_PATH_COUNTERS["rollback_top_duplicate_snapshot_paths"]
+    )
     out["rollback_snapshot_by_tx_kind"] = dict(
         sorted(
-            ((str(k), int(v)) for k, v in _ROLLBACK_PATH_COUNTERS["rollback_snapshot_by_tx_kind"].items()),
+            (
+                (str(k), int(v))
+                for k, v in _ROLLBACK_PATH_COUNTERS["rollback_snapshot_by_tx_kind"].items()
+            ),
             key=lambda item: (-int(item[1]), str(item[0])),
         )
     )
@@ -162,14 +179,18 @@ def _path_label(path: tuple[Any, ...] | None, fallback: object) -> str:
     return str(fallback)
 
 
-def _record_path_attribution(*, label: str, value: Any, size_estimate: int, duplicate: bool) -> None:
+def _record_path_attribution(
+    *, label: str, value: Any, size_estimate: int, duplicate: bool
+) -> None:
     kind = str(_ROLLBACK_TX_KIND.get() or "unknown")
     if duplicate:
         _ROLLBACK_PATH_COUNTERS["rollback_top_duplicate_snapshot_paths"][label] += 1
         return
 
     _ROLLBACK_PATH_COUNTERS["rollback_top_snapshot_paths"][label] += 1
-    _ROLLBACK_PATH_COUNTERS["rollback_top_snapshot_paths_by_estimated_bytes"][label] += int(size_estimate)
+    _ROLLBACK_PATH_COUNTERS["rollback_top_snapshot_paths_by_estimated_bytes"][label] += int(
+        size_estimate
+    )
     _ROLLBACK_PATH_COUNTERS["rollback_snapshot_by_tx_kind"][kind] += 1
 
     parts = [part for part in label.split(".") if part]
@@ -183,10 +204,67 @@ def _record_path_attribution(*, label: str, value: Any, size_estimate: int, dupl
 
 
 def _unwrap(value: Any) -> Any:
+    """Detach journal proxies before values enter canonical raw state.
+
+    Direct proxies can safely reuse their raw target. Ordinary dict/list
+    containers are different: constructors such as ``dict(proxy)`` and
+    ``list(proxy)`` can place JournaledDict/JournaledList objects *inside* an
+    otherwise ordinary container. Those proxies have intentionally empty
+    built-in bases, so allowing them into the raw state makes direct canonical
+    JSON serialization observe ``{}``/``[]`` instead of the delegated target.
+
+    Walk only the value being assigned and allocate a replacement container
+    only when a nested journal proxy (or a container containing one) is
+    actually detached. This keeps rollback bounded to the touched value and
+    preserves the existing zero-copy path for direct proxy assignments.
+    """
+
     if isinstance(value, JournaledDict):
         return value._target
     if isinstance(value, JournaledList):
         return value._target
+
+    if type(value) is dict:
+        replacement: dict[Any, Any] | None = None
+        items = list(value.items())
+        for index, (key, child) in enumerate(items):
+            raw_child = _unwrap(child)
+            if replacement is None and raw_child is not child:
+                replacement = dict(items[:index])
+            if replacement is not None:
+                replacement[key] = raw_child
+        return replacement if replacement is not None else value
+
+    if type(value) is list:
+        replacement_list: list[Any] | None = None
+        for index, child in enumerate(value):
+            raw_child = _unwrap(child)
+            if replacement_list is None and raw_child is not child:
+                replacement_list = list(value[:index])
+            if replacement_list is not None:
+                replacement_list.append(raw_child)
+        return replacement_list if replacement_list is not None else value
+
+    return value
+
+
+def materialize_journaled(value: Any) -> Any:
+    """Return a detached raw JSON-like snapshot of a journal-backed value.
+
+    Unlike ``_unwrap`` (the state-assignment fast path), this helper always
+    copies container structure. It is for values that leave the lifetime of a
+    rollback journal or feed deterministic hashes/queue identifiers, where a
+    live proxy or mutable alias to canonical state would be unsafe.
+    """
+
+    if isinstance(value, JournaledDict):
+        return {key: materialize_journaled(child) for key, child in value._target.items()}
+    if isinstance(value, JournaledList):
+        return [materialize_journaled(child) for child in value._target]
+    if type(value) is dict:
+        return {key: materialize_journaled(child) for key, child in value.items()}
+    if type(value) is list:
+        return [materialize_journaled(child) for child in value]
     return value
 
 
@@ -195,10 +273,12 @@ def _path_tuple(path: str | tuple[Any, ...] | None) -> tuple[Any, ...] | None:
         return None
     if isinstance(path, tuple):
         return path
-    return tuple(part for part in str(path).split('.') if part)
+    return tuple(part for part in str(path).split(".") if part)
 
 
-def journal_set_dict_key(container: dict[Any, Any], key: Any, value: Any, path: str | tuple[Any, ...] | None = None) -> None:
+def journal_set_dict_key(
+    container: dict[Any, Any], key: Any, value: Any, path: str | tuple[Any, ...] | None = None
+) -> None:
     """Set one dict key through the active rollback journal when present.
 
     This is a small semantic helper for hot domain paths.  It does not change
@@ -214,7 +294,9 @@ def journal_set_dict_key(container: dict[Any, Any], key: Any, value: Any, path: 
     container[key] = _unwrap(value)
 
 
-def journal_delete_dict_key(container: dict[Any, Any], key: Any, path: str | tuple[Any, ...] | None = None) -> None:
+def journal_delete_dict_key(
+    container: dict[Any, Any], key: Any, path: str | tuple[Any, ...] | None = None
+) -> None:
     """Delete one dict key through the active rollback journal when present."""
 
     if isinstance(container, JournaledDict):
@@ -225,13 +307,17 @@ def journal_delete_dict_key(container: dict[Any, Any], key: Any, path: str | tup
     del container[key]
 
 
-def journal_set_scalar(container: dict[Any, Any], key: Any, value: Any, path: str | tuple[Any, ...] | None = None) -> None:
+def journal_set_scalar(
+    container: dict[Any, Any], key: Any, value: Any, path: str | tuple[Any, ...] | None = None
+) -> None:
     """Set a scalar dict value through the active rollback journal when present."""
 
     journal_set_dict_key(container, key, value, path)
 
 
-def journal_append_list(container: list[Any], value: Any, path: str | tuple[Any, ...] | None = None) -> None:
+def journal_append_list(
+    container: list[Any], value: Any, path: str | tuple[Any, ...] | None = None
+) -> None:
     """Append to a list using length-based rollback when a journal is active."""
 
     if isinstance(container, JournaledList):
@@ -242,7 +328,9 @@ def journal_append_list(container: list[Any], value: Any, path: str | tuple[Any,
     container.append(_unwrap(value))
 
 
-def journal_extend_list(container: list[Any], values: Iterable[Any], path: str | tuple[Any, ...] | None = None) -> None:
+def journal_extend_list(
+    container: list[Any], values: Iterable[Any], path: str | tuple[Any, ...] | None = None
+) -> None:
     """Extend a list using length-based rollback when a journal is active."""
 
     if isinstance(container, JournaledList):
@@ -287,10 +375,14 @@ class RollbackJournal:
         _classify_snapshot(value)
         _record_path_attribution(label=label, value=value, size_estimate=size, duplicate=False)
 
-    def record_dict_key(self, target: dict[Any, Any], key: Any, *, semantic_path: tuple[Any, ...] | None = None) -> None:
+    def record_dict_key(
+        self, target: dict[Any, Any], key: Any, *, semantic_path: tuple[Any, ...] | None = None
+    ) -> None:
         path = (id(target), key)
         if path in self._dict_paths_seen:
-            self._record_snapshot(value=_MISSING, path_key=path, semantic_path=semantic_path, duplicate=True)
+            self._record_snapshot(
+                value=_MISSING, path_key=path, semantic_path=semantic_path, duplicate=True
+            )
             return
         self._dict_paths_seen.add(path)
 
@@ -307,31 +399,49 @@ class RollbackJournal:
 
         self._records.append(undo)
 
-    def record_list_state(self, target: list[Any], *, semantic_path: tuple[Any, ...] | None = None) -> None:
+    def record_list_state(
+        self, target: list[Any], *, semantic_path: tuple[Any, ...] | None = None
+    ) -> None:
         list_id = id(target)
         if self._list_snapshot_mode.get(list_id) == "full":
-            self._record_snapshot(value=_MISSING, path_key=(list_id, "list_full"), semantic_path=semantic_path, duplicate=True)
+            self._record_snapshot(
+                value=_MISSING,
+                path_key=(list_id, "list_full"),
+                semantic_path=semantic_path,
+                duplicate=True,
+            )
             return
 
         previous = copy.deepcopy(target)
         self._list_snapshot_mode[list_id] = "full"
-        self._record_snapshot(value=target, path_key=(list_id, "list_full"), semantic_path=semantic_path)
+        self._record_snapshot(
+            value=target, path_key=(list_id, "list_full"), semantic_path=semantic_path
+        )
 
         def undo() -> None:
             target[:] = copy.deepcopy(previous)
 
         self._records.append(undo)
 
-    def record_list_append(self, target: list[Any], *, semantic_path: tuple[Any, ...] | None = None) -> None:
+    def record_list_append(
+        self, target: list[Any], *, semantic_path: tuple[Any, ...] | None = None
+    ) -> None:
         list_id = id(target)
         append_path = tuple(semantic_path or ()) + ("append",) if semantic_path else None
         if list_id in self._list_snapshot_mode:
-            self._record_snapshot(value=_MISSING, path_key=(list_id, "list_append"), semantic_path=append_path, duplicate=True)
+            self._record_snapshot(
+                value=_MISSING,
+                path_key=(list_id, "list_append"),
+                semantic_path=append_path,
+                duplicate=True,
+            )
             return
 
         previous_len = len(target)
         self._list_snapshot_mode[list_id] = "length"
-        self._record_snapshot(value=[], path_key=(list_id, "list_append"), semantic_path=append_path)
+        self._record_snapshot(
+            value=[], path_key=(list_id, "list_append"), semantic_path=append_path
+        )
 
         def undo() -> None:
             del target[previous_len:]
@@ -374,7 +484,9 @@ def _wrap(value: Any, journal: RollbackJournal, path: tuple[Any, ...] = ()) -> A
 class JournaledDict(dict):
     """dict-compatible proxy that journals direct key mutations."""
 
-    def __init__(self, target: dict[Any, Any], journal: RollbackJournal, path: tuple[Any, ...] = ()) -> None:
+    def __init__(
+        self, target: dict[Any, Any], journal: RollbackJournal, path: tuple[Any, ...] = ()
+    ) -> None:
         # Keep the actual dict base empty; all access is delegated to _target.
         dict.__init__(self)
         object.__setattr__(self, "_target", target)
@@ -407,7 +519,9 @@ class JournaledDict(dict):
         del self._target[key]
 
     def get(self, key: Any, default: Any = None) -> Any:
-        return _wrap(self._target.get(key, default), self._journal, self._path + (_path_segment(key),))
+        return _wrap(
+            self._target.get(key, default), self._journal, self._path + (_path_segment(key),)
+        )
 
     def setdefault(self, key: Any, default: Any = None) -> Any:
         semantic_path = self._path + (_path_segment(key),)
@@ -436,7 +550,9 @@ class JournaledDict(dict):
 
     def clear(self) -> None:
         for key in list(self._target.keys()):
-            self._journal.record_dict_key(self._target, key, semantic_path=self._path + (_path_segment(key),))
+            self._journal.record_dict_key(
+                self._target, key, semantic_path=self._path + (_path_segment(key),)
+            )
         self._target.clear()
 
     def update(self, *args: Any, **kwargs: Any) -> None:
@@ -467,7 +583,9 @@ class JournaledDict(dict):
 class JournaledList(list):
     """list-compatible proxy that journals direct list mutations."""
 
-    def __init__(self, target: list[Any], journal: RollbackJournal, path: tuple[Any, ...] = ()) -> None:
+    def __init__(
+        self, target: list[Any], journal: RollbackJournal, path: tuple[Any, ...] = ()
+    ) -> None:
         list.__init__(self)
         object.__setattr__(self, "_target", target)
         object.__setattr__(self, "_journal", journal)
@@ -487,7 +605,10 @@ class JournaledList(list):
         value = self._target[index]
         if isinstance(index, slice):
             start = 0 if index.start is None else int(index.start)
-            return [_wrap(v, self._journal, self._path + (start + offset,)) for offset, v in enumerate(value)]
+            return [
+                _wrap(v, self._journal, self._path + (start + offset,))
+                for offset, v in enumerate(value)
+            ]
         return _wrap(value, self._journal, self._path + (index,))
 
     def __setitem__(self, index: Any, value: Any) -> None:
@@ -551,7 +672,7 @@ def run_with_bounded_rollback(state: Json, fn: Callable[[Json], Any]) -> tuple[A
     journal = RollbackJournal()
     proxy = JournaledDict(state, journal, path=())
     try:
-        result = fn(proxy)
+        result = materialize_journaled(fn(proxy))
     except Exception:
         journal.rollback()
         raise
@@ -570,6 +691,7 @@ __all__ = [
     "journal_extend_list",
     "journal_set_dict_key",
     "journal_set_scalar",
+    "materialize_journaled",
     "get_rollback_diagnostics",
     "reset_rollback_diagnostics",
     "reset_rollback_diagnostic_tx_kind",

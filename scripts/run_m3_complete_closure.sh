@@ -32,7 +32,44 @@ while [[ $# -gt 0 ]]; do
 done
 
 m3_activate_venv
-for cmd in git python node npm curl; do m3_require_command "${cmd}"; done
+for cmd in git node npm curl; do m3_require_command "${cmd}"; done
+
+resolve_python() {
+  local candidate="${WEALL_PYTHON:-}"
+  if [[ -n "${candidate}" ]]; then
+    if [[ -x "${candidate}" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+    if candidate="$(command -v "${candidate}" 2>/dev/null)"; then
+      if [[ -n "${candidate}" && -x "${candidate}" ]]; then
+        printf '%s\n' "${candidate}"
+        return 0
+      fi
+    fi
+    echo "ERROR: WEALL_PYTHON does not resolve to an executable interpreter." >&2
+    return 2
+  fi
+  if [[ -n "${VIRTUAL_ENV:-}" && -x "${VIRTUAL_ENV}/bin/python" ]]; then
+    printf '%s\n' "${VIRTUAL_ENV}/bin/python"
+    return 0
+  fi
+  if [[ -x "${HOME}/.venvs/weall-protocol/bin/python" ]]; then
+    printf '%s\n' "${HOME}/.venvs/weall-protocol/bin/python"
+    return 0
+  fi
+  if candidate="$(command -v python3 2>/dev/null)"; then
+    if [[ -n "${candidate}" && -x "${candidate}" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  fi
+  echo "ERROR: no usable Python interpreter found; set WEALL_PYTHON explicitly." >&2
+  return 2
+}
+
+PYTHON_BIN="$(resolve_python)"
+export WEALL_PYTHON="${PYTHON_BIN}"
 
 FREEZE="${M3_IMPLEMENTATION_FREEZE_COMMIT:-}"
 [[ -n "${FREEZE}" ]] || { echo "ERROR: M3_IMPLEMENTATION_FREEZE_COMMIT is required" >&2; exit 2; }
@@ -63,12 +100,12 @@ ACTOR_MANIFEST="${WEALL_M3_ACTOR_MANIFEST:-}"
 PRECHECK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/weall_m3_actor_precheck_XXXXXX")"
 cleanup_precheck() { rm -rf "${PRECHECK_DIR}"; }
 trap cleanup_precheck EXIT INT TERM
-python "${ROOT}/scripts/validate_m3_actor_manifest.py" \
+"${PYTHON_BIN}" "${ROOT}/scripts/validate_m3_actor_manifest.py" \
   --manifest "${ACTOR_MANIFEST}" \
   --implementation-freeze "${FREEZE}" \
   --out-public-manifest "${PRECHECK_DIR}/M3_ACTOR_MANIFEST.json" \
   --out-transcript "${PRECHECK_DIR}/transaction-transcript.json" >/dev/null
-readarray -t M3_PREFLIGHT_URLS < <(python - "${ACTOR_MANIFEST}" <<'PYURL'
+readarray -t M3_PREFLIGHT_URLS < <("${PYTHON_BIN}" - "${ACTOR_MANIFEST}" <<'PYURL'
 import json, sys
 obj=json.load(open(sys.argv[1], encoding='utf-8'))
 print(str(obj['backend_base_url']).rstrip('/'))
@@ -121,36 +158,36 @@ run_web_package() {
   run_web "$@"
 }
 
-run_gate "dependency preflight" "backend/dependency-preflight.log" python "${ROOT}/scripts/check_m3_dependencies.py"
-run_gate "M3 strict live ballot profile" "backend/live-ballot-profile.log" python \
+run_gate "dependency preflight" "backend/dependency-preflight.log" "${PYTHON_BIN}" "${ROOT}/scripts/check_m3_dependencies.py"
+run_gate "M3 strict live ballot profile" "backend/live-ballot-profile.log" "${PYTHON_BIN}" \
   "${ROOT}/scripts/check_m3_live_ballot_profile.py" \
   --api-base "${M3_PREFLIGHT_URLS[0]}" \
   --out "${M3_ARTIFACT_ROOT}/backend/live-ballot-profile.json" \
   --implementation-freeze "${FREEZE}" \
   --implementation-tree "${TREE}"
-run_gate "M3 requirement traceability" "backend/requirement-traceability.log" python "${ROOT}/scripts/check_m3_requirement_traceability.py"
-run_gate "v1.5 readiness artifacts current" "backend/v15-readiness.log" run_backend python scripts/check_v15_public_readiness_artifacts.py
-run_gate "v2 specification derivatives current" "backend/v2-derivatives.log" run_backend python scripts/compile_v2_spec.py --check
-run_gate "governance execution vectors current" "backend/governance-vectors.log" run_backend python scripts/gen_governance_execution_vectors_v1_5.py --check
+run_gate "M3 requirement traceability" "backend/requirement-traceability.log" "${PYTHON_BIN}" "${ROOT}/scripts/check_m3_requirement_traceability.py"
+run_gate "v1.5 readiness artifacts current" "backend/v15-readiness.log" run_backend "${PYTHON_BIN}" scripts/check_v15_public_readiness_artifacts.py
+run_gate "v2 specification derivatives current" "backend/v2-derivatives.log" run_backend "${PYTHON_BIN}" scripts/compile_v2_spec.py --check
+run_gate "governance execution vectors current" "backend/governance-vectors.log" run_backend "${PYTHON_BIN}" scripts/gen_governance_execution_vectors_v1_5.py --check
 run_gate "clean checkout reproduction" "backend/clean-checkout.log" env M3_IMPLEMENTATION_FREEZE_COMMIT="${FREEZE}" bash "${ROOT}/scripts/run_m3_clean_checkout_reproduction.sh"
-run_gate "M3 runtime regression suite" "backend/m3-runtime-regressions.log" run_backend python -m pytest -q \
+run_gate "M3 runtime regression suite" "backend/m3-runtime-regressions.log" run_backend "${PYTHON_BIN}" -m pytest -q \
   tests/test_m3_electorate_round_policy.py \
   tests/test_m3_genesis_ballot_profile.py \
   tests/test_m3_scope_contract.py \
   tests/test_m3_closure_regressions.py \
   tests/test_m3_closure_integrity.py
-run_gate "M3 persistence replay and convergence" "backend/m3-replay-convergence.log" run_backend python -m pytest -q \
+run_gate "M3 persistence replay and convergence" "backend/m3-replay-convergence.log" run_backend "${PYTHON_BIN}" -m pytest -q \
   tests/test_feed_persists_order_after_restart_api.py \
   tests/test_priority1_replay_schedule_consistency.py \
   tests/test_priority2_state_replay_determinism.py \
   tests/test_e2e_two_node_convergence.py
-run_gate "helper serial equivalence and fallback" "backend/helper-equivalence.log" run_backend python -m pytest -q \
+run_gate "helper serial equivalence and fallback" "backend/helper-equivalence.log" run_backend "${PYTHON_BIN}" -m pytest -q \
   tests/test_helper_serial_equivalence_corpus.py \
   tests/test_helper_serial_equivalence_fallback.py \
   tests/test_helper_offline_fallback_deterministic.py \
   tests/test_helper_restart_equivalence.py \
   tests/test_helper_multinode_divergence_guards.py
-run_gate "full backend suite" "backend/full-pytest.log" run_backend python -m pytest -q
+run_gate "full backend suite" "backend/full-pytest.log" run_backend "${PYTHON_BIN}" -m pytest -q
 
 run_gate "frontend public social source" "frontend/public-social-source.log" run_web node scripts/test_public_social_flow_readiness_source.mjs
 run_gate "frontend group flow source" "frontend/group-flow-source.log" run_web node scripts/test_group_flow_readiness_source.mjs
@@ -186,7 +223,7 @@ run_gate "M3 artifact privacy scan" "privacy/runner.log" env \
   WEALL_M3_EVIDENCE_DIR="${M3_ARTIFACT_ROOT}" \
   bash "${ROOT}/scripts/run_m3_privacy_scan.sh"
 
-python "${ROOT}/scripts/gen_m3_closure_manifest.py" \
+"${PYTHON_BIN}" "${ROOT}/scripts/gen_m3_closure_manifest.py" \
   --workspace "${ROOT}" \
   --evidence-dir "${M3_ARTIFACT_ROOT}" \
   --results "${RESULTS_FILE}" \

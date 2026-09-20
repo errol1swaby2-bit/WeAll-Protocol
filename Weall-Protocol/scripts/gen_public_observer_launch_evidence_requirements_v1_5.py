@@ -233,12 +233,16 @@ def build() -> Json:
             "bash scripts/boot_public_observer_testnet.sh",
         ],
     }
-    payload["artifact_digest"] = hashlib.sha256(_canon({"schema": payload["schema"], "gates": gates}).encode("utf-8")).hexdigest()
+    payload["artifact_digest"] = hashlib.sha256(
+        _canon({"schema": payload["schema"], "gates": gates}).encode("utf-8")
+    ).hexdigest()
     return payload
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check public observer launch evidence requirements.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check public observer launch evidence requirements."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -249,7 +253,9 @@ def main() -> int:
         return 0
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("public_observer_launch_evidence_requirements_v1_5.json is stale; rerun generator")
+            raise SystemExit(
+                "public_observer_launch_evidence_requirements_v1_5.json is stale; rerun generator"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is current ({payload['required_gate_count']} gates)")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

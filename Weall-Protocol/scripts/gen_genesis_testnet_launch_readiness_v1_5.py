@@ -36,8 +36,6 @@ def _script_checks() -> Json:
 
 
 def build() -> Json:
-    from weall.api.public_seed_registry import PublicSeedRegistryError, load_public_seed_registry
-
     old_env = {k: os.environ.get(k) for k in ["WEALL_PUBLIC_TESTNET", "WEALL_MODE"]}
     os.environ["WEALL_PUBLIC_TESTNET"] = "1"
     os.environ["WEALL_MODE"] = "prod"
@@ -45,21 +43,38 @@ def build() -> Json:
     registry_path = ROOT / "configs" / "public_testnet_seed_registry.json"
     raw_registry = json.loads(registry_path.read_text(encoding="utf-8"))
     registry: Json = {}
+    rotation_required = raw_registry.get("seed_registry_rotation_required") is True
     try:
-        registry = load_public_seed_registry(allow_local=False)
-    except PublicSeedRegistryError as exc:
-        # A chain-identity rotation deliberately invalidates the old signature
-        # until the operator performs the ML-DSA signing ceremony. Preserve the
-        # checked-in commitments in the readiness report while keeping launch
-        # status blocked and truthfully unverified.
-        errors.append(str(exc))
-        registry = dict(raw_registry)
-        registry["registry_source_kind"] = "checked_in_rotation_pending"
-        registry["seed_registry_signature_status"] = {
-            "verified": False,
-            "trust": "rotation_required",
-            "reason": "operator_mldsa_resign_required",
-        }
+        if rotation_required:
+            # Chain-identity rotation is a deterministic repository fact. Do not
+            # import the crypto-backed registry verifier in this branch: whether an
+            # ML-DSA implementation is installed locally must not change readiness
+            # evidence for a registry that is explicitly marked rotation-required.
+            errors.append("public_testnet_seed_registry_rotation_required")
+            registry = dict(raw_registry)
+            registry["registry_source_kind"] = "checked_in_rotation_pending"
+            registry["seed_registry_signature_status"] = {
+                "verified": False,
+                "trust": "rotation_required",
+                "reason": "operator_mldsa_resign_required",
+            }
+        else:
+            from weall.api.public_seed_registry import (
+                PublicSeedRegistryError,
+                load_public_seed_registry,
+            )
+
+            try:
+                registry = load_public_seed_registry(allow_local=False)
+            except PublicSeedRegistryError as exc:
+                errors.append(str(exc))
+                registry = dict(raw_registry)
+                registry["registry_source_kind"] = "checked_in_unverified"
+                registry["seed_registry_signature_status"] = {
+                    "verified": False,
+                    "trust": "unverified",
+                    "reason": str(exc),
+                }
     finally:
         for k, v in old_env.items():
             if v is None:
@@ -77,7 +92,15 @@ def build() -> Json:
         "static_readiness_verdict": "ready_for_live_endpoint_rehearsal"
         if static_ready
         else "blocked",
-        "overall_launch_verdict": "partial_until_live_genesis_reachability_and_rehearsal_pass",
+        "overall_launch_verdict": (
+            "partial_until_live_genesis_reachability_and_rehearsal_pass"
+            if static_ready
+            else (
+                "blocked_until_seed_registry_rotation_and_static_checks_pass"
+                if rotation_required
+                else "blocked_until_static_readiness_checks_pass"
+            )
+        ),
         "checked_in_registry_baseline": True,
         "named_provider_dependency": False,
         "direct_p2p_primary": True,

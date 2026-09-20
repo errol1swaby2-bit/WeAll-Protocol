@@ -6,7 +6,11 @@ from fastapi import APIRouter, Request
 
 from weall.api.routes_public_parts.common import _snapshot
 from weall.api.security import require_account_session
-from weall.runtime.reputation_events import EVENT_REGISTRY, derive_role_eligibility, registry_payload
+from weall.runtime.reputation_events import (
+    EVENT_REGISTRY,
+    derive_role_eligibility,
+    registry_payload,
+)
 from weall.runtime.reputation_matrix import derive_reputation_matrix
 
 router = APIRouter()
@@ -70,7 +74,9 @@ def v1_reputation_summary(account: str, request: Request) -> Json:
     st = _snapshot(request)
     viewer = _viewer_for_request(request, st)
     reveal_restricted = _reveal_restricted(viewer, account)
-    return derive_reputation_matrix(st, account, reveal_restricted=reveal_restricted, include_events=False)
+    return derive_reputation_matrix(
+        st, account, reveal_restricted=reveal_restricted, include_events=False
+    )
 
 
 @router.get("/reputation/{account}/matrix")
@@ -79,7 +85,9 @@ def v1_reputation_matrix(account: str, request: Request) -> Json:
     st = _snapshot(request)
     viewer = _viewer_for_request(request, st)
     reveal_restricted = _reveal_restricted(viewer, account)
-    return derive_reputation_matrix(st, account, reveal_restricted=reveal_restricted, include_events=True)
+    return derive_reputation_matrix(
+        st, account, reveal_restricted=reveal_restricted, include_events=True
+    )
 
 
 @router.get("/reputation/{account}/eligibility")
@@ -106,7 +114,9 @@ def v1_reputation_events(account: str, request: Request) -> Json:
     st = _snapshot(request)
     viewer = _viewer_for_request(request, st)
     reveal_restricted = _reveal_restricted(viewer, account)
-    matrix = derive_reputation_matrix(st, account, reveal_restricted=reveal_restricted, include_events=True)
+    matrix = derive_reputation_matrix(
+        st, account, reveal_restricted=reveal_restricted, include_events=True
+    )
     return {
         "ok": True,
         "version": matrix.get("version"),

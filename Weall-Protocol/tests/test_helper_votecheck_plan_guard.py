@@ -17,12 +17,24 @@ def test_votecheck_static_rejects_helper_plan_id_mismatch(tmp_path: Path) -> Non
         chain_id="c1",
         tx_index_path=str(_repo_root() / "generated" / "tx_index.json"),
     )
-    lanes = [{"lane_id": "L1", "helper_id": "h1", "tx_ids": ["t1"], "descriptor_hash": "d1", "plan_id": "wrong"}]
+    lanes = [
+        {
+            "lane_id": "L1",
+            "helper_id": "h1",
+            "tx_ids": ["t1"],
+            "descriptor_hash": "d1",
+            "plan_id": "wrong",
+        }
+    ]
     blk = {
         "block_id": "b1",
         "prev_block_id": "",
         "header": {"chain_id": "c1", "height": 1},
         "txs": [],
-        "helper_execution": {"enabled": True, "plan_id": canonical_helper_execution_plan_fingerprint(lanes), "lanes": lanes},
+        "helper_execution": {
+            "enabled": True,
+            "plan_id": canonical_helper_execution_plan_fingerprint(lanes),
+            "lanes": lanes,
+        },
     }
     assert ex._proposal_votecheck_static_ok(blk) is False

@@ -270,7 +270,9 @@ def sign_peer_hello_identity(
     msg_bytes = _canonical_hello_sign_bytes_v3(
         header=header, peer_id=pid, pubkey=pk, sig_profile=profile, agent=agent, nonce=nonce
     )
-    sig = sign_signature_for_profile(sig_profile=profile, message=msg_bytes, privkey=sk, encoding="hex")
+    sig = sign_signature_for_profile(
+        sig_profile=profile, message=msg_bytes, privkey=sk, encoding="hex"
+    )
     return {
         "pubkey": pk,
         "sig_profile": profile,

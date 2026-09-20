@@ -6,7 +6,9 @@ This quickstart is for bounded observer rehearsal and transcript collection. It 
 
 ## Go / No-Go boundary
 
-GO: controlled internal/public-observer rehearsal candidate.
+GO: bounded local/devnet/public-observer-oriented rehearsal and transcript collection.
+
+NO-GO: controlled-testnet mechanism completion until production helper state-root/restart equivalence is proven.
 
 NO-GO: public beta readiness, public mainnet readiness, public validator safety, public multi-validator BFT readiness, live economics readiness, automatic protocol upgrade readiness, executable migration/rollback readiness, production helper execution readiness, legal/compliance approval, and public storage-market readiness.
 
@@ -40,7 +42,7 @@ PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
 PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
 ```
 
-Expected boundary: `public_beta_ready=false`; controlled rehearsal candidate may be true; public beta/mainnet/live-economics/public-validator/automatic-upgrade/production-helper/legal/storage readiness must remain false or unclaimed.
+Expected boundary: `public_beta_ready=false`; `controlled_testnet_candidate=false`; controlled-testnet mechanism completion remains NO-GO while production helper state-root/restart equivalence is unproven; public beta/mainnet/live-economics/public-validator/automatic-upgrade/production-helper/legal/storage readiness must remain false or unclaimed.
 
 ## 4. Boot observer mode
 

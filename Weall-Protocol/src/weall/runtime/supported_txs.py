@@ -1,18 +1,10 @@
 # src/weall/runtime/supported_txs.py
-"""Build-time supported tx types.
+"""Canonical transaction names derived from the generated tx index.
 
-Genesis migration goal:
-  This node build should accept *canon* tx types at admission time, and then
-  fail-closed at *apply* time for anything not implemented.
-
-Practically:
-  - Admission uses TxIndex + per-tx canon flags (context, receipt_only, etc.)
-  - Apply router uses SUPPORTED_TX_TYPES as a coarse gate to reject tx types
-    that are completely unknown to this build.
-
-To keep the build aligned with the generated canon, we load the tx names from
-generated/tx_index.json when available. If the file cannot be located (e.g.
-embedded packaging), we fall back to a conservative hard-coded set.
+This module is retained for compatibility with tests/tools that inspect the
+canon surface. It is not an apply-router authority gate. Missing or malformed
+canon artifacts fail closed instead of silently selecting a stale hard-coded
+transaction subset.
 """
 
 from __future__ import annotations
@@ -26,8 +18,7 @@ def _as_str(x: object) -> str:
     return str(x).strip() if x is not None else ""
 
 
-def _iter_repo_roots(start: Path, *, max_up: int = 6) -> Iterable[Path]:
-    """Yield candidate repo roots by walking upwards from start."""
+def _iter_repo_roots(start: Path, *, max_up: int = 10) -> Iterable[Path]:
     cur = start
     for _ in range(max_up):
         yield cur
@@ -38,69 +29,40 @@ def _iter_repo_roots(start: Path, *, max_up: int = 6) -> Iterable[Path]:
 
 def _find_generated_tx_index() -> Path | None:
     here = Path(__file__).resolve()
-
-    # Typical layout:
-    #   repo/generated/tx_index.json
-    #   repo/src/weall/runtime/supported_txs.py
-    for root in _iter_repo_roots(here, max_up=10):
+    for root in _iter_repo_roots(here):
         cand = root / "generated" / "tx_index.json"
-        if cand.exists():
+        if cand.is_file():
             return cand
     return None
 
 
 def _load_supported_from_tx_index(path: Path) -> set[str]:
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return set()
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError("tx_index must be a JSON object")
 
     out: set[str] = set()
-
-    # Newer TxIndex shape:
-    #   {"by_id": {"1": {"name": ...}, ...}, "by_name": {"TX": {...}}, ...}
     by_name = raw.get("by_name")
     if isinstance(by_name, dict):
-        for k in by_name.keys():
-            name = _as_str(k).upper()
-            if name:
-                out.add(name)
-        if out:
-            return out
+        out.update(_as_str(k).upper() for k in by_name if _as_str(k))
 
-    by_id = raw.get("by_id")
-    if isinstance(by_id, dict):
-        for obj in by_id.values():
-            if not isinstance(obj, dict):
-                continue
-            name = _as_str(obj.get("name")).upper()
-            if name:
-                out.add(name)
+    if not out:
+        by_id = raw.get("by_id")
+        if isinstance(by_id, dict):
+            for obj in by_id.values():
+                if isinstance(obj, dict):
+                    name = _as_str(obj.get("name")).upper()
+                    if name:
+                        out.add(name)
 
+    if not out:
+        raise ValueError(f"tx_index contains no canonical transaction names: {path}")
     return out
 
 
-# Conservative fallback set (kept small on purpose).
-_FALLBACK: Set[str] = frozenset(
-    {
-        "IDENTITY_CREATE",
-        "POH_TIER1_MINT",
-        "CONTENT_POST_CREATE",
-        "GOV_PROPOSAL_CREATE",
-        "TREASURY_CREATE",
-        "BLOCK_PROPOSE",
-        "BLOCK_ATTEST",
-        "BLOCK_FINALIZE",
-    }
-)
-
-
 _idx_path = _find_generated_tx_index()
-if _idx_path is not None:
-    _loaded = _load_supported_from_tx_index(_idx_path)
-    SUPPORTED_TX_TYPES: Set[str] = frozenset(_loaded) if _loaded else _FALLBACK
-else:
-    SUPPORTED_TX_TYPES = _FALLBACK
-
+if _idx_path is None:
+    raise RuntimeError("generated tx_index.json not found; canonical tx surface unavailable")
+SUPPORTED_TX_TYPES: Set[str] = frozenset(_load_supported_from_tx_index(_idx_path))
 
 __all__ = ["SUPPORTED_TX_TYPES"]

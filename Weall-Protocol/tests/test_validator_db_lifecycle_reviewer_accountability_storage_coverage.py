@@ -36,16 +36,40 @@ def _client(state: dict[str, Any]) -> TestClient:
 
 
 def _run_json(script: str) -> dict[str, Any]:
-    proc = subprocess.run([sys.executable, str(ROOT / "scripts" / script), "--json"], cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / script), "--json"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
     return json.loads(proc.stdout)
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any] | None = None, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload or {}, sig="sig", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict[str, Any] | None = None,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload or {},
+        sig="sig",
+        system=system,
+        parent=parent,
+    )
 
 
 def test_validator_rehearsal_uses_tcp_subprocesses_and_preserves_boundaries() -> None:
-    out = json.loads((ROOT / "generated" / "b528_b532_completion_proof_v1_5.json").read_text())["validator_rehearsal"]
+    out = json.loads((ROOT / "generated" / "b528_b532_completion_proof_v1_5.json").read_text())[
+        "validator_rehearsal"
+    ]
     assert out["ok"] is True
     assert out["process_model"] == "subprocess_tcp_json_rpc"
     assert out["network_transport"] == "127.0.0.1_tcp_json_lines"
@@ -69,6 +93,7 @@ def test_db_backed_replay_sync_verifies_receipts_and_rejects_corrupt_blocks() ->
 
 def test_api_driven_lifecycle_exercises_real_routes_and_locked_boundaries() -> None:
     from rehearse_api_driven_full_lifecycle_v1_5 import run_harness
+
     out = run_harness()
     assert out["ok"] is True
     assert "GET /v1/feed" in out["api_routes_exercised"]
@@ -90,34 +115,161 @@ def test_poh_reviewer_accountability_updates_reviewer_eligibility() -> None:
             "@r3": {"poh_tier": 2, "nonce": 0},
             "SYSTEM": {"poh_tier": 0},
         },
-        "roles": {"validators": {"active_set": ["@reviewer", "@r2", "@r3"]}, "poh_reviewers": {"active": {"@reviewer": True}}},
+        "roles": {
+            "validators": {"active_set": ["@reviewer", "@r2", "@r3"]},
+            "poh_reviewers": {"active": {"@reviewer": True}},
+        },
         "poh": {"async_cases": {}, "challenges": {}},
     }
-    apply_poh(state, _env("POH_ASYNC_REQUEST_OPEN", "@subject", 1, {"case_id": "case-a", "account_id": "@subject", "evidence_commitment": "sha256:" + "c" * 64}))
-    apply_poh(state, _env("POH_ASYNC_EVIDENCE_DECLARE", "@subject", 2, {"case_id": "case-a", "evidence_id": "ev", "evidence_commitment": "sha256:" + "c" * 64}))
-    apply_poh(state, _env("POH_ASYNC_JUROR_ASSIGN", "SYSTEM", 1, {"case_id": "case-a", "jurors": ["@reviewer", "@r2", "@r3"]}, system=True, parent="poh:case"))
+    apply_poh(
+        state,
+        _env(
+            "POH_ASYNC_REQUEST_OPEN",
+            "@subject",
+            1,
+            {
+                "case_id": "case-a",
+                "account_id": "@subject",
+                "evidence_commitment": "sha256:" + "c" * 64,
+            },
+        ),
+    )
+    apply_poh(
+        state,
+        _env(
+            "POH_ASYNC_EVIDENCE_DECLARE",
+            "@subject",
+            2,
+            {"case_id": "case-a", "evidence_id": "ev", "evidence_commitment": "sha256:" + "c" * 64},
+        ),
+    )
+    apply_poh(
+        state,
+        _env(
+            "POH_ASYNC_JUROR_ASSIGN",
+            "SYSTEM",
+            1,
+            {"case_id": "case-a", "jurors": ["@reviewer", "@r2", "@r3"]},
+            system=True,
+            parent="poh:case",
+        ),
+    )
     for i, reviewer in enumerate(["@reviewer", "@r2", "@r3"], start=1):
         apply_poh(state, _env("POH_ASYNC_JUROR_ACCEPT", reviewer, i, {"case_id": "case-a"}))
-        apply_poh(state, _env("POH_ASYNC_REVIEW_SUBMIT", reviewer, i + 10, {"case_id": "case-a", "verdict": "approve"}))
-    opened = apply_poh(state, _env("POH_CHALLENGE_OPEN", "@r2", 30, {"account_id": "@subject", "case_id": "case-a"}))
-    apply_poh(state, _env("POH_CHALLENGE_RESOLVE", "SYSTEM", 31, {"challenge_id": opened["challenge_id"], "resolution": "upheld", "case_id": "case-a"}, system=True, parent="poh:challenge"))
+        apply_poh(
+            state,
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                reviewer,
+                i + 10,
+                {"case_id": "case-a", "verdict": "approve"},
+            ),
+        )
+    opened = apply_poh(
+        state,
+        _env("POH_CHALLENGE_OPEN", "@r2", 30, {"account_id": "@subject", "case_id": "case-a"}),
+    )
+    apply_poh(
+        state,
+        _env(
+            "POH_CHALLENGE_RESOLVE",
+            "SYSTEM",
+            31,
+            {"challenge_id": opened["challenge_id"], "resolution": "upheld", "case_id": "case-a"},
+            system=True,
+            parent="poh:challenge",
+        ),
+    )
     assert state["accounts"]["@reviewer"]["poh_reviewer_eligible"] is False
-    assert state["poh"]["reviewer_accountability"]["by_reviewer"]["@reviewer"]["eligible_for_poh_review"] is False
+    assert (
+        state["poh"]["reviewer_accountability"]["by_reviewer"]["@reviewer"][
+            "eligible_for_poh_review"
+        ]
+        is False
+    )
 
 
 def test_dispute_juror_inactivity_updates_juror_eligibility() -> None:
     state: dict[str, Any] = {
         "height": 11,
-        "accounts": {"@open": {"poh_tier": 2}, "@j1": {"poh_tier": 2}, "@j2": {"poh_tier": 2}, "SYSTEM": {"poh_tier": 0}},
+        "accounts": {
+            "@open": {"poh_tier": 2},
+            "@j1": {"poh_tier": 2},
+            "@j2": {"poh_tier": 2},
+            "SYSTEM": {"poh_tier": 0},
+        },
         "roles": {"validators": {"active_set": ["@j1", "@j2"]}},
         "system_queue": [],
     }
-    apply_dispute(state, _env("DISPUTE_OPEN", "@open", 1, {"dispute_id": "d-inactive", "target_type": "account", "target_id": "@open", "reason": "test"}))
-    apply_dispute(state, _env("DISPUTE_JUROR_ASSIGN", "SYSTEM", 1, {"dispute_id": "d-inactive", "juror": "@j1"}, system=True, parent="d"))
-    apply_dispute(state, _env("DISPUTE_JUROR_ASSIGN", "SYSTEM", 2, {"dispute_id": "d-inactive", "juror": "@j2"}, system=True, parent="d"))
+    apply_dispute(
+        state,
+        _env(
+            "DISPUTE_OPEN",
+            "@open",
+            1,
+            {
+                "dispute_id": "d-inactive",
+                "target_type": "account",
+                "target_id": "@open",
+                "reason": "test",
+            },
+        ),
+    )
+    apply_dispute(
+        state,
+        _env(
+            "DISPUTE_JUROR_ASSIGN",
+            "SYSTEM",
+            1,
+            {"dispute_id": "d-inactive", "juror": "@j1"},
+            system=True,
+            parent="d",
+        ),
+    )
+    apply_dispute(
+        state,
+        _env(
+            "DISPUTE_JUROR_ASSIGN",
+            "SYSTEM",
+            2,
+            {"dispute_id": "d-inactive", "juror": "@j2"},
+            system=True,
+            parent="d",
+        ),
+    )
     apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", "@j1", 2, {"dispute_id": "d-inactive"}))
-    apply_dispute(state, _env("DISPUTE_VOTE_SUBMIT", "@j1", 3, {"dispute_id": "d-inactive", "vote": "yes", "resolution": {"summary": "restrict", "actions": [{"tx_type": "ACCOUNT_RESTRICTION_SET", "payload": {"account_id": "@open", "restriction": "review"}}]}}))
-    out = apply_dispute(state, _env("DISPUTE_FINAL_RECEIPT", "SYSTEM", 4, {"dispute_id": "d-inactive"}, system=True, parent="d"))
+    apply_dispute(
+        state,
+        _env(
+            "DISPUTE_VOTE_SUBMIT",
+            "@j1",
+            3,
+            {
+                "dispute_id": "d-inactive",
+                "vote": "yes",
+                "resolution": {
+                    "summary": "restrict",
+                    "actions": [
+                        {
+                            "tx_type": "ACCOUNT_RESTRICTION_SET",
+                            "payload": {"account_id": "@open", "restriction": "review"},
+                        }
+                    ],
+                },
+            },
+        ),
+    )
+    out = apply_dispute(
+        state,
+        _env(
+            "DISPUTE_FINAL_RECEIPT",
+            "SYSTEM",
+            4,
+            {"dispute_id": "d-inactive"},
+            system=True,
+            parent="d",
+        ),
+    )
     assert out["applied"] == "DISPUTE_FINAL_RECEIPT"
     assert state["accounts"]["@j2"]["dispute_juror_eligible"] is False
     assert state["dispute_juror_accountability"]["by_juror"]["@j2"]["missed_vote_count"] == 1
@@ -132,14 +284,41 @@ def test_production_feed_ranking_uses_weighted_public_social_signals() -> None:
         },
         "content": {
             "posts": {
-                "quality": {"post_id": "quality", "author": "@author", "visibility": "public", "created_nonce": 10, "reactions": {}},
-                "brigaded": {"post_id": "brigaded", "author": "@low", "visibility": "public", "created_nonce": 20, "reactions": {}, "labels": ["brigading_suspected"]},
-                "quiet-new": {"post_id": "quiet-new", "author": "@trusted", "visibility": "public", "created_nonce": 30, "reactions": {}},
+                "quality": {
+                    "post_id": "quality",
+                    "author": "@author",
+                    "visibility": "public",
+                    "created_nonce": 10,
+                    "reactions": {},
+                },
+                "brigaded": {
+                    "post_id": "brigaded",
+                    "author": "@low",
+                    "visibility": "public",
+                    "created_nonce": 20,
+                    "reactions": {},
+                    "labels": ["brigading_suspected"],
+                },
+                "quiet-new": {
+                    "post_id": "quiet-new",
+                    "author": "@trusted",
+                    "visibility": "public",
+                    "created_nonce": 30,
+                    "reactions": {},
+                },
             },
             "comments": {"c1": {"comment_id": "c1", "post_id": "quality", "visibility": "public"}},
             "reactions": {
-                "@trusted:quality": {"by": "@trusted", "target_id": "quality", "reaction": "helpful"},
-                "@trusted:quality:dupe": {"by": "@trusted", "target_id": "quality", "reaction": "love"},
+                "@trusted:quality": {
+                    "by": "@trusted",
+                    "target_id": "quality",
+                    "reaction": "helpful",
+                },
+                "@trusted:quality:dupe": {
+                    "by": "@trusted",
+                    "target_id": "quality",
+                    "reaction": "love",
+                },
                 "@low:brigaded": {"by": "@low", "target_id": "brigaded", "reaction": "like"},
             },
             "media": {},
@@ -162,7 +341,28 @@ def test_production_feed_ranking_uses_weighted_public_social_signals() -> None:
 def test_generated_artifact_is_present_and_consistent() -> None:
     artifact = json.loads((ROOT / "generated" / "b528_b532_completion_proof_v1_5.json").read_text())
     assert artifact["ok"] is True
+    assert artifact["freshness"]["mode"] == "deterministic_input_digest_v1"
+    assert len(artifact["freshness"]["input_digest_sha256"]) == 64
     assert artifact["feed_ranking"]["complete_for_deterministic_public_social_ranking"] is True
     assert artifact["feed_ranking"]["complete_for_personalized_recommendation"] is False
     assert artifact["validator_rehearsal"]["process_model"] == "subprocess_tcp_json_rpc"
     assert artifact["fresh_node_replay_sync"]["durable_db_used"] is True
+
+
+def test_b528_freshness_check_is_deterministic_and_live_verification_is_explicit() -> None:
+    check = subprocess.run(
+        [sys.executable, "scripts/gen_b528_b532_completion_proof_v1_5.py", "--check"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert check.returncode == 0, check.stdout + check.stderr
+    live = subprocess.run(
+        [sys.executable, "scripts/gen_b528_b532_completion_proof_v1_5.py", "--verify-live"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert live.returncode == 0, live.stdout + live.stderr

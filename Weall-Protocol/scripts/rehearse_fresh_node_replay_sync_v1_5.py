@@ -14,11 +14,18 @@ from weall.runtime.state_hash import compute_state_root
 
 
 def _hash(obj: Any) -> str:
-    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 def _build_chain() -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    state: dict[str, Any] = {"height": 0, "chain_id": "weall-prod", "accounts": {}, "finalized": {"height": 0, "block_id": "genesis"}}
+    state: dict[str, Any] = {
+        "height": 0,
+        "chain_id": "weall-prod",
+        "accounts": {},
+        "finalized": {"height": 0, "block_id": "genesis"},
+    }
     blocks: list[dict[str, Any]] = []
     prev_hash = "genesis"
     prev_id = "genesis"
@@ -35,7 +42,14 @@ def _build_chain() -> tuple[dict[str, Any], list[dict[str, Any]]]:
             "state_delta": delta,
             "state_root_after": compute_state_root(state),
         }
-        block["block_hash"] = _hash({"height": height, "block_id": block["block_id"], "prev": prev_hash, "state_root_after": block["state_root_after"]})
+        block["block_hash"] = _hash(
+            {
+                "height": height,
+                "block_id": block["block_id"],
+                "prev": prev_hash,
+                "state_root_after": block["state_root_after"],
+            }
+        )
         blocks.append(block)
         prev_hash = block["block_hash"]
         prev_id = block["block_id"]
@@ -46,7 +60,9 @@ def _build_chain() -> tuple[dict[str, Any], list[dict[str, Any]]]:
 def _write_block_store(root: Path, blocks: list[dict[str, Any]]) -> None:
     root.mkdir(parents=True, exist_ok=True)
     for block in blocks:
-        (root / f"{int(block['height']):08d}.json").write_text(json.dumps(block, sort_keys=True), encoding="utf-8")
+        (root / f"{int(block['height']):08d}.json").write_text(
+            json.dumps(block, sort_keys=True), encoding="utf-8"
+        )
 
 
 def _read_block_store(root: Path) -> list[dict[str, Any]]:
@@ -68,7 +84,14 @@ def _validate_block_sequence(blocks: list[dict[str, Any]]) -> None:
             raise AssertionError("parent_block_id_mismatch")
         if str(block.get("prev_block_hash") or "") != prev_hash:
             raise AssertionError("prev_block_hash_mismatch")
-        expected_hash = _hash({"height": height, "block_id": str(block.get("block_id") or ""), "prev": prev_hash, "state_root_after": str(block.get("state_root_after") or "")})
+        expected_hash = _hash(
+            {
+                "height": height,
+                "block_id": str(block.get("block_id") or ""),
+                "prev": prev_hash,
+                "state_root_after": str(block.get("state_root_after") or ""),
+            }
+        )
         if str(block.get("block_hash") or "") != expected_hash:
             raise AssertionError("block_hash_mismatch")
         prev_hash = str(block.get("block_hash") or "")
@@ -84,8 +107,22 @@ def _apply_delta(state: dict[str, Any], block: dict[str, Any]) -> None:
     state["finalized"] = {"height": int(block["height"]), "block_id": str(block["block_id"])}
 
 
-def _replay(blocks: list[dict[str, Any]], *, stop_after: int | None = None, state: dict[str, Any] | None = None) -> dict[str, Any]:
-    st = state if isinstance(state, dict) else {"height": 0, "chain_id": "weall-prod", "accounts": {}, "finalized": {"height": 0, "block_id": "genesis"}}
+def _replay(
+    blocks: list[dict[str, Any]],
+    *,
+    stop_after: int | None = None,
+    state: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    st = (
+        state
+        if isinstance(state, dict)
+        else {
+            "height": 0,
+            "chain_id": "weall-prod",
+            "accounts": {},
+            "finalized": {"height": 0, "block_id": "genesis"},
+        }
+    )
     for block in blocks:
         if stop_after is not None and int(block["height"]) > int(stop_after):
             break
@@ -101,9 +138,30 @@ def _replay(blocks: list[dict[str, Any]], *, stop_after: int | None = None, stat
 def run_harness() -> dict[str, Any]:
     source_state, blocks = _build_chain()
     by_height = {int(b["height"]): dict(b) for b in blocks}
-    svc = StateSyncService(chain_id="weall-prod", schema_version="1", tx_index_hash="tx-index-demo", state_provider=lambda: source_state, block_provider=lambda h: by_height.get(int(h)), require_trusted_anchor=True, fallback_to_snapshot=False)
+    svc = StateSyncService(
+        chain_id="weall-prod",
+        schema_version="1",
+        tx_index_hash="tx-index-demo",
+        state_provider=lambda: source_state,
+        block_provider=lambda h: by_height.get(int(h)),
+        require_trusted_anchor=True,
+        fallback_to_snapshot=False,
+    )
     anchor = build_snapshot_anchor(source_state)
-    req = StateSyncRequestMsg(header=WireHeader(type=MsgType.STATE_SYNC_REQUEST, chain_id="weall-prod", schema_version="1", tx_index_hash="tx-index-demo", sent_ts_ms=1, corr_id="sync-1"), mode="delta", from_height=0, to_height=source_state["height"], selector={"trusted_anchor": anchor})
+    req = StateSyncRequestMsg(
+        header=WireHeader(
+            type=MsgType.STATE_SYNC_REQUEST,
+            chain_id="weall-prod",
+            schema_version="1",
+            tx_index_hash="tx-index-demo",
+            sent_ts_ms=1,
+            corr_id="sync-1",
+        ),
+        mode="delta",
+        from_height=0,
+        to_height=source_state["height"],
+        selector={"trusted_anchor": anchor},
+    )
     resp = svc.handle_request(req)
     svc.verify_response(resp, trusted_anchor=anchor)
 
@@ -130,7 +188,10 @@ def run_harness() -> dict[str, Any]:
             corrupt_rejected = str(exc) == "block_hash_mismatch"
 
     return {
-        "ok": compute_state_root(fresh) == compute_state_root(source_state) == compute_state_root(resumed) and corrupt_rejected,
+        "ok": compute_state_root(fresh)
+        == compute_state_root(source_state)
+        == compute_state_root(resumed)
+        and corrupt_rejected,
         "batch": "524",
         "verified_block_count": len(blocks),
         "source_height": source_state["height"],

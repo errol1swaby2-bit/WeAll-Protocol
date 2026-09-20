@@ -101,7 +101,9 @@ def sign_tx_dict(tx: Json, *, label: str | None = None) -> Json:
         payload=payload,
         parent=parent_s,
     )
-    sig_hex = sign_signature_for_profile(sig_profile=PQ_MLDSA_V1, message=msg, privkey=str(sk), encoding="hex")
+    sig_hex = sign_signature_for_profile(
+        sig_profile=PQ_MLDSA_V1, message=msg, privkey=str(sk), encoding="hex"
+    )
     out = dict(tx)
     out["chain_id"] = chain_id
     out["network_id"] = network_id

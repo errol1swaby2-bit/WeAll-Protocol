@@ -12,7 +12,6 @@ from weall.runtime.block_admission import admit_block_txs
 from weall.runtime.tx_admission import TxEnvelope
 from weall.tx.canon import load_tx_index_json
 
-
 VALIDATOR_PRIVKEY = "11" * 32
 VALIDATOR_PUBKEY = mldsa65_public_key_from_seed(privkey=VALIDATOR_PRIVKEY, encoding="hex")
 
@@ -37,7 +36,7 @@ class _FakePool:
 class _FakeExecutor:
     def __init__(self) -> None:
         self.chain_id = "weall-test"
-        self.attestation_pool = _FakePool()
+        self.mempool = _FakePool()
         self.tx_index = _tx_index()
 
     def read_state(self) -> dict[str, object]:
@@ -59,20 +58,25 @@ class _FakeExecutor:
             "blocks": {"b1": {"block_id": "b1", "height": 1, "prev_block_id": "gen"}},
         }
 
-
     def submit_attestation(self, env: dict) -> dict:
         if not isinstance(env, dict):
             return {"ok": False, "error": "bad_env:not_object"}
         tx_type = str(env.get("tx_type") or "").strip().upper()
         if tx_type != "BLOCK_ATTEST":
-            return {"ok": False, "error": "invalid_tx_type", "reason": "attestation_requires_block_attest"}
+            return {
+                "ok": False,
+                "error": "invalid_tx_type",
+                "reason": "attestation_requires_block_attest",
+            }
         payload = env.get("payload") if isinstance(env.get("payload"), dict) else {}
         block_id = str(payload.get("block_id") or payload.get("id") or "").strip()
         if not block_id:
             return {"ok": False, "error": "invalid_payload", "reason": "missing_block_id"}
-        normalized = dict(env)
-        normalized["block_id"] = block_id
-        return self.attestation_pool.add(normalized)
+
+        # Model the production canonical submission contract: preserve the
+        # signed envelope exactly and return a canonical transaction id.
+        self.mempool.items.append(dict(env))
+        return {"ok": True, "tx_id": "tx:test-attestation"}
 
 
 def _make_signed_attestation(*, signer: str = "val1", payload: dict | None = None) -> dict:
@@ -87,7 +91,9 @@ def _make_signed_attestation(*, signer: str = "val1", payload: dict | None = Non
     return sign_tx_envelope_dict(tx=body, privkey=VALIDATOR_PRIVKEY, encoding="hex")
 
 
-def test_public_attestation_endpoint_requires_valid_signature_and_binds_validator() -> None:
+def test_public_attestation_endpoint_requires_valid_signature_and_preserves_signed_payload() -> (
+    None
+):
     app = create_app(boot_runtime=False)
     app.state.executor = _FakeExecutor()
     client = TestClient(app)
@@ -98,9 +104,12 @@ def test_public_attestation_endpoint_requires_valid_signature_and_binds_validato
     assert response.status_code == 200
     out = response.json()
     assert out["ok"] is True
+    assert out["tx_id"] == "tx:test-attestation"
+    assert out["status"] == "accepted"
 
-    stored = app.state.executor.attestation_pool.items[0]
-    assert stored["payload"]["validator"] == "val1"
+    stored = app.state.executor.mempool.items[0]
+    assert stored == body
+    assert "validator" not in stored["payload"]
 
 
 def test_public_attestation_endpoint_rejects_payload_validator_mismatch() -> None:
@@ -133,7 +142,9 @@ def test_public_attestation_endpoint_rejects_forged_signature() -> None:
 
 
 def test_block_admission_rejects_duplicate_system_tx_ids() -> None:
-    ledger = LedgerView.from_ledger({"chain_id": "weall-test", "accounts": {}, "params": {}, "roles": {}})
+    ledger = LedgerView.from_ledger(
+        {"chain_id": "weall-test", "accounts": {}, "params": {}, "roles": {}}
+    )
     tx_index = _tx_index()
 
     env1 = TxEnvelope(
@@ -155,7 +166,9 @@ def test_block_admission_rejects_duplicate_system_tx_ids() -> None:
         system=True,
     )
 
-    ok, block_reject, rejects = admit_block_txs([env1, env2], ledger, tx_index, verify_signatures=True)
+    ok, block_reject, rejects = admit_block_txs(
+        [env1, env2], ledger, tx_index, verify_signatures=True
+    )
     assert ok is True
     assert block_reject is None
     assert rejects[0] is None

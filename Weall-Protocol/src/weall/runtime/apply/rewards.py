@@ -342,6 +342,7 @@ def _apply_block_reward_mint(state: Json, env: TxEnvelope) -> Json:
         "deduped": already,
     }
 
+
 def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
     _wrap_econ_gate(state, env.tx_type)
@@ -487,6 +488,7 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
         "debited_total": int(debited_total),
         "deduped": False,
     }
+
 
 def _apply_transfers_and_debits(
     state: Json, payload: Json, *, strict_debits: bool = True

@@ -29,12 +29,6 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.crypto.sig import sign_tx_envelope_dict
 
@@ -107,7 +101,12 @@ class FlowError(RuntimeError):
 
 
 def _write_demo_summary(
-    account: str, post_body: str, media_name: str, extra: dict[str, Any], *, secret_payload: dict[str, Any] | None = None
+    account: str,
+    post_body: str,
+    media_name: str,
+    extra: dict[str, Any],
+    *,
+    secret_payload: dict[str, Any] | None = None,
 ) -> str:
     out_dir = Path(__file__).resolve().parent.parent / "generated"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -121,7 +120,9 @@ def _write_demo_summary(
     out_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if secret_payload:
         secret_path = out_dir / "demo_bootstrap_secret.json"
-        secret_path.write_text(json.dumps(secret_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        secret_path.write_text(
+            json.dumps(secret_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         try:
             secret_path.chmod(0o600)
         except Exception:
@@ -432,8 +433,6 @@ def _upload_media(cfg: Cfg, *, account: str, session_key: str) -> Json:
     return body
 
 
-
-
 def _seed_demo_objects(cfg: Cfg, *, account: str, post_id: str) -> Json:
     status, body = _http_json(
         "POST",
@@ -451,6 +450,7 @@ def _seed_demo_objects(cfg: Cfg, *, account: str, post_id: str) -> Json:
     if not isinstance(body, dict):
         raise FlowError(f"POST /v1/dev/demo-seed returned non-object: {body!r}")
     return body
+
 
 def _verify_feed(cfg: Cfg, *, account: str, post_id: str, body_text: str, media_id: str) -> None:
     deadline = time.time() + cfg.wait_apply_s
@@ -591,8 +591,12 @@ def main() -> int:
     demo_seed = _seed_demo_objects(cfg, account=account, post_id=post_id)
     if bool(demo_seed.get("ok")):
         seeded_group = demo_seed.get("group") if isinstance(demo_seed.get("group"), dict) else {}
-        seeded_proposal = demo_seed.get("proposal") if isinstance(demo_seed.get("proposal"), dict) else {}
-        seeded_dispute = demo_seed.get("dispute") if isinstance(demo_seed.get("dispute"), dict) else {}
+        seeded_proposal = (
+            demo_seed.get("proposal") if isinstance(demo_seed.get("proposal"), dict) else {}
+        )
+        seeded_dispute = (
+            demo_seed.get("dispute") if isinstance(demo_seed.get("dispute"), dict) else {}
+        )
         print(
             "    seeded group={group} proposal={proposal} dispute={dispute}".format(
                 group=seeded_group.get("group_id") or "",
@@ -608,12 +612,19 @@ def main() -> int:
     seeded_dispute = demo_seed.get("dispute") if isinstance(demo_seed, dict) else None
     recommended_path = [
         {"label": "Open feed", "href": "/feed"},
-        {"label": "Open group", "href": f"/groups/{urllib.parse.quote(str((seeded_group or {}).get('group_id') or ''), safe='')}" if isinstance(seeded_group, dict) and seeded_group.get("group_id") else "/groups"},
+        {
+            "label": "Open group",
+            "href": f"/groups/{urllib.parse.quote(str((seeded_group or {}).get('group_id') or ''), safe='')}"
+            if isinstance(seeded_group, dict) and seeded_group.get("group_id")
+            else "/groups",
+        },
         {"label": "Open disputes", "href": "/disputes"},
         {"label": "Open governance", "href": "/proposals"},
     ]
 
-    secret_key_b64 = base64.b64encode(bytes.fromhex(priv_hex) + bytes.fromhex(pub_hex)).decode("ascii")
+    secret_key_b64 = base64.b64encode(bytes.fromhex(priv_hex) + bytes.fromhex(pub_hex)).decode(
+        "ascii"
+    )
     pubkey_b64 = base64.b64encode(bytes.fromhex(pub_hex)).decode("ascii")
 
     summary_path = _write_demo_summary(

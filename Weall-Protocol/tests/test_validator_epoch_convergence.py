@@ -7,7 +7,6 @@ from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 
-
 Json = dict[str, Any]
 
 
@@ -52,20 +51,29 @@ def _env(
     ).to_json()
 
 
-def _apply(st: Json, tx_type: str, payload: dict[str, Any], *, signer: str, nonce: int, system: bool = False, parent: str = "") -> None:
+def _apply(
+    st: Json,
+    tx_type: str,
+    payload: dict[str, Any],
+    *,
+    signer: str,
+    nonce: int,
+    system: bool = False,
+    parent: str = "",
+) -> None:
     apply_tx(st, _env(tx_type, payload, signer=signer, nonce=nonce, system=system, parent=parent))
 
 
 def _active_set(st: Json) -> list[str]:
-    return list((((st.get("roles") or {}).get("validators") or {}).get("active_set") or []))
+    return list(((st.get("roles") or {}).get("validators") or {}).get("active_set") or [])
 
 
 def _set_hash(st: Json) -> str:
-    return str((((st.get("consensus") or {}).get("validator_set") or {}).get("set_hash") or ""))
+    return str(((st.get("consensus") or {}).get("validator_set") or {}).get("set_hash") or "")
 
 
 def _epoch(st: Json) -> int:
-    return int((((st.get("consensus") or {}).get("validator_set") or {}).get("epoch") or 0))
+    return int(((st.get("consensus") or {}).get("validator_set") or {}).get("epoch") or 0)
 
 
 def _quorum(st: Json) -> int:
@@ -77,10 +85,32 @@ def test_validator_epoch_transition_preserves_set_hash_equivalence_after_activat
     b = _clone(a)
 
     for st in (a, b):
-        _apply(st, "VALIDATOR_SET_UPDATE", {"active_set": ["alice"], "activate_at_epoch": 1}, signer="SYSTEM", nonce=1, system=True, parent="gov:set:1")
+        _apply(
+            st,
+            "VALIDATOR_SET_UPDATE",
+            {"active_set": ["alice"], "activate_at_epoch": 1},
+            signer="SYSTEM",
+            nonce=1,
+            system=True,
+            parent="gov:set:1",
+        )
         _apply(st, "EPOCH_OPEN", {"epoch": 1}, signer="SYSTEM", nonce=2, system=True)
-        _apply(st, "VALIDATOR_CANDIDATE_REGISTER", {"node_id": "node-bob", "pubkey": "mldsa:bob", "endpoints": ["https://bob.example"]}, signer="bob", nonce=3)
-        _apply(st, "VALIDATOR_CANDIDATE_APPROVE", {"account": "bob", "activate_at_epoch": 2}, signer="SYSTEM", nonce=4, system=True, parent="gov:approve:bob:2")
+        _apply(
+            st,
+            "VALIDATOR_CANDIDATE_REGISTER",
+            {"node_id": "node-bob", "pubkey": "mldsa:bob", "endpoints": ["https://bob.example"]},
+            signer="bob",
+            nonce=3,
+        )
+        _apply(
+            st,
+            "VALIDATOR_CANDIDATE_APPROVE",
+            {"account": "bob", "activate_at_epoch": 2},
+            signer="SYSTEM",
+            nonce=4,
+            system=True,
+            parent="gov:approve:bob:2",
+        )
         _apply(st, "EPOCH_CLOSE", {"epoch": 1}, signer="SYSTEM", nonce=5, system=True)
 
     assert _active_set(a) == _active_set(b) == ["alice"]
@@ -96,19 +126,37 @@ def test_validator_epoch_transition_preserves_set_hash_equivalence_after_activat
     assert _quorum(a) == _quorum(b) == 2
 
 
-def test_validator_epoch_transition_preserves_set_hash_equivalence_after_suspension_then_removal() -> None:
+def test_validator_epoch_transition_preserves_set_hash_equivalence_after_suspension_then_removal() -> (
+    None
+):
     a = _state()
     b = _clone(a)
 
     for st in (a, b):
-        _apply(st, "VALIDATOR_SET_UPDATE", {"active_set": ["alice", "bob", "carol"], "activate_at_epoch": 1}, signer="SYSTEM", nonce=1, system=True, parent="gov:set:1")
+        _apply(
+            st,
+            "VALIDATOR_SET_UPDATE",
+            {"active_set": ["alice", "bob", "carol"], "activate_at_epoch": 1},
+            signer="SYSTEM",
+            nonce=1,
+            system=True,
+            parent="gov:set:1",
+        )
         _apply(st, "EPOCH_OPEN", {"epoch": 1}, signer="SYSTEM", nonce=2, system=True)
 
     assert _active_set(a) == _active_set(b) == ["alice", "bob", "carol"]
     assert _set_hash(a) == _set_hash(b)
 
     for st in (a, b):
-        _apply(st, "VALIDATOR_SUSPEND", {"account": "bob", "effective_epoch": 2, "reason": "liveness_failure"}, signer="SYSTEM", nonce=3, system=True, parent="gov:suspend:bob:2")
+        _apply(
+            st,
+            "VALIDATOR_SUSPEND",
+            {"account": "bob", "effective_epoch": 2, "reason": "liveness_failure"},
+            signer="SYSTEM",
+            nonce=3,
+            system=True,
+            parent="gov:suspend:bob:2",
+        )
         _apply(st, "EPOCH_CLOSE", {"epoch": 1}, signer="SYSTEM", nonce=4, system=True)
         _apply(st, "EPOCH_OPEN", {"epoch": 2}, signer="SYSTEM", nonce=5, system=True)
 
@@ -118,7 +166,15 @@ def test_validator_epoch_transition_preserves_set_hash_equivalence_after_suspens
     assert _quorum(a) == _quorum(b) == 2
 
     for st in (a, b):
-        _apply(st, "VALIDATOR_REMOVE", {"account": "carol", "effective_epoch": 3, "reason": "withdrawn"}, signer="SYSTEM", nonce=6, system=True, parent="gov:remove:carol:3")
+        _apply(
+            st,
+            "VALIDATOR_REMOVE",
+            {"account": "carol", "effective_epoch": 3, "reason": "withdrawn"},
+            signer="SYSTEM",
+            nonce=6,
+            system=True,
+            parent="gov:remove:carol:3",
+        )
         _apply(st, "EPOCH_CLOSE", {"epoch": 2}, signer="SYSTEM", nonce=7, system=True)
         _apply(st, "EPOCH_OPEN", {"epoch": 3}, signer="SYSTEM", nonce=8, system=True)
 

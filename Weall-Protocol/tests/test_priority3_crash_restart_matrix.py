@@ -45,6 +45,7 @@ def test_sqlite_before_commit_failpoint_rolls_back_atomic_block_commit(
     )
     blk, st2, applied_ids, invalid_ids = _build_one_tx_block(ex)
 
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_TEST_FAILPOINTS", "sqlite_write_tx_before_commit")
     meta = ex.commit_block_candidate(
         block=blk,
@@ -92,6 +93,7 @@ def test_block_commit_after_ledger_state_failpoint_rolls_back_epoch_transition(
     st2["roles"].setdefault("validators", {})
     st2["roles"]["validators"]["active_set"] = ["v1", "v2", "v3"]
 
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_TEST_FAILPOINTS", "block_commit_after_ledger_state")
     meta = ex.commit_block_candidate(
         block=blk,
@@ -138,6 +140,7 @@ sub = ex.submit_tx({
 assert sub['ok'] is True
 blk, st2, applied_ids, invalid_ids, err = ex.build_block_candidate(max_txs=1, allow_empty=False)
 assert err == ''
+os.environ['WEALL_MODE'] = 'test'
 os.environ['WEALL_TEST_FAILPOINTS'] = 'sqlite_write_tx_after_commit'
 os.environ['WEALL_TEST_FAILPOINT_ACTION'] = 'exit'
 os.environ['WEALL_TEST_FAILPOINT_MARKER_DIR'] = os.environ['MARKER_DIR']
@@ -199,6 +202,7 @@ ex.bft_set_view(9)
     env["PYTHONPATH"] = str(root / "src")
     env["DB_PATH"] = db_path
     env["TX_INDEX"] = _tx_index_path()
+    env["WEALL_MODE"] = "test"
     env["WEALL_TEST_FAILPOINTS"] = "bft_state_after_persist"
     env["WEALL_TEST_FAILPOINT_ACTION"] = "exit"
     env["WEALL_TEST_FAILPOINT_MARKER_DIR"] = marker_dir

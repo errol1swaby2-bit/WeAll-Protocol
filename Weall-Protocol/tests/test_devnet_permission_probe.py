@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -37,7 +36,13 @@ def test_devnet_permission_probe_scripts_are_syntax_valid() -> None:
     assert proc.returncode == 0, proc.stderr
 
     proc = subprocess.run(
-        [sys.executable, "-S", "-m", "py_compile", str(_script("scripts/devnet_permission_probe.py"))],
+        [
+            sys.executable,
+            "-S",
+            "-m",
+            "py_compile",
+            str(_script("scripts/devnet_permission_probe.py")),
+        ],
         cwd=REPO_ROOT,
         text=True,
         capture_output=True,

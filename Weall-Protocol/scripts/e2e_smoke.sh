@@ -72,7 +72,7 @@ echo "==> Starting API node..."
   export WEALL_NET_ENABLED="${WEALL_NET_ENABLED:-0}"
   export WEALL_BFT_ENABLED="${WEALL_BFT_ENABLED:-0}"
 
-  exec gunicorn weall.api.app:app \
+  exec gunicorn weall.api.asgi:app \
     -k uvicorn.workers.UvicornWorker \
     --bind "127.0.0.1:${PORT}" \
     --workers 1 \

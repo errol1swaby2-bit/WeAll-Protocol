@@ -1,20 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from hashlib import sha256
-import json
-from typing import Any, Dict, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from typing import Any
 
 from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
-from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode, normalize_signature_profile_id
-
-
-
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    default_signature_profile_for_mode,
+    normalize_signature_profile_id,
+)
+from weall.runtime.commitments import value_sha256
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 
 def _normalize_tx_ids(values: Sequence[str] | None) -> tuple[str, ...]:
@@ -37,7 +34,7 @@ class HelperReceipt:
     plan_id: str = ""
     sig_profile: str = PQ_MLDSA_V1
 
-    def signing_payload(self) -> Dict[str, Any]:
+    def signing_payload(self) -> dict[str, Any]:
         return {
             "t": "HELPER_RECEIPT",
             "chain_id": self.chain_id,
@@ -55,10 +52,10 @@ class HelperReceipt:
         }
 
     def receipt_id(self) -> str:
-        return _sha256_hex(self.signing_payload())
+        return value_sha256(self.signing_payload())
 
     def context_fingerprint(self) -> str:
-        return _sha256_hex(
+        return value_sha256(
             {
                 "chain_id": self.chain_id,
                 "height": int(self.height),
@@ -72,7 +69,7 @@ class HelperReceipt:
             }
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         payload = self.signing_payload()
         payload["signature"] = self.signature
         return payload
@@ -80,17 +77,6 @@ class HelperReceipt:
 
 def _signing_material(unsigned: Mapping[str, Any]) -> bytes:
     return _canon_json(dict(unsigned)).encode("utf-8")
-
-
-def _pq_seed_from_helper_material(value: Any) -> str:
-    raw = str(value or "").strip()
-    try:
-        data = bytes.fromhex(raw)
-        if len(data) == 32:
-            return raw.lower()
-    except Exception:
-        pass
-    return sha256(("weall-helper-pq-material:" + raw).encode("utf-8")).hexdigest()
 
 
 def sign_helper_receipt(
@@ -129,13 +115,15 @@ def sign_helper_receipt(
         "sig_profile": profile,
     }
     payload = _signing_material(unsigned)
-    if privkey is None and receipt_secret is not None:
-        privkey = _pq_seed_from_helper_material(receipt_secret)
+    if receipt_secret is not None or allow_legacy_receipt_secret:
+        raise ValueError("helper receipt shared-secret mode has been removed")
     if privkey is None:
         raise ValueError("helper receipt signing requires pq-mldsa-v1 privkey")
     if profile != PQ_MLDSA_V1:
         raise ValueError("unsupported_signature_profile")
-    signature = sign_signature_for_profile(sig_profile=profile, message=payload, privkey=str(privkey), encoding="hex")
+    signature = sign_signature_for_profile(
+        sig_profile=profile, message=payload, privkey=str(privkey), encoding="hex"
+    )
     return HelperReceipt(
         chain_id=str(chain_id),
         height=int(height),
@@ -184,16 +172,23 @@ def verify_helper_receipt(
         return False
     if str(expected_plan_id or "") != str(receipt.plan_id or ""):
         return False
-    if expected_ordered_tx_ids is not None and receipt.ordered_tx_ids != _normalize_tx_ids(expected_ordered_tx_ids):
+    if expected_ordered_tx_ids is not None and receipt.ordered_tx_ids != _normalize_tx_ids(
+        expected_ordered_tx_ids
+    ):
         return False
 
     payload = _signing_material(receipt.signing_payload())
     if helper_pubkey is None:
         return False
-    profile = normalize_signature_profile_id(sig_profile or getattr(receipt, "sig_profile", "")) or PQ_MLDSA_V1
+    profile = (
+        normalize_signature_profile_id(sig_profile or getattr(receipt, "sig_profile", ""))
+        or PQ_MLDSA_V1
+    )
     if profile != PQ_MLDSA_V1:
         return False
-    return verify_signature_for_profile(sig_profile=profile, message=payload, sig=receipt.signature, pubkey=str(helper_pubkey))
+    return verify_signature_for_profile(
+        sig_profile=profile, message=payload, sig=receipt.signature, pubkey=str(helper_pubkey)
+    )
 
 
 __all__ = [

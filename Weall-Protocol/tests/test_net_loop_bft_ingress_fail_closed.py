@@ -55,6 +55,14 @@ class _TimeoutExecutorBoom:
         raise ValueError("timeout executor boom")
 
 
+class _TimeoutExecutorAccepted:
+    def bft_on_timeout(self, timeout):
+        return {}
+
+    def bft_timeout_was_accepted(self, timeout):
+        return True
+
+
 class _ProposalExecutorVote:
     def bft_on_proposal(self, proposal):
         return {
@@ -214,7 +222,8 @@ def test_on_bft_vote_prod_fails_closed_on_qc_broadcast_error(monkeypatch) -> Non
 def test_on_bft_timeout_prod_fails_closed_on_timeout_broadcast_error(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     loop = _mk_loop(_TimeoutExecutorBoom(), fail_broadcast=True)
-    # executor failure fires first; use object without timeout hook to hit broadcast path
-    loop = _mk_loop(object(), fail_broadcast=True)
+    # Executor rejection must not reach transport. Use an explicitly accepted
+    # timeout to exercise the broadcast failure boundary.
+    loop = _mk_loop(_TimeoutExecutorAccepted(), fail_broadcast=True)
     with pytest.raises(BftInboundProcessingError, match="timeout_broadcast_failed"):
         loop._on_bft_timeout("peer-a", _timeout_msg())

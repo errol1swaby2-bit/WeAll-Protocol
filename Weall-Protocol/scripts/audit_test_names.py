@@ -13,8 +13,8 @@ import ast
 import os
 import re
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 BATCH_NAME_RE = re.compile(r"(test_batch[0-9]|_batch[0-9]|batch[0-9][a-z]?)", re.IGNORECASE)
 
@@ -48,8 +48,7 @@ def repo_root() -> Path:
         ["git", "rev-parse", "--show-toplevel"],
         check=True,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     return Path(result.stdout.strip())
 
@@ -59,8 +58,7 @@ def _run_git(args: list[str], cwd: Path) -> list[str]:
         ["git", *args],
         cwd=cwd,
         check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
     raw = result.stdout
     if not raw:
@@ -125,7 +123,10 @@ def reviewer_facing_batch_references(root: Path | None = None) -> list[str]:
     for path in working_tree_files(root):
         if path in APPROVED_REFERENCE_PATHS:
             continue
-        if not any(path == prefix or path.startswith(prefix.rstrip("/") + "/") for prefix in REFERENCE_ROOTS):
+        if not any(
+            path == prefix or path.startswith(prefix.rstrip("/") + "/")
+            for prefix in REFERENCE_ROOTS
+        ):
             continue
 
         full_path = root / path

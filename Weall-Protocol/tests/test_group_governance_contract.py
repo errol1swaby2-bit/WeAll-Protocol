@@ -32,7 +32,11 @@ def _state() -> dict[str, Any]:
         "chain_id": "testnet-group-contract",
         "height": 12,
         "accounts": {
-            "@alice": {"nonce": 1, "poh_tier": 2, "session_keys": {"alice-session": {"active": True}}},
+            "@alice": {
+                "nonce": 1,
+                "poh_tier": 2,
+                "session_keys": {"alice-session": {"active": True}},
+            },
             "@bob": {"nonce": 1, "poh_tier": 2},
         },
         "groups_by_id": {

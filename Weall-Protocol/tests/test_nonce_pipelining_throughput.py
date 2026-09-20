@@ -22,7 +22,9 @@ def _executor(tmp_path: Path, *, chain_id: str = "weall-nonce-pipeline") -> WeAl
     )
 
 
-def _client(tmp_path: Path, monkeypatch, *, chain_id: str = "weall-nonce-pipeline") -> tuple[TestClient, Path]:
+def _client(
+    tmp_path: Path, monkeypatch, *, chain_id: str = "weall-nonce-pipeline"
+) -> tuple[TestClient, Path]:
     queue_path = tmp_path / "observer_tx_queue.json"
     monkeypatch.setenv("WEALL_TX_QUEUE_PATH", str(queue_path))
     app = create_app(boot_runtime=False)
@@ -90,16 +92,21 @@ def test_executor_accepts_contiguous_future_nonce_pending_in_mempool(tmp_path: P
     assert "browser:pipeline:second" in account["devices"]["by_id"]
 
 
-def test_executor_rejects_gapped_future_nonce_without_contiguous_pending_mempool(tmp_path: Path) -> None:
+def test_executor_rejects_gapped_future_nonce_without_contiguous_pending_mempool(
+    tmp_path: Path,
+) -> None:
     ex = _executor(tmp_path)
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@gap",
-            "nonce": 1,
-            "payload": {"pubkey": "k:gap"},
-        }
-    ).get("ok") is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@gap",
+                "nonce": 1,
+                "payload": {"pubkey": "k:gap"},
+            }
+        ).get("ok")
+        is True
+    )
     assert ex.produce_block(max_txs=10, allow_empty=False).ok is True
 
     gap = ex.submit_tx(
@@ -118,14 +125,17 @@ def test_executor_rejects_gapped_future_nonce_without_contiguous_pending_mempool
 def test_account_nonce_status_includes_observer_queue_cursor(tmp_path: Path, monkeypatch) -> None:
     client, queue_path = _client(tmp_path, monkeypatch)
     ex: WeAllExecutor = client.app.state.executor  # type: ignore[attr-defined]
-    assert ex.submit_tx(
-        {
-            "tx_type": "ACCOUNT_REGISTER",
-            "signer": "@queued",
-            "nonce": 1,
-            "payload": {"pubkey": "k:queued"},
-        }
-    ).get("ok") is True
+    assert (
+        ex.submit_tx(
+            {
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@queued",
+                "nonce": 1,
+                "payload": {"pubkey": "k:queued"},
+            }
+        ).get("ok")
+        is True
+    )
     assert ex.produce_block(max_txs=10, allow_empty=False).ok is True
 
     queued_env: dict[str, Any] = {
@@ -167,8 +177,12 @@ def test_account_nonce_status_includes_observer_queue_cursor(tmp_path: Path, mon
     assert body["next_nonce"] == 3
 
 
-def test_frontend_async_verification_pipelines_native_sequence_without_intermediate_nonce_waits() -> None:
-    page = (ROOT.parent / "web" / "src" / "pages" / "AccountVerificationPage.tsx").read_text(encoding="utf-8")
+def test_frontend_async_verification_pipelines_native_sequence_without_intermediate_nonce_waits() -> (
+    None
+):
+    page = (ROOT.parent / "web" / "src" / "pages" / "AccountVerificationPage.tsx").read_text(
+        encoding="utf-8"
+    )
     assert "beginNonceSequence" in page
     assert "submitSignedTxInSequence" in page
     assert "request-open nonce yet. Evidence was not submitted" not in page

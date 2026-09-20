@@ -75,9 +75,9 @@ This rehearsal proves the current local Genesis -> observer -> promoted-validato
 
 ## Batch 620 public-beta evidence boundary
 
-Current release posture remains: controlled multi-node testnet candidate.
+Current release posture remains: pre-public-testnet implementation under active hardening; controlled-testnet mechanism completion is NO-GO.
 Do not claim public beta, mainnet, public validator enablement, live economics,
-production helper execution, public storage-market readiness, or legal/compliance
+production helper execution, completed production cryptographic audit or production post-quantum security, public storage-market readiness, or legal/compliance
 readiness until the external transcript requirements in
 `Weall-Protocol/generated/external_operator_transcript_requirements_v1_5.json`
 and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied.

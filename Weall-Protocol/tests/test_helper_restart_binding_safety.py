@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from helper_audit_testkit import dispatch_context, lane_setup, signed_lane_certificate
+
 from weall.runtime.helper_assembly_gate import HelperAssemblyProfile
 from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.helper_merge_admission import canonical_receipts_root, canonical_state_delta_hash
+from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 from weall.runtime.helper_replay_guard import HelperReplayGuard
 from weall.runtime.helper_restart_replay import build_helper_restart_snapshot
-from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 
 
 def test_helper_restart_snapshot_rejects_conflicting_journal_plan_history(tmp_path) -> None:
@@ -16,7 +17,13 @@ def test_helper_restart_snapshot_rejects_conflicting_journal_plan_history(tmp_pa
     journal = HelperLaneJournal(str(tmp_path / "helper-conflict-history.jsonl"))
     journal.append_plan(
         plan_id="wrong-plan",
-        lanes=[{"lane_id": str(lane_plan.lane_id), "helper_id": str(lane_plan.helper_id or ""), "tx_ids": list(lane_plan.tx_ids)}],
+        lanes=[
+            {
+                "lane_id": str(lane_plan.lane_id),
+                "helper_id": str(lane_plan.helper_id or ""),
+                "tx_ids": list(lane_plan.tx_ids),
+            }
+        ],
     )
 
     snapshot = build_helper_restart_snapshot(
@@ -45,14 +52,15 @@ def test_helper_restart_snapshot_rejects_conflicting_journal_plan_history(tmp_pa
 def test_helper_replay_guard_ignores_unknown_recovered_lanes(tmp_path) -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
     lane_plans, plan_id = lane_setup(txs=txs)
-    lane_plan = next(plan for plan in lane_plans if str(plan.helper_id or ""))
     journal = HelperLaneJournal(str(tmp_path / "helper-unknown-lane.jsonl"))
-    journal.append({
-        "kind": "fallback_finalized",
-        "plan_id": plan_id,
-        "lane_id": "UNKNOWN_LANE",
-        "helper_id": "h-bad",
-    })
+    journal.append(
+        {
+            "kind": "fallback_finalized",
+            "plan_id": plan_id,
+            "lane_id": "UNKNOWN_LANE",
+            "helper_id": "h-bad",
+        }
+    )
 
     orchestrator = HelperProposalOrchestrator(
         context=dispatch_context(plan_id=plan_id),

@@ -68,6 +68,26 @@ class ReputationApplyError(RuntimeError):
 # ---------------------------------------------------------------------------
 
 
+def _require_dict_invariant(value: Any, *, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ReputationApplyError(
+            "invalid_state",
+            "state_invariant_violation",
+            {"field": field, "expected": "dict", "actual": type(value).__name__},
+        )
+    return value
+
+
+def _require_list_invariant(value: Any, *, field: str) -> list[Any]:
+    if not isinstance(value, list):
+        raise ReputationApplyError(
+            "invalid_state",
+            "state_invariant_violation",
+            {"field": field, "expected": "list", "actual": type(value).__name__},
+        )
+    return value
+
+
 def _as_dict(x: Any) -> Json:
     return x if isinstance(x, dict) else {}
 
@@ -212,7 +232,7 @@ def _apply_rep_delta_and_autoban(
 
         rep = _ensure_reputation(state)
         bans = rep.get("bans")
-        assert isinstance(bans, dict)
+        bans = _require_dict_invariant(bans, field="bans")
 
         prior = bans.get(account_id)
         if not (
@@ -258,7 +278,7 @@ def apply_reputation_delta_system(
     """
     rep = _ensure_reputation(state)
     deltas = rep.get("deltas")
-    assert isinstance(deltas, list)
+    deltas = _require_list_invariant(deltas, field="deltas")
 
     # Deterministic delta_id from evidence fields if provided
     delta_id = _as_str(evidence.get("delta_id") or evidence.get("id") or "").strip()
@@ -307,16 +327,25 @@ def apply_reputation_delta_system(
         payload=evidence,
         ban_audit_nonce=int(at_nonce),
     )
-    event_code = _as_str(evidence.get("event_code") or "").strip().upper() or event_code_for_reason(_as_str(reason), default="SAFETY_CONFIRMED_MODERATION_ACTION")
+    event_code = _as_str(evidence.get("event_code") or "").strip().upper() or event_code_for_reason(
+        _as_str(reason), default="SAFETY_CONFIRMED_MODERATION_ACTION"
+    )
     rep_event = append_reputation_event(
         state,
         actor_id=account_id,
         event_code=event_code,
         source_flow=_as_str(evidence.get("source") or "reputation_delta") or "reputation_delta",
         source_tx_id=delta_id,
-        source_object_id=_as_str(evidence.get("source_object_id") or evidence.get("slash_id") or evidence.get("parent") or delta_id),
+        source_object_id=_as_str(
+            evidence.get("source_object_id")
+            or evidence.get("slash_id")
+            or evidence.get("parent")
+            or delta_id
+        ),
         delta=int(delta_units),
-        occurred_at_block=_as_int(evidence.get("height"), _as_int(state.get("height"), int(at_nonce))),
+        occurred_at_block=_as_int(
+            evidence.get("height"), _as_int(state.get("height"), int(at_nonce))
+        ),
         occurred_at_time=_as_int(evidence.get("time"), _as_int(state.get("height"), int(at_nonce))),
         details={"reason": _as_str(reason).strip(), "legacy_delta_id": delta_id},
     )
@@ -330,6 +359,7 @@ def apply_reputation_delta_system(
         "deduped": False,
         "reputation_event_id": rep_event.get("event_id"),
     }
+
 
 def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -386,17 +416,28 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
         payload=payload,
         ban_audit_nonce=int(env.nonce),
     )
-    event_code = _as_str(payload.get("event_code") or "").strip().upper() or event_code_for_reason(reason, default="SAFETY_CONFIRMED_MODERATION_ACTION")
+    event_code = _as_str(payload.get("event_code") or "").strip().upper() or event_code_for_reason(
+        reason, default="SAFETY_CONFIRMED_MODERATION_ACTION"
+    )
     rep_event = append_reputation_event(
         state,
         actor_id=account_id,
         event_code=event_code,
-        source_flow=_as_str(payload.get("source_flow") or payload.get("source") or "reputation_delta") or "reputation_delta",
+        source_flow=_as_str(
+            payload.get("source_flow") or payload.get("source") or "reputation_delta"
+        )
+        or "reputation_delta",
         source_tx_id=delta_id,
-        source_object_id=_as_str(payload.get("source_object_id") or payload.get("target_id") or delta_id),
+        source_object_id=_as_str(
+            payload.get("source_object_id") or payload.get("target_id") or delta_id
+        ),
         delta=int(delta_units),
-        occurred_at_block=_as_int(payload.get("occurred_at_block"), _as_int(state.get("height"), int(env.nonce))),
-        occurred_at_time=_as_int(payload.get("occurred_at_time"), _as_int(state.get("height"), int(env.nonce))),
+        occurred_at_block=_as_int(
+            payload.get("occurred_at_block"), _as_int(state.get("height"), int(env.nonce))
+        ),
+        occurred_at_time=_as_int(
+            payload.get("occurred_at_time"), _as_int(state.get("height"), int(env.nonce))
+        ),
         expires_at_optional=payload.get("expires_at_optional"),
         reversal_of_optional=_as_str(payload.get("reversal_of_optional")),
         details={"reason": reason, "legacy_delta_id": delta_id},
@@ -412,6 +453,7 @@ def _apply_reputation_delta_apply(state: Json, env: TxEnvelope) -> Json:
         "newly_banned": bool(newly_banned),
         "reputation_event_id": rep_event.get("event_id"),
     }
+
 
 def _apply_reputation_threshold_cross(state: Json, env: TxEnvelope) -> Json:
     _require_system_env(env)
@@ -469,7 +511,7 @@ def _apply_role_eligibility_set(state: Json, env: TxEnvelope) -> Json:
         raise ReputationApplyError("invalid_payload", "missing_role", {"tx_type": env.tx_type})
 
     elig = rep["role_eligibility"]
-    assert isinstance(elig, dict)
+    elig = _require_dict_invariant(elig, field="elig")
     rec = elig.get(account_id)
     if not isinstance(rec, dict):
         rec = {"roles": {}, "updated_at_nonce": 0}
@@ -510,7 +552,7 @@ def _apply_role_eligibility_revoke(state: Json, env: TxEnvelope) -> Json:
         raise ReputationApplyError("invalid_payload", "missing_role", {"tx_type": env.tx_type})
 
     elig = rep["role_eligibility"]
-    assert isinstance(elig, dict)
+    elig = _require_dict_invariant(elig, field="elig")
     rec = elig.get(account_id)
     if not isinstance(rec, dict):
         rec = {"roles": {}, "updated_at_nonce": 0}
@@ -550,7 +592,7 @@ def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
     reason = _as_str(payload.get("reason")).strip()
 
     bans = rep["bans"]
-    assert isinstance(bans, dict)
+    bans = _require_dict_invariant(bans, field="bans")
     prior = bans.get(account_id)
     already = (
         isinstance(prior, dict)
@@ -585,7 +627,7 @@ def _apply_account_reinstate(state: Json, env: TxEnvelope) -> Json:
         )
 
     bans = rep["bans"]
-    assert isinstance(bans, dict)
+    bans = _require_dict_invariant(bans, field="bans")
     prior = bans.get(account_id)
     already = (
         isinstance(prior, dict)

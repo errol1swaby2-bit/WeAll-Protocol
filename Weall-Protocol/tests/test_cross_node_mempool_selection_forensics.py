@@ -121,17 +121,24 @@ def test_cross_node_mempool_selection_marker_converges_after_remote_apply_and_re
 
     leader_consensus = leader_client.get("/v1/status/consensus").json()
     follower_consensus = follower_client.get("/v1/status/consensus").json()
-    assert leader_consensus["mempool_selection_last"] == follower_consensus["mempool_selection_last"]
+    assert (
+        leader_consensus["mempool_selection_last"] == follower_consensus["mempool_selection_last"]
+    )
     assert leader_consensus["mempool_selection_last"]["policy"] == "canonical"
     assert leader_consensus["mempool_selection_last"]["selected_count"] == 2
 
     leader_forensics = leader_client.get("/v1/status/consensus/forensics").json()
     follower_forensics = follower_client.get("/v1/status/consensus/forensics").json()
-    assert leader_forensics["mempool_selection_last"] == follower_forensics["mempool_selection_last"]
+    assert (
+        leader_forensics["mempool_selection_last"] == follower_forensics["mempool_selection_last"]
+    )
 
     leader_operator = leader_client.get("/v1/status/operator").json()
     follower_operator = follower_client.get("/v1/status/operator").json()
-    assert leader_operator["operator"]["mempool_selection_last"] == follower_operator["operator"]["mempool_selection_last"]
+    assert (
+        leader_operator["operator"]["mempool_selection_last"]
+        == follower_operator["operator"]["mempool_selection_last"]
+    )
 
     follower_restarted = _mk_executor(tmp_path, "follower", chain_id)
     restarted_client = _status_client(follower_restarted)
@@ -139,6 +146,13 @@ def test_cross_node_mempool_selection_marker_converges_after_remote_apply_and_re
     restarted_forensics = restarted_client.get("/v1/status/consensus/forensics").json()
     restarted_operator = restarted_client.get("/v1/status/operator").json()
 
-    assert restarted_consensus["mempool_selection_last"] == leader_consensus["mempool_selection_last"]
-    assert restarted_forensics["mempool_selection_last"] == leader_forensics["mempool_selection_last"]
-    assert restarted_operator["operator"]["mempool_selection_last"] == leader_operator["operator"]["mempool_selection_last"]
+    assert (
+        restarted_consensus["mempool_selection_last"] == leader_consensus["mempool_selection_last"]
+    )
+    assert (
+        restarted_forensics["mempool_selection_last"] == leader_forensics["mempool_selection_last"]
+    )
+    assert (
+        restarted_operator["operator"]["mempool_selection_last"]
+        == leader_operator["operator"]["mempool_selection_last"]
+    )

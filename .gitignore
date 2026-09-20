@@ -2,6 +2,7 @@
 # Virtual Environments
 # =========================
 .venv/
+.venv-*/
 venv/
 env/
 
@@ -65,6 +66,14 @@ dist/
 release/
 pip-wheel-metadata/
 *.whl
+
+# Ad-hoc evidence/archive/patch bundles belong outside the repository.
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.patch
+*.diff
 
 # =========================
 # Environment / Secrets
@@ -142,6 +151,8 @@ Weall-Protocol/.weall-devnet/
 artifacts/*
 !artifacts/m3-closure/
 !artifacts/m3-closure/**
+!artifacts/m1-m3-integrated/
+!artifacts/m1-m3-integrated/**
 
 # WeAll local media/cache artifacts generated during rehearsals
 Weall-Protocol/.weall-media-cache/

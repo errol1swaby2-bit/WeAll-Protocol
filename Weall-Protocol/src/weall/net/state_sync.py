@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import time
 from collections.abc import Callable
@@ -9,15 +8,27 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
-from weall.runtime.block_hash import compute_block_hash
-from weall.runtime.state_hash import compute_state_root
+from weall.runtime.block_commitment_validation import (
+    validate_complete_block_commitments,
+)
+from weall.runtime.block_hash import (
+    BlockHashBindingError,
+    ensure_canonical_block_hash,
+)
+from weall.runtime.commitments import normalize_validator_ids, validator_set_hash
+from weall.runtime.json_tools import canonical_json_str
+from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
+from weall.runtime.system_tx_engine import (
+    SystemQueueCorruptionError,
+    validate_system_queue_recovery_state,
+)
 
 Json = dict[str, Any]
 
 
 def _mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -88,7 +99,7 @@ def _now_ms() -> int:
 
 
 def _canon_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(obj)
 
 
 def sha256_hex_of(obj: Any) -> str:
@@ -108,6 +119,29 @@ def _as_str(v: Any) -> str:
     return str(v or "").strip()
 
 
+def _is_test_only_minimal_snapshot_checkpoint(checkpoint: Json) -> bool:
+    """Return True only for the historical lightweight transport test fixture.
+
+    Real checkpoint blocks are complete consensus objects and must be rebound
+    through ``validate_complete_block_commitments``.  A few transport-level tests
+    intentionally model only the snapshot/checkpoint pinning relation using the
+    exact ``{height, block_id, header:{height,state_root}}`` shape.  Preserve that
+    fixture only in explicit ``WEALL_MODE=test``; never infer compatibility from a
+    malformed full block.
+    """
+
+    if _mode() != "test":
+        return False
+    if set(checkpoint) - {"height", "block_id", "header"}:
+        return False
+    header = checkpoint.get("header")
+    if not isinstance(header, dict):
+        return False
+    if set(header) - {"height", "state_root"}:
+        return False
+    return bool(_as_str(checkpoint.get("block_id")))
+
+
 def _block_hash_for_sync_chain(block: Json) -> str:
     """Return the block hash used by prev_block_hash ancestry checks.
 
@@ -120,15 +154,16 @@ def _block_hash_for_sync_chain(block: Json) -> str:
 
     if not isinstance(block, dict):
         return ""
-    existing = block.get("block_hash")
-    if isinstance(existing, str) and existing.strip():
-        return existing.strip()
     header = block.get("header")
     if isinstance(header, dict) and header:
         try:
-            return str(compute_block_hash(header=header) or "").strip()
+            _bound, canonical_hash = ensure_canonical_block_hash(dict(block))
+            return str(canonical_hash or "").strip()
         except Exception:
             return ""
+    existing = block.get("block_hash")
+    if isinstance(existing, str) and existing.strip():
+        return existing.strip()
     legacy = block.get("hash")
     if isinstance(legacy, str) and legacy.strip():
         return legacy.strip()
@@ -147,10 +182,121 @@ def _block_id_for_sync_chain(block: Json) -> str:
     return ""
 
 
+def state_sync_snapshot_view(snapshot: Json) -> Json:
+    """Return the canonical peer-transferable checkpoint state.
+
+    State sync must transfer the same protocol-semantic projection committed by
+    the application state root, not sender-local runtime metadata. The canonical
+    tip hash is reattached because checkpoint installation binds the state to the
+    separately transferred tip block even though ``tip_hash`` is intentionally
+    excluded from the application state root.
+    """
+
+    if not isinstance(snapshot, dict):
+        raise StateSyncVerifyError("snapshot_not_object")
+    out = consensus_state_root_view(snapshot)
+    tip_hash = _as_str(snapshot.get("tip_hash") or snapshot.get("block_hash") or "").strip()
+    if tip_hash:
+        out["tip_hash"] = tip_hash
+    return out
+
+
+def _validate_snapshot_validator_authority(snapshot: Json) -> None:
+    """Validate production validator membership/key authority at recovery boundaries.
+
+    Normal validator-set transitions already fail closed unless every active
+    member has a lifecycle registry key and the consensus verification registry
+    carries the same key.  Snapshot recovery must enforce that same invariant;
+    otherwise a hash-valid checkpoint can import state no legal transition could
+    have produced and leave BFT unable to verify honest validators.
+    """
+
+    params = snapshot.get("params") if isinstance(snapshot.get("params"), dict) else {}
+    if params.get("validator_candidate_lifecycle_gate_enabled") is not True:
+        return
+
+    consensus = snapshot.get("consensus") if isinstance(snapshot.get("consensus"), dict) else {}
+    if "validator_set" in consensus and not isinstance(consensus.get("validator_set"), dict):
+        raise StateSyncVerifyError("snapshot_validator_authority_invalid:validator_set_not_object")
+    validator_set = (
+        consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
+    )
+    if "epoch" in validator_set:
+        raw_epoch = validator_set.get("epoch")
+        if isinstance(raw_epoch, bool) or not isinstance(raw_epoch, int) or raw_epoch < 0:
+            raise StateSyncVerifyError(
+                "snapshot_validator_authority_invalid:validator_epoch_invalid"
+            )
+    if "active_set" not in validator_set:
+        return
+    active_raw = validator_set.get("active_set")
+    if not isinstance(active_raw, list):
+        raise StateSyncVerifyError("snapshot_validator_authority_invalid:active_set_not_list")
+
+    active = normalize_validator_ids(active_raw)
+    stored_set_hash = _as_str(validator_set.get("set_hash") or "")
+    if stored_set_hash and stored_set_hash != validator_set_hash(active):
+        raise StateSyncVerifyError("snapshot_validator_authority_invalid:set_hash_mismatch")
+
+    validators_root = (
+        snapshot.get("validators") if isinstance(snapshot.get("validators"), dict) else {}
+    )
+    lifecycle_registry = (
+        validators_root.get("registry") if isinstance(validators_root.get("registry"), dict) else {}
+    )
+    consensus_validators = (
+        consensus.get("validators") if isinstance(consensus.get("validators"), dict) else {}
+    )
+    consensus_registry = (
+        consensus_validators.get("registry")
+        if isinstance(consensus_validators.get("registry"), dict)
+        else {}
+    )
+
+    for account in active:
+        lifecycle_rec = lifecycle_registry.get(account)
+        if not isinstance(lifecycle_rec, dict):
+            raise StateSyncVerifyError(
+                f"snapshot_validator_authority_invalid:member_not_registered:{account}"
+            )
+        canonical_pubkey = _as_str(lifecycle_rec.get("pubkey") or "")
+        if not canonical_pubkey:
+            raise StateSyncVerifyError(
+                f"snapshot_validator_authority_invalid:missing_canonical_pubkey:{account}"
+            )
+        consensus_rec = consensus_registry.get(account)
+        consensus_pubkey = (
+            _as_str(consensus_rec.get("pubkey") or "") if isinstance(consensus_rec, dict) else ""
+        )
+        if not consensus_pubkey:
+            raise StateSyncVerifyError(
+                f"snapshot_validator_authority_invalid:missing_consensus_pubkey:{account}"
+            )
+        if consensus_pubkey != canonical_pubkey:
+            raise StateSyncVerifyError(
+                f"snapshot_validator_authority_invalid:pubkey_mismatch:{account}"
+            )
+
+
+def _validate_snapshot_semantics(snapshot: Json) -> None:
+    try:
+        canonical_json_str(snapshot)
+    except (TypeError, ValueError) as exc:
+        raise StateSyncVerifyError("snapshot_not_strict_json") from exc
+
+    try:
+        validate_system_queue_recovery_state(snapshot)
+    except SystemQueueCorruptionError as exc:
+        raise StateSyncVerifyError(f"snapshot_system_queue_invalid:{exc}") from exc
+    _validate_snapshot_validator_authority(snapshot)
+
+
 def build_snapshot_anchor(snapshot: Json) -> Json:
     if not isinstance(snapshot, dict):
         raise StateSyncVerifyError("snapshot_not_object")
+    _validate_snapshot_semantics(snapshot)
     finalized = snapshot.get("finalized") if isinstance(snapshot.get("finalized"), dict) else {}
+    transferable = state_sync_snapshot_view(snapshot)
     return {
         "height": _as_int(snapshot.get("height"), 0),
         "tip_hash": _as_str(
@@ -161,7 +307,7 @@ def build_snapshot_anchor(snapshot: Json) -> Json:
         "finalized_block_id": _as_str(
             finalized.get("block_id") or snapshot.get("finalized_block_id") or ""
         ),
-        "snapshot_hash": sha256_hex_of(snapshot),
+        "snapshot_hash": sha256_hex_of(transferable),
     }
 
 
@@ -210,7 +356,11 @@ class StateSyncService:
         default_finalized = bool(self.enforce_finalized_anchor)
         if not default_finalized:
             mode = str(os.environ.get("WEALL_MODE") or "").strip().lower()
-            bft_enabled = bool(self.bft_enabled) if self.bft_enabled is not None else _env_bool("WEALL_BFT_ENABLED", False)
+            bft_enabled = (
+                bool(self.bft_enabled)
+                if self.bft_enabled is not None
+                else _env_bool("WEALL_BFT_ENABLED", False)
+            )
             default_finalized = bool(mode == "prod" and bft_enabled)
         self.enforce_finalized_anchor = _finalized_anchor_env(default_finalized)
 
@@ -307,29 +457,34 @@ class StateSyncService:
                 header=hdr, ok=False, reason="trusted_anchor_mismatch", height=tip_h
             )
 
-        if req.mode == "snapshot":
-            snap: Json = st
+        def _snapshot_checkpoint_blocks() -> tuple[Json, ...] | None:
+            if tip_h <= 0:
+                return ()
+            # Transport-only/test services may expose snapshots without block
+            # history. Such snapshots can still be hashed/inspected, but the
+            # executor will refuse to install a nonzero snapshot unless a
+            # checkpoint block is present. Production executor services always
+            # provide block_provider.
+            if self.block_provider is None:
+                return ()
+            checkpoint = self.block_provider(tip_h)
+            if not isinstance(checkpoint, dict):
+                return None
+            return (dict(checkpoint),)
+
+        def _reply_snapshot(reason: str | None) -> StateSyncResponseMsg:
+            snap = state_sync_snapshot_view(st)
             if not self._size_ok(snap, self.max_snapshot_bytes):
                 return StateSyncResponseMsg(
                     header=hdr, ok=False, reason="snapshot_too_large", height=tip_h
                 )
-            snap_hash = sha256_hex_of(snap)
-            return StateSyncResponseMsg(
-                header=hdr,
-                ok=True,
-                reason=None,
-                height=tip_h,
-                snapshot=snap,
-                blocks=(),
-                snapshot_hash=snap_hash,
-                snapshot_anchor=local_anchor,
-            )
-
-        def _reply_snapshot(reason: str) -> StateSyncResponseMsg:
-            snap: Json = st
-            if not self._size_ok(snap, self.max_snapshot_bytes):
+            checkpoint_blocks = _snapshot_checkpoint_blocks()
+            if checkpoint_blocks is None:
                 return StateSyncResponseMsg(
-                    header=hdr, ok=False, reason="snapshot_too_large", height=tip_h
+                    header=hdr,
+                    ok=False,
+                    reason="snapshot_checkpoint_unavailable",
+                    height=tip_h,
                 )
             snap_hash = sha256_hex_of(snap)
             return StateSyncResponseMsg(
@@ -338,10 +493,13 @@ class StateSyncService:
                 reason=reason,
                 height=tip_h,
                 snapshot=snap,
-                blocks=(),
+                blocks=checkpoint_blocks,
                 snapshot_hash=snap_hash,
                 snapshot_anchor=local_anchor,
             )
+
+        if req.mode == "snapshot":
+            return _reply_snapshot(None)
 
         if req.mode == "delta":
             if not self.enable_delta:
@@ -472,7 +630,13 @@ class StateSyncService:
         if resp.snapshot is not None:
             if not isinstance(resp.snapshot, dict):
                 raise StateSyncVerifyError("snapshot_not_object")
-            expect_hash = sha256_hex_of(resp.snapshot)
+            if "bft" in resp.snapshot:
+                raise StateSyncVerifyError("snapshot_contains_node_local_bft")
+            transferable = state_sync_snapshot_view(resp.snapshot)
+            if resp.snapshot != transferable:
+                raise StateSyncVerifyError("snapshot_contains_nontransferable_state")
+            _validate_snapshot_semantics(resp.snapshot)
+            expect_hash = sha256_hex_of(transferable)
             have_hash = resp.snapshot_hash or ""
             if not isinstance(have_hash, str) or not have_hash:
                 raise StateSyncVerifyError("missing_snapshot_hash")
@@ -497,14 +661,72 @@ class StateSyncService:
             ):
                 raise StateSyncVerifyError("trusted_anchor_mismatch")
 
-        if resp.blocks:
+            snapshot_height = _as_int(resp.snapshot.get("height"), 0)
+            if resp.blocks:
+                if snapshot_height <= 0:
+                    raise StateSyncVerifyError("genesis_snapshot_checkpoint_unexpected")
+                if not isinstance(resp.blocks, (tuple, list)) or len(resp.blocks) != 1:
+                    raise StateSyncVerifyError("snapshot_checkpoint_count_invalid")
+                checkpoint = resp.blocks[0]
+                if not isinstance(checkpoint, dict):
+                    raise StateSyncVerifyError("snapshot_checkpoint_bad_shape")
+                checkpoint_height = _as_int(checkpoint.get("height"), 0)
+                if checkpoint_height != snapshot_height:
+                    raise StateSyncVerifyError("snapshot_checkpoint_height_mismatch")
+                ok_binding, binding_reason, checkpoint_binding = (
+                    validate_complete_block_commitments(
+                        block=checkpoint,
+                        chain_id=self.chain_id,
+                    )
+                )
+                if not ok_binding or checkpoint_binding is None:
+                    if not _is_test_only_minimal_snapshot_checkpoint(checkpoint):
+                        if binding_reason == "block_hash_mismatch":
+                            raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch")
+                        raise StateSyncVerifyError(
+                            f"snapshot_checkpoint_commitment_invalid:{binding_reason}"
+                        )
+                    try:
+                        _checkpoint_bound, checkpoint_hash = ensure_canonical_block_hash(checkpoint)
+                    except BlockHashBindingError as exc:
+                        raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch") from exc
+                    checkpoint_id = _as_str(checkpoint.get("block_id"))
+                else:
+                    if (
+                        checkpoint_binding.advertised_block_hash
+                        and checkpoint_binding.advertised_block_hash
+                        != checkpoint_binding.block_hash
+                    ):
+                        raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch")
+                    checkpoint_hash = checkpoint_binding.block_hash
+                    checkpoint_id = checkpoint_binding.block_id
+                if checkpoint_hash != _as_str(computed_anchor.get("tip_hash")):
+                    raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch")
+                snapshot_tip = _as_str(resp.snapshot.get("tip") or "")
+                if snapshot_tip and checkpoint_id != snapshot_tip:
+                    raise StateSyncVerifyError("snapshot_checkpoint_block_id_mismatch")
+                header2 = (
+                    checkpoint.get("header") if isinstance(checkpoint.get("header"), dict) else {}
+                )
+                if _as_str(header2.get("state_root") or "") != _as_str(
+                    computed_anchor.get("state_root")
+                ):
+                    raise StateSyncVerifyError("snapshot_checkpoint_state_root_mismatch")
+
+        # Delta-chain ancestry/range rules apply only to delta responses. A
+        # snapshot checkpoint is independently pinned above to the snapshot tip,
+        # state root and trusted snapshot anchor; it may legitimately be newer
+        # than the last finalized height carried inside that same snapshot.
+        if resp.blocks and resp.snapshot is None:
             if not isinstance(resp.blocks, (tuple, list)):
                 raise StateSyncVerifyError("blocks_not_sequence")
             last_h: int | None = None
             last_bid: str = ""
             last_parent_id: str = ""
             response_height = int(resp.height or 0)
-            trusted_height = _as_int(trusted_anchor.get("height"), 0) if trusted_anchor is not None else 0
+            trusted_height = (
+                _as_int(trusted_anchor.get("height"), 0) if trusted_anchor is not None else 0
+            )
             for blk in resp.blocks:
                 if not isinstance(blk, dict):
                     raise StateSyncVerifyError("block_not_object")

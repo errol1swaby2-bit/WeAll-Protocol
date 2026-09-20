@@ -8,7 +8,6 @@ from weall.runtime.helper_preflight_gate import ProductionPreflightDecision
 from weall.runtime.helper_release_gate import HelperReleaseGateReport
 from weall.runtime.helper_startup_integration import HelperStartupStatus
 
-
 Json = dict[str, Any]
 
 
@@ -26,7 +25,9 @@ class HelperReadinessReport:
             "preflight": dict(self.preflight),
             "startup": dict(self.startup),
             "operator": dict(self.operator),
-            "release_gate": dict(self.release_gate) if isinstance(self.release_gate, dict) else None,
+            "release_gate": dict(self.release_gate)
+            if isinstance(self.release_gate, dict)
+            else None,
             "overall_status": self.overall_status,
             "overall_summary": self.overall_summary,
         }

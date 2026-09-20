@@ -985,8 +985,9 @@
     "public_storage_provider_market": false,
     "public_validator_readiness": false
   },
-  "controlled_testnet_mechanisms_complete": true,
-  "controlled_testnet_ready_candidate": true,
+  "component_harnesses_ok": true,
+  "controlled_testnet_mechanisms_complete": false,
+  "controlled_testnet_ready_candidate": false,
   "external_multimachine_validator_harness": {
     "batch": "590",
     "equivocation_rejected": true,
@@ -1023,38 +1024,32 @@
   ],
   "helper_block_path_adversarial": {
     "batch": "593",
-    "block_candidate": {
-      "height": 10,
-      "helper_root": "a0b6a11d4bd28d0dbfbcc5c51cfc42258a2d2a9d45b3b618dd8eb5f93a4df92b",
-      "receipts_root": "b31209a3b9ac0974adc6db3e79692e5a1312975e1fba071ad4fe054601412b7c",
-      "serial_root": "a0b6a11d4bd28d0dbfbcc5c51cfc42258a2d2a9d45b3b618dd8eb5f93a4df92b",
-      "tx_ids": [
-        "tx1",
-        "tx2",
-        "tx3",
-        "tx4"
-      ]
-    },
     "byzantine_helper_output_rejected": true,
-    "deterministic_merge_preserves_tx_order": true,
-    "helper_lane_count": 4,
-    "helper_root": "a0b6a11d4bd28d0dbfbcc5c51cfc42258a2d2a9d45b3b618dd8eb5f93a4df92b",
-    "mechanism": "helper_block_path_adversarial_rehearsal_without_activation",
-    "missing_helper_fallback_to_serial": true,
+    "byzantine_rejection_code": "lane_delta_hash_mismatch",
+    "mechanism": "helper_materialized_result_production_verifier_boundary_without_activation",
+    "mechanism_complete": false,
+    "missing_helper_fallback_to_serial_proven": false,
     "ok": true,
+    "production_block_path_state_root_equivalence_proven": false,
     "production_helper_execution_enabled": false,
+    "production_path_verifier_executed": true,
     "public_helper_execution_claimed": false,
-    "restart_replay_root_equal": true,
-    "serial_equivalence_ok": true,
-    "serial_root": "a0b6a11d4bd28d0dbfbcc5c51cfc42258a2d2a9d45b3b618dd8eb5f93a4df92b",
-    "tx_count": 4
+    "remaining_required_proof": "independently execute serial and helper-materialized production block paths from the same canonical input state, compare exact post-state roots, and repeat through restart/replay before helper activation",
+    "restart_replay_root_equal_proven": false,
+    "state_root_equivalence_proven": false,
+    "tampered_delta_not_applied": true,
+    "tampered_lane_serialized": true,
+    "valid_materialized_result_accepted": true
   },
+  "helper_state_root_proof_complete": false,
+  "high_risk_capability_wiring_ok": true,
   "launch_matrix_capability_wiring": {
     "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": [
-      "b587_b594_mechanism_completion",
       "public_beta_blocker_report"
     ],
-    "artifact_blockers": [],
+    "artifact_blockers": [
+      "b587_b594_mechanism_completion"
+    ],
     "blocked_capabilities": [
       "live_transfers",
       "live_rewards",
@@ -1131,8 +1126,10 @@
         "truth_boundary": "Launch matrix is a conservative guardrail; runtime apply/admission code remains authoritative."
       }
     },
-    "controlled_mechanism_artifact_blockers": [],
-    "controlled_testnet_mechanisms_complete": true,
+    "controlled_mechanism_artifact_blockers": [
+      "b587_b594_mechanism_completion"
+    ],
+    "controlled_testnet_mechanisms_complete": false,
     "dispute_lifecycle": {
       "deterministic_receipt_txs": [
         "DISPUTE_JUROR_TIMEOUT",
@@ -1279,21 +1276,11 @@
       "truth_boundary": "Upgrade records are public deterministic metadata. They require governance parent/system-queue provenance and do not fetch artifacts, restart nodes, execute migrations, or activate economics."
     },
     "public_beta_blocker_report": {
-      "blocker_catalog_count": 15,
-      "blocker_count": 15,
-      "closed_in_repository_count": 7,
+      "advisory_to_mechanism_completion": true,
       "mainnet_ready": false,
-      "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
       "ok": true,
-      "p0_open_count": 4,
-      "p1_open_count": 4,
-      "p2_open_count": 0,
-      "p3_open_count": 0,
       "present": true,
-      "public_beta_ready": false,
-      "remaining_blocker_count": 8,
-      "remaining_external_evidence_required_count": 8,
-      "remaining_mainnet_hardening_count": 4
+      "public_beta_ready": false
     },
     "public_beta_ready_claimed": false,
     "required_artifacts": {
@@ -1316,7 +1303,7 @@
         "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
       },
       "b587_b594_mechanism_completion": {
-        "ok": true,
+        "ok": false,
         "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
         "present": true,
         "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
@@ -1443,7 +1430,7 @@
     ],
     "wrong_cid_rejected": true
   },
-  "ok": true,
+  "ok": false,
   "protocol_upgrade_signed_staging": {
     "auto_apply_rejected": true,
     "automatic_protocol_upgrade_enabled": false,

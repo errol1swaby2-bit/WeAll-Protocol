@@ -59,14 +59,15 @@ def test_load_api_config_prod_rejects_empty_explicit_registry_path(
         api_config.load_api_config()
 
 
-def test_block_loop_config_prod_rejects_invalid_integer_env(
+def test_block_loop_config_prod_ignores_legacy_interval_env_when_constitutional_clock_is_pinned(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_BLOCK_INTERVAL_MS", "nope")
 
-    with pytest.raises(ValueError, match="invalid_integer_env:WEALL_BLOCK_INTERVAL_MS"):
-        block_loop_config_from_env()
+    cfg = block_loop_config_from_env()
+    assert cfg.interval_ms == 20_000
+    assert cfg.produce_empty_blocks is True
 
 
 def test_block_loop_config_dev_defaults_invalid_integer_env(

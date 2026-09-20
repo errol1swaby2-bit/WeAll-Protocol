@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
-import json
-from typing import Any
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from typing import Any, Protocol
 
+from weall.runtime.commitments import value_sha256
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
     verify_helper_certificate_signature,
@@ -21,18 +19,13 @@ from weall.runtime.validator_execution_model import verify_validator_execution_m
 Json = dict[str, Any]
 
 
-
-def _sha256_hex(value: Any) -> str:
-    if not isinstance(value, str):
-        value = _canon_json(value)
-    return sha256(value.encode("utf-8")).hexdigest()
-
-
 def certificate_fingerprint(cert: HelperExecutionCertificate) -> str:
-    return _sha256_hex(cert.to_json())
+    return value_sha256(cert.to_json())
 
 
-def _certificate_matches_context(cert: HelperExecutionCertificate, context: HelperDispatchContext) -> bool:
+def _certificate_matches_context(
+    cert: HelperExecutionCertificate, context: HelperDispatchContext
+) -> bool:
     return (
         str(cert.chain_id or "") == str(context.chain_id or "")
         and int(cert.block_height) == int(context.block_height)
@@ -80,6 +73,12 @@ class HelperBudgetDecision:
     lane_id: str
 
 
+class _HelperRateBudgetLike(Protocol):
+    per_helper_per_window: int
+    per_plan_total: int
+    window_ms: int
+
+
 class _DefaultBudget:
     def __init__(self) -> None:
         self.per_helper_per_window = 64
@@ -97,18 +96,26 @@ class HelperCertificateStore:
         journal: HelperLaneJournal | None = None,
         helper_timeout_ms: int | None = None,
         max_inflight_lanes: int | None = None,
-        budget: HelperRateBudget | None = None,
+        budget: _HelperRateBudgetLike | None = None,
         plan_timeout_ms: int | None = None,
     ) -> None:
         self.context = context
         self.lane_plans = {plan.lane_id: plan for plan in lane_plans}
         self.helper_pubkeys = {str(k): str(v) for k, v in dict(helper_pubkeys or {}).items()}
         self.journal = journal
-        self.helper_timeout_ms = int(helper_timeout_ms if helper_timeout_ms is not None else (plan_timeout_ms if plan_timeout_ms is not None else 5000))
-        self.max_inflight_lanes = max(1, int(max_inflight_lanes or max(len(tuple(lane_plans or ())), 1)))
+        self.helper_timeout_ms = int(
+            helper_timeout_ms
+            if helper_timeout_ms is not None
+            else (plan_timeout_ms if plan_timeout_ms is not None else 5000)
+        )
+        self.max_inflight_lanes = max(
+            1, int(max_inflight_lanes or max(len(tuple(lane_plans or ())), 1))
+        )
         self.current_plan_id = ""
         if context is not None:
-            self.current_plan_id = str(context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ())))
+            self.current_plan_id = str(
+                context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ()))
+            )
         self._certs: dict[str, HelperExecutionCertificate] = {}
         self._seen_keys: set[tuple[str, str, str]] = set()
         self._request_started_ms: dict[str, int] = {}
@@ -152,9 +159,14 @@ class HelperCertificateStore:
                     cert = HelperExecutionCertificate(**cert_obj)
                 except Exception:
                     continue
-                if self.current_plan_id and str(cert.plan_id or "") not in {"", self.current_plan_id}:
+                if self.current_plan_id and str(cert.plan_id or "") not in {
+                    "",
+                    self.current_plan_id,
+                }:
                     continue
-                if self.context is not None and not _certificate_matches_context(cert, self.context):
+                if self.context is not None and not _certificate_matches_context(
+                    cert, self.context
+                ):
                     continue
                 lane_id = str(cert.lane_id)
                 if not lane_id:
@@ -166,7 +178,9 @@ class HelperCertificateStore:
                 self._closed_lanes.add(lane_id)
                 self._seen_keys.add((lane_id, str(cert.helper_id), str(cert.helper_signature)))
 
-    def _same_certificate(self, left: HelperExecutionCertificate, right: HelperExecutionCertificate) -> bool:
+    def _same_certificate(
+        self, left: HelperExecutionCertificate, right: HelperExecutionCertificate
+    ) -> bool:
         return left.to_json() == right.to_json()
 
     def _trim_budget_window(self, timestamps: list[int], *, now_ms: int) -> None:
@@ -189,10 +203,14 @@ class HelperCertificateStore:
         descriptor_hash = str(cert.get("descriptor_hash") or "")
         receipt_id = str(cert.get("receipt_id") or cert.get("certificate_id") or "")
         if not helper_id or not plan_id or not lane_id:
-            return HelperBudgetDecision(False, "missing_identity_fields", helper_id, plan_id, lane_id)
+            return HelperBudgetDecision(
+                False, "missing_identity_fields", helper_id, plan_id, lane_id
+            )
         opened_ms = self._plan_window_opened_ms.get(plan_id)
         if opened_ms is None:
-            return HelperBudgetDecision(False, "plan_window_not_started", helper_id, plan_id, lane_id)
+            return HelperBudgetDecision(
+                False, "plan_window_not_started", helper_id, plan_id, lane_id
+            )
         if int(now_ms) - int(opened_ms) >= self.helper_timeout_ms:
             return HelperBudgetDecision(False, "plan_window_closed", helper_id, plan_id, lane_id)
         if receipt_id and receipt_id in self._budget_seen_receipts:
@@ -202,16 +220,22 @@ class HelperCertificateStore:
         window = self._helper_windows.setdefault(key, [])
         self._trim_budget_window(window, now_ms=now_ms)
         if len(window) >= int(self._budget.per_helper_per_window):
-            return HelperBudgetDecision(False, "helper_rate_budget_exceeded", helper_id, plan_id, lane_id)
+            return HelperBudgetDecision(
+                False, "helper_rate_budget_exceeded", helper_id, plan_id, lane_id
+            )
         if int(self._plan_totals.get(plan_id, 0)) >= int(self._budget.per_plan_total):
-            return HelperBudgetDecision(False, "plan_total_budget_exceeded", helper_id, plan_id, lane_id)
+            return HelperBudgetDecision(
+                False, "plan_total_budget_exceeded", helper_id, plan_id, lane_id
+            )
 
         conflict_key = (plan_id, helper_id, lane_id)
         existing_hash = self._budget_conflicts.get(conflict_key)
         if existing_hash is None and descriptor_hash:
             self._budget_conflicts[conflict_key] = descriptor_hash
         elif existing_hash is not None and descriptor_hash and existing_hash != descriptor_hash:
-            return HelperBudgetDecision(False, "conflicting_artifact_for_same_helper_lane", helper_id, plan_id, lane_id)
+            return HelperBudgetDecision(
+                False, "conflicting_artifact_for_same_helper_lane", helper_id, plan_id, lane_id
+            )
 
         if receipt_id:
             self._budget_seen_receipts.add(receipt_id)
@@ -226,13 +250,23 @@ class HelperCertificateStore:
         lane_id2 = str(lane_id or "")
         if not lane_id2:
             return
-        if lane_id2 not in self._request_started_ms and len(self.inflight_lanes()) >= self.max_inflight_lanes:
+        if (
+            lane_id2 not in self._request_started_ms
+            and len(self.inflight_lanes()) >= self.max_inflight_lanes
+        ):
             return
         if lane_id2 in self._closed_lanes:
             self._closed_lanes.discard(lane_id2)
         self._request_started_ms[lane_id2] = int(started_ms)
         if self.journal is not None:
-            self.journal.append({"kind": "request_started", "lane_id": lane_id2, "started_ms": int(started_ms), "plan_id": self.current_plan_id})
+            self.journal.append(
+                {
+                    "kind": "request_started",
+                    "lane_id": lane_id2,
+                    "started_ms": int(started_ms),
+                    "plan_id": self.current_plan_id,
+                }
+            )
 
     def accepted_certificates(self) -> dict[str, HelperExecutionCertificate]:
         return dict(self._certs)
@@ -252,7 +286,14 @@ class HelperCertificateStore:
             return
         self._closed_lanes.add(lane_id2)
         if self.journal is not None:
-            self.journal.append({"kind": "request_closed", "lane_id": lane_id2, "reason": str(reason or "closed"), "plan_id": self.current_plan_id})
+            self.journal.append(
+                {
+                    "kind": "request_closed",
+                    "lane_id": lane_id2,
+                    "reason": str(reason or "closed"),
+                    "plan_id": self.current_plan_id,
+                }
+            )
 
     def request_window_status(self, *, lane_id: str, now_ms: int | None = None) -> str:
         lane_id2 = str(lane_id or "")
@@ -279,7 +320,9 @@ class HelperCertificateStore:
         out.sort()
         return tuple(out)
 
-    def ingest_certificate(self, *, cert: HelperExecutionCertificate, peer_id: str, now_ms: int | None = None) -> HelperDispatchStatus:
+    def ingest_certificate(
+        self, *, cert: HelperExecutionCertificate, peer_id: str, now_ms: int | None = None
+    ) -> HelperDispatchStatus:
         lane_id = str(cert.lane_id or "")
         helper_id = str(cert.helper_id or "")
         fingerprint = certificate_fingerprint(cert)
@@ -288,83 +331,193 @@ class HelperCertificateStore:
         if existing is not None:
             if self._same_certificate(existing, cert):
                 if self.journal is not None:
-                    self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="duplicate_certificate")
+                    self.journal.append_receipt_reject(
+                        plan_id=self.current_plan_id,
+                        lane_id=lane_id,
+                        helper_id=helper_id,
+                        receipt_fingerprint=fingerprint,
+                        reason="duplicate_certificate",
+                    )
                 return HelperDispatchStatus(False, "duplicate_certificate", lane_id, helper_id)
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="conflicting_certificate")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="conflicting_certificate",
+                )
             return HelperDispatchStatus(False, "conflicting_certificate", lane_id, helper_id)
 
         seen_key = (lane_id, helper_id, str(cert.helper_signature or ""))
         if seen_key in self._seen_keys:
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="duplicate_certificate")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="duplicate_certificate",
+                )
             return HelperDispatchStatus(False, "duplicate_certificate", lane_id, helper_id)
         self._seen_keys.add(seen_key)
 
         window_state = self.request_window_status(lane_id=lane_id, now_ms=now_ms)
         if window_state == "not_started":
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="request_not_started")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="request_not_started",
+                )
             return HelperDispatchStatus(False, "request_not_started", lane_id, helper_id)
         if window_state == "closed":
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="request_window_closed")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="request_window_closed",
+                )
             return HelperDispatchStatus(False, "request_window_closed", lane_id, helper_id)
         if window_state == "expired":
             self.close_request(lane_id=lane_id, reason="timeout")
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="request_window_closed")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="request_window_closed",
+                )
             return HelperDispatchStatus(False, "request_window_closed", lane_id, helper_id)
         lane_plan = self.lane_plans.get(lane_id)
         if lane_plan is None:
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="unknown_lane")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="unknown_lane",
+                )
             return HelperDispatchStatus(False, "unknown_lane", lane_id, helper_id)
         if self.context is None:
             return HelperDispatchStatus(False, "missing_context", lane_id, helper_id)
         if bool(self.context.manifest_signature_required):
             if not isinstance(self.context.manifest_payload, dict):
                 return HelperDispatchStatus(False, "missing_manifest_payload", lane_id, helper_id)
-            if not verify_validator_execution_manifest(self.context.manifest_payload, expected_pubkey=str(self.context.coordinator_pubkey or "")):
+            if not verify_validator_execution_manifest(
+                self.context.manifest_payload,
+                expected_pubkey=str(self.context.coordinator_pubkey or ""),
+            ):
                 return HelperDispatchStatus(False, "invalid_manifest_signature", lane_id, helper_id)
-        elif str(self.context.manifest_signature or "") or str(self.context.coordinator_pubkey or ""):
-            if not isinstance(self.context.manifest_payload, dict) or not verify_validator_execution_manifest(self.context.manifest_payload, expected_pubkey=str(self.context.coordinator_pubkey or "")):
+        elif str(self.context.manifest_signature or "") or str(
+            self.context.coordinator_pubkey or ""
+        ):
+            if not isinstance(
+                self.context.manifest_payload, dict
+            ) or not verify_validator_execution_manifest(
+                self.context.manifest_payload,
+                expected_pubkey=str(self.context.coordinator_pubkey or ""),
+            ):
                 return HelperDispatchStatus(False, "invalid_manifest_signature", lane_id, helper_id)
         if str(peer_id or "") != helper_id:
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="wrong_peer")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="wrong_peer",
+                )
             return HelperDispatchStatus(False, "wrong_peer", lane_id, helper_id)
         if helper_id != str(lane_plan.helper_id or ""):
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="wrong_helper")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="wrong_helper",
+                )
             return HelperDispatchStatus(False, "wrong_helper", lane_id, helper_id)
         if str(cert.chain_id) != str(self.context.chain_id):
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="chain_id_mismatch")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="chain_id_mismatch",
+                )
             return HelperDispatchStatus(False, "chain_id_mismatch", lane_id, helper_id)
         if str(cert.leader_id) != str(self.context.leader_id):
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="leader_mismatch")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="leader_mismatch",
+                )
             return HelperDispatchStatus(False, "leader_mismatch", lane_id, helper_id)
-        if int(cert.view) != int(self.context.view) or int(cert.block_height) != int(self.context.block_height):
+        if int(cert.view) != int(self.context.view) or int(cert.block_height) != int(
+            self.context.block_height
+        ):
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="stale_certificate")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="stale_certificate",
+                )
             return HelperDispatchStatus(False, "stale_certificate", lane_id, helper_id)
         if int(cert.validator_epoch) != int(self.context.validator_epoch):
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="epoch_mismatch")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="epoch_mismatch",
+                )
             return HelperDispatchStatus(False, "epoch_mismatch", lane_id, helper_id)
         if str(cert.validator_set_hash) != str(self.context.validator_set_hash):
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="validator_set_hash_mismatch")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="validator_set_hash_mismatch",
+                )
             return HelperDispatchStatus(False, "validator_set_hash_mismatch", lane_id, helper_id)
         if self.current_plan_id and str(cert.plan_id or "") not in {"", self.current_plan_id}:
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="plan_id_mismatch")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="plan_id_mismatch",
+                )
             return HelperDispatchStatus(False, "plan_id_mismatch", lane_id, helper_id)
-        if str(self.context.manifest_hash or "") and str(cert.manifest_hash or "") != str(self.context.manifest_hash):
+        if str(self.context.manifest_hash or "") and str(cert.manifest_hash or "") != str(
+            self.context.manifest_hash
+        ):
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="manifest_hash_mismatch")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="manifest_hash_mismatch",
+                )
             return HelperDispatchStatus(False, "manifest_hash_mismatch", lane_id, helper_id)
 
         ok, reason = verify_helper_certificate(
@@ -383,22 +536,55 @@ class HelperCertificateStore:
         )
         if not ok:
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason=str(reason or "invalid_certificate"))
-            return HelperDispatchStatus(False, str(reason or "invalid_certificate"), lane_id, helper_id)
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason=str(reason or "invalid_certificate"),
+                )
+            return HelperDispatchStatus(
+                False, str(reason or "invalid_certificate"), lane_id, helper_id
+            )
 
         helper_pubkey = str(self.helper_pubkeys.get(helper_id, "") or "")
         if not helper_pubkey:
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="helper_pubkey_missing")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="helper_pubkey_missing",
+                )
             return HelperDispatchStatus(False, "helper_pubkey_missing", lane_id, helper_id)
         if not verify_helper_certificate_signature(cert, helper_pubkey=helper_pubkey):
             if self.journal is not None:
-                self.journal.append_receipt_reject(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint, reason="bad_signature")
+                self.journal.append_receipt_reject(
+                    plan_id=self.current_plan_id,
+                    lane_id=lane_id,
+                    helper_id=helper_id,
+                    receipt_fingerprint=fingerprint,
+                    reason="bad_signature",
+                )
             return HelperDispatchStatus(False, "bad_signature", lane_id, helper_id)
 
         self._certs[lane_id] = cert
         self.close_request(lane_id=lane_id, reason="accepted")
         if self.journal is not None:
-            self.journal.append_receipt_accept(plan_id=self.current_plan_id, lane_id=lane_id, helper_id=helper_id, receipt_fingerprint=fingerprint)
-            self.journal.append({"kind": "certificate_accepted", "lane_id": lane_id, "helper_id": helper_id, "certificate": cert.to_json(), "plan_id": self.current_plan_id})
+            self.journal.append_receipt_accept(
+                plan_id=self.current_plan_id,
+                lane_id=lane_id,
+                helper_id=helper_id,
+                receipt_fingerprint=fingerprint,
+            )
+            self.journal.append(
+                {
+                    "kind": "certificate_accepted",
+                    "lane_id": lane_id,
+                    "helper_id": helper_id,
+                    "certificate": cert.to_json(),
+                    "plan_id": self.current_plan_id,
+                }
+            )
         return HelperDispatchStatus(True, "accepted", lane_id, helper_id)

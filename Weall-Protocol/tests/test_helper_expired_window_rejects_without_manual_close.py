@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
-from weall.runtime.helper_certificates import HelperExecutionCertificate, make_namespace_hash, sign_helper_certificate
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    make_namespace_hash,
+    sign_helper_certificate,
+)
 from weall.runtime.helper_dispatch import HelperCertificateStore, HelperDispatchContext
-from weall.runtime.parallel_execution import canonical_lane_plan_fingerprint, plan_parallel_execution
+from weall.runtime.parallel_execution import (
+    canonical_lane_plan_fingerprint,
+    plan_parallel_execution,
+)
 
 
 def _pub_hex_from_seed(seed_hex: str) -> str:
@@ -14,7 +21,9 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
 
 def test_helper_store_rejects_expired_window_without_manual_close() -> None:
     txs = [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "state_prefixes": ["content:post:1"]}]
-    lane_plans = plan_parallel_execution(txs=txs, validators=["v1", "v2", "v3"], validator_set_hash="vhash", view=7, leader_id="v1")
+    lane_plans = plan_parallel_execution(
+        txs=txs, validators=["v1", "v2", "v3"], validator_set_hash="vhash", view=7, leader_id="v1"
+    )
     lane_plan = next(plan for plan in lane_plans if plan.lane_id == "PARALLEL_CONTENT")
     plan_id = canonical_lane_plan_fingerprint(lane_plans)
     seed = (bytes([5]) * 32).hex()
@@ -41,7 +50,15 @@ def test_helper_store_rejects_expired_window_without_manual_close() -> None:
         privkey=seed,
     )
     store = HelperCertificateStore(
-        context=HelperDispatchContext(chain_id="c1", block_height=22, view=7, leader_id="v1", validator_epoch=9, validator_set_hash="vhash", plan_id=plan_id),
+        context=HelperDispatchContext(
+            chain_id="c1",
+            block_height=22,
+            view=7,
+            leader_id="v1",
+            validator_epoch=9,
+            validator_set_hash="vhash",
+            plan_id=plan_id,
+        ),
         lane_plans=lane_plans,
         helper_pubkeys={lane_plan.helper_id: pub},
         helper_timeout_ms=50,

@@ -1,5 +1,0 @@
-Preparing worktree (detached HEAD 4ca0e13)
-[v15-artifacts] OK: v1.5 public-readiness artifacts are present, fresh, and release-safe
-OK: 42 v2 specification derivatives are current
-OK: M3 traceability validated 24 requirements, 11 mechanisms, 6 deliverables, 215 repository paths, and 0 blocking protocol gaps
-OK: M3 clean-checkout reproduction passed for 4ca0e13e1e4838b8816e977e33f8dd82fae3b7c5

@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
 
-
 BASE_ENV = {
     "signer": "alice",
     "nonce": 1,
@@ -59,7 +58,10 @@ def test_schema_models_registered() -> None:
         ("PEER_BAN_SET", {"peer_id": "peer-2", "banned": True, "reason": "spam"}),
         ("STORAGE_OFFER_CREATE", {"offer_id": "offer-1", "capacity_bytes": 1024}),
         ("STORAGE_OFFER_WITHDRAW", {"offer_id": "offer-1"}),
-        ("STORAGE_LEASE_CREATE", {"offer_id": "offer-1", "lease_id": "lease-1", "duration_blocks": 10}),
+        (
+            "STORAGE_LEASE_CREATE",
+            {"offer_id": "offer-1", "lease_id": "lease-1", "duration_blocks": 10},
+        ),
         ("STORAGE_LEASE_RENEW", {"lease_id": "lease-1", "add_blocks": 5}),
         ("STORAGE_LEASE_REVOKE", {"lease_id": "lease-1"}),
         ("STORAGE_PROOF_SUBMIT", {"lease_id": "lease-1", "proof_cid": VALID_CID}),
@@ -96,8 +98,16 @@ def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
         ("IPFS_PIN_REQUEST", {}, "cid"),
         ("IPFS_PIN_REQUEST", {"cid": "not-a-cid"}, "invalid_cid_format"),
         ("IPFS_PIN_CONFIRM", {"pin_id": "pin-1", "cid": "not-a-cid"}, "invalid_cid_format"),
-        ("STORAGE_REPORT_ANCHOR", {"report_id": "report-1", "report_cid": "not-a-cid"}, "invalid_cid_format"),
-        ("STORAGE_PROOF_SUBMIT", {"lease_id": "lease-1", "proof_cid": "not-a-cid"}, "invalid_cid_format"),
+        (
+            "STORAGE_REPORT_ANCHOR",
+            {"report_id": "report-1", "report_cid": "not-a-cid"},
+            "invalid_cid_format",
+        ),
+        (
+            "STORAGE_PROOF_SUBMIT",
+            {"lease_id": "lease-1", "proof_cid": "not-a-cid"},
+            "invalid_cid_format",
+        ),
     ],
 )
 def test_missing_or_invalid_fields_are_rejected(

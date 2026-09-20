@@ -1,7 +1,5 @@
 {
-  "schema_version": 1,
-  "milestone": "R-M3 controlled-testnet content, groups, dispute/review/appeal, and governance finalization",
-  "planning_base_commit": "54d16b9541b8ba7aba2eeac366b05f69a1c153cf",
+  "blocking_protocol_gaps": [],
   "closure_policy": "implementation freeze plus non-skippable generated evidence plus evidence-only direct child",
   "controlling_sources": [
     "docs/MILESTONE_NAMING.md",
@@ -12,90 +10,14 @@
     "specs/v2/source/requirements.json",
     "specs/v2/source/WeAll.v2.0.Full-Scope.Product.and.Protocol.Specification.pdf"
   ],
-  "mechanism_scope": [
-    {
-      "id": "M-039",
-      "title": "Posts, comments, reactions, shares, and media",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "integrate canonical signed real-stack and replay evidence"
-    },
-    {
-      "id": "M-040",
-      "title": "Moderation flags, public receipts, and dispute escalation",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "verify deterministic report-to-case liveness, retry receipts, immutable content history, review, and appeal procedure"
-    },
-    {
-      "id": "M-041",
-      "title": "Public-only read visibility and local controls",
-      "repository_status": "current_implemented",
-      "m3_treatment": "preserve and test public-read/noncanonical-local boundary"
-    },
-    {
-      "id": "M-042",
-      "title": "Groups, memberships, roles, moderators, and signers",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "prove canonical group create and membership lifecycle"
-    },
-    {
-      "id": "M-043",
-      "title": "Group-scoped posting and participation",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "prove member-gated write and public read"
-    },
-    {
-      "id": "M-049",
-      "title": "Proposal create, edit, comment, withdraw, and stage",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "prove signed proposal and block-height lifecycle"
-    },
-    {
-      "id": "M-050",
-      "title": "Ballot admission, close, tally, finalization, and receipts",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "verify first-admitted final ballots, aggregate-only canonical choice state, launch-profile gating, tally receipts, and append-only round history"
-    },
-    {
-      "id": "M-051",
-      "title": "Human and group electorate snapshots",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "verify scope-correct Tier-2/group electorate rounds with immutable snapshots and deterministic denominator refresh/reopen; validators remain separate from political eligibility"
-    },
-    {
-      "id": "M-054",
-      "title": "Dispute open, evidence, assignment, vote, and resolve",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "verify deterministic constitutional panels, substitutes, conflict exclusions, aggregate ballots, and public outcome"
-    },
-    {
-      "id": "M-055",
-      "title": "Appeal, reviewer timeout/replacement, and enforcement",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "verify disjoint fresh appeal panels, aggregate appeal ballots, timeout repair, and append-only correction"
-    },
-    {
-      "id": "M-056",
-      "title": "Contextual reputation and eligibility",
-      "repository_status": "implemented_requires_integrated_evidence",
-      "m3_treatment": "prove eligibility effects without vote weighting or intrinsic-worth claims"
-    }
-  ],
   "deliverables": [
     {
+      "evidence": [
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
+      ],
       "id": "m3-governance-corrections",
-      "title": "Versioned human/group electorate rounds and first-admitted final ballots",
-      "requirement_rows": [
-        "M3-P0-01",
-        "M3-P0-02",
-        "M3-P0-03",
-        "M3-P0-04",
-        "M3-P0-05"
-      ],
-      "mechanism_ids": [
-        "M-049",
-        "M-050",
-        "M-051"
-      ],
       "implementation": [
         "src/weall/runtime/apply/governance.py",
         "src/weall/runtime/gov_engine.py",
@@ -110,27 +32,26 @@
         "tests/test_m3_genesis_ballot_profile.py",
         "../scripts/check_m3_live_ballot_profile.py"
       ],
-      "evidence": [
-        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
-        "artifacts/m3-closure/backend/live-ballot-profile.json",
-        "artifacts/m3-closure/browser/civic/transaction-transcript.json"
+      "mechanism_ids": [
+        "M-049",
+        "M-050",
+        "M-051"
       ],
-      "status": "closed"
+      "requirement_rows": [
+        "M3-P0-01",
+        "M3-P0-02",
+        "M3-P0-03",
+        "M3-P0-04",
+        "M3-P0-05"
+      ],
+      "status": "implemented_requires_integrated_evidence",
+      "title": "Versioned human/group electorate rounds and first-admitted final ballots"
     },
     {
+      "evidence": [
+        "artifacts/m3-closure/browser/civic"
+      ],
       "id": "m3-content-group-e2e",
-      "title": "PoH-to-content and public-group participation proof",
-      "requirement_rows": [
-        "M3-P1-01",
-        "M3-P1-02",
-        "M3-P1-03"
-      ],
-      "mechanism_ids": [
-        "M-039",
-        "M-041",
-        "M-042",
-        "M-043"
-      ],
       "implementation": [
         "../web/tests/e2e/m3_civic_governance_real_stack.spec.ts",
         "../scripts/run_m3_civic_real_stack_e2e.sh",
@@ -142,26 +63,26 @@
         "docs/production_readiness/M3_ACTOR_AND_TRANSCRIPT_CONTRACT.md",
         "../scripts/gen_m3_actor_contract_templates.py"
       ],
-      "evidence": [
-        "artifacts/m3-closure/browser/civic"
+      "mechanism_ids": [
+        "M-039",
+        "M-041",
+        "M-042",
+        "M-043"
       ],
-      "status": "closed"
+      "requirement_rows": [
+        "M3-P1-01",
+        "M3-P1-02",
+        "M3-P1-03"
+      ],
+      "status": "implemented_requires_integrated_evidence",
+      "title": "PoH-to-content and public-group participation proof"
     },
     {
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/browser/civic/dispute-negative-apply-proofs.json"
+      ],
       "id": "m3-dispute-appeal-e2e",
-      "title": "Report-to-review-to-appeal proof",
-      "requirement_rows": [
-        "M3-P1-04",
-        "M3-P1-05",
-        "M3-P1-06",
-        "M3-P1-07"
-      ],
-      "mechanism_ids": [
-        "M-040",
-        "M-054",
-        "M-055",
-        "M-056"
-      ],
       "implementation": [
         "src/weall/runtime/apply/dispute.py",
         "src/weall/runtime/dispute_engine.py",
@@ -172,25 +93,28 @@
         "src/weall/api/routes_public_parts/disputes.py",
         "tests/test_m3_closure_regressions.py"
       ],
-      "evidence": [
-        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
-        "artifacts/m3-closure/browser/civic/dispute-negative-apply-proofs.json"
+      "mechanism_ids": [
+        "M-040",
+        "M-054",
+        "M-055",
+        "M-056"
       ],
-      "status": "closed"
+      "requirement_rows": [
+        "M3-P1-04",
+        "M3-P1-05",
+        "M3-P1-06",
+        "M3-P1-07"
+      ],
+      "status": "implemented_requires_integrated_evidence",
+      "title": "Report-to-review-to-appeal proof"
     },
     {
+      "evidence": [
+        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
+        "artifacts/m3-closure/browser/civic/remaining-negative-apply-proofs.json",
+        "artifacts/m3-closure/backend/live-ballot-profile.json"
+      ],
       "id": "m3-proposal-finalization-e2e",
-      "title": "Proposal-to-ballot-to-finalization proof",
-      "requirement_rows": [
-        "M3-P1-08",
-        "M3-P1-09",
-        "M3-P1-10"
-      ],
-      "mechanism_ids": [
-        "M-049",
-        "M-050",
-        "M-051"
-      ],
       "implementation": [
         "src/weall/runtime/apply/governance.py",
         "src/weall/runtime/gov_engine.py",
@@ -200,21 +124,26 @@
         "src/weall/api/routes_public_parts/gov.py",
         "tests/test_m3_closure_regressions.py"
       ],
-      "evidence": [
-        "artifacts/m3-closure/browser/civic/transaction-transcript.json",
-        "artifacts/m3-closure/browser/civic/remaining-negative-apply-proofs.json",
-        "artifacts/m3-closure/backend/live-ballot-profile.json"
+      "mechanism_ids": [
+        "M-049",
+        "M-050",
+        "M-051"
       ],
-      "status": "closed"
+      "requirement_rows": [
+        "M3-P1-08",
+        "M3-P1-09",
+        "M3-P1-10"
+      ],
+      "status": "implemented_requires_integrated_evidence",
+      "title": "Proposal-to-ballot-to-finalization proof"
     },
     {
-      "id": "m3-determinism",
-      "title": "Restart/replay, two-node equality, and observer catch-up",
-      "requirement_rows": [
-        "M3-P2-02",
-        "M3-P2-03",
-        "M3-P2-04"
+      "evidence": [
+        "artifacts/m3-closure/restart-replay",
+        "artifacts/m3-closure/two-node",
+        "artifacts/m3-closure/observer"
       ],
+      "id": "m3-determinism",
       "implementation": [
         "../scripts/run_m3_restart_replay_gate.sh",
         "../scripts/run_m3_two_node_state_root_gate.sh",
@@ -225,21 +154,19 @@
         "../scripts/m3_common.sh",
         "../scripts/capture_m3_observer_authority.py"
       ],
-      "evidence": [
-        "artifacts/m3-closure/restart-replay",
-        "artifacts/m3-closure/two-node",
-        "artifacts/m3-closure/observer"
+      "requirement_rows": [
+        "M3-P2-02",
+        "M3-P2-03",
+        "M3-P2-04"
       ],
-      "status": "closed"
+      "status": "implemented_requires_integrated_evidence",
+      "title": "Restart/replay, two-node equality, and observer catch-up"
     },
     {
-      "id": "m3-closure-integrity",
-      "title": "Traceability, manifest, and evidence-only closure",
-      "requirement_rows": [
-        "M3-P2-05",
-        "M3-P2-06",
-        "M3-P2-07"
+      "evidence": [
+        "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
       ],
+      "id": "m3-closure-integrity",
       "implementation": [
         "docs/production_readiness/M3_CLOSURE_PROCESS.md",
         "docs/production_readiness/M3_REQUIREMENT_TRACEABILITY.json",
@@ -266,13 +193,109 @@
         "../scripts/check_m3_live_ballot_profile.py",
         "tests/test_m3_genesis_ballot_profile.py"
       ],
-      "evidence": [
-        "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
+      "requirement_rows": [
+        "M3-P2-05",
+        "M3-P2-06",
+        "M3-P2-07"
       ],
-      "status": "closed"
+      "status": "implemented_requires_integrated_evidence",
+      "title": "Traceability, manifest, and evidence-only closure"
     }
   ],
-  "blocking_protocol_gaps": [],
+  "implemented_protocol_corrections": [
+    {
+      "description": "First admitted ballots are final in the controlled-testnet profile; replacement and revoke attempts fail deterministically, and canonical public choice state is aggregate-only.",
+      "id": "M3-CORRECTION-GOV-001",
+      "mechanism_id": "M-050",
+      "verification": [
+        "tests/test_m3_closure_regressions.py",
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
+        "artifacts/m3-closure/browser/civic/remaining-negative-apply-proofs.json"
+      ]
+    },
+    {
+      "description": "Protocol and group rounds freeze scope-correct electorates and denominators; quorum refresh is versioned and validators receive no political authority unless separately eligible.",
+      "id": "M3-CORRECTION-GOV-002",
+      "mechanism_id": "M-051",
+      "verification": [
+        "tests/test_m3_electorate_round_policy.py",
+        "tests/test_m3_closure_regressions.py",
+        "artifacts/m3-closure/backend/live-ballot-profile.json",
+        "artifacts/m3-closure/backend/m3-runtime-regressions.log"
+      ]
+    }
+  ],
+  "mechanism_scope": [
+    {
+      "id": "M-039",
+      "m3_treatment": "integrate canonical signed real-stack and replay evidence",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Posts, comments, reactions, shares, and media"
+    },
+    {
+      "id": "M-040",
+      "m3_treatment": "verify deterministic report-to-case liveness, retry receipts, immutable content history, review, and appeal procedure",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Moderation flags, public receipts, and dispute escalation"
+    },
+    {
+      "id": "M-041",
+      "m3_treatment": "preserve and test public-read/noncanonical-local boundary",
+      "repository_status": "current_implemented",
+      "title": "Public-only read visibility and local controls"
+    },
+    {
+      "id": "M-042",
+      "m3_treatment": "prove canonical group create and membership lifecycle",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Groups, memberships, roles, moderators, and signers"
+    },
+    {
+      "id": "M-043",
+      "m3_treatment": "prove member-gated write and public read",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Group-scoped posting and participation"
+    },
+    {
+      "id": "M-049",
+      "m3_treatment": "prove signed proposal and block-height lifecycle",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Proposal create, edit, comment, withdraw, and stage"
+    },
+    {
+      "id": "M-050",
+      "m3_treatment": "verify first-admitted final ballots, aggregate-only canonical choice state, launch-profile gating, tally receipts, and append-only round history",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Ballot admission, close, tally, finalization, and receipts"
+    },
+    {
+      "id": "M-051",
+      "m3_treatment": "verify scope-correct Tier-2/group electorate rounds with immutable snapshots and deterministic denominator refresh/reopen; validators remain separate from political eligibility",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Human and group electorate snapshots"
+    },
+    {
+      "id": "M-054",
+      "m3_treatment": "verify deterministic constitutional panels, substitutes, conflict exclusions, aggregate ballots, and public outcome",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Dispute open, evidence, assignment, vote, and resolve"
+    },
+    {
+      "id": "M-055",
+      "m3_treatment": "verify disjoint fresh appeal panels, aggregate appeal ballots, timeout repair, and append-only correction",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Appeal, reviewer timeout/replacement, and enforcement"
+    },
+    {
+      "id": "M-056",
+      "m3_treatment": "prove eligibility effects without vote weighting or intrinsic-worth claims",
+      "repository_status": "implemented_requires_integrated_evidence",
+      "title": "Contextual reputation and eligibility"
+    }
+  ],
+  "milestone": "R-M3 controlled-testnet content, groups, dispute/review/appeal, and governance finalization",
+  "planning_base_commit": "54d16b9541b8ba7aba2eeac366b05f69a1c153cf",
+  "schema_version": 1,
   "scope_exclusions": [
     {
       "mechanism_id": "M-045",
@@ -291,39 +314,16 @@
       "reason": "Production account exclusion and live economic slashing are outside the M3 controlled-testnet dispute proof."
     },
     {
-      "track": "R-M1",
-      "reason": "Real remote signed observer onboarding is a separate reviewer track."
+      "reason": "Real remote signed observer onboarding is a separate reviewer track.",
+      "track": "R-M1"
     },
     {
-      "track": "R-M4",
-      "reason": "Economics, wallet, rewards, and treasury accounting are separate."
+      "reason": "Economics, wallet, rewards, and treasury accounting are separate.",
+      "track": "R-M4"
     },
     {
-      "track": "R-M5",
-      "reason": "Public validator and multi-validator BFT readiness are separate."
-    }
-  ],
-  "implemented_protocol_corrections": [
-    {
-      "id": "M3-CORRECTION-GOV-001",
-      "mechanism_id": "M-050",
-      "description": "First admitted ballots are final in the controlled-testnet profile; replacement and revoke attempts fail deterministically, and canonical public choice state is aggregate-only.",
-      "verification": [
-        "tests/test_m3_closure_regressions.py",
-        "artifacts/m3-closure/backend/m3-runtime-regressions.log",
-        "artifacts/m3-closure/browser/civic/remaining-negative-apply-proofs.json"
-      ]
-    },
-    {
-      "id": "M3-CORRECTION-GOV-002",
-      "mechanism_id": "M-051",
-      "description": "Protocol and group rounds freeze scope-correct electorates and denominators; quorum refresh is versioned and validators receive no political authority unless separately eligible.",
-      "verification": [
-        "tests/test_m3_electorate_round_policy.py",
-        "tests/test_m3_closure_regressions.py",
-        "artifacts/m3-closure/backend/live-ballot-profile.json",
-        "artifacts/m3-closure/backend/m3-runtime-regressions.log"
-      ]
+      "reason": "Public validator and multi-validator BFT readiness are separate.",
+      "track": "R-M5"
     }
   ]
 }

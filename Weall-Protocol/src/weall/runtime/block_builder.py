@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 """Leader-side block production and candidate construction delegates.
 
 This module is intentionally a structural extraction from ``weall.runtime.executor``.
@@ -8,12 +10,15 @@ the monolithic facade. The extracted functions still operate on ``WeAllExecutor`
 instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
+from weall.runtime.bft_finality_bridge import schedule_bft_finality_receipt
+from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
+from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
 from weall.runtime.executor import (
+    MAX_BLOCK_TIME_ADVANCE_MS,
     ApplyError,
     ExecutorMeta,
     Json,
     LedgerView,
-    MAX_BLOCK_TIME_ADVANCE_MS,
     TxEnvelope,
     _consensus_fail_closed,
     _helper_execution_profile_hash,
@@ -35,31 +40,34 @@ from weall.runtime.executor import (
     copy,
     ensure_block_hash,
     expected_block_time_ms,
-    is_too_early,
     load_chain_manifest,
     make_block_header,
-    recent_block_ids_from_state,
-    recent_block_anchor_required_for_height,
     make_vrf_record,
     os,
     policy_from_manifest,
     policy_to_json,
+    recent_block_anchor_required_for_height,
+    recent_block_ids_from_state,
     runtime_vrf_required,
     validate_system_tx_queue_binding,
 )
-
-from weall.runtime.block_admission import DEFAULT_MAX_BLOCK_TXS
-from weall.runtime.block_time_admission import runtime_block_clock_policy, validate_block_timestamp
+from weall.runtime.helper_certificates import HelperExecutionCertificate
+from weall.runtime.protocol_profile import block_tx_signatures_required
 from weall.runtime.runtime_context import RuntimeContext
 from weall.runtime.scheduler_pipeline import (
     emit_system_txs,
     prune_emitted,
+    queue_item_phase,
     run_leader_post_schedulers,
     run_leader_pre_schedulers,
-    queue_item_phase,
 )
-from weall.runtime.system_tx_engine import build_system_queue_lookup
-
+from weall.runtime.system_tx_engine import (
+    BLOCK_FINALIZE_TX_TYPE,
+    EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+    bind_new_same_block_single_tx_children,
+    build_system_queue_lookup,
+    validate_same_block_single_tx_lineage,
+)
 
 
 def produce_block(
@@ -91,7 +99,9 @@ def produce_block(
         if bool(_clock_policy.enabled):
             allow_empty = bool(_clock_policy.empty_blocks_enabled)
         else:
-            allow_empty = str(os.environ.get("WEALL_PRODUCE_EMPTY_BLOCKS") or "").strip().lower() in {
+            allow_empty = str(
+                os.environ.get("WEALL_PRODUCE_EMPTY_BLOCKS") or ""
+            ).strip().lower() in {
                 "1",
                 "true",
                 "yes",
@@ -135,6 +145,7 @@ def produce_block(
         block=blk, new_state=st2, applied_ids=applied_ids, invalid_ids=invalid_ids
     )
 
+
 def build_block_candidate(
     self,
     *,
@@ -143,7 +154,13 @@ def build_block_candidate(
     force_ts_ms: int | None = None,
     helper_certificates: dict[str, HelperExecutionCertificate] | None = None,
     helper_receipts_by_lane: dict[str, list[Json]] | None = None,
+    bft_justify_qc: Json | None = None,
+    proposer: str = "",
 ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
+    post_commit_error = str(getattr(self, "_post_commit_housekeeping_error", "") or "")
+    if post_commit_error:
+        return None, None, [], [], f"executor_unhealthy:{post_commit_error}"
+
     runtime_ctx = RuntimeContext.from_executor(self)
     scheduler_set = runtime_ctx.scheduler_set
     apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta
@@ -250,7 +267,11 @@ def build_block_candidate(
         nonlocal queue_lookup_cache
         root = working.get("system_queue")
         marker = (id(root), len(root) if isinstance(root, list) else -1)
-        if queue_lookup_cache is None or queue_lookup_cache[0] != marker[0] or queue_lookup_cache[1] != marker[1]:
+        if (
+            queue_lookup_cache is None
+            or queue_lookup_cache[0] != marker[0]
+            or queue_lookup_cache[1] != marker[1]
+        ):
             queue_lookup_cache = (marker[0], marker[1], build_system_queue_lookup(working))
         return queue_lookup_cache[2]
 
@@ -264,18 +285,50 @@ def build_block_candidate(
         return queue_item_phase(working, queue_id)
 
     def _apply_system_env(env: TxEnvelope) -> None:
-        try:
-            meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
-        except ApplyError:
-            j = env.to_json()
-            tx_id2 = compute_tx_id(j, chain_id=self.chain_id)
-            invalid_ids.append(tx_id2)
-            return
-        if meta is None:
-            return
-
+        # A deterministic queued SYSTEM transition is mandatory protocol work.
+        # It must never be converted into an ordinary failed receipt: the emitter
+        # has already marked its queue item emitted, so swallowing an apply failure
+        # would let candidate construction prune the transition without executing it.
+        tx_type = str(getattr(env, "tx_type", "") or "").strip().upper()
         j = env.to_json()
         tx_id2 = compute_tx_id(j, chain_id=self.chain_id)
+
+        if tx_type in EPOCH_FINALITY_SINGLE_TX_CHILDREN:
+            lineage_ok, lineage_reason = validate_same_block_single_tx_lineage(
+                self.tx_index,
+                env,
+                prior_txs=applied_envs,
+                required_child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+            )
+            if not lineage_ok:
+                raise ApplyError(
+                    "invalid_tx",
+                    "single_tx_lineage_invalid",
+                    {"tx_type": tx_type, "reason": lineage_reason},
+                )
+
+        queue_ids_before = set(_queue_lookup()) if tx_type == BLOCK_FINALIZE_TX_TYPE else set()
+        parent_position = len(applied_envs)
+        meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
+        if meta is None:
+            raise ApplyError(
+                "invalid_tx",
+                "unclaimed_system_tx",
+                {"tx_type": tx_type},
+            )
+
+        if tx_type == BLOCK_FINALIZE_TX_TYPE:
+            bind_new_same_block_single_tx_children(
+                working,
+                self.tx_index,
+                queue_ids_before=queue_ids_before,
+                parent_tx_type=tx_type,
+                parent_tx_id=tx_id2,
+                parent_position=parent_position,
+                child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+            )
+            _invalidate_queue_lookup()
+
         j["tx_id"] = tx_id2
         applied_envs.append(j)
         applied_ids.append(tx_id2)
@@ -290,6 +343,34 @@ def build_block_candidate(
             }
         )
 
+    # A verified HotStuff justify-QC carried by the next proposal is the first
+    # deterministic, replayable point at which the 3-chain finalized grandparent
+    # may enter canonical application state. Queue that transition as a normal
+    # SYSTEM receipt so leader/follower state roots cannot depend on QC arrival order.
+    if isinstance(bft_justify_qc, dict):
+        try:
+            schedule_bft_finality_receipt(
+                working, justify_qc=bft_justify_qc, next_height=next_height
+            )
+            _invalidate_queue_lookup()
+        except Exception as exc:
+            if _consensus_fail_closed():
+                return (
+                    None,
+                    None,
+                    [],
+                    invalid_ids,
+                    f"bft_finality_schedule_failed:{type(exc).__name__}",
+                )
+
+    # Validate the replicated queue before scheduler/emitter work so malformed
+    # queue state fails closed with stable error precedence.
+    try:
+        build_system_queue_lookup(self.state)
+    except Exception as exc:
+        if _consensus_fail_closed():
+            return None, None, [], [], f"system_emitter_pre_failed:{type(exc).__name__}"
+
     # Phase: schedule PoH system txs. These mutate consensus-visible state
     # before candidate tx admission, so production must fail closed here the
     # same way follower-side replay does.
@@ -303,13 +384,38 @@ def build_block_candidate(
     # Phase: system emitter pre. These side effects also feed state_root and
     # must not be swallowed during local proposal construction in production.
     try:
-        sys_pre = emit_system_txs(working, self.tx_index, next_height=next_height, phase="pre", scheduler_set=scheduler_set)
+        sys_pre = emit_system_txs(
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase="pre",
+            proposer=str(proposer or "").strip(),
+            scheduler_set=scheduler_set,
+        )
         _invalidate_queue_lookup()
-        for env in sys_pre:
-            _apply_system_env(env)
     except Exception as exc:
         if _consensus_fail_closed():
             return None, None, [], [], f"system_emitter_pre_failed:{type(exc).__name__}"
+        sys_pre = []
+    for env in sys_pre:
+        try:
+            _apply_system_env(env)
+        except ApplyError as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"system_tx_apply_pre_failed:{exc.code}:{exc.reason}",
+            )
+        except Exception as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"system_tx_apply_pre_failed:{type(exc).__name__}",
+            )
 
     # Parse envelopes
     env_objs: list[TxEnvelope] = []
@@ -342,9 +448,7 @@ def build_block_candidate(
     # non-prod behavior permissive so existing unsigned dev/test fixtures
     # can still exercise candidate construction flows.
     ledger_for_block = LedgerView.from_ledger(working)
-    verify_candidate_signatures = (
-        str(os.environ.get("WEALL_MODE") or "").strip().lower() == "prod"
-    )
+    verify_candidate_signatures = block_tx_signatures_required(self.state, chain_id=self.chain_id)
     ok, block_reject, per_tx = admit_block_txs(
         env_objs,
         ledger_for_block,
@@ -353,7 +457,9 @@ def build_block_candidate(
         verify_signatures=verify_candidate_signatures,
     )
     if (not ok) and block_reject is not None:
-        self._last_mempool_selection_diag["rejected_count"] = int(len([x for x in per_tx if x is not None]))
+        self._last_mempool_selection_diag["rejected_count"] = int(
+            len([x for x in per_tx if x is not None])
+        )
         return None, None, [], [], f"block_reject:{block_reject.code}:{block_reject.reason}"
 
     # Apply txs (fail-atomic) and always emit deterministic receipts.
@@ -362,7 +468,9 @@ def build_block_candidate(
     # deterministically within this block.
     blocked_signers_after_apply_reject: set[str] = set()
 
-    for env, env_obj, parse_ok, tx_id, rej in zip(txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False):
+    for env, env_obj, parse_ok, tx_id, rej in zip(
+        txs, env_objs, env_parse_ok, tx_ids, per_tx, strict=False
+    ):
         if len(applied_envs) >= final_block_tx_cap:
             break
         if not tx_id:
@@ -394,12 +502,20 @@ def build_block_candidate(
                     f"system_queue_binding:{why_binding}",
                 )
 
-        if rej is not None:
-            invalid_ids.append(tx_id)
-            continue
-
         signer = str(getattr(env_obj, "signer", "") or "")
         is_system = bool(getattr(env_obj, "system", False))
+
+        if rej is not None:
+            if is_system:
+                return (
+                    None,
+                    None,
+                    [],
+                    invalid_ids,
+                    f"system_tx_admission_failed:{str(getattr(rej, 'code', '') or 'rejected')}",
+                )
+            invalid_ids.append(tx_id)
+            continue
 
         applied_ok = False
         err_code = ""
@@ -413,19 +529,40 @@ def build_block_candidate(
             err_details = {"signer": signer}
         else:
             try:
-                meta = apply_tx_fn(working, env_obj if parse_ok else env, consume_nonce_on_fail=False)
+                meta = apply_tx_fn(
+                    working, env_obj if parse_ok else env, consume_nonce_on_fail=False
+                )
                 applied_ok = meta is not None
             except ApplyError as e:
+                if is_system:
+                    return (
+                        None,
+                        None,
+                        [],
+                        invalid_ids,
+                        f"system_tx_apply_failed:{e.code}:{e.reason}",
+                    )
                 applied_ok = False
                 err_code = str(getattr(e, "code", "") or "")
                 err_reason = str(getattr(e, "reason", "") or "")
                 err_details = getattr(e, "details", None)
             except Exception as e:
+                if is_system:
+                    return (
+                        None,
+                        None,
+                        [],
+                        invalid_ids,
+                        f"system_tx_apply_failed:{type(e).__name__}",
+                    )
                 if _consensus_fail_closed():
                     return None, None, [], [], f"tx_apply_failed:{type(e).__name__}"
                 applied_ok = False
                 err_code = type(e).__name__
                 err_reason = str(e)
+
+        if is_system and not applied_ok:
+            return None, None, [], invalid_ids, "system_tx_apply_failed:unclaimed_system_tx"
 
         if (not applied_ok) and (not is_system) and signer:
             blocked_signers_after_apply_reject.add(signer)
@@ -461,10 +598,15 @@ def build_block_candidate(
 
     # Phase: system emitter post. Same fail-closed rule in production.
     try:
-        sys_post = emit_system_txs(working, self.tx_index, next_height=next_height, phase="post", scheduler_set=scheduler_set)
+        sys_post = emit_system_txs(
+            working,
+            self.tx_index,
+            next_height=next_height,
+            phase="post",
+            proposer=str(proposer or "").strip(),
+            scheduler_set=scheduler_set,
+        )
         _invalidate_queue_lookup()
-        for env in sys_post:
-            _apply_system_env(env)
     except Exception as exc:
         if _consensus_fail_closed():
             return (
@@ -473,6 +615,26 @@ def build_block_candidate(
                 [],
                 invalid_ids,
                 f"system_emitter_post_failed:{type(exc).__name__}",
+            )
+        sys_post = []
+    for env in sys_post:
+        try:
+            _apply_system_env(env)
+        except ApplyError as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"system_tx_apply_post_failed:{exc.code}:{exc.reason}",
+            )
+        except Exception as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"system_tx_apply_post_failed:{type(exc).__name__}",
             )
 
     # System queue items are consensus scheduling scratch. Once their
@@ -490,7 +652,9 @@ def build_block_candidate(
 
     self._last_mempool_selection_diag["selected_count"] = int(len(applied_ids))
     self._last_mempool_selection_diag["invalid_count"] = int(len(invalid_ids))
-    self._last_mempool_selection_diag["rejected_count"] = int(len([x for x in per_tx if x is not None]))
+    self._last_mempool_selection_diag["rejected_count"] = int(
+        len([x for x in per_tx if x is not None])
+    )
     self._last_mempool_selection_diag["selected_tx_ids"] = [str(x) for x in applied_ids[:64]]
 
     meta_root_working = working.get("meta")
@@ -550,8 +714,8 @@ def build_block_candidate(
     # Phase gates (e.g. Genesis economic lock) use state["time"] (seconds).
     try:
         working["time"] = int(int(ts_ms) // 1000)
-    except Exception:
-        pass
+    except Exception as exc:
+        return None, None, [], invalid_ids, f"chain_time_update_failed:{type(exc).__name__}"
     if bool(clock_policy.enabled):
         try:
             meta_clock = working.get("meta") if isinstance(working.get("meta"), dict) else {}
@@ -559,8 +723,14 @@ def build_block_candidate(
                 clock_policy, current_height=constitutional_procedure_height(working)
             )
             working["meta"] = meta_clock
-        except Exception:
-            pass
+        except Exception as exc:
+            return (
+                None,
+                None,
+                [],
+                invalid_ids,
+                f"constitutional_clock_update_failed:{type(exc).__name__}",
+            )
 
     # ------------------------------------------------------------
     # Verifiable randomness ("sig-VRF")
@@ -575,12 +745,18 @@ def build_block_candidate(
     try:
         pubkey = (os.environ.get("WEALL_NODE_PUBKEY") or "").strip()
         privkey = (os.environ.get("WEALL_NODE_PRIVKEY") or "").strip()
+        proposer_s = str(proposer or "").strip()
+        if proposer_s:
+            canonical_pubkey = str(self._validator_pubkeys().get(proposer_s) or "").strip()
+            if not canonical_pubkey:
+                return None, None, [], invalid_ids, "vrf_missing_canonical_proposer_key"
+            if pubkey and pubkey != canonical_pubkey:
+                return None, None, [], invalid_ids, "vrf_node_key_not_canonical_proposer"
         if pubkey and privkey:
             vrf = make_vrf_record(
                 chain_id=self.chain_id,
                 height=new_height,
                 prev_block_hash=tip_hash,
-                block_ts_ms=ts_ms,
                 pubkey=pubkey,
                 privkey=privkey,
             )
@@ -588,20 +764,17 @@ def build_block_candidate(
             if not isinstance(rand, dict):
                 rand = {}
                 working["rand"] = rand
-            rand["vrf"] = {"height": int(new_height), **(vrf if isinstance(vrf, dict) else {})}
+            rand["vrf"] = {
+                "height": int(new_height),
+                "scheme": str(vrf.get("scheme") or ""),
+                "pubkey": str(vrf.get("pubkey") or ""),
+                "output": str(vrf.get("output") or ""),
+            }
         elif require_vrf:
-            # Unit/integration tests often instantiate a prod-mode executor
-            # directly to exercise unrelated persistence, nonce, replay,
-            # and apply-block invariants.  Keep production fail-closed for
-            # real network/BFT/signing/block-loop postures, while allowing
-            # pytest-local, non-network fixtures to continue producing
-            # deterministic local blocks without carrying node keys.
-            if not self._pytest_local_missing_vrf_allowed():
-                return None, None, [], invalid_ids, "vrf_missing_node_key"
+            return None, None, [], invalid_ids, "vrf_missing_node_key"
     except Exception:
         if require_vrf:
-            if not self._pytest_local_missing_vrf_allowed():
-                return None, None, [], invalid_ids, "vrf_generate_failed"
+            return None, None, [], invalid_ids, "vrf_generate_failed"
 
     helper_execution = self._build_helper_execution_metadata(
         applied_envs=applied_envs,
@@ -617,15 +790,6 @@ def build_block_candidate(
         if isinstance(helper_execution, dict) and helper_execution
         else ""
     )
-    if isinstance(helper_execution, dict) and helper_execution:
-        helper_rep = helper_execution.get("helper_reputation")
-        if isinstance(helper_rep, dict):
-            rep_state = helper_rep.get("state")
-            if isinstance(rep_state, dict):
-                # Helper reputation influences future helper assignment/quarantine,
-                # so it must be committed state, not only stripped meta.
-                working["helper_reputation"] = dict(rep_state)
-
     # Production commitment to post-apply state.
     state_root = compute_state_root(working)
 
@@ -686,7 +850,6 @@ def build_block_candidate(
             "fraud_lane_ids": list(helper_execution.get("fraud_lane_ids") or []),
             "helper_reputation": dict(helper_execution.get("helper_reputation") or {}),
         }
-        meta_root["helper_reputation"] = dict(helper_execution.get("helper_reputation", {}).get("state") or {})
 
     transition_guardrail = _summarize_transition_guardrail_receipts(
         receipts,
@@ -710,4 +873,3 @@ def build_block_candidate(
         return None, None, [], invalid_ids, f"block_hash_commitment_failed:{type(exc).__name__}"
 
     return block, working, applied_ids, invalid_ids, ""
-

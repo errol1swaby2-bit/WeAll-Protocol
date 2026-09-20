@@ -6,8 +6,9 @@ import contextlib
 import json
 import os
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from weall.runtime.bft_hotstuff import CONSENSUS_PHASE_BFT_ACTIVE, quorum_threshold
 from weall.runtime.executor import WeAllExecutor
@@ -79,7 +80,9 @@ def _seed_validator_set(ex: WeAllExecutor, pubs: dict[str, str]) -> None:
     ex._bft.load_from_state(ex.state)
 
 
-def _make_executor(root: Path, vid: str, pubs: dict[str, str], privs: dict[str, str]) -> WeAllExecutor:
+def _make_executor(
+    root: Path, vid: str, pubs: dict[str, str], privs: dict[str, str]
+) -> WeAllExecutor:
     with _node_env(vid, pubs, privs):
         ex = WeAllExecutor(
             db_path=str(root / f"{vid}.sqlite"),
@@ -142,12 +145,18 @@ def run_harness() -> dict[str, Any]:
             os.environ["WEALL_REQUIRE_VRF"] = "0"
             os.environ["WEALL_PRODUCE_EMPTY_BLOCKS"] = "1"
             os.environ["WEALL_SIGVERIFY"] = "0"
-            replay = build_sample_chain(work_dir=str(root / "production-replay"), chain_id_prefix="batch539")
+            replay = build_sample_chain(
+                work_dir=str(root / "production-replay"), chain_id_prefix="batch539"
+            )
         finally:
             os.environ.clear()
             os.environ.update(old_env)
-        source_manifest = replay.get("source_manifest") if isinstance(replay.get("source_manifest"), dict) else {}
-        replay_manifest = replay.get("replay_manifest") if isinstance(replay.get("replay_manifest"), dict) else {}
+        source_manifest = (
+            replay.get("source_manifest") if isinstance(replay.get("source_manifest"), dict) else {}
+        )
+        replay_manifest = (
+            replay.get("replay_manifest") if isinstance(replay.get("replay_manifest"), dict) else {}
+        )
         raw_roots = {
             "source": str(source_manifest.get("computed_state_root") or ""),
             "replay": str(replay_manifest.get("computed_state_root") or ""),
@@ -189,7 +198,12 @@ def run_harness() -> dict[str, Any]:
                 "production_bft_path.state_roots.replay",
             ],
             "db_files_created": db_files,
-            "locked_boundaries": {"public_validators": False, "live_economics": False, "automatic_upgrades": False, "production_helpers": False},
+            "locked_boundaries": {
+                "public_validators": False,
+                "live_economics": False,
+                "automatic_upgrades": False,
+                "production_helpers": False,
+            },
         }
 
 

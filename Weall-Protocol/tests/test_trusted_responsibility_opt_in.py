@@ -7,18 +7,37 @@ from weall.runtime.gate_expr import eval_gate
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="sig", system=system)
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="sig", system=system
+    )
 
 
 def _state() -> dict:
     return {
         "height": 0,
         "accounts": {
-            "@errol": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation_milli": 6000},
-            "@genesis": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation_milli": 6000},
+            "@errol": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": 6000,
+            },
+            "@genesis": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": 6000,
+            },
         },
-        "roles": {"jurors": {"by_id": {}, "active_set": []}, "validators": {"active_set": ["@genesis"]}},
+        "roles": {
+            "jurors": {"by_id": {}, "active_set": []},
+            "validators": {"active_set": ["@genesis"]},
+        },
         "content": {
             "posts": {
                 "post:@genesis:1": {
@@ -44,7 +63,11 @@ def _state() -> dict:
 def test_tier2_account_must_explicitly_opt_into_juror_responsibility_before_gate_passes() -> None:
     st = _state()
     st["disputes_by_id"] = {
-        "d1": {"dispute_id": "d1", "stage": "juror_review", "jurors": {"@errol": {"status": "assigned"}}}
+        "d1": {
+            "dispute_id": "d1",
+            "stage": "juror_review",
+            "jurors": {"@errol": {"status": "assigned"}},
+        }
     }
 
     ok, _ = eval_gate("Juror", signer="@errol", ledger=st, payload={"dispute_id": "d1"})
@@ -56,7 +79,12 @@ def test_tier2_account_must_explicitly_opt_into_juror_responsibility_before_gate
     assert rec["status"] == "active"
     assert rec["responsibilities"]["reviewer"] == {}
 
-    apply_tx(st, _env("REVIEWER_LANE_OPT_IN", "@errol", 2, {"account_id": "@errol", "lane": "dispute_review"}))
+    apply_tx(
+        st,
+        _env(
+            "REVIEWER_LANE_OPT_IN", "@errol", 2, {"account_id": "@errol", "lane": "dispute_review"}
+        ),
+    )
     ok, meta = eval_gate("Juror", signer="@errol", ledger=st, payload={"dispute_id": "d1"})
     assert ok is True, meta
     assert rec["responsibilities"]["reviewer"]["dispute_review"]["active"] is True
@@ -74,7 +102,12 @@ def test_foreign_account_cannot_enroll_someone_else_juror_responsibility() -> No
 def test_content_report_assignment_uses_opted_in_errol_and_excludes_original_poster() -> None:
     st = _state()
     apply_tx(st, _env("ROLE_JUROR_ENROLL", "@errol", 1, {"account_id": "@errol"}))
-    apply_tx(st, _env("REVIEWER_LANE_OPT_IN", "@errol", 2, {"account_id": "@errol", "lane": "content_review"}))
+    apply_tx(
+        st,
+        _env(
+            "REVIEWER_LANE_OPT_IN", "@errol", 2, {"account_id": "@errol", "lane": "content_review"}
+        ),
+    )
 
     apply_tx(
         st,

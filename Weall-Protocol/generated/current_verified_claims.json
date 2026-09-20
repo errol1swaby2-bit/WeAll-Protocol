@@ -1,0 +1,356 @@
+{
+  "claims": [
+    {
+      "claim_id": "READINESS-001",
+      "claim_text": "Public beta readiness is not currently claimed.",
+      "claim_type": "readiness",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/public_beta_blocker_report_v1_5.json",
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "The canonical generated blocker report currently records public_beta_ready=false.",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "READINESS-002",
+      "claim_text": "Mainnet readiness is not currently claimed.",
+      "claim_type": "readiness",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/public_beta_blocker_report_v1_5.json",
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "READINESS-003",
+      "claim_text": "The current reviewer framing is pre-public-testnet / active hardening, not public beta or mainnet.",
+      "claim_type": "readiness",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "docs/reviewer/CURRENT_READINESS_STATEMENT.md",
+        "docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md",
+        "generated/public_beta_blocker_report_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "This is a bounded repository-status statement, not an external validation claim.",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "SUPPORTED_BUT_QUALIFICATION_REQUIRED"
+    },
+    {
+      "claim_id": "TX-CANON-001",
+      "claim_text": "The canonical transaction index count and version are generated facts.",
+      "claim_type": "structural_count",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/tx_index.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "Consumers should read the generated artifact rather than copy these values into durable prose.",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": {
+        "law": "append-only",
+        "transaction_types": 236,
+        "version": "1.25.0"
+      }
+    },
+    {
+      "claim_id": "BOUNDARY-AUTOMATIC_PROTOCOL_UPGRADES",
+      "claim_text": "Release claim boundary `automatic_protocol_upgrades` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-LEGAL_COMPLIANCE_READY",
+      "claim_text": "Release claim boundary `legal_compliance_ready` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-LIVE_ECONOMICS",
+      "claim_text": "Release claim boundary `live_economics` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-MAINNET_READY",
+      "claim_text": "Release claim boundary `mainnet_ready` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-PRODUCTION_HELPER_EXECUTION",
+      "claim_text": "Release claim boundary `production_helper_execution` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-PUBLIC_BETA_READY",
+      "claim_text": "Release claim boundary `public_beta_ready` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-PUBLIC_DECENTRALIZED_MEDIA_DURABILITY",
+      "claim_text": "Release claim boundary `public_decentralized_media_durability` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-PUBLIC_MULTI_VALIDATOR_BFT",
+      "claim_text": "Release claim boundary `public_multi_validator_bft` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-PUBLIC_STORAGE_PROVIDER_MARKET",
+      "claim_text": "Release claim boundary `public_storage_provider_market` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "BOUNDARY-PUBLIC_VALIDATOR_ENABLED",
+      "claim_text": "Release claim boundary `public_validator_enabled` is not claimed/enabled.",
+      "claim_type": "claim_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/release_evidence_manifest_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "PROVEN_GENERATED_CURRENT",
+      "value": false
+    },
+    {
+      "claim_id": "EXTERNAL-VALIDATION-001",
+      "claim_text": "Open release blockers still require external evidence before stronger public launch claims are allowed.",
+      "claim_type": "external_validation",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/public_beta_blocker_report_v1_5.json"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "EXTERNAL_VALIDATION_REQUIRED",
+      "value": {
+        "remaining_external_evidence_required_ids": [
+          "AUD-618-P0-001",
+          "AUD-618-P0-002",
+          "AUD-618-P0-003",
+          "AUD-633-P0-004",
+          "AUD-618-P1-003",
+          "AUD-618-P1-004",
+          "AUD-618-P1-005",
+          "AUD-628-P1-001"
+        ]
+      }
+    },
+    {
+      "claim_id": "CRYPTO-REVIEW-001",
+      "claim_text": "Completed production cryptographic audit and production post-quantum security are not currently claimed.",
+      "claim_type": "cryptography",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/public_beta_blocker_report_v1_5.json",
+        "docs/reviewer/CURRENT_READINESS_STATEMENT.md"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "EXTERNAL_VALIDATION_REQUIRED",
+      "value": {
+        "external_crypto_review_blocker_open": true
+      }
+    },
+    {
+      "claim_id": "PERFORMANCE-001",
+      "claim_text": "No scalar TPS value is asserted as a current verified performance claim by this manifest.",
+      "claim_type": "performance",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "scripts/check_public_claim_freshness.py"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "Historical TPS figures are not promoted to current truth. A future performance claim requires a fresh exact-subject benchmark with methodology and provenance.",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "NOT_CURRENTLY_MEASURABLE"
+    },
+    {
+      "claim_id": "V2-DERIVATIVE-001",
+      "claim_text": "V2 structural counts and derivative fingerprints are intentionally not duplicated into this claims manifest.",
+      "claim_type": "generated_derivative_boundary",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        "generated/v2/spec_compilation_manifest.json",
+        "scripts/compile_v2_spec.py"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "The V2 compiler owns those generated facts. This manifest is downstream evidence and must not depend on a V2 derivative that also scans this manifest, which would create a circular freshness dependency.",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "SUPPORTED_BUT_QUALIFICATION_REQUIRED"
+    },
+    {
+      "claim_id": "TEST-EVIDENCE-001",
+      "claim_text": "Volatile pytest pass counts are intentionally not stored as a durable current claim in this tracked manifest.",
+      "claim_type": "testing",
+      "current_or_historical": "current",
+      "evidence_found": true,
+      "evidence_location": [
+        ".github/workflows/backend-ci.yml",
+        "scripts/check_v2_spec_clean_checkout.py"
+      ],
+      "evidence_required": true,
+      "exact_commit_bound": false,
+      "notes": "Exact test totals belong to run evidence and final clean-commit validation, not a self-staling tracked claim.",
+      "replacement_text": null,
+      "scope": "repository-current",
+      "status": "SUPPORTED_BUT_QUALIFICATION_REQUIRED"
+    }
+  ],
+  "exact_commit_binding_required_for_final_audit": true,
+  "generation_inputs": {
+    "generated/public_beta_blocker_report_v1_5.json": "4764c05310cd59be250ac97e6e6cefc217eaa7c9f4ea45ec85634fef9c61abd3",
+    "generated/release_evidence_manifest_v1_5.json": "4eaaffaebdd35d211bbf587b949c1fc4d07b135d65204a19f273473156bdf1f4",
+    "generated/tx_index.json": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
+  },
+  "schema": "weall.current_verified_claims.v1",
+  "tracked_manifest_is_commit_agnostic": true,
+  "version": "1.0.0"
+}

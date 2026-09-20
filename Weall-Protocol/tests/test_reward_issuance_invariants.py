@@ -51,7 +51,7 @@ def _mint_payload(epoch: int = 0, amount: int = INITIAL_ISSUANCE_PER_EPOCH) -> d
 def test_block_reward_mint_is_locked_before_activation() -> None:
     st = _locked_state()
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="economics are time-locked"):
         apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload()))
 
     assert st["accounts"][MINT_POOL_ACCOUNT_ID]["balance"] == 0
@@ -73,7 +73,7 @@ def test_public_transfer_and_reward_activation_remain_locked() -> None:
             ),
         )
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="economics are time-locked"):
         apply_rewards(st, _sys("BLOCK_REWARD_MINT", _mint_payload(epoch=0), nonce=2))
 
     assert st["accounts"]["@alice"]["balance"] == 100

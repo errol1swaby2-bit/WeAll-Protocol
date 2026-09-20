@@ -1,20 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 import json
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Mapping
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from typing import Any
 
 from weall.runtime.execution_lanes import ALL_LANES, LANE_SERIAL
 from weall.runtime.helper_instance_corpus import DEFAULT_HELPER_INSTANCE_CORPUS
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 from weall.runtime.lane_assignment import assign_execution_lane
 from weall.runtime.read_write_sets import TxAccessSet, build_tx_access_set
 from weall.runtime.tx_conflicts import BarrierClass, TxFamily, build_conflict_descriptor
 
 Json = dict[str, Any]
 _DEFAULT_TX_INDEX_PATH = Path(__file__).resolve().parents[3] / "generated" / "tx_index.json"
-_PLANNER_PARALLEL_HINTS: frozenset[str] = frozenset({"IDENTITY", "SOCIAL", "CONTENT", "ECONOMICS", "STORAGE"})
+_PLANNER_PARALLEL_HINTS: frozenset[str] = frozenset(
+    {"IDENTITY", "SOCIAL", "CONTENT", "ECONOMICS", "STORAGE"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,7 +52,6 @@ class HelperContract:
         return out
 
 
-
 def _tx_type_of(tx: Mapping[str, Any]) -> str:
     return str(tx.get("tx_type") or tx.get("type") or "").strip().upper()
 
@@ -67,7 +69,12 @@ def _normalize_tx(tx: Mapping[str, Any]) -> Json:
     return json.loads(_canon_json(dict(tx)))
 
 
-def _all_contract_keys(subject_keys: tuple[str, ...], read_keys: tuple[str, ...], write_keys: tuple[str, ...], authority_keys: tuple[str, ...]) -> tuple[str, ...]:
+def _all_contract_keys(
+    subject_keys: tuple[str, ...],
+    read_keys: tuple[str, ...],
+    write_keys: tuple[str, ...],
+    authority_keys: tuple[str, ...],
+) -> tuple[str, ...]:
     return tuple(subject_keys) + tuple(read_keys) + tuple(write_keys) + tuple(authority_keys)
 
 
@@ -75,7 +82,13 @@ def _is_placeholder_key(key: str) -> bool:
     return ":anon:" in str(key or "")
 
 
-def _proof_status(*, helper_eligible: bool, degraded_to_serial: bool, uses_placeholder_keys: bool, has_global_barrier_authority: bool) -> tuple[str, bool, bool]:
+def _proof_status(
+    *,
+    helper_eligible: bool,
+    degraded_to_serial: bool,
+    uses_placeholder_keys: bool,
+    has_global_barrier_authority: bool,
+) -> tuple[str, bool, bool]:
     if helper_eligible and not uses_placeholder_keys and not has_global_barrier_authority:
         return ("PROVEN_PARALLEL_SAFE", True, False)
     if helper_eligible and has_global_barrier_authority:
@@ -127,7 +140,9 @@ def helper_contract_for_tx(tx: Mapping[str, Any]) -> HelperContract:
     )
     placeholder_key_count = sum(1 for key in all_keys if _is_placeholder_key(key))
     uses_placeholder_keys = bool(placeholder_key_count)
-    has_global_barrier_authority = any(str(key).startswith("barrier:global") for key in descriptor.authority_keys)
+    has_global_barrier_authority = any(
+        str(key).startswith("barrier:global") for key in descriptor.authority_keys
+    )
     proof_status, proven_helper_eligible, requires_concrete_instance = _proof_status(
         helper_eligible=helper_eligible,
         degraded_to_serial=degraded_to_serial,
@@ -180,7 +195,6 @@ def _load_tx_types(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH) -> list[J
     return cleaned
 
 
-
 def build_helper_instance_contract_map(corpus: list[Mapping[str, Any]] | None = None) -> Json:
     rows = list(DEFAULT_HELPER_INSTANCE_CORPUS if corpus is None else corpus)
     contracts: list[Json] = []
@@ -193,25 +207,41 @@ def build_helper_instance_contract_map(corpus: list[Mapping[str, Any]] | None = 
         tx = _normalize_tx(dict(row))
         tx_type = _tx_type_of(tx)
         contract = helper_contract_for_tx(tx)
-        proof_status_counts[contract.proof_status] = int(proof_status_counts.get(contract.proof_status, 0)) + 1
-        effective_lane_counts[contract.effective_lane_id] = int(effective_lane_counts.get(contract.effective_lane_id, 0)) + 1
+        proof_status_counts[contract.proof_status] = (
+            int(proof_status_counts.get(contract.proof_status, 0)) + 1
+        )
+        effective_lane_counts[contract.effective_lane_id] = (
+            int(effective_lane_counts.get(contract.effective_lane_id, 0)) + 1
+        )
         family_counts[contract.family] = int(family_counts.get(contract.family, 0)) + 1
         if contract.degraded_to_serial:
             degraded_to_serial.append(f"{idx}:{tx_type}")
-        contracts.append({
-            "sample_index": idx,
-            **tx,
-            **contract.to_dict(),
-        })
+        contracts.append(
+            {
+                "sample_index": idx,
+                **tx,
+                **contract.to_dict(),
+            }
+        )
 
     return {
         "summary": {
             "sample_count": len(contracts),
-            "proven_helper_eligible_count": sum(1 for item in contracts if bool(item["proven_helper_eligible"])),
+            "proven_helper_eligible_count": sum(
+                1 for item in contracts if bool(item["proven_helper_eligible"])
+            ),
             "helper_eligible_count": sum(1 for item in contracts if bool(item["helper_eligible"])),
-            "degraded_to_serial_count": sum(1 for item in contracts if bool(item["degraded_to_serial"])),
-            "instance_required_count": sum(1 for item in contracts if bool(item["requires_concrete_instance"])),
-            "placeholder_parallel_count": sum(1 for item in contracts if bool(item["helper_eligible"]) and bool(item["uses_placeholder_keys"])),
+            "degraded_to_serial_count": sum(
+                1 for item in contracts if bool(item["degraded_to_serial"])
+            ),
+            "instance_required_count": sum(
+                1 for item in contracts if bool(item["requires_concrete_instance"])
+            ),
+            "placeholder_parallel_count": sum(
+                1
+                for item in contracts
+                if bool(item["helper_eligible"]) and bool(item["uses_placeholder_keys"])
+            ),
             "proof_status_counts": dict(sorted(proof_status_counts.items())),
             "effective_lane_counts": dict(sorted(effective_lane_counts.items())),
             "family_counts": dict(sorted(family_counts.items())),
@@ -219,6 +249,7 @@ def build_helper_instance_contract_map(corpus: list[Mapping[str, Any]] | None = 
         "degraded_to_serial": degraded_to_serial,
         "contracts": contracts,
     }
+
 
 def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH) -> Json:
     rows = _load_tx_types(tx_index_path)
@@ -237,7 +268,11 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
             continue
         seen.add(tx_type)
         unsupported_code = str(row.get("unsupported") or "").strip()
-        if not unsupported_code and str(row.get("domain") or "").strip().lower() == "unsupported" and str(row.get("context") or "").strip().lower() == "rejected":
+        if (
+            not unsupported_code
+            and str(row.get("domain") or "").strip().lower() == "unsupported"
+            and str(row.get("context") or "").strip().lower() == "rejected"
+        ):
             unsupported_code = "UNSUPPORTED_TX_TYPE"
         base_tx = {"tx_type": tx_type, "type": tx_type}
         contract = helper_contract_for_tx(base_tx)
@@ -245,27 +280,35 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
         if unsupported_code:
             # Canon-retained unsupported tx names must not be advertised as
             # helper-executable work or as state-mutating helper subjects.
-            contract_dict.update({
-                "family": contract_dict.get("family"),
-                "helper_eligible": False,
-                "degraded_to_serial": False,
-                "effective_lane_id": LANE_SERIAL,
-                "reason": "unsupported_tx_rejected_before_helper_planning",
-                "proof_status": "UNSUPPORTED_REJECTED",
-                "proven_helper_eligible": False,
-                "requires_concrete_instance": False,
-                "unsupported": True,
-                "unsupported_code": unsupported_code,
-                "read_keys": [],
-                "write_keys": [],
-                "subject_keys": [],
-                "authority_keys": [],
-                "uses_placeholder_keys": False,
-                "placeholder_key_count": 0,
-            })
-        family_counts[str(contract_dict["family"])] = int(family_counts.get(str(contract_dict["family"]), 0)) + 1
-        effective_lane_counts[str(contract_dict["effective_lane_id"])] = int(effective_lane_counts.get(str(contract_dict["effective_lane_id"]), 0)) + 1
-        reason_counts[str(contract_dict["reason"])] = int(reason_counts.get(str(contract_dict["reason"]), 0)) + 1
+            contract_dict.update(
+                {
+                    "family": contract_dict.get("family"),
+                    "helper_eligible": False,
+                    "degraded_to_serial": False,
+                    "effective_lane_id": LANE_SERIAL,
+                    "reason": "unsupported_tx_rejected_before_helper_planning",
+                    "proof_status": "UNSUPPORTED_REJECTED",
+                    "proven_helper_eligible": False,
+                    "requires_concrete_instance": False,
+                    "unsupported": True,
+                    "unsupported_code": unsupported_code,
+                    "read_keys": [],
+                    "write_keys": [],
+                    "subject_keys": [],
+                    "authority_keys": [],
+                    "uses_placeholder_keys": False,
+                    "placeholder_key_count": 0,
+                }
+            )
+        family_counts[str(contract_dict["family"])] = (
+            int(family_counts.get(str(contract_dict["family"]), 0)) + 1
+        )
+        effective_lane_counts[str(contract_dict["effective_lane_id"])] = (
+            int(effective_lane_counts.get(str(contract_dict["effective_lane_id"]), 0)) + 1
+        )
+        reason_counts[str(contract_dict["reason"])] = (
+            int(reason_counts.get(str(contract_dict["reason"]), 0)) + 1
+        )
         if bool(contract_dict["degraded_to_serial"]):
             degraded_to_serial.append(tx_type)
         contracts.append(
@@ -287,12 +330,26 @@ def build_helper_contract_map(tx_index_path: Path | str = _DEFAULT_TX_INDEX_PATH
         "summary": {
             "tx_count": len(contracts),
             "duplicate_name_count": len(duplicate_names),
-            "unknown_family_count": sum(1 for item in contracts if item["family"] == TxFamily.UNKNOWN.value),
+            "unknown_family_count": sum(
+                1 for item in contracts if item["family"] == TxFamily.UNKNOWN.value
+            ),
             "helper_eligible_count": sum(1 for item in contracts if bool(item["helper_eligible"])),
-            "proven_helper_eligible_count": sum(1 for item in contracts if bool(item["proven_helper_eligible"])),
-            "instance_required_count": sum(1 for item in contracts if bool(item["requires_concrete_instance"])),
-            "placeholder_parallel_count": sum(1 for item in contracts if bool(item["helper_eligible"]) and bool(item["uses_placeholder_keys"])),
-            "global_authority_parallel_count": sum(1 for item in contracts if bool(item["helper_eligible"]) and bool(item["has_global_barrier_authority"])),
+            "proven_helper_eligible_count": sum(
+                1 for item in contracts if bool(item["proven_helper_eligible"])
+            ),
+            "instance_required_count": sum(
+                1 for item in contracts if bool(item["requires_concrete_instance"])
+            ),
+            "placeholder_parallel_count": sum(
+                1
+                for item in contracts
+                if bool(item["helper_eligible"]) and bool(item["uses_placeholder_keys"])
+            ),
+            "global_authority_parallel_count": sum(
+                1
+                for item in contracts
+                if bool(item["helper_eligible"]) and bool(item["has_global_barrier_authority"])
+            ),
             "degraded_to_serial_count": len(degraded_to_serial),
             "family_counts": dict(sorted(family_counts.items())),
             "effective_lane_counts": dict(sorted(effective_lane_counts.items())),
@@ -322,4 +379,3 @@ __all__ = [
     "summarize_helper_contracts",
     "summarize_helper_instance_contracts",
 ]
-

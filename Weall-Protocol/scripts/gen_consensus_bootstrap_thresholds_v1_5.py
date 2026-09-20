@@ -20,7 +20,11 @@ def _pretty(obj: Any) -> str:
 
 
 def _flow_status(active_validators: int) -> Json:
-    from weall.runtime.bft_hotstuff import BFT_MIN_VALIDATORS, normalize_consensus_phase, quorum_threshold
+    from weall.runtime.bft_hotstuff import (
+        BFT_MIN_VALIDATORS,
+        normalize_consensus_phase,
+        quorum_threshold,
+    )
 
     phase = normalize_consensus_phase(active_validators)
     return {
@@ -35,7 +39,9 @@ def _flow_status(active_validators: int) -> Json:
             "production_hotstuff_finality_claims",
             "public_validator_bft_claims",
             "mainnet_or_production_economics_claims",
-        ] if active_validators < BFT_MIN_VALIDATORS else [],
+        ]
+        if active_validators < BFT_MIN_VALIDATORS
+        else [],
     }
 
 
@@ -78,7 +84,9 @@ def build() -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check consensus bootstrap thresholds artifact.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check consensus bootstrap thresholds artifact."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -89,7 +97,9 @@ def main() -> int:
         return 0
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit(f"stale generated consensus bootstrap thresholds: {OUT.relative_to(ROOT)}")
+            raise SystemExit(
+                f"stale generated consensus bootstrap thresholds: {OUT.relative_to(ROOT)}"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is current")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

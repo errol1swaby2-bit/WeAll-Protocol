@@ -11,7 +11,9 @@ def _page() -> str:
 
 
 def _submit_async_body(src: str) -> str:
-    return src.split("async function submitAsyncEvidence()", 1)[1].split("async function submitLiveRequest()", 1)[0]
+    return src.split("async function submitAsyncEvidence()", 1)[1].split(
+        "async function submitLiveRequest()", 1
+    )[0]
 
 
 def test_async_evidence_submits_full_sequence_and_waits_for_reviewable_truth() -> None:
@@ -22,7 +24,11 @@ def test_async_evidence_submits_full_sequence_and_waits_for_reviewable_truth() -
     assert "POH_ASYNC_REQUEST_OPEN" in body
     assert "POH_ASYNC_EVIDENCE_DECLARE" in body
     assert "POH_ASYNC_EVIDENCE_BIND" in body
-    assert body.index("POH_ASYNC_REQUEST_OPEN") < body.index("POH_ASYNC_EVIDENCE_DECLARE") < body.index("POH_ASYNC_EVIDENCE_BIND")
+    assert (
+        body.index("POH_ASYNC_REQUEST_OPEN")
+        < body.index("POH_ASYNC_EVIDENCE_DECLARE")
+        < body.index("POH_ASYNC_EVIDENCE_BIND")
+    )
 
     # The frontend may not claim that verification evidence is submitted just
     # because request-open committed.  It now submits the contiguous same-signer

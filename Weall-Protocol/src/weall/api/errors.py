@@ -42,7 +42,9 @@ class ApiError(Exception):
         return ApiError(502, code, message, details or {})
 
     @staticmethod
-    def service_unavailable(code: str, message: str, details: dict[str, Any] | None = None) -> ApiError:
+    def service_unavailable(
+        code: str, message: str, details: dict[str, Any] | None = None
+    ) -> ApiError:
         return ApiError(503, code, message, details or {})
 
     @staticmethod

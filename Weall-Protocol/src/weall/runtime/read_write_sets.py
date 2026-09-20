@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from .tx_conflicts import BarrierClass, TxFamily, build_conflict_descriptor, lane_hint_for_family
-
 
 SERIAL_LANE = "SERIAL"
 IDENTITY_LANE = "IDENTITY"
@@ -43,7 +43,9 @@ def _infer_lane_from_keys(keys: Iterable[str]) -> str:
             prefixes.add(CONTENT_LANE)
         elif key.startswith(("social:", "reputation:", "notifications:", "performance:")):
             prefixes.add(SOCIAL_LANE)
-        elif key.startswith(("gov:", "governance:", "roles:", "groups:", "dispute:", "cases:", "moderation:")):
+        elif key.startswith(
+            ("gov:", "governance:", "roles:", "groups:", "dispute:", "cases:", "moderation:")
+        ):
             prefixes.add(GOVERNANCE_LANE)
         elif key.startswith(("economics:", "treasury:", "rewards:")):
             prefixes.add(ECONOMICS_LANE)
@@ -94,9 +96,13 @@ def _explicit_access_set(tx: dict[str, Any]) -> TxAccessSet | None:
     reads = _sorted_unique_strs(raw_reads)
     writes = _sorted_unique_strs(raw_writes)
     subject_keys = _sorted_unique_strs(raw_subject if isinstance(raw_subject, valid_types) else ())
-    authority_keys = _sorted_unique_strs(raw_authority if isinstance(raw_authority, valid_types) else ())
+    authority_keys = _sorted_unique_strs(
+        raw_authority if isinstance(raw_authority, valid_types) else ()
+    )
 
-    lane_hint = _infer_lane_from_keys(tuple(reads) + tuple(writes) + tuple(subject_keys) + tuple(authority_keys))
+    lane_hint = _infer_lane_from_keys(
+        tuple(reads) + tuple(writes) + tuple(subject_keys) + tuple(authority_keys)
+    )
     fail_closed_serial = False
     scoped_keys = tuple(sorted(set(subject_keys) | set(authority_keys)))
     if scoped_keys and not set(scoped_keys).issubset(set(writes)):
@@ -110,7 +116,14 @@ def _explicit_access_set(tx: dict[str, Any]) -> TxAccessSet | None:
         writes=writes,
         fail_closed_serial=fail_closed_serial,
         family=str(tx.get("family", TxFamily.UNKNOWN.value)),
-        barrier_class=str(tx.get("barrier_class", BarrierClass.SCOPED_PARALLEL.value if lane_hint != SERIAL_LANE else BarrierClass.GLOBAL_BARRIER.value)),
+        barrier_class=str(
+            tx.get(
+                "barrier_class",
+                BarrierClass.SCOPED_PARALLEL.value
+                if lane_hint != SERIAL_LANE
+                else BarrierClass.GLOBAL_BARRIER.value,
+            )
+        ),
         subject_keys=subject_keys,
         authority_keys=authority_keys,
         derived_only=bool(tx.get("derived_only", False)),
@@ -130,12 +143,18 @@ def build_tx_access_set(tx: dict[str, Any]) -> TxAccessSet:
         fail_closed_serial = True
     elif descriptor.barrier_class == BarrierClass.GLOBAL_BARRIER:
         lane_hint = SERIAL_LANE
-    elif descriptor.serial_only_on_missing_fields and not (descriptor.subject_keys or descriptor.write_keys or descriptor.authority_keys):
+    elif descriptor.serial_only_on_missing_fields and not (
+        descriptor.subject_keys or descriptor.write_keys or descriptor.authority_keys
+    ):
         lane_hint = SERIAL_LANE
         fail_closed_serial = True
 
     reads = _sorted_unique_strs(descriptor.read_keys)
-    writes = _sorted_unique_strs(tuple(descriptor.write_keys) + tuple(descriptor.subject_keys) + tuple(descriptor.authority_keys))
+    writes = _sorted_unique_strs(
+        tuple(descriptor.write_keys)
+        + tuple(descriptor.subject_keys)
+        + tuple(descriptor.authority_keys)
+    )
 
     serial_override_types = {
         "GROUP_SIGNERS_SET",

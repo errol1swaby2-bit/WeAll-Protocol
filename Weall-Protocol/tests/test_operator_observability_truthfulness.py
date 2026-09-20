@@ -46,7 +46,9 @@ def test_blocked_helper_forces_readyz_false_and_surfaces_same_reason() -> None:
 
     assert status_payload["helper"]["helper_status"] == "blocked"
     assert status_payload["helper"]["helper_severity"] == "error"
-    assert status_payload["helper"]["helper_summary"] == "startup blocked: helper_release_gate_failed"
+    assert (
+        status_payload["helper"]["helper_summary"] == "startup blocked: helper_release_gate_failed"
+    )
 
     assert readyz_payload["helper_status"] == "blocked"
     assert readyz_payload["helper_severity"] == "error"

@@ -4,12 +4,6 @@ import sqlite3
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import BftVote, canonical_vote_message
@@ -186,7 +180,12 @@ def test_pending_remote_frontier_survives_restart_and_replays(tmp_path: Path, mo
     pending_block3["validator_epoch"] = 3
     pending_block3["validator_set_hash"] = set_hash
 
-    assert dest.bft_cache_remote_block(pending_block3) is True
+    assert (
+        dest.bft_cache_remote_block(
+            pending_block3, expected_block_hash=str(pending_block3["block_hash"])
+        )
+        is True
+    )
     before = dest.bft_diagnostics()
     assert str(block3["block_id"]) in list(before.get("pending_remote_blocks") or [])
     assert str(block3["block_id"]) in list(before.get("pending_missing_qcs") or [])
@@ -206,7 +205,12 @@ def test_pending_remote_frontier_survives_restart_and_replays(tmp_path: Path, mo
     pending_block2["qc"] = qc2
     pending_block2["validator_epoch"] = 3
     pending_block2["validator_set_hash"] = set_hash
-    assert restarted.bft_cache_remote_block(pending_block2) is True
+    assert (
+        restarted.bft_cache_remote_block(
+            pending_block2, expected_block_hash=str(pending_block2["block_hash"])
+        )
+        is True
+    )
     assert int(restarted.state.get("height") or 0) == 3
     assert str(restarted.state.get("tip") or "") == str(block3["block_id"])
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_artifact_cache.py)."""
 
+from typing import Any
+
 from weall.runtime.executor import (
     OrderedDict,
     _bounded_put,
@@ -11,6 +13,9 @@ from weall.runtime.executor import (
     hashlib,
     os,
 )
+
+Json = dict[str, Any]
+
 
 def _ensure_recent_bft_artifact_caches(self) -> None:
     if not hasattr(self, "_max_recent_bft_proposals"):
@@ -22,12 +27,8 @@ def _ensure_recent_bft_artifact_caches(self) -> None:
     ):
         self._recent_bft_proposals = OrderedDict()
     if not hasattr(self, "_max_recent_bft_qcs"):
-        self._max_recent_bft_qcs = max(
-            1, _safe_int(os.environ.get("WEALL_BFT_RECENT_QCS"), 2048)
-        )
-    if not hasattr(self, "_recent_bft_qcs") or not isinstance(
-        self._recent_bft_qcs, OrderedDict
-    ):
+        self._max_recent_bft_qcs = max(1, _safe_int(os.environ.get("WEALL_BFT_RECENT_QCS"), 2048))
+    if not hasattr(self, "_recent_bft_qcs") or not isinstance(self._recent_bft_qcs, OrderedDict):
         self._recent_bft_qcs = OrderedDict()
     if not hasattr(self, "_max_recent_bft_votes"):
         self._max_recent_bft_votes = max(
@@ -61,6 +62,13 @@ def _ensure_recent_bft_artifact_caches(self) -> None:
         self._recent_bft_sender_budgets, OrderedDict
     ):
         self._recent_bft_sender_budgets = OrderedDict()
+    if not hasattr(self, "_max_recent_bft_admission_aliases"):
+        self._max_recent_bft_admission_aliases = int(self._max_recent_bft_proposals)
+    if not hasattr(self, "_recent_bft_admission_aliases") or not isinstance(
+        self._recent_bft_admission_aliases, OrderedDict
+    ):
+        self._recent_bft_admission_aliases = OrderedDict()
+
 
 def _bft_sender_budget_key(self, artifact: Json) -> str:
     self._ensure_recent_bft_artifact_caches()
@@ -81,15 +89,14 @@ def _bft_sender_budget_key(self, artifact: Json) -> str:
         for item in votes_any:
             if not isinstance(item, dict):
                 continue
-            signer = str(
-                item.get("signer") or item.get("sender") or item.get("from") or ""
-            ).strip()
+            signer = str(item.get("signer") or item.get("sender") or item.get("from") or "").strip()
             if signer:
                 senders.append(signer)
         if senders:
             senders.sort()
             return senders[0]
     return ""
+
 
 def _consume_bft_sender_budget(self, artifact: Json) -> bool:
     self._ensure_recent_bft_artifact_caches()
@@ -124,23 +131,65 @@ def _consume_bft_sender_budget(self, artifact: Json) -> bool:
     )
     return True
 
-def _remember_recent_bft_proposal(self, proposal: Json) -> bool:
+
+def _recent_bft_artifact_key(self, artifact: Json) -> str:
     self._ensure_recent_bft_artifact_caches()
     try:
-        key = hashlib.sha256(_canon_json(dict(proposal)).encode("utf-8")).hexdigest()
+        return hashlib.sha256(_canon_json(dict(artifact)).encode("utf-8")).hexdigest()
     except Exception:
-        return False
+        return ""
+
+
+def _has_recent_bft_artifact(self, artifact: Json, *, cache_attr: str) -> bool:
+    key = _recent_bft_artifact_key(self, artifact)
+    cache = getattr(self, cache_attr, None)
+    return bool(key and isinstance(cache, OrderedDict) and key in cache)
+
+
+def _record_recent_bft_artifact(self, artifact: Json, *, cache_attr: str, cap_attr: str) -> None:
+    key = _recent_bft_artifact_key(self, artifact)
+    cache = getattr(self, cache_attr, None)
+    if not key or not isinstance(cache, OrderedDict):
+        return
+    _bounded_put(cache, key, _now_ms(), cap=int(getattr(self, cap_attr)))
+
+
+def _bft_admission_alias_key(self, kind: str, artifact: Json) -> str:
+    key = _recent_bft_artifact_key(self, artifact)
+    k = str(kind or "").strip().lower()
+    return f"{k}:{key}" if k and key else ""
+
+
+def _has_bft_admission_alias(self, kind: str, artifact: Json) -> bool:
+    self._ensure_recent_bft_artifact_caches()
+    key = _bft_admission_alias_key(self, kind, artifact)
+    return bool(key and key in self._recent_bft_admission_aliases)
+
+
+def _record_bft_admission_alias(self, kind: str, artifact: Json) -> None:
+    self._ensure_recent_bft_artifact_caches()
+    key = _bft_admission_alias_key(self, kind, artifact)
     if not key:
-        return False
-    if key in self._recent_bft_proposals:
-        return True
+        return
     _bounded_put(
-        self._recent_bft_proposals,
+        self._recent_bft_admission_aliases,
         key,
         _now_ms(),
-        cap=int(self._max_recent_bft_proposals),
+        cap=int(self._max_recent_bft_admission_aliases),
+    )
+
+
+def _remember_recent_bft_proposal(self, proposal: Json) -> bool:
+    if _has_recent_bft_artifact(self, proposal, cache_attr="_recent_bft_proposals"):
+        return True
+    _record_recent_bft_artifact(
+        self,
+        proposal,
+        cache_attr="_recent_bft_proposals",
+        cap_attr="_max_recent_bft_proposals",
     )
     return False
+
 
 def _recent_bft_qc_key(self, qcj: Json) -> str:
     self._ensure_recent_bft_artifact_caches()
@@ -149,11 +198,13 @@ def _recent_bft_qc_key(self, qcj: Json) -> str:
     except Exception:
         return ""
 
+
 def _has_recent_bft_qc(self, qcj: Json) -> bool:
     key = self._recent_bft_qc_key(qcj)
     if not key:
         return False
     return key in self._recent_bft_qcs
+
 
 def _record_recent_bft_qc(self, qcj: Json) -> None:
     key = self._recent_bft_qc_key(qcj)
@@ -161,47 +212,53 @@ def _record_recent_bft_qc(self, qcj: Json) -> None:
         return
     _bounded_put(self._recent_bft_qcs, key, _now_ms(), cap=int(self._max_recent_bft_qcs))
 
+
 def _remember_recent_bft_qc(self, qcj: Json) -> bool:
     if self._has_recent_bft_qc(qcj):
         return True
     self._record_recent_bft_qc(qcj)
     return False
 
+
 def _remember_recent_bft_vote(self, votej: Json) -> bool:
-    self._ensure_recent_bft_artifact_caches()
-    try:
-        key = hashlib.sha256(_canon_json(dict(votej)).encode("utf-8")).hexdigest()
-    except Exception:
-        return False
-    if not key:
-        return False
-    if key in self._recent_bft_votes:
+    if _has_recent_bft_artifact(self, votej, cache_attr="_recent_bft_votes"):
         return True
-    _bounded_put(
-        self._recent_bft_votes,
-        key,
-        _now_ms(),
-        cap=int(self._max_recent_bft_votes),
+    _record_recent_bft_artifact(
+        self,
+        votej,
+        cache_attr="_recent_bft_votes",
+        cap_attr="_max_recent_bft_votes",
     )
     return False
 
+
 def _remember_recent_bft_timeout(self, timeoutj: Json) -> bool:
-    self._ensure_recent_bft_artifact_caches()
-    try:
-        key = hashlib.sha256(_canon_json(dict(timeoutj)).encode("utf-8")).hexdigest()
-    except Exception:
-        return False
-    if not key:
-        return False
-    if key in self._recent_bft_timeouts:
+    if _has_recent_bft_artifact(self, timeoutj, cache_attr="_recent_bft_timeouts"):
         return True
-    _bounded_put(
-        self._recent_bft_timeouts,
-        key,
-        _now_ms(),
-        cap=int(self._max_recent_bft_timeouts),
+    _record_recent_bft_artifact(
+        self,
+        timeoutj,
+        cache_attr="_recent_bft_timeouts",
+        cap_attr="_max_recent_bft_timeouts",
     )
     return False
+
+
+def _bft_artifact_was_accepted(self, kind: str, artifact: Json) -> bool:
+    """Return whether an exact BFT artifact crossed verified runtime admission."""
+    k = str(kind or "").strip().lower()
+    if k == "proposal":
+        return _has_recent_bft_artifact(
+            self, artifact, cache_attr="_recent_bft_proposals"
+        ) or _has_bft_admission_alias(self, k, artifact)
+    if k == "vote":
+        return _has_recent_bft_artifact(self, artifact, cache_attr="_recent_bft_votes")
+    if k == "qc":
+        return _has_recent_bft_qc(self, artifact)
+    if k == "timeout":
+        return _has_recent_bft_artifact(self, artifact, cache_attr="_recent_bft_timeouts")
+    return False
+
 
 def _bft_artifact_shape_fast_fail(self, kind: str, payload: Json) -> bool:
     if not isinstance(payload, dict):
@@ -298,4 +355,3 @@ def _bft_artifact_shape_fast_fail(self, kind: str, payload: Json) -> bool:
         return True
 
     return False
-

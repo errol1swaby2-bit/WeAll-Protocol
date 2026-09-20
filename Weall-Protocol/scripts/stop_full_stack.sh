@@ -51,7 +51,7 @@ kill_pid_file_if_running "$FRONTEND_PID_FILE" "frontend"
 pkill -f 'vite.*--host' >/dev/null 2>&1 || true
 
 kill_pid_file_if_running "$BACKEND_PID_FILE" "backend"
-pkill -f 'gunicorn weall.api.app:app' >/dev/null 2>&1 || true
+pkill -f 'gunicorn weall.api.asgi:app' >/dev/null 2>&1 || true
 rm -f "$ROOT_DIR/gunicorn.ctl"
 
 if [[ -f "$COMPOSE_FILE" ]]; then

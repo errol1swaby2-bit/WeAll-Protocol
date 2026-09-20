@@ -5,7 +5,6 @@ from typing import Any
 
 from weall.runtime.helper_startup_integration import HelperStartupStatus
 
-
 Json = dict[str, Any]
 
 

@@ -18,8 +18,8 @@ class ValidatorAttesterError(RuntimeError):
 
 
 def _mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -93,8 +93,6 @@ def _validate_startup_args(
         raise ValidatorAttesterError("attester_invalid_sig_encoding")
 
 
-
-
 def _read_head_status(producer_url: str) -> Json:
     """Read the current chain head from /v1/status, falling back only in non-prod.
 
@@ -106,9 +104,7 @@ def _read_head_status(producer_url: str) -> Json:
     if status.get("ok"):
         return status
     if _mode() == "prod":
-        raise ValidatorAttesterError(
-            f"attester_status_failed:{status.get('error') or 'unknown'}"
-        )
+        raise ValidatorAttesterError(f"attester_status_failed:{status.get('error') or 'unknown'}")
     snap = _http_json("GET", f"{producer_url}/v1/state/snapshot")
     if not snap.get("ok"):
         raise ValidatorAttesterError(
@@ -151,28 +147,11 @@ def run_attester_loop(
 
         try:
             tip = str(head.get("tip") or "").strip()
-            tip_proposal_id = str(head.get("tip_proposal_id") or "").strip()
             tip_round = int(head.get("tip_round", head.get("round", 0)) or 0)
             height = int(head.get("height", 0) or 0)
             chain_id = str(head.get("chain_id") or "weall").strip() or "weall"
         except Exception as e:
             raise ValidatorAttesterError(f"attester_status_invalid:{type(e).__name__}:{e}") from e
-
-        # Source checkpoint for Casper-style justification/finality.
-        source_block_id = (
-            str(head.get("justified_block_id") or "").strip()
-            or str(head.get("finalized_block_id") or "").strip()
-        )
-        try:
-            source_height = int(head.get("justified_height", 0) or 0)
-        except Exception:
-            source_height = 0
-        if not source_block_id:
-            source_block_id = str(head.get("finalized_block_id") or "").strip()
-            try:
-                source_height = int(head.get("finalized_height", 0) or 0)
-            except Exception:
-                source_height = 0
 
         if not tip:
             if verbose:
@@ -203,20 +182,24 @@ def run_attester_loop(
             continue
 
         try:
-            cur_nonce = int(nonce_doc.get("nonce", 0) or 0)
+            if nonce_doc.get("next_nonce") is not None:
+                next_nonce = int(nonce_doc.get("next_nonce"))
+            else:
+                cur_nonce = int(nonce_doc.get("nonce", 0) or 0)
+                next_nonce = cur_nonce + 1
+            if next_nonce <= 0:
+                raise ValueError("next_nonce_must_be_positive")
         except Exception as e:
             raise ValidatorAttesterError(f"attester_nonce_invalid:{type(e).__name__}:{e}") from e
-        next_nonce = cur_nonce + 1
 
+        # BLOCK_ATTEST has a strict canonical payload schema.  Do not attach
+        # Casper-style/source/proposal convenience fields that are neither
+        # validated nor consumed by the current HotStuff-backed implementation.
         payload: Json = {
             "block_id": tip,
             "height": int(height),
             "round": int(tip_round),
-            "source_block_id": source_block_id,
-            "source_height": int(source_height),
         }
-        if tip_proposal_id:
-            payload["proposal_id"] = tip_proposal_id
 
         tx: Json = {
             "tx_type": "BLOCK_ATTEST",
@@ -236,9 +219,6 @@ def run_attester_loop(
                     "tip": tip,
                     "height": height,
                     "round": tip_round,
-                    "proposal_id": tip_proposal_id,
-                    "source_block_id": source_block_id,
-                    "source_height": int(source_height),
                     "nonce": next_nonce,
                     "ok": bool(res.get("ok")),
                     "code": res.get("code"),

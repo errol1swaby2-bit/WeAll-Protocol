@@ -41,7 +41,15 @@ def test_devnet_live_request_generates_default_commitments() -> None:
 
 def test_full_onboarding_can_run_optional_live_flow() -> None:
     text = DEVNET_ONBOARDING.read_text(encoding="utf-8")
-    assert "WEALL_DEVNET_RUN_LIVE" in text
-    assert "_run_live_devnet_flow \"${ACCOUNT}\"" in text
+    assert 'RUN_CANONICAL_LIVE="${WEALL_DEVNET_RUN_LIVE:-0}"' in text
+    assert 'if [[ "${WEALL_DEVNET_RUN_TIER2:-0}" == "1" ]]' in text
+    assert (
+        "WEALL_DEVNET_RUN_TIER2 is a compatibility alias for canonical Live Tier-2 verification"
+        in text
+    )
+    assert "RUN_CANONICAL_LIVE=1" in text
+    assert 'if [[ "${RUN_CANONICAL_LIVE}" == "1" ]]' in text
+    assert '_run_live_devnet_flow "${ACCOUNT}"' in text
+    assert "_run_tier2_devnet_flow" not in text
     assert "could not resolve onboarding account after account creation" in text
-    assert "Completing optional native live Tier-2 verification" in text
+    assert "Completing optional canonical Live Tier-2 verification" in text

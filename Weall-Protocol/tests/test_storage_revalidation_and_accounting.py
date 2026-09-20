@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import pytest
-
-from weall.runtime.domain_apply import ApplyError, apply_tx
+from weall.runtime.domain_apply import apply_tx
 from weall.runtime.node_operator_responsibilities import evaluate_storage_responsibility
 from weall.runtime.storage_revalidation_scheduler import (
     apply_storage_revalidation_status,
@@ -14,7 +12,9 @@ CID_A = "bafkreigh2akiscaildc3qj6k2ol6qmk7p2xk3w5t2c5a7xqz7xqz7i"
 CID_B = "bafkreibm6jgqve7pzq3p7uwz3r3owz3oob7xjlkvyq5m4jdokwfvlq45aq"
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict | None = None, *, system: bool = False) -> TxEnvelope:
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict | None = None, *, system: bool = False
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -116,7 +116,15 @@ def _storage(st: dict) -> dict:
 
 
 def _request_pin(st: dict, *, nonce: int, cid: str = CID_A, size: int = 10_000) -> dict:
-    return apply_tx(st, _env("IPFS_PIN_REQUEST", "@user", nonce, {"pin_id": f"pin-{nonce}", "cid": cid, "size_bytes": size}))
+    return apply_tx(
+        st,
+        _env(
+            "IPFS_PIN_REQUEST",
+            "@user",
+            nonce,
+            {"pin_id": f"pin-{nonce}", "cid": cid, "size_bytes": size},
+        ),
+    )
 
 
 def test_expired_storage_proof_blocks_new_allocation_but_preserves_existing_accounting() -> None:
@@ -130,7 +138,15 @@ def test_expired_storage_proof_blocks_new_allocation_but_preserves_existing_acco
     assert expired.active is False
     assert "capacity_proof_expired" in expired.reasons
 
-    pin2 = apply_tx(st, _env("IPFS_PIN_REQUEST", "@user", 2, {"pin_id": "after-expiry", "cid": CID_B, "size_bytes": 1_000}))
+    pin2 = apply_tx(
+        st,
+        _env(
+            "IPFS_PIN_REQUEST",
+            "@user",
+            2,
+            {"pin_id": "after-expiry", "cid": CID_B, "size_bytes": 1_000},
+        ),
+    )
     assert pin2["targets"] == []
     assert _storage(st)["allocated_capacity_bytes"] == 10_000
 
@@ -164,7 +180,14 @@ def test_successful_storage_revalidation_refreshes_expiry_and_failed_revalidatio
             {
                 "challenge_id": action.challenge_id,
                 "response_commitment": "sha256:response",
-                "probe_responses": [{"offset": offset, "size": 512, "response_hash": "sha256:r0"}, {"offset": issue["probe_offsets"][1], "size": 512, "response_hash": "sha256:r1"}],
+                "probe_responses": [
+                    {"offset": offset, "size": 512, "response_hash": "sha256:r0"},
+                    {
+                        "offset": issue["probe_offsets"][1],
+                        "size": 512,
+                        "response_hash": "sha256:r1",
+                    },
+                ],
             },
         ),
     )
@@ -217,18 +240,57 @@ def test_ipfs_pin_confirm_fail_and_release_are_idempotent() -> None:
     assert pin["targets"] == ["@op"]
     assert _storage(st)["allocated_capacity_bytes"] == 7_000
 
-    apply_tx(st, _env("IPFS_PIN_CONFIRM", "SYSTEM", 2, {"pin_id": pin["pin_id"], "cid": CID_A, "operator_id": "@op", "ok": True}, system=True))
+    apply_tx(
+        st,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            2,
+            {"pin_id": pin["pin_id"], "cid": CID_A, "operator_id": "@op", "ok": True},
+            system=True,
+        ),
+    )
     assert _storage(st)["used_capacity_bytes"] == 7_000
     assert st["storage"]["operators"]["@op"]["used_bytes"] == 7_000
 
-    apply_tx(st, _env("IPFS_PIN_CONFIRM", "SYSTEM", 3, {"pin_id": pin["pin_id"], "cid": CID_A, "operator_id": "@op", "release": True, "ok": False}, system=True))
+    apply_tx(
+        st,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            3,
+            {
+                "pin_id": pin["pin_id"],
+                "cid": CID_A,
+                "operator_id": "@op",
+                "release": True,
+                "ok": False,
+            },
+            system=True,
+        ),
+    )
     assert _storage(st)["allocated_capacity_bytes"] == 0
     assert _storage(st)["used_capacity_bytes"] == 0
     assert st["storage"]["operators"]["@op"]["allocated_bytes"] == 0
     assert st["storage"]["operators"]["@op"]["used_bytes"] == 0
 
     # Duplicate release is idempotent.
-    apply_tx(st, _env("IPFS_PIN_CONFIRM", "SYSTEM", 4, {"pin_id": pin["pin_id"], "cid": CID_A, "operator_id": "@op", "release": True, "ok": False}, system=True))
+    apply_tx(
+        st,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            4,
+            {
+                "pin_id": pin["pin_id"],
+                "cid": CID_A,
+                "operator_id": "@op",
+                "release": True,
+                "ok": False,
+            },
+            system=True,
+        ),
+    )
     assert _storage(st)["allocated_capacity_bytes"] == 0
     assert _storage(st)["used_capacity_bytes"] == 0
 
@@ -238,10 +300,28 @@ def test_failed_pin_confirmation_releases_reserved_allocation_once() -> None:
     pin = _request_pin(st, nonce=1, size=8_000)
     assert _storage(st)["allocated_capacity_bytes"] == 8_000
 
-    apply_tx(st, _env("IPFS_PIN_CONFIRM", "SYSTEM", 2, {"pin_id": pin["pin_id"], "cid": CID_A, "operator_id": "@op", "ok": False}, system=True))
+    apply_tx(
+        st,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            2,
+            {"pin_id": pin["pin_id"], "cid": CID_A, "operator_id": "@op", "ok": False},
+            system=True,
+        ),
+    )
     assert _storage(st)["allocated_capacity_bytes"] == 0
 
-    apply_tx(st, _env("IPFS_PIN_CONFIRM", "SYSTEM", 3, {"pin_id": pin["pin_id"], "cid": CID_A, "operator_id": "@op", "ok": False}, system=True))
+    apply_tx(
+        st,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            "SYSTEM",
+            3,
+            {"pin_id": pin["pin_id"], "cid": CID_A, "operator_id": "@op", "ok": False},
+            system=True,
+        ),
+    )
     assert _storage(st)["allocated_capacity_bytes"] == 0
 
 

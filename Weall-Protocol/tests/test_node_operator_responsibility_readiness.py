@@ -2,19 +2,26 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from weall.runtime.node_lifecycle_preflight import evaluate_production_preflight
 from weall.runtime.node_operator_responsibilities import (
     evaluate_baseline_node_operator,
     evaluate_node_operator_responsibilities,
     evaluate_storage_responsibility,
     evaluate_validator_responsibility,
 )
-from weall.runtime.node_lifecycle_preflight import evaluate_production_preflight
 from weall.runtime.node_operator_scheduler import schedule_node_operator_system_txs
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _state(*, tier: int = 2, rep: int = 6000, active: bool = True, banned: bool = False, locked: bool = False) -> dict:
+def _state(
+    *,
+    tier: int = 2,
+    rep: int = 6000,
+    active: bool = True,
+    banned: bool = False,
+    locked: bool = False,
+) -> dict:
     return {
         "accounts": {
             "@op": {
@@ -96,8 +103,12 @@ def test_responsibility_evaluator_reports_baseline_validator_and_storage_status(
 
 
 def test_responsibility_evaluator_is_the_shared_scheduler_and_preflight_source() -> None:
-    scheduler = (ROOT / "src" / "weall" / "runtime" / "node_operator_scheduler.py").read_text(encoding="utf-8")
-    preflight = (ROOT / "src" / "weall" / "runtime" / "node_lifecycle_preflight.py").read_text(encoding="utf-8")
+    scheduler = (ROOT / "src" / "weall" / "runtime" / "node_operator_scheduler.py").read_text(
+        encoding="utf-8"
+    )
+    preflight = (ROOT / "src" / "weall" / "runtime" / "node_lifecycle_preflight.py").read_text(
+        encoding="utf-8"
+    )
     roles = (ROOT / "src" / "weall" / "runtime" / "apply" / "roles.py").read_text(encoding="utf-8")
 
     assert "evaluate_baseline_node_operator" in scheduler
@@ -111,13 +122,19 @@ def test_scheduler_uses_central_baseline_reasons() -> None:
     tier1 = _state(tier=1, active=False)
     assert evaluate_baseline_node_operator(tier1, "@op").reasons == ("poh_tier_insufficient",)
     assert schedule_node_operator_system_txs(tier1, next_height=10) == 0
-    assert tier1["roles"]["node_operators"]["by_id"]["@op"]["activation_check"] == "poh_tier_insufficient"
+    assert (
+        tier1["roles"]["node_operators"]["by_id"]["@op"]["activation_check"]
+        == "poh_tier_insufficient"
+    )
 
     missing_key = _state(tier=2, active=False)
     missing_key["accounts"]["@op"]["devices"] = {"by_id": {}}
     assert evaluate_baseline_node_operator(missing_key, "@op").reasons == ("node_key_missing",)
     assert schedule_node_operator_system_txs(missing_key, next_height=10) == 0
-    assert missing_key["roles"]["node_operators"]["by_id"]["@op"]["activation_check"] == "node_key_missing"
+    assert (
+        missing_key["roles"]["node_operators"]["by_id"]["@op"]["activation_check"]
+        == "node_key_missing"
+    )
 
 
 def test_central_evaluator_and_preflight_keep_opt_in_separate_from_authority(monkeypatch) -> None:

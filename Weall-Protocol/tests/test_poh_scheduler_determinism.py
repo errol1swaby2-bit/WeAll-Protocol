@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from weall.runtime.poh.juror_select import eligible_tier2_jurors, eligible_live_jurors
-from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
+from weall.runtime.poh.juror_select import eligible_live_jurors, eligible_tier2_jurors
 from weall.runtime.poh.live_scheduler import schedule_poh_live_system_txs
+from weall.runtime.poh.tier2_scheduler import schedule_poh_tier2_system_txs
 
 Json = dict[str, Any]
 

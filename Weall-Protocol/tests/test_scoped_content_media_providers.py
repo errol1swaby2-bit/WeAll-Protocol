@@ -59,9 +59,21 @@ def _state() -> dict[str, Any]:
     return {
         "chain_id": "batch363-364",
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 2, "session_keys": {"sk:@alice": {"active": True, "ttl_s": 0}}},
-            "@bob": {"nonce": 0, "poh_tier": 2, "session_keys": {"sk:@bob": {"active": True, "ttl_s": 0}}},
-            "@eve": {"nonce": 0, "poh_tier": 2, "session_keys": {"sk:@eve": {"active": True, "ttl_s": 0}}},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "session_keys": {"sk:@alice": {"active": True, "ttl_s": 0}},
+            },
+            "@bob": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "session_keys": {"sk:@bob": {"active": True, "ttl_s": 0}},
+            },
+            "@eve": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "session_keys": {"sk:@eve": {"active": True, "ttl_s": 0}},
+            },
         },
         "groups_by_id": {
             "g-private": {
@@ -69,7 +81,11 @@ def _state() -> dict[str, Any]:
                 "visibility": "private",
                 "members": {"@alice": {"role": "member"}},
             },
-            "g-public": {"id": "g-public", "visibility": "public", "members": {"@bob": {"role": "member"}}},
+            "g-public": {
+                "id": "g-public",
+                "visibility": "public",
+                "members": {"@bob": {"role": "member"}},
+            },
         },
         "content": {
             "posts": {

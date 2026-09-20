@@ -3,11 +3,11 @@ from __future__ import annotations
 import os
 import time
 from typing import Any
-from weall.api.errors import ApiError
 
 from fastapi import APIRouter, Request
 
 from weall.api.config import allow_insecure_localhost, normalize_base_url, read_nodes_registry
+from weall.api.errors import ApiError
 from weall.api.public_seed_registry import (
     PublicSeedRegistryError,
     commitment_payload,
@@ -15,6 +15,7 @@ from weall.api.public_seed_registry import (
     public_seed_registry_path,
     public_testnet_enabled,
 )
+from weall.runtime.commitments import consensus_active_validator_ids
 
 Json = dict[str, Any]
 
@@ -30,8 +31,8 @@ class NodesEndpointStateError(RuntimeError):
 
 
 def _runtime_mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -47,13 +48,18 @@ def _public_seed_api_error(exc: PublicSeedRegistryError) -> ApiError:
     return ApiError.service_unavailable(
         str(exc) or "public_seed_registry_error",
         "public testnet seed registry is missing or unsafe",
-        {"public_testnet": True, "recovery": "configure WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH with a valid public seed registry"},
+        {
+            "public_testnet": True,
+            "recovery": "configure WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH with a valid public seed registry",
+        },
     )
 
 
 def _load_public_registry_for_request(request: Request) -> Json:
     cfg = getattr(request.app.state, "cfg", None)
-    path = public_seed_registry_path(getattr(cfg, "public_seed_registry_path", None) if cfg is not None else None)
+    path = public_seed_registry_path(
+        getattr(cfg, "public_seed_registry_path", None) if cfg is not None else None
+    )
     try:
         return load_public_seed_registry(path)
     except PublicSeedRegistryError as exc:
@@ -166,7 +172,9 @@ def _seeds_response(request: Request) -> Json:
             "registry_source_provider": registry.get("registry_source_provider", ""),
             "registry_mirror_attempts": registry.get("registry_mirror_attempts", []),
             "provider_authority": False,
-            "active_validator_endpoint_policy": registry.get("active_validator_endpoint_policy", "verified_or_hint"),
+            "active_validator_endpoint_policy": registry.get(
+                "active_validator_endpoint_policy", "verified_or_hint"
+            ),
             "resettable_testnet": True,
             "economics_active": False,
             "nodes": nodes,
@@ -293,8 +301,6 @@ def _known_peers_response(request: Request) -> Json:
     return {"ok": True, "generated_ts_ms": int(time.time() * 1000), "peers": peers}
 
 
-
-
 def _try_read_state(request: Request) -> Json:
     ex = getattr(request.app.state, "executor", None)
     fn = getattr(ex, "read_state", None)
@@ -310,6 +316,10 @@ def _try_read_state(request: Request) -> Json:
 
 
 def _active_validators_from_state(state: Json) -> list[str]:
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return list(explicit)
+
     values: list[str] = []
     validators_root = state.get("validators")
     if isinstance(validators_root, dict):
@@ -356,8 +366,6 @@ def _registry_validator_endpoints(request: Request) -> list[Json]:
     return [dict(e) for e in endpoints if isinstance(e, dict)]
 
 
-
-
 def _validator_endpoint_max_age_ms() -> int:
     raw = str(os.environ.get("WEALL_PUBLIC_VALIDATOR_ENDPOINT_MAX_AGE_MS") or "3600000").strip()
     try:
@@ -386,6 +394,7 @@ def _endpoint_freshness(ep: Json, *, now_ms: int, max_age_ms: int) -> Json:
         "stale": stale,
         "reason": "missing_timestamp" if ts <= 0 else ("stale" if stale else "fresh"),
     }
+
 
 def _validator_endpoints_response(request: Request) -> Json:
     state = _try_read_state(request)
@@ -419,7 +428,9 @@ def _validator_endpoints_response(request: Request) -> Json:
         verified_fresh_count = sum(
             1
             for ep in eps
-            if ep.get("verified") is True and isinstance(ep.get("freshness"), dict) and ep["freshness"].get("fresh") is True
+            if ep.get("verified") is True
+            and isinstance(ep.get("freshness"), dict)
+            and ep["freshness"].get("fresh") is True
         )
         validators.append(
             {
@@ -440,7 +451,8 @@ def _validator_endpoints_response(request: Request) -> Json:
     hint_only = [
         ep
         for ep in endpoint_rows
-        if str(ep.get("account_id") or "").strip() and str(ep.get("account_id") or "").strip() not in active_accounts
+        if str(ep.get("account_id") or "").strip()
+        and str(ep.get("account_id") or "").strip() not in active_accounts
     ]
 
     commitments: Json = {}
@@ -450,9 +462,15 @@ def _validator_endpoints_response(request: Request) -> Json:
         commitments = commitment_payload(registry)
         registry_status.update(
             {
-                "active_validator_endpoint_policy": registry.get("active_validator_endpoint_policy", "verified_or_hint"),
-                "seed_registry_signature_present": bool(str(registry.get("seed_registry_signature") or "").strip()),
-                "seed_registry_signature_status": registry.get("seed_registry_signature_status", {}),
+                "active_validator_endpoint_policy": registry.get(
+                    "active_validator_endpoint_policy", "verified_or_hint"
+                ),
+                "seed_registry_signature_present": bool(
+                    str(registry.get("seed_registry_signature") or "").strip()
+                ),
+                "seed_registry_signature_status": registry.get(
+                    "seed_registry_signature_status", {}
+                ),
                 "registry_source_kind": registry.get("registry_source_kind", ""),
                 "registry_source_provider": registry.get("registry_source_provider", ""),
                 "provider_authority": False,
@@ -465,11 +483,23 @@ def _validator_endpoints_response(request: Request) -> Json:
         "public_testnet": bool(_public_mode()),
         "commitments": commitments,
         "active_validator_count": len(validators),
-        "verified_endpoint_count": sum(int(v.get("verified_endpoint_count") or 0) for v in validators),
-        "verified_fresh_endpoint_count": sum(int(v.get("verified_fresh_endpoint_count") or 0) for v in validators),
-        "stale_verified_endpoint_count": sum(int(v.get("stale_verified_endpoint_count") or 0) for v in validators),
-        "active_validators_missing_verified_fresh_endpoint_count": sum(1 for v in validators if not bool(v.get("has_verified_fresh_endpoint"))),
-        "all_active_validators_have_verified_fresh_endpoint": all(bool(v.get("has_verified_fresh_endpoint")) for v in validators) if validators else True,
+        "verified_endpoint_count": sum(
+            int(v.get("verified_endpoint_count") or 0) for v in validators
+        ),
+        "verified_fresh_endpoint_count": sum(
+            int(v.get("verified_fresh_endpoint_count") or 0) for v in validators
+        ),
+        "stale_verified_endpoint_count": sum(
+            int(v.get("stale_verified_endpoint_count") or 0) for v in validators
+        ),
+        "active_validators_missing_verified_fresh_endpoint_count": sum(
+            1 for v in validators if not bool(v.get("has_verified_fresh_endpoint"))
+        ),
+        "all_active_validators_have_verified_fresh_endpoint": all(
+            bool(v.get("has_verified_fresh_endpoint")) for v in validators
+        )
+        if validators
+        else True,
         "endpoint_freshness_policy": {"max_age_ms": max_age_ms},
         "validators": validators,
         "unverified_endpoint_hints": hint_only,
@@ -481,6 +511,7 @@ def _validator_endpoints_response(request: Request) -> Json:
         },
         "registry": registry_status,
     }
+
 
 @router.get("/v1/nodes")
 def v1_nodes(request: Request) -> Json:

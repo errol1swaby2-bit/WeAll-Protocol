@@ -5,7 +5,6 @@ import os
 import subprocess
 import sys
 
-
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
@@ -18,8 +17,7 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
         cwd=ROOT,
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
         timeout=45,
     )
@@ -68,7 +66,9 @@ def test_public_validator_endpoint_churn_and_frontend_operator_artifacts_are_con
         assert payload.get("artifact_digest")
 
 
-def test_public_observer_runtime_transcript_missing_live_endpoints_does_not_create_launch_claim(tmp_path) -> None:
+def test_public_observer_runtime_transcript_missing_live_endpoints_does_not_create_launch_claim(
+    tmp_path,
+) -> None:
     out = tmp_path / "runtime.json"
     env = os.environ.copy()
     env["WEALL_PUBLIC_TESTNET"] = "1"
@@ -86,8 +86,7 @@ def test_public_observer_runtime_transcript_missing_live_endpoints_does_not_crea
         cwd=ROOT,
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode != 0

@@ -39,11 +39,15 @@ def _env_true(name: str, default: str = "0") -> bool:
 
 def _runtime_profile() -> str:
     return (
-        os.getenv("WEALL_RUNTIME_PROFILE")
-        or os.getenv("WEALL_PROTOCOL_PROFILE")
-        or os.getenv("WEALL_PROFILE")
-        or ""
-    ).strip().lower()
+        (
+            os.getenv("WEALL_RUNTIME_PROFILE")
+            or os.getenv("WEALL_PROTOCOL_PROFILE")
+            or os.getenv("WEALL_PROFILE")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
 
 
 def _runtime_mode() -> str:
@@ -88,8 +92,7 @@ def _dev_bootstrap_secret_enabled() -> bool:
     # default. It must be independently enabled and fenced to seeded_demo or
     # explicit local controlled-devnet rehearsal mode.
     return (
-        _seeded_demo_profile_enabled()
-        and _env_true("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE")
+        _seeded_demo_profile_enabled() and _env_true("WEALL_ENABLE_DEV_BOOTSTRAP_SECRET_ROUTE")
     ) or _controlled_devnet_bootstrap_secret_enabled()
 
 
@@ -128,17 +131,26 @@ def _dev_bootstrap_secret_path() -> Path:
 def _load_dev_bootstrap_secret(account: str) -> Json:
     path = _dev_bootstrap_secret_path()
     if not path.exists() or not path.is_file():
-        raise ApiError.not_found("dev_bootstrap_secret_missing", "Dev bootstrap secret not available")
+        raise ApiError.not_found(
+            "dev_bootstrap_secret_missing", "Dev bootstrap secret not available"
+        )
     try:
         payload = Json(__import__("json").loads(path.read_text(encoding="utf-8")))
     except Exception as exc:
-        raise ApiError.server_error("dev_bootstrap_secret_invalid", "Dev bootstrap secret file is invalid") from exc
+        raise ApiError.server_error(
+            "dev_bootstrap_secret_invalid", "Dev bootstrap secret file is invalid"
+        ) from exc
     secret_account = str(payload.get("account") or "").strip()
     if secret_account and secret_account != account:
-        raise ApiError.not_found("dev_bootstrap_secret_account_mismatch", "Dev bootstrap secret not available for that account")
+        raise ApiError.not_found(
+            "dev_bootstrap_secret_account_mismatch",
+            "Dev bootstrap secret not available for that account",
+        )
     secret_key_b64 = str(payload.get("secret_key_b64") or "").strip()
     if not secret_key_b64:
-        raise ApiError.server_error("dev_bootstrap_secret_invalid", "Dev bootstrap secret file is missing the private key")
+        raise ApiError.server_error(
+            "dev_bootstrap_secret_invalid", "Dev bootstrap secret file is missing the private key"
+        )
     return {
         "account": secret_account or account,
         "secretKeyB64": secret_key_b64,
@@ -181,7 +193,9 @@ def _current_nonce(state: Json, signer: str) -> int:
         return 0
 
 
-def _apply_user_tx(state: Json, *, signer: str, tx_type: str, payload: Json, parent: str | None = None) -> Json | None:
+def _apply_user_tx(
+    state: Json, *, signer: str, tx_type: str, payload: Json, parent: str | None = None
+) -> Json | None:
     nonce = _current_nonce(state, signer) + 1
     env = TxEnvelope(
         tx_type=tx_type,
@@ -195,7 +209,9 @@ def _apply_user_tx(state: Json, *, signer: str, tx_type: str, payload: Json, par
     return apply_tx(state, env)
 
 
-def _apply_system_tx(state: Json, *, tx_type: str, payload: Json, parent: str | None = None) -> Json | None:
+def _apply_system_tx(
+    state: Json, *, tx_type: str, payload: Json, parent: str | None = None
+) -> Json | None:
     env = TxEnvelope(
         tx_type=tx_type,
         signer="SYSTEM",
@@ -266,8 +282,6 @@ def _ensure_single_active_validator(state: Json, account: str) -> dict[str, Any]
     }
 
 
-
-
 def _seeded_demo_reviewer_account(account: str) -> str:
     return f"@{_slug(account)}-reviewer"
 
@@ -296,6 +310,7 @@ def _ensure_seeded_demo_reviewer_account(state: Json, reviewer: str) -> Json:
         if "keys" not in acct:
             acct["keys"] = []
     return acct
+
 
 def _ensure_active_juror(state: Json, account: str) -> dict[str, Any]:
     """Seed real Juror authority for the local seeded-demo account.
@@ -356,7 +371,9 @@ def seed_demo_state(
     acct = _ensure_account(state, account)
     tier = int(acct.get("poh_tier") or acct.get("tier") or 0)
     if tier < 2:
-        raise ApiError.bad_request("insufficient_tier", f"Demo account {account} must be Live Verified Human / Tier 2+")
+        raise ApiError.bad_request(
+            "insufficient_tier", f"Demo account {account} must be Live Verified Human / Tier 2+"
+        )
 
     content = _as_dict(state.get("content"))
     posts = _as_dict(content.get("posts"))
@@ -464,7 +481,11 @@ def seed_demo_state(
         "group": {
             "group_id": group_id,
             "member_visible": bool(account in _as_dict(final_group.get("members"))),
-            "visibility": str(final_group.get("visibility") or _as_dict(final_group.get("meta")).get("visibility") or "public"),
+            "visibility": str(
+                final_group.get("visibility")
+                or _as_dict(final_group.get("meta")).get("visibility")
+                or "public"
+            ),
         },
         "proposal": {
             "proposal_id": proposal_id,
@@ -478,8 +499,6 @@ def seed_demo_state(
             "target_id": str(final_dispute.get("target_id") or ""),
         },
     }
-
-
 
 
 @router.get("/dev/bootstrap-secret")
@@ -518,4 +537,10 @@ def v1_demo_seed(request: Request, body: DemoSeedRequest):
     return {"ok": True, **result}
 
 
-__all__ = ["router", "seed_demo_state", "DemoSeedRequest", "_LedgerStoreWriter", "demo_seed_router_should_mount"]
+__all__ = [
+    "router",
+    "seed_demo_state",
+    "DemoSeedRequest",
+    "_LedgerStoreWriter",
+    "demo_seed_router_should_mount",
+]

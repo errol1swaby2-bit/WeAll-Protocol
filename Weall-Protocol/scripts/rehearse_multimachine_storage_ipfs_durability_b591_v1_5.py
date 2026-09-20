@@ -25,15 +25,25 @@ def run_harness() -> Json:
     reassigned_to = ["machine-3", "machine-4"]
     for machine in reassigned_to:
         machines[machine]["pins"][cid] = content
-    retrieval_sources = [m for m, record in machines.items() if m != origin and record["online"] and cid in record["pins"]]
+    retrieval_sources = [
+        m
+        for m, record in machines.items()
+        if m != origin and record["online"] and cid in record["pins"]
+    ]
     retrieved = machines[retrieval_sources[0]]["pins"][cid]
     wrong_cid = _cid(b"wrong")
     wrong_cid_rejected = all(wrong_cid not in record["pins"] for record in machines.values())
-    corrupt = bytearray(content); corrupt[-1] = (corrupt[-1] + 1) % 255
+    corrupt = bytearray(content)
+    corrupt[-1] = (corrupt[-1] + 1) % 255
     corrupt_rejected = hashlib.sha256(bytes(corrupt)).hexdigest() != expected_hash
     replication_factor = sum(1 for record in machines.values() if cid in record["pins"])
     return {
-        "ok": bool(retrieved == content and wrong_cid_rejected and corrupt_rejected and replication_factor >= 4),
+        "ok": bool(
+            retrieved == content
+            and wrong_cid_rejected
+            and corrupt_rejected
+            and replication_factor >= 4
+        ),
         "batch": "591",
         "mechanism": "multi_machine_ipfs_durability_rehearsal",
         "machine_count": len(machines),

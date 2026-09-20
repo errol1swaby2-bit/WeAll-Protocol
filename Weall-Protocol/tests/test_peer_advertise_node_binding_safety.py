@@ -6,7 +6,9 @@ from weall.runtime.domain_apply import ApplyError, apply_tx
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict | None = None, *, system: bool = False) -> TxEnvelope:
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict | None = None, *, system: bool = False
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,

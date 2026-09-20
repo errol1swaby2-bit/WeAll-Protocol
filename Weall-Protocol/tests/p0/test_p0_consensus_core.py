@@ -73,6 +73,29 @@ def test_block_propose_records_block_and_is_idempotent(base_state) -> None:
     assert _stable(st["consensus"]["blocks_by_id"][block_id]) == snap
 
 
+def test_block_propose_rejects_wrong_proposer_before_state_mutation(base_state) -> None:
+    st = _clone(base_state)
+    st["params"]["enforce_proposer"] = True
+    st["params"]["chain_id"] = "weall"
+    st["consensus"] = {"validator_set": {"active_set": ["alice"], "epoch": 1}}
+    st["roles"] = {"validators": {"active_set": ["mallory"]}}
+
+    with pytest.raises(ApplyError) as ei:
+        apply_tx(
+            st,
+            _env(
+                "BLOCK_PROPOSE",
+                {"block_id": "evil", "height": 1, "proposer": "mallory"},
+                signer="mallory",
+                nonce=1,
+            ),
+        )
+
+    _assert_apply_error(ei.value, "invalid_block", "bad_proposer")
+    assert "evil" not in ((st.get("consensus") or {}).get("blocks_by_id") or {})
+    assert st["consensus"]["validator_set"]["active_set"] == ["alice"]
+
+
 def test_block_propose_missing_required_fields_rejected(base_state) -> None:
     st = _clone(base_state)
 
@@ -107,7 +130,15 @@ def test_validator_heartbeat_missing_fields_rejected(base_state) -> None:
     _assert_apply_error(ei1.value, "invalid_payload", "missing_account")
 
     with pytest.raises(ApplyError) as ei2:
-        apply_tx(st, _env("VALIDATOR_HEARTBEAT", {"account": "alice", "node_id": "node-alice"}, signer="alice", nonce=2))
+        apply_tx(
+            st,
+            _env(
+                "VALIDATOR_HEARTBEAT",
+                {"account": "alice", "node_id": "node-alice"},
+                signer="alice",
+                nonce=2,
+            ),
+        )
     _assert_apply_error(ei2.value, "invalid_payload", "missing_ts_ms")
 
 
@@ -116,19 +147,21 @@ def test_validator_heartbeat_account_must_match_signer(base_state) -> None:
 
     with pytest.raises(ApplyError) as ei:
         apply_tx(
-            st, _env("VALIDATOR_HEARTBEAT", {"account": "alice", "node_id": "node-alice", "ts_ms": 1}, signer="bob", nonce=1)
+            st,
+            _env(
+                "VALIDATOR_HEARTBEAT",
+                {"account": "alice", "node_id": "node-alice", "ts_ms": 1},
+                signer="bob",
+                nonce=1,
+            ),
         )
     _assert_apply_error(ei.value, "forbidden", "account_must_match_signer")
-
-
 
 
 def test_validator_heartbeat_node_id_must_match_active_node_key(base_state) -> None:
     st = _clone(base_state)
     st["accounts"]["alice"]["devices"] = {
-        "by_id": {
-            "node:alice": {"device_type": "node", "pubkey": "node-alice", "revoked": False}
-        }
+        "by_id": {"node:alice": {"device_type": "node", "pubkey": "node-alice", "revoked": False}}
     }
 
     out = apply_tx(
@@ -152,24 +185,44 @@ def test_validator_heartbeat_node_id_must_match_active_node_key(base_state) -> N
                 nonce=2,
             ),
         )
-    _assert_apply_error(ei.value, "forbidden", "validator_heartbeat_node_id_must_match_active_node_key")
+    _assert_apply_error(
+        ei.value, "forbidden", "validator_heartbeat_node_id_must_match_active_node_key"
+    )
 
 
-def test_validator_deregister_marks_inactive_when_present(base_state) -> None:
+def test_validator_deregister_active_validator_schedules_epoch_bound_removal(base_state) -> None:
     st = _clone(base_state)
 
     st.setdefault("validators", {})
     st["validators"].setdefault("registry", {})
-    st["validators"]["registry"]["alice"] = {"active": True}
+    st["validators"]["registry"]["alice"] = {
+        "account": "alice",
+        "pubkey": "alice-key",
+        "active": True,
+        "status": "active",
+    }
 
     st.setdefault("roles", {})
     st["roles"].setdefault("validators", {})
-    st["roles"]["validators"].setdefault("active_set", ["alice", "bob"])
+    st["roles"]["validators"]["active_set"] = ["alice", "bob"]
+
+    st.setdefault("consensus", {})
+    st["consensus"]["validator_set"] = {
+        "active_set": ["alice", "bob"],
+        "epoch": 4,
+        "set_hash": "existing",
+    }
 
     out = apply_tx(st, _env("VALIDATOR_DEREGISTER", {"account": "alice"}, signer="alice", nonce=1))
     assert out["applied"] == "VALIDATOR_DEREGISTER"
-    assert st["validators"]["registry"]["alice"]["active"] is False
-    assert "alice" not in st["roles"]["validators"]["active_set"]
+    assert out["status"] == "pending_removal"
+    assert out["effective_epoch"] == 5
+    assert st["validators"]["registry"]["alice"]["active"] is True
+    assert st["validators"]["registry"]["alice"]["status"] == "pending_removal"
+    assert st["roles"]["validators"]["active_set"] == ["alice", "bob"]
+    assert st["consensus"]["validator_set"]["active_set"] == ["alice", "bob"]
+    assert st["consensus"]["validator_set"]["pending"]["active_set"] == ["bob"]
+    assert st["consensus"]["validator_set"]["pending"]["activate_at_epoch"] == 5
 
 
 def test_validator_deregister_missing_account_rejected(base_state) -> None:
@@ -268,6 +321,36 @@ def test_validator_candidate_register_records_candidate_without_activation(base_
     assert "alice" not in st["roles"]["validators"].get("active_set", [])
 
 
+def test_validator_candidate_approve_rejects_unregistered_payload_key_without_authority_mutation(
+    base_state,
+) -> None:
+    st = _clone(base_state)
+
+    with pytest.raises(ApplyError) as ei:
+        apply_tx(
+            st,
+            _env(
+                "VALIDATOR_CANDIDATE_APPROVE",
+                {
+                    "account": "ghost",
+                    "activate_at_epoch": 2,
+                    "pubkey": "attacker-controlled-key",
+                },
+                signer="SYSTEM",
+                nonce=1,
+                system=True,
+                parent="gov:exec:ghost",
+            ),
+        )
+
+    _assert_apply_error(ei.value, "forbidden", "validator_candidate_not_registered")
+    assert "ghost" not in ((st.get("validators") or {}).get("registry") or {})
+    consensus_registry = ((st.get("consensus") or {}).get("validators") or {}).get("registry") or {}
+    assert "ghost" not in consensus_registry
+    pending = ((st.get("consensus") or {}).get("validator_set") or {}).get("pending")
+    assert not pending
+
+
 def test_validator_candidate_approve_schedules_future_activation(base_state) -> None:
     st = _clone(base_state)
     apply_tx(
@@ -302,7 +385,6 @@ def test_validator_candidate_approve_schedules_future_activation(base_state) -> 
     pending = st["consensus"]["validator_set"]["pending"]
     assert pending["activate_at_epoch"] == 2
     assert "alice" in pending["active_set"]
-
 
 
 def test_validator_suspend_schedules_epoch_bound_membership_removal(base_state) -> None:

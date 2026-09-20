@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_bytes as _canon_json
+from typing import Any
 
 from weall.runtime.helper_certificates import hash_receipts, hash_state_delta_ops
+from weall.runtime.json_tools import canonical_json_bytes as _canon_json
 from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_fingerprint
 
 Json = dict[str, Any]
-
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,7 +91,13 @@ def _lane_risk_class(lane: LanePlan) -> str:
 
 
 def _deterministic_percent(*, manifest_hash: str, lane_id: str, plan_id: str = "") -> int:
-    material = _canon_json({"manifest_hash": str(manifest_hash), "lane_id": str(lane_id), "plan_id": str(plan_id or "")})
+    material = _canon_json(
+        {
+            "manifest_hash": str(manifest_hash),
+            "lane_id": str(lane_id),
+            "plan_id": str(plan_id or ""),
+        }
+    )
     digest = hashlib.sha256(material).digest()
     return int.from_bytes(digest[:2], "big") % 100
 
@@ -119,7 +124,15 @@ def build_lane_audit_plan(
         if always_audit_high_risk and risk_class == "high":
             selected = True
             reason = "high_risk_lane"
-        elif pct > 0 and _deterministic_percent(manifest_hash=str(manifest_hash), lane_id=str(lane.lane_id), plan_id=effective_plan_id) < pct:
+        elif (
+            pct > 0
+            and _deterministic_percent(
+                manifest_hash=str(manifest_hash),
+                lane_id=str(lane.lane_id),
+                plan_id=effective_plan_id,
+            )
+            < pct
+        ):
             selected = True
             reason = "deterministic_sample"
         decisions.append(
@@ -157,8 +170,16 @@ def evaluate_lane_audit_plan(
             continue
         decision_plan_id = str(decision.plan_id or "")
         lane_plan_id = str(effective_plan_id or decision_plan_id)
-        canonical_receipts = [dict(item) for item in list(canonical_receipts_by_lane.get(decision.lane_id) or []) if isinstance(item, Mapping)]
-        helper_receipts = [dict(item) for item in list(helper_receipts_by_lane.get(decision.lane_id) or []) if isinstance(item, Mapping)]
+        canonical_receipts = [
+            dict(item)
+            for item in list(canonical_receipts_by_lane.get(decision.lane_id) or [])
+            if isinstance(item, Mapping)
+        ]
+        helper_receipts = [
+            dict(item)
+            for item in list(helper_receipts_by_lane.get(decision.lane_id) or [])
+            if isinstance(item, Mapping)
+        ]
         expected_receipts_root = hash_receipts(canonical_receipts)
         helper_receipts_root = hash_receipts(helper_receipts)
         receipts_match = expected_receipts_root == helper_receipts_root
@@ -166,7 +187,10 @@ def evaluate_lane_audit_plan(
         expected_state_delta_hash = ""
         helper_state_delta_hash = ""
         state_delta_match: bool | None = None
-        if decision.lane_id in canonical_state_deltas_by_lane or decision.lane_id in helper_state_deltas_by_lane:
+        if (
+            decision.lane_id in canonical_state_deltas_by_lane
+            or decision.lane_id in helper_state_deltas_by_lane
+        ):
             expected_state_delta_hash = hash_state_delta_ops(
                 list(canonical_state_deltas_by_lane.get(decision.lane_id) or [])
             )
@@ -214,7 +238,9 @@ def summarize_lane_audit_results(
     plan_rows = [item.to_json() for item in list(audit_plan or [])]
     result_rows = [item.to_json() for item in list(audit_results or [])]
     fraud_lanes = [item.lane_id for item in list(audit_results or []) if item.fraud_suspected]
-    plan_ids = sorted({str(item.plan_id or "") for item in list(audit_results or []) if str(item.plan_id or "")})
+    plan_ids = sorted(
+        {str(item.plan_id or "") for item in list(audit_results or []) if str(item.plan_id or "")}
+    )
     return {
         "planned": len(plan_rows),
         "selected": sum(1 for item in list(audit_plan or []) if item.selected),

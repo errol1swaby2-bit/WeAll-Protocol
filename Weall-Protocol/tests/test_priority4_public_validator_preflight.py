@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from weall.testing.prod_fixtures import write_strict_prod_chain_manifest
+
 
 def _write_db(db_path: Path, state: dict[str, object]) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -69,9 +71,17 @@ def _cfg_payload(db_path: Path, tx_index_path: Path) -> dict[str, object]:
 
 
 def _prod_env(cfg_path: Path) -> dict[str, str]:
+    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    manifest = write_strict_prod_chain_manifest(
+        cfg_path.with_name("strict-prod-chain-manifest.json"),
+        chain_id=str(cfg["chain_id"]),
+        tx_index_path=str(cfg["tx_index_path"]),
+    )
     return {
         **dict(os.environ),
         "WEALL_CHAIN_CONFIG_PATH": str(cfg_path),
+        "WEALL_CHAIN_MANIFEST_PATH": str(manifest),
+        "WEALL_REQUIRE_CHAIN_MANIFEST": "1",
         "WEALL_MODE": "prod",
         "WEALL_NET_ENABLED": "1",
         "WEALL_BFT_ENABLED": "1",
@@ -142,7 +152,12 @@ def test_public_validator_preflight_passes_with_bundle(tmp_path: Path) -> None:
     assert payload["signing_ready"] is True
     assert payload["bundle_verification"]["authority_contract"]["validator_effective"] is True
     assert payload["bundle_verification"]["authority_contract_source"] == "runtime"
-    assert payload["bundle_verification"]["compatibility_contract"]["field_status"]["authority_contract_payload"]["ok"] is True
+    assert (
+        payload["bundle_verification"]["compatibility_contract"]["field_status"][
+            "authority_contract_payload"
+        ]["ok"]
+        is True
+    )
 
 
 def test_public_validator_preflight_fails_without_required_bundle(tmp_path: Path) -> None:
@@ -253,7 +268,13 @@ def test_public_validator_preflight_surfaces_authority_contract_drift(tmp_path: 
     bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
 
     proc = subprocess.run(
-        [sys.executable, "scripts/public_validator_preflight.py", "--bundle", str(bundle_path), "--json"],
+        [
+            sys.executable,
+            "scripts/public_validator_preflight.py",
+            "--bundle",
+            str(bundle_path),
+            "--json",
+        ],
         cwd=root,
         env=env,
         capture_output=True,

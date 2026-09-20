@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 VERIFY_SCRIPT = REPO_ROOT / "scripts" / "verify_node_operator_onboarding_bundle.py"
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build_node_operator_onboarding_bundle.py"

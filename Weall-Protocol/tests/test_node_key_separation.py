@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 ACCOUNT_PAGE = ROOT / "web" / "src" / "pages" / "Account.tsx"
 NODE_KEYS = ROOT / "web" / "src" / "auth" / "nodeKeys.ts"
@@ -27,7 +26,7 @@ def test_operator_registration_uses_generated_node_pubkey() -> None:
     assert "const registeredNodePubkey" in account_page
     assert "const nodePubkey = generatedNodePubkey || registeredNodePubkey" in account_page
     assert "pubkey: generatedNodePubkey" in account_page
-    assert "String(rec.pubkey || \"\") === nodePubkey" in account_page
+    assert 'String(rec.pubkey || "") === nodePubkey' in account_page
     assert "Generate and download node key" in account_page
     assert "Separate node key" in account_page
     assert "Node device registered with node public key" in account_page

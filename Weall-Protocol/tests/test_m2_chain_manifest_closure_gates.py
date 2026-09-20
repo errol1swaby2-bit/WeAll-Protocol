@@ -19,8 +19,7 @@ def test_controlled_devnet_manifest_generator_is_current() -> None:
         [sys.executable, "scripts/gen_controlled_devnet_chain_manifest.py", "--check"],
         cwd=ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr

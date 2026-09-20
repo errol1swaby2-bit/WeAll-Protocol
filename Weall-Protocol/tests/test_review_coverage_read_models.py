@@ -109,7 +109,9 @@ def test_removed_content_is_hidden_from_public_and_account_feeds() -> None:
     client = _client(_content_state_with_removed_post())
 
     public_feed = client.get("/v1/feed?limit=10").json()["items"]
-    account_feed = client.get("/v1/accounts/%40alice/feed?limit=10", headers=_auth("@alice")).json()["items"]
+    account_feed = client.get(
+        "/v1/accounts/%40alice/feed?limit=10", headers=_auth("@alice")
+    ).json()["items"]
 
     assert [item["post_id"] for item in public_feed] == ["post:2"]
     assert [item["post_id"] for item in account_feed] == ["post:2"]
@@ -204,17 +206,23 @@ def test_completed_poh_cases_leave_active_reviewer_queues_by_default() -> None:
     client = _client(_poh_state())
 
     async_default = client.get("/v1/poh/async/juror-cases?juror=%40genesis").json()["cases"]
-    async_all = client.get("/v1/poh/async/juror-cases?juror=%40genesis&include_completed=1").json()["cases"]
+    async_all = client.get("/v1/poh/async/juror-cases?juror=%40genesis&include_completed=1").json()[
+        "cases"
+    ]
     assert [case["case_id"] for case in async_default] == ["async:open"]
     assert [case["case_id"] for case in async_all] == ["async:done", "async:open"]
 
     tier2_default = client.get("/v1/poh/tier2/juror-cases?juror=%40genesis").json()["cases"]
-    tier2_all = client.get("/v1/poh/tier2/juror-cases?juror=%40genesis&include_completed=1").json()["cases"]
+    tier2_all = client.get("/v1/poh/tier2/juror-cases?juror=%40genesis&include_completed=1").json()[
+        "cases"
+    ]
     assert [case["case_id"] for case in tier2_default] == ["tier2:open"]
     assert [case["case_id"] for case in tier2_all] == ["tier2:done", "tier2:open"]
 
     live_default = client.get("/v1/poh/live/assigned?juror=%40genesis").json()["cases"]
-    live_all = client.get("/v1/poh/live/assigned?juror=%40genesis&include_completed=1").json()["cases"]
+    live_all = client.get("/v1/poh/live/assigned?juror=%40genesis&include_completed=1").json()[
+        "cases"
+    ]
     assert [case["case_id"] for case in live_default] == ["live:open"]
     assert [case["case_id"] for case in live_all] == ["live:done", "live:open"]
 
@@ -225,9 +233,13 @@ def test_completed_poh_cases_leave_active_reviewer_queues_by_default() -> None:
 
 def test_frontend_uses_viewer_auth_and_filters_completed_review_work() -> None:
     root = Path(__file__).resolve().parents[2]
-    dispute_detail = (root / "web" / "src" / "pages" / "DisputeDetail.tsx").read_text(encoding="utf-8")
+    dispute_detail = (root / "web" / "src" / "pages" / "DisputeDetail.tsx").read_text(
+        encoding="utf-8"
+    )
     pending_work = (root / "web" / "src" / "lib" / "pendingWork.ts").read_text(encoding="utf-8")
-    juror_dashboard = (root / "web" / "src" / "pages" / "JurorDashboard.tsx").read_text(encoding="utf-8")
+    juror_dashboard = (root / "web" / "src" / "pages" / "JurorDashboard.tsx").read_text(
+        encoding="utf-8"
+    )
 
     assert "const headers = account ? getAuthHeaders(account) : undefined;" in dispute_detail
     assert "weall.dispute(id, apiBase, headers)" in dispute_detail
@@ -238,4 +250,7 @@ def test_frontend_uses_viewer_auth_and_filters_completed_review_work() -> None:
 
     assert "function reportNeedsCurrentReviewer" in juror_dashboard
     assert "if (disputeCurrentVote(item, account)) return false;" in juror_dashboard
-    assert "if (!reportStageNeedsReviewerAction(item?.stage || item?.status)) return false;" in juror_dashboard
+    assert (
+        "if (!reportStageNeedsReviewerAction(item?.stage || item?.status)) return false;"
+        in juror_dashboard
+    )

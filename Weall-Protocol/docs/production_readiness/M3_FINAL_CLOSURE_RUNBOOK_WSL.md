@@ -147,26 +147,40 @@ main journey:
 4. Member reports the main post.
 5. Nine original reviewers accept, attend, and submit ballots.
 6. The main dispute reaches its required final stage.
-7. Member opens the appeal.
+7. Author (the affected target owner) opens the appeal.
 8. Nine fresh appeal reviewers accept, attend, and submit ballots.
 9. The appeal reaches its required final stage.
 10. Author creates the proposal; member comments.
 11. At least two eligible frozen-round humans vote.
 12. The proposal reaches its required final stage.
 
-Also keep separate active negative fixtures:
+Also keep separate negative fixtures:
 
-- a post and group for unauthorized group-write and report tests;
-- an active dispute for unselected/conflicted reviewer and immutable-ballot
-  tests;
+- a post and group for the Tier-2 nonmember group-authority test;
+- an active review-stage dispute for nonselected/conflicted reviewer and
+  immutable-ballot tests;
+- a distinct resolved dispute left in `appeal_window` for the nonowner appeal
+  authority test;
 - an active proposal round for ineligible, duplicate, replacement, and revoke
   tests.
 
 Populate the transcript template with the confirmed transaction IDs, canonical
-transaction types, actors, subject IDs, and chain ID. Keep the exact expected
-negative failure codes from the generated template. Replacement, duplicate,
-and revoke attempts must point to their confirmed prior ballot through
-`precondition_tx_id`.
+transaction types, actors, subject IDs, and chain ID. Preserve the generated
+negative `expected_error_code`, `expected_error_reason`, and
+`expected_rejection_layer`. Admission-layer negatives must fail at signed public
+ingress. Apply-layer negatives must first be admitted, then appear through
+`/v1/tx/status/{tx_id}` as a block-backed `rejected` receipt with the exact code
+and reason. Replacement, duplicate, and applicable revoke attempts must point
+to their confirmed prior ballot through `precondition_tx_id`. After an expected
+apply rejection, resynchronize the browser nonce reservation because rejected
+apply does not consume the account nonce.
+
+Do not invent a standalone transaction for main `DISPUTE_RESOLVE`. The current
+runtime commits that resolution inline in the threshold-reaching original-panel
+`DISPUTE_VOTE_SUBMIT`. Preserve the template's `inline_system_transition` row,
+set `trigger_tx_id` to that confirmed ballot, and derive the evidence id exactly
+as `inline:<trigger_tx_id>:DISPUTE_RESOLVE`. The validator and browser gate bind
+that row to the real trigger transaction and canonical resolved dispute state.
 
 ## 7. Build and validate the private manifest
 

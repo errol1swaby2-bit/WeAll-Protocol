@@ -40,7 +40,16 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
     return key.public_key().public_bytes_raw().hex()
 
 
-def _mk_signed_cert(*, block_height: int, helper_id: str, lane_id: str, tx_ids: tuple[str, ...], seed_byte: int, receipts_root: str, lane_delta_hash: str):
+def _mk_signed_cert(
+    *,
+    block_height: int,
+    helper_id: str,
+    lane_id: str,
+    tx_ids: tuple[str, ...],
+    seed_byte: int,
+    receipts_root: str,
+    lane_delta_hash: str,
+):
     seed = (bytes([seed_byte]) * 32).hex()
     pub = _pub_hex_from_seed(seed)
     cert = sign_helper_certificate(
@@ -80,6 +89,7 @@ def _base_context():
 def _journal_factory(tmp_path: Path):
     def factory(idx: int):
         return HelperLaneJournal(str(tmp_path / f"helper_soak_{idx}.jsonl"))
+
     return factory
 
 
@@ -109,9 +119,7 @@ def test_helper_soak_mixed_helper_and_fallback_rounds(tmp_path) -> None:
         lane_plans=lane_plans,
         start_height=500,
         helper_cert_by_height=helper_certs,
-        lane_results_by_id={
-            lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}
-        },
+        lane_results_by_id={lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}},
         plan=HelperSoakPlan(rounds=6, helper_every_n=2, require_serial_equivalence=False),
         helper_pubkeys={lane_plan.helper_id: pub},
         journal_factory=_journal_factory(tmp_path),
@@ -156,10 +164,13 @@ def test_helper_soak_fail_closed_marks_bad_helper_round_failed(tmp_path) -> None
         lane_plans=lane_plans,
         start_height=600,
         helper_cert_by_height={600: good_cert, 602: bad_cert},
-        lane_results_by_id={
-            lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}
-        },
-        plan=HelperSoakPlan(rounds=4, helper_every_n=2, require_serial_equivalence=False, fail_closed_on_helper_error=True),
+        lane_results_by_id={lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}},
+        plan=HelperSoakPlan(
+            rounds=4,
+            helper_every_n=2,
+            require_serial_equivalence=False,
+            fail_closed_on_helper_error=True,
+        ),
         helper_pubkeys={lane_plan.helper_id: pub},
         journal_factory=_journal_factory(tmp_path),
         helper_timeout_ms=50,
@@ -196,10 +207,13 @@ def test_helper_soak_can_degrade_to_serial_when_allowed(tmp_path) -> None:
         lane_plans=lane_plans,
         start_height=700,
         helper_cert_by_height=helper_certs,
-        lane_results_by_id={
-            lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}
-        },
-        plan=HelperSoakPlan(rounds=4, helper_every_n=2, require_serial_equivalence=True, fail_closed_on_helper_error=False),
+        lane_results_by_id={lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}},
+        plan=HelperSoakPlan(
+            rounds=4,
+            helper_every_n=2,
+            require_serial_equivalence=True,
+            fail_closed_on_helper_error=False,
+        ),
         helper_pubkeys={lane_plan.helper_id: pub},
         journal_factory=_journal_factory(tmp_path),
         helper_timeout_ms=50,

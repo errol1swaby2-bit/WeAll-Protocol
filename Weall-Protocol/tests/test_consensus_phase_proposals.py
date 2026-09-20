@@ -54,7 +54,7 @@ def _mk_executor(
         pubs[vid] = pub
         privs[vid] = sk.private_bytes_raw().hex()
     _seed_validator_state(ex, ["v1", "v2", "v3", "v4"], pubs, phase=phase)
-    monkeypatch.setenv("WEALL_MODE", "prod")
+    monkeypatch.setenv("WEALL_MODE", "testnet")
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", node_id)
     monkeypatch.setenv("WEALL_NODE_PUBKEY", pubs[node_id])
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", privs[node_id])

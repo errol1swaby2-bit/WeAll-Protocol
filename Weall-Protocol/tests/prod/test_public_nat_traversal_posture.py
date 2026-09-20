@@ -111,7 +111,9 @@ def test_seed_discovery_debug_exposes_periodic_refresh_state(tmp_path, monkeypat
     loop = NetMeshLoop(
         executor=_DummyExecutor(),
         mempool=_DummyMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
 
     dbg = loop.seed_discovery_debug()

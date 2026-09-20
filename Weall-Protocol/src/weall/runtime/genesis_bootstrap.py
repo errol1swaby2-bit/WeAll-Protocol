@@ -18,6 +18,7 @@ from weall.runtime.executor import (
     PRODUCTION_CONSENSUS_PROFILE,
     PROTOCOL_VERSION,
     REPUTATION_SCALE,
+    STATE_ROOT_COMMITMENT_VERSION,
     ExecutorError,
     Json,
     _env_bool,
@@ -108,6 +109,11 @@ def _initial_state(self) -> Json:
         "guardian_recovery_new_admission": False,
         "require_recovery_key_at_account_register": bool(strict_identity_registration),
         "require_evidence_kem_at_account_register": bool(strict_identity_registration),
+        "block_tx_signature_policy": (
+            "required"
+            if self.chain_id in {"weall-prod", "weall-testnet-v1", "weall-controlled-devnet"}
+            else "optional_local_fixture"
+        ),
     }
 
     # M3 controlled-testnet ballot closure is an explicit genesis choice.  It
@@ -201,6 +207,7 @@ def _initial_state(self) -> Json:
         "time": 0,
         "meta": {
             "protocol_version": PROTOCOL_VERSION,
+            "state_root_commitment_version": STATE_ROOT_COMMITMENT_VERSION,
             "production_consensus_profile": PRODUCTION_CONSENSUS_PROFILE.to_json(),
             "production_consensus_profile_hash": PRODUCTION_CONSENSUS_PROFILE.profile_hash(),
             "mempool_selection_policy": _normalize_mempool_selection_policy(

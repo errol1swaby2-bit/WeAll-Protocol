@@ -7,6 +7,7 @@ and explicit observer-mode safety requirements. It must never include founding
 private keys, node private keys, validator signing material, authority signer
 secrets, or external identity-provider credentials.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -19,6 +20,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 Json = dict[str, Any]
+
 
 def _env_name(*parts: str) -> str:
     return "".join(parts)
@@ -55,11 +57,11 @@ PROHIBITED_SECRET_KEYS = [
 ]
 
 
-
 def _assert_no_prohibited_env() -> None:
     present = [name for name in PROHIBITED_SECRET_KEYS if os.environ.get(name)]
     if present:
         raise RuntimeError("observer_bundle_secret_env_present:" + ",".join(sorted(present)))
+
 
 def _json_dumps(data: Any) -> str:
     return json.dumps(data, indent=2, sort_keys=True) + "\n"
@@ -98,10 +100,14 @@ def _normalise_pubkey_map(value: Any) -> dict[str, str]:
 
 def _relay_recipient_pubkeys(args: argparse.Namespace) -> dict[str, str]:
     mapping: dict[str, str] = {}
-    raw_map = _first_nonempty(args.relay_recipient_pubkeys, os.environ.get("WEALL_NET_RELAY_RECIPIENT_PUBKEYS"))
+    raw_map = _first_nonempty(
+        args.relay_recipient_pubkeys, os.environ.get("WEALL_NET_RELAY_RECIPIENT_PUBKEYS")
+    )
     if raw_map:
         mapping.update(_normalise_pubkey_map(raw_map))
-    genesis_pubkey = _first_nonempty(args.genesis_recipient_pubkey, os.environ.get("WEALL_GENESIS_RELAY_RECIPIENT_PUBKEY"))
+    genesis_pubkey = _first_nonempty(
+        args.genesis_recipient_pubkey, os.environ.get("WEALL_GENESIS_RELAY_RECIPIENT_PUBKEY")
+    )
     if genesis_pubkey:
         key = str(args.genesis_peer_id or "genesis").strip() or "genesis"
         mapping.update(_normalise_pubkey_map({key: genesis_pubkey}))
@@ -144,7 +150,11 @@ def _bundle_profile(manifest: Json, authority: Json) -> str:
 
 def _verify_command_for_manifest(manifest_path: Path, bundle_profile: str) -> str:
     profile = str(bundle_profile or "").strip().lower()
-    allow = " WEALL_ALLOW_LAN_GENESIS_API=1" if profile in {"controlled_devnet", "controlled_devnet_rehearsal", "rehearsal"} else ""
+    allow = (
+        " WEALL_ALLOW_LAN_GENESIS_API=1"
+        if profile in {"controlled_devnet", "controlled_devnet_rehearsal", "rehearsal"}
+        else ""
+    )
     return (
         f"{allow} python3 scripts/verify_node_operator_onboarding_bundle.py "
         f"--bundle <observer-bundle.json> --manifest {manifest_path.as_posix()} --json"
@@ -157,8 +167,17 @@ def _build(args: argparse.Namespace) -> Json:
     authority = _manifest_authority(manifest)
     relay_urls = _split_csv(args.relay_urls or os.environ.get("WEALL_NET_RELAY_URLS") or "")
     relay_recipient_pubkeys = _relay_recipient_pubkeys(args)
-    genesis_api_base = _first_nonempty(args.genesis_api_base, os.environ.get("WEALL_GENESIS_API_BASE"), os.environ.get("WEALL_API_BASE")).rstrip("/")
-    authority_url = _first_nonempty(args.authority_url, genesis_api_base, os.environ.get("WEALL_CHAIN_AUTHORITY_URL"), os.environ.get("WEALL_API_BASE")).rstrip("/")
+    genesis_api_base = _first_nonempty(
+        args.genesis_api_base,
+        os.environ.get("WEALL_GENESIS_API_BASE"),
+        os.environ.get("WEALL_API_BASE"),
+    ).rstrip("/")
+    authority_url = _first_nonempty(
+        args.authority_url,
+        genesis_api_base,
+        os.environ.get("WEALL_CHAIN_AUTHORITY_URL"),
+        os.environ.get("WEALL_API_BASE"),
+    ).rstrip("/")
     generated_at_ms = int(args.generated_at_ms) if args.generated_at_ms else int(time.time() * 1000)
     bundle_profile = _bundle_profile(manifest, authority)
 
@@ -181,7 +200,9 @@ def _build(args: argparse.Namespace) -> Json:
             "authority_snapshot_version": int(manifest.get("authority_snapshot_version") or 1),
         },
         "authority": {
-            "profile": str(authority.get("expected_profile") or authority.get("profile") or "production"),
+            "profile": str(
+                authority.get("expected_profile") or authority.get("profile") or "production"
+            ),
             "authority_url": authority_url,
             "trusted_authority_pubkeys": _trusted_authority_pubkeys(manifest),
             "min_authority_height": int(args.min_authority_height),
@@ -242,17 +263,41 @@ def _build(args: argparse.Namespace) -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a public WeAll external-observer onboarding bundle.")
-    parser.add_argument("--manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json"))
+    parser = argparse.ArgumentParser(
+        description="Build a public WeAll external-observer onboarding bundle."
+    )
+    parser.add_argument(
+        "--manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json")
+    )
     parser.add_argument("--out", required=True)
     parser.add_argument("--genesis-api-base", default="")
     parser.add_argument("--relay-urls", default="")
-    parser.add_argument("--relay-recipient-pubkeys", default="", help="JSON object mapping relay peer ids to recipient ML-DSA public keys")
-    parser.add_argument("--genesis-peer-id", default="genesis", help="Relay recipient peer id for the genesis/bootstrap node")
-    parser.add_argument("--genesis-recipient-pubkey", default="", help="Genesis/bootstrap node ML-DSA public key for relay recipient binding")
+    parser.add_argument(
+        "--relay-recipient-pubkeys",
+        default="",
+        help="JSON object mapping relay peer ids to recipient ML-DSA public keys",
+    )
+    parser.add_argument(
+        "--genesis-peer-id",
+        default="genesis",
+        help="Relay recipient peer id for the genesis/bootstrap node",
+    )
+    parser.add_argument(
+        "--genesis-recipient-pubkey",
+        default="",
+        help="Genesis/bootstrap node ML-DSA public key for relay recipient binding",
+    )
     parser.add_argument("--authority-url", default="")
-    parser.add_argument("--min-authority-height", type=int, default=int(os.environ.get("WEALL_MIN_AUTHORITY_HEIGHT") or "0"))
-    parser.add_argument("--authority-snapshot-max-age-ms", type=int, default=int(os.environ.get("WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS") or "120000"))
+    parser.add_argument(
+        "--min-authority-height",
+        type=int,
+        default=int(os.environ.get("WEALL_MIN_AUTHORITY_HEIGHT") or "0"),
+    )
+    parser.add_argument(
+        "--authority-snapshot-max-age-ms",
+        type=int,
+        default=int(os.environ.get("WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS") or "120000"),
+    )
     parser.add_argument("--generated-at-ms", type=int, default=0)
     args = parser.parse_args()
 

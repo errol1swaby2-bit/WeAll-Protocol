@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web" / "src"
 
@@ -32,7 +31,10 @@ def test_reviewer_dashboard_hides_live_verdicts_until_check_in() -> None:
     assert "Open WebRTC room to check in" in page
     assert "Evidence locked until acceptance" in page
     assert "restrictedPlayback" in page
-    assert "Verdict controls appear after you join the live review and attendance is recorded on-chain." in page
+    assert (
+        "Verdict controls appear after you join the live review and attendance is recorded on-chain."
+        in page
+    )
     assert "Mark absent" not in page
 
     join_idx = page.index("showLiveAcceptControls ?")
@@ -44,7 +46,10 @@ def test_reviewer_dashboard_hides_live_verdicts_until_check_in() -> None:
 def test_live_room_hides_verdict_buttons_until_can_vote() -> None:
     page = _read("pages/LiveVerificationRoom.tsx")
 
-    assert "Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain" in page
+    assert (
+        "Approve/reject controls appear only after the join action is reflected as accepted attendance on-chain"
+        in page
+    )
     assert "Use the single live-room control above" in page
     assert page.count("{canVote ? (") == 1
     assert "Reviewer action" not in page
@@ -73,6 +78,9 @@ def test_restricted_evidence_media_auto_locks_and_disclaims_screen_recording_lim
     assert "restrictedPlayback" in media
     assert "lockAfterMs = 5 * 60 * 1000" in media
     assert "Rewatch once" in media
-    assert 'controlsList={restrictedVideo ? "nodownload noplaybackrate noremoteplayback" : undefined}' in media
+    assert (
+        'controlsList={restrictedVideo ? "nodownload noplaybackrate noremoteplayback" : undefined}'
+        in media
+    )
     assert "disablePictureInPicture" in media
     assert "cannot reliably prevent screen recording" in media

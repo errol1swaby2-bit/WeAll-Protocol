@@ -6,36 +6,49 @@ from typing import Any, Final
 
 Json = dict[str, Any]
 
-# Consensus-critical contract.
+# Consensus-critical state-root projection.
 #
-# These keys may appear in local snapshots and API/status payloads, but they must
-# never affect the committed state root because they are operational or circular
-# tip-tracking metadata rather than durable ledger semantics.
-#
-# Keep this set synchronized with the authoritative protocol specification.
-_EPHEMERAL_KEYS: Final[frozenset[str]] = frozenset(
+# Only these *top-level* fields are excluded from the application state root.
+# They are either circular tip metadata or local consensus/runtime state.  Do
+# not apply these names recursively: nested objects may legitimately contain
+# fields named ``meta`` or ``created_ms`` that affect future state transitions.
+_TOP_LEVEL_EPHEMERAL_KEYS: Final[frozenset[str]] = frozenset(
     {
         "created_ms",
         "bft",
-        "meta",
         "tip_hash",
         "tip_ts_ms",
     }
 )
 
-
-def _strip_ephemeral(obj: Any) -> Any:
-    if isinstance(obj, dict):
-        out: dict[str, Any] = {}
-        for k, v in obj.items():
-            ks = str(k)
-            if ks in _EPHEMERAL_KEYS:
-                continue
-            out[ks] = _strip_ephemeral(v)
-        return out
-    if isinstance(obj, list):
-        return [_strip_ephemeral(x) for x in obj]
-    return obj
+# ``state["meta"]`` historically mixed local operator posture with protocol
+# parameters.  Hashing the entire mapping would make state roots depend on
+# node-local values such as runtime_open or clock warnings; excluding the whole
+# mapping leaves execution-affecting policy uncommitted.  Project only the
+# protocol-semantic keys here until those fields are migrated to a dedicated
+# committed namespace.
+_CONSENSUS_META_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "chain_id",  # legacy snapshots may still carry the chain id here
+        "protocol_version",
+        "state_root_commitment_version",
+        "production_consensus_profile",
+        "production_consensus_profile_hash",
+        "schema_version",
+        "tx_index_hash",
+        "reputation_scale",
+        "max_block_future_drift_ms",
+        "mempool_selection_policy",
+        "helper_execution_profile",
+        "helper_execution_profile_hash",
+        "genesis_bootstrap_profile",
+        "genesis_bootstrap_profile_hash",
+        "recent_block_anchor_activation_height",
+        "constitutional_clock",
+        "supported_upgrade_targets",
+        "supported_protocol_versions",
+    }
+)
 
 
 def _canonical(obj: Any) -> Any:
@@ -46,37 +59,59 @@ def _canonical(obj: Any) -> Any:
     return obj
 
 
-def _canonical_without_ephemeral(obj: Any) -> Any:
-    """Return the canonical state-root view in one deterministic tree walk.
+def _canonical_meta(meta: Any) -> Any:
+    if not isinstance(meta, dict):
+        return {}
+    out: dict[str, Any] = {}
+    for key in sorted(meta.keys(), key=lambda x: str(x)):
+        ks = str(key)
+        if ks not in _CONSENSUS_META_KEYS:
+            continue
+        out[ks] = _canonical(meta[key])
+    return out
 
-    The previous implementation first constructed a full copy with ephemeral
-    keys removed and then walked that copy again to sort/stringify keys.  Under
-    sustained-load rehearsal the state-root phase is dominated by this
-    whole-state traversal.  This helper preserves the exact committed JSON view
-    while combining the two passes into one local, non-cached transformation.
 
-    Consensus contract:
-      - ephemeral keys are still excluded at every depth;
-      - dictionary keys are still ordered by ``str(key)``;
-      - committed keys are still stringified before JSON encoding;
-      - list order is unchanged;
-      - no cross-block or process-local cache is introduced.
+def _canonical_state_root_view(state: Any) -> Any:
+    """Return the deterministic application-state commitment view.
+
+    The projection is intentionally path-aware:
+      * only known top-level ephemeral fields are excluded;
+      * top-level ``meta`` is reduced to execution-affecting protocol fields;
+      * nested ``meta``/``created_ms`` fields are committed normally;
+      * dictionary keys are stringified and sorted; list order is preserved.
+
+    This prevents two states with equal roots from carrying different protocol
+    transition semantics while keeping node-local runtime posture out of the
+    root.
     """
 
-    if isinstance(obj, dict):
-        out: dict[str, Any] = {}
-        for k in sorted(obj.keys(), key=lambda x: str(x)):
-            ks = str(k)
-            if ks in _EPHEMERAL_KEYS:
-                continue
-            out[ks] = _canonical_without_ephemeral(obj[k])
-        return out
-    if isinstance(obj, list):
-        return [_canonical_without_ephemeral(x) for x in obj]
-    return obj
+    if not isinstance(state, dict):
+        return _canonical(state)
+
+    out: dict[str, Any] = {}
+    for key in sorted(state.keys(), key=lambda x: str(x)):
+        ks = str(key)
+        if ks in _TOP_LEVEL_EPHEMERAL_KEYS:
+            continue
+        if ks == "meta":
+            projected = _canonical_meta(state[key])
+            if projected:
+                out[ks] = projected
+            continue
+        out[ks] = _canonical(state[key])
+    return out
+
+
+def consensus_state_root_view(state: Json) -> Json:
+    """Return a copy of the exact JSON-compatible state-root preimage view."""
+
+    view = _canonical_state_root_view(state)
+    if not isinstance(view, dict):
+        raise TypeError("state root requires a JSON object")
+    return view
 
 
 def compute_state_root(state: Json) -> str:
-    canonical = _canonical_without_ephemeral(state)
-    payload = json.dumps(canonical, separators=(",", ":"), ensure_ascii=False)
+    canonical = consensus_state_root_view(state)
+    payload = json.dumps(canonical, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()

@@ -69,7 +69,9 @@ def _enable_storage_responsibility(
             "status": "active",
             "active": True,
             "node_pubkey": f"{account_id}-node",
-            "devices": [{"device_type": "node", "public_key": f"{account_id}-node", "active": True}],
+            "devices": [
+                {"device_type": "node", "public_key": f"{account_id}-node", "active": True}
+            ],
         },
     )
     rec["status"] = "active"
@@ -105,6 +107,7 @@ def _enable_storage_responsibility(
             }
         }
     }
+
 
 def test_ipfs_pin_request_rejects_invalid_cid() -> None:
     st = _base_state()

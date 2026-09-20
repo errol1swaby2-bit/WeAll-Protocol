@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from pathlib import Path
 from types import MethodType
 
 import weall.runtime.executor as executor_mod
 from weall.runtime.bft_hotstuff import HotStuffBFT, QuorumCert
+from weall.runtime.bft_journal import BftJournal
+from weall.runtime.bft_outbox_store import BftOutboxStore
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.sqlite_db import SqliteDB
 
 
 def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
@@ -19,7 +23,7 @@ def _qc(chain_id: str, view: int, block_id: str, parent_id: str) -> QuorumCert:
     )
 
 
-def _make_executor(*, chain_id: str = "batch103") -> WeAllExecutor:
+def _make_executor(tmp_path: Path, *, chain_id: str = "batch103") -> WeAllExecutor:
     ex = WeAllExecutor.__new__(WeAllExecutor)
     ex.chain_id = chain_id
     ex.node_id = "alice"
@@ -34,6 +38,9 @@ def _make_executor(*, chain_id: str = "batch103") -> WeAllExecutor:
         },
     }
     ex._bft = HotStuffBFT(chain_id=chain_id)
+    ex._bft_journal = BftJournal(str(tmp_path / f"{chain_id}-bft-journal.jsonl"))
+    ex._aux_db = SqliteDB(path=str(tmp_path / f"{chain_id}-bft-aux.sqlite"))
+    ex._bft_outbox_store = BftOutboxStore(db=ex._aux_db)
     ex._quarantined_remote_blocks = OrderedDict()
     ex._quarantined_remote_block_ids_by_hash = OrderedDict()
     ex._pending_remote_blocks = OrderedDict()
@@ -99,8 +106,8 @@ def _make_executor(*, chain_id: str = "batch103") -> WeAllExecutor:
     return ex
 
 
-def test_duplicate_proposal_is_suppressed_before_revalidation(monkeypatch) -> None:
-    ex = _make_executor()
+def test_duplicate_proposal_is_suppressed_before_revalidation(tmp_path: Path, monkeypatch) -> None:
+    ex = _make_executor(tmp_path)
     ex._bft.locked_qc = _qc("batch103", 4, "C1", "B1")
     ex._bft.high_qc = _qc("batch103", 4, "C1", "B1")
     monkeypatch.setattr(executor_mod, "admit_bft_block", lambda block, state: (True, ""))
@@ -142,8 +149,8 @@ def test_duplicate_proposal_is_suppressed_before_revalidation(monkeypatch) -> No
     assert list(ex._pending_remote_blocks.keys()) == ["D2"]
 
 
-def test_duplicate_qc_is_suppressed_before_replay() -> None:
-    ex = _make_executor()
+def test_duplicate_qc_is_suppressed_before_replay(tmp_path: Path) -> None:
+    ex = _make_executor(tmp_path)
     calls = {"verify": 0, "replay": 0}
     qc = _qc("batch103", 5, "C2", "B2")
 

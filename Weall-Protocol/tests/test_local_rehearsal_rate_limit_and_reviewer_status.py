@@ -27,27 +27,29 @@ def test_rate_limit_buckets_can_be_raised_by_explicit_env(monkeypatch) -> None:
 
 
 def test_reputation_delta_apply_schema_accepts_replay_provenance_fields() -> None:
-    _, payload = validate_tx_envelope({
-        "tx_type": "REPUTATION_DELTA_APPLY",
-        "signer": "SYSTEM",
-        "nonce": 0,
-        "sig": "SYSTEM",
-        "system": True,
-        "payload": {
-            "account_id": "@alice",
-            "delta": 1.5,
-            "delta_id": "repaccrual:public_post:post1",
-            "reason": "public_content_accrual",
-            "event_code": "SAFETY_ACCURATE_REPORT",
-            "source_flow": "reputation_delta",
-            "source_object_id": "post1",
-            "target_id": "post1",
-            "occurred_at_block": 58,
-            "occurred_at_time": 58,
-            "expires_at_optional": None,
-            "reversal_of_optional": "",
-        },
-    })
+    _, payload = validate_tx_envelope(
+        {
+            "tx_type": "REPUTATION_DELTA_APPLY",
+            "signer": "SYSTEM",
+            "nonce": 0,
+            "sig": "SYSTEM",
+            "system": True,
+            "payload": {
+                "account_id": "@alice",
+                "delta": 1.5,
+                "delta_id": "repaccrual:public_post:post1",
+                "reason": "public_content_accrual",
+                "event_code": "SAFETY_ACCURATE_REPORT",
+                "source_flow": "reputation_delta",
+                "source_object_id": "post1",
+                "target_id": "post1",
+                "occurred_at_block": 58,
+                "occurred_at_time": 58,
+                "expires_at_optional": None,
+                "reversal_of_optional": "",
+            },
+        }
+    )
 
     assert payload is not None
     assert payload.account_id == "@alice"

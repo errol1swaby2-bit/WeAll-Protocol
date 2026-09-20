@@ -11,6 +11,7 @@ class _FakeExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self) -> dict:
         return self._state
 

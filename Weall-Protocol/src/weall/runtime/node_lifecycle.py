@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from weall.runtime.node_lifecycle_preflight import evaluate_production_preflight
 from weall.runtime.node_runtime_config import (
     BOOTSTRAP_REGISTRATION,
-    OBSERVER_ONBOARDING,
     MAINTENANCE_RESTRICTED,
+    OBSERVER_ONBOARDING,
     PRODUCTION_SERVICE,
     REFUSED_STARTUP,
     resolve_node_runtime_config_from_env,

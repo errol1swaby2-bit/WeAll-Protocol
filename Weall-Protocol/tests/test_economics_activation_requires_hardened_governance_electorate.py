@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from weall.runtime.domain_dispatch import apply_tx
@@ -7,15 +9,32 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.system_tx_engine import system_tx_emitter, validate_system_tx_queue_binding
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.tx.canon import TxIndex
-from pathlib import Path
 
 
 def _tx_index() -> TxIndex:
-    return TxIndex.load_from_file(str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json"))
+    return TxIndex.load_from_file(
+        str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    )
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=system,
+        parent=parent,
+    )
 
 
 def _state(*, explicit_electorate: bool) -> dict:
@@ -94,7 +113,11 @@ def test_economics_activation_can_execute_only_with_explicit_electorate() -> Non
         apply_tx(st, env)
 
     emitted = system_tx_emitter(st, canon, next_height=12, phase="post")
-    assert [env.tx_type for env in emitted] == ["ECONOMICS_ACTIVATION", "GOV_EXECUTION_RECEIPT", "GOV_PROPOSAL_RECEIPT"]
+    assert [env.tx_type for env in emitted] == [
+        "ECONOMICS_ACTIVATION",
+        "GOV_EXECUTION_RECEIPT",
+        "GOV_PROPOSAL_RECEIPT",
+    ]
     for env in emitted:
         ok, why = validate_system_tx_queue_binding(st, canon, env, next_height=12, phase="post")
         assert ok, why

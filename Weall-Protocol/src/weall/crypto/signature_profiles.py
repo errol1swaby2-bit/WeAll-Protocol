@@ -19,7 +19,14 @@ PQ_SLHDSA_V1 = "pq-slhdsa-v1"
 PQ_MLKEM_V1 = "pq-mlkem-v1"
 
 SIGNING_PURPOSES = {"signing", "backup_signature"}
-STRICT_TESTNET_MODES = {"closed-testnet", "closed_testnet", "controlled-testnet", "controlled_testnet", "public-testnet", "public_testnet"}
+STRICT_TESTNET_MODES = {
+    "closed-testnet",
+    "closed_testnet",
+    "controlled-testnet",
+    "controlled_testnet",
+    "public-testnet",
+    "public_testnet",
+}
 LOCAL_MODES = {"dev", "local", "test", "ci", "demo", "controlled_devnet", "controlled-devnet"}
 
 
@@ -156,7 +163,12 @@ def runtime_crypto_mode() -> str:
     explicit = str(os.environ.get("WEALL_CRYPTO_MODE") or "").strip().lower()
     if explicit:
         return explicit
-    if str(os.environ.get("WEALL_PUBLIC_TESTNET") or "").strip().lower() in {"1", "true", "yes", "on"}:
+    if str(os.environ.get("WEALL_PUBLIC_TESTNET") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
         return "public-testnet"
     return str(os.environ.get("WEALL_MODE") or "prod").strip().lower() or "prod"
 
@@ -224,4 +236,8 @@ def profile_allowed_for_context(
 
 def profile_metadata(profile_id: Any) -> dict[str, Any]:
     profile = get_signature_profile(profile_id)
-    return profile.to_json() if profile else {"profile_id": normalize_signature_profile_id(profile_id), "known": False}
+    return (
+        profile.to_json()
+        if profile
+        else {"profile_id": normalize_signature_profile_id(profile_id), "known": False}
+    )

@@ -33,8 +33,7 @@ def test_v15_public_readiness_artifact_checker_passes() -> None:
         [sys.executable, "scripts/check_v15_public_readiness_artifacts.py"],
         cwd=ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
@@ -45,7 +44,9 @@ def test_reviewer_gate_checks_generated_artifact_freshness_before_release_tree()
     text = (ROOT / "scripts/reviewer_production_readiness_gate.sh").read_text(encoding="utf-8")
     tx_idx = text.index("python3 -S scripts/check_tx_canon_artifacts.py")
     api_idx = text.index("python3 scripts/gen_api_contract_map.py --check")
-    v15_idx = text.index("PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_v15_public_readiness_artifacts.py")
+    v15_idx = text.index(
+        "PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_v15_public_readiness_artifacts.py"
+    )
     release_idx = text.index("bash scripts/verify_release_tree.sh")
-    targeted_idx = text.index("echo \"[reviewer-gate] targeted backend tests\"")
+    targeted_idx = text.index('echo "[reviewer-gate] targeted backend tests"')
     assert tx_idx < api_idx < v15_idx < release_idx < targeted_idx

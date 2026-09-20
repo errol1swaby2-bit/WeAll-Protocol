@@ -22,7 +22,7 @@ import time
 from contextlib import contextmanager, nullcontext
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC = REPO_ROOT / "src"
@@ -38,6 +38,7 @@ def _canon_json(value: Any) -> str:
 
 def _fingerprint(value: Any) -> str:
     return hashlib.sha256(_canon_json(value).encode("utf-8")).hexdigest()
+
 
 DEFAULT_TARGET_BLOCK_MS = 20_000
 PROFILE_DEFAULTS: dict[str, dict[str, int]] = {
@@ -271,7 +272,9 @@ def _domain_dispatch_ms(probe: PhaseProbe, prefix: str) -> float:
 
 def _tx_loop_microphase_values(probe: PhaseProbe, prefix: str) -> Json:
     return {
-        f"{prefix}_tx_decode_or_normalize_wall_ms": probe.ms(f"{prefix}_tx_decode_or_normalize_time_ns"),
+        f"{prefix}_tx_decode_or_normalize_wall_ms": probe.ms(
+            f"{prefix}_tx_decode_or_normalize_time_ns"
+        ),
         f"{prefix}_tx_id_or_hash_wall_ms": probe.ms(f"{prefix}_tx_id_or_hash_time_ns"),
         f"{prefix}_domain_dispatch_wall_ms": _domain_dispatch_ms(probe, prefix),
         f"{prefix}_domain_apply_wall_ms": probe.ms(f"{prefix}_domain_apply_time_ns"),
@@ -289,7 +292,6 @@ def _zero_tx_loop_microphase_values(prefix: str) -> Json:
     }
 
 
-
 def _system_queue_count_from_state_arg(args: tuple[Any, ...], kwargs: dict[str, Any]) -> int:
     state = args[0] if args else kwargs.get("state")
     if not isinstance(state, dict):
@@ -298,7 +300,9 @@ def _system_queue_count_from_state_arg(args: tuple[Any, ...], kwargs: dict[str, 
     return len(q) if isinstance(q, list) else 0
 
 
-def _system_queue_duplicate_count_from_state_arg(args: tuple[Any, ...], kwargs: dict[str, Any]) -> int:
+def _system_queue_duplicate_count_from_state_arg(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> int:
     state = args[0] if args else kwargs.get("state")
     if not isinstance(state, dict):
         return 0
@@ -327,9 +331,18 @@ def _system_queue_noop_count_from_state_arg(args: tuple[Any, ...], kwargs: dict[
     q = state.get("system_queue")
     if not isinstance(q, list):
         return 0
-    return sum(1 for obj in q if isinstance(obj, dict) and obj.get("emitted_height") is not None and bool(obj.get("once", True)))
+    return sum(
+        1
+        for obj in q
+        if isinstance(obj, dict)
+        and obj.get("emitted_height") is not None
+        and bool(obj.get("once", True))
+    )
 
-def _replay_wrapper_phase_values(probe: PhaseProbe, *, role: str, apply_time_ms: float = 0.0) -> Json:
+
+def _replay_wrapper_phase_values(
+    probe: PhaseProbe, *, role: str, apply_time_ms: float = 0.0
+) -> Json:
     prefix = str(role or "follower")
     raw = {
         "runtime_context_wall_ms": probe.ms(f"{prefix}_runtime_context_time_ns"),
@@ -342,18 +355,40 @@ def _replay_wrapper_phase_values(probe: PhaseProbe, *, role: str, apply_time_ms:
         "post_scheduler_wall_ms": probe.ms(f"{prefix}_post_scheduler_time_ns"),
         "post_system_emitter_wall_ms": probe.ms(f"{prefix}_post_system_emitter_time_ns"),
         "post_system_emitter_scan_wall_ms": probe.ms(f"{prefix}_post_system_emitter_scan_time_ns"),
-        "post_system_emitter_materialize_wall_ms": probe.ms(f"{prefix}_post_system_emitter_materialize_time_ns"),
-        "post_system_emitter_validate_wall_ms": probe.ms(f"{prefix}_post_system_emitter_validate_time_ns"),
-        "post_system_emitter_enqueue_wall_ms": probe.ms(f"{prefix}_post_system_emitter_enqueue_time_ns"),
-        "post_system_emitter_receipt_link_wall_ms": probe.ms(f"{prefix}_post_system_emitter_receipt_link_time_ns"),
-        "post_system_emitter_state_write_wall_ms": probe.ms(f"{prefix}_post_system_emitter_state_write_time_ns"),
+        "post_system_emitter_materialize_wall_ms": probe.ms(
+            f"{prefix}_post_system_emitter_materialize_time_ns"
+        ),
+        "post_system_emitter_validate_wall_ms": probe.ms(
+            f"{prefix}_post_system_emitter_validate_time_ns"
+        ),
+        "post_system_emitter_enqueue_wall_ms": probe.ms(
+            f"{prefix}_post_system_emitter_enqueue_time_ns"
+        ),
+        "post_system_emitter_receipt_link_wall_ms": probe.ms(
+            f"{prefix}_post_system_emitter_receipt_link_time_ns"
+        ),
+        "post_system_emitter_state_write_wall_ms": probe.ms(
+            f"{prefix}_post_system_emitter_state_write_time_ns"
+        ),
         "system_queue_binding_wall_ms": probe.ms(f"{prefix}_system_queue_binding_time_ns"),
-        "system_queue_binding_scan_wall_ms": probe.ms(f"{prefix}_system_queue_binding_scan_time_ns"),
-        "system_queue_binding_materialize_wall_ms": probe.ms(f"{prefix}_system_queue_binding_materialize_time_ns"),
-        "system_queue_binding_validate_wall_ms": probe.ms(f"{prefix}_system_queue_binding_validate_time_ns"),
-        "system_queue_binding_dedupe_wall_ms": probe.ms(f"{prefix}_system_queue_binding_dedupe_time_ns"),
-        "system_queue_binding_sort_wall_ms": probe.ms(f"{prefix}_system_queue_binding_sort_time_ns"),
-        "system_queue_binding_state_write_wall_ms": probe.ms(f"{prefix}_system_queue_binding_state_write_time_ns"),
+        "system_queue_binding_scan_wall_ms": probe.ms(
+            f"{prefix}_system_queue_binding_scan_time_ns"
+        ),
+        "system_queue_binding_materialize_wall_ms": probe.ms(
+            f"{prefix}_system_queue_binding_materialize_time_ns"
+        ),
+        "system_queue_binding_validate_wall_ms": probe.ms(
+            f"{prefix}_system_queue_binding_validate_time_ns"
+        ),
+        "system_queue_binding_dedupe_wall_ms": probe.ms(
+            f"{prefix}_system_queue_binding_dedupe_time_ns"
+        ),
+        "system_queue_binding_sort_wall_ms": probe.ms(
+            f"{prefix}_system_queue_binding_sort_time_ns"
+        ),
+        "system_queue_binding_state_write_wall_ms": probe.ms(
+            f"{prefix}_system_queue_binding_state_write_time_ns"
+        ),
         "system_queue_prune_wall_ms": probe.ms(f"{prefix}_system_queue_prune_time_ns"),
         "receipts_root_wall_ms": probe.ms(f"{prefix}_receipt_build_time_ns"),
         "recent_anchor_wall_ms": probe.ms(f"{prefix}_recent_anchor_time_ns"),
@@ -397,7 +432,9 @@ def _replay_wrapper_phase_values(probe: PhaseProbe, *, role: str, apply_time_ms:
     attributed += float(probe.ms("block_decode_or_materialize_time_ns") or 0.0)
     attributed += float(probe.ms(f"{prefix}_tx_loop_time_ns") or 0.0)
     attributed += float(probe.ms(f"{prefix}_state_root_time_ns") or 0.0)
-    raw["replay_unattributed_wall_ms"] = round(max(0.0, float(apply_time_ms or 0.0) - attributed), 3)
+    raw["replay_unattributed_wall_ms"] = round(
+        max(0.0, float(apply_time_ms or 0.0) - attributed), 3
+    )
     return raw
 
 
@@ -444,7 +481,9 @@ def _merge_hotpath_items(existing: Any, incoming: Any, *, value_key: str = "coun
             path = str(item.get("path") or "")
             if not path:
                 continue
-            merged[path] = int(merged.get(path, 0)) + int(item.get(value_key, item.get("count", 0)) or 0)
+            merged[path] = int(merged.get(path, 0)) + int(
+                item.get(value_key, item.get("count", 0)) or 0
+            )
     sorted_items = sorted(merged.items(), key=lambda item: (-int(item[1]), str(item[0])))
     return [{"path": path, value_key: int(value)} for path, value in sorted_items[:12]]
 
@@ -466,8 +505,14 @@ def _add_rollback_journal_diagnostics(target: Json, source: Json) -> None:
         if field == "rollback_snapshot_by_tx_kind":
             target[field] = _merge_kind_counts(target.get(field), source.get(field))
         else:
-            value_key = "bytes_estimate" if field == "rollback_top_snapshot_paths_by_estimated_bytes" else "count"
-            target[field] = _merge_hotpath_items(target.get(field), source.get(field), value_key=value_key)
+            value_key = (
+                "bytes_estimate"
+                if field == "rollback_top_snapshot_paths_by_estimated_bytes"
+                else "count"
+            )
+            target[field] = _merge_hotpath_items(
+                target.get(field), source.get(field), value_key=value_key
+            )
 
 
 def _profile_bottleneck_summary(profile: Json) -> Json:
@@ -482,7 +527,9 @@ def _profile_bottleneck_summary(profile: Json) -> Json:
     return _top_bottleneck_phases(entries)
 
 
-def _artifact_bottleneck_summary(profiles: list[Json], *, evidence_write_wall_ms: float = 0.0) -> Json:
+def _artifact_bottleneck_summary(
+    profiles: list[Json], *, evidence_write_wall_ms: float = 0.0
+) -> Json:
     entries: list[tuple[str, Any]] = [("evidence_write_wall_ms", evidence_write_wall_ms)]
     for profile in profiles:
         label = f"{profile.get('profile')}:{profile.get('execution_model')}"
@@ -546,7 +593,11 @@ def _patched_domain_apply_microphase_timing(probe: PhaseProbe, *, role: str):
         # separately by timed_resolve_applier; evidence reports dispatch as
         # full-dispatch-minus-handler to avoid double-counting domain apply.
         env = args[1] if len(args) > 1 else kwargs.get("env")
-        tx_kind = str(getattr(env, "tx_type", "") or (env.get("tx_type") if isinstance(env, dict) else "") or "UNKNOWN")
+        tx_kind = str(
+            getattr(env, "tx_type", "")
+            or (env.get("tx_type") if isinstance(env, dict) else "")
+            or "UNKNOWN"
+        )
         token = old_set_tx_kind(tx_kind) if callable(old_set_tx_kind) else None
         try:
             with probe.timed(f"{prefix}_domain_dispatch_total_time_ns"):
@@ -588,7 +639,9 @@ def _patched_domain_apply_microphase_timing(probe: PhaseProbe, *, role: str):
 
 
 @contextmanager
-def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution_model: str = "deepcopy"):
+def _patched_block_builder_timing(
+    executor: Any, probe: PhaseProbe, *, execution_model: str = "deepcopy"
+):
     """Patch dependency-injection seams to time the exact leader code path.
 
     The runtime already routes extracted block-builder dependencies through
@@ -669,7 +722,7 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
     # Keep runtime_context patched too for extracted callers that import it directly.
     runtime_context.RuntimeContext.from_executor = staticmethod(timed_from_executor)
     if old_helper_meta is not None:
-        setattr(executor, "_build_helper_execution_metadata", timed_helper_meta)
+        executor._build_helper_execution_metadata = timed_helper_meta
     domain_microphase_cm = _patched_domain_apply_microphase_timing(probe, role="leader")
     domain_microphase_cm.__enter__()
     try:
@@ -684,7 +737,7 @@ def _patched_block_builder_timing(executor: Any, probe: PhaseProbe, *, execution
         block_builder.RuntimeContext.from_executor = old_runtime_context_from_executor
         runtime_context.RuntimeContext.from_executor = old_runtime_context_module_from_executor
         if old_helper_meta is not None:
-            setattr(executor, "_build_helper_execution_metadata", old_helper_meta)
+            executor._build_helper_execution_metadata = old_helper_meta
 
 
 @contextmanager
@@ -713,10 +766,11 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
     old_validate_system_tx_queue_binding = block_replay.validate_system_tx_queue_binding
     old_compute_recent_block_anchor = block_replay.compute_recent_block_anchor
     old_recent_block_ids_from_state = block_replay.recent_block_ids_from_state
-    old_recent_block_anchor_required_for_height = block_replay.recent_block_anchor_required_for_height
+    old_recent_block_anchor_required_for_height = (
+        block_replay.recent_block_anchor_required_for_height
+    )
     old_compute_helper_execution_root = block_replay.compute_helper_execution_root
     old_verify_vrf_record = block_replay.verify_vrf_record
-    old_compute_block_hash = block_replay.compute_block_hash
     old_compute_block_id = block_replay.compute_block_id
     old_commit_block_candidate = getattr(follower, "commit_block_candidate", None)
 
@@ -749,7 +803,9 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
             with probe.timed(f"{prefix}_tx_loop_time_ns"):
                 return original_apply(*args, **kwargs)
 
-        return replace(ctx, tx_execution_set=replace(ctx.tx_execution_set, apply_tx_atomic_meta=timed_apply))
+        return replace(
+            ctx, tx_execution_set=replace(ctx.tx_execution_set, apply_tx_atomic_meta=timed_apply)
+        )
 
     def timed_ensure_block_hash(*args: Any, **kwargs: Any) -> Any:
         with probe.timed(f"{prefix}_block_hash_validation_time_ns"):
@@ -776,17 +832,26 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
         if len(args) >= 4:
             phase = str(args[3] or "")
         phase = str(kwargs.get("phase") or phase or "")
-        field = f"{prefix}_post_system_emitter_time_ns" if phase == "post" else f"{prefix}_pre_system_emitter_time_ns"
+        field = (
+            f"{prefix}_post_system_emitter_time_ns"
+            if phase == "post"
+            else f"{prefix}_pre_system_emitter_time_ns"
+        )
         if phase == "post":
             seen = _system_queue_count_from_state_arg(args, kwargs)
             probe.inc(f"{prefix}_post_system_emitter_items_seen", seen)
-            probe.inc(f"{prefix}_system_queue_noop_items", _system_queue_noop_count_from_state_arg(args, kwargs))
+            probe.inc(
+                f"{prefix}_system_queue_noop_items",
+                _system_queue_noop_count_from_state_arg(args, kwargs),
+            )
             with probe.timed(field):
                 with probe.timed(f"{prefix}_post_system_emitter_materialize_time_ns"):
                     result = old_emit_system_txs(*args, **kwargs)
             emitted = len(result) if isinstance(result, list) else 0
             probe.inc(f"{prefix}_post_system_emitter_items_emitted", emitted)
-            probe.inc(f"{prefix}_post_system_emitter_items_skipped", max(0, int(seen) - int(emitted)))
+            probe.inc(
+                f"{prefix}_post_system_emitter_items_skipped", max(0, int(seen) - int(emitted))
+            )
             return result
         with probe.timed(field):
             return old_emit_system_txs(*args, **kwargs)
@@ -794,7 +859,10 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
     def timed_queue_item_phase(*args: Any, **kwargs: Any) -> Any:
         seen = _system_queue_count_from_state_arg(args, kwargs)
         probe.inc(f"{prefix}_system_queue_items_seen", seen)
-        probe.inc(f"{prefix}_system_queue_duplicate_items", _system_queue_duplicate_count_from_state_arg(args, kwargs))
+        probe.inc(
+            f"{prefix}_system_queue_duplicate_items",
+            _system_queue_duplicate_count_from_state_arg(args, kwargs),
+        )
         with probe.timed(f"{prefix}_system_queue_binding_time_ns"):
             with probe.timed(f"{prefix}_system_queue_binding_scan_time_ns"):
                 return old_queue_item_phase(*args, **kwargs)
@@ -832,10 +900,6 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
     def timed_verify_vrf_record(*args: Any, **kwargs: Any) -> Any:
         with probe.timed(f"{prefix}_vrf_validation_time_ns"):
             return old_verify_vrf_record(*args, **kwargs)
-
-    def timed_compute_block_hash(*args: Any, **kwargs: Any) -> Any:
-        with probe.timed(f"{prefix}_block_hash_validation_time_ns"):
-            return old_compute_block_hash(*args, **kwargs)
 
     def timed_compute_block_id(*args: Any, **kwargs: Any) -> Any:
         with probe.timed(f"{prefix}_metadata_update_time_ns"):
@@ -886,13 +950,14 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
     block_replay.validate_system_tx_queue_binding = timed_validate_system_tx_queue_binding
     block_replay.compute_recent_block_anchor = timed_compute_recent_block_anchor
     block_replay.recent_block_ids_from_state = timed_recent_block_ids_from_state
-    block_replay.recent_block_anchor_required_for_height = timed_recent_block_anchor_required_for_height
+    block_replay.recent_block_anchor_required_for_height = (
+        timed_recent_block_anchor_required_for_height
+    )
     block_replay.compute_helper_execution_root = timed_compute_helper_execution_root
     block_replay.verify_vrf_record = timed_verify_vrf_record
-    block_replay.compute_block_hash = timed_compute_block_hash
     block_replay.compute_block_id = timed_compute_block_id
     if callable(old_commit_block_candidate):
-        setattr(follower, "commit_block_candidate", timed_commit_block_candidate)
+        follower.commit_block_candidate = timed_commit_block_candidate
     domain_microphase_cm = _patched_domain_apply_microphase_timing(probe, role=prefix)
     domain_microphase_cm.__enter__()
     try:
@@ -916,16 +981,19 @@ def _patched_block_replay_timing(follower: Any, probe: PhaseProbe, *, role: str)
         block_replay.validate_system_tx_queue_binding = old_validate_system_tx_queue_binding
         block_replay.compute_recent_block_anchor = old_compute_recent_block_anchor
         block_replay.recent_block_ids_from_state = old_recent_block_ids_from_state
-        block_replay.recent_block_anchor_required_for_height = old_recent_block_anchor_required_for_height
+        block_replay.recent_block_anchor_required_for_height = (
+            old_recent_block_anchor_required_for_height
+        )
         block_replay.compute_helper_execution_root = old_compute_helper_execution_root
         block_replay.verify_vrf_record = old_verify_vrf_record
-        block_replay.compute_block_hash = old_compute_block_hash
         block_replay.compute_block_id = old_compute_block_id
         if callable(old_commit_block_candidate):
-            setattr(follower, "commit_block_candidate", old_commit_block_candidate)
+            follower.commit_block_candidate = old_commit_block_candidate
 
 
-def _make_executor(db_path: str, *, node_id: str, chain_id: str, helper_fast_path: bool = False) -> Any:
+def _make_executor(
+    db_path: str, *, node_id: str, chain_id: str, helper_fast_path: bool = False
+) -> Any:
     from weall.runtime.executor import WeAllExecutor
 
     os.environ.setdefault("WEALL_MODE", "dev")
@@ -994,7 +1062,12 @@ def _seed_state(executor: Any, users: list[str]) -> Json:
         "charter": "Seed public group for block cadence load.",
         "meta": {"visibility": "public", "read_visibility": "public", "public_only": True},
         "members": {users[0]: {"account": users[0], "role": "creator"}},
-        "permissions": {"read": "public", "post": "members", "comment": "members", "vote": "members"},
+        "permissions": {
+            "read": "public",
+            "post": "members",
+            "comment": "members",
+            "vote": "members",
+        },
         "signers": [users[0]],
         "threshold": 1,
         "moderators": [],
@@ -1019,7 +1092,12 @@ def _seed_state(executor: Any, users: list[str]) -> Json:
         "title": "Seed poll",
         "body": "Seed poll for block cadence load.",
         "stage": "poll",
-        "rules": {"start_stage": "poll", "auto_progress_enabled": False, "auto_lifecycle": False, "auto": False},
+        "rules": {
+            "start_stage": "poll",
+            "auto_progress_enabled": False,
+            "auto_lifecycle": False,
+            "auto": False,
+        },
         "actions": [],
         "poll_votes": {},
         "votes": {},
@@ -1044,7 +1122,12 @@ def _seed_state(executor: Any, users: list[str]) -> Json:
         "reason": "seed",
         "stage": "review",
         "resolved": False,
-        "jurors": {users[1] if len(users) > 1 else users[0]: {"status": "accepted", "accepted_at_height": 0}},
+        "jurors": {
+            users[1] if len(users) > 1 else users[0]: {
+                "status": "accepted",
+                "accepted_at_height": 0,
+            }
+        },
         "votes": {},
         "created_at_height": 0,
         "deadline_height": 10_000_000,
@@ -1092,7 +1175,11 @@ def _account_nonce_from_state(state: Json, signer: str) -> int:
 
 
 def _next_expected_nonce_from_executor(executor: Any, signer: str) -> int:
-    state = executor.read_state() if callable(getattr(executor, "read_state", None)) else getattr(executor, "state", {})
+    state = (
+        executor.read_state()
+        if callable(getattr(executor, "read_state", None))
+        else getattr(executor, "state", {})
+    )
     chain_nonce = _account_nonce_from_state(state if isinstance(state, dict) else {}, signer)
     pending_cursor = chain_nonce
     cursor_fn = getattr(executor, "_pending_nonce_cursor_for_submit", None)
@@ -1201,32 +1288,71 @@ def _shortfall_by_reason(*, shortfall: int, stopped_reason: str, refill_diag: Js
     return reasons
 
 
-def _valid_payload_for(kind: str, signer: str, nonce: int, i: int, users: list[str], profile: str) -> Json:
-    target = users[(users.index(signer) + 1) % len(users)] if signer in users and len(users) > 1 else users[0]
+def _valid_payload_for(
+    kind: str, signer: str, nonce: int, i: int, users: list[str], profile: str
+) -> Json:
+    target = (
+        users[(users.index(signer) + 1) % len(users)]
+        if signer in users and len(users) > 1
+        else users[0]
+    )
     if kind == "PROFILE_UPDATE":
         return {"display_name": f"User {signer} {i}", "bio": f"block cadence profile update {i}"}
     if kind == "CONTENT_POST_CREATE":
-        return {"post_id": f"post:{signer}:{nonce}", "body": f"public load post {i} by {signer}", "visibility": "public", "tags": ["load", profile], "media": []}
+        return {
+            "post_id": f"post:{signer}:{nonce}",
+            "body": f"public load post {i} by {signer}",
+            "visibility": "public",
+            "tags": ["load", profile],
+            "media": [],
+        }
     if kind == "CONTENT_COMMENT_CREATE":
-        return {"comment_id": f"comment:{signer}:{nonce}", "post_id": "seed-post", "body": f"public load comment {i}"}
+        return {
+            "comment_id": f"comment:{signer}:{nonce}",
+            "post_id": "seed-post",
+            "body": f"public load comment {i}",
+        }
     if kind == "CONTENT_REACTION_SET":
         return {"target_id": "seed-post", "reaction": "like" if i % 2 == 0 else "support"}
     if kind == "FOLLOW_SET":
         return {"target": target, "active": True}
     if kind == "GROUP_CREATE":
-        return {"group_id": f"g:{signer.strip('@').replace(':', '-')}-{nonce}", "charter": f"Public load group {i}"}
+        return {
+            "group_id": f"g:{signer.strip('@').replace(':', '-')}-{nonce}",
+            "charter": f"Public load group {i}",
+        }
     if kind == "GROUP_MEMBERSHIP_REQUEST":
         return {"group_id": "seed-group"}
     if kind == "GOV_PROPOSAL_CREATE":
-        return {"proposal_id": f"prop:{signer.strip('@')}:{nonce}", "title": f"Load proposal {i}", "body": "Measured public governance load.", "rules": {"start_stage": "poll", "auto_progress_enabled": False, "auto_lifecycle": False, "auto": False}, "actions": []}
+        return {
+            "proposal_id": f"prop:{signer.strip('@')}:{nonce}",
+            "title": f"Load proposal {i}",
+            "body": "Measured public governance load.",
+            "rules": {
+                "start_stage": "poll",
+                "auto_progress_enabled": False,
+                "auto_lifecycle": False,
+                "auto": False,
+            },
+            "actions": [],
+        }
     if kind == "GOV_PROPOSAL_COMMENT":
         return {"proposal_id": "seed-prop", "body": f"governance comment {i}"}
     if kind == "GOV_VOTE_CAST":
         return {"proposal_id": "seed-prop", "vote": "yes" if i % 3 else "abstain"}
     if kind == "DISPUTE_OPEN":
-        return {"dispute_id": f"dispute:{signer.strip('@')}:{nonce}", "target_type": "content", "target_id": "seed-post", "reason": f"valid stress dispute {i}"}
+        return {
+            "dispute_id": f"dispute:{signer.strip('@')}:{nonce}",
+            "target_type": "content",
+            "target_id": "seed-post",
+            "reason": f"valid stress dispute {i}",
+        }
     if kind == "CONTENT_FLAG":
-        return {"flag_id": f"flag:{signer.strip('@')}:{nonce}", "target_id": "seed-post", "reason": "stress flag"}
+        return {
+            "flag_id": f"flag:{signer.strip('@')}:{nonce}",
+            "target_id": "seed-post",
+            "reason": "stress flag",
+        }
     return {"note": f"unsupported generator kind {kind}"}
 
 
@@ -1295,11 +1421,16 @@ def _submit_profile_load(
     malformed_flags: list[bool] = []
     generation_start_ns = time.perf_counter_ns()
 
-    with (phase_probe.timed("tx_generation_wall_ns") if phase_probe is not None else nullcontext()):
+    with phase_probe.timed("tx_generation_wall_ns") if phase_probe is not None else nullcontext():
         for i in range(int(count)):
             if profile == "adversarial" and i % 17 == 0:
                 malformed_submitted += 1
-                bad = {"tx_type": "CONTENT_POST_CREATE", "signer": "", "nonce": -1, "payload": {"body": "bad"}}
+                bad = {
+                    "tx_type": "CONTENT_POST_CREATE",
+                    "signer": "",
+                    "nonce": -1,
+                    "payload": {"body": "bad"},
+                }
                 txs.append(bad)
                 tx_kinds.append("CONTENT_POST_CREATE")
                 malformed_flags.append(True)
@@ -1349,8 +1480,14 @@ def _submit_profile_load(
     submit_batch = getattr(executor, "submit_txs_batch", None)
     admission_start_ns = time.perf_counter_ns()
     if callable(submit_batch):
-        with (phase_probe.timed("mempool_submit_wall_ns") if phase_probe is not None else nullcontext()):
-            results = submit_batch(txs, ingress="local_fixture", include_timings=phase_probe is not None)
+        with (
+            phase_probe.timed("mempool_submit_wall_ns")
+            if phase_probe is not None
+            else nullcontext()
+        ):
+            results = submit_batch(
+                txs, ingress="local_fixture", include_timings=phase_probe is not None
+            )
         if phase_probe is not None and results:
             timings = None
             for result in reversed(results):
@@ -1359,12 +1496,18 @@ def _submit_profile_load(
                     break
             if isinstance(timings, dict):
                 for field in MEMPOOL_SUBMIT_TIMING_FIELDS:
-                    phase_probe.add_ms(field.replace("_ms", "_ns"), _phase_value_ms(timings.get(field)))
+                    phase_probe.add_ms(
+                        field.replace("_ms", "_ns"), _phase_value_ms(timings.get(field))
+                    )
     else:
         results = []
         submit_start = time.perf_counter_ns()
         for tx_obj in txs:
-            with (phase_probe.timed("mempool_submit_wall_ns") if phase_probe is not None else nullcontext()):
+            with (
+                phase_probe.timed("mempool_submit_wall_ns")
+                if phase_probe is not None
+                else nullcontext()
+            ):
                 results.append(executor.submit_tx(tx_obj, ingress="local_fixture"))
         if phase_probe is not None:
             phase_probe.add("tx_submit_total_wall_ns", time.perf_counter_ns() - submit_start)
@@ -1375,7 +1518,9 @@ def _submit_profile_load(
     bad_nonce_future = 0
     bad_nonce_duplicate = 0
     bad_nonce_gap = 0
-    for tx_obj, kind, malformed, result in zip(txs, tx_kinds, malformed_flags, results, strict=False):
+    for tx_obj, kind, malformed, result in zip(
+        txs, tx_kinds, malformed_flags, results, strict=False
+    ):
         if isinstance(result, dict) and result.get("ok"):
             admitted += 1
             if not malformed:
@@ -1388,7 +1533,11 @@ def _submit_profile_load(
             malformed_rejected += 1
         else:
             rejected += 1
-        code = str((result or {}).get("error") or (result or {}).get("reason") or "rejected") if isinstance(result, dict) else "rejected"
+        code = (
+            str((result or {}).get("error") or (result or {}).get("reason") or "rejected")
+            if isinstance(result, dict)
+            else "rejected"
+        )
         rejected_by_code[code] = int(rejected_by_code.get(code, 0)) + 1
         if not malformed:
             child = rejected_by_type_code.setdefault(kind, {})
@@ -1398,7 +1547,9 @@ def _submit_profile_load(
                 fallback_nonce = int(tx_obj.get("nonce") or 0) if isinstance(tx_obj, dict) else 0
             except Exception:
                 fallback_nonce = 0
-            bucket = _bad_nonce_bucket(result if isinstance(result, dict) else {}, fallback_nonce=fallback_nonce)
+            bucket = _bad_nonce_bucket(
+                result if isinstance(result, dict) else {}, fallback_nonce=fallback_nonce
+            )
             if bucket == "stale":
                 bad_nonce_stale += 1
             elif bucket == "duplicate":
@@ -1433,6 +1584,7 @@ def _submit_profile_load(
         "bad_nonce_gap_count": bad_nonce_gap,
     }
 
+
 def _mempool_size(executor: Any) -> int:
     mp = getattr(executor, "_mempool", None) or getattr(executor, "mempool", None)
     if mp is None:
@@ -1451,7 +1603,9 @@ def _fetch_mempool_candidates(executor: Any, *, max_txs: int) -> list[Json]:
         return []
     try:
         policy = mp.selection_policy()
-        rows = mp.fetch_for_block(limit=int(max_txs), policy=policy, candidate_height=candidate_height)
+        rows = mp.fetch_for_block(
+            limit=int(max_txs), policy=policy, candidate_height=candidate_height
+        )
     except TypeError:
         rows = mp.fetch_for_block(limit=int(max_txs))
     except Exception:
@@ -1474,8 +1628,12 @@ def _valid_candidate_count(executor: Any, *, max_txs: int) -> int:
 def _merge_submit_totals(dst: Json, src: Json) -> None:
     dst["admitted"] = int(dst.get("admitted") or 0) + int(src.get("admitted") or 0)
     dst["rejected"] = int(dst.get("rejected") or 0) + int(src.get("rejected") or 0)
-    dst["malformed_submitted"] = int(dst.get("malformed_submitted") or 0) + int(src.get("malformed_submitted") or 0)
-    dst["malformed_rejected"] = int(dst.get("malformed_rejected") or 0) + int(src.get("malformed_rejected") or 0)
+    dst["malformed_submitted"] = int(dst.get("malformed_submitted") or 0) + int(
+        src.get("malformed_submitted") or 0
+    )
+    dst["malformed_rejected"] = int(dst.get("malformed_rejected") or 0) + int(
+        src.get("malformed_rejected") or 0
+    )
     for k, v in dict(src.get("rejected_by_code") or {}).items():
         rejected = dst.setdefault("rejected_by_code", {})
         rejected[k] = int(rejected.get(k, 0)) + int(v)
@@ -1485,14 +1643,22 @@ def _merge_submit_totals(dst: Json, src: Json) -> None:
     for k, v in dict(src.get("submitted_by_type") or {}).items():
         attempted = dst.setdefault("submitted_by_type", {})
         attempted[k] = int(attempted.get(k, 0)) + int(v)
-    _merge_nested_counts(dst.setdefault("rejected_by_type_code", {}), dict(src.get("rejected_by_type_code") or {}))
+    _merge_nested_counts(
+        dst.setdefault("rejected_by_type_code", {}), dict(src.get("rejected_by_type_code") or {})
+    )
 
 
 def _submitted_count(result: Json) -> int:
-    return int(result.get("admitted") or 0) + int(result.get("rejected") or 0) + int(result.get("malformed_submitted") or 0)
+    return (
+        int(result.get("admitted") or 0)
+        + int(result.get("rejected") or 0)
+        + int(result.get("malformed_submitted") or 0)
+    )
 
 
-def _tx_count_semantics(*, requested_limit: int, selected_candidate_count: int, included_count: int) -> Json:
+def _tx_count_semantics(
+    *, requested_limit: int, selected_candidate_count: int, included_count: int
+) -> Json:
     derived = max(0, int(included_count) - int(selected_candidate_count))
     return {
         "max_txs_per_block_semantics": "mempool_candidate_limit_excludes_system_or_derived_txs",
@@ -1513,7 +1679,9 @@ def _state_root(state: Json) -> str:
     return str(compute_state_root(state))
 
 
-def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int, execution_model: str = "deepcopy") -> Json:
+def _produce_measured_block(
+    executor: Any, *, max_txs: int, target_block_ms: int, execution_model: str = "deepcopy"
+) -> Json:
     from weall.runtime.bounded_rollback import reset_rollback_diagnostics
 
     reset_rollback_diagnostics()
@@ -1525,7 +1693,9 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
     start = time.perf_counter_ns()
     with _patched_block_builder_timing(executor, probe, execution_model=execution_model):
         candidate_start = time.perf_counter_ns()
-        block, new_state, applied_ids, invalid_ids, err = executor.build_block_candidate(max_txs=int(max_txs), allow_empty=False)
+        block, new_state, applied_ids, invalid_ids, err = executor.build_block_candidate(
+            max_txs=int(max_txs), allow_empty=False
+        )
         candidate_ns = time.perf_counter_ns() - candidate_start
     if block is None:
         return {
@@ -1541,13 +1711,15 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
             "slow_observer_apply_wall_ms": 0.0,
             "state_root_wall_ms": probe.ms("state_root_time_ns"),
             "receipt_or_summary_wall_ms": 0.0,
-            "leader_tx_loop_wall_ms": probe.ms("leader_tx_loop_time_ns") or probe.ms("execution_time_ns"),
+            "leader_tx_loop_wall_ms": probe.ms("leader_tx_loop_time_ns")
+            or probe.ms("execution_time_ns"),
             "follower_tx_loop_wall_ms": 0.0,
             "slow_observer_tx_loop_wall_ms": 0.0,
             "leader_receipt_build_wall_ms": probe.ms("leader_receipt_build_time_ns"),
             "follower_receipt_build_wall_ms": 0.0,
             "slow_observer_receipt_build_wall_ms": 0.0,
-            "leader_state_root_wall_ms": probe.ms("leader_state_root_time_ns") or probe.ms("state_root_time_ns"),
+            "leader_state_root_wall_ms": probe.ms("leader_state_root_time_ns")
+            or probe.ms("state_root_time_ns"),
             "follower_state_root_wall_ms": 0.0,
             "slow_observer_state_root_wall_ms": 0.0,
             "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
@@ -1559,12 +1731,18 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
             **_zero_tx_loop_microphase_values("slow_observer"),
             **_zero_replay_wrapper_phase_values("follower"),
             **_zero_replay_wrapper_phase_values("slow_observer"),
-            **_tx_count_semantics(requested_limit=int(max_txs), selected_candidate_count=sum(int(v) for v in candidate_type_counts.values()), included_count=0),
+            **_tx_count_semantics(
+                requested_limit=int(max_txs),
+                selected_candidate_count=sum(int(v) for v in candidate_type_counts.values()),
+                included_count=0,
+            ),
             "total_block_production_time_ms": _ms(time.perf_counter_ns() - start),
             "execution_model": str(execution_model),
         }
     commit_start = time.perf_counter_ns()
-    meta = executor.commit_block_candidate(block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids)
+    meta = executor.commit_block_candidate(
+        block=block, new_state=new_state, applied_ids=applied_ids, invalid_ids=invalid_ids
+    )
     persistence_ns = time.perf_counter_ns() - commit_start
     total_ns = time.perf_counter_ns() - start
     receipt_summary_start = time.perf_counter_ns()
@@ -1610,13 +1788,15 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
         "slow_observer_apply_wall_ms": 0.0,
         "state_root_wall_ms": probe.ms("state_root_time_ns"),
         "receipt_or_summary_wall_ms": _ms(receipt_summary_ns),
-        "leader_tx_loop_wall_ms": probe.ms("leader_tx_loop_time_ns") or probe.ms("execution_time_ns"),
+        "leader_tx_loop_wall_ms": probe.ms("leader_tx_loop_time_ns")
+        or probe.ms("execution_time_ns"),
         "follower_tx_loop_wall_ms": 0.0,
         "slow_observer_tx_loop_wall_ms": 0.0,
         "leader_receipt_build_wall_ms": probe.ms("leader_receipt_build_time_ns"),
         "follower_receipt_build_wall_ms": 0.0,
         "slow_observer_receipt_build_wall_ms": 0.0,
-        "leader_state_root_wall_ms": probe.ms("leader_state_root_time_ns") or probe.ms("state_root_time_ns"),
+        "leader_state_root_wall_ms": probe.ms("leader_state_root_time_ns")
+        or probe.ms("state_root_time_ns"),
         "follower_state_root_wall_ms": 0.0,
         "slow_observer_state_root_wall_ms": 0.0,
         "block_decode_or_materialize_wall_ms": probe.ms("block_decode_or_materialize_time_ns"),
@@ -1631,7 +1811,14 @@ def _produce_measured_block(executor: Any, *, max_txs: int, target_block_ms: int
         **tx_count_semantics,
         "proposal_construction_time_ms": max(
             0.0,
-            round(_ms(candidate_ns) - probe.ms("block_admission_time_ns") - probe.ms("execution_time_ns") - probe.ms("state_root_time_ns") - probe.ms("helper_planning_time_ns"), 3),
+            round(
+                _ms(candidate_ns)
+                - probe.ms("block_admission_time_ns")
+                - probe.ms("execution_time_ns")
+                - probe.ms("state_root_time_ns")
+                - probe.ms("helper_planning_time_ns"),
+                3,
+            ),
         ),
         "candidate_total_time_ms": _ms(candidate_ns),
         "block_admission_time_ms": probe.ms("block_admission_time_ns"),
@@ -1689,11 +1876,21 @@ def _apply_to_follower(follower: Any, block: Json, *, role: str = "follower") ->
 
 
 def _copy_replay_microphases(block: Json, replay_result: Json, *, prefix: str) -> None:
-    block[f"{prefix}_tx_decode_or_normalize_wall_ms"] = _phase_value_ms(replay_result.get("tx_decode_or_normalize_wall_ms"))
-    block[f"{prefix}_tx_id_or_hash_wall_ms"] = _phase_value_ms(replay_result.get("tx_id_or_hash_wall_ms"))
-    block[f"{prefix}_domain_dispatch_wall_ms"] = _phase_value_ms(replay_result.get("domain_dispatch_wall_ms"))
-    block[f"{prefix}_domain_apply_wall_ms"] = _phase_value_ms(replay_result.get("domain_apply_wall_ms"))
-    block[f"{prefix}_rollback_tracking_wall_ms"] = _phase_value_ms(replay_result.get("rollback_tracking_wall_ms"))
+    block[f"{prefix}_tx_decode_or_normalize_wall_ms"] = _phase_value_ms(
+        replay_result.get("tx_decode_or_normalize_wall_ms")
+    )
+    block[f"{prefix}_tx_id_or_hash_wall_ms"] = _phase_value_ms(
+        replay_result.get("tx_id_or_hash_wall_ms")
+    )
+    block[f"{prefix}_domain_dispatch_wall_ms"] = _phase_value_ms(
+        replay_result.get("domain_dispatch_wall_ms")
+    )
+    block[f"{prefix}_domain_apply_wall_ms"] = _phase_value_ms(
+        replay_result.get("domain_apply_wall_ms")
+    )
+    block[f"{prefix}_rollback_tracking_wall_ms"] = _phase_value_ms(
+        replay_result.get("rollback_tracking_wall_ms")
+    )
     for field in REPLAY_WRAPPER_PHASES:
         block[f"{prefix}_{field}"] = _phase_value_ms(replay_result.get(field))
     for field in REPLAY_WRAPPER_COUNT_FIELDS:
@@ -1708,6 +1905,7 @@ def _summary(blocks: list[Json]) -> Json:
     if not totals:
         return {"count": 0}
     ordered = sorted(totals)
+
     def percentile(p: float) -> float:
         if len(ordered) == 1:
             return ordered[0]
@@ -1717,6 +1915,7 @@ def _summary(blocks: list[Json]) -> Json:
         if f == c:
             return ordered[f]
         return ordered[f] + (ordered[c] - ordered[f]) * (k - f)
+
     return {
         "count": len(totals),
         "avg_ms": round(statistics.mean(totals), 3),
@@ -1727,7 +1926,20 @@ def _summary(blocks: list[Json]) -> Json:
     }
 
 
-def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block: int, txs_per_block_feed: int, target_block_ms: int, helper_fast_path: bool, restart_during_load: bool, execution_model: str = "deepcopy", chain_id_override: str | None = None, sustain_load: bool = False) -> Json:
+def run_profile(
+    profile: str,
+    *,
+    users_n: int,
+    blocks_n: int,
+    max_txs_per_block: int,
+    txs_per_block_feed: int,
+    target_block_ms: int,
+    helper_fast_path: bool,
+    restart_during_load: bool,
+    execution_model: str = "deepcopy",
+    chain_id_override: str | None = None,
+    sustain_load: bool = False,
+) -> Json:
     profile_start_ns = time.perf_counter_ns()
     profile_probe = PhaseProbe()
     execution_model = str(execution_model or "deepcopy")
@@ -1736,9 +1948,24 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
         users = [f"@load{i:03d}" for i in range(max(3, int(users_n)))]
     with profile_probe.timed("setup_wall_ns"):
         tempdir = tempfile.mkdtemp(prefix=f"weall-block-schedule-{profile}-{execution_model}-")
-        leader = _make_executor(str(Path(tempdir) / "leader.db"), node_id="@leader", chain_id=chain_id, helper_fast_path=helper_fast_path)
-        follower = _make_executor(str(Path(tempdir) / "follower.db"), node_id="@follower", chain_id=chain_id, helper_fast_path=False)
-        slow_observer = _make_executor(str(Path(tempdir) / "slow-observer.db"), node_id="@slow-observer", chain_id=chain_id, helper_fast_path=False)
+        leader = _make_executor(
+            str(Path(tempdir) / "leader.db"),
+            node_id="@leader",
+            chain_id=chain_id,
+            helper_fast_path=helper_fast_path,
+        )
+        follower = _make_executor(
+            str(Path(tempdir) / "follower.db"),
+            node_id="@follower",
+            chain_id=chain_id,
+            helper_fast_path=False,
+        )
+        slow_observer = _make_executor(
+            str(Path(tempdir) / "slow-observer.db"),
+            node_id="@slow-observer",
+            chain_id=chain_id,
+            helper_fast_path=False,
+        )
         seed = _seed_state(leader, users)
         _clone_seed_to_follower(follower, seed)
         _clone_seed_to_follower(slow_observer, seed)
@@ -1747,7 +1974,16 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
     follower_results: list[Json] = []
     slow_queue: list[tuple[int, Json]] = []
     restart_result: Json = {}
-    aggregate_submit = {"admitted": 0, "rejected": 0, "malformed_submitted": 0, "malformed_rejected": 0, "rejected_by_code": {}, "accepted_by_type": {}, "submitted_by_type": {}, "rejected_by_type_code": {}}
+    aggregate_submit = {
+        "admitted": 0,
+        "rejected": 0,
+        "malformed_submitted": 0,
+        "malformed_rejected": 0,
+        "rejected_by_code": {},
+        "accepted_by_type": {},
+        "submitted_by_type": {},
+        "rejected_by_type_code": {},
+    }
 
     with profile_probe.timed("block_loop_wall_ns"):
         for block_i in range(int(blocks_n)):
@@ -1767,7 +2003,16 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 count=int(txs_per_block_feed),
                 phase_probe=profile_probe,
             )
-            block_submit_totals: Json = {"admitted": 0, "rejected": 0, "malformed_submitted": 0, "malformed_rejected": 0, "rejected_by_code": {}, "accepted_by_type": {}, "submitted_by_type": {}, "rejected_by_type_code": {}}
+            block_submit_totals: Json = {
+                "admitted": 0,
+                "rejected": 0,
+                "malformed_submitted": 0,
+                "malformed_rejected": 0,
+                "rejected_by_code": {},
+                "accepted_by_type": {},
+                "submitted_by_type": {},
+                "rejected_by_type_code": {},
+            }
             _merge_submit_totals(block_submit_totals, submit_result)
             per_block_refill_submitted = 0
             per_block_refill_admitted = 0
@@ -1783,9 +2028,16 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 # contiguous pending mempool nonces.  That preserves strict nonce
                 # validation while preventing stale/future nonce retry storms after an
                 # earlier generated tx was not admitted.
-                candidate_top_up_stopped_reason = "target_met" if valid_candidate_count >= int(max_txs_per_block) else "max_refill_attempts_exhausted"
+                candidate_top_up_stopped_reason = (
+                    "target_met"
+                    if valid_candidate_count >= int(max_txs_per_block)
+                    else "max_refill_attempts_exhausted"
+                )
                 max_attempts = max(2, int(blocks_n) + 4)
-                while valid_candidate_count < int(max_txs_per_block) and per_block_refill_attempts < max_attempts:
+                while (
+                    valid_candidate_count < int(max_txs_per_block)
+                    and per_block_refill_attempts < max_attempts
+                ):
                     before_refill_candidate_count = int(valid_candidate_count)
                     deficit = int(max_txs_per_block) - int(valid_candidate_count)
                     refill_count = max(deficit, max(1, int(max_txs_per_block) // 4))
@@ -1799,46 +2051,94 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                         phase_probe=profile_probe,
                     )
                     per_block_refill_attempts += 1
-                    refill_diag["refill_attempt_target"] = int(refill_diag.get("refill_attempt_target", 0) or 0) + int(refill_count)
+                    refill_diag["refill_attempt_target"] = int(
+                        refill_diag.get("refill_attempt_target", 0) or 0
+                    ) + int(refill_count)
                     per_block_refill_submitted += _submitted_count(refill)
                     per_block_refill_admitted += int(refill.get("admitted") or 0)
-                    per_block_refill_rejected += int(refill.get("rejected") or 0) + int(refill.get("malformed_rejected") or 0)
-                    refill_diag["refill_candidate_generation_wall_ms"] = round(float(refill_diag.get("refill_candidate_generation_wall_ms") or 0.0) + float(refill.get("generation_wall_ms") or 0.0), 3)
-                    refill_diag["refill_admission_wall_ms"] = round(float(refill_diag.get("refill_admission_wall_ms") or 0.0) + float(refill.get("admission_wall_ms") or 0.0), 3)
-                    refill_diag["refill_bad_nonce_stale_count"] = int(refill_diag.get("refill_bad_nonce_stale_count", 0) or 0) + int(refill.get("bad_nonce_stale_count", 0) or 0)
-                    refill_diag["refill_bad_nonce_future_count"] = int(refill_diag.get("refill_bad_nonce_future_count", 0) or 0) + int(refill.get("bad_nonce_future_count", 0) or 0)
-                    refill_diag["refill_bad_nonce_duplicate_count"] = int(refill_diag.get("refill_bad_nonce_duplicate_count", 0) or 0) + int(refill.get("bad_nonce_duplicate_count", 0) or 0)
-                    refill_diag["refill_bad_nonce_gap_count"] = int(refill_diag.get("refill_bad_nonce_gap_count", 0) or 0) + int(refill.get("bad_nonce_gap_count", 0) or 0)
+                    per_block_refill_rejected += int(refill.get("rejected") or 0) + int(
+                        refill.get("malformed_rejected") or 0
+                    )
+                    refill_diag["refill_candidate_generation_wall_ms"] = round(
+                        float(refill_diag.get("refill_candidate_generation_wall_ms") or 0.0)
+                        + float(refill.get("generation_wall_ms") or 0.0),
+                        3,
+                    )
+                    refill_diag["refill_admission_wall_ms"] = round(
+                        float(refill_diag.get("refill_admission_wall_ms") or 0.0)
+                        + float(refill.get("admission_wall_ms") or 0.0),
+                        3,
+                    )
+                    refill_diag["refill_bad_nonce_stale_count"] = int(
+                        refill_diag.get("refill_bad_nonce_stale_count", 0) or 0
+                    ) + int(refill.get("bad_nonce_stale_count", 0) or 0)
+                    refill_diag["refill_bad_nonce_future_count"] = int(
+                        refill_diag.get("refill_bad_nonce_future_count", 0) or 0
+                    ) + int(refill.get("bad_nonce_future_count", 0) or 0)
+                    refill_diag["refill_bad_nonce_duplicate_count"] = int(
+                        refill_diag.get("refill_bad_nonce_duplicate_count", 0) or 0
+                    ) + int(refill.get("bad_nonce_duplicate_count", 0) or 0)
+                    refill_diag["refill_bad_nonce_gap_count"] = int(
+                        refill_diag.get("refill_bad_nonce_gap_count", 0) or 0
+                    ) + int(refill.get("bad_nonce_gap_count", 0) or 0)
                     for tx_type, count in dict(refill.get("submitted_by_type") or {}).items():
                         attempted = refill_diag.setdefault("refill_tx_types_attempted", {})
-                        attempted[str(tx_type)] = int(attempted.get(str(tx_type), 0)) + int(count or 0)
+                        attempted[str(tx_type)] = int(attempted.get(str(tx_type), 0)) + int(
+                            count or 0
+                        )
                     for tx_type, count in dict(refill.get("accepted_by_type") or {}).items():
                         admitted_by_type = refill_diag.setdefault("refill_tx_types_admitted", {})
-                        admitted_by_type[str(tx_type)] = int(admitted_by_type.get(str(tx_type), 0)) + int(count or 0)
-                    _merge_nested_counts(refill_diag.setdefault("refill_tx_types_rejected_by_code", {}), dict(refill.get("rejected_by_type_code") or {}))
-                    refill_signers_attempted.update(str(x) for x in list(refill.get("_signers_attempted") or []))
-                    refill_signers_admitted.update(str(x) for x in list(refill.get("_signers_admitted") or []))
+                        admitted_by_type[str(tx_type)] = int(
+                            admitted_by_type.get(str(tx_type), 0)
+                        ) + int(count or 0)
+                    _merge_nested_counts(
+                        refill_diag.setdefault("refill_tx_types_rejected_by_code", {}),
+                        dict(refill.get("rejected_by_type_code") or {}),
+                    )
+                    refill_signers_attempted.update(
+                        str(x) for x in list(refill.get("_signers_attempted") or [])
+                    )
+                    refill_signers_admitted.update(
+                        str(x) for x in list(refill.get("_signers_admitted") or [])
+                    )
                     for pair in list(refill.get("_signer_nonce_pairs") or []):
                         pair_s = str(pair)
                         if pair_s in refill_seen_pairs:
-                            refill_diag["refill_duplicate_signer_nonce_pairs"] = int(refill_diag.get("refill_duplicate_signer_nonce_pairs", 0) or 0) + 1
+                            refill_diag["refill_duplicate_signer_nonce_pairs"] = (
+                                int(refill_diag.get("refill_duplicate_signer_nonce_pairs", 0) or 0)
+                                + 1
+                            )
                         refill_seen_pairs.add(pair_s)
                     for tx_id in list(refill.get("_tx_ids") or []):
                         tx_id_s = str(tx_id)
                         if tx_id_s in refill_seen_tx_ids:
-                            refill_diag["refill_duplicate_tx_ids"] = int(refill_diag.get("refill_duplicate_tx_ids", 0) or 0) + 1
+                            refill_diag["refill_duplicate_tx_ids"] = (
+                                int(refill_diag.get("refill_duplicate_tx_ids", 0) or 0) + 1
+                            )
                         refill_seen_tx_ids.add(tx_id_s)
-                    refill_diag["refill_duplicate_tx_ids"] = int(refill_diag.get("refill_duplicate_tx_ids", 0) or 0) + int(refill.get("duplicate_tx_ids", 0) or 0)
-                    refill_diag["refill_duplicate_signer_nonce_pairs"] = int(refill_diag.get("refill_duplicate_signer_nonce_pairs", 0) or 0) + int(refill.get("duplicate_signer_nonce_pairs", 0) or 0)
+                    refill_diag["refill_duplicate_tx_ids"] = int(
+                        refill_diag.get("refill_duplicate_tx_ids", 0) or 0
+                    ) + int(refill.get("duplicate_tx_ids", 0) or 0)
+                    refill_diag["refill_duplicate_signer_nonce_pairs"] = int(
+                        refill_diag.get("refill_duplicate_signer_nonce_pairs", 0) or 0
+                    ) + int(refill.get("duplicate_signer_nonce_pairs", 0) or 0)
                     _merge_submit_totals(block_submit_totals, refill)
-                    valid_candidate_count = _valid_candidate_count(leader, max_txs=max_txs_per_block)
+                    valid_candidate_count = _valid_candidate_count(
+                        leader, max_txs=max_txs_per_block
+                    )
                     if valid_candidate_count >= int(max_txs_per_block):
                         candidate_top_up_stopped_reason = "target_met"
                         break
-                    if int(refill.get("admitted") or 0) <= 0 and int(valid_candidate_count) <= before_refill_candidate_count:
+                    if (
+                        int(refill.get("admitted") or 0) <= 0
+                        and int(valid_candidate_count) <= before_refill_candidate_count
+                    ):
                         candidate_top_up_stopped_reason = "no_refill_progress"
                         break
-                if valid_candidate_count < int(max_txs_per_block) and candidate_top_up_stopped_reason == "target_met":
+                if (
+                    valid_candidate_count < int(max_txs_per_block)
+                    and candidate_top_up_stopped_reason == "target_met"
+                ):
                     candidate_top_up_stopped_reason = "max_refill_attempts_exhausted"
 
             _merge_submit_totals(aggregate_submit, block_submit_totals)
@@ -1850,14 +2150,23 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
             target_shortfall = max(0, int(max_txs_per_block) - int(valid_candidate_count))
             refill_diag["refill_attempt_shortfall"] = int(target_shortfall)
 
-            measured = _produce_measured_block(leader, max_txs=max_txs_per_block, target_block_ms=target_block_ms, execution_model=execution_model)
+            measured = _produce_measured_block(
+                leader,
+                max_txs=max_txs_per_block,
+                target_block_ms=target_block_ms,
+                execution_model=execution_model,
+            )
             measured["block_index"] = block_i
             measured["initial_pre_refill_mempool_size"] = int(initial_pre_refill_mempool_size)
             measured["pre_block_mempool_size"] = int(pre_block_mempool_size)
-            measured["post_block_mempool_size"] = int(measured.get("mempool_backlog_after") or _mempool_size(leader))
+            measured["post_block_mempool_size"] = int(
+                measured.get("mempool_backlog_after") or _mempool_size(leader)
+            )
             measured["valid_candidate_count"] = int(valid_candidate_count)
             measured["admitted_before_block_count"] = int(block_submit_totals.get("admitted") or 0)
-            measured["rejected_before_block_count"] = int(block_submit_totals.get("rejected") or 0) + int(block_submit_totals.get("malformed_rejected") or 0)
+            measured["rejected_before_block_count"] = int(
+                block_submit_totals.get("rejected") or 0
+            ) + int(block_submit_totals.get("malformed_rejected") or 0)
             measured["per_block_refill_submitted"] = int(per_block_refill_submitted)
             measured["per_block_refill_admitted"] = int(per_block_refill_admitted)
             measured["per_block_refill_rejected"] = int(per_block_refill_rejected)
@@ -1875,7 +2184,9 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
             measured["sustain_load"] = bool(sustain_load)
             measured["txs_admitted_this_round"] = int(block_submit_totals.get("admitted") or 0)
             measured["txs_rejected_this_round"] = int(block_submit_totals.get("rejected") or 0)
-            measured["rejected_by_code_this_round"] = block_submit_totals.get("rejected_by_code") or {}
+            measured["rejected_by_code_this_round"] = (
+                block_submit_totals.get("rejected_by_code") or {}
+            )
             blocks.append(measured)
             if not measured.get("ok"):
                 continue
@@ -1887,20 +2198,38 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 # returned by _produce_measured_block to avoid JSON DB materialization
                 # in throughput diagnostics.
                 import sqlite3
+
                 con = sqlite3.connect(str(Path(tempdir) / "leader.db"))
                 con.row_factory = sqlite3.Row
-                row = con.execute("SELECT block_json FROM blocks WHERE height=?", (int(measured.get("height") or 0),)).fetchone()
+                row = con.execute(
+                    "SELECT block_json FROM blocks WHERE height=?",
+                    (int(measured.get("height") or 0),),
+                ).fetchone()
                 con.close()
                 block_obj = json.loads(row["block_json"]) if row else {}
             with profile_probe.timed("follower_apply_wall_ns"):
                 fr = _apply_to_follower(follower, block_obj, role="follower")
             measured["follower_apply_wall_ms"] = _phase_value_ms(fr.get("apply_time_ms"))
             measured["follower_tx_loop_wall_ms"] = _phase_value_ms(fr.get("tx_loop_wall_ms"))
-            measured["follower_receipt_build_wall_ms"] = _phase_value_ms(fr.get("receipt_build_wall_ms"))
+            measured["follower_receipt_build_wall_ms"] = _phase_value_ms(
+                fr.get("receipt_build_wall_ms")
+            )
             measured["follower_state_root_wall_ms"] = _phase_value_ms(fr.get("state_root_wall_ms"))
-            measured["block_decode_or_materialize_wall_ms"] = round(float(measured.get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(fr.get("block_decode_or_materialize_wall_ms")), 3)
-            measured["replay_admission_wall_ms"] = round(float(measured.get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(fr.get("replay_admission_wall_ms")), 3)
-            measured["rollback_journal_snapshot_wall_ms"] = round(float(measured.get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(fr.get("rollback_journal_snapshot_wall_ms")), 3)
+            measured["block_decode_or_materialize_wall_ms"] = round(
+                float(measured.get("block_decode_or_materialize_wall_ms") or 0.0)
+                + _phase_value_ms(fr.get("block_decode_or_materialize_wall_ms")),
+                3,
+            )
+            measured["replay_admission_wall_ms"] = round(
+                float(measured.get("replay_admission_wall_ms") or 0.0)
+                + _phase_value_ms(fr.get("replay_admission_wall_ms")),
+                3,
+            )
+            measured["rollback_journal_snapshot_wall_ms"] = round(
+                float(measured.get("rollback_journal_snapshot_wall_ms") or 0.0)
+                + _phase_value_ms(fr.get("rollback_journal_snapshot_wall_ms")),
+                3,
+            )
             _add_rollback_journal_diagnostics(measured, fr)
             _copy_replay_microphases(measured, fr, prefix="follower")
             follower_results.append(fr)
@@ -1910,34 +2239,90 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
                 with profile_probe.timed("slow_observer_apply_wall_ns"):
                     sr = _apply_to_follower(slow_observer, slow_block_obj, role="slow_observer")
                 if 0 <= slow_idx < len(blocks):
-                    blocks[slow_idx]["slow_observer_apply_wall_ms"] = _phase_value_ms(sr.get("apply_time_ms"))
-                    blocks[slow_idx]["slow_observer_tx_loop_wall_ms"] = _phase_value_ms(sr.get("tx_loop_wall_ms"))
-                    blocks[slow_idx]["slow_observer_receipt_build_wall_ms"] = _phase_value_ms(sr.get("receipt_build_wall_ms"))
-                    blocks[slow_idx]["slow_observer_state_root_wall_ms"] = _phase_value_ms(sr.get("state_root_wall_ms"))
-                    blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")), 3)
-                    blocks[slow_idx]["replay_admission_wall_ms"] = round(float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(sr.get("replay_admission_wall_ms")), 3)
-                    blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")), 3)
+                    blocks[slow_idx]["slow_observer_apply_wall_ms"] = _phase_value_ms(
+                        sr.get("apply_time_ms")
+                    )
+                    blocks[slow_idx]["slow_observer_tx_loop_wall_ms"] = _phase_value_ms(
+                        sr.get("tx_loop_wall_ms")
+                    )
+                    blocks[slow_idx]["slow_observer_receipt_build_wall_ms"] = _phase_value_ms(
+                        sr.get("receipt_build_wall_ms")
+                    )
+                    blocks[slow_idx]["slow_observer_state_root_wall_ms"] = _phase_value_ms(
+                        sr.get("state_root_wall_ms")
+                    )
+                    blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(
+                        float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0)
+                        + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")),
+                        3,
+                    )
+                    blocks[slow_idx]["replay_admission_wall_ms"] = round(
+                        float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0)
+                        + _phase_value_ms(sr.get("replay_admission_wall_ms")),
+                        3,
+                    )
+                    blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(
+                        float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0)
+                        + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")),
+                        3,
+                    )
                     _add_rollback_journal_diagnostics(blocks[slow_idx], sr)
                     _copy_replay_microphases(blocks[slow_idx], sr, prefix="slow_observer")
 
             if restart_during_load and block_i == int(blocks_n) // 2:
                 with profile_probe.timed("restart_replay_wall_ns"):
-                    before = {"height": int(leader.read_state().get("height") or 0), "state_root": _state_root(leader.read_state())}
-                    leader = _make_executor(str(Path(tempdir) / "leader.db"), node_id="@leader", chain_id=chain_id, helper_fast_path=helper_fast_path)
-                    after = {"height": int(leader.read_state().get("height") or 0), "state_root": _state_root(leader.read_state())}
-                    restart_result = {"performed": True, "before": before, "after": after, "same_state_root": before["state_root"] == after["state_root"]}
+                    before = {
+                        "height": int(leader.read_state().get("height") or 0),
+                        "state_root": _state_root(leader.read_state()),
+                    }
+                    leader = _make_executor(
+                        str(Path(tempdir) / "leader.db"),
+                        node_id="@leader",
+                        chain_id=chain_id,
+                        helper_fast_path=helper_fast_path,
+                    )
+                    after = {
+                        "height": int(leader.read_state().get("height") or 0),
+                        "state_root": _state_root(leader.read_state()),
+                    }
+                    restart_result = {
+                        "performed": True,
+                        "before": before,
+                        "after": after,
+                        "same_state_root": before["state_root"] == after["state_root"],
+                    }
 
         for slow_idx, block_obj in slow_queue:
             with profile_probe.timed("slow_observer_apply_wall_ns"):
                 sr = _apply_to_follower(slow_observer, block_obj, role="slow_observer")
             if 0 <= slow_idx < len(blocks):
-                blocks[slow_idx]["slow_observer_apply_wall_ms"] = _phase_value_ms(sr.get("apply_time_ms"))
-                blocks[slow_idx]["slow_observer_tx_loop_wall_ms"] = _phase_value_ms(sr.get("tx_loop_wall_ms"))
-                blocks[slow_idx]["slow_observer_receipt_build_wall_ms"] = _phase_value_ms(sr.get("receipt_build_wall_ms"))
-                blocks[slow_idx]["slow_observer_state_root_wall_ms"] = _phase_value_ms(sr.get("state_root_wall_ms"))
-                blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0) + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")), 3)
-                blocks[slow_idx]["replay_admission_wall_ms"] = round(float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0) + _phase_value_ms(sr.get("replay_admission_wall_ms")), 3)
-                blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0) + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")), 3)
+                blocks[slow_idx]["slow_observer_apply_wall_ms"] = _phase_value_ms(
+                    sr.get("apply_time_ms")
+                )
+                blocks[slow_idx]["slow_observer_tx_loop_wall_ms"] = _phase_value_ms(
+                    sr.get("tx_loop_wall_ms")
+                )
+                blocks[slow_idx]["slow_observer_receipt_build_wall_ms"] = _phase_value_ms(
+                    sr.get("receipt_build_wall_ms")
+                )
+                blocks[slow_idx]["slow_observer_state_root_wall_ms"] = _phase_value_ms(
+                    sr.get("state_root_wall_ms")
+                )
+                blocks[slow_idx]["block_decode_or_materialize_wall_ms"] = round(
+                    float(blocks[slow_idx].get("block_decode_or_materialize_wall_ms") or 0.0)
+                    + _phase_value_ms(sr.get("block_decode_or_materialize_wall_ms")),
+                    3,
+                )
+                blocks[slow_idx]["replay_admission_wall_ms"] = round(
+                    float(blocks[slow_idx].get("replay_admission_wall_ms") or 0.0)
+                    + _phase_value_ms(sr.get("replay_admission_wall_ms")),
+                    3,
+                )
+                blocks[slow_idx]["rollback_journal_snapshot_wall_ms"] = round(
+                    float(blocks[slow_idx].get("rollback_journal_snapshot_wall_ms") or 0.0)
+                    + _phase_value_ms(sr.get("rollback_journal_snapshot_wall_ms")),
+                    3,
+                )
                 _add_rollback_journal_diagnostics(blocks[slow_idx], sr)
                 _copy_replay_microphases(blocks[slow_idx], sr, prefix="slow_observer")
     leader_root = _state_root(leader.read_state())
@@ -2000,7 +2385,6 @@ def run_profile(profile: str, *, users_n: int, blocks_n: int, max_txs_per_block:
     return result
 
 
-
 def _project_block_for_equivalence(block: Json) -> Json:
     return {
         "ok": bool(block.get("ok")),
@@ -2048,7 +2432,9 @@ def _project_profile_for_equivalence(profile: Json) -> Json:
             "slow_observer_state_root": str(convergence.get("slow_observer_state_root") or ""),
             "leader_state_fingerprint": str(convergence.get("leader_state_fingerprint") or ""),
             "follower_state_fingerprint": str(convergence.get("follower_state_fingerprint") or ""),
-            "slow_observer_state_fingerprint": str(convergence.get("slow_observer_state_fingerprint") or ""),
+            "slow_observer_state_fingerprint": str(
+                convergence.get("slow_observer_state_fingerprint") or ""
+            ),
             "all_nodes_converged": bool(convergence.get("all_nodes_converged")),
         },
     }
@@ -2107,23 +2493,40 @@ def _compare_execution_model_results(results: list[Json]) -> Json:
         ],
     }
 
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", choices=["light", "active", "adversarial", "network", "all"], default="light")
+    parser.add_argument(
+        "--profile", choices=["light", "active", "adversarial", "network", "all"], default="light"
+    )
     parser.add_argument("--users", type=int, default=0)
     parser.add_argument("--blocks", type=int, default=0)
     parser.add_argument("--max-txs-per-block", type=int, default=0)
     parser.add_argument("--txs-per-block-feed", type=int, default=0)
     parser.add_argument("--target-block-ms", type=int, default=DEFAULT_TARGET_BLOCK_MS)
     parser.add_argument("--helper-fast-path", action="store_true")
-    parser.add_argument("--execution-model", choices=["deepcopy", "bounded_rollback", "compare"], default="bounded_rollback")
+    parser.add_argument(
+        "--execution-model",
+        choices=["deepcopy", "bounded_rollback", "compare"],
+        default="bounded_rollback",
+    )
     parser.add_argument("--restart-during-load", action="store_true", default=True)
-    parser.add_argument("--sustain-load", action="store_true", help="deterministically refill mempool before each block until candidate target is met")
+    parser.add_argument(
+        "--sustain-load",
+        action="store_true",
+        help="deterministically refill mempool before each block until candidate target is met",
+    )
     parser.add_argument("--out", default="")
     args = parser.parse_args(argv)
 
-    profiles = ["light", "active", "adversarial", "network"] if args.profile == "all" else [args.profile]
-    models = ["deepcopy", "bounded_rollback"] if args.execution_model == "compare" else [args.execution_model]
+    profiles = (
+        ["light", "active", "adversarial", "network"] if args.profile == "all" else [args.profile]
+    )
+    models = (
+        ["deepcopy", "bounded_rollback"]
+        if args.execution_model == "compare"
+        else [args.execution_model]
+    )
     results = []
     for profile in profiles:
         defaults = PROFILE_DEFAULTS[profile]
@@ -2163,7 +2566,11 @@ def main(argv: list[str] | None = None) -> int:
         "evidence_write_wall_ms": 0.0,
         "bottleneck_summary": _artifact_bottleneck_summary(results, evidence_write_wall_ms=0.0),
     }
-    out = Path(args.out) if args.out else REPO_ROOT / "rehearsal-evidence" / f"block_schedule_survivability_{_now_ms()}.json"
+    out = (
+        Path(args.out)
+        if args.out
+        else REPO_ROOT / "rehearsal-evidence" / f"block_schedule_survivability_{_now_ms()}.json"
+    )
     out.parent.mkdir(parents=True, exist_ok=True)
     evidence_write_start = time.perf_counter_ns()
     out.write_text(json.dumps(artifact, indent=2, sort_keys=True), encoding="utf-8")
@@ -2172,7 +2579,9 @@ def main(argv: list[str] | None = None) -> int:
         profile_result["evidence_write_wall_ms"] = evidence_write_wall_ms
         profile_result["profile_bottleneck_summary"] = _profile_bottleneck_summary(profile_result)
     artifact["evidence_write_wall_ms"] = evidence_write_wall_ms
-    artifact["bottleneck_summary"] = _artifact_bottleneck_summary(results, evidence_write_wall_ms=evidence_write_wall_ms)
+    artifact["bottleneck_summary"] = _artifact_bottleneck_summary(
+        results, evidence_write_wall_ms=evidence_write_wall_ms
+    )
     out.write_text(json.dumps(artifact, indent=2, sort_keys=True), encoding="utf-8")
     print(str(out))
     if args.execution_model == "compare" and not bool(compare_equivalence.get("ok")):

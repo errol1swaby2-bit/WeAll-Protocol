@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable
 from typing import Any, Dict
 
@@ -73,13 +74,6 @@ def _ensure_bool(root: Json, key: str, default: bool = False) -> bool:
     root[key] = bool(default)
     return bool(default)
 
-    try:
-        root[key] = float(root.get(key))
-        return float(root[key])
-    except Exception:
-        root[key] = float(default)
-        return float(default)
-
 
 def _migrate_v0_to_v1(st: Json) -> Json:
     _ensure_int(st, "height", 0)
@@ -119,10 +113,36 @@ _MIGRATIONS: Dict[int, Callable[[Json], Json]] = {
 }
 
 
-def migrate_state_dict(raw: Any) -> Json:
-    st: Json = raw if isinstance(raw, dict) else {}
+def _parse_state_version(st: Json) -> int:
+    if "state_version" not in st:
+        return 0
+    raw = st.get("state_version")
+    if isinstance(raw, bool):
+        raise ValueError("Ledger state_version must be a non-negative integer, not bool.")
+    if isinstance(raw, int):
+        version = raw
+    elif isinstance(raw, str) and raw.strip().isdigit():
+        version = int(raw.strip())
+    else:
+        raise ValueError("Ledger state_version must be a non-negative integer.")
+    if version < 0:
+        raise ValueError("Ledger state_version must be non-negative.")
+    return version
 
-    v = _as_int(st.get("state_version"), 0)
+
+def migrate_state_dict(raw: Any) -> Json:
+    """Return a deterministic migrated copy of ``raw``.
+
+    Migration is copy-on-write: neither a successful migration nor a failed
+    migration may mutate the caller's object. Each registered step must advance
+    the version by exactly one so a malformed step cannot skip compatibility
+    boundaries or loop indefinitely.
+    """
+
+    source: Json = raw if isinstance(raw, dict) else {}
+    st: Json = copy.deepcopy(source)
+
+    v = _parse_state_version(st)
     if v > CURRENT_STATE_VERSION:
         raise ValueError(
             f"Ledger state version {v} is newer than this binary supports (max {CURRENT_STATE_VERSION})."
@@ -134,8 +154,16 @@ def migrate_state_dict(raw: Any) -> Json:
             raise ValueError(
                 f"No migration path from state_version={v} to {CURRENT_STATE_VERSION}."
             )
-        st = step(st)
-        v = _as_int(st.get("state_version"), v + 1)
+        migrated = step(st)
+        if not isinstance(migrated, dict):
+            raise ValueError(f"Migration step {v}->{v + 1} did not return a state object.")
+        next_version = _parse_state_version(migrated)
+        if next_version != v + 1:
+            raise ValueError(
+                f"Migration step {v}->{v + 1} produced state_version={next_version}; exact advancement required."
+            )
+        st = migrated
+        v = next_version
 
     st["state_version"] = CURRENT_STATE_VERSION
     return st

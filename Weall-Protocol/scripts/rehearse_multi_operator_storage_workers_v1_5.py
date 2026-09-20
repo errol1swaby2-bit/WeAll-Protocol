@@ -12,8 +12,25 @@ from weall.runtime.apply.storage import apply_storage
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any], *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, chain_id="batch558-storage-workers", payload=payload, sig="sig", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict[str, Any],
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        chain_id="batch558-storage-workers",
+        payload=payload,
+        sig="sig",
+        system=system,
+        parent=parent,
+    )
 
 
 def _cid_for(data: bytes) -> str:
@@ -53,7 +70,9 @@ def _seed_operator_state(state: dict[str, Any], operators: list[str]) -> None:
         state["accounts"][op] = {
             "poh_tier": 2,
             "storage_operator_eligible": True,
-            "devices": {"by_id": {f"dev:{op}": {"device_type": "node", "pubkey": pubkey, "revoked": False}}},
+            "devices": {
+                "by_id": {f"dev:{op}": {"device_type": "node", "pubkey": pubkey, "revoked": False}}
+            },
         }
         by_id[op] = {
             "account_id": op,
@@ -73,7 +92,12 @@ def _seed_operator_state(state: dict[str, Any], operators: list[str]) -> None:
                 }
             },
         }
-        storage["operators"][op] = {"account_id": op, "enabled": True, "capacity_bytes": 1_000_000, "used_bytes": 0}
+        storage["operators"][op] = {
+            "account_id": op,
+            "enabled": True,
+            "capacity_bytes": 1_000_000,
+            "used_bytes": 0,
+        }
 
 
 def run_harness() -> dict[str, Any]:
@@ -83,9 +107,30 @@ def run_harness() -> dict[str, Any]:
         root = Path(td)
         operators = ["op-a", "op-b", "op-c", "op-d"]
         workers = {op: LocalOperatorWorker(root, op) for op in operators}
-        state: dict[str, Any] = {"height": 40, "params": {"ipfs_replication_factor": 2}, "accounts": {"SYSTEM": {"poh_tier": 0}}, "roles": {}, "storage": {}}
+        state: dict[str, Any] = {
+            "height": 40,
+            "params": {"ipfs_replication_factor": 2},
+            "accounts": {"SYSTEM": {"poh_tier": 0}},
+            "roles": {},
+            "storage": {},
+        }
         _seed_operator_state(state, operators)
-        request = apply_storage(state, _env("IPFS_PIN_REQUEST", "SYSTEM", 1, {"pin_id": "pin-b558", "cid": cid, "replication_factor": 2, "size_bytes": len(data)}, system=True, parent="storage"))
+        request = apply_storage(
+            state,
+            _env(
+                "IPFS_PIN_REQUEST",
+                "SYSTEM",
+                1,
+                {
+                    "pin_id": "pin-b558",
+                    "cid": cid,
+                    "replication_factor": 2,
+                    "size_bytes": len(data),
+                },
+                system=True,
+                parent="storage",
+            ),
+        )
         pin_id = str(request.get("pin_id") or "pin-b558")
         pin = state["storage"]["pins"][pin_id]
         targets = list(pin.get("targets") or pin.get("target_operators") or [])
@@ -93,15 +138,58 @@ def run_harness() -> dict[str, Any]:
         secondary = targets[1]
         workers[primary].failed = True
         primary_written = workers[primary].pin(cid, data)
-        failed = apply_storage(state, _env("IPFS_PIN_CONFIRM", "SYSTEM", 2, {"pin_id": pin_id, "cid": cid, "operator_id": primary, "ok": False, "reason": "operator_failed"}, system=True, parent="storage"))
-        reassigned_targets = list(state["storage"]["pins"][pin_id].get("targets") or state["storage"]["pins"][pin_id].get("target_operators") or [])
+        failed = apply_storage(
+            state,
+            _env(
+                "IPFS_PIN_CONFIRM",
+                "SYSTEM",
+                2,
+                {
+                    "pin_id": pin_id,
+                    "cid": cid,
+                    "operator_id": primary,
+                    "ok": False,
+                    "reason": "operator_failed",
+                },
+                system=True,
+                parent="storage",
+            ),
+        )
+        reassigned_targets = list(
+            state["storage"]["pins"][pin_id].get("targets")
+            or state["storage"]["pins"][pin_id].get("target_operators")
+            or []
+        )
         replacement = next(op for op in reassigned_targets if op not in {primary, secondary})
         replacement_written = workers[replacement].pin(cid, data)
         replacement_read = workers[replacement].cat(cid)
-        ok_confirm = apply_storage(state, _env("IPFS_PIN_CONFIRM", "SYSTEM", 3, {"pin_id": pin_id, "cid": cid, "operator_id": replacement, "ok": True, "retrieval_ok": replacement_read == data, "proof_hash": hashlib.sha256(replacement_read or b"").hexdigest()}, system=True, parent="storage"))
+        ok_confirm = apply_storage(
+            state,
+            _env(
+                "IPFS_PIN_CONFIRM",
+                "SYSTEM",
+                3,
+                {
+                    "pin_id": pin_id,
+                    "cid": cid,
+                    "operator_id": replacement,
+                    "ok": True,
+                    "retrieval_ok": replacement_read == data,
+                    "proof_hash": hashlib.sha256(replacement_read or b"").hexdigest(),
+                },
+                system=True,
+                parent="storage",
+            ),
+        )
         final_pin = state["storage"]["pins"][pin_id]
         return {
-            "ok": bool(not primary_written and replacement_written and replacement_read == data and final_pin.get("availability_status") == "available" and final_pin.get("durability_status") == "retrieval_confirmed"),
+            "ok": bool(
+                not primary_written
+                and replacement_written
+                and replacement_read == data
+                and final_pin.get("availability_status") == "available"
+                and final_pin.get("durability_status") == "retrieval_confirmed"
+            ),
             "batch": "558",
             "worker_model": "multi_operator_local_file_pin_workers",
             "operator_count": len(operators),
@@ -119,7 +207,9 @@ def run_harness() -> dict[str, Any]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

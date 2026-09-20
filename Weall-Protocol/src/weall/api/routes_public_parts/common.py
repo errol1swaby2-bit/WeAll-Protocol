@@ -20,8 +20,8 @@ class PublicRouteConfigError(ValueError):
 
 
 def _runtime_mode() -> str:
-    if os.environ.get("PYTEST_CURRENT_TEST") and not os.environ.get("WEALL_MODE"):
-        return "test"
+    # Runtime posture is explicit; production code never infers pytest state.
+    # Tests set WEALL_MODE=test in their harness when non-production behavior is required.
     return str(os.environ.get("WEALL_MODE", "prod") or "prod").strip().lower() or "prod"
 
 
@@ -92,7 +92,9 @@ def _snapshot(request: Request) -> Json:
     """Return a dict snapshot of the current direct executor state."""
     ex = _executor(request)
     if not hasattr(ex, "read_state"):
-        raise ApiError.internal("executor_read_state_required", "executor must expose read_state", {})
+        raise ApiError.internal(
+            "executor_read_state_required", "executor must expose read_state", {}
+        )
     st = ex.read_state()
     return st if isinstance(st, dict) else dict(st)
 
@@ -297,7 +299,7 @@ def _require_registered_signer_for_user_tx(
     if tx_type == "ACCOUNT_REGISTER":
         return
 
-    acct = _require_registered_account(ledger, signer)
+    _require_registered_account(ledger, signer)
 
     # PoH v2.1 tier gating for content posting.
     # Posting content requires Tier 2 / Live Verified Human.

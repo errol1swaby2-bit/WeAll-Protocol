@@ -21,7 +21,7 @@ def _json(path: Path) -> dict[str, object]:
 
 def test_m3_traceability_checker_passes() -> None:
     result = subprocess.run(
-        [sys.executable, "scripts/check_m3_requirement_traceability.py"],
+        [sys.executable, "scripts/check_m3_requirement_traceability.py", "--source-only"],
         cwd=REPO_ROOT,
         text=True,
         stdout=subprocess.PIPE,
@@ -29,30 +29,55 @@ def test_m3_traceability_checker_passes() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stdout
-    assert "OK: M3 traceability validated" in result.stdout
+    assert "OK: M3 traceability validated (source-only)" in result.stdout
 
 
-def test_m3_traceability_records_all_requirements_and_deliverables_closed() -> None:
+def test_m3_traceability_records_implementation_ready_and_evidence_pending() -> None:
     trace = _json(TRACE_PATH)
     rows = {
         str(row["id"]): row
         for row in trace["requirements"]  # type: ignore[index]
     }
     assert rows
-    assert {str(row["status"]) for row in rows.values()} == {"closed"}
+    assert {str(row["status"]) for row in rows.values()} == {
+        "implemented_requires_integrated_evidence"
+    }
     assert all(row.get("evidence") for row in rows.values())
 
     crosswalk = _json(CROSSWALK_PATH)
     assert crosswalk["blocking_protocol_gaps"] == []
     deliverables = crosswalk["deliverables"]  # type: ignore[index]
     assert deliverables
-    assert {str(row["status"]) for row in deliverables} == {"closed"}
+    assert {str(row["status"]) for row in deliverables} == {
+        "implemented_requires_integrated_evidence"
+    }
     assert all(row.get("evidence") for row in deliverables)
     corrections = {
         str(row["mechanism_id"])
         for row in crosswalk["implemented_protocol_corrections"]  # type: ignore[index]
     }
     assert corrections == {"M-050", "M-051"}
+
+
+def test_m3_formal_traceability_refuses_missing_replacement_freeze_evidence() -> None:
+    manifest_path = REPO_ROOT / "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
+    manifest_bytes = manifest_path.read_bytes() if manifest_path.is_file() else None
+    if manifest_bytes is not None:
+        manifest_path.unlink()
+    try:
+        result = subprocess.run(
+            [sys.executable, "scripts/check_m3_requirement_traceability.py"],
+            cwd=REPO_ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+    finally:
+        if manifest_bytes is not None:
+            manifest_path.write_bytes(manifest_bytes)
+    assert result.returncode != 0
+    assert "m3_traceability_missing:artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json" in result.stdout
 
 
 def test_m3_docs_preserve_bounded_claim_language() -> None:
@@ -174,3 +199,27 @@ def test_m3_evidence_only_checker_binds_direct_child_and_all_gates() -> None:
         assert marker in contract
     assert "--cached" in wrapper
     assert "M3_IMPLEMENTATION_FREEZE_COMMIT" in wrapper
+
+
+def test_m3_formal_wrappers_supply_actor_validator_output_contract() -> None:
+    wrappers = (
+        REPO_ROOT / "scripts/run_m3_formal_journey.sh",
+        REPO_ROOT / "scripts/build_m1_m3_evidence.sh",
+    )
+
+    for wrapper in wrappers:
+        source = wrapper.read_text(encoding="utf-8")
+
+        for marker in (
+            "validate_m3_actor_manifest.py",
+            "--implementation-freeze",
+            "--out-public-manifest",
+            "--out-transcript",
+            "m13_make_tmp",
+            "trap cleanup_validation EXIT INT TERM",
+            'test -s "$PUBLIC_MANIFEST"',
+            'test -s "$PUBLIC_TRANSCRIPT"',
+        ):
+            assert marker in source, f"{wrapper}: missing {marker}"
+
+        assert source.index("--out-public-manifest") < source.index("--out-transcript")

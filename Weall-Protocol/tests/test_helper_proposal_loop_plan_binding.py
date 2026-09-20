@@ -7,9 +7,7 @@ from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_finge
 
 
 def test_helper_proposal_loop_surfaces_plan_id() -> None:
-    lane_plans = (
-        LanePlan(lane_id="L1", helper_id="h1", txs=tuple(), tx_ids=("t1",)),
-    )
+    lane_plans = (LanePlan(lane_id="L1", helper_id="h1", txs=tuple(), tx_ids=("t1",)),)
     expected_plan_id = canonical_lane_plan_fingerprint(lane_plans)
     summary = run_helper_proposal_loop(
         base_context=HelperDispatchContext(

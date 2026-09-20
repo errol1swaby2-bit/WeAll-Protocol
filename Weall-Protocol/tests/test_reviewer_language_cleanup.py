@@ -55,8 +55,7 @@ def test_truth_boundary_checker_still_passes() -> None:
         [sys.executable, "scripts/check_reviewer_truth_boundaries.py"],
         cwd=ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
 
@@ -64,7 +63,6 @@ def test_truth_boundary_checker_still_passes() -> None:
     assert "[truth-boundary] OK" in result.stdout
     assert "reviewer readiness claims" in result.stdout
     assert "reviewert" not in (result.stdout + result.stderr).lower()
-
 
 
 def test_reviewer_readmes_do_not_use_unbounded_readiness_claims() -> None:

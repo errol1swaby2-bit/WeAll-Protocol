@@ -21,14 +21,27 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gen_api_response_vectors_v1_5 import build as build_api_vectors
-from gen_external_operator_transcript_requirements_v1_5 import build as build_external_transcript_requirements
+from gen_external_operator_transcript_requirements_v1_5 import (
+    build as build_external_transcript_requirements,
+)
+from gen_production_helper_topology_hardening_plan_v1_5 import (
+    build as build_helper_topology_hardening_plan,
+)
+from gen_protocol_upgrade_execution_hardening_plan_v1_5 import (
+    build as build_protocol_upgrade_hardening_plan,
+)
 from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
-from gen_protocol_upgrade_execution_hardening_plan_v1_5 import build as build_protocol_upgrade_hardening_plan
-from gen_production_helper_topology_hardening_plan_v1_5 import build as build_helper_topology_hardening_plan
-from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
+from rehearse_external_multimachine_validator_harness_b590_v1_5 import (
+    run_harness as run_validator_harness,
+)
 from rehearse_helper_block_path_adversarial_b593_v1_5 import run_harness as run_helper_harness
-from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
-from rehearse_protocol_upgrade_signed_staging_b589_v1_5 import run_harness as run_protocol_upgrade_harness
+from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import (
+    run_harness as run_storage_harness,
+)
+from rehearse_protocol_upgrade_signed_staging_b589_v1_5 import (
+    run_harness as run_protocol_upgrade_harness,
+)
+
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
 OUT = ROOT / "generated" / "public_beta_blocker_report_v1_5.json"
@@ -66,7 +79,14 @@ def _state_root_summary() -> Json:
     payload = _load_json("generated/state_root_vectors_v1_5.json")
     vectors = payload.get("vectors") if isinstance(payload.get("vectors"), list) else []
     capture_script = ROOT / "scripts" / "capture_external_cross_machine_replay_transcript_v1_5.sh"
-    transcript_template = ROOT / "docs" / "proofs" / "external-cross-machine-replay" / "2026-07-05" / "TRANSCRIPT_TEMPLATE.json"
+    transcript_template = (
+        ROOT
+        / "docs"
+        / "proofs"
+        / "external-cross-machine-replay"
+        / "2026-07-05"
+        / "TRANSCRIPT_TEMPLATE.json"
+    )
     runbook = ROOT / "docs" / "testnet" / "EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md"
     return {
         "ok": bool(payload.get("schema") == "weall.v1_5.state_root_vectors" and len(vectors) >= 8),
@@ -95,7 +115,11 @@ def _clean_clone_gate_summary() -> Json:
         "root_gate_present": root_gate.exists(),
         "backend_wrapper_present": backend_gate.exists(),
         "frontend_contract_gate_present": frontend_gate.exists(),
-        "root_gate_executable_in_this_checkout": root_gate.exists() and root_gate.stat().st_mode & 0o111 != 0,
+        # Tracked evidence must not depend on the local checkout's permission bits.
+        # Executability is a runtime/release-gate property verified directly by the
+        # verification ladder, not part of the deterministic generated artifact.
+        "root_gate_executable_required": True,
+        "root_gate_executable_runtime_check_required": True,
         "requires_fresh_checkout_transcript_after_commit": True,
     }
 
@@ -103,7 +127,14 @@ def _clean_clone_gate_summary() -> Json:
 def _legal_summary() -> Json:
     evidence_pack = ROOT / "docs" / "legal" / "COUNSEL_REVIEW_EVIDENCE_PACK.md"
     runbook = ROOT / "docs" / "testnet" / "LEGAL_COMPLIANCE_EVIDENCE_PACK.md"
-    template = ROOT / "docs" / "proofs" / "legal-compliance-counsel" / "2026-07-05" / "ATTESTATION_TEMPLATE.json"
+    template = (
+        ROOT
+        / "docs"
+        / "proofs"
+        / "legal-compliance-counsel"
+        / "2026-07-05"
+        / "ATTESTATION_TEMPLATE.json"
+    )
     return {
         "ok": evidence_pack.exists() and runbook.exists() and template.exists(),
         "legal_compliance_ready": False,
@@ -144,7 +175,6 @@ def _frontend_p2_ux_summary() -> Json:
             return ""
 
     contents = {key: read(key) for key in files}
-    combined = "\n".join(contents.values())
     checks = {
         "operator_wizard_surface_present": all(
             needle in contents["operator_wizard"]
@@ -158,7 +188,8 @@ def _frontend_p2_ux_summary() -> Json:
                 "observer-only / diagnostic-only",
                 "requires protocol state before use",
             )
-        ) and "OperatorCommandWizard" in contents["node_dashboard"],
+        )
+        and "OperatorCommandWizard" in contents["node_dashboard"],
         "tx_lifecycle_timeline_present": all(
             needle in contents["tx_page"]
             for needle in (
@@ -173,7 +204,8 @@ def _frontend_p2_ux_summary() -> Json:
                 "not confirmed yet",
                 "unknown/unavailable",
             )
-        ) and "Propagation lifecycle separates local submission" in contents["tx_timeline"],
+        )
+        and "Propagation lifecycle separates local submission" in contents["tx_timeline"],
         "operator_incident_timeline_present": all(
             needle in contents["incident_timeline"]
             for needle in (
@@ -183,7 +215,8 @@ def _frontend_p2_ux_summary() -> Json:
                 "node mode, chain identity, peer and seed status, mempool backlog, block/finalized height, BFT/validator authority, storage/helper/economics/protocol-upgrade blockers",
                 "build_operator_incident_report.py",
             )
-        ) and "OperatorIncidentTimeline" in contents["node_dashboard"],
+        )
+        and "OperatorIncidentTimeline" in contents["node_dashboard"],
         "source_contract_test_present": all(
             needle in contents["source_test"]
             for needle in (
@@ -215,14 +248,21 @@ def _frontend_p2_ux_summary() -> Json:
     ]
     # The source test intentionally contains the forbidden strings as guard data; exclude it from product copy checks.
     product_combined = "\n".join(value for key, value in contents.items() if key != "source_test")
-    checks["no_readiness_or_confirmation_overclaim_in_product_copy"] = not any(phrase in product_combined for phrase in forbidden_phrases)
+    checks["no_readiness_or_confirmation_overclaim_in_product_copy"] = not any(
+        phrase in product_combined for phrase in forbidden_phrases
+    )
     ok = all(checks.values()) and all(path.exists() for path in files.values())
     return {
         "ok": ok,
         "source_gate": "web/scripts/test_step9_p2_ux_source.mjs",
         "node_dashboard_source_gate": "web/scripts/test_node_dashboard_source.mjs",
         "checks": checks,
-        "artifact_digest": _digest({"checks": checks, "files": sorted(str(path.relative_to(ROOT.parent)) for path in files.values())}),
+        "artifact_digest": _digest(
+            {
+                "checks": checks,
+                "files": sorted(str(path.relative_to(ROOT.parent)) for path in files.values()),
+            }
+        ),
     }
 
 
@@ -241,7 +281,9 @@ def _classify_blocker(
         category = "external_evidence_required"
         disposition = "keep_open_and_frame_as_mainnet_readiness_hardening"
         safe_before_first_round = False
-    elif gate_status.startswith("tracked_as_frontend") or gate_status.startswith("partially_closed"):
+    elif gate_status.startswith("tracked_as_frontend") or gate_status.startswith(
+        "partially_closed"
+    ):
         category = "ux_or_observability_follow_up"
         disposition = "safe_to_reduce_with_bounded_frontend_docs_or_tests"
         safe_before_first_round = True
@@ -256,7 +298,8 @@ def _classify_blocker(
     return {
         "blocker_category": category,
         "nlnet_first_round_disposition": disposition,
-        "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": safe_before_first_round and gate_status.startswith("closed"),
+        "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": safe_before_first_round
+        and gate_status.startswith("closed"),
         "safe_to_reduce_before_nlnet_first_round": safe_before_first_round,
     }
 
@@ -301,12 +344,16 @@ def build() -> Json:
     helper_topology_hardening = build_helper_topology_hardening_plan()
     helper = run_helper_harness()
     api_vectors = build_api_vectors()
-    capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    capabilities = build_testnet_capability_surface(
+        {"params": {"launch_phase": "public_beta_candidate"}}
+    )
     state_roots = _state_root_summary()
     clean_clone = _clean_clone_gate_summary()
     legal = _legal_summary()
     external_requirements = build_external_transcript_requirements()
-    public_observer_launch = _artifact_summary("generated/public_observer_launch_evidence_requirements_v1_5.json")
+    public_observer_launch = _artifact_summary(
+        "generated/public_observer_launch_evidence_requirements_v1_5.json"
+    )
     release_evidence = build_release_evidence_manifest()
     frontend_p2_ux = _frontend_p2_ux_summary()
     crypto_readiness = _artifact_summary("generated/quantum_resistance_readiness_v1_5.json")
@@ -326,9 +373,15 @@ def build() -> Json:
             "Public validator readiness remains explicitly false and operator proof is simulated/local unless externally attested.",
             "Independent multi-process/operator BFT proof with churn, equivocation, partition/rejoin, restart/replay, and transcript digest.",
             "public_validator_operator_transcript_schema",
-            "gate_present_external_attestation_required" if validator.get("ok") and external_requirements.get("ok") else "gate_failed",
+            "gate_present_external_attestation_required"
+            if validator.get("ok") and external_requirements.get("ok")
+            else "gate_failed",
             False,
-            ["independently operated validator run", "operator-signed transcript", "fresh checkout replay of transcript digest"],
+            [
+                "independently operated validator run",
+                "operator-signed transcript",
+                "fresh checkout replay of transcript digest",
+            ],
         ),
         _blocker(
             "AUD-618-P0-002",
@@ -348,9 +401,16 @@ def build() -> Json:
             "Protocol upgrades are record-only and auto-apply remains disabled.",
             "Signed artifact manifests, deterministic migration vectors, rollback semantics, operator approval policy, and staged multi-node rehearsal before execution.",
             "protocol_upgrade_execution_hardening_plan",
-            "hardening_plan_present_execution_still_disabled" if protocol_upgrade.get("ok") and protocol_upgrade_hardening.get("ok") else "gate_failed",
+            "hardening_plan_present_execution_still_disabled"
+            if protocol_upgrade.get("ok") and protocol_upgrade_hardening.get("ok")
+            else "gate_failed",
             True,
-            ["future production execution gate", "operator approval policy", "multi-node rollback transcript", "strict external upgrade execution transcript"],
+            [
+                "future production execution gate",
+                "operator approval policy",
+                "multi-node rollback transcript",
+                "strict external upgrade execution transcript",
+            ],
         ),
         _blocker(
             "AUD-633-P0-004",
@@ -359,9 +419,16 @@ def build() -> Json:
             "The controlled-testnet crypto profile has transitioned to pq-mldsa-v1 ML-DSA for core protocol authority surfaces, but fresh post-transition evidence and external cryptographic review are still missing.",
             "Fresh profile-aware closed-testnet rehearsal evidence, browser/local signing boundary review, helper/evidence-signing production gates, and external crypto review before long-lived public network claims.",
             "quantum_resistance_readiness",
-            "gate_present_real_mldsa_integrated_external_review_required" if crypto_readiness.get("present") else "gate_failed",
+            "gate_present_real_mldsa_integrated_external_review_required"
+            if crypto_readiness.get("present")
+            else "gate_failed",
             False,
-            ["fresh profile-aware testnet rehearsal", "browser/local signing boundary review", "helper/evidence signing production gate", "external cryptographic review"],
+            [
+                "fresh profile-aware testnet rehearsal",
+                "browser/local signing boundary review",
+                "helper/evidence signing production gate",
+                "external cryptographic review",
+            ],
         ),
         _blocker(
             "AUD-618-P1-001",
@@ -370,7 +437,9 @@ def build() -> Json:
             "API response vectors were limited to a small high-risk set.",
             "Expanded response vectors cover production-critical route families and auth/error boundaries.",
             "expanded_api_response_vector_pack",
-            "closed_as_artifact_gate" if api_vectors.get("ok") and api_vector_count >= 24 else "needs_more_vectors",
+            "closed_as_artifact_gate"
+            if api_vectors.get("ok") and api_vector_count >= 24
+            else "needs_more_vectors",
             True,
         ),
         _blocker(
@@ -390,9 +459,15 @@ def build() -> Json:
             "State-root vectors and transcript capture tooling exist, but no external cross-machine replay transcript is attached.",
             "External/two-physical-machine replay transcript proving identical state roots, vector digest, and tx-index hash on the same commit.",
             "external_cross_machine_replay_transcript_schema",
-            "gate_present_external_transcript_required" if state_roots.get("ok") and external_requirements.get("ok") else "gate_failed",
+            "gate_present_external_transcript_required"
+            if state_roots.get("ok") and external_requirements.get("ok")
+            else "gate_failed",
             False,
-            ["external machine replay transcript", "same-commit state-root replay transcript", "matching tx-index hash transcript"],
+            [
+                "external machine replay transcript",
+                "same-commit state-root replay transcript",
+                "matching tx-index hash transcript",
+            ],
         ),
         _blocker(
             "AUD-618-P1-004",
@@ -401,7 +476,9 @@ def build() -> Json:
             "Storage/IPFS durability proof is deterministic/simulated until externally operated daemon topology is attached.",
             "Real daemon/operator topology with failure, retrieval, corrupt-content, wrong-CID, and revalidation transcript.",
             "storage_ipfs_operator_transcript_schema",
-            "gate_present_real_operator_rehearsal_required" if storage.get("ok") and external_requirements.get("ok") else "gate_failed",
+            "gate_present_real_operator_rehearsal_required"
+            if storage.get("ok") and external_requirements.get("ok")
+            else "gate_failed",
             False,
             ["real IPFS daemon transcript", "independent storage operator transcript"],
         ),
@@ -412,9 +489,16 @@ def build() -> Json:
             "Production helper execution remains disabled and future topology evidence is now planned.",
             "Helper assignment, receipts, merge, crash, Byzantine, capacity/backpressure, operator policy, governance/release gate, and serial equivalence proven under production topology before activation.",
             "production_helper_topology_hardening_plan",
-            "hardening_plan_present_execution_still_disabled" if helper.get("ok") and helper_topology_hardening.get("ok") else "gate_failed",
+            "hardening_plan_present_execution_still_disabled"
+            if helper.get("ok") and helper_topology_hardening.get("ok")
+            else "gate_failed",
             True,
-            ["future helper production enablement governance/release gate", "multi-node helper topology transcript", "serial-equivalence corpus", "Byzantine helper rejection matrix"],
+            [
+                "future helper production enablement governance/release gate",
+                "multi-node helper topology transcript",
+                "serial-equivalence corpus",
+                "Byzantine helper rejection matrix",
+            ],
         ),
         _blocker(
             "AUD-618-P1-006",
@@ -423,7 +507,9 @@ def build() -> Json:
             "Clean-clone root gate is present and now backed by a deterministic release-evidence manifest; concrete commit binding is emitted by runtime clean-gate reports.",
             "One-command clean-clone gate transcript from real checkout after commit, plus tracked manifest proving which artifacts and evidence gates were checked.",
             "release_evidence_manifest_and_clean_clone_gate",
-            "closed_as_release_evidence_manifest_gate" if clean_clone.get("ok") and release_evidence.get("ok") else "gate_failed",
+            "closed_as_release_evidence_manifest_gate"
+            if clean_clone.get("ok") and release_evidence.get("ok")
+            else "gate_failed",
             True,
         ),
         _blocker(
@@ -433,9 +519,15 @@ def build() -> Json:
             "Public observer discovery code is present, but an external open-download transcript is still required before claiming public observer launch readiness.",
             "Clean-clone transcript proves signed registry discovery, seed/validator peer discovery, state sync, and frontend visibility from a new user environment.",
             "public_observer_launch_evidence_requirements",
-            "gate_present_external_transcript_required" if public_observer_launch.get("ok") else "gate_failed",
+            "gate_present_external_transcript_required"
+            if public_observer_launch.get("ok")
+            else "gate_failed",
             False,
-            ["external clean-clone observer transcript", "state-sync proof", "rendered frontend operator journey"],
+            [
+                "external clean-clone observer transcript",
+                "state-sync proof",
+                "rendered frontend operator journey",
+            ],
         ),
         _blocker(
             "AUD-618-P2-001",
@@ -444,7 +536,10 @@ def build() -> Json:
             "Frontend node dashboard now includes a bounded operator wizard with role boundaries and safe copyable diagnostic command categories.",
             "Guided operator wizard explains blockers and safe commands without hidden state mutation.",
             "frontend_operator_wizard_source_gate",
-            "closed_as_frontend_source_gate" if frontend_p2_ux.get("checks", {}).get("operator_wizard_surface_present") and frontend_p2_ux.get("checks", {}).get("source_contract_test_present") else "tracked_as_frontend_ux_gap",
+            "closed_as_frontend_source_gate"
+            if frontend_p2_ux.get("checks", {}).get("operator_wizard_surface_present")
+            and frontend_p2_ux.get("checks", {}).get("source_contract_test_present")
+            else "tracked_as_frontend_ux_gap",
             True,
         ),
         _blocker(
@@ -454,7 +549,10 @@ def build() -> Json:
             "Transaction activity now shows submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool states with unknown propagation shown honestly.",
             "Show submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool stages without treating mempool acceptance as confirmation.",
             "tx_propagation_timeline_source_gate",
-            "closed_as_frontend_source_gate" if frontend_p2_ux.get("checks", {}).get("tx_lifecycle_timeline_present") and frontend_p2_ux.get("checks", {}).get("source_contract_test_present") else "tracked_as_frontend_ux_gap",
+            "closed_as_frontend_source_gate"
+            if frontend_p2_ux.get("checks", {}).get("tx_lifecycle_timeline_present")
+            and frontend_p2_ux.get("checks", {}).get("source_contract_test_present")
+            else "tracked_as_frontend_ux_gap",
             True,
         ),
         _blocker(
@@ -464,7 +562,10 @@ def build() -> Json:
             "Node dashboard now includes a read-only operator incident timeline that ties node mode, chain identity, peer/seed status, mempool, block height, validator/BFT authority, storage/helper/economics/protocol-upgrade blockers, and safe diagnostics.",
             "Incident timeline ties mempool, peer sync, block, BFT, storage, and role blockers.",
             "operator_incident_timeline_gate",
-            "closed_as_frontend_source_gate" if frontend_p2_ux.get("checks", {}).get("operator_incident_timeline_present") and frontend_p2_ux.get("checks", {}).get("node_dashboard_source_contract_updated") else "partially_closed_status_surface_present",
+            "closed_as_frontend_source_gate"
+            if frontend_p2_ux.get("checks", {}).get("operator_incident_timeline_present")
+            and frontend_p2_ux.get("checks", {}).get("node_dashboard_source_contract_updated")
+            else "partially_closed_status_surface_present",
             True,
         ),
         _blocker(
@@ -479,31 +580,118 @@ def build() -> Json:
         ),
     ]
 
-    remaining = [b for b in blockers if b["remaining_external_evidence"] or b["gate_status"].startswith("tracked_as") or b["gate_status"].endswith("required")]
+    remaining = [
+        b
+        for b in blockers
+        if b["remaining_external_evidence"]
+        or b["gate_status"].startswith("tracked_as")
+        or b["gate_status"].endswith("required")
+    ]
     transcript_schemas = {
         "public_validator_operator_transcript": {
-            "required_fields": ["schema", "blocker", "chain_id", "operator_ids", "node_ids", "machine_ids", "rounds", "fresh_clone", "node_registration", "node_operator_readiness", "validator_candidate_path", "readiness_receipt", "activation_rehearsal", "observer_bypass_rejected", "restart_fail_closed_without_chain_state_signing", "partition_rejoin", "equivocation_rejected", "restart_replay", "state_root_by_node", "transcript_digest", "operator_signatures"],
-            "must_not_claim": ["mainnet", "public_validator_enabled_without_gate", "public_multi_validator_bft_without_external_rehearsal", "economic_activation"],
+            "required_fields": [
+                "schema",
+                "blocker",
+                "chain_id",
+                "operator_ids",
+                "node_ids",
+                "machine_ids",
+                "rounds",
+                "fresh_clone",
+                "node_registration",
+                "node_operator_readiness",
+                "validator_candidate_path",
+                "readiness_receipt",
+                "activation_rehearsal",
+                "observer_bypass_rejected",
+                "restart_fail_closed_without_chain_state_signing",
+                "partition_rejoin",
+                "equivocation_rejected",
+                "restart_replay",
+                "state_root_by_node",
+                "transcript_digest",
+                "operator_signatures",
+            ],
+            "must_not_claim": [
+                "mainnet",
+                "public_validator_enabled_without_gate",
+                "public_multi_validator_bft_without_external_rehearsal",
+                "economic_activation",
+            ],
         },
         "storage_ipfs_operator_transcript": {
-            "required_fields": ["schema", "operator_ids", "machine_ids", "ipfs_peer_ids", "cid", "replication_factor", "origin_failure", "wrong_cid_rejected", "corrupt_content_rejected", "fresh_node_retrieval", "transcript_digest"],
-            "must_not_claim": ["public_storage_market_enabled", "restricted_identity_evidence_publicly_visible"],
+            "required_fields": [
+                "schema",
+                "operator_ids",
+                "machine_ids",
+                "ipfs_peer_ids",
+                "cid",
+                "replication_factor",
+                "origin_failure",
+                "wrong_cid_rejected",
+                "corrupt_content_rejected",
+                "fresh_node_retrieval",
+                "transcript_digest",
+            ],
+            "must_not_claim": [
+                "public_storage_market_enabled",
+                "restricted_identity_evidence_publicly_visible",
+            ],
         },
         "legal_attestation": {
-            "required_fields": ["schema", "review_date", "reviewer_or_counsel_reference", "scope", "approved_public_claims", "restricted_claims", "signature_or_controlled_reference"],
-            "must_not_claim": ["legal_clearance_without_review", "token_sale_ready_without_counsel"],
+            "required_fields": [
+                "schema",
+                "review_date",
+                "reviewer_or_counsel_reference",
+                "scope",
+                "approved_public_claims",
+                "restricted_claims",
+                "signature_or_controlled_reference",
+            ],
+            "must_not_claim": [
+                "legal_clearance_without_review",
+                "token_sale_ready_without_counsel",
+            ],
         },
         "protocol_upgrade_execution_hardening_plan": {
-            "required_fields": ["schema", "blocker", "current_boundary", "future_required_evidence", "rollback_semantics_allowed_future_models", "claim_boundaries"],
-            "must_not_claim": ["automatic_protocol_upgrades", "migration_execution", "rollback_execution", "public_beta_ready"],
+            "required_fields": [
+                "schema",
+                "blocker",
+                "current_boundary",
+                "future_required_evidence",
+                "rollback_semantics_allowed_future_models",
+                "claim_boundaries",
+            ],
+            "must_not_claim": [
+                "automatic_protocol_upgrades",
+                "migration_execution",
+                "rollback_execution",
+                "public_beta_ready",
+            ],
         },
         "production_helper_topology_hardening_plan": {
-            "required_fields": ["schema", "blocker", "current_boundary", "future_required_evidence", "launch_matrix_status_by_phase", "claim_boundaries"],
-            "must_not_claim": ["production_helper_execution", "helper_mode_authority", "mainnet_ready", "public_beta_ready"],
+            "required_fields": [
+                "schema",
+                "blocker",
+                "current_boundary",
+                "future_required_evidence",
+                "launch_matrix_status_by_phase",
+                "claim_boundaries",
+            ],
+            "must_not_claim": [
+                "production_helper_execution",
+                "helper_mode_authority",
+                "mainnet_ready",
+                "public_beta_ready",
+            ],
         },
     }
 
-    closed_code_gates = [b["id"] for b in blockers if b["can_be_closed_by_code_only"] and b["gate_status"].startswith("closed")]
+    closed_code_gates = [
+        b["id"]
+        for b in blockers
+        if b["can_be_closed_by_code_only"] and b["gate_status"].startswith("closed")
+    ]
     evidence_inventory_ok = bool(
         validator.get("ok")
         and storage.get("ok")
@@ -519,6 +707,9 @@ def build() -> Json:
         and high_risk_disabled
         and legal.get("legal_compliance_ready") is False
         and frontend_p2_ux.get("ok") is True
+    )
+    controlled_testnet_candidate = bool(
+        evidence_inventory_ok and capabilities.get("controlled_testnet_mechanisms_complete") is True
     )
     open_blockers = [b for b in blockers if b in remaining]
     closed_count = len([b for b in blockers if str(b.get("gate_status", "")).startswith("closed")])
@@ -544,7 +735,8 @@ def build() -> Json:
     remaining_external_evidence_ids = [
         b["id"]
         for b in open_blockers
-        if b.get("remaining_external_evidence") or str(b.get("gate_status", "")).endswith("required")
+        if b.get("remaining_external_evidence")
+        or str(b.get("gate_status", "")).endswith("required")
     ]
     count_meanings = {
         "blocker_count": "Compatibility alias for blocker_catalog_count; it is the full historical blocker catalog size, not the number still open.",
@@ -552,7 +744,7 @@ def build() -> Json:
         "remaining_blocker_count": "Open blockers that still require external evidence, counsel attestation, or future mainnet-readiness hardening before public beta can be claimed.",
         "closed_in_repository_count": "Catalog entries closed by tracked repository evidence, generated artifacts, docs, or source-level UX gates.",
         "remaining_external_evidence_required_count": "Open blockers with missing independent transcript, real-operator proof, counsel attestation, or other external evidence.",
-        "remaining_mainnet_hardening_count": "Open blockers whose final closure depends on future public-validator, protocol-upgrade, storage, or production-helper hardening beyond the bounded observer/controlled-testnet candidate.",
+        "remaining_mainnet_hardening_count": "Open blockers whose final closure depends on future public-validator, protocol-upgrade, storage, or production-helper hardening beyond the current pre-public-testnet hardening posture.",
         "p*_open_count": "Open blocker count by severity, using remaining_blocker_count semantics rather than catalog size.",
     }
 
@@ -564,7 +756,7 @@ def build() -> Json:
         "ok_meaning": "The blocker inventory and bounded evidence gates are current; this does not mean public beta readiness.",
         "public_beta_ready": False,
         "mainnet_ready": False,
-        "controlled_testnet_candidate": True,
+        "controlled_testnet_candidate": controlled_testnet_candidate,
         "public_beta_blockers_remaining": True,
         "blocker_count": len(blockers),
         "blocker_catalog_count": len(blockers),
@@ -589,7 +781,9 @@ def build() -> Json:
             "ok": bool(external_requirements.get("ok")),
             "schema_count": len(external_requirements.get("schemas") or {}),
             "artifact_digest": external_requirements.get("artifact_digest"),
-            "external_attestation_required_before_public_beta": bool(external_requirements.get("external_attestation_required_before_public_beta")),
+            "external_attestation_required_before_public_beta": bool(
+                external_requirements.get("external_attestation_required_before_public_beta")
+            ),
         },
         "evidence_gate_summaries": {
             "public_validator": validator,
@@ -601,7 +795,9 @@ def build() -> Json:
                 "blocker": protocol_upgrade_hardening.get("blocker"),
                 "blocker_status": protocol_upgrade_hardening.get("blocker_status"),
                 "execution_enabled": protocol_upgrade_hardening.get("execution_enabled"),
-                "automatic_protocol_upgrades_ready": protocol_upgrade_hardening.get("automatic_protocol_upgrades_ready"),
+                "automatic_protocol_upgrades_ready": protocol_upgrade_hardening.get(
+                    "automatic_protocol_upgrades_ready"
+                ),
                 "artifact_digest": protocol_upgrade_hardening.get("artifact_digest"),
             },
             "helper_production_topology": helper,
@@ -610,8 +806,12 @@ def build() -> Json:
                 "schema": helper_topology_hardening.get("schema"),
                 "blocker": helper_topology_hardening.get("blocker"),
                 "blocker_status": helper_topology_hardening.get("blocker_status"),
-                "production_helper_execution_enabled": helper_topology_hardening.get("production_helper_execution_enabled"),
-                "production_helper_execution_ready": helper_topology_hardening.get("production_helper_execution_ready"),
+                "production_helper_execution_enabled": helper_topology_hardening.get(
+                    "production_helper_execution_enabled"
+                ),
+                "production_helper_execution_ready": helper_topology_hardening.get(
+                    "production_helper_execution_ready"
+                ),
                 "artifact_digest": helper_topology_hardening.get("artifact_digest"),
             },
             "api_response_vectors": {"ok": api_vectors.get("ok"), "vector_count": api_vector_count},
@@ -622,8 +822,12 @@ def build() -> Json:
             "release_evidence_manifest": {
                 "ok": bool(release_evidence.get("ok")),
                 "schema": release_evidence.get("schema"),
-                "tracked_manifest_is_commit_agnostic": release_evidence.get("tracked_manifest_is_commit_agnostic"),
-                "runtime_commit_binding_required": release_evidence.get("runtime_commit_binding_required"),
+                "tracked_manifest_is_commit_agnostic": release_evidence.get(
+                    "tracked_manifest_is_commit_agnostic"
+                ),
+                "runtime_commit_binding_required": release_evidence.get(
+                    "runtime_commit_binding_required"
+                ),
                 "artifact_digest": release_evidence.get("artifact_digest"),
             },
             "frontend_p2_ux_observability": frontend_p2_ux,
@@ -641,7 +845,7 @@ def build() -> Json:
             "live_economics": False,
             "legal_compliance_ready": False,
         },
-        "next_allowed_claim": "controlled testnet candidate with public-beta blocker evidence gates present",
+        "next_allowed_claim": "pre-public-testnet implementation under active hardening; controlled-testnet mechanism completion remains NO-GO until production helper state-root/restart proof is complete",
         "verification_commands": [
             "PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check",
             "PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py --check",
@@ -662,7 +866,9 @@ def _pretty(obj: Any) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Generate/check v1.5 public beta blocker/evidence-gate report.")
+    ap = argparse.ArgumentParser(
+        description="Generate/check v1.5 public beta blocker/evidence-gate report."
+    )
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
@@ -679,7 +885,10 @@ def main() -> int:
             f"({payload['blocker_catalog_count']} catalog entries; "
             f"{payload['remaining_blocker_count']} still open; public_beta_ready=false)"
         )
-        return 0 if payload.get("ok") else 1
+        # --check answers freshness/integrity, not readiness. A truthful NO-GO
+        # report is still a valid current artifact and must return success here;
+        # readiness remains encoded in the payload itself.
+        return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print(

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_tx_status_prefers_committed_block_over_stale_mempool() -> None:
-    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "tx.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "tx.py").read_text(
+        encoding="utf-8"
+    )
     fn = src.split('@router.get("/tx/status/{tx_id}")', 1)[1].split("_TX_INDEX_JSON_PATH", 1)[0]
 
     assert "Confirmed chain state is authoritative over stale mempool residency" in fn

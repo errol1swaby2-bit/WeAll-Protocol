@@ -12,16 +12,25 @@ def _minimal_release_tree(tmp_path: Path) -> Path:
     (tree / "scripts").mkdir(parents=True)
     (tree / "generated").mkdir()
     (tree / "specs" / "tx_canon").mkdir(parents=True)
-    shutil.copy2(ROOT / "scripts" / "clean_release_artifacts.sh", tree / "scripts" / "clean_release_artifacts.sh")
-    shutil.copy2(ROOT / "scripts" / "verify_release_tree.sh", tree / "scripts" / "verify_release_tree.sh")
-    (tree / "scripts" / "check_tx_canon_artifacts.py").write_text("raise SystemExit(0)\n", encoding="utf-8")
+    shutil.copy2(
+        ROOT / "scripts" / "clean_release_artifacts.sh",
+        tree / "scripts" / "clean_release_artifacts.sh",
+    )
+    shutil.copy2(
+        ROOT / "scripts" / "verify_release_tree.sh", tree / "scripts" / "verify_release_tree.sh"
+    )
+    (tree / "scripts" / "check_tx_canon_artifacts.py").write_text(
+        "raise SystemExit(0)\n", encoding="utf-8"
+    )
     (tree / "specs" / "tx_canon" / "tx_canon.yaml").write_text("version: test\n", encoding="utf-8")
     for name in ("tx_index.json", "helper_contract_map.json", "tx_contract_map.json"):
         (tree / "generated" / name).write_text("{}\n", encoding="utf-8")
     return tree
 
 
-def test_clean_release_artifacts_removes_root_runtime_data_before_release_gate(tmp_path: Path) -> None:
+def test_clean_release_artifacts_removes_root_runtime_data_before_release_gate(
+    tmp_path: Path,
+) -> None:
     tree = _minimal_release_tree(tmp_path)
     (tree / "data").mkdir()
     (tree / "data" / "runtime.db").write_text("not for release\n", encoding="utf-8")

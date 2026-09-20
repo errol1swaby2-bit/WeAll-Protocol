@@ -43,23 +43,40 @@ jobs:
       - name: Start backend for contract check
         working-directory: Weall-Protocol
         run: |
-          PYTHONPATH=src python -m uvicorn weall.api.app:app --host 127.0.0.1 --port 8000 > /tmp/weall-web-ci-backend.log 2>&1 &
+          RUNTIME_DIR="$(mktemp -d /tmp/weall-web-ci-runtime-XXXXXX)"
+          echo "$RUNTIME_DIR" > /tmp/weall-web-ci-runtime-dir
+
+          mkdir -p             "$RUNTIME_DIR/runtime"             "$RUNTIME_DIR/helper_lanes"             "$RUNTIME_DIR/media_cache"             "$RUNTIME_DIR/reviewer_artifacts"             "$RUNTIME_DIR/failpoints"
+
+          PYTHONPATH=src           WEALL_MODE=dev           WEALL_API_BOOT_RUNTIME=1           WEALL_API_HOST=127.0.0.1           WEALL_API_PORT=8000           WEALL_NODE_ID=web-ci-contract-check-node           WEALL_DB_PATH="$RUNTIME_DIR/weall.db"           WEALL_AUX_DB_PATH="$RUNTIME_DIR/weall_aux.db"           WEALL_RUNTIME_DIR="$RUNTIME_DIR/runtime"           WEALL_HELPER_LANE_JOURNAL_DIR="$RUNTIME_DIR/helper_lanes"           WEALL_MEDIA_CACHE_DIR="$RUNTIME_DIR/media_cache"           WEALL_REVIEWER_ARTIFACTS_DIR="$RUNTIME_DIR/reviewer_artifacts"           WEALL_TEST_FAILPOINT_MARKER_DIR="$RUNTIME_DIR/failpoints"           WEALL_TX_INDEX_PATH="$PWD/generated/tx_index.json"           python -m weall.api > /tmp/weall-web-ci-backend.log 2>&1 &
+
           echo $! > /tmp/weall-web-ci-backend.pid
+
           for i in {1..30}; do
             if python - <<'PY'
+          import json
           import urllib.request
+
           try:
-              urllib.request.urlopen("http://127.0.0.1:8000/v1/readyz", timeout=1)
-              raise SystemExit(0)
+              with urllib.request.urlopen(
+                  "http://127.0.0.1:8000/v1/readyz",
+                  timeout=1,
+              ) as response:
+                  body = json.loads(response.read().decode("utf-8"))
+              if isinstance(body, dict) and body.get("ok") is True:
+                  raise SystemExit(0)
           except Exception:
-              raise SystemExit(1)
+              pass
+
+          raise SystemExit(1)
           PY
             then
-              echo "backend ready"
+              echo "backend runtime ready"
               exit 0
             fi
             sleep 1
           done
+
           echo "backend failed to become ready" >&2
           cat /tmp/weall-web-ci-backend.log >&2 || true
           exit 1
@@ -67,6 +84,10 @@ jobs:
       - name: Install
         run: |
           npm ci
+
+      - name: Dependency audit
+        run: |
+          npm run dependency-audit
 
       - name: Typecheck
         run: |

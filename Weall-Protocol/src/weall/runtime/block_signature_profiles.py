@@ -26,12 +26,24 @@ def canonical_block_signature_payload(block: Json) -> bytes:
         "network_id": str(block.get("network_id") or header.get("network_id") or ""),
         "height": int(block.get("height") or header.get("height") or 0),
         "block_id": str(block.get("block_id") or header.get("block_id") or ""),
-        "prev_block_id": str(block.get("prev_block_id") or header.get("prev_block_id") or block.get("prev") or ""),
-        "proposer": str(block.get("proposer") or block.get("node_id") or header.get("proposer") or header.get("node_id") or ""),
+        "prev_block_id": str(
+            block.get("prev_block_id") or header.get("prev_block_id") or block.get("prev") or ""
+        ),
+        "proposer": str(
+            block.get("proposer")
+            or block.get("node_id")
+            or header.get("proposer")
+            or header.get("node_id")
+            or ""
+        ),
         "sig_profile": profile,
-        "activation_height": int(block.get("activation_height") or header.get("activation_height") or 0),
+        "activation_height": int(
+            block.get("activation_height") or header.get("activation_height") or 0
+        ),
     }
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def block_signature_profile(block: Json) -> str:
@@ -54,7 +66,9 @@ def validate_block_signature_profile(
     profile = block_signature_profile(block)
     if not profile:
         return False, "block_signature_profile_missing"
-    ok_profile, reason = profile_allowed_for_context(profile, chain_config=chain_config, require_verifier=require_verifier)
+    ok_profile, reason = profile_allowed_for_context(
+        profile, chain_config=chain_config, require_verifier=require_verifier
+    )
     if not ok_profile:
         return False, reason
     if profile == PQ_MLDSA_V1:
@@ -72,12 +86,19 @@ def validate_validator_operator_record(
 ) -> tuple[bool, str]:
     if not isinstance(record, dict):
         return False, "validator_record_not_object"
-    profile = normalize_signature_profile_id(record.get("sig_profile") or record.get("signature_profile"))
+    profile = normalize_signature_profile_id(
+        record.get("sig_profile") or record.get("signature_profile")
+    )
     if not profile:
         return False, "validator_signature_profile_missing"
-    ok_profile, reason = profile_allowed_for_context(profile, chain_config=chain_config, require_verifier=require_verifier)
+    ok_profile, reason = profile_allowed_for_context(
+        profile, chain_config=chain_config, require_verifier=require_verifier
+    )
     if not ok_profile:
         return False, reason
-    if profile == PQ_MLDSA_V1 and not str(record.get("pubkey") or record.get("node_pubkey") or "").strip():
+    if (
+        profile == PQ_MLDSA_V1
+        and not str(record.get("pubkey") or record.get("node_pubkey") or "").strip()
+    ):
         return False, "validator_mldsa_pubkey_missing"
     return True, "ok"

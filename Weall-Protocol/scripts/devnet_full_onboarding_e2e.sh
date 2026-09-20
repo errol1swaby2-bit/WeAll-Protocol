@@ -322,107 +322,6 @@ PY_JSON_FIELD
 }
 
 
-_wait_tier2_case_assigned() {
-  local api="$1"
-  local case_id="$2"
-  local tick_api="$3"
-  local attempts="${WEALL_TIER2_ASSIGN_ATTEMPTS:-36}"
-  local i
-  for ((i=1; i<=attempts; i++)); do
-    if python3 - "${api}" "${case_id}" <<'PY_TIER2_ASSIGNED'
-import json, sys, urllib.parse, urllib.request
-api, case_id = sys.argv[1].rstrip('/'), sys.argv[2]
-try:
-    with urllib.request.urlopen(api + '/v1/poh/tier2/case/' + urllib.parse.quote(case_id, safe=''), timeout=15) as resp:
-        out = json.loads(resp.read().decode('utf-8'))
-except Exception:
-    raise SystemExit(1)
-case = out.get('case') if isinstance(out, dict) else {}
-jurors = case.get('jurors') if isinstance(case, dict) else {}
-status = str((case or {}).get('status') or '').lower()
-if isinstance(jurors, dict) and jurors and status in {'assigned', 'reviewed', 'awarded', 'rejected'}:
-    raise SystemExit(0)
-raise SystemExit(1)
-PY_TIER2_ASSIGNED
-    then
-      return 0
-    fi
-    echo "==> Tier-2 case ${case_id} not assigned yet; waiting for automatic block production ${i}/${attempts}"
-    sleep "${WEALL_REHEARSAL_BLOCK_WAIT_POLL:-5}"
-  done
-  echo "ERROR: Tier-2 case was not assigned: ${case_id}" >&2
-  python3 scripts/devnet_tx.py --api "${api}" tier2-case "${case_id}" || true
-  exit 1
-}
-
-_wait_account_tier_at_least() {
-  local api="$1"
-  local account="$2"
-  local min_tier="$3"
-  local tick_api="$4"
-  local label="$5"
-  local attempts="${WEALL_TIER_WAIT_ATTEMPTS:-48}"
-  local i
-  for ((i=1; i<=attempts; i++)); do
-    if python3 - "${api}" "${account}" "${min_tier}" <<'PY_TIER_WAIT'
-import json, sys, urllib.parse, urllib.request
-api, account, min_tier = sys.argv[1].rstrip('/'), sys.argv[2], int(sys.argv[3])
-with urllib.request.urlopen(api + '/v1/accounts/' + urllib.parse.quote(account, safe=''), timeout=15) as resp:
-    out = json.loads(resp.read().decode('utf-8'))
-state = out.get('state') if isinstance(out, dict) else {}
-tier = int((state or {}).get('poh_tier') or 0)
-if tier >= min_tier:
-    print(f'==> Verified canonical Tier-{min_tier} account state: account={account} poh_tier={tier}')
-    raise SystemExit(0)
-raise SystemExit(1)
-PY_TIER_WAIT
-    then
-      return 0
-    fi
-    echo "==> Account ${account} has not reached Tier-${min_tier}; waiting for automatic block production ${i}/${attempts}"
-    sleep "${WEALL_REHEARSAL_BLOCK_WAIT_POLL:-5}"
-  done
-  echo "ERROR: account did not reach Tier-${min_tier}: ${account}" >&2
-  WEALL_API="${api}" bash ./scripts/devnet_account_status.sh "${account}" || true
-  exit 1
-}
-
-_run_tier2_devnet_flow() {
-  local account="$1"
-  local t2_out="${DEVNET_DIR}/tier2-request.json"
-  local review_out="${DEVNET_DIR}/tier2-review.json"
-
-  echo "==> Requesting Tier-2 async video PoH through node 1 normal tx flow"
-  WEALL_API="${NODE1_API}" WEALL_KEYFILE="${KEYFILE}" bash ./scripts/devnet_request_tier2.sh | tee "${t2_out}"
-  local case_id
-  case_id="$(_json_file_field "${t2_out}" case_id)"
-  local request_tx_id
-  request_tx_id="$(_json_file_field "${t2_out}" tx_id)"
-  if [[ -z "${case_id}" ]]; then
-    echo "ERROR: Tier-2 request did not return case_id" >&2
-    cat "${t2_out}" >&2
-    exit 1
-  fi
-
-  _wait_tier2_case_assigned "${NODE1_API}" "${case_id}" "${NODE1_API}"
-
-  echo "==> Submitting protocol-assigned Tier-2 juror accept + review through normal tx flow"
-  WEALL_API="${NODE1_API}" WEALL_TIER2_CASE_ID="${case_id}" WEALL_TIER2_VERDICT="pass" bash ./scripts/devnet_review_tier2.sh | tee "${review_out}"
-  local accept_tx_id
-  local review_tx_id
-  accept_tx_id="$(_json_file_field "${review_out}" accept.tx_id)"
-  review_tx_id="$(_json_file_field "${review_out}" review.tx_id)"
-
-  _wait_account_tier_at_least "${NODE1_API}" "${account}" 2 "${NODE1_API}" "tier2-finalize"
-
-  echo "==> Syncing node 2 from node 1 after Tier-2 finalization"
-  bash ./scripts/devnet_sync_from_peer.sh "${NODE1_API}" "${NODE2_API}"
-  echo "==> Comparing node roots after Tier-2 finalization"
-  bash ./scripts/devnet_compare_state_roots.sh "${NODE1_API}" "${NODE2_API}"
-  echo "==> Verifying Tier-2 account/tx parity across nodes"
-  _assert_cross_node_account_and_tx_parity "${account}" "tier2-finalization" "${request_tx_id}" "${accept_tx_id}" "${review_tx_id}"
-}
-
 _wait_live_case_assigned() {
   local api="$1"
   local case_id="$2"
@@ -684,13 +583,14 @@ if _start_node2_if_needed; then
   NODE1_API="${NODE1_API}" NODE2_API="${NODE2_API}" bash ./scripts/devnet_compare_state_roots.sh
 fi
 
+RUN_CANONICAL_LIVE="${WEALL_DEVNET_RUN_LIVE:-0}"
 if [[ "${WEALL_DEVNET_RUN_TIER2:-0}" == "1" ]]; then
-  echo "==> Completing optional native Tier-2 verification through assigned reviewer votes"
-  _run_tier2_devnet_flow "${ACCOUNT}"
+  echo "NOTICE: WEALL_DEVNET_RUN_TIER2 is a compatibility alias for canonical Live Tier-2 verification" >&2
+  RUN_CANONICAL_LIVE=1
 fi
 
-if [[ "${WEALL_DEVNET_RUN_LIVE}" == "1" ]]; then
-  echo "==> Completing optional native live Tier-2 verification through assigned reviewer votes"
+if [[ "${RUN_CANONICAL_LIVE}" == "1" ]]; then
+  echo "==> Completing optional canonical Live Tier-2 verification through assigned reviewer votes"
   _run_live_devnet_flow "${ACCOUNT}"
 fi
 

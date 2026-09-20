@@ -8,9 +8,8 @@ runtime code, tests, scripts, and frontend copy before compatibility language ca
 creep back into the two-tier rebuild.
 """
 
-from pathlib import Path
 import os
-import sys
+from pathlib import Path
 
 REMOVED_TIER = "TIER" + "3"
 REMOVED_TX_PREFIX = "POH_" + REMOVED_TIER + "_"
@@ -50,9 +49,7 @@ SKIP_DIRS = {
     "data",
 }
 
-SKIP_DIR_SUFFIXES = (
-    ".aux_helper_lanes",
-)
+SKIP_DIR_SUFFIXES = (".aux_helper_lanes",)
 
 SKIP_SUFFIXES = {
     ".pyc",
@@ -95,9 +92,7 @@ def main() -> int:
     for dirpath, dirnames, filenames in os.walk(root):
         current = Path(dirpath)
         dirnames[:] = sorted(
-            d
-            for d in dirnames
-            if d not in SKIP_DIRS and not d.endswith(SKIP_DIR_SUFFIXES)
+            d for d in dirnames if d not in SKIP_DIRS and not d.endswith(SKIP_DIR_SUFFIXES)
         )
         for filename in sorted(filenames):
             path = current / filename

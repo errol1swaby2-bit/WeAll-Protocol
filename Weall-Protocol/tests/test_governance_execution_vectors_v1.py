@@ -14,8 +14,24 @@ ROOT = Path(__file__).resolve().parents[1]
 VECTORS = ROOT / "generated" / "governance_execution_vectors_v1_5.json"
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=system,
+        parent=parent,
+    )
 
 
 def test_governance_execution_vectors_are_fresh_and_cover_every_allowed_action() -> None:
@@ -64,8 +80,7 @@ def test_governance_execution_vectors_are_fresh_and_cover_every_allowed_action()
         [sys.executable, "scripts/gen_governance_execution_vectors_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -122,7 +137,10 @@ def test_queue_bound_gov_quorum_and_rules_actions_ignore_replay_metadata() -> No
                 "rules": {"start_stage": "voting", "auto_progress_enabled": False},
                 "actions": [
                     {"tx_type": "GOV_QUORUM_SET", "payload": {"quorum_bps": 5_100}},
-                    {"tx_type": "GOV_RULES_SET", "payload": {"params": {"poh": {"tier2_n_jurors": 7}}}},
+                    {
+                        "tx_type": "GOV_RULES_SET",
+                        "payload": {"params": {"poh": {"tier2_n_jurors": 7}}},
+                    },
                 ],
             },
         ),
@@ -130,10 +148,24 @@ def test_queue_bound_gov_quorum_and_rules_actions_ignore_replay_metadata() -> No
     proposal = state["gov_proposals_by_id"]["meta-strip"]
     proposal["stage"] = "tallied"
     proposal["tallies"] = [{"height": 6, "payload": {"passed": True}}]
-    apply_governance(state, _env("GOV_EXECUTE", "SYSTEM", 2, {"proposal_id": "meta-strip"}, system=True, parent="tx:meta-strip"))
+    apply_governance(
+        state,
+        _env(
+            "GOV_EXECUTE",
+            "SYSTEM",
+            2,
+            {"proposal_id": "meta-strip"},
+            system=True,
+            parent="tx:meta-strip",
+        ),
+    )
 
     emitted = system_tx_emitter(state, canon=canon, next_height=7, phase="post")
-    payload_keys = {env.tx_type: set(env.payload.keys()) for env in emitted if env.tx_type in {"GOV_QUORUM_SET", "GOV_RULES_SET"}}
+    payload_keys = {
+        env.tx_type: set(env.payload.keys())
+        for env in emitted
+        if env.tx_type in {"GOV_QUORUM_SET", "GOV_RULES_SET"}
+    }
     assert "_due_height" in payload_keys["GOV_QUORUM_SET"]
     assert "_system_queue_id" in payload_keys["GOV_RULES_SET"]
 

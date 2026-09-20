@@ -9,10 +9,22 @@ from weall.runtime.apply.protocol import ProtocolApplyError, apply_protocol
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, nonce: int, payload: dict, *, signer: str = "@system", parent: str | None = None) -> TxEnvelope:
+def _env(
+    tx_type: str, nonce: int, payload: dict, *, signer: str = "@system", parent: str | None = None
+) -> TxEnvelope:
     if parent is None:
-        parent = "PROTOCOL_UPGRADE_DECLARE" if tx_type == "PROTOCOL_UPGRADE_ACTIVATE" else "GOV_EXECUTE"
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=True, parent=parent)
+        parent = (
+            "PROTOCOL_UPGRADE_DECLARE" if tx_type == "PROTOCOL_UPGRADE_ACTIVATE" else "GOV_EXECUTE"
+        )
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=True,
+        parent=parent,
+    )
 
 
 def _state_hash(state: dict) -> str:
@@ -27,7 +39,11 @@ def test_upgrade_activation_is_scheduled_at_future_height_and_record_only() -> N
         _env(
             "PROTOCOL_UPGRADE_DECLARE",
             1,
-            {"upgrade_id": "upgrade-scheduled", "target_version": "v1.5.2", "hash": "sha256:release"},
+            {
+                "upgrade_id": "upgrade-scheduled",
+                "target_version": "v1.5.2",
+                "hash": "sha256:release",
+            },
         ),
     )
     assert declare is not None
@@ -38,7 +54,11 @@ def test_upgrade_activation_is_scheduled_at_future_height_and_record_only() -> N
         _env(
             "PROTOCOL_UPGRADE_ACTIVATE",
             2,
-            {"upgrade_id": "upgrade-scheduled", "target_version": "v1.5.2", "activation_height": 140},
+            {
+                "upgrade_id": "upgrade-scheduled",
+                "target_version": "v1.5.2",
+                "activation_height": 140,
+            },
         ),
     )
 
@@ -57,10 +77,15 @@ def test_upgrade_activation_is_scheduled_at_future_height_and_record_only() -> N
 
 def test_upgrade_activation_rejects_past_or_current_activation_height() -> None:
     state = {"height": 20}
-    apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "u", "version": "v1.5.2"}))
+    apply_protocol(
+        state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "u", "version": "v1.5.2"})
+    )
 
     with pytest.raises(ProtocolApplyError) as exc:
-        apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 2, {"upgrade_id": "u", "activation_height": 21}))
+        apply_protocol(
+            state,
+            _env("PROTOCOL_UPGRADE_ACTIVATE", 2, {"upgrade_id": "u", "activation_height": 21}),
+        )
 
     assert exc.value.code == "forbidden"
     assert exc.value.reason == "upgrade_activation_height_must_be_future"
@@ -70,7 +95,9 @@ def test_upgrade_declare_rejects_unknown_target_when_supported_targets_are_confi
     state = {"height": 1, "protocol": {"supported_upgrade_targets": ["v1.5.2"]}}
 
     with pytest.raises(ProtocolApplyError) as exc:
-        apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "bad", "version": "v9.9.9"}))
+        apply_protocol(
+            state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "bad", "version": "v9.9.9"})
+        )
 
     assert exc.value.code == "forbidden"
     assert exc.value.reason == "unsupported_protocol_upgrade_target"
@@ -79,14 +106,22 @@ def test_upgrade_declare_rejects_unknown_target_when_supported_targets_are_confi
 
 def test_upgrade_activation_rejects_target_mismatch_and_duplicate_is_idempotent() -> None:
     state = {"height": 30}
-    apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "u", "version": "v1.5.2"}))
+    apply_protocol(
+        state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "u", "version": "v1.5.2"})
+    )
 
     with pytest.raises(ProtocolApplyError) as exc:
-        apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 2, {"upgrade_id": "u", "version": "v1.5.3"}))
+        apply_protocol(
+            state, _env("PROTOCOL_UPGRADE_ACTIVATE", 2, {"upgrade_id": "u", "version": "v1.5.3"})
+        )
     assert exc.value.reason == "upgrade_activation_target_mismatch"
 
-    first = apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 3, {"upgrade_id": "u", "version": "v1.5.2"}))
-    second = apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 4, {"upgrade_id": "u", "version": "v1.5.2"}))
+    first = apply_protocol(
+        state, _env("PROTOCOL_UPGRADE_ACTIVATE", 3, {"upgrade_id": "u", "version": "v1.5.2"})
+    )
+    second = apply_protocol(
+        state, _env("PROTOCOL_UPGRADE_ACTIVATE", 4, {"upgrade_id": "u", "version": "v1.5.2"})
+    )
     assert first is not None
     assert second is not None
     assert second["deduped"] is True
@@ -95,7 +130,11 @@ def test_upgrade_activation_rejects_target_mismatch_and_duplicate_is_idempotent(
 
 def test_upgrade_lifecycle_replays_to_identical_state_roots() -> None:
     txs = [
-        _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "u", "version": "v1.5.2", "hash": "sha256:x"}),
+        _env(
+            "PROTOCOL_UPGRADE_DECLARE",
+            1,
+            {"upgrade_id": "u", "version": "v1.5.2", "hash": "sha256:x"},
+        ),
         _env("PROTOCOL_UPGRADE_ACTIVATE", 2, {"upgrade_id": "u", "activation_delay_blocks": 8}),
     ]
 
@@ -109,40 +148,98 @@ def test_upgrade_lifecycle_replays_to_identical_state_roots() -> None:
 
     assert _state_hash(leader_state) == _state_hash(follower_state) == _state_hash(observer_state)
     assert leader_state["protocol"]["governance_activation_record"]["activation_height"] == 53
-    assert leader_state["protocol"]["governance_activation_record"]["automatic_upgrade_supported"] is False
+    assert (
+        leader_state["protocol"]["governance_activation_record"]["automatic_upgrade_supported"]
+        is False
+    )
 
 
 def test_upgrade_duplicate_declare_is_idempotent_only_for_identical_record() -> None:
     state = {"height": 12}
-    first = apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "dup", "version": "v1.5.2", "hash": "sha256:a"}))
-    second = apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 2, {"upgrade_id": "dup", "version": "v1.5.2", "hash": "sha256:a"}))
+    first = apply_protocol(
+        state,
+        _env(
+            "PROTOCOL_UPGRADE_DECLARE",
+            1,
+            {"upgrade_id": "dup", "version": "v1.5.2", "hash": "sha256:a"},
+        ),
+    )
+    second = apply_protocol(
+        state,
+        _env(
+            "PROTOCOL_UPGRADE_DECLARE",
+            2,
+            {"upgrade_id": "dup", "version": "v1.5.2", "hash": "sha256:a"},
+        ),
+    )
 
     assert first is not None and second is not None
     assert second["deduped"] is True
     assert state["protocol"]["upgrades"]["dup"]["declared_at_nonce"] == 1
 
     with pytest.raises(ProtocolApplyError) as exc:
-        apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 3, {"upgrade_id": "dup", "version": "v1.5.3", "hash": "sha256:b"}))
+        apply_protocol(
+            state,
+            _env(
+                "PROTOCOL_UPGRADE_DECLARE",
+                3,
+                {"upgrade_id": "dup", "version": "v1.5.3", "hash": "sha256:b"},
+            ),
+        )
 
     assert exc.value.code == "conflict"
     assert exc.value.reason == "upgrade_already_declared"
 
 
-def test_upgrade_duplicate_activation_rejects_conflicting_boundary_and_returns_matching_record() -> None:
+def test_upgrade_duplicate_activation_rejects_conflicting_boundary_and_returns_matching_record() -> (
+    None
+):
     state = {"height": 50}
-    apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "u1", "version": "v1.5.2"}))
-    apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 2, {"upgrade_id": "u2", "version": "v1.5.3"}))
-    apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 3, {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 90}))
-    apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 4, {"upgrade_id": "u2", "version": "v1.5.3", "activation_height": 100}))
+    apply_protocol(
+        state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "u1", "version": "v1.5.2"})
+    )
+    apply_protocol(
+        state, _env("PROTOCOL_UPGRADE_DECLARE", 2, {"upgrade_id": "u2", "version": "v1.5.3"})
+    )
+    apply_protocol(
+        state,
+        _env(
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            3,
+            {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 90},
+        ),
+    )
+    apply_protocol(
+        state,
+        _env(
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            4,
+            {"upgrade_id": "u2", "version": "v1.5.3", "activation_height": 100},
+        ),
+    )
 
-    duplicate = apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 5, {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 90}))
+    duplicate = apply_protocol(
+        state,
+        _env(
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            5,
+            {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 90},
+        ),
+    )
     assert duplicate is not None
     assert duplicate["deduped"] is True
     assert duplicate["governance_activation_record"]["upgrade_id"] == "u1"
     assert duplicate["governance_activation_record"]["activation_height"] == 90
 
     with pytest.raises(ProtocolApplyError) as exc:
-        apply_protocol(state, _env("PROTOCOL_UPGRADE_ACTIVATE", 6, {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 91}))
+        apply_protocol(
+            state,
+            _env(
+                "PROTOCOL_UPGRADE_ACTIVATE",
+                6,
+                {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 91},
+            ),
+        )
 
     assert exc.value.code == "conflict"
     assert exc.value.reason == "upgrade_duplicate_activation_conflict"
@@ -173,7 +270,9 @@ def test_upgrade_activation_cannot_smuggle_economics_activation() -> None:
         "height": 30,
         "economics": {"enabled": False, "stage": "genesis_locked"},
     }
-    apply_protocol(state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "econ", "version": "v1.5.2"}))
+    apply_protocol(
+        state, _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "econ", "version": "v1.5.2"})
+    )
 
     out = apply_protocol(
         state,
@@ -192,7 +291,9 @@ def test_upgrade_activation_cannot_smuggle_economics_activation() -> None:
 
     assert out is not None
     boundary = out["record_only_boundary"]
-    assert {"enable_live_economics", "activate_economics", "enable_transfers"}.issubset(set(boundary["requested_execution_fields_ignored"]))
+    assert {"enable_live_economics", "activate_economics", "enable_transfers"}.issubset(
+        set(boundary["requested_execution_fields_ignored"])
+    )
     record = out["governance_activation_record"]
     assert record["economics_activation_allowed"] is False
     assert record["activation_pending"] is True
@@ -204,7 +305,11 @@ def test_upgrade_activation_delay_uses_system_due_height_as_protocol_truth() -> 
     state = {"height": 10}
     apply_protocol(
         state,
-        _env("PROTOCOL_UPGRADE_DECLARE", 1, {"upgrade_id": "due-height", "version": "v1.5.2", "_due_height": 50}),
+        _env(
+            "PROTOCOL_UPGRADE_DECLARE",
+            1,
+            {"upgrade_id": "due-height", "version": "v1.5.2", "_due_height": 50},
+        ),
     )
 
     out = apply_protocol(
@@ -212,7 +317,12 @@ def test_upgrade_activation_delay_uses_system_due_height_as_protocol_truth() -> 
         _env(
             "PROTOCOL_UPGRADE_ACTIVATE",
             2,
-            {"upgrade_id": "due-height", "version": "v1.5.2", "activation_delay_blocks": 7, "_due_height": 60},
+            {
+                "upgrade_id": "due-height",
+                "version": "v1.5.2",
+                "activation_delay_blocks": 7,
+                "_due_height": 60,
+            },
         ),
     )
 

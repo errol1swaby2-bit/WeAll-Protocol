@@ -50,7 +50,10 @@ def _write_db(db_path: Path) -> None:
         },
         "chain": {"height": 0, "block_id": "", "block_hash": "", "state_root": ""},
         "bft": {"finalized_height": 0, "finalized_block_id": ""},
-        "consensus": {"epochs": {"current": 0}, "validator_set": {"set_hash": "", "active_set": []}},
+        "consensus": {
+            "epochs": {"current": 0},
+            "validator_set": {"set_hash": "", "active_set": []},
+        },
         "roles": {"validators": {"active_set": []}},
     }
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -101,7 +104,13 @@ def test_build_validator_bootstrap_bundle_json_surfaces_authority_contract(tmp_p
     )
     out_path = tmp_path / "bundle.json"
     proc = subprocess.run(
-        [sys.executable, "scripts/build_validator_bootstrap_bundle.py", "--out", str(out_path), "--json"],
+        [
+            sys.executable,
+            "scripts/build_validator_bootstrap_bundle.py",
+            "--out",
+            str(out_path),
+            "--json",
+        ],
         cwd=root,
         env={**dict(__import__("os").environ), "WEALL_CHAIN_CONFIG_PATH": str(cfg_path)},
         capture_output=True,

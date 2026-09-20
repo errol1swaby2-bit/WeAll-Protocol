@@ -23,6 +23,14 @@
       "idempotency": "safe_read_no_state_mutation",
       "truth_boundary": "Activity notices is derived only from publicly inspectable protocol events: mentions, replies, group invitations, moderation notices, dispute assignments, governance notices, and validator/operator alerts."
     },
+    "GET /v1/content/{content_id}/history": {
+      "auth": "public_read_append_only_content_mutation_receipts",
+      "cache_policy": "no_store_dynamic_protocol_surface",
+      "error_model": "standard_api_error_envelope_or_bounded_content_history_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Returns bounded append-only public mutation receipts and commitments for posts or comments. It does not expose private evidence, session material, or mutable replacement history."
+    },
     "GET /v1/dev/bootstrap-secret": {
       "auth": "dev_bootstrap_secret_local_or_rehearsal_gated",
       "cache_policy": "no_store_dev_bootstrap_secret",
@@ -36,6 +44,22 @@
       "error_model": "standard_api_error_envelope_or_route_specific_ok_false_payload",
       "idempotency": "safe_ranked_public_read_no_state_mutation",
       "truth_boundary": "Public feed returns visible public posts only; default recency remains legacy-compatible while optional ranked modes use deterministic score/nonce/id cursors."
+    },
+    "GET /v1/gov/ballot-profile": {
+      "auth": "public_read_fail_closed_ballot_profile_status",
+      "cache_policy": "no_store_dynamic_protocol_surface",
+      "error_model": "standard_api_error_envelope_or_ballot_profile_status_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Returns the active ballot-profile identifier, mode, strictness, and launch-gate reason. It exposes no voter identity, ballot choice, nullifier, or sealed ballot material."
+    },
+    "GET /v1/governance/ballot-profile": {
+      "auth": "public_read_fail_closed_ballot_profile_status",
+      "cache_policy": "no_store_dynamic_protocol_surface",
+      "error_model": "standard_api_error_envelope_or_ballot_profile_status_payload",
+      "idempotency": "safe_read_no_state_mutation",
+      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
+      "truth_boundary": "Returns the active ballot-profile identifier, mode, strictness, and launch-gate reason. It exposes no voter identity, ballot choice, nullifier, or sealed ballot material."
     },
     "GET /v1/groups/{group_id}/governance-contract": {
       "auth": "public_read_group_governance_contract",
@@ -435,42 +459,18 @@
       "truth_boundary": "Tier-2 PoH video upload is an env-gated intake helper. It returns a CID/commitment but does not verify humanity, sign transactions, or write consensus state."
     },
     "POST /v1/session/create": {
-      "auth": "dev_or_local_direct_session_mutation_gated",
+      "auth": "seeded_demo_height_zero_direct_session_mutation_only",
       "cache_policy": "no_store_session_material",
       "error_model": "standard_api_error_envelope; 403 direct_session_mutation_disabled; 404 account_not_found",
-      "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
-      "truth_boundary": "Session create is a local/dev rehearsal helper guarded by runtime profile isolation and must not be classified as a production public write."
+      "idempotency": "height_zero_seeded_demo_direct_mutation_only; canonical transaction required after first committed block",
+      "truth_boundary": "Session create is an explicit single-node seeded-demo bootstrap helper permitted only at height zero. After the first committed block, session/device state must use canonical ACCOUNT_SESSION_KEY_ISSUE / ACCOUNT_DEVICE_REGISTER transactions; this route is not a production public write."
     },
     "POST /v1/session/login": {
-      "auth": "signed_account_key_session_login_direct_mutation_profile_gated",
+      "auth": "signed_account_key_seeded_demo_height_zero_session_login_only",
       "cache_policy": "no_store_session_material",
       "error_model": "standard_api_error_envelope; 400 account/session/pubkey/sig required; 403 stale/bad_sig/direct_mutation_disabled; 404 account_not_found",
-      "idempotency": "direct_session_state_mutation_only_when_runtime_profile_allows",
-      "truth_boundary": "Session login creates backend-recognized session material only after signed account-key proof and runtime direct-session gate. It is not a generic public write route."
-    },
-    "GET /v1/content/{content_id}/history": {
-      "cache_policy": "no_store_dynamic_protocol_surface",
-      "idempotency": "safe_read_no_state_mutation",
-      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
-      "auth": "public_read_append_only_content_mutation_receipts",
-      "error_model": "standard_api_error_envelope_or_bounded_content_history_payload",
-      "truth_boundary": "Returns bounded append-only public mutation receipts and commitments for posts or comments. It does not expose private evidence, session material, or mutable replacement history."
-    },
-    "GET /v1/gov/ballot-profile": {
-      "cache_policy": "no_store_dynamic_protocol_surface",
-      "idempotency": "safe_read_no_state_mutation",
-      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
-      "auth": "public_read_fail_closed_ballot_profile_status",
-      "error_model": "standard_api_error_envelope_or_ballot_profile_status_payload",
-      "truth_boundary": "Returns the active ballot-profile identifier, mode, strictness, and launch-gate reason. It exposes no voter identity, ballot choice, nullifier, or sealed ballot material."
-    },
-    "GET /v1/governance/ballot-profile": {
-      "cache_policy": "no_store_dynamic_protocol_surface",
-      "idempotency": "safe_read_no_state_mutation",
-      "rate_limit_policy": "global_api_rate_limit_and_request_size_middleware",
-      "auth": "public_read_fail_closed_ballot_profile_status",
-      "error_model": "standard_api_error_envelope_or_ballot_profile_status_payload",
-      "truth_boundary": "Returns the active ballot-profile identifier, mode, strictness, and launch-gate reason. It exposes no voter identity, ballot choice, nullifier, or sealed ballot material."
+      "idempotency": "signed height-zero seeded-demo direct mutation only; canonical transaction required after first committed block",
+      "truth_boundary": "Session login creates backend-recognized session material only after signed account-key proof, explicit seeded-demo isolation, and height-zero bootstrap gating. After the first committed block, canonical session/device transactions are required; it is not a generic public write route."
     }
   },
   "schema": "weall.api_route_metadata.v1_5",

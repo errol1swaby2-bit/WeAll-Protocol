@@ -92,12 +92,24 @@ def test_real_tokenomics_epoch_calculation_and_30_blocks_per_epoch() -> None:
 def test_real_tokenomics_epoch_halving_schedule() -> None:
     assert epoch_issuance_subsidy_atomic(0) == INITIAL_ISSUANCE_PER_EPOCH
     assert epoch_issuance_subsidy_atomic(1) == INITIAL_ISSUANCE_PER_EPOCH
-    assert epoch_issuance_subsidy_atomic(HALVING_INTERVAL_ISSUANCE_EPOCHS - 1) == INITIAL_ISSUANCE_PER_EPOCH
-    assert epoch_issuance_subsidy_atomic(HALVING_INTERVAL_ISSUANCE_EPOCHS) == INITIAL_ISSUANCE_PER_EPOCH // 2
-    assert epoch_issuance_subsidy_atomic(HALVING_INTERVAL_ISSUANCE_EPOCHS * 2) == INITIAL_ISSUANCE_PER_EPOCH // 4
+    assert (
+        epoch_issuance_subsidy_atomic(HALVING_INTERVAL_ISSUANCE_EPOCHS - 1)
+        == INITIAL_ISSUANCE_PER_EPOCH
+    )
+    assert (
+        epoch_issuance_subsidy_atomic(HALVING_INTERVAL_ISSUANCE_EPOCHS)
+        == INITIAL_ISSUANCE_PER_EPOCH // 2
+    )
+    assert (
+        epoch_issuance_subsidy_atomic(HALVING_INTERVAL_ISSUANCE_EPOCHS * 2)
+        == INITIAL_ISSUANCE_PER_EPOCH // 4
+    )
 
     assert next_halving_issuance_epoch(0) == HALVING_INTERVAL_ISSUANCE_EPOCHS
-    assert next_halving_issuance_epoch(HALVING_INTERVAL_ISSUANCE_EPOCHS) == HALVING_INTERVAL_ISSUANCE_EPOCHS * 2
+    assert (
+        next_halving_issuance_epoch(HALVING_INTERVAL_ISSUANCE_EPOCHS)
+        == HALVING_INTERVAL_ISSUANCE_EPOCHS * 2
+    )
 
     # Compatibility wrapper emits no per-block subsidy except at epoch boundaries.
     assert block_subsidy_atomic(1) == 0

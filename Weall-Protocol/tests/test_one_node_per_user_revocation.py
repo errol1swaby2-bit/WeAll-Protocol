@@ -65,9 +65,7 @@ def test_peer_identity_fails_after_node_device_revoked(monkeypatch: pytest.Monke
     # Patch signature verification to True so this test isolates the node-device gate.
     import weall.net.peer_identity as peer_identity_mod
 
-    monkeypatch.setattr(
-        peer_identity_mod, "verify_mldsa_sig", lambda pubkey, msg_bytes, sig: True
-    )
+    monkeypatch.setattr(peer_identity_mod, "verify_mldsa_sig", lambda pubkey, msg_bytes, sig: True)
 
     hello = _hello(account_id="acc1", pubkey="pk1", sig="sig1")
 

@@ -3,8 +3,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 Json = dict[str, Any]
 
@@ -87,9 +88,17 @@ def readiness_payload_for_hash(payload: Mapping[str, Any]) -> Json:
     return {
         "version": 1,
         "kind": "weall.validator.readiness.receipt",
-        "account_id": _as_str(src.get("account_id") or src.get("operator") or src.get("node_operator") or src.get("target") or src.get("account")),
+        "account_id": _as_str(
+            src.get("account_id")
+            or src.get("operator")
+            or src.get("node_operator")
+            or src.get("target")
+            or src.get("account")
+        ),
         "node_pubkey": _as_str(src.get("node_pubkey") or src.get("node_public_key")),
-        "bft_pubkey": _as_str(src.get("bft_pubkey") or src.get("validator_pubkey") or src.get("consensus_pubkey")),
+        "bft_pubkey": _as_str(
+            src.get("bft_pubkey") or src.get("validator_pubkey") or src.get("consensus_pubkey")
+        ),
         "chain_id": _as_str(src.get("chain_id")),
         "schema_version": _as_str(src.get("schema_version")),
         "protocol_version": _as_str(src.get("protocol_version")),
@@ -130,7 +139,9 @@ def build_validator_readiness_receipt(
         "tx_index_hash": _as_str(tx_index_hash),
         "runtime_profile_hash": _as_str(runtime_profile_hash),
         "readiness_expires_height": int(readiness_expires_height),
-        "readiness_checks": _normalize_checks(readiness_checks or {key: True for key in _REQUIRED_READINESS_CHECKS}),
+        "readiness_checks": _normalize_checks(
+            readiness_checks or {key: True for key in _REQUIRED_READINESS_CHECKS}
+        ),
     }
     receipt = readiness_payload_for_hash(payload)
     receipt["readiness_receipt_hash"] = validator_readiness_receipt_hash(payload)
@@ -172,7 +183,11 @@ def validate_validator_readiness_payload(
     if failed_checks:
         errors.extend(f"readiness_check_failed:{name}" for name in failed_checks)
 
-    provided_hash = _as_str(payload.get("readiness_receipt_hash") or payload.get("validator_readiness_receipt_hash") or payload.get("verification_receipt_hash"))
+    provided_hash = _as_str(
+        payload.get("readiness_receipt_hash")
+        or payload.get("validator_readiness_receipt_hash")
+        or payload.get("verification_receipt_hash")
+    )
     expected_hash = validator_readiness_receipt_hash(canonical)
     if not provided_hash:
         errors.append("readiness_receipt_hash_required")
@@ -202,7 +217,14 @@ def _cmd_generate(args: argparse.Namespace) -> int:
             if "=" not in item:
                 raise ValidatorReadinessError("check_must_be_key_equals_value")
             key, value = item.split("=", 1)
-            checks[key.strip()] = value.strip().lower() in ("1", "true", "yes", "ok", "passed", "ready")
+            checks[key.strip()] = value.strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "ok",
+                "passed",
+                "ready",
+            )
     receipt = build_validator_readiness_receipt(
         account_id=args.account_id,
         node_pubkey=args.node_pubkey,
@@ -228,18 +250,45 @@ def _cmd_verify(args: argparse.Namespace) -> int:
         expected_node_pubkey=args.node_pubkey,
         current_height=int(args.current_height),
     )
-    print(json.dumps({"ok": True, "readiness_receipt_hash": out["readiness_receipt_hash"], "account_id": out["account_id"], "node_pubkey": out["node_pubkey"]}, sort_keys=True, indent=2))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "readiness_receipt_hash": out["readiness_receipt_hash"],
+                "account_id": out["account_id"],
+                "node_pubkey": out["node_pubkey"],
+            },
+            sort_keys=True,
+            indent=2,
+        )
+    )
     return 0
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Generate or verify WeAll validator readiness receipts.")
+    parser = argparse.ArgumentParser(
+        description="Generate or verify WeAll validator readiness receipts."
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
-    gen = sub.add_parser("generate", help="Generate a validator readiness receipt from live readiness inputs.")
-    for name in ("account-id", "node-pubkey", "bft-pubkey", "chain-id", "schema-version", "protocol-version", "manifest-hash", "tx-index-hash", "runtime-profile-hash"):
+    gen = sub.add_parser(
+        "generate", help="Generate a validator readiness receipt from live readiness inputs."
+    )
+    for name in (
+        "account-id",
+        "node-pubkey",
+        "bft-pubkey",
+        "chain-id",
+        "schema-version",
+        "protocol-version",
+        "manifest-hash",
+        "tx-index-hash",
+        "runtime-profile-hash",
+    ):
         gen.add_argument(f"--{name}", required=True)
     gen.add_argument("--readiness-expires-height", type=int, required=True)
-    gen.add_argument("--check", action="append", default=[], help="Override a readiness check as key=true/false")
+    gen.add_argument(
+        "--check", action="append", default=[], help="Override a readiness check as key=true/false"
+    )
     gen.set_defaults(func=_cmd_generate)
 
     verify = sub.add_parser("verify", help="Verify a validator readiness receipt JSON file.")

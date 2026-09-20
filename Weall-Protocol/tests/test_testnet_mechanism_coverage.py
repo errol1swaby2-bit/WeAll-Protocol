@@ -33,16 +33,17 @@ def test_api_response_vectors_cover_sensitive_routes_without_public_beta_claim()
         [sys.executable, "scripts/gen_api_response_vectors_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
 def test_launch_matrix_capability_surface_blocks_high_risk_features() -> None:
-    surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
-    assert surface["controlled_testnet_mechanisms_complete"] is True
+    surface = build_testnet_capability_surface(
+        {"params": {"launch_phase": "public_beta_candidate"}}
+    )
+    assert surface["controlled_testnet_mechanisms_complete"] is False
     assert surface["public_beta_ready_claimed"] is False
     for key in (
         "live_transfers",
@@ -134,12 +135,17 @@ def test_reviewer_accountability_appeal_and_evidence_deletion_mechanism() -> Non
 def test_helper_block_path_adversarial_remains_disabled() -> None:
     out = _proof()["helper_block_path_adversarial"]
     assert out["ok"] is True
-    assert out["tx_count"] >= 4
-    assert out["serial_equivalence_ok"] is True
+    assert out["production_path_verifier_executed"] is True
+    assert out["valid_materialized_result_accepted"] is True
     assert out["byzantine_helper_output_rejected"] is True
-    assert out["missing_helper_fallback_to_serial"] is True
-    assert out["restart_replay_root_equal"] is True
-    assert out["deterministic_merge_preserves_tx_order"] is True
+    assert out["byzantine_rejection_code"] == "lane_delta_hash_mismatch"
+    assert out["tampered_lane_serialized"] is True
+    assert out["tampered_delta_not_applied"] is True
+    assert out["state_root_equivalence_proven"] is False
+    assert out["missing_helper_fallback_to_serial_proven"] is False
+    assert out["restart_replay_root_equal_proven"] is False
+    assert out["production_block_path_state_root_equivalence_proven"] is False
+    assert out["mechanism_complete"] is False
     assert out["production_helper_execution_enabled"] is False
     assert out["public_helper_execution_claimed"] is False
 
@@ -160,9 +166,11 @@ def test_locked_economics_adversarial_expansion_keeps_balances_unchanged() -> No
 
 def test_mechanism_completion_artifact_freshness_and_boundaries() -> None:
     proof = _proof()
-    assert proof["ok"] is True
-    assert proof["controlled_testnet_mechanisms_complete"] is True
-    assert proof["controlled_testnet_ready_candidate"] is True
+    assert proof["ok"] is False
+    assert proof["component_harnesses_ok"] is True
+    assert proof["helper_state_root_proof_complete"] is False
+    assert proof["controlled_testnet_mechanisms_complete"] is False
+    assert proof["controlled_testnet_ready_candidate"] is False
     assert proof["public_beta_ready"] is False
     assert proof["public_readiness_claim_requires_external_gate_run"] is True
     assert proof["claim_boundaries"] == {
@@ -183,8 +191,7 @@ def test_mechanism_completion_artifact_freshness_and_boundaries() -> None:
         [sys.executable, "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -193,15 +200,16 @@ def test_mechanism_completion_artifact_freshness_and_boundaries() -> None:
         [sys.executable, "scripts/check_v15_public_readiness_artifacts.py"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert gate.returncode == 0, gate.stdout + gate.stderr
 
 
 def test_minimum_reviewer_civic_loop_uses_canonical_frontend_routes() -> None:
-    surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    surface = build_testnet_capability_surface(
+        {"params": {"launch_phase": "public_beta_candidate"}}
+    )
     loop = surface["minimum_reviewer_civic_loop"]
     entrypoints = loop["frontend_entrypoints"]
     assert entrypoints["governance"] == "/decisions"
@@ -224,25 +232,36 @@ def test_minimum_reviewer_civic_loop_uses_canonical_frontend_routes() -> None:
     for key, href in entrypoints.items():
         if ":" in href:
             continue
-        assert f'"{href}"' in router_src, f"{key} points to a route not present in router.ts: {href}"
+        assert f'"{href}"' in router_src, (
+            f"{key} points to a route not present in router.ts: {href}"
+        )
     assert '"/proposals"' not in router_src
     assert '"/disputes"' not in router_src
 
 
 def test_minimum_reviewer_civic_loop_api_evidence_surfaces_match_contract_map() -> None:
-    surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    surface = build_testnet_capability_surface(
+        {"params": {"launch_phase": "public_beta_candidate"}}
+    )
     api_surfaces = surface["minimum_reviewer_civic_loop"]["api_evidence_surfaces"]
     assert set(api_surfaces) == set(surface["minimum_reviewer_civic_loop"]["steps"])
-    assert "GET /v1/status/testnet-capabilities" in api_surfaces["protocol_upgrade_record_lifecycle"]
+    assert (
+        "GET /v1/status/testnet-capabilities" in api_surfaces["protocol_upgrade_record_lifecycle"]
+    )
     assert "GET /v1/economics/status" in api_surfaces["economics_locked_status"]
     assert "POST /v1/tx/submit" in api_surfaces["governance_create_vote_finalize"]
     assert "POST /v1/tx/submit" in api_surfaces["public_posting_or_social_activity"]
 
-    contract = json.loads((ROOT / "generated" / "api_contract_map_v1_5.json").read_text(encoding="utf-8"))
+    contract = json.loads(
+        (ROOT / "generated" / "api_contract_map_v1_5.json").read_text(encoding="utf-8")
+    )
     route_keys = {f"{row['method']} {row['path']}" for row in contract["routes"]}
     missing: list[str] = []
     for step, endpoints in api_surfaces.items():
         for endpoint in endpoints:
             if endpoint not in route_keys:
                 missing.append(f"{step}: {endpoint}")
-    assert not missing, "civic loop API evidence surface points at missing API contract routes: " + ", ".join(missing)
+    assert not missing, (
+        "civic loop API evidence surface points at missing API contract routes: "
+        + ", ".join(missing)
+    )

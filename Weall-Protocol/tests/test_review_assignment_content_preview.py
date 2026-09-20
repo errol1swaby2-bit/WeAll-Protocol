@@ -40,11 +40,14 @@ def test_dispute_review_uses_canonical_dispute_id_and_resolves_flagged_media() -
     review = (WEB / "src/pages/DisputeReview.tsx").read_text(encoding="utf-8")
 
     assert "const disputeId = String(dispute?.id || dispute?.dispute_id || id" in review
-    assert '{ dispute_id: disputeId }' in review
+    assert "{ dispute_id: disputeId }" in review
     assert '{ dispute_id: disputeId, vote: "no"' in review
     assert '{ dispute_id: disputeId, vote: "yes"' in review
     assert "weall.stateSnapshot(apiBase).catch(() => null)" not in review
     assert "setMediaIndex" not in review
     assert "resolveContentMedia" not in review
     assert "contentMedia = asArray(contentObj?.media)" in review
-    assert '<MediaGallery base={apiBase} media={contentMedia} title="Flagged media" compact />' in review
+    assert (
+        '<MediaGallery base={apiBase} media={contentMedia} title="Flagged media" compact />'
+        in review
+    )

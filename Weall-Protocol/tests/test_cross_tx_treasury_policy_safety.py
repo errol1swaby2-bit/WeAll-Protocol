@@ -1,7 +1,6 @@
-from weall.runtime.conflict_lanes import plan_conflict_lanes
 from weall.runtime.read_write_sets import build_tx_access_set
 from weall.runtime.tx_conflict_audit_samples import build_conflict_probe_tx
-
+from weall.testing.conflict_lanes import plan_conflict_lanes
 
 TREASURY_POLICY_SERIAL_TYPES = {
     "TREASURY_SIGNER_ADD",
@@ -30,7 +29,11 @@ def test_treasury_policy_set_is_not_parallelized_with_same_wallet_signer_mutatio
             build_conflict_probe_tx(
                 "TREASURY_SIGNER_ADD",
                 seed="3",
-                payload_overrides={"wallet_id": wallet_id, "treasury_id": wallet_id, "signer": "acct-signer"},
+                payload_overrides={
+                    "wallet_id": wallet_id,
+                    "treasury_id": wallet_id,
+                    "signer": "acct-signer",
+                },
             ),
         ]
     )
@@ -38,10 +41,7 @@ def test_treasury_policy_set_is_not_parallelized_with_same_wallet_signer_mutatio
         lane.lane_id
         for lane in plan.lanes
         if lane.lane_id.startswith("SERIAL")
-        and (
-            "treasury_policy_set-2" in lane.tx_ids
-            or "treasury_signer_add-3" in lane.tx_ids
-        )
+        and ("treasury_policy_set-2" in lane.tx_ids or "treasury_signer_add-3" in lane.tx_ids)
     }
     assert len(serial_lane_ids) == 2
 

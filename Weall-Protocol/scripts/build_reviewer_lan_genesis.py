@@ -7,11 +7,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
 from weall.runtime.state_hash import compute_state_root
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,7 +54,10 @@ def _replace_recursive(value: Any, *, account: str, chain_id: str, pubkey: str) 
             out[key2] = _replace_recursive(item, account=account, chain_id=chain_id, pubkey=pubkey)
         return out
     if isinstance(value, list):
-        return [_replace_recursive(item, account=account, chain_id=chain_id, pubkey=pubkey) for item in value]
+        return [
+            _replace_recursive(item, account=account, chain_id=chain_id, pubkey=pubkey)
+            for item in value
+        ]
     if isinstance(value, str):
         return _replace_string(value, account=account, chain_id=chain_id, pubkey=pubkey)
     return value

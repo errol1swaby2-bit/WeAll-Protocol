@@ -14,7 +14,20 @@ def _sanitize(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "_", str(name or "")).strip("_").upper() or "FAILPOINT"
 
 
+def _runtime_mode() -> str:
+    return str(os.environ.get("WEALL_MODE") or "prod").strip().lower() or "prod"
+
+
+def failpoints_enabled() -> bool:
+    # Fault injection belongs to explicit non-production runtime postures only.
+    # Environment variables can never turn a production process into a crash
+    # harness.
+    return _runtime_mode() in {"dev", "test", "local", "ci"}
+
+
 def _active_failpoints() -> set[str]:
+    if not failpoints_enabled():
+        return set()
     raw = str(
         os.environ.get("WEALL_TEST_FAILPOINTS") or os.environ.get("WEALL_TEST_FAILPOINT") or ""
     )

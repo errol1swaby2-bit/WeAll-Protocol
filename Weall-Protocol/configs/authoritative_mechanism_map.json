@@ -1,0 +1,235 @@
+{
+  "mechanisms": {
+    "M-002": {
+      "authoritative_paths": [
+        "src/weall/runtime/bootstrap_manifest.py",
+        "src/weall/runtime/genesis_bootstrap.py",
+        "src/weall/runtime/genesis_config.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-003": {
+      "authoritative_paths": [
+        "src/weall/runtime/constitution.py",
+        "src/weall/runtime/constitutional_clock.py",
+        "src/weall/runtime/block_time_admission.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-005": {
+      "authoritative_paths": [
+        "src/weall/runtime/domain_dispatch.py",
+        "src/weall/runtime/tx_schema.py",
+        "src/weall/runtime/tx_contracts.py",
+        "generated/tx_index.json"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-006": {
+      "authoritative_paths": [
+        "src/weall/runtime/tx_admission.py",
+        "src/weall/crypto/signature_profiles.py",
+        "src/weall/crypto/pq_mldsa.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-007": {
+      "authoritative_paths": [
+        "src/weall/runtime/tx_id.py",
+        "src/weall/runtime/mempool.py",
+        "src/weall/runtime/apply/identity.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-008": {
+      "authoritative_paths": [
+        "src/weall/runtime/mempool.py",
+        "src/weall/runtime/block_builder.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-009": {
+      "authoritative_paths": [
+        "src/weall/runtime/parallel_execution.py",
+        "src/weall/runtime/lane_identity.py",
+        "src/weall/runtime/read_write_sets.py",
+        "src/weall/runtime/tx_conflicts.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/runtime/conflict_lanes.py",
+        "src/weall/runtime/helper_planner.py"
+      ]
+    },
+    "M-010": {
+      "authoritative_paths": [
+        "src/weall/runtime/block_builder.py",
+        "src/weall/runtime/block_admission.py",
+        "src/weall/runtime/block_time_admission.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-011": {
+      "authoritative_paths": [
+        "src/weall/runtime/block_id.py",
+        "src/weall/runtime/block_hash.py",
+        "src/weall/runtime/state_hash.py",
+        "src/weall/runtime/block_commitment_validation.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-012": {
+      "authoritative_paths": [
+        "src/weall/runtime/block_commit.py",
+        "src/weall/runtime/sqlite_db.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-015": {
+      "authoritative_paths": [
+        "src/weall/runtime/block_replay.py",
+        "src/weall/runtime/replay_consistency.py",
+        "src/weall/runtime/executor.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-016": {
+      "authoritative_paths": [
+        "src/weall/net/state_sync.py",
+        "src/weall/runtime/executor.py",
+        "src/weall/runtime/sqlite_db.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-018": {
+      "authoritative_paths": [
+        "src/weall/runtime/bft_hotstuff.py",
+        "src/weall/runtime/bft_runtime_adapter.py",
+        "src/weall/runtime/bft_votecheck.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/runtime/block_signature_profiles.py"
+      ]
+    },
+    "M-019": {
+      "authoritative_paths": [
+        "src/weall/runtime/bft_journal.py",
+        "src/weall/runtime/bft_outbound.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-020": {
+      "authoritative_paths": [
+        "src/weall/runtime/bft_pending_frontier_impl.py",
+        "src/weall/runtime/bft_fetch_requests.py",
+        "src/weall/runtime/bft_artifact_cache.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-021": {
+      "authoritative_paths": [
+        "src/weall/runtime/bft_hotstuff.py",
+        "src/weall/runtime/bft_runtime_adapter.py",
+        "src/weall/runtime/constitutional_clock.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-024": {
+      "authoritative_paths": [
+        "src/weall/net/net_loop.py",
+        "src/weall/net/node.py",
+        "src/weall/net/peer_store.py",
+        "src/weall/net/handshake.py",
+        "src/weall/net/peer_identity.py",
+        "src/weall/net/gossip.py",
+        "src/weall/net/router.py",
+        "src/weall/net/relay.py",
+        "src/weall/net/state_sync.py"
+      ],
+      "forbidden_shadow_paths": []
+    },
+    "M-028": {
+      "authoritative_paths": [
+        "src/weall/crypto/account_keys.py",
+        "src/weall/runtime/apply/identity.py",
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/runtime/session_keys.py",
+        "src/weall/runtime/account_recovery_policy.py",
+        "src/weall/runtime/account_recovery_scheduler.py",
+        "src/weall/runtime/recovery_review.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/poh/apply.py",
+        "src/weall/poh/finalize.py"
+      ]
+    },
+    "M-032": {
+      "authoritative_paths": [
+        "src/weall/runtime/apply/poh.py",
+        "src/weall/runtime/poh/async_scheduler.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/runtime/poh/eligibility.py"
+      ]
+    },
+    "M-060": {
+      "authoritative_paths": [
+        "src/weall/runtime/apply/economics.py",
+        "src/weall/runtime/econ_phase.py",
+        "src/weall/ledger/tokenomics.py",
+        "src/weall/ledger/issuance.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/ledger/rewards.py"
+      ]
+    },
+    "M-061": {
+      "authoritative_paths": [
+        "src/weall/runtime/system_tx_engine.py",
+        "src/weall/runtime/apply/rewards.py",
+        "src/weall/ledger/issuance.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/ledger/rewards.py"
+      ]
+    },
+    "M-067": {
+      "authoritative_paths": [
+        "src/weall/runtime/helper_execution_runtime.py",
+        "src/weall/runtime/helper_block_validation.py",
+        "src/weall/runtime/parallel_execution.py",
+        "src/weall/runtime/helper_assignment.py",
+        "src/weall/runtime/helper_certificates.py",
+        "src/weall/runtime/helper_merge.py"
+      ],
+      "forbidden_shadow_paths": [
+        "src/weall/runtime/helper_planner.py"
+      ]
+    }
+  },
+  "required_high_risk_mechanisms": [
+    "M-002",
+    "M-003",
+    "M-005",
+    "M-006",
+    "M-007",
+    "M-008",
+    "M-009",
+    "M-010",
+    "M-011",
+    "M-012",
+    "M-015",
+    "M-016",
+    "M-018",
+    "M-019",
+    "M-020",
+    "M-021",
+    "M-024",
+    "M-028",
+    "M-032",
+    "M-060",
+    "M-061",
+    "M-067"
+  ],
+  "schema": "weall.authoritative_mechanism_map.v1",
+  "scope": "consensus_execution_recovery_high_risk_bindings"
+}

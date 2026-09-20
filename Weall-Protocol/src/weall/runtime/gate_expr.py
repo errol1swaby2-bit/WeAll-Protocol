@@ -32,6 +32,7 @@ from weall.runtime.account_recovery_policy import (
     recovery_restriction_allows_tx,
     recovery_restriction_until_height,
 )
+from weall.runtime.commitments import consensus_active_validator_ids
 from weall.runtime.poh.state import effective_poh_tier
 
 Json = dict[str, Any]
@@ -469,18 +470,27 @@ def _is_validator(ledger: Json, signer: str) -> bool:
     and compatibility metadata from satisfying Validator-gated protocol actions.
     """
 
+    consensus = _as_dict(ledger.get("consensus"))
+    registry = _as_dict(_as_dict(consensus.get("validators")).get("registry"))
+
+    # Once canonical membership is declared it is authoritative, including an
+    # intentionally empty or malformed active_set. Malformed authority fails
+    # closed instead of reactivating legacy role/registry membership.
+    explicit = consensus_active_validator_ids(ledger)
+    if explicit is not None:
+        if _collection_has_blocked_record(registry, signer):
+            return False
+        return _matches_identity_collection(signer, explicit)
+
+    # Legacy states without an explicit consensus set retain the historical role
+    # and registry fallbacks for migration compatibility.
     roles = _as_dict(ledger.get("roles"))
     rv = _as_dict(roles.get("validators"))
     if _active_role(rv, signer):
         return True
 
-    consensus = _as_dict(ledger.get("consensus"))
-    validator_set = _as_dict(consensus.get("validator_set"))
-    registry = _as_dict(_as_dict(consensus.get("validators")).get("registry"))
     if _collection_has_blocked_record(registry, signer):
         return False
-    if _matches_identity_collection(signer, validator_set.get("active_set", [])):
-        return True
     if _active_by_id(registry, signer):
         return True
 

@@ -292,7 +292,13 @@ def test_live_verdict_cannot_be_changed_after_submission() -> None:
         st,
         _env(
             "POH_LIVE_ATTENDANCE_MARK",
-            {"case_id": case_id, "juror_id": "j1", "attended": True, "session_commitment": "sc:1", "ts_ms": 41},
+            {
+                "case_id": case_id,
+                "juror_id": "j1",
+                "attended": True,
+                "session_commitment": "sc:1",
+                "ts_ms": 41,
+            },
             signer="j1",
             nonce=5,
         ),

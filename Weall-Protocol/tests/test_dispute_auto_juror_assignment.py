@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
+import pytest
+
+import weall.runtime.apply.content as content_apply
+from weall.runtime.domain_apply import apply_tx_atomic
 from weall.runtime.domain_dispatch import apply_tx
+from weall.runtime.errors import ApplyError
 from weall.runtime.system_tx_engine import system_tx_emitter
 from weall.runtime.tx_admission import TxEnvelope
 from weall.tx.canon import load_tx_index_json
@@ -38,7 +44,12 @@ def test_content_escalation_auto_assigns_sole_active_juror() -> None:
                 }
             }
         },
-        "roles": {"jurors": {"by_id": {"juror1": {"enrolled": True, "active": True}}, "active_set": ["juror1"]}},
+        "roles": {
+            "jurors": {
+                "by_id": {"juror1": {"enrolled": True, "active": True}},
+                "active_set": ["juror1"],
+            }
+        },
         "system_queue": [],
     }
 
@@ -70,3 +81,75 @@ def test_content_escalation_auto_assigns_sole_active_juror() -> None:
     dispute = next(iter(disputes.values()))
     assert dispute["stage"] == "juror_review"
     assert dispute["jurors"]["juror1"]["status"] == "assigned"
+
+
+def test_content_escalation_rolls_back_if_required_followup_enqueue_fails(monkeypatch) -> None:
+    idx = _load_index()
+    st = {
+        "height": 0,
+        "accounts": {
+            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
+            "juror1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
+        },
+        "content": {
+            "posts": {
+                "p1": {
+                    "post_id": "p1",
+                    "author": "alice",
+                    "body": "hello",
+                    "created_nonce": 1,
+                    "visibility": "public",
+                    "locked": False,
+                    "tags": [],
+                    "group_id": None,
+                    "labels": [],
+                    "flags": [],
+                    "deleted": False,
+                }
+            }
+        },
+        "roles": {
+            "jurors": {
+                "by_id": {"juror1": {"enrolled": True, "active": True}},
+                "active_set": ["juror1"],
+            }
+        },
+        "system_queue": [],
+    }
+
+    apply_tx(
+        st,
+        TxEnvelope(
+            tx_type="CONTENT_FLAG",
+            signer="alice",
+            nonce=2,
+            payload={"target_type": "post", "target_id": "p1", "reason": "spam"},
+            sig="",
+            system=False,
+        ),
+    )
+    post_h1 = system_tx_emitter(st, canon=idx, next_height=1, phase="post")
+    escalation = next(env for env in post_h1 if env.tx_type == "CONTENT_ESCALATE_TO_DISPUTE")
+    before_apply = copy.deepcopy(st)
+
+    original_enqueue = content_apply.enqueue_system_tx
+    successful_followups: list[str] = []
+
+    def injected_enqueue(*args, **kwargs):
+        tx_type = str(kwargs.get("tx_type") or "")
+        if tx_type == "FLAG_ESCALATION_RECEIPT":
+            raise RuntimeError("injected_required_followup_failure")
+        queue_id = original_enqueue(*args, **kwargs)
+        successful_followups.append(tx_type)
+        return queue_id
+
+    monkeypatch.setattr(content_apply, "enqueue_system_tx", injected_enqueue)
+
+    with pytest.raises(ApplyError) as raised:
+        apply_tx_atomic(st, escalation)
+
+    assert raised.value.code == "domain_error"
+    assert raised.value.reason == "system_followup_enqueue_failed"
+    assert raised.value.details["followup_tx_type"] == "FLAG_ESCALATION_RECEIPT"
+    assert successful_followups == ["DISPUTE_JUROR_ASSIGN"]
+    assert st == before_apply

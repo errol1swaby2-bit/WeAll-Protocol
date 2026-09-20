@@ -37,3 +37,37 @@ def test_migration_registry_is_contiguous() -> None:
         f"Missing migration steps for versions: {missing}. "
         f"CURRENT_STATE_VERSION={mig.CURRENT_STATE_VERSION} requires keys 0..{mig.CURRENT_STATE_VERSION - 1}."
     )
+
+
+def test_failed_migration_step_cannot_partially_mutate_caller_state(monkeypatch) -> None:
+    raw = {"state_version": 0, "height": 4, "nested": {"value": "original"}}
+
+    def failing_step(state):
+        state["nested"]["value"] = "partially-mutated"
+        raise RuntimeError("synthetic migration failure")
+
+    monkeypatch.setitem(mig._MIGRATIONS, 0, failing_step)
+
+    try:
+        mig.migrate_state_dict(raw)
+    except RuntimeError as exc:
+        assert str(exc) == "synthetic migration failure"
+    else:
+        raise AssertionError("expected synthetic migration failure")
+
+    assert raw == {"state_version": 0, "height": 4, "nested": {"value": "original"}}
+
+
+def test_migration_step_must_advance_exactly_one_version(monkeypatch) -> None:
+    def skipping_step(state):
+        state["state_version"] = 2
+        return state
+
+    monkeypatch.setitem(mig._MIGRATIONS, 0, skipping_step)
+
+    try:
+        mig.migrate_state_dict({"state_version": 0})
+    except ValueError as exc:
+        assert "exact advancement required" in str(exc)
+    else:
+        raise AssertionError("expected exact-version advancement failure")

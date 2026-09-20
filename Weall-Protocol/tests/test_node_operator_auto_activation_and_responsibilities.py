@@ -10,10 +10,19 @@ from weall.runtime.node_operator_scheduler import schedule_node_operator_system_
 
 
 def _env(tx_type: str, payload: dict, *, signer: str = "SYSTEM", system: bool = True) -> dict:
-    return {"tx_type": tx_type, "signer": signer, "nonce": 0, "payload": payload, "sig": "", "system": system}
+    return {
+        "tx_type": tx_type,
+        "signer": signer,
+        "nonce": 0,
+        "payload": payload,
+        "sig": "",
+        "system": system,
+    }
 
 
-def _state(*, tier: int = 2, rep: int = 0, active: bool = False, node_pub: str = "node-pub") -> dict:
+def _state(
+    *, tier: int = 2, rep: int = 0, active: bool = False, node_pub: str = "node-pub"
+) -> dict:
     return {
         "accounts": {
             "@op": {
@@ -79,7 +88,10 @@ def test_node_operator_auto_activation_blocks_ineligible_enrollment() -> None:
 def test_user_cannot_directly_apply_node_operator_activation() -> None:
     st = _state(tier=2, rep=0, active=False)
     with pytest.raises(Exception) as exc:
-        apply_tx(st, _env("ROLE_NODE_OPERATOR_ACTIVATE", {"account_id": "@op"}, signer="@op", system=False))
+        apply_tx(
+            st,
+            _env("ROLE_NODE_OPERATOR_ACTIVATE", {"account_id": "@op"}, signer="@op", system=False),
+        )
     assert "system_only" in str(exc.value)
 
 
@@ -99,7 +111,9 @@ def _preflight(state: dict, *, roles: tuple[str, ...], bft: bool = False):
     )
 
 
-def test_baseline_node_operator_does_not_imply_validator_or_storage_responsibilities(monkeypatch) -> None:
+def test_baseline_node_operator_does_not_imply_validator_or_storage_responsibilities(
+    monkeypatch,
+) -> None:
     monkeypatch.setenv("WEALL_BOUND_ACCOUNT", "@op")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "node-pub")
     monkeypatch.delenv("WEALL_PRODUCTION_REQUIRED_REPUTATION_MILLI", raising=False)
@@ -118,7 +132,12 @@ def test_baseline_node_operator_does_not_imply_validator_or_storage_responsibili
     storage_state = json.loads(json.dumps(st))
     storage_rec = storage_state["roles"]["node_operators"]["by_id"]["@op"]
     storage_rec["responsibilities"] = {
-        "storage": {"opted_in": True, "active": True, "declared_capacity_bytes": 10_000, "proven_capacity_bytes": 0}
+        "storage": {
+            "opted_in": True,
+            "active": True,
+            "declared_capacity_bytes": 10_000,
+            "proven_capacity_bytes": 0,
+        }
     }
     storage_state["accounts"]["@op"]["reputation_milli"] = 1500
     storage = _preflight(storage_state, roles=("storage_operator",))
@@ -127,7 +146,9 @@ def test_baseline_node_operator_does_not_imply_validator_or_storage_responsibili
 
     proven_storage_state = json.loads(json.dumps(storage_state))
     proven_storage_state["accounts"]["@op"]["reputation_milli"] = 1500
-    proven_storage = proven_storage_state["roles"]["node_operators"]["by_id"]["@op"]["responsibilities"]["storage"]
+    proven_storage = proven_storage_state["roles"]["node_operators"]["by_id"]["@op"][
+        "responsibilities"
+    ]["storage"]
     proven_storage["proven_capacity_bytes"] = 10_000
     proven_storage["reserved_capacity_bytes"] = 10_000
     proven_storage["probed_capacity_bytes"] = 10_000

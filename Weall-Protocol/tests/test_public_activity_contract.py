@@ -34,6 +34,8 @@ def test_removed_private_communication_frontend_files_are_absent() -> None:
     assert not (WEB_ROOT / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
     assert not (WEB_ROOT / "src" / "lib" / ("message" + "Crypto.ts")).exists()
     assert "Mess" + "agingKeyBootstrapper" not in app
+    assert "Mess" + "aging" not in router
+    assert "/messages" not in router
     assert "TX_RECORDED_AUTO_DISMISS_MS" in tx_queue
     assert "isTransientToastStatus" in tx_queue
     assert "safeLoadHistory" in tx_queue and "TX_VISIBLE_STALE_MS" in tx_queue

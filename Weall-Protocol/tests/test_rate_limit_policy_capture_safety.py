@@ -4,14 +4,16 @@ import pytest
 
 from weall.ledger.state import LedgerView
 from weall.runtime.apply.economics import EconomicsApplyError, apply_economics
+from weall.runtime.block_admission import admit_block_txs
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission import TxEnvelope
-from weall.runtime.block_admission import admit_block_txs
 from weall.tx.canon import TxIndex
 
 
-def _env(tx_type: str, payload: dict, *, signer: str = "SYSTEM", nonce: int = 1, system: bool = True) -> TxEnvelope:
+def _env(
+    tx_type: str, payload: dict, *, signer: str = "SYSTEM", nonce: int = 1, system: bool = True
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -89,7 +91,10 @@ def test_rate_limit_policy_rejects_unknown_scopes() -> None:
     with pytest.raises(EconomicsApplyError) as excinfo:
         apply_economics(
             state,
-            _env("RATE_LIMIT_POLICY_SET", {"scope": "specific_user_@alice", "window_ms": 60_000, "limit": 100}),
+            _env(
+                "RATE_LIMIT_POLICY_SET",
+                {"scope": "specific_user_@alice", "window_ms": 60_000, "limit": 100},
+            ),
         )
 
     assert excinfo.value.reason == "rate_limit_scope_not_allowed"
@@ -115,7 +120,10 @@ def test_rate_limit_policy_cannot_choke_protected_onboarding_scopes() -> None:
     with pytest.raises(EconomicsApplyError) as excinfo:
         apply_economics(
             state,
-            _env("RATE_LIMIT_POLICY_SET", {"scope": "account_register", "window_ms": 3_600_000, "limit": 1}),
+            _env(
+                "RATE_LIMIT_POLICY_SET",
+                {"scope": "account_register", "window_ms": 3_600_000, "limit": 1},
+            ),
         )
 
     assert excinfo.value.reason == "rate_limit_protected_onboarding_scope_too_restrictive"
@@ -126,12 +134,16 @@ def test_rate_limit_strike_requires_existing_target_account() -> None:
     state = _state()
 
     with pytest.raises(EconomicsApplyError) as excinfo:
-        apply_economics(state, _env("RATE_LIMIT_STRIKE_APPLY", {"target": "@ghost", "reason": "spam"}))
+        apply_economics(
+            state, _env("RATE_LIMIT_STRIKE_APPLY", {"target": "@ghost", "reason": "spam"})
+        )
 
     assert excinfo.value.reason == "target_account_missing"
     assert state.get("economics", {}).get("rate_limit_strikes") in (None, [])
 
-    result = apply_economics(state, _env("RATE_LIMIT_STRIKE_APPLY", {"target": "@alice", "reason": "spam"}))
+    result = apply_economics(
+        state, _env("RATE_LIMIT_STRIKE_APPLY", {"target": "@alice", "reason": "spam"})
+    )
     assert result == {"applied": "RATE_LIMIT_STRIKE_APPLY", "target": "@alice"}
     assert state["economics"]["rate_limit_strikes"][0]["target"] == "@alice"
 
@@ -151,7 +163,14 @@ def test_rate_limit_policy_set_is_governance_allowlisted_but_payload_validated()
                     "proposal_id": "p-rate-bad",
                     "title": "bad rate policy",
                     "actions": [
-                        {"tx_type": "RATE_LIMIT_POLICY_SET", "payload": {"scope": "account_register", "window_ms": 3_600_000, "limit": 1}}
+                        {
+                            "tx_type": "RATE_LIMIT_POLICY_SET",
+                            "payload": {
+                                "scope": "account_register",
+                                "window_ms": 3_600_000,
+                                "limit": 1,
+                            },
+                        }
                     ],
                 },
                 sig="sig",
@@ -171,7 +190,10 @@ def test_rate_limit_policy_set_is_governance_allowlisted_but_payload_validated()
                 "proposal_id": "p-rate-ok",
                 "title": "safe rate policy",
                 "actions": [
-                    {"tx_type": "RATE_LIMIT_POLICY_SET", "payload": {"scope": "account_register", "window_ms": 60_000, "limit": 20}}
+                    {
+                        "tx_type": "RATE_LIMIT_POLICY_SET",
+                        "payload": {"scope": "account_register", "window_ms": 60_000, "limit": 20},
+                    }
                 ],
             },
             sig="sig",

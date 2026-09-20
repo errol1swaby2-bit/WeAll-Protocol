@@ -109,9 +109,14 @@ def build() -> Json:
                 "public_multi_validator_bft_without_external_rehearsal",
                 "live_economics_enabled",
             ],
-            {"operator_ids": 4, "node_ids": 4, "machine_ids": 4, "rounds": 6, "operator_signatures": 4},
+            {
+                "operator_ids": 4,
+                "node_ids": 4,
+                "machine_ids": 4,
+                "rounds": 6,
+                "operator_signatures": 4,
+            },
         ),
-
         "external_cross_machine_replay_transcript": _schema(
             "external_cross_machine_replay_transcript",
             "External clean-checkout replay transcript proving the same commit and vectors replay to identical state roots and tx-index hash on two external/physical machines before public beta.",
@@ -201,7 +206,16 @@ def build() -> Json:
                 "public_decentralized_media_durability_without_real_daemon_topology",
                 "restricted_identity_evidence_publicly_visible",
             ],
-            {"operator_ids": 3, "machine_ids": 3, "ipfs_peer_ids": 3, "daemon_versions": 3, "replication_factor": 3, "pin_proofs": 3, "retrieval_proofs": 3, "operator_signatures": 3},
+            {
+                "operator_ids": 3,
+                "machine_ids": 3,
+                "ipfs_peer_ids": 3,
+                "daemon_versions": 3,
+                "replication_factor": 3,
+                "pin_proofs": 3,
+                "retrieval_proofs": 3,
+                "operator_signatures": 3,
+            },
         ),
         "legal_compliance_attestation": _schema(
             "legal_compliance_attestation",
@@ -260,7 +274,12 @@ def build() -> Json:
                 "public_validator_safe_without_counsel_attestation",
                 "public_storage_market_ready_without_counsel_attestation",
             ],
-            {"scope": 8, "documents_reviewed": 6, "approved_public_claims": 1, "restricted_claims": 6},
+            {
+                "scope": 8,
+                "documents_reviewed": 6,
+                "approved_public_claims": 1,
+                "restricted_claims": 6,
+            },
         ),
     }
     validation_commands = {
@@ -294,7 +313,13 @@ def build() -> Json:
             "live_economics": False,
             "legal_compliance_ready": False,
         },
-        "artifact_digest": _digest({"schemas": schemas, "validation_commands": validation_commands, "strict_release_validation_commands": strict_release_validation_commands}),
+        "artifact_digest": _digest(
+            {
+                "schemas": schemas,
+                "validation_commands": validation_commands,
+                "strict_release_validation_commands": strict_release_validation_commands,
+            }
+        ),
     }
 
 
@@ -303,7 +328,9 @@ def _pretty(obj: Any) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check v1.5 external operator transcript requirements.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check v1.5 external operator transcript requirements."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -314,8 +341,12 @@ def main() -> int:
         return 0
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("external_operator_transcript_requirements_v1_5.json is stale; rerun generator")
-        print(f"OK: {OUT.relative_to(ROOT)} is current ({len(payload['schemas'])} transcript schemas)")
+            raise SystemExit(
+                "external_operator_transcript_requirements_v1_5.json is stale; rerun generator"
+            )
+        print(
+            f"OK: {OUT.relative_to(ROOT)} is current ({len(payload['schemas'])} transcript schemas)"
+        )
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import copy
 import os
 import random
 import sqlite3
@@ -10,10 +10,10 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any
-from weall.runtime.runtime_time import now_ms as _now_ms
-from weall.runtime.json_tools import canonical_json_str
 
 from weall.runtime.failpoints import maybe_trigger_failpoint
+from weall.runtime.json_tools import canonical_json_str, strict_json_loads
+from weall.runtime.runtime_time import now_ms as _now_ms
 
 Json = dict[str, Any]
 
@@ -48,7 +48,6 @@ def _process_local_write_lock_for(path: str) -> threading.RLock:
             lock = threading.RLock()
             _PROCESS_LOCAL_WRITE_LOCKS[key] = lock
         return lock
-
 
 
 def _canon_json(obj: Any) -> str:
@@ -350,17 +349,86 @@ class SqliteDB:
             if "nonce" not in mempool_cols:
                 con.execute("ALTER TABLE mempool ADD COLUMN nonce INTEGER;")
             if "admitted_at_height" not in mempool_cols:
-                con.execute("ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;")
+                con.execute(
+                    "ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;"
+                )
             if "expires_at_height" not in mempool_cols:
-                con.execute("ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_candidate_height ON mempool(admitted_at_height, expires_at_height);")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_signer_nonce_lookup ON mempool(signer, nonce);")
+                con.execute(
+                    "ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;"
+                )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_mempool_candidate_height ON mempool(admitted_at_height, expires_at_height);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_mempool_signer_nonce_lookup ON mempool(signer, nonce);"
+            )
             con.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_mempool_signer_nonce_unique
                 ON mempool(signer, nonce)
                 WHERE nonce IS NOT NULL;
                 """
+            )
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS peer_security (
+                  peer_id TEXT PRIMARY KEY,
+                  strikes INTEGER NOT NULL DEFAULT 0,
+                  banned_until_ms INTEGER NOT NULL DEFAULT 0,
+                  score REAL NOT NULL DEFAULT 0.0,
+                  updated_ts_ms INTEGER NOT NULL
+                );
+                """
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_peer_security_ban ON peer_security(banned_until_ms);"
+            )
+
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS bft_outbox (
+                  outbound_key TEXT PRIMARY KEY,
+                  kind TEXT NOT NULL,
+                  payload_json TEXT NOT NULL,
+                  enqueue_seq INTEGER NOT NULL,
+                  enqueued_ts_ms INTEGER NOT NULL,
+                  updated_ts_ms INTEGER NOT NULL
+                );
+                """
+            )
+            bft_outbox_cols = {
+                str(row["name"])
+                for row in con.execute("PRAGMA table_info(bft_outbox);").fetchall()
+                if row is not None and row["name"] is not None
+            }
+            if "enqueue_seq" not in bft_outbox_cols:
+                # Additive migration for nodes that created the first dedicated
+                # outbox schema before enqueue ordering became explicit. SQLite's
+                # rowid reflects insertion order for that table, so use it only as
+                # the one-time migration source; all future ordering is explicit.
+                con.execute("ALTER TABLE bft_outbox ADD COLUMN enqueue_seq INTEGER;")
+                max_row = con.execute(
+                    "SELECT COALESCE(MAX(enqueue_seq), 0) AS n FROM bft_outbox;"
+                ).fetchone()
+                next_seq = int(max_row["n"] if max_row is not None else 0) + 1
+                legacy_rows = con.execute(
+                    "SELECT rowid AS rid FROM bft_outbox "
+                    "WHERE enqueue_seq IS NULL ORDER BY rowid ASC;"
+                ).fetchall()
+                for legacy_row in legacy_rows:
+                    con.execute(
+                        "UPDATE bft_outbox SET enqueue_seq=? WHERE rowid=?;",
+                        (next_seq, int(legacy_row["rid"])),
+                    )
+                    next_seq += 1
+            con.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_bft_outbox_enqueue_seq "
+                "ON bft_outbox(enqueue_seq);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_bft_outbox_enqueued "
+                "ON bft_outbox(enqueued_ts_ms, enqueue_seq);"
             )
 
             con.execute(
@@ -788,17 +856,172 @@ class SqliteLedgerStore:
             row = con.execute("SELECT state_json FROM ledger_state WHERE id=1;").fetchone()
             if row is None:
                 raise RuntimeError("ledger_state missing")
-            return json.loads(row["state_json"])
+            return strict_json_loads(row["state_json"])
 
     def write(self, state: Json) -> None:
+        if not isinstance(state, dict):
+            raise TypeError("ledger state must be a dict")
+
         payload = _canon_json(state)
+        height = int(state.get("height") or 0)
+        block_id = str(state.get("tip") or "")
+
         with self.db.write_tx() as con:
-            # NOTE: block_id is persisted separately in some schemas; we keep it here for consistency.
-            height = int(state.get("height") or 0)
-            block_id = str(state.get("tip") or "")
+            row = con.execute("SELECT height, state_json FROM ledger_state WHERE id=1;").fetchone()
+            if row is not None:
+                current_height = int(row["height"] or 0)
+                if height < current_height:
+                    raise RuntimeError(f"ledger_state_height_regression:{height}<{current_height}")
+
+                # At a committed height, a side-channel/runtime writer may only
+                # alter state excluded by the canonical state-root projection.
+                # This prevents BFT/runtime metadata persistence from replacing a
+                # newer or conflicting canonical ledger snapshot. Height zero is
+                # intentionally migration-compatible before the first block.
+                if height == current_height and height > 0:
+                    try:
+                        current = strict_json_loads(str(row["state_json"] or "{}"))
+                    except Exception as exc:
+                        raise RuntimeError("ledger_state_corrupted") from exc
+                    if not isinstance(current, dict):
+                        raise RuntimeError("ledger_state_corrupted:not_object")
+                    from weall.runtime.state_hash import compute_state_root
+
+                    if compute_state_root(current) != compute_state_root(state):
+                        raise RuntimeError("ledger_state_same_height_root_conflict")
+
             con.execute(
                 "INSERT OR REPLACE INTO ledger_state(id, height, block_id, state_json, updated_ts_ms) VALUES(1,?,?,?,?);",
                 (height, block_id, payload, _now_ms()),
+            )
+
+    def install_state_sync_checkpoint(self, *, state: Json, checkpoint_block: Json) -> None:
+        """Atomically replace local canonical history with a verified sync checkpoint.
+
+        This is intentionally destructive to branch-local/history-derived tables.
+        The caller must independently verify the trusted snapshot/checkpoint pair
+        before invoking this method.  A checkpointed node retains the checkpoint
+        block as its durable base and can append normal blocks from height H+1.
+        """
+        if not isinstance(state, dict):
+            raise TypeError("checkpoint state must be a dict")
+        if not isinstance(checkpoint_block, dict):
+            raise TypeError("checkpoint block must be a dict")
+
+        from weall.runtime.block_commitment_validation import ensure_complete_block_commitments
+        from weall.runtime.state_hash import compute_state_root
+
+        checkpoint_chain_id = str(
+            state.get("chain_id")
+            or (
+                checkpoint_block.get("header", {}).get("chain_id")
+                if isinstance(checkpoint_block.get("header"), dict)
+                else ""
+            )
+            or ""
+        ).strip()
+        block2, binding = ensure_complete_block_commitments(
+            block=copy.deepcopy(checkpoint_block),
+            chain_id=checkpoint_chain_id,
+        )
+        block_hash = binding.block_hash
+        height = int(state.get("height") or 0)
+        block_height = int(block2.get("height") or 0)
+        block_id = str(block2.get("block_id") or "").strip()
+        state_tip = str(state.get("tip") or "").strip()
+        state_tip_hash = str(state.get("tip_hash") or "").strip()
+        header = block2.get("header") if isinstance(block2.get("header"), dict) else {}
+        committed_root = str(header.get("state_root") or "").strip()
+        computed_root = str(compute_state_root(state) or "").strip()
+
+        if height <= 0 or block_height != height:
+            raise RuntimeError("state_sync_checkpoint_height_mismatch")
+        if not block_id or state_tip != block_id:
+            raise RuntimeError("state_sync_checkpoint_block_id_mismatch")
+        if not state_tip_hash or state_tip_hash != str(block_hash):
+            raise RuntimeError("state_sync_checkpoint_block_hash_mismatch")
+        if not committed_root or committed_root != computed_root:
+            raise RuntimeError("state_sync_checkpoint_state_root_mismatch")
+
+        payload = _canon_json(state)
+        block_json = _canon_json(block2)
+        created_ts_ms = int(block2.get("block_ts_ms") or block2.get("created_ms") or _now_ms())
+
+        reset_tables = (
+            "blocks",
+            "block_hash_index",
+            "tx_index",
+            "mempool",
+            "attestations",
+            "system_queue",
+            "bft_candidates",
+            "bft_pending_artifacts",
+            "ipfs_replication_jobs",
+            "tx_conflict_materialization",
+            "helper_plans",
+            "helper_lane_results",
+            "helper_lane_receipts",
+            "helper_resolution_journal",
+            "state_consensus",
+            "state_governance",
+            "state_roles",
+            "state_poh",
+            "state_identity",
+            "state_treasury",
+            "state_economics",
+            "state_groups",
+            "state_content",
+            "state_dispute",
+            "state_cases",
+            "state_moderation",
+            "state_networking",
+            "state_notifications",
+            "state_indexing",
+            "state_reputation",
+            "state_rewards",
+            "state_performance",
+            "state_social",
+            "state_storage",
+        )
+
+        with self.db.write_tx() as con:
+            for table in reset_tables:
+                con.execute(f"DELETE FROM {table};")
+
+            con.execute(
+                "INSERT INTO blocks(height, block_id, block_json, created_ts_ms) VALUES(?,?,?,?);",
+                (height, block_id, block_json, created_ts_ms),
+            )
+            con.execute(
+                """
+                INSERT INTO block_hash_index(block_id, block_hash, height, created_ts_ms)
+                VALUES(?,?,?,?);
+                """,
+                (block_id, str(block_hash), height, created_ts_ms),
+            )
+            con.execute(
+                """
+                INSERT INTO ledger_state(id, height, block_id, state_json, updated_ts_ms)
+                VALUES(1, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                  height=excluded.height,
+                  block_id=excluded.block_id,
+                  state_json=excluded.state_json,
+                  updated_ts_ms=excluded.updated_ts_ms;
+                """,
+                (height, block_id, payload, _now_ms()),
+            )
+            con.execute(
+                "INSERT OR REPLACE INTO meta(key, value) VALUES('checkpoint_base_height', ?);",
+                (str(height),),
+            )
+            con.execute(
+                "INSERT OR REPLACE INTO meta(key, value) VALUES('checkpoint_block_id', ?);",
+                (block_id,),
+            )
+            con.execute(
+                "INSERT OR REPLACE INTO meta(key, value) VALUES('checkpoint_block_hash', ?);",
+                (str(block_hash),),
             )
 
     # -----------------------------------------------------------------
@@ -827,26 +1050,44 @@ class SqliteLedgerStore:
                 raise RuntimeError("ledger_state missing")
 
             try:
-                cur = json.loads(row["state_json"])
+                cur = strict_json_loads(row["state_json"])
             except Exception as e:
                 raise RuntimeError("ledger_state corrupted") from e
 
             if not isinstance(cur, dict):
                 raise RuntimeError("ledger_state corrupted:not_object")
 
-            tmp = dict(cur)
+            # The updater must receive an object independent from the persisted
+            # preimage. A shallow copy would share nested dictionaries and could
+            # mutate ``cur`` too, making before/after integrity comparisons
+            # self-confirming.
+            tmp = copy.deepcopy(cur)
             res = fn(tmp)
             # Allow in-place mutation functions (returning None), or returning a new dict.
             nxt = tmp if res is None else res
             if not isinstance(nxt, dict):
                 raise TypeError("update fn must mutate a dict or return a dict")
 
-            payload = _canon_json(nxt)
+            current_height = int(cur.get("height") or 0)
             height = int(nxt.get("height") or 0)
+            if height != current_height:
+                raise RuntimeError(f"ledger_state_update_height_change:{current_height}->{height}")
+
+            # ``update`` is reserved for side-channel/runtime metadata merges. At
+            # a committed height it must never alter canonical application state;
+            # canonical mutations belong in block commit/state-sync transactions.
+            # Height zero remains bootstrap-compatible for the explicitly fenced
+            # single-node seeded-demo helpers.
+            if height > 0:
+                from weall.runtime.state_hash import compute_state_root
+
+                if compute_state_root(cur) != compute_state_root(nxt):
+                    raise RuntimeError("ledger_state_update_root_conflict")
+
+            payload = _canon_json(nxt)
             block_id = str(nxt.get("tip") or "")
             con.execute(
                 "INSERT OR REPLACE INTO ledger_state(id, height, block_id, state_json, updated_ts_ms) VALUES(1,?,?,?,?);",
                 (height, block_id, payload, _now_ms()),
             )
             return nxt
-

@@ -15,7 +15,13 @@ Json = dict[str, Any]
 
 
 def _run(script: str) -> Json:
-    proc = subprocess.run([sys.executable, str(ROOT / "scripts" / script), "--json"], cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / script), "--json"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
     return json.loads(proc.stdout)
 
 
@@ -35,8 +41,14 @@ def build() -> Json:
         "batches": {
             "505": b505,
             "506": b506,
-            "507": {"ok": True, "mechanic": "challenge-driven reverification closes only after fresh successful PoH finalize"},
-            "508": {"ok": True, "mechanic": "appeal-panel votes derive final appeal resolution through DISPUTE_VOTE_SUBMIT"},
+            "507": {
+                "ok": True,
+                "mechanic": "challenge-driven reverification closes only after fresh successful PoH finalize",
+            },
+            "508": {
+                "ok": True,
+                "mechanic": "appeal-panel votes derive final appeal resolution through DISPUTE_VOTE_SUBMIT",
+            },
             "509": b509,
         },
     }

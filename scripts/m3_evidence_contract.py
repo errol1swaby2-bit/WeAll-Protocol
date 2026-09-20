@@ -234,6 +234,18 @@ ATTENDANCE_ACCEPTANCE_LABEL = {
 }
 EMBEDDED_ATTENDANCE_LABELS = frozenset(ATTENDANCE_ACCEPTANCE_LABEL)
 
+# DISPUTE_RESOLVE is intentionally applied inline by the threshold-reaching
+# DISPUTE_VOTE_SUBMIT. The M3 transcript must represent that deterministic
+# system effect without inventing a standalone transaction that never existed.
+INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND = "inline_system_transition"
+INLINE_SYSTEM_ACTION_LABELS = frozenset({"dispute_resolution"})
+INLINE_SYSTEM_TRIGGER_LABELS = {
+    "dispute_resolution": frozenset({"original_panel_ballots"}),
+}
+INLINE_SYSTEM_TRIGGER_TX_TYPES = {
+    "dispute_resolution": frozenset({"DISPUTE_VOTE_SUBMIT"}),
+}
+
 SYSTEM_ACTION_LABELS = {
     "dispute_resolution",
     "appeal_final_receipt",
@@ -257,30 +269,45 @@ NEGATIVE_TX_TYPES = {
 }
 
 EXPECTED_NEGATIVE_ERROR_CODES = {
-    "nonmember_group_write_rejected": "group_post_authority_required",
-    "nonselected_reviewer_vote_rejected": "juror_not_assigned",
-    "conflicted_reviewer_vote_rejected": "juror_conflict_target_owner",
-    # Public signed ingress enforces the GOV_VOTE_CAST Tier2+ subject gate
-    # before a transaction can enter consensus. The deeper apply-time
-    # governance_vote_requires_active_round_member guard remains defense in
-    # depth and is covered by runtime tests, but it is not the public-path
-    # rejection surfaced by the controlled-testnet signed journey.
+    "nonmember_group_write_rejected": "forbidden",
+    "nonselected_reviewer_vote_rejected": "gate_denied",
+    "conflicted_reviewer_vote_rejected": "gate_denied",
     "ineligible_governance_vote_rejected": "gate_denied",
+    "duplicate_governance_vote_rejected": "conflict",
+    "replacement_governance_vote_rejected": "conflict",
+    "governance_revoke_rejected": "forbidden",
+    "duplicate_dispute_ballot_rejected": "conflict",
+    "replacement_dispute_ballot_rejected": "conflict",
+    "dispute_revoke_rejected": "invalid_tx",
+    "nonowner_appeal_rejected": "forbidden",
+}
+
+EXPECTED_NEGATIVE_ERROR_REASONS = {
+    "nonmember_group_write_rejected": "group_post_authority_required",
+    "nonselected_reviewer_vote_rejected": "gate:Juror",
+    "conflicted_reviewer_vote_rejected": "gate:Juror",
+    "ineligible_governance_vote_rejected": "gate:Tier2+",
     "duplicate_governance_vote_rejected": "ballot_already_final",
     "replacement_governance_vote_rejected": "ballot_already_final",
     "governance_revoke_rejected": "ballot_revocation_forbidden",
     "duplicate_dispute_ballot_rejected": "dispute_ballot_already_final",
     "replacement_dispute_ballot_rejected": "dispute_ballot_already_final",
-    "dispute_revoke_rejected": "unknown_tx_type",
+    "dispute_revoke_rejected": "noncanonical_tx_type",
     "nonowner_appeal_rejected": "appeal_not_target_owner",
 }
 
-EXPECTED_NEGATIVE_ERROR_REASONS = {
-    "ineligible_governance_vote_rejected": "gate:Tier2+",
-}
-
 EXPECTED_NEGATIVE_REJECTION_LAYERS = {
+    "nonmember_group_write_rejected": "apply",
+    "nonselected_reviewer_vote_rejected": "admission",
+    "conflicted_reviewer_vote_rejected": "admission",
     "ineligible_governance_vote_rejected": "admission",
+    "duplicate_governance_vote_rejected": "apply",
+    "replacement_governance_vote_rejected": "apply",
+    "governance_revoke_rejected": "apply",
+    "duplicate_dispute_ballot_rejected": "apply",
+    "replacement_dispute_ballot_rejected": "apply",
+    "dispute_revoke_rejected": "admission",
+    "nonowner_appeal_rejected": "apply",
 }
 
 REQUIRED_HUMAN_ROLES = {
@@ -337,7 +364,9 @@ def role_allowed_for_action(label: str, role: str, account: str) -> bool:
 
 def role_allowed_for_negative(label: str, role: str) -> bool:
     if label == "nonmember_group_write_rejected":
-        return role == "nonmember_ineligible"
+        return role.startswith(ORIGINAL_REVIEWER_ROLE_PREFIX) or role.startswith(
+            APPEAL_REVIEWER_ROLE_PREFIX
+        )
     if label == "conflicted_reviewer_vote_rejected":
         return role in {"author_proposer", "member_reporter_voter"}
     if label == "ineligible_governance_vote_rejected":
@@ -420,6 +449,72 @@ def validate_embedded_attendance_pairs(actions: list[dict]) -> None:
             raise ValueError(f"transaction_attendance_evidence_kind_invalid:{tx_id}")
 
 
+def validate_inline_system_transitions(actions: list[dict]) -> None:
+    """Validate system transitions that are committed inline by a real trigger tx.
+
+    The runtime applies ``DISPUTE_RESOLVE`` during the threshold-reaching
+    ``DISPUTE_VOTE_SUBMIT``. No standalone ``DISPUTE_RESOLVE`` transaction is
+    admitted or indexed for that transition. Evidence therefore binds a
+    deterministic synthetic id to the confirmed trigger transaction and the
+    same dispute subject instead of fabricating a transaction-status record.
+    """
+
+    by_tx_id: dict[str, list[dict]] = {}
+    for raw in actions:
+        tx_id = str(raw.get("tx_id") or "").strip()
+        if tx_id:
+            by_tx_id.setdefault(tx_id, []).append(raw)
+
+    for raw in actions:
+        label = str(raw.get("label") or "").strip()
+        if label not in INLINE_SYSTEM_ACTION_LABELS:
+            continue
+
+        tx_type = str(raw.get("tx_type") or "").strip()
+        tx_id = str(raw.get("tx_id") or "").strip()
+        trigger_tx_id = str(raw.get("trigger_tx_id") or "").strip()
+        subject_id = str(raw.get("subject_id") or "").strip()
+
+        if raw.get("evidence_kind") != INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND:
+            raise ValueError(f"transaction_inline_evidence_kind_invalid:{label}:{tx_id}")
+        if (
+            not trigger_tx_id
+            or trigger_tx_id.startswith("REPLACE_")
+            or trigger_tx_id.startswith("inline:")
+        ):
+            raise ValueError(f"transaction_inline_trigger_tx_id_invalid:{label}:{trigger_tx_id}")
+        expected_inline_id = f"inline:{trigger_tx_id}:{tx_type}"
+        if tx_id != expected_inline_id:
+            raise ValueError(
+                f"transaction_inline_tx_id_invalid:{label}:{tx_id}:{expected_inline_id}"
+            )
+
+        trigger_records = by_tx_id.get(trigger_tx_id) or []
+        # Embedded attendance is the only legitimate duplicate tx-id shape in
+        # the transcript. An inline resolution trigger must be one real ballot.
+        if len(trigger_records) != 1:
+            raise ValueError(
+                f"transaction_inline_trigger_missing_or_ambiguous:{label}:{trigger_tx_id}"
+            )
+        trigger = trigger_records[0]
+        if str(trigger.get("label") or "") not in INLINE_SYSTEM_TRIGGER_LABELS[label]:
+            raise ValueError(
+                f"transaction_inline_trigger_label_invalid:{label}:{trigger_tx_id}"
+            )
+        if str(trigger.get("tx_type") or "") not in INLINE_SYSTEM_TRIGGER_TX_TYPES[label]:
+            raise ValueError(
+                f"transaction_inline_trigger_type_invalid:{label}:{trigger_tx_id}"
+            )
+        if str(trigger.get("subject_id") or "") != subject_id:
+            raise ValueError(
+                f"transaction_inline_trigger_subject_invalid:{label}:{trigger_tx_id}"
+            )
+        if trigger.get("status") != "confirmed":
+            raise ValueError(
+                f"transaction_inline_trigger_not_confirmed:{label}:{trigger_tx_id}"
+            )
+
+
 def validate_public_actor_transcript(
     actor_manifest: dict, transcript: dict, *, freeze: str
 ) -> dict:
@@ -477,6 +572,11 @@ def validate_public_actor_transcript(
             raise ValueError(f"actor_manifest_journey_field_missing:{field}")
     if str(journey["negative_dispute_id"]) == str(journey["dispute_id"]):
         raise ValueError("negative_dispute_fixture_not_distinct")
+    if str(journey["negative_appeal_dispute_id"]) in {
+        str(journey["dispute_id"]),
+        str(journey["negative_dispute_id"]),
+    }:
+        raise ValueError("negative_appeal_dispute_fixture_not_distinct")
     if str(journey["negative_proposal_id"]) == str(journey["proposal_id"]):
         raise ValueError("negative_proposal_fixture_not_distinct")
 
@@ -527,6 +627,7 @@ def validate_public_actor_transcript(
         ):
             raise ValueError(f"transaction_attendance_evidence_kind_invalid:{tx_id}")
     validate_embedded_attendance_pairs(actions)
+    validate_inline_system_transitions(actions)
     for label, minimum in ACTION_MIN_COUNTS.items():
         if main_action_counts.get(label, 0) < minimum:
             raise ValueError(
@@ -611,6 +712,12 @@ def validate_public_actor_transcript(
         "original_reviewer_pool": original_reviewers,
         "appeal_reviewer_pool": appeal_reviewers,
         "action_count": len(actions),
+        "inline_system_transition_count": sum(
+            1
+            for item in actions
+            if isinstance(item, dict)
+            and str(item.get("label") or "") in INLINE_SYSTEM_ACTION_LABELS
+        ),
         "negative_attempt_count": len(negatives),
         "chain_id": chain_id,
         "journey": actor_manifest.get("journey"),
@@ -652,7 +759,7 @@ NEGATIVE_SUBJECT_FIELD = {
     "duplicate_dispute_ballot_rejected": "negative_dispute_id",
     "replacement_dispute_ballot_rejected": "negative_dispute_id",
     "dispute_revoke_rejected": "negative_dispute_id",
-    "nonowner_appeal_rejected": "dispute_id",
+    "nonowner_appeal_rejected": "negative_appeal_dispute_id",
 }
 
 PRECONDITION_REQUIRED_NEGATIVES = {

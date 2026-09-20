@@ -37,7 +37,11 @@ def test_bootstrap_tier2_grant_writes_receipt_backed_audit_record() -> None:
         signer="alice",
         nonce=1,
         system=False,
-        payload={"account_id": "alice", "pubkey": "alice-pk", "reason_code": "founder_live_bootstrap"},
+        payload={
+            "account_id": "alice",
+            "pubkey": "alice-pk",
+            "reason_code": "founder_live_bootstrap",
+        },
     ).to_json()
 
     apply_tx(state, tx)

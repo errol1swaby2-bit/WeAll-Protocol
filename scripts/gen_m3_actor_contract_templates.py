@@ -10,12 +10,13 @@ from m3_evidence_contract import (
     ACTION_MIN_COUNTS,
     ACTION_TX_TYPES,
     APPEAL_REVIEWER_ROLE_PREFIX,
+    ATTENDANCE_ACCEPTANCE_LABEL,
     EMBEDDED_ATTENDANCE_EVIDENCE_KIND,
     EMBEDDED_ATTENDANCE_LABELS,
-    ATTENDANCE_ACCEPTANCE_LABEL,
     EXPECTED_NEGATIVE_ERROR_CODES,
     EXPECTED_NEGATIVE_ERROR_REASONS,
     EXPECTED_NEGATIVE_REJECTION_LAYERS,
+    INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND,
     MAIN_ACTION_SUBJECT_FIELD,
     NEGATIVE_TX_TYPES,
     ORIGINAL_REVIEWER_ROLE_PREFIX,
@@ -61,6 +62,7 @@ def main() -> int:
     parser.add_argument("--negative-post-id", default="post:m3:negative")
     parser.add_argument("--negative-group-id", default="group:m3:negative")
     parser.add_argument("--negative-dispute-id", default="dispute:m3:negative")
+    parser.add_argument("--negative-appeal-dispute-id", default="dispute:m3:negative-appeal")
     parser.add_argument("--negative-proposal-id", default="proposal:m3:negative")
     args = parser.parse_args()
 
@@ -83,6 +85,7 @@ def main() -> int:
         "negative_post_id": args.negative_post_id,
         "negative_group_id": args.negative_group_id,
         "negative_dispute_id": args.negative_dispute_id,
+        "negative_appeal_dispute_id": args.negative_appeal_dispute_id,
         "negative_proposal_id": args.negative_proposal_id,
     }
 
@@ -187,6 +190,30 @@ def main() -> int:
         attendance["tx_id"] = matches[0]["tx_id"]
         attendance["evidence_kind"] = EMBEDDED_ATTENDANCE_EVIDENCE_KIND
 
+    # The current runtime resolves the main dispute inline during the
+    # threshold-reaching original-panel ballot. Represent that deterministic
+    # system transition through its real trigger transaction instead of a
+    # nonexistent standalone DISPUTE_RESOLVE tx id.
+    resolution_rows = [
+        item
+        for item in actions
+        if item.get("label") == "dispute_resolution"
+        and item.get("subject_id") == journey["dispute_id"]
+    ]
+    resolution_triggers = [
+        item
+        for item in actions
+        if item.get("label") == "original_panel_ballots"
+        and item.get("subject_id") == journey["dispute_id"]
+    ]
+    if len(resolution_rows) != 1 or len(resolution_triggers) < ACTION_MIN_COUNTS["original_panel_ballots"]:
+        raise SystemExit("m3_template_inline_dispute_resolution_trigger_invalid")
+    resolution = resolution_rows[0]
+    trigger = resolution_triggers[ACTION_MIN_COUNTS["original_panel_ballots"] - 1]
+    resolution["evidence_kind"] = INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND
+    resolution["trigger_tx_id"] = trigger["tx_id"]
+    resolution["tx_id"] = f"inline:{trigger['tx_id']}:DISPUTE_RESOLVE"
+
     def negative(label: str, role: str, account: str, subject: str, payload: dict, prior: str = "") -> dict:
         value = {
             "label": label,
@@ -210,8 +237,8 @@ def main() -> int:
     negatives = [
         negative(
             "nonmember_group_write_rejected",
-            "nonmember_ineligible",
-            "@m3_outsider",
+            f"{APPEAL_REVIEWER_ROLE_PREFIX}09",
+            "@m3_appeal_09",
             journey["negative_group_id"],
             {"post_id": "post:m3:forbidden", "body": "must fail", "group_id": journey["negative_group_id"]},
         ),
@@ -240,9 +267,9 @@ def main() -> int:
             "nonowner_appeal_rejected",
             "member_reporter_voter",
             "@m3_member",
-            journey["dispute_id"],
+            journey["negative_appeal_dispute_id"],
             {
-                "dispute_id": journey["dispute_id"],
+                "dispute_id": journey["negative_appeal_dispute_id"],
                 "reason": "The reporter is not the affected target owner.",
                 "note": "M3 controlled-testnet negative appeal-authority attempt.",
             },

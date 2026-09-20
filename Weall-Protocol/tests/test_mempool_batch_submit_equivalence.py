@@ -6,7 +6,6 @@ from typing import Any
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 
-
 Json = dict[str, Any]
 
 
@@ -105,7 +104,12 @@ def _project_results(results: list[Json]) -> list[Json]:
 
 
 def _candidate_order(ex: WeAllExecutor) -> list[str]:
-    return [str(tx.get("tx_id") or "") for tx in ex.mempool.fetch_for_block(limit=20, candidate_height=int(ex.read_state().get("height") or 0) + 1)]
+    return [
+        str(tx.get("tx_id") or "")
+        for tx in ex.mempool.fetch_for_block(
+            limit=20, candidate_height=int(ex.read_state().get("height") or 0) + 1
+        )
+    ]
 
 
 def test_batch_submit_matches_serial_submit_results_order_and_state_root(tmp_path: Path) -> None:

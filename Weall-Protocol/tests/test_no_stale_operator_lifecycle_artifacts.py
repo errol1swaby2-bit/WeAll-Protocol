@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import subprocess
 from pathlib import Path
 
@@ -40,7 +39,10 @@ def test_legacy_onboarding_doc_redirects_to_current_operator_quickstart() -> Non
     assert "automatically activate baseline Node Operator status" in text
     assert "The node key must be separate from the account recovery key" in text
     assert "Baseline Node Operator status does not automatically grant validator authority" in text
-    assert "Baseline Node Operator status does not automatically grant storage allocation authority" in text
+    assert (
+        "Baseline Node Operator status does not automatically grant storage allocation authority"
+        in text
+    )
 
 
 def test_validator_runbook_describes_responsibility_not_baseline_power() -> None:

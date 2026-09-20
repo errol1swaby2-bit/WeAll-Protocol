@@ -19,6 +19,7 @@ class _BadSnapshotExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         raise RuntimeError("boom")
 
@@ -29,6 +30,7 @@ class _InvalidSnapshotExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         return []
 
@@ -45,6 +47,7 @@ class _BrokenMetaExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         return {}
 

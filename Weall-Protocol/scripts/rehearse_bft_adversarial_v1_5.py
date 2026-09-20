@@ -44,7 +44,14 @@ def _detect_equivocation(votes: list[Json]) -> list[Json]:
         block_id = str(v["block_id"])
         prior = seen.get(key)
         if prior is not None and prior != block_id:
-            equivocations.append({"signer": key[0], "view": key[1], "first_block_id": prior, "second_block_id": block_id})
+            equivocations.append(
+                {
+                    "signer": key[0],
+                    "view": key[1],
+                    "first_block_id": prior,
+                    "second_block_id": block_id,
+                }
+            )
         else:
             seen[key] = block_id
     return equivocations
@@ -56,7 +63,12 @@ def run_harness() -> Json:
     set_hash = validator_set_hash(list(VALIDATORS))
 
     honest_votes = [
-        {"signer": v, "view": VIEW, "block_id": "block-canonical-0011", "vote_hash": _vote_hash(signer=v, block_id="block-canonical-0011")}
+        {
+            "signer": v,
+            "view": VIEW,
+            "block_id": "block-canonical-0011",
+            "vote_hash": _vote_hash(signer=v, block_id="block-canonical-0011"),
+        }
         for v in VALIDATORS
     ]
     partition_a = honest_votes[:2]
@@ -65,19 +77,33 @@ def run_harness() -> Json:
     partition_b_can_finalize = len(partition_b) >= threshold
 
     equivocation_votes = [
-        {"signer": "validator-a", "view": VIEW, "block_id": "block-left", "vote_hash": _vote_hash(signer="validator-a", block_id="block-left")},
-        {"signer": "validator-a", "view": VIEW, "block_id": "block-right", "vote_hash": _vote_hash(signer="validator-a", block_id="block-right")},
+        {
+            "signer": "validator-a",
+            "view": VIEW,
+            "block_id": "block-left",
+            "vote_hash": _vote_hash(signer="validator-a", block_id="block-left"),
+        },
+        {
+            "signer": "validator-a",
+            "view": VIEW,
+            "block_id": "block-right",
+            "vote_hash": _vote_hash(signer="validator-a", block_id="block-right"),
+        },
     ]
     equivocations = _detect_equivocation(equivocation_votes)
 
     restart_rows = []
     for attempt in range(3):
-        restart_rows.append({
-            "attempt": attempt,
-            "validator_set_hash": validator_set_hash(list(VALIDATORS)),
-            "leader": select_proposer(active_set=list(VALIDATORS), chain_id=CHAIN_ID, height=VIEW),
-            "threshold": quorum_threshold(len(VALIDATORS)),
-        })
+        restart_rows.append(
+            {
+                "attempt": attempt,
+                "validator_set_hash": validator_set_hash(list(VALIDATORS)),
+                "leader": select_proposer(
+                    active_set=list(VALIDATORS), chain_id=CHAIN_ID, height=VIEW
+                ),
+                "threshold": quorum_threshold(len(VALIDATORS)),
+            }
+        )
 
     ok = (
         threshold == 3

@@ -20,7 +20,11 @@ Json = dict[str, Any]
 
 
 def _free_port() -> int:
-    s = socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close(); return int(port)
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return int(port)
 
 
 def _cid(data: bytes) -> str:
@@ -29,8 +33,10 @@ def _cid(data: bytes) -> str:
 
 class _CompatIpfsHandler(BaseHTTPRequestHandler):
     store: dict[str, bytes] = {}
+
     def log_message(self, *_: object) -> None:  # quiet tests
         return
+
     def do_POST(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path.endswith("/api/v0/add"):
@@ -38,21 +44,40 @@ class _CompatIpfsHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(length)
             cid = _cid(body)
             self.store[cid] = body
-            payload = json.dumps({"Name": "payload.bin", "Hash": cid, "Size": str(len(body))}).encode()
-            self.send_response(200); self.end_headers(); self.wfile.write(payload); return
+            payload = json.dumps(
+                {"Name": "payload.bin", "Hash": cid, "Size": str(len(body))}
+            ).encode()
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(payload)
+            return
         if parsed.path.endswith("/api/v0/pin/add"):
-            qs = urllib.parse.parse_qs(parsed.query); cid = (qs.get("arg") or [""])[0]
-            payload = json.dumps({"Pins": [cid]}).encode(); self.send_response(200); self.end_headers(); self.wfile.write(payload); return
-        self.send_response(404); self.end_headers()
+            qs = urllib.parse.parse_qs(parsed.query)
+            cid = (qs.get("arg") or [""])[0]
+            payload = json.dumps({"Pins": [cid]}).encode()
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        self.send_response(404)
+        self.end_headers()
+
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path.endswith("/api/v0/cat"):
-            qs = urllib.parse.parse_qs(parsed.query); cid = (qs.get("arg") or [""])[0]
+            qs = urllib.parse.parse_qs(parsed.query)
+            cid = (qs.get("arg") or [""])[0]
             data = self.store.get(cid)
             if data is None:
-                self.send_response(404); self.end_headers(); return
-            self.send_response(200); self.end_headers(); self.wfile.write(data); return
-        self.send_response(404); self.end_headers()
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        self.send_response(404)
+        self.end_headers()
 
 
 def _http_post(url: str, data: bytes | None = None, headers: dict[str, str] | None = None) -> bytes:
@@ -77,13 +102,32 @@ def _try_start_real_ipfs(port: int, repo: Path) -> subprocess.Popen | None:
     ipfs = shutil.which("ipfs")
     if not ipfs:
         return None
-    env = os.environ.copy(); env["IPFS_PATH"] = str(repo)
-    init = subprocess.run([ipfs, "init"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=20)
+    env = os.environ.copy()
+    env["IPFS_PATH"] = str(repo)
+    init = subprocess.run([ipfs, "init"], env=env, capture_output=True, text=True, timeout=20)
     if init.returncode not in {0, 1}:
         return None
-    subprocess.run([ipfs, "config", "Addresses.API", f"/ip4/127.0.0.1/tcp/{port}"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
-    subprocess.run([ipfs, "config", "Addresses.Gateway", f"/ip4/127.0.0.1/tcp/{port+1}"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
-    proc = subprocess.Popen([ipfs, "daemon", "--offline"], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    subprocess.run(
+        [ipfs, "config", "Addresses.API", f"/ip4/127.0.0.1/tcp/{port}"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    subprocess.run(
+        [ipfs, "config", "Addresses.Gateway", f"/ip4/127.0.0.1/tcp/{port + 1}"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    proc = subprocess.Popen(
+        [ipfs, "daemon", "--offline"],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
     base = f"http://127.0.0.1:{port}/api/v0/version"
     deadline = time.time() + 12
     while time.time() < deadline:
@@ -92,7 +136,8 @@ def _try_start_real_ipfs(port: int, repo: Path) -> subprocess.Popen | None:
             return proc
         except Exception:
             time.sleep(0.2)
-    proc.terminate(); proc.wait(timeout=5)
+    proc.terminate()
+    proc.wait(timeout=5)
     return None
 
 
@@ -110,10 +155,22 @@ def run_harness() -> Json:
         if real_proc is not None:
             # Kubo accepts multipart; this is minimal but valid enough for files/add.
             boundary = "----weall-b579-boundary"
-            body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"payload.bin\"\r\nContent-Type: application/octet-stream\r\n\r\n").encode() + payload + f"\r\n--{boundary}--\r\n".encode()
-            raw = _http_post(f"{base}/add?pin=true", body, {"Content-Type": f"multipart/form-data; boundary={boundary}"})
+            body = (
+                (
+                    f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="payload.bin"\r\nContent-Type: application/octet-stream\r\n\r\n'
+                ).encode()
+                + payload
+                + f"\r\n--{boundary}--\r\n".encode()
+            )
+            raw = _http_post(
+                f"{base}/add?pin=true",
+                body,
+                {"Content-Type": f"multipart/form-data; boundary={boundary}"},
+            )
         else:
-            raw = _http_post(f"{base}/add?pin=true", payload, {"Content-Type": "application/octet-stream"})
+            raw = _http_post(
+                f"{base}/add?pin=true", payload, {"Content-Type": "application/octet-stream"}
+            )
         add_obj = json.loads(raw.decode().strip().splitlines()[-1])
         cid = add_obj.get("Hash")
         _http_post(f"{base}/pin/add?arg={urllib.parse.quote(str(cid))}")
@@ -137,10 +194,13 @@ def run_harness() -> Json:
     finally:
         if real_proc is not None:
             real_proc.terminate()
-            try: real_proc.wait(timeout=5)
-            except Exception: real_proc.kill()
+            try:
+                real_proc.wait(timeout=5)
+            except Exception:
+                real_proc.kill()
         if compat_server is not None:
             compat_server.shutdown()
+
 
 if __name__ == "__main__":
     print(json.dumps(run_harness(), indent=2, sort_keys=True))

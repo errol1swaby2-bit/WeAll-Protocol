@@ -25,7 +25,9 @@ def test_frontend_prod_build_cannot_enable_demo_or_dev_surfaces() -> None:
 
     assert "{config.enableDevTools ? (" in settings
     assert "Advanced and tester surfaces are disabled in this production build." in settings
-    assert "Normal users will not see demo tools, technical consoles, or developer routes." in settings
+    assert (
+        "Normal users will not see demo tools, technical consoles, or developer routes." in settings
+    )
 
 
 def test_frontend_api_base_validation_supports_remote_genesis_without_unsafe_targets() -> None:
@@ -36,8 +38,8 @@ def test_frontend_api_base_validation_supports_remote_genesis_without_unsafe_tar
     assert "Only http:// and https:// backend URLs are supported." in api
     assert "Use an absolute http(s) URL, or / for same-origin." in api
     assert "if (!validation.ok) throw new Error(validation.reason);" in api
-    assert "parsed.hash = \"\";" in api
-    assert "parsed.search = \"\";" in api
+    assert 'parsed.hash = "";' in api
+    assert 'parsed.search = "";' in api
 
     assert "validateApiBaseInput(trimmed)" in settings
     assert "Remote genesis APIs are supported" in settings
@@ -50,7 +52,9 @@ def test_frontend_production_safety_guard_is_packaged() -> None:
     package_json = read("package.json")
     guard = read("scripts/guard_production_ux_safety.mjs")
 
-    assert '"production-safety-check": "node scripts/guard_production_ux_safety.mjs"' in package_json
+    assert (
+        '"production-safety-check": "node scripts/guard_production_ux_safety.mjs"' in package_json
+    )
     assert "production fail-closed dev-tools flag" in guard
     assert "production same-origin API default" in guard
     assert "settings validates API base before saving" in guard

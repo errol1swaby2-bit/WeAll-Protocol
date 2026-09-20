@@ -8,9 +8,15 @@ from weall.runtime.poh.state import set_account_poh_status
 
 
 def _state(tier: int) -> dict:
-    state = {"height": 5, "accounts": {"@alice": {"account_id": "@alice", "poh_tier": tier}}, "poh": {}}
+    state = {
+        "height": 5,
+        "accounts": {"@alice": {"account_id": "@alice", "poh_tier": tier}},
+        "poh": {},
+    }
     if tier:
-        set_account_poh_status(state, account_id="@alice", poh_tier=tier, verified_at_height=5, last_updated_height=5)
+        set_account_poh_status(
+            state, account_id="@alice", poh_tier=tier, verified_at_height=5, last_updated_height=5
+        )
     return state
 
 

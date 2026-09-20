@@ -51,7 +51,9 @@ def test_controlled_devnet_session_mutation_route_fails_closed(monkeypatch) -> N
     for k, v in _controlled_env().items():
         monkeypatch.setenv(k, v)
 
-    assert direct_session_mutation_issue() == "direct_session_mutation_forbidden_in_controlled_devnet"
+    assert (
+        direct_session_mutation_issue() == "direct_session_mutation_forbidden_in_controlled_devnet"
+    )
 
     app = create_app(boot_runtime=False)
     client = TestClient(app, raise_server_exceptions=False)

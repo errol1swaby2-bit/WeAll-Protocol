@@ -37,8 +37,7 @@ def test_structured_logging_invalid_request_flag_fails_closed_in_prod(
 def test_structured_logging_invalid_request_flag_falls_back_in_test(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("WEALL_MODE", raising=False)
-    monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests::x")
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_LOG_REQUESTS", "maybe")
     mod = importlib.import_module("weall.api.structured_logging")
     mw = mod.RequestLogMiddleware(FastAPI())
@@ -98,8 +97,7 @@ def test_ipfs_pin_worker_invalid_url_env_fails_closed_in_prod(
 def test_ipfs_pin_worker_invalid_envs_fall_back_in_test(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
-    monkeypatch.delenv("WEALL_MODE", raising=False)
-    monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests::x")
+    monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_IPFS_ENABLED", "maybe")
     monkeypatch.setenv("WEALL_IPFS_MAX_ATTEMPTS", "NaN")
     monkeypatch.setenv("WEALL_IPFS_API_URL", "kubo:5001")

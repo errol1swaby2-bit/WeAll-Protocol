@@ -2,9 +2,11 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
+from weall.crypto.signature_profiles import mode_requires_explicit_sig_profile
 from weall.ledger.state import LedgerView
 from weall.runtime.ancestry import walk_ancestry
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from weall.runtime.block_signature_profiles import validate_block_signature_profile
 from weall.runtime.block_time_admission import (
     block_height_from_header,
     block_ts_from_header,
@@ -12,9 +14,8 @@ from weall.runtime.block_time_admission import (
     has_material_block_timestamp,
     validate_block_timestamp,
 )
-from weall.runtime.parallel_execution import verify_block_helper_plan_metadata
-from weall.runtime.block_signature_profiles import validate_block_signature_profile
-from weall.crypto.signature_profiles import mode_requires_explicit_sig_profile
+from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
+from weall.runtime.helper_block_validation import validate_received_helper_execution
 from weall.runtime.protocol_profile import runtime_max_block_future_drift_ms
 from weall.runtime.public_protocol_policy import mark_public_protocol_policy_checked
 from weall.runtime.tx_admission import TxEnvelope, TxVerdict, admit_tx
@@ -85,21 +86,9 @@ def _as_list(v: Any) -> list[Any]:
 
 def _get_active_validators_from_state(state: Json) -> list[str]:
     """Return the consensus validator set, with role-set fallback only for legacy states."""
-    c = state.get("consensus")
-    if isinstance(c, dict):
-        vs = c.get("validator_set")
-        if isinstance(vs, dict):
-            aset = vs.get("active_set")
-            if isinstance(aset, list):
-                out: list[str] = []
-                seen: set[str] = set()
-                for x in aset:
-                    s = _as_str(x)
-                    if not s or s in seen:
-                        continue
-                    seen.add(s)
-                    out.append(s)
-                return out
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return list(explicit)
     roles = state.get("roles")
     if isinstance(roles, dict):
         validators = roles.get("validators")
@@ -151,23 +140,38 @@ def _validator_set_hash_from_validators(validators: list[str]) -> str:
 
 
 def _current_validator_epoch_from_state(state: Json) -> int:
+    """Return the canonical validator-set generation for BFT admission.
+
+    Protocol epochs are not validator-set generations.  Prefer the explicit
+    validator-set epoch and retain the protocol epoch only for legacy states
+    that predate ``consensus.validator_set`` generation tracking.
+    """
+    generation = consensus_validator_generation(state)
+    if generation is not None:
+        return int(generation)
+
     c = state.get("consensus")
     if isinstance(c, dict):
         ep = c.get("epochs")
         if isinstance(ep, dict):
-            cur = _as_int(ep.get("current"), 0)
-            if cur > 0:
-                return cur
-        vs = c.get("validator_set")
-        if isinstance(vs, dict):
-            cur2 = _as_int(vs.get("epoch"), 0)
-            if cur2 > 0:
-                return cur2
+            legacy_epoch = _as_int(ep.get("current"), 0)
+            if legacy_epoch > 0:
+                return legacy_epoch
     return 0
 
 
 def _current_validator_set_hash_from_state(state: Json) -> str:
+    explicit = consensus_active_validator_ids(state)
     c = state.get("consensus")
+    if explicit is not None:
+        vs = c.get("validator_set") if isinstance(c, dict) else None
+        if not isinstance(vs, dict) or not isinstance(vs.get("active_set"), list):
+            return ""
+        have = _as_str(vs.get("set_hash") or "")
+        if have:
+            return have
+        return _validator_set_hash_from_validators(explicit) if explicit else ""
+
     if isinstance(c, dict):
         vs = c.get("validator_set")
         if isinstance(vs, dict):
@@ -195,17 +199,44 @@ def _block_proposer(block: Json) -> str:
     )
 
 
-def _validate_helper_execution_metadata(block: Json) -> tuple[bool, BlockReject | None]:
+def _validate_helper_execution_metadata(
+    block: Json, state: Json
+) -> tuple[bool, BlockReject | None]:
     helper_execution = block.get("helper_execution")
     if helper_execution is None:
         return True, None
     if not isinstance(helper_execution, dict):
-        return False, BlockReject("bad_shape", "helper_execution_must_be_object", {"type": str(type(helper_execution))})
-    advertised_plan_id = _as_str(helper_execution.get("plan_id") or "")
-    ok, reason = verify_block_helper_plan_metadata(helper_execution=helper_execution, expected_plan_id=advertised_plan_id)
+        return False, BlockReject(
+            "bad_shape",
+            "helper_execution_must_be_object",
+            {"type": str(type(helper_execution))},
+        )
+
+    validators = _get_active_validators_from_state(state)
+    validator_pubkeys = _get_validator_pubkeys_from_state(state)
+    validator_epoch = _current_validator_epoch_from_state(state)
+    validator_set_hash = _current_validator_set_hash_from_state(state)
+    chain_id = _as_str(state.get("chain_id") or block.get("chain_id") or "")
+    ok, reason = validate_received_helper_execution(
+        block=block,
+        state=state,
+        chain_id=chain_id,
+        validators=validators,
+        validator_pubkeys=validator_pubkeys,
+        validator_epoch=validator_epoch,
+        validator_set_hash=validator_set_hash,
+    )
     if not ok:
-        return False, BlockReject("helper_plan_invalid", str(reason), {"block_id": _as_str(block.get("block_id") or ""), "plan_id": advertised_plan_id})
+        return False, BlockReject(
+            "helper_plan_invalid",
+            str(reason),
+            {
+                "block_id": _as_str(block.get("block_id") or ""),
+                "plan_id": _as_str(helper_execution.get("plan_id") or ""),
+            },
+        )
     return True, None
+
 
 def _validate_bft_proposal_leader_view(block: Json, state: Json) -> tuple[bool, BlockReject | None]:
     validators = _get_active_validators_from_state(state)
@@ -382,7 +413,9 @@ def admit_block_txs(
                 context="block" if bool(verify_signatures) else "local",
             )
             if not verdict.ok:
-                rejects[i] = TxReject(code=verdict.code, reason=verdict.reason, details=verdict.details)
+                rejects[i] = TxReject(
+                    code=verdict.code, reason=verdict.reason, details=verdict.details
+                )
             else:
                 mark_public_protocol_policy_checked(env)
             continue
@@ -461,7 +494,9 @@ def admit_bft_block(
     if not isinstance(block, dict):
         return False, BlockReject("bad_shape", "block_must_be_object", {"type": str(type(block))})
 
-    effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    effective_bft_enabled = (
+        _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    )
     if not effective_bft_enabled:
         has_sig_material = bool(
             block.get("sig_profile")
@@ -471,7 +506,9 @@ def admit_bft_block(
             or block.get("proposer_sig")
         )
         if has_sig_material and mode_requires_explicit_sig_profile():
-            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            chain_config = (
+                state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            )
             ok_sig_profile, sig_reason = validate_block_signature_profile(
                 block,
                 chain_config=chain_config,
@@ -488,7 +525,7 @@ def admit_bft_block(
     if not isinstance(block, dict):
         return False, BlockReject("bad_shape", "block_must_be_object", {"type": str(type(block))})
 
-    ok_helper_meta, rej_helper_meta = _validate_helper_execution_metadata(block)
+    ok_helper_meta, rej_helper_meta = _validate_helper_execution_metadata(block, state)
     if not ok_helper_meta:
         return False, rej_helper_meta
 
@@ -598,7 +635,9 @@ def admit_bft_block(
             or block.get("proposer_sig")
         )
         if has_sig_material:
-            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            chain_config = (
+                state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            )
             ok_sig_profile, sig_reason = validate_block_signature_profile(
                 block, chain_config=chain_config, require_verifier=True
             )
@@ -726,7 +765,9 @@ def admit_bft_commit_block(
     if not ok:
         return ok, rej
 
-    effective_bft_enabled = _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    effective_bft_enabled = (
+        _env_bool("WEALL_BFT_ENABLED", False) if bft_enabled is None else bool(bft_enabled)
+    )
     if not effective_bft_enabled:
         has_sig_material = bool(
             block.get("sig_profile")
@@ -736,7 +777,9 @@ def admit_bft_commit_block(
             or block.get("proposer_sig")
         )
         if has_sig_material and mode_requires_explicit_sig_profile():
-            chain_config = state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            chain_config = (
+                state.get("chain_config") if isinstance(state.get("chain_config"), dict) else None
+            )
             ok_sig_profile, sig_reason = validate_block_signature_profile(
                 block,
                 chain_config=chain_config,

@@ -39,4 +39,4 @@ def test_remote_block_cache_rejects_block_id_hash_collision(tmp_path) -> None:
         "receipts": [],
     }
 
-    assert ex.bft_cache_remote_block(conflict) is False
+    assert ex.bft_cache_remote_block(conflict, expected_block_hash="hash-b") is False

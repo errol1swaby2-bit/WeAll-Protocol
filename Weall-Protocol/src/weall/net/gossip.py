@@ -10,8 +10,8 @@ from typing import Any
 from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
 from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode
 from weall.net.messages import BlockProposalMsg, TxEnvelopeMsg
-from weall.tx.canon import CanonError
 from weall.runtime.tx_id import compute_tx_id_from_dict
+from weall.tx.canon import CanonError
 
 JsonObject = dict[str, object]
 
@@ -271,7 +271,9 @@ def make_peer_addr_record(
     return rec
 
 
-def verify_peer_addr_record(record: Any, *, cfg: PeerAddrGossipConfig, now_ms: int | None = None) -> bool:
+def verify_peer_addr_record(
+    record: Any, *, cfg: PeerAddrGossipConfig, now_ms: int | None = None
+) -> bool:
     """Return True only for address records that are safe to persist/relay.
 
     This function enforces local networking compatibility. It does not grant

@@ -14,7 +14,6 @@ from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.tx.canon import TxIndex
 
-
 _PAYLOAD_ENV_NAMES = (
     "WEALL_MAX_TX_PAYLOAD_BYTES",
     "WEALL_MAX_TX_PAYLOAD_DEPTH",

@@ -1,25 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEVNET_DIR="${WEALL_DEVNET_DIR:-${REPO_ROOT}/.weall-devnet}"
-cd "${REPO_ROOT}"
-API="${WEALL_API:-${NODE1_API:-http://127.0.0.1:8001}}"
-CASE_ID="${WEALL_TIER2_CASE_ID:-}"
-JUROR_ACCOUNT="${WEALL_TIER2_JUROR_ACCOUNT:-${WEALL_BOOTSTRAP_OPERATOR_ACCOUNT:-${WEALL_GENESIS_BOOTSTRAP_ACCOUNT:-@devnet-genesis}}}"
-JUROR_KEYFILE="${WEALL_TIER2_JUROR_KEYFILE:-${WEALL_GENESIS_OPERATOR_KEYFILE:-${DEVNET_DIR}/genesis-operator.json}}"
-VERDICT="${WEALL_TIER2_VERDICT:-pass}"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+echo "NOTICE: devnet_review_tier2.sh is a compatibility alias; canonical Tier-2 verification is Live PoH." >&2
 
-if [[ -z "${CASE_ID}" ]]; then
-  echo "ERROR: WEALL_TIER2_CASE_ID is required" >&2
-  exit 2
-fi
+export WEALL_LIVE_CASE_ID="${WEALL_LIVE_CASE_ID:-${WEALL_TIER2_CASE_ID:-}}"
+export WEALL_LIVE_JUROR_ACCOUNT="${WEALL_LIVE_JUROR_ACCOUNT:-${WEALL_TIER2_JUROR_ACCOUNT:-${WEALL_ACCOUNT:-}}}"
+export WEALL_LIVE_JUROR_KEYFILE="${WEALL_LIVE_JUROR_KEYFILE:-${WEALL_TIER2_JUROR_KEYFILE:-${WEALL_KEYFILE:-}}}"
+export WEALL_LIVE_VERDICT="${WEALL_LIVE_VERDICT:-${WEALL_TIER2_VERDICT:-pass}}"
 
-python3 scripts/devnet_tx.py --api "${API}" tier2-review \
-  --account "${JUROR_ACCOUNT}" \
-  --keyfile "${JUROR_KEYFILE}" \
-  --case-id "${CASE_ID}" \
-  --verdict "${VERDICT}" \
-  --accept \
-  --timeout "${WEALL_TX_WAIT_TIMEOUT:-30}" \
-  --poll "${WEALL_TX_WAIT_POLL:-0.5}"
+exec bash "$ROOT/scripts/devnet_review_live.sh" "$@"

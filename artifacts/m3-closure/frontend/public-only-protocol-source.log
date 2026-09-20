@@ -1,5 +1,0 @@
-
-> weall-web@0.1.0 test:public-only-protocol-source
-> node scripts/test_public_only_protocol_source.mjs
-
-OK: public-only frontend source contract holds

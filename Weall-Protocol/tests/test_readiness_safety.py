@@ -316,12 +316,10 @@ def test_15_generated_artifacts_preserve_truth_boundaries() -> None:
         "governance_protocol_record_only",
         "economics_locked_supply_surface",
     }.issubset(names)
-    assert (
-        state_vectors["canonicalization_contract"][
-            "consensus_relevant_policy_must_not_live_under_meta"
-        ]
-        is True
-    )
+    root_contract = state_vectors["canonicalization_contract"]
+    assert root_contract["top_level_meta_is_path_projected"] is True
+    assert root_contract["consensus_meta_policy_is_root_bound"] is True
+    assert root_contract["nested_meta_is_root_bound"] is True
 
     econ = json.loads(
         (ROOT / "generated/tokenomics_simulation_v1_5.json").read_text(encoding="utf-8")

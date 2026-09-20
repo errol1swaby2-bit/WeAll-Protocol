@@ -48,7 +48,6 @@ def test_prod_lifecycle_not_validator_disables_block_loop_bft_authority(
     assert loop._cfg.bft_enabled is False
 
 
-
 def test_bootstrap_dev_keeps_block_loop_bft_request(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.delenv("WEALL_NODE_LIFECYCLE_STATE", raising=False)

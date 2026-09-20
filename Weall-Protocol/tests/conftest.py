@@ -26,6 +26,9 @@ if not _KEEP_EXTERNAL_WEALL_ENV:
     for _name in list(os.environ):
         if _name.startswith("WEALL_"):
             os.environ.pop(_name, None)
+    # Explicit test harness posture: production code must never infer pytest state.
+    os.environ["WEALL_MODE"] = "test"
+    os.environ["WEALL_API_BOOT_RUNTIME"] = "0"
 
 from weall.tx.canon import ensure_tx_index_json  # noqa: E402
 
@@ -52,3 +55,5 @@ def _weall_pytest_external_env_isolation(monkeypatch: pytest.MonkeyPatch):
     for name in list(os.environ):
         if name.startswith("WEALL_"):
             monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("WEALL_MODE", "test")
+    monkeypatch.setenv("WEALL_API_BOOT_RUNTIME", "0")

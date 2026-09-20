@@ -8,8 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_external_observer_live_gate_default_account_id_is_prod_valid() -> None:
     script = (ROOT / "scripts" / "external_observer_live_gate.sh").read_text(encoding="utf-8")
 
-    assert '@extobs_${ACCOUNT_SUFFIX}' in script
-    assert '@external-observer-${ACCOUNT_SUFFIX}' not in script
+    assert "@extobs_${ACCOUNT_SUFFIX}" in script
+    assert "@external-observer-${ACCOUNT_SUFFIX}" not in script
 
 
 def test_account_id_policy_documents_no_hyphen_prod_handles() -> None:

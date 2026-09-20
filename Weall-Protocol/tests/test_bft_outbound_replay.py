@@ -4,13 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
+from weall.net import net_loop as net_loop_module
 from weall.net.messages import BftTimeoutMsg, BftVoteMsg
 from weall.net.net_loop import NetMeshLoop, net_loop_config_from_env
 from weall.runtime.executor import WeAllExecutor
@@ -114,12 +109,14 @@ def test_vote_replayed_after_restart_when_persisted_but_unsent(tmp_path: Path, m
     loop = NetMeshLoop(executor=ex2, mempool=_FakeMempool(), cfg=cfg)
     loop.node = _FakeNode()
     loop._bft_enabled = True
-    loop._bft_propose_interval_ms = 999999999
-    loop._bft_vote_interval_ms = 999999999
-    loop._bft_timeout_interval_ms = 999999999
-    loop._last_bft_propose_ms = 10**18
-    loop._last_bft_vote_ms = 10**18
-    loop._last_bft_timeout_ms = 10**18
+    loop._bft_propose_interval_ms = 10**18
+    loop._bft_vote_interval_ms = 10**18
+    loop._bft_timeout_interval_ms = 10**18
+    now = net_loop_module._now_ms()
+    monkeypatch.setattr(net_loop_module, "_now_ms", lambda: now)
+    loop._last_bft_propose_ms = now
+    loop._last_bft_vote_ms = now
+    loop._last_bft_timeout_ms = now
     loop._outbound_bft_tick()
 
     assert len(loop.node.calls) == 1
@@ -162,12 +159,14 @@ def test_timeout_replayed_after_restart_until_sent(tmp_path: Path, monkeypatch) 
     loop = NetMeshLoop(executor=ex2, mempool=_FakeMempool(), cfg=cfg)
     loop.node = _FakeNode()
     loop._bft_enabled = True
-    loop._bft_propose_interval_ms = 999999999
-    loop._bft_vote_interval_ms = 999999999
-    loop._bft_timeout_interval_ms = 999999999
-    loop._last_bft_propose_ms = 10**18
-    loop._last_bft_vote_ms = 10**18
-    loop._last_bft_timeout_ms = 10**18
+    loop._bft_propose_interval_ms = 10**18
+    loop._bft_vote_interval_ms = 10**18
+    loop._bft_timeout_interval_ms = 10**18
+    now = net_loop_module._now_ms()
+    monkeypatch.setattr(net_loop_module, "_now_ms", lambda: now)
+    loop._last_bft_propose_ms = now
+    loop._last_bft_vote_ms = now
+    loop._last_bft_timeout_ms = now
     loop._outbound_bft_tick()
 
     assert len(loop.node.calls) == 1
@@ -175,3 +174,46 @@ def test_timeout_replayed_after_restart_until_sent(tmp_path: Path, monkeypatch) 
     assert isinstance(msg, BftTimeoutMsg)
     assert msg.timeout["view"] == 2
     assert ex2.bft_pending_outbound_messages() == []
+
+
+def test_outbound_durable_store_survives_diagnostic_journal_append_failure(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = _repo_root()
+    monkeypatch.setenv("WEALL_MODE", "testnet")
+    db_path = str(tmp_path / "node-fail.db")
+    ex = WeAllExecutor(
+        db_path=db_path,
+        node_id="@v1",
+        chain_id="chain-A",
+        tx_index_path=str(root / "generated" / "tx_index.json"),
+    )
+
+    def boom(*_args, **_kwargs):
+        raise OSError("journal append boom")
+
+    payload = {"view": 1, "signer": "@v1", "block_id": "b1"}
+    monkeypatch.setattr(ex._bft_journal, "append", boom)
+    ex._bft_enqueue_outbound("vote", payload)
+    assert ex.bft_pending_outbound_messages() == [{"kind": "vote", "payload": payload}]
+
+
+def test_pending_outbound_does_not_depend_on_diagnostic_journal_reads(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = _repo_root()
+    db_path = str(tmp_path / "node-read-fail.db")
+    ex = WeAllExecutor(
+        db_path=db_path,
+        node_id="@v1",
+        chain_id="chain-A",
+        tx_index_path=str(root / "generated" / "tx_index.json"),
+    )
+    payload = {"view": 2, "signer": "@v1", "block_id": "b2"}
+    ex._bft_enqueue_outbound("vote", payload)
+
+    def boom(*_args, **_kwargs):
+        raise OSError("journal read boom")
+
+    monkeypatch.setattr(ex._bft_journal, "bootstrap_state", boom)
+    assert ex.bft_pending_outbound_messages() == [{"kind": "vote", "payload": payload}]

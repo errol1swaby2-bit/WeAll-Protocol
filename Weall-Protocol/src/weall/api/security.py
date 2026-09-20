@@ -87,11 +87,8 @@ def _client_ip(request: Request) -> str:
         if not raw:
             mode = (os.environ.get("WEALL_MODE") or "prod").strip().lower()
             if mode == "prod":
-                # Keep unit tests ergonomic: TestClient does not provide a real
-                # IP peer, so allow trusting proxy headers when running under
-                # pytest. Production deployments should always set an allowlist.
-                if os.environ.get("PYTEST_CURRENT_TEST"):
-                    return True
+                # Production proxy headers are trusted only when the immediate
+                # peer is constrained by an explicit allowlist.
                 return False
             return True
 
