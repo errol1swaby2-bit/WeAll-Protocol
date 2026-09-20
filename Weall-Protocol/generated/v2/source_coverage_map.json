@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1936,
+  "file_count": 1938,
   "files": [
     {
       "affected_registers": [
@@ -524,6 +524,19 @@
       "mappings": [
         "M-076"
       ],
+      "path": "docs/CURRENT_DOCUMENT_REGISTRY.json",
+      "primary_mechanism_id": "M-076",
+      "sha256": "a390ddec540280d44ecc094e564b89f3d07653b83a3bd6d830c925e890c5fea6",
+      "source_id": "SRC-A51AC0876553B0DD"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
       "sha256": "50e10403823ac5b320d743c9c9e52e1ed9ac95b92662c4d1f6a95497efdc873a",
@@ -943,7 +956,7 @@
       ],
       "path": "docs/PROFESSIONALIZATION_BACKLOG.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "279dd93987dda2e1ffc255ff424e832817863127e879bd6d6edf81b055d9a096",
+      "sha256": "6929adc4d2bed6330189247dcf4464e63ea3c74a00aa3a21ecdef124efdc6632",
       "source_id": "SRC-455AFBFE0AD5A8B8"
     },
     {
@@ -2388,7 +2401,7 @@
       ],
       "path": "docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "5f72d593976884d73505f82aae8a082ad6fc6448dd642576c905bb57bd1624cc",
+      "sha256": "ea940d24f70293495b3eeaf7f7a35e3f17dfedea05004a5b9647a32d78d022fc",
       "source_id": "SRC-7B13E2E238EB52C9"
     },
     {
@@ -2573,7 +2586,7 @@
       ],
       "path": "docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "1d1dea8ac6c74e354559774d5b3dfc439178fc36c6247e3407328af02d2d6a71",
+      "sha256": "52e4c255fa633824f8bd13971c244212d100d70a23414500acc43853e028bbc8",
       "source_id": "SRC-F0A663338569A063"
     },
     {
@@ -3184,7 +3197,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "38903bdded65e87a90be05afee6bc89532c73f8c30b96952db6216fc79817c95",
+      "sha256": "9d3689f18220a336361073af40e7dedae93a25e5dfd96efac104debd056a178d",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3310,7 +3323,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "607493c9ed566d1e5d0d078821a65373e8c3fbd30a65e9092364c1a3a4ddc604",
+      "sha256": "83c205c3db1bb28a5334b6fc2d8339826c638631a3c4fd7af63f7ad40dc2d75a",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3408,7 +3421,7 @@
       ],
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "27ea963b52b5289d9ba22c0ec11c3d09ca45f649419f038cdd55bf652568d046",
+      "sha256": "e79f5e7ddf9ecb1a22a4be19d01522527615b814c6a14b0f723b244ebf96475e",
       "source_id": "SRC-693A4A1C6F167853"
     },
     {
@@ -3492,7 +3505,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5216b877aa94a87bff91cff8187900ad9798e84b1c0d58c2407597d320c160b9",
+      "sha256": "c36954a4275e0c5c2089843f0f9bcfb97227163889cba5b6b15191ea7f410a2a",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -3978,7 +3991,7 @@
       ],
       "path": "scripts/check_public_claim_freshness.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ad041dd3d2da7ff299e106e2ce8a0e8443b80168bc358f5c7e2787d11bfcd4fd",
+      "sha256": "687b25bb2369558d2a652a8c8d244fbe164e34480fa530b24f969c983adeb387",
       "source_id": "SRC-927BB0F44ECD50DF"
     },
     {
@@ -15538,6 +15551,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "b7637425100d4d92c67b3cf7d2e09cd4afcab678c0e24d554ac342d9c0ec27f3",
       "source_id": "SRC-8A14BE4B2A2C21D5"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_current_document_registry.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "1621d706f70c6bf6607171de5d67a8b70fa2d13f9e33c5e27d53a74c72085a2c",
+      "source_id": "SRC-2BE6E660EA281E38"
     },
     {
       "affected_registers": [

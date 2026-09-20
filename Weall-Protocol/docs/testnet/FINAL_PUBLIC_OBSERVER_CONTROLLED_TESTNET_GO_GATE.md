@@ -19,7 +19,7 @@ This go-gate packages bounded local/devnet/public-observer-oriented rehearsal ev
 | Legal/compliance approval | NO-GO | Counsel/control attestation remains required. |
 | Public storage-market readiness | NO-GO | Real storage/IPFS operator evidence remains required. |
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+Current transaction-canon count and version are authoritative in `generated/tx_index.json`.
 
 ## Consistency with generated go-gate artifact
 
@@ -29,12 +29,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 - `ok=true`;
 - `repo_package_ready=true`;
 - allowed claim limited to the pre-public-testnet hardening statement; controlled-testnet mechanism completion is NO-GO;
-- `blocker_catalog_count=15`;
-- `closed_in_repository_count=7`;
-- `remaining_blocker_count=8`;
-- `remaining_external_evidence_required_count=8`;
-- `p0_open_count=4`;
-- `p1_open_count=4`;
+- mutable blocker totals and severity counts are authoritative in `generated/public_beta_blocker_report_v1_5.json` and are not duplicated here;
 - all release claim boundaries false for public beta, mainnet, live economics, public validator, automatic upgrades, production helpers, legal/compliance, and public storage-market readiness.
 
 ## Required launch checks

@@ -1,0 +1,98 @@
+{
+  "classifications": [
+    "CURRENT",
+    "GENERATED_CURRENT",
+    "NORMATIVE",
+    "HISTORICAL",
+    "AUDIT_EVIDENCE",
+    "SUPERSEDED"
+  ],
+  "description": "Repository document classification and claim-scan registry. CURRENT entries with claim_scan=true are enforced by scripts/check_public_claim_freshness.py.",
+  "documents": [
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "README.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/README.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/RELEASE_CHECKLIST.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md"
+    },
+    {
+      "claim_scan": false,
+      "classification": "GENERATED_CURRENT",
+      "path": "Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md"
+    },
+    {
+      "claim_scan": false,
+      "classification": "GENERATED_CURRENT",
+      "path": "Weall-Protocol/generated/current_verified_claims.json"
+    },
+    {
+      "claim_scan": false,
+      "classification": "GENERATED_CURRENT",
+      "path": "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json"
+    },
+    {
+      "claim_scan": false,
+      "classification": "GENERATED_CURRENT",
+      "path": "Weall-Protocol/generated/release_evidence_manifest_v1_5.json"
+    }
+  ],
+  "prefix_classifications": [
+    {
+      "classification": "AUDIT_EVIDENCE",
+      "path_prefix": "audit-metadata/"
+    },
+    {
+      "classification": "AUDIT_EVIDENCE",
+      "path_prefix": "Weall-Protocol/docs/audits/"
+    },
+    {
+      "classification": "GENERATED_CURRENT",
+      "path_prefix": "Weall-Protocol/generated/v2/"
+    }
+  ],
+  "schema_version": 1
+}

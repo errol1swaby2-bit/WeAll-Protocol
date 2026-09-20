@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Fail on reviewer-facing claim patterns that are known to become stale.
+"""Fail on high-risk claim patterns in registered current-facing documents.
 
-This guard is intentionally narrow. It does not prove repository truth; it prevents
-reintroduction of a few high-risk classes of unbound claims into current-facing docs.
-Historical/audit documents are allowed to retain explicitly historical measurements.
+The document set is data-driven through docs/CURRENT_DOCUMENT_REGISTRY.json rather
+than a hard-coded path list. This remains a conservative wording/freshness guard;
+it does not prove repository truth or replace generated readiness authorities.
+Historical, audit-evidence, normative, superseded, and generated-current artifacts
+are classified separately and are not scanned unless the registry explicitly opts
+them into current-prose claim scanning.
 """
 
 from __future__ import annotations
@@ -12,16 +15,19 @@ import json
 import pathlib
 import re
 import sys
+from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CURRENT_DOCS = [
-    ROOT / "README.md",
-    ROOT.parent / "README.md",
-    ROOT / "docs/reviewer/CURRENT_READINESS_STATEMENT.md",
-    ROOT / "docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md",
-    ROOT / "docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md",
-    ROOT / "docs/PUBLIC_BETA_BLOCKERS.md",
-]
+REPO_ROOT = ROOT.parent
+REGISTRY_PATH = ROOT / "docs/CURRENT_DOCUMENT_REGISTRY.json"
+ALLOWED_CLASSIFICATIONS = {
+    "CURRENT",
+    "GENERATED_CURRENT",
+    "NORMATIVE",
+    "HISTORICAL",
+    "AUDIT_EVIDENCE",
+    "SUPERSEDED",
+}
 
 TPS_SCALAR = re.compile(r"\b(?:2,?271|2,?350|\d+(?:\.\d+)?)\s*TPS\b", re.IGNORECASE)
 MUTABLE_COUNT = re.compile(
@@ -33,7 +39,8 @@ ABSOLUTE_SECURITY = re.compile(
     re.IGNORECASE,
 )
 SAFE_NEGATION = re.compile(
-    r"\b(?:not|no|never|unclaimed|does not|must not|remain(?:s)? required|pending)\b", re.IGNORECASE
+    r"\b(?:not|no|never|unclaimed|does not|must not|remain(?:s)? required|pending)\b",
+    re.IGNORECASE,
 )
 FUNDING_REVIEW_FRAMING = re.compile(
     r"\b(?:nlnet|first[- ]round|grant[- ]funded|grant update|funded (?:work|hardening|mainnet-readiness)|reviewer-facing|reviewer-visible|reviewer confidence|reviewer conclusion|reviewer setup|reviewer verification|reviewer evidence)\b",
@@ -42,22 +49,71 @@ FUNDING_REVIEW_FRAMING = re.compile(
 
 
 def load_generated_truth() -> None:
-    manifest = ROOT / "generated/v2/spec_compilation_manifest.json"
-    tx_index = ROOT / "generated/tx_index.json"
-    blockers = ROOT / "generated/public_beta_blocker_report_v1_5.json"
-    for path in (manifest, tx_index, blockers):
+    for path in (
+        ROOT / "generated/v2/spec_compilation_manifest.json",
+        ROOT / "generated/tx_index.json",
+        ROOT / "generated/public_beta_blocker_report_v1_5.json",
+    ):
         if not path.is_file():
             raise SystemExit(f"missing generated truth artifact: {path.relative_to(ROOT)}")
         json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_registry() -> dict[str, Any]:
+    if not REGISTRY_PATH.is_file():
+        raise SystemExit("missing current document registry: docs/CURRENT_DOCUMENT_REGISTRY.json")
+    obj = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
+    if not isinstance(obj, dict) or obj.get("schema_version") != 1:
+        raise SystemExit("invalid current document registry schema")
+    docs = obj.get("documents")
+    if not isinstance(docs, list) or not docs:
+        raise SystemExit("current document registry has no documents")
+    return obj
+
+
+def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
+    findings: list[str] = []
+    paths: list[pathlib.Path] = []
+    seen: set[str] = set()
+    for entry in registry["documents"]:
+        if not isinstance(entry, dict):
+            findings.append("registry document entry is not an object")
+            continue
+        raw_path = str(entry.get("path") or "").strip()
+        classification = str(entry.get("classification") or "").strip()
+        claim_scan = bool(entry.get("claim_scan", False))
+        if not raw_path:
+            findings.append("registry document entry has empty path")
+            continue
+        if raw_path in seen:
+            findings.append(f"duplicate registry path: {raw_path}")
+            continue
+        seen.add(raw_path)
+        if classification not in ALLOWED_CLASSIFICATIONS:
+            findings.append(f"invalid classification for {raw_path}: {classification}")
+            continue
+        path = REPO_ROOT / raw_path
+        if not path.is_file():
+            findings.append(f"missing registered document: {raw_path}")
+            continue
+        if claim_scan:
+            if classification != "CURRENT":
+                findings.append(
+                    f"claim_scan=true requires CURRENT classification: {raw_path} ({classification})"
+                )
+                continue
+            paths.append(path)
+    if findings:
+        raise SystemExit("[claim-freshness] registry invalid\n" + "\n".join(findings))
+    return paths
+
+
 def main() -> int:
     load_generated_truth()
+    registry = load_registry()
+    current_docs = registered_scan_paths(registry)
     findings: list[str] = []
-    for path in CURRENT_DOCS:
-        if not path.is_file():
-            findings.append(f"missing current-facing document: {path}")
-            continue
+    for path in current_docs:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         for lineno, line in enumerate(lines, 1):
             if TPS_SCALAR.search(line):
@@ -80,7 +136,7 @@ def main() -> int:
         return 1
 
     print(
-        "[claim-freshness] OK: no unbound TPS scalars or duplicated mutable counts in current-facing docs"
+        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns"
     )
     return 0
 

@@ -105,6 +105,12 @@
     {
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "docs/CURRENT_DOCUMENT_REGISTRY.json"
+    },
+    {
+      "category": "docs/specs",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
       "path": "docs/audits/late_stage_public_testnet_gap_inventory_v1_5.md"
     },
@@ -504,7 +510,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 74,
+  "inventory_hit_count": 75,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",
