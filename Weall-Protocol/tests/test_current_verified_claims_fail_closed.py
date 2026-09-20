@@ -27,7 +27,11 @@ def fixtures(tmp_path: Path):
     release = {
         "public_beta_ready": False,
         "mainnet_ready": False,
-        "claim_boundaries": {"public_beta_ready": False, "mainnet_ready": False, "live_economics": False},
+        "claim_boundaries": {
+            "public_beta_ready": False,
+            "mainnet_ready": False,
+            "live_economics": False,
+        },
     }
     performance = {
         "schema": "weall.current_performance_evidence.v1",
@@ -39,8 +43,15 @@ def fixtures(tmp_path: Path):
         "historical_measurements_current_claim_eligible": False,
         "notes": [],
     }
-    paths = {name: tmp_path / f"{name}.json" for name in ("tx", "blockers", "release", "performance")}
-    for name, value in (("tx", tx), ("blockers", blockers), ("release", release), ("performance", performance)):
+    paths = {
+        name: tmp_path / f"{name}.json" for name in ("tx", "blockers", "release", "performance")
+    }
+    for name, value in (
+        ("tx", tx),
+        ("blockers", blockers),
+        ("release", release),
+        ("performance", performance),
+    ):
         write_json(paths[name], value)
     return paths, blockers, release, performance
 
@@ -63,7 +74,10 @@ def test_performance_registry_is_authority(tmp_path: Path) -> None:
     bind(module, paths, tmp_path)
     row = claim(module.build(), "PERFORMANCE-001")
     assert row["evidence_location"] == ["evidence/performance/current_performance_evidence.json"]
-    assert row["value"] == {"current_scalar_tps_claim_allowed": False, "qualifying_benchmark_count": 0}
+    assert row["value"] == {
+        "current_scalar_tps_claim_allowed": False,
+        "qualifying_benchmark_count": 0,
+    }
 
 
 @pytest.mark.parametrize("key", ["public_beta_ready", "mainnet_ready"])

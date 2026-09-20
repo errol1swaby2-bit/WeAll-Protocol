@@ -21,11 +21,23 @@ VERSION = "1.0.0"
 
 PERFORMANCE_SCHEMA = "weall.current_performance_evidence.v1"
 PERFORMANCE_REQUIRED_BENCHMARK_FIELDS = (
-    "benchmark_id", "subject_commit_sha", "subject_tree_sha", "measured_at_utc",
-    "workload", "crypto_signature_behavior", "persistence_behavior",
-    "network_consensus_scope", "topology", "hardware", "os_runtime",
-    "duration_seconds", "repetitions", "latency_distribution",
-    "throughput_distribution", "error_rate", "resource_utilization",
+    "benchmark_id",
+    "subject_commit_sha",
+    "subject_tree_sha",
+    "measured_at_utc",
+    "workload",
+    "crypto_signature_behavior",
+    "persistence_behavior",
+    "network_consensus_scope",
+    "topology",
+    "hardware",
+    "os_runtime",
+    "duration_seconds",
+    "repetitions",
+    "latency_distribution",
+    "throughput_distribution",
+    "error_rate",
+    "resource_utilization",
 )
 
 
@@ -70,7 +82,9 @@ def _validate_performance_registry(obj: dict[str, Any]) -> dict[str, Any]:
     allowed = _require_bool(obj, "current_scalar_tps_claim_allowed", source=source)
     historical = _require_bool(obj, "historical_measurements_current_claim_eligible", source=source)
     if historical:
-        raise SystemExit(f"{source} must keep historical measurements ineligible for current claims")
+        raise SystemExit(
+            f"{source} must keep historical measurements ineligible for current claims"
+        )
     benchmarks = obj.get("qualifying_benchmarks")
     if not isinstance(benchmarks, list):
         raise SystemExit(f"{source} qualifying_benchmarks must be a list")
@@ -80,26 +94,45 @@ def _validate_performance_registry(obj: dict[str, Any]) -> dict[str, Any]:
     for index, benchmark in enumerate(benchmarks):
         if not isinstance(benchmark, dict):
             raise SystemExit(f"{source} qualifying_benchmarks[{index}] must be an object")
-        missing = [field for field in PERFORMANCE_REQUIRED_BENCHMARK_FIELDS if field not in benchmark]
+        missing = [
+            field for field in PERFORMANCE_REQUIRED_BENCHMARK_FIELDS if field not in benchmark
+        ]
         if missing:
             raise SystemExit(f"{source} qualifying_benchmarks[{index}] missing fields: {missing}")
         benchmark_id = benchmark["benchmark_id"]
         if not isinstance(benchmark_id, str) or not benchmark_id.strip() or benchmark_id in seen:
-            raise SystemExit(f"{source} qualifying_benchmarks[{index}].benchmark_id invalid or duplicate")
+            raise SystemExit(
+                f"{source} qualifying_benchmarks[{index}].benchmark_id invalid or duplicate"
+            )
         seen.add(benchmark_id)
         for field in ("subject_commit_sha", "subject_tree_sha"):
             digest = benchmark[field]
-            if not isinstance(digest, str) or len(digest) != 40 or any(ch not in "0123456789abcdef" for ch in digest.lower()):
-                raise SystemExit(f"{source} qualifying_benchmarks[{index}].{field} must be a 40-character Git SHA")
+            if (
+                not isinstance(digest, str)
+                or len(digest) != 40
+                or any(ch not in "0123456789abcdef" for ch in digest.lower())
+            ):
+                raise SystemExit(
+                    f"{source} qualifying_benchmarks[{index}].{field} must be a 40-character Git SHA"
+                )
         duration = benchmark["duration_seconds"]
         repetitions = benchmark["repetitions"]
         if isinstance(duration, bool) or not isinstance(duration, (int, float)) or duration <= 0:
-            raise SystemExit(f"{source} qualifying_benchmarks[{index}].duration_seconds must be > 0")
+            raise SystemExit(
+                f"{source} qualifying_benchmarks[{index}].duration_seconds must be > 0"
+            )
         if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions <= 0:
-            raise SystemExit(f"{source} qualifying_benchmarks[{index}].repetitions must be a positive integer")
+            raise SystemExit(
+                f"{source} qualifying_benchmarks[{index}].repetitions must be a positive integer"
+            )
     if allowed and not benchmarks:
-        raise SystemExit(f"{source} cannot allow a current scalar TPS claim without a qualifying benchmark")
-    return {"current_scalar_tps_claim_allowed": allowed, "qualifying_benchmark_count": len(benchmarks)}
+        raise SystemExit(
+            f"{source} cannot allow a current scalar TPS claim without a qualifying benchmark"
+        )
+    return {
+        "current_scalar_tps_claim_allowed": allowed,
+        "qualifying_benchmark_count": len(benchmarks),
+    }
 
 
 def _sha256(path: Path) -> str:
@@ -158,10 +191,16 @@ def build() -> dict[str, Any]:
     for key, value in boundaries.items():
         if not isinstance(value, bool):
             raise SystemExit(f"release evidence manifest claim boundary {key!r} must be boolean")
-    public_beta_ready = _require_bool(release, "public_beta_ready", source="generated/release_evidence_manifest_v1_5.json")
-    mainnet_ready = _require_bool(release, "mainnet_ready", source="generated/release_evidence_manifest_v1_5.json")
+    public_beta_ready = _require_bool(
+        release, "public_beta_ready", source="generated/release_evidence_manifest_v1_5.json"
+    )
+    mainnet_ready = _require_bool(
+        release, "mainnet_ready", source="generated/release_evidence_manifest_v1_5.json"
+    )
     if boundaries.get("public_beta_ready") is not public_beta_ready:
-        raise SystemExit("release evidence manifest public_beta_ready disagrees with claim_boundaries")
+        raise SystemExit(
+            "release evidence manifest public_beta_ready disagrees with claim_boundaries"
+        )
     if boundaries.get("mainnet_ready") is not mainnet_ready:
         raise SystemExit("release evidence manifest mainnet_ready disagrees with claim_boundaries")
 
@@ -241,7 +280,8 @@ def build() -> dict[str, Any]:
         )
 
     open_ids = _require_string_list(
-        blockers, "remaining_external_evidence_required_ids",
+        blockers,
+        "remaining_external_evidence_required_ids",
         source="generated/public_beta_blocker_report_v1_5.json",
     )
 

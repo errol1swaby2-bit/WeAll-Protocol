@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1938,
+  "file_count": 1939,
   "files": [
     {
       "affected_registers": [
@@ -539,7 +539,7 @@
       ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "50e10403823ac5b320d743c9c9e52e1ed9ac95b92662c4d1f6a95497efdc873a",
+      "sha256": "561e305aab31a8265f69be392201926aed63883b8ecd7afcf0566ab5ddc170c1",
       "source_id": "SRC-251A50F3DB56A30F"
     },
     {
@@ -3197,7 +3197,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "9d3689f18220a336361073af40e7dedae93a25e5dfd96efac104debd056a178d",
+      "sha256": "5ee1371585ef79cf33fe970a93dc1c54d351b6707781019dfd9b8cf487eaf491",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -4608,7 +4608,7 @@
       ],
       "path": "scripts/gen_current_verified_claims.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "a7242cc059c344f5ddb3cadf6942b3b42537719659f6d147dda9fd8eaac70de1",
+      "sha256": "ab85c8d8c60cfc3a59d86c8ff4014a23c20d4ed065449786756bffd32f1715fa",
       "source_id": "SRC-93B86585553DBDA5"
     },
     {
@@ -15565,6 +15565,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "893f459823a2ec1f7007253142135eeb0ea60582c040f65dc5604b130b899370",
       "source_id": "SRC-2BE6E660EA281E38"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_current_verified_claims_fail_closed.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "4693c8c641b0d21b445029595e3367f4f82548c6761715d60c9a2a0e0fb1607f",
+      "source_id": "SRC-4F8D540C5E48D778"
     },
     {
       "affected_registers": [
