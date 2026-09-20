@@ -2,6 +2,25 @@
 
 WeAll is an experimental public-only civic protocol implementation. This repository contains the backend node/runtime, public API, frontend, operator scripts, generated evidence artifacts, and verification-facing documentation for the current local/devnet/public-observer-oriented hardening track.
 
+## Architectural thesis
+
+Bitcoin demonstrated that a socially important coordination function—monetary transfer and settlement—can be represented as open, deterministic, independently verifiable protocol state rather than only as records controlled by a central operator. WeAll explores whether selected civic coordination functions can be made similarly inspectable and reproducible.
+
+The project does **not** attempt to put every human interaction on-chain. Its focus is the subset of public civic state transitions that confer or exercise authority: who is eligible to participate, what public rules apply, what proposals and disputes exist, how decisions are made, what outcomes become authoritative, and how that history can be independently reconstructed.
+
+The major protocol surfaces are intended to form one civic state machine rather than a collection of unrelated features:
+
+| Civic function | Protocol role |
+|---|---|
+| Human verification | Establishes bounded participation eligibility without making a legal-identity claim. |
+| Public social and groups | Provide publicly inspectable spaces for deliberation and collective activity. |
+| Disputes and review | Provide deterministic procedures for contesting actions and recording outcomes. |
+| Governance | Turns proposals and votes into replayable public decision records. |
+| Consensus and replay | Allow independent nodes to reproduce the same authoritative protocol history. |
+| Locked economics | Keeps civic participation separate from live financial incentives while the protocol is still under review. |
+
+The long-term research question is whether civic legitimacy can become part of the internet commons: open infrastructure whose authoritative state can be inspected, replayed, and independently operated rather than existing only inside the private database or administrative process of a single institution. The current repository is an implementation and validation effort toward that hypothesis, not a claim that the hypothesis has already been proven at public-network scale.
+
 Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
 This repository should be reviewed as an implementation under active hardening. It is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
