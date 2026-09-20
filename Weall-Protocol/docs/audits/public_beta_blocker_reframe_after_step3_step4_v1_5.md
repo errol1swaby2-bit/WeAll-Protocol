@@ -30,7 +30,7 @@ This note does not claim public beta, mainnet, public multi-validator BFT, live 
 - AUD-618-P2-002 — transaction propagation lifecycle timeline.
 - AUD-618-P2-003 — operator incident timeline / unified diagnostics.
 
-## Must remain open as funded mainnet-readiness hardening
+## Must remain open as mainnet-readiness hardening
 
 - AUD-618-P0-001 — independent public validator/operator BFT transcript.
 - AUD-618-P0-002 — legal/compliance counsel attestation.

@@ -129,12 +129,12 @@ def test_readmes_and_reviewer_docs_preserve_current_allowed_claim() -> None:
         assert ALLOWED_REHEARSAL_CLAIM in _read(path), f"missing allowed claim: {path}"
 
 
-def test_top_level_readme_has_reviewer_verification_and_evidence_map() -> None:
+def test_top_level_readme_has_verification_and_evidence_map() -> None:
     text = _read(OUTER_ROOT / "README.md")
     for heading in (
         "## Public-only civic protocol direction",
         "## Current status",
-        "## Reviewer verification path",
+        "## Verification path",
         "## Evidence package map",
         "## Headline claim to evidence map",
         "## Major protocol surfaces",

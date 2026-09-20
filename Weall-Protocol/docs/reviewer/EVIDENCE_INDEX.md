@@ -1,4 +1,4 @@
-# Reviewer Evidence Index
+# Verification Evidence Index
 
 Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
@@ -40,8 +40,8 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 | Public-only protocol docs/tests | `docs/PUBLIC_ONLY_PROTOCOL.md`, `tests/test_public_only_protocol_redesign.py` | Confirms protocol-native private/opaque social payloads are unsupported. |
 | Release truth docs | `docs/TRUTH_BOUNDARY.md`, `docs/PRODUCTION_POSTURE.md`, `docs/PROTOCOL_VERSIONING_STRATEGY.md` | Defines claim boundaries and fail-closed requirements. |
 | Testnet runbooks | `docs/testnet/` | Provides controlled rehearsal and external transcript instructions. |
-| Pass 29 pre-rehearsal flow audit | `docs/audits/comprehensive_protocol_flow_audit_before_two_node_v1_5.md` | Classifies major user/operator/reviewer flows and records low-risk fixes before two-node rehearsal. |
-| Pass 30 documentation/evidence audit | `docs/audits/documentation_evidence_package_audit_before_two_node_v1_5.md` | Classifies reviewer docs, runbooks, generated artifacts, and proof templates before two-node rehearsal. |
+| Pass 29 pre-rehearsal flow audit | `docs/audits/comprehensive_protocol_flow_audit_before_two_node_v1_5.md` | Classifies major user/operator/verification flows and records low-risk fixes before two-node rehearsal. |
+| Pass 30 documentation/evidence audit | `docs/audits/documentation_evidence_package_audit_before_two_node_v1_5.md` | Classifies verification docs, runbooks, generated artifacts, and proof templates before two-node rehearsal. |
 | README-to-implementation traceability | `docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` | Maps major README claims to implementation files, tests, generated artifacts, proof templates, disabled launch gates, and explicit open blockers. |
 
 ## Generated artifacts
@@ -85,9 +85,9 @@ Local/controlled evidence is useful for review, but local scripts are not author
 
 ## Reviewer trust posture additions
 
-| Area | Reviewer-visible file | Current meaning | Verification |
+| Area | Verification-visible file | Current meaning | Verification |
 |---|---|---|---|
-| Public-only direction / DM quarantine | `docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md` | Direct/private/encrypted messaging is absent from active public-testnet tx canon and out of scope for the NLnet claim. | `PYTHONPATH=src python -m pytest -q tests/test_direct_message_transaction_quarantine.py` |
+| Public-only direction / DM quarantine | `docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md` | Direct/private/encrypted messaging is absent from active public-testnet tx canon and out of scope for the project claim. | `PYTHONPATH=src python -m pytest -q tests/test_direct_message_transaction_quarantine.py` |
 | Observer proof tiers | `docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md` | Separates local observer proof, same-machine dual-node proof, and remote two-machine signed observer proof. | Runbook only unless transcripts are captured under `audit-metadata/reviewer-evidence-YYYY-MM-DD/`. |
 | Helper safety posture | `docs/reviewer/HELPER_PRODUCTION_SAFETY_CHECKLIST.md` | Production helper execution is disabled; checklist maps future safety evidence topics. | `PYTHONPATH=src python -m pytest -q tests/prod/test_helper_production_safety_checklist.py` |
 | Accessibility posture | `docs/reviewer/ACCESSIBILITY_REVIEW_CHECKLIST.md` | Basic source-level accessibility posture exists; full WCAG compliance is not claimed. | `cd ../web && npm run test:accessibility-source && npm run test:reviewer-critical-source` |
@@ -133,7 +133,7 @@ The following remain future hardening gates, not present-tense readiness claims:
 | Observer boot | Public observer quickstart and open-download transcript template. |
 | External evidence packages | Proof templates under `docs/proofs/` plus validation scripts. |
 
-## Reviewer verification path
+## Verification path
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol

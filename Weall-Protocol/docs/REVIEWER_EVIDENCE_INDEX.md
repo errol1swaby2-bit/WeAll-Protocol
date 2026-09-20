@@ -1,6 +1,6 @@
-# WeAll reviewer Evidence Index
+# WeAll Verification Evidence Index
 
-Status: reviewer-facing evidence index for external review.
+Status: verification-facing evidence index for external review.
 
 Last reviewed: 2026-06-04.
 
@@ -20,7 +20,7 @@ git status --short
 git log --oneline -10
 ```
 
-Attach or paste the output into the reviewer evidence bundle.
+Attach or paste the output into the verification evidence bundle.
 
 If the repository is being reviewed from a zip/export, note that Git commit identity is unavailable and must be supplied from the source checkout.
 
@@ -280,7 +280,7 @@ The following artifacts were added to keep the full-scope v1.5 audit aligned wit
 | Protocol-upgrade scheduled lifecycle | `pytest tests/test_protocol_upgrade_height_scheduled_lifecycle.py` | Upgrade activation records schedule a deterministic future `activation_height`, reject configured unsupported targets, and replay identically across leader/follower/observer states | Proves record-only scheduled metadata, not automatic software delivery or migration execution. |
 | Governance/dispute height trust boundary | `pytest tests/test_governance_due_height_trust_boundary.py tests/test_dispute_height_lifecycle_boundaries.py` | User governance payloads cannot forge scheduler `_due_height`; dispute lifecycle records opening/stage/assignment heights and juror deadlines as block heights | Does not replace full multi-node replay transcript. |
 | Closed-testnet readiness checklist | review `docs/audits/closed_testnet_rehearsal_readiness_v1_5.md` | Fresh-clone, observer, civic-loop, performance-evidence, and rehearsal-evidence checklist exists | Checklist only; run transcripts are required before claiming a pass. |
-| NLnet current-state update | review `docs/reviewer/NLNET_CURRENT_STATE_UPDATE_2026_08.md` | Reviewer-facing status/rescope language exists without mainnet or live-economics overclaims | Documentation only; claims must be backed by fresh evidence. |
+| project current-state update | review `docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md` | Verification-facing status/rescope language exists without mainnet or live-economics overclaims | Documentation only; claims must be backed by fresh evidence. |
 | Legal/compliance draft pack | `pytest tests/test_public_readiness_artifacts_v15.py` | Counsel-review-pending docs are present | Non-lawyer draft only, not legal approval. |
 | Public validator/BFT proof plan | `cat docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md` | Required public-validator adversarial proof matrix exists | Plan only; public multi-validator readiness is not claimed. |
 

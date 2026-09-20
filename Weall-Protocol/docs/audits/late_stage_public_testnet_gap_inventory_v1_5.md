@@ -1,8 +1,8 @@
-# Late-stage NLnet / public-testnet readiness gap inventory v1.5
+# Late-stage project / public-testnet readiness gap inventory v1.5
 
 Status: recursive audit inventory for late pre-public-testnet hardening.
 
-This inventory is a reviewer-confidence map, not a readiness claim. It records what the repository currently proves, what was safely tightened in this pass, and what must remain open for funded mainnet-readiness hardening.
+This inventory is a verification-confidence map, not a readiness claim. It records what the repository currently proves, what was safely tightened in this pass, and what must remain open for mainnet-readiness hardening.
 
 ## Claim boundary
 
@@ -14,7 +14,7 @@ WeAll should be described as **late-stage pre-public-testnet / mainnet-readiness
 | --- | --- | --- | --- | --- |
 | Public-only protocol surface | Public-only docs/tests and route policy are present. Recursive search found no active protocol-native DM, encrypted-message, private-group, member-only-read, ciphertext, sealed-payload, or inbox/outbox implementation path. | Policy regression risk | Kept strict boundary; added no private surfaces. | Continue running public-only route/source tests on every release. |
 | Protocol upgrades | `PROTOCOL_UPGRADE_DECLARE` and `PROTOCOL_UPGRADE_ACTIVATE` are record-only and block-height scheduled. Automatic software apply/migration/rollback/economics activation is disabled. | Mainnet-readiness hardening | Tightened duplicate declaration/activation behavior, required governance/system-queue parent provenance, and made economics-activation attempts record-only ignored fields. | Signed manifests, compatibility windows, deterministic migration vectors, rollback semantics, and multi-node rehearsal. |
-| Reviewer lifecycle surface | `/v1/status/testnet-capabilities` exposes protocol-upgrade, governance, dispute, minimum civic-loop route boundaries, and API evidence surfaces tied to the generated API contract map. | UX / reviewer evidence | Added public claim-boundary fields consumed by Node Dashboard and checked API evidence routes against contract artifacts. | Rendered browser E2E for the entire civic loop across a fresh backend. |
+| Reviewer lifecycle surface | `/v1/status/testnet-capabilities` exposes protocol-upgrade, governance, dispute, minimum civic-loop route boundaries, and API evidence surfaces tied to the generated API contract map. | UX / verification evidence | Added public claim-boundary fields consumed by Node Dashboard and checked API evidence routes against contract artifacts. | Rendered browser E2E for the entire civic loop across a fresh backend. |
 | Governance lifecycle | Governance has a block-height system-queue lifecycle and deterministic stage stamps. | Protocol-safety hardening | Hardened `_due_height` trust: user-submitted governance payloads can no longer forge lifecycle heights; only SYSTEM queue-bound txs may use scheduler `_due_height`. | Full UI/API E2E evidence for proposal creation through finalization. |
 | Dispute lifecycle | Dispute juror accept/vote/withdraw/timeout windows are block-height based; appeal windows are deterministic when the constitutional clock is enabled. | Observability and replay hardening | Added explicit block-height markers for dispute opening, stage transition, and juror assignment. | Broader appeal-panel E2E evidence, public reviewer notes, and multi-node replay transcripts. |
 | Economics | Tokenomics are scaffolded but live economics remain locked. | Launch-disabled feature | No activation path was loosened. | Legal/compliance review and governed activation evidence. |
@@ -45,4 +45,4 @@ The public-beta blocker report should remain split into these buckets:
 
 ## Recommended next audit focus
 
-The next bounded pass should target frontend/API reviewer flow coherence and evidence capture: one public civic loop from account state, public post, public group read/participation boundary, proposal lifecycle, dispute lifecycle, reputation outcome, protocol-upgrade record, observer status, and economics-locked status.
+The next bounded pass should target frontend/API verification flow coherence and evidence capture: one public civic loop from account state, public post, public group read/participation boundary, proposal lifecycle, dispute lifecycle, reputation outcome, protocol-upgrade record, observer status, and economics-locked status.

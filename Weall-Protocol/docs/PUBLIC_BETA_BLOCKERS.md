@@ -18,16 +18,13 @@ The blocker report keeps all historical catalog entries visible. In the generate
 JSON, `blocker_count` is a compatibility alias for `blocker_catalog_count`; it is
 not the number still open. Reviewers should read the top-level counts this way:
 
-| Field | Current meaning | Expected value in this branch |
-| --- | --- | ---: |
-| `blocker_catalog_count` / `blocker_count` | Full blocker catalog kept visible for audit continuity. | 15 |
-| `closed_in_repository_count` / `closed_blocker_count` | Closed by repository evidence, generated artifacts, docs, or source-level UX gates. | 7 |
-| `remaining_blocker_count` / `open_blocker_count` | Still-open blockers before public beta can be claimed. | 8 |
-| `remaining_external_evidence_required_count` | Open blockers that need independent transcripts, real-operator proof, counsel attestation, cryptographic review, or other external evidence. | 8 |
-| `p0_open_count` | Still-open P0 blockers. | 4 |
-| `p1_open_count` | Still-open P1 blockers. | 4 |
-| `p2_open_count` | Still-open P2 blockers. | 0 |
-| `p3_open_count` | Still-open P3 blockers. | 0 |
+| Field | Current meaning |
+| --- | --- |
+| `blocker_catalog_count` / `blocker_count` | Full blocker catalog kept visible for audit continuity. |
+| `closed_in_repository_count` / `closed_blocker_count` | Closed by repository evidence, generated artifacts, docs, or source-level UX gates. |
+| `remaining_blocker_count` / `open_blocker_count` | Still-open blockers before public beta can be claimed. |
+| `remaining_external_evidence_required_count` | Open blockers requiring independent or future evidence. |
+| `p0_open_count`, `p1_open_count`, `p2_open_count`, `p3_open_count` | Severity-bucket counts; read directly from the generated report. |
 
 The report must continue to keep `public_beta_ready=false`. A clean repository
 blocker inventory only means the evidence gates are current and explicit.

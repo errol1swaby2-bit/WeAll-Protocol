@@ -2,7 +2,7 @@
 
 Status: non-lawyer draft, pending counsel review.
 
-Before any public post, grant update, website copy, or tester invite, check that the claim does not imply:
+Before any public post, project update, website copy, or tester invite, check that the claim does not imply:
 
 - public mainnet readiness;
 - public multi-validator BFT readiness;
