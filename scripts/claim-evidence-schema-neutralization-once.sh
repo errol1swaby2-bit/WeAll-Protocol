@@ -65,6 +65,10 @@ for path, pairs in replacements.items():
     path.write_text(text, encoding="utf-8")
 PY
 
+# Remove the one-shot machinery before generating source-sensitive derivatives so
+# the generated tree describes the actual proposed repository state.
+git rm -f .github/workflows/claim-evidence-schema-neutralization-once.yml scripts/claim-evidence-schema-neutralization-once.sh
+
 cd Weall-Protocol
 
 python -m ruff format scripts/gen_public_beta_blocker_report_v1_5.py scripts/gen_current_verified_claims.py tests/prod/test_public_observer_open_download_transcript_capture.py
@@ -82,11 +86,11 @@ python scripts/gen_release_evidence_manifest_v1_5.py --check
 python scripts/gen_current_verified_claims.py --check
 python scripts/compile_v2_spec.py --check
 python scripts/check_generated.py
-python scripts/check_v2_spec_clean_checkout.py
+# The clean-checkout V2 checker must run on the committed final tree. Normal PR
+# Backend CI performs that check after this one-shot has committed and pushed.
 PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
 python scripts/check_public_claim_freshness.py
 python scripts/check_reviewer_truth_boundaries.py
-
 pytest -q tests/prod/test_public_observer_open_download_transcript_capture.py
 
 cd "$ROOT"
@@ -104,9 +108,6 @@ then
 fi
 
 # Historical audit metadata is intentionally preserved.
-
-git rm -f .github/workflows/claim-evidence-schema-neutralization-once.yml scripts/claim-evidence-schema-neutralization-once.sh
-
 git status --short
 git diff --check
 
