@@ -7,12 +7,46 @@
     "AUDIT_EVIDENCE",
     "SUPERSEDED"
   ],
-  "description": "Repository document classification and claim-scan registry. CURRENT entries with claim_scan=true are enforced by scripts/check_public_claim_freshness.py.",
+  "description": "Repository document classification and claim-scan registry. CURRENT entries with claim_scan=true are enforced by scripts/check_public_claim_freshness.py. coverage_globs define current-facing surfaces that must not contain unclassified files.",
+  "coverage_globs": [
+    "*.md",
+    "Weall-Protocol/*.md",
+    "Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md",
+    "Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md",
+    "Weall-Protocol/docs/reviewer/CURRENT*.md",
+    "Weall-Protocol/docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md",
+    "Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md"
+  ],
   "documents": [
     {
       "claim_scan": true,
       "classification": "CURRENT",
       "path": "README.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "RELEASE_CHECKLIST.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "SECURITY.md"
+    },
+    {
+      "claim_scan": false,
+      "classification": "CURRENT",
+      "path": "CONTRIBUTING.md"
+    },
+    {
+      "claim_scan": false,
+      "classification": "CURRENT",
+      "path": "CODE_OF_CONDUCT.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/FRESH_MACHINE_BOOTSTRAP_REHEARSAL.md"
     },
     {
       "claim_scan": true,
@@ -23,6 +57,11 @@
       "claim_scan": true,
       "classification": "CURRENT",
       "path": "Weall-Protocol/RELEASE_CHECKLIST.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/SECURITY.md"
     },
     {
       "claim_scan": true,
