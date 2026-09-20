@@ -269,6 +269,7 @@ def _frontend_p2_ux_summary() -> Json:
 def _classify_blocker(
     *,
     severity: str,
+    blocks: list[str],
     gate_status: str,
     remaining_external_evidence: list[str],
     can_be_closed_by_code_only: bool,
@@ -279,7 +280,8 @@ def _classify_blocker(
         safe_with_current_evidence = True
     elif remaining_external_evidence:
         category = "external_evidence_required"
-        disposition = "keep_open_as_mainnet_readiness_hardening"
+        blocked_surface = "_and_".join(blocks) if blocks else "unspecified_surface"
+        disposition = f"keep_open_for_{blocked_surface}_external_evidence"
         safe_with_current_evidence = False
     elif gate_status.startswith("tracked_as_frontend") or gate_status.startswith(
         "partially_closed"
@@ -318,6 +320,7 @@ def _blocker(
     remaining = remaining_external_evidence or []
     classification = _classify_blocker(
         severity=severity,
+        blocks=blocks,
         gate_status=gate_status,
         remaining_external_evidence=remaining,
         can_be_closed_by_code_only=can_be_closed_by_code_only,
@@ -358,10 +361,18 @@ def build() -> Json:
     frontend_p2_ux = _frontend_p2_ux_summary()
     crypto_readiness = _artifact_summary("generated/quantum_resistance_readiness_v1_5.json")
 
-    high_risk_disabled = all(
-        record.get("enabled") is False
-        for record in (capabilities.get("capabilities") or {}).values()
-        if isinstance(record, dict)
+    capability_records = capabilities.get("capabilities")
+    capability_surface_well_formed = bool(
+        isinstance(capability_records, dict)
+        and capability_records
+        and all(
+            isinstance(record, dict) and isinstance(record.get("enabled"), bool)
+            for record in capability_records.values()
+        )
+    )
+    high_risk_disabled = bool(
+        capability_surface_well_formed
+        and all(record["enabled"] is False for record in capability_records.values())
     )
     api_vector_count = int(api_vectors.get("vector_count") or 0)
 
@@ -404,7 +415,7 @@ def build() -> Json:
             "hardening_plan_present_execution_still_disabled"
             if protocol_upgrade.get("ok") and protocol_upgrade_hardening.get("ok")
             else "gate_failed",
-            True,
+            False,
             [
                 "future production execution gate",
                 "operator approval policy",
@@ -492,7 +503,7 @@ def build() -> Json:
             "hardening_plan_present_execution_still_disabled"
             if helper.get("ok") and helper_topology_hardening.get("ok")
             else "gate_failed",
-            True,
+            False,
             [
                 "future helper production enablement governance/release gate",
                 "multi-node helper topology transcript",
@@ -580,13 +591,11 @@ def build() -> Json:
         ),
     ]
 
-    remaining = [
-        b
-        for b in blockers
-        if b["remaining_external_evidence"]
-        or b["gate_status"].startswith("tracked_as")
-        or b["gate_status"].endswith("required")
-    ]
+    # Fail closed: every blocker that is not explicitly closed remains open.
+    # This intentionally treats statuses such as "gate_failed",
+    # "needs_more_vectors", "tracked_as_*", "partially_closed_*", and
+    # "*_required" as open without depending on naming accidents.
+    remaining = [b for b in blockers if not str(b.get("gate_status", "")).startswith("closed")]
     transcript_schemas = {
         "public_validator_operator_transcript": {
             "required_fields": [

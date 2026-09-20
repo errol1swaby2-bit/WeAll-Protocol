@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1939,
+  "file_count": 1940,
   "files": [
     {
       "affected_registers": [
@@ -3197,7 +3197,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "5ee1371585ef79cf33fe970a93dc1c54d351b6707781019dfd9b8cf487eaf491",
+      "sha256": "939d83a5d0276e32164935dbb9b1a31ac4124dbfa91ec3d25d37ecac0a98cd1a",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3323,7 +3323,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "83c205c3db1bb28a5334b6fc2d8339826c638631a3c4fd7af63f7ad40dc2d75a",
+      "sha256": "a644826d05593b75f10efa25e815a13d298cef5c377b0951cf9f968ab1e309e1",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -4748,7 +4748,7 @@
       ],
       "path": "scripts/gen_public_beta_blocker_report_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "7de418f5d606a4394bfcc1ea45e183d5679fb3eec2f9302edc1eac3c6ef24fb4",
+      "sha256": "d96eaf2a6b57114a796ed71550edc79be8af2bb8298534959f69bbd761a4b356",
       "source_id": "SRC-DC86EF35EF9EB00E"
     },
     {
@@ -25160,6 +25160,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "c5e9f559b4174352acf1fcc5403782d693ee47c86570181a20596f462ce566c2",
       "source_id": "SRC-EFFE62B0A506D348"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-137CB9FB31356917"
+      ],
+      "path": "tests/test_public_beta_blocker_report_fail_closed.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "dd6db57b3ee47a6c7a901099e9291c723939d474bed41e854dd7710fe9ea61f0",
+      "source_id": "SRC-56EA4B5D08AD7EC8"
     },
     {
       "affected_registers": [
