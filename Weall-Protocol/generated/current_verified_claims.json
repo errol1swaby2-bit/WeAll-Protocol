@@ -346,8 +346,8 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
-    "generated/public_beta_blocker_report_v1_5.json": "4764c05310cd59be250ac97e6e6cefc217eaa7c9f4ea45ec85634fef9c61abd3",
-    "generated/release_evidence_manifest_v1_5.json": "4eaaffaebdd35d211bbf587b949c1fc4d07b135d65204a19f273473156bdf1f4",
+    "generated/public_beta_blocker_report_v1_5.json": "0745e2a61f9374d1d39bc4d7dbf40243d0d147115790476d582a3cbab602ac6c",
+    "generated/release_evidence_manifest_v1_5.json": "5216b877aa94a87bff91cff8187900ad9798e84b1c0d58c2407597d320c160b9",
     "generated/tx_index.json": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
   },
   "schema": "weall.current_verified_claims.v1",

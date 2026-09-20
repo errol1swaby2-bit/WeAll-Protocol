@@ -1,10 +1,12 @@
+> **Historical audit note:** this document records an earlier go-gate interpretation. It is superseded for current readiness claims by `generated/controlled_testnet_go_gate_v1_5.json`, `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json`, and `docs/reviewer/CURRENT_READINESS_STATEMENT.md`. Current generated state is NO-GO for controlled-testnet mechanism completion until the production-helper state-root/restart equivalence gate is proven.
+
 # Controlled Testnet Go-Gate Closure Audit v1.5
 
 This audit explains why the v1.5 public-readiness artifact checker previously reported remaining blockers even after the repository had enough bounded evidence to run a controlled testnet go-gate. The goal is not to claim public beta or mainnet readiness. The goal is to make the repository truthful about the narrower state: controlled-testnet go-gate evidence is ready to run while public beta blockers remain visible.
 
 ## Verdict
 
-The controlled-testnet go-gate may be marked **ready to run** when all deterministic in-repository mechanism artifacts, public-only safety artifacts, launch-matrix guardrails, transcript schemas, and reviewer runbooks are present and fresh.
+The controlled-testnet go-gate may be marked **ready to run** when all deterministic in-repository mechanism artifacts, public-only safety artifacts, launch-matrix guardrails, transcript schemas, and verification runbooks are present and fresh.
 
 That does **not** mean:
 
@@ -16,7 +18,7 @@ That does **not** mean:
 - automatic protocol-upgrade software apply readiness;
 - legal/compliance readiness.
 
-The current safe claim is:
+The bounded claim at the time of this audit was:
 
 > WeAll has a controlled-testnet go-gate manifest that is ready to run, with public beta and mainnet claims still blocked by explicit external evidence, legal, UX, operator, and hardening gates.
 
@@ -53,7 +55,7 @@ Only the first two are allowed by this patch.
 | AUD-618-P2-003 | P2 | observability follow-up | Partially reduced by status surfaces; incident timeline can be improved later. |
 | AUD-618-P3-001 | P3 | closed docs gate | Closed by node-mode quickstart documentation. |
 
-## Safe closures before NLnet first-round review
+## Safe closures before the current release boundary
 
 The safe closures are the documentation/artifact truth-boundary corrections only:
 
@@ -65,7 +67,7 @@ The safe closures are the documentation/artifact truth-boundary corrections only
 
 ## Gates that must remain open
 
-These blockers should not be closed before NLnet first-round selection unless new external evidence exists:
+These blockers should not be closed before the current release boundary unless new external evidence exists:
 
 - independent validator/operator transcript;
 - storage/IPFS real daemon/operator transcript;
@@ -77,11 +79,11 @@ These blockers should not be closed before NLnet first-round selection unless ne
 - public multi-validator BFT proof;
 - live economics activation proof.
 
-These are good candidates for funded mainnet-readiness hardening, not blockers to hide.
+These are good candidates for mainnet-readiness hardening, not blockers to hide.
 
 ## Protocol upgrade reviewer surface
 
-The public testnet capability endpoint now reports a reviewer-facing protocol-upgrade lifecycle summary:
+The public testnet capability endpoint now reports a verification-facing protocol-upgrade lifecycle summary:
 
 - declaration transaction: `PROTOCOL_UPGRADE_DECLARE`;
 - scheduled activation transaction: `PROTOCOL_UPGRADE_ACTIVATE`;
@@ -118,7 +120,7 @@ PYTHONPATH=src python -m pytest -q \
 
 ## Remaining truthful claim boundary
 
-After this audit, the repository may say:
+At the time of this audit, the repository could say:
 
 > Controlled-testnet go-gate manifest is ready to run, and public beta/mainnet readiness remains blocked by explicit external-evidence and hardening gates.
 

@@ -106,7 +106,7 @@
       "category": "docs/specs",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 4,
-      "path": "docs/audits/late_stage_nlnet_public_testnet_gap_inventory_v1_5.md"
+      "path": "docs/audits/late_stage_public_testnet_gap_inventory_v1_5.md"
     },
     {
       "category": "docs/specs",

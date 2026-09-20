@@ -19,6 +19,8 @@ CURRENT_DOCS = [
     ROOT.parent / "README.md",
     ROOT / "docs/reviewer/CURRENT_READINESS_STATEMENT.md",
     ROOT / "docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md",
+    ROOT / "docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md",
+    ROOT / "docs/PUBLIC_BETA_BLOCKERS.md",
 ]
 
 TPS_SCALAR = re.compile(r"\b(?:2,?271|2,?350|\d+(?:\.\d+)?)\s*TPS\b", re.IGNORECASE)
@@ -32,6 +34,10 @@ ABSOLUTE_SECURITY = re.compile(
 )
 SAFE_NEGATION = re.compile(
     r"\b(?:not|no|never|unclaimed|does not|must not|remain(?:s)? required|pending)\b", re.IGNORECASE
+)
+FUNDING_REVIEW_FRAMING = re.compile(
+    r"\b(?:nlnet|first[- ]round|grant[- ]funded|grant update|funded (?:work|hardening|mainnet-readiness)|reviewer-facing|reviewer-visible|reviewer confidence|reviewer conclusion|reviewer setup|reviewer verification|reviewer evidence)\b",
+    re.IGNORECASE,
 )
 
 
@@ -58,6 +64,14 @@ def main() -> int:
                 findings.append(f"{path}:{lineno}: unbound TPS scalar: {line.strip()}")
             if MUTABLE_COUNT.search(line):
                 findings.append(f"{path}:{lineno}: duplicated mutable count: {line.strip()}")
+            if ABSOLUTE_SECURITY.search(line) and not SAFE_NEGATION.search(line):
+                findings.append(
+                    f"{path}:{lineno}: unqualified absolute-security claim: {line.strip()}"
+                )
+            if FUNDING_REVIEW_FRAMING.search(line):
+                findings.append(
+                    f"{path}:{lineno}: funding/repository-review framing in current-facing prose: {line.strip()}"
+                )
 
     if findings:
         print("[claim-freshness] FAIL")

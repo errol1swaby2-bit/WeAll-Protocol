@@ -89,7 +89,7 @@ Generated files are evidence of repository consistency. They are not substitutes
 - **Observer boot:** `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` runbook with signed/pinned registry checks.
 - **External evidence packages:** proof templates under `docs/proofs/` and testnet runbooks under `docs/testnet/`.
 
-## Reviewer verification path
+## Verification path
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol
@@ -108,7 +108,7 @@ PYTHONPATH=src python -m pytest -q \
   tests/test_public_readiness_artifacts_v15.py
 ```
 
-If README or reviewer docs changed, run:
+If README or verification docs changed, run:
 
 ```bash
 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
@@ -122,7 +122,7 @@ Do not claim public beta readiness, public mainnet readiness, public multi-valid
 
 - `docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md` — verifies direct/private/encrypted messaging is not in the active public-testnet tx canon and remains out of scope.
 - `docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md` — separates local observer proof, same-machine dual-node proof, and remote signed observer proof.
-- `docs/reviewer/HELPER_PRODUCTION_SAFETY_CHECKLIST.md` — makes helper execution safety topics and disabled production posture reviewer-visible.
+- `docs/reviewer/HELPER_PRODUCTION_SAFETY_CHECKLIST.md` — makes helper execution safety topics and disabled production posture verification-visible.
 - `docs/reviewer/ACCESSIBILITY_REVIEW_CHECKLIST.md` — states basic source-level accessibility coverage without claiming full WCAG compliance.
 
 ### Pass 33 signature-profile truth boundary

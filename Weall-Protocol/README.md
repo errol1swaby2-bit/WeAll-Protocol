@@ -10,7 +10,7 @@ This backend README is not a public beta, public mainnet, public validator, publ
 
 The backend is reviewed as public-only civic protocol infrastructure. Protocol-native social, civic, governance, moderation, dispute, group, reputation, validator/operator, and node activity is intended to be publicly inspectable. Group membership may gate posting, commenting, voting, moderation, invitation, and administration behavior, but not read visibility for protocol-native group content.
 
-Private/direct/encrypted messaging is not part of the NLnet/public-testnet claim. Any historical private messaging language is legacy/out-of-scope unless explicitly labeled unsupported or disabled.
+Private/direct/encrypted messaging is not part of the project/public-testnet claim. Any historical private messaging language is legacy/out-of-scope unless explicitly labeled unsupported or disabled.
 
 ## Current status
 
@@ -26,11 +26,11 @@ Private/direct/encrypted messaging is not part of the NLnet/public-testnet claim
 | Legal/compliance approval | NO-GO | Legal materials remain non-lawyer drafts pending review. |
 | Public storage-market readiness | NO-GO | Storage/IPFS tests are not a public storage-provider market claim. |
 
-Current tx-canon counts and version are authoritative only in `generated/tx_index.json`; reviewer-facing prose intentionally does not duplicate those mutable values.
+Current tx-canon counts and version are authoritative only in `generated/tx_index.json`; verification-facing prose intentionally does not duplicate those mutable values.
 
 Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
 
-## Backend purpose in the reviewer flow
+## Backend purpose in the verification flow
 
 The backend is responsible for:
 
@@ -68,9 +68,9 @@ cd ..
 
 That root-level flow wraps backend startup, demo bootstrap, frontend startup, and local session bootstrap. Demo bootstrap output is for local inspection only; it is not public-testnet proof.
 
-## Reviewer verification path
+## Verification path
 
-Run these checks from this directory before relying on reviewer-facing backend claims:
+Run these checks from this directory before relying on verification-facing backend claims:
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol
@@ -89,7 +89,7 @@ PYTHONPATH=src python -m pytest -q \
   tests/test_public_readiness_artifacts_v15.py
 ```
 
-If README or reviewer docs changed, also run:
+If README or verification docs changed, also run:
 
 ```bash
 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
@@ -144,7 +144,7 @@ The checked-in public-testnet chain commitments, signed seed registry, trust roo
 | Reviewer documents | `docs/reviewer/`, including `docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` |
 | Testnet runbooks | `docs/testnet/` |
 
-The blocker catalog remains explicit: 15 total entries, 7 closed in repository, and 8 open as external evidence or mainnet-hardening gates.
+The blocker catalog remains explicit; read current total/open/closed counts directly from `generated/public_beta_blocker_report_v1_5.json`.
 
 ## Major backend surfaces
 
@@ -223,6 +223,6 @@ PYTHONPATH=src python scripts/compile_v2_spec.py --check
 python scripts/check_v2_spec_clean_checkout.py
 ```
 
-The compiler verifies the current compatibility canon, target contract sets, route implementations, requirements, parameters, mechanisms, state-object contracts, failure contracts, deterministic-CBOR schemas, pinned PDF-extraction attestation, semantic-review digests, append-only stable-ID history, typed mechanism evidence paths, source coverage, provenance, and frontend fail-closed truth consumption. Mutable counts are authoritative only in `generated/v2/spec_compilation_manifest.json`; do not copy those counts into reviewer-facing prose. See
+The compiler verifies the current compatibility canon, target contract sets, route implementations, requirements, parameters, mechanisms, state-object contracts, failure contracts, deterministic-CBOR schemas, pinned PDF-extraction attestation, semantic-review digests, append-only stable-ID history, typed mechanism evidence paths, source coverage, provenance, and frontend fail-closed truth consumption. Mutable counts are authoritative only in `generated/v2/spec_compilation_manifest.json`; do not copy those counts into verification-facing prose. See
 `docs/V2_SPEC_COMPILER.md` for the complete change procedure and assurance
 boundary.

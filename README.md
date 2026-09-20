@@ -1,6 +1,6 @@
 # WeAll Protocol
 
-WeAll is an experimental public-only civic protocol implementation. This repository contains the backend node/runtime, public API, frontend, operator scripts, generated evidence artifacts, and reviewer-facing documentation for the current local/devnet/public-observer-oriented hardening track.
+WeAll is an experimental public-only civic protocol implementation. This repository contains the backend node/runtime, public API, frontend, operator scripts, generated evidence artifacts, and verification-facing documentation for the current local/devnet/public-observer-oriented hardening track.
 
 Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
@@ -10,7 +10,7 @@ This repository should be reviewed as an implementation under active hardening. 
 
 WeAll is being narrowed and reviewed as public-only civic protocol infrastructure. Protocol-native social, civic, governance, moderation, dispute, group, reputation, validator/operator, and node activity is intended to be publicly inspectable. Group membership may gate posting, commenting, voting, moderation, invitation, and administration behavior, but membership must not gate read visibility for protocol-native group content.
 
-Private, direct, encrypted, inbox/outbox, chat, or protocol-native messaging is not part of the NLnet/public-testnet claim. Earlier private/direct messaging concepts are legacy/out-of-scope artifacts only when they appear in historical docs. They are not active public-testnet functionality, not production encrypted messaging, and not a hidden launch feature.
+Private, direct, encrypted, inbox/outbox, chat, or protocol-native messaging is not part of the project/public-testnet claim. Earlier private/direct messaging concepts are legacy/out-of-scope artifacts only when they appear in historical docs. They are not active public-testnet functionality, not production encrypted messaging, and not a hidden launch feature.
 
 ## Current status
 
@@ -33,9 +33,9 @@ Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async
 
 The checked-in public testnet seed registry is `configs/public_testnet_seed_registry.json`, the checked-in public testnet trust roots are `configs/public_testnet_trust_roots.json`, and the pinned testnet chain identity config is `configs/chains/weall-testnet-v1.json`. It is a repository-pinned discovery input for observer bootstrapping; it is not provider authority, validator authority, or proof of public beta readiness.
 
-## Reviewer verification path
+## Verification path
 
-Run these checks from a fresh checkout before relying on reviewer-facing claims:
+Run these checks from a fresh checkout before relying on verification-facing claims:
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol
@@ -54,7 +54,7 @@ PYTHONPATH=src python -m pytest -q \
   tests/test_public_readiness_artifacts_v15.py
 ```
 
-If README or reviewer docs changed in the commit being reviewed, also run:
+If README or verification docs changed in the commit being reviewed, also run:
 
 ```bash
 PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
@@ -83,7 +83,7 @@ Frontend state is not protocol authority. Local scripts are not public-readiness
 | Public beta blocker status | `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md` and `Weall-Protocol/generated/public_beta_blocker_report_v1_5.json` | Read current blocker/open/closed counts directly from the generated blocker report; public beta remains blocked while any required gate is open. |
 | Final bounded go-gate | `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` and `Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` | NO-GO for controlled-testnet mechanism completion until production helper state-root/restart proof is complete; local observer/reviewer rehearsal remains available. |
 | Release evidence manifest | `Weall-Protocol/generated/release_evidence_manifest_v1_5.json` | Tracks generated artifacts and preserves release claim boundaries. |
-| Reviewer evidence index | `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md` | Maps implemented evidence, generated artifacts, and external transcript templates. |
+| Verification evidence index | `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md` | Maps implemented evidence, generated artifacts, and external transcript templates. |
 | README-to-implementation traceability | `Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md` | Maps major README claims to implementation files, tests, generated artifacts, templates, disabled gates, and open blockers. |
 | External proof templates | `Weall-Protocol/docs/proofs/` | Templates for evidence that cannot be self-certified by local scripts. |
 | Testnet runbooks | `Weall-Protocol/docs/testnet/` | Operator instructions and transcript expectations for the next rehearsal. |
@@ -141,7 +141,7 @@ Protocol-native social, civic, governance, moderation, dispute, group, reputatio
 
 Public-testnet discovery uses signed/pinned seed-registry and endpoint evidence, not hosting-provider trust. Endpoint advertisements are connection hints and freshness evidence; they do not grant validator status.
 
-## Reviewer starting points
+## Verification starting points
 
 1. `Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md`
 2. `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md`
