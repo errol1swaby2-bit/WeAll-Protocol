@@ -2,11 +2,10 @@
 """Fail on high-risk claim patterns in registered current-facing documents.
 
 The document set is data-driven through docs/CURRENT_DOCUMENT_REGISTRY.json rather
-than a hard-coded path list. This remains a conservative wording/freshness guard;
-it does not prove repository truth or replace generated readiness authorities.
-Historical, audit-evidence, normative, superseded, and generated-current artifacts
-are classified separately and are not scanned unless the registry explicitly opts
-them into current-prose claim scanning.
+than a hard-coded path list. The registry also declares coverage_globs: any file on
+those current-facing surfaces must have an exact document classification or match an
+explicit classified prefix. This remains a conservative wording/freshness guard; it
+does not prove repository truth or replace generated readiness authorities.
 """
 
 from __future__ import annotations
@@ -68,6 +67,9 @@ def load_registry() -> dict[str, Any]:
     docs = obj.get("documents")
     if not isinstance(docs, list) or not docs:
         raise SystemExit("current document registry has no documents")
+    coverage_globs = obj.get("coverage_globs")
+    if not isinstance(coverage_globs, list) or not coverage_globs:
+        raise SystemExit("current document registry has no coverage_globs")
     return obj
 
 
@@ -75,6 +77,8 @@ def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
     findings: list[str] = []
     paths: list[pathlib.Path] = []
     seen: set[str] = set()
+    exact_classifications: dict[str, str] = {}
+
     for entry in registry["documents"]:
         if not isinstance(entry, dict):
             findings.append("registry document entry is not an object")
@@ -92,6 +96,7 @@ def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
         if classification not in ALLOWED_CLASSIFICATIONS:
             findings.append(f"invalid classification for {raw_path}: {classification}")
             continue
+        exact_classifications[raw_path] = classification
         path = REPO_ROOT / raw_path
         if not path.is_file():
             findings.append(f"missing registered document: {raw_path}")
@@ -103,8 +108,39 @@ def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
                 )
                 continue
             paths.append(path)
+
+    prefix_entries: list[tuple[str, str]] = []
+    for entry in registry.get("prefix_classifications", []):
+        if not isinstance(entry, dict):
+            findings.append("prefix classification entry is not an object")
+            continue
+        prefix = str(entry.get("path_prefix") or "").strip()
+        classification = str(entry.get("classification") or "").strip()
+        if not prefix:
+            findings.append("prefix classification entry has empty path_prefix")
+            continue
+        if classification not in ALLOWED_CLASSIFICATIONS:
+            findings.append(f"invalid prefix classification for {prefix}: {classification}")
+            continue
+        prefix_entries.append((prefix, classification))
+
+    coverage_globs = registry.get("coverage_globs", [])
+    for pattern in coverage_globs:
+        if not isinstance(pattern, str) or not pattern.strip():
+            findings.append("coverage_globs entries must be non-empty strings")
+            continue
+        for path in REPO_ROOT.glob(pattern):
+            if not path.is_file():
+                continue
+            raw_path = path.relative_to(REPO_ROOT).as_posix()
+            if raw_path in exact_classifications:
+                continue
+            if any(raw_path.startswith(prefix) for prefix, _ in prefix_entries):
+                continue
+            findings.append(f"unclassified covered document: {raw_path}")
+
     if findings:
-        raise SystemExit("[claim-freshness] registry invalid\n" + "\n".join(findings))
+        raise SystemExit("[claim-freshness] registry invalid\n" + "\n".join(sorted(set(findings))))
     return paths
 
 
@@ -136,7 +172,7 @@ def main() -> int:
         return 1
 
     print(
-        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns"
+        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns; coverage globs contain no unclassified files"
     )
     return 0
 
