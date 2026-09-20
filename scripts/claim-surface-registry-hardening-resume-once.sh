@@ -12,6 +12,11 @@ from pathlib import Path
 
 path = Path("scripts/claim-surface-registry-hardening-once.sh")
 text = path.read_text(encoding="utf-8")
+text = text.replace(
+    '    "reviewer-facing test references": "verification-facing test references",',
+    '    "reviewer-facing batch test references": "verification-facing batch test references",\n'
+    '    "reviewer-facing test references": "verification-facing test references",',
+)
 old = '''python scripts/check_generated.py
 PYTHONPATH=src python scripts/compile_v2_spec.py --check
 python scripts/check_v2_spec_clean_checkout.py
