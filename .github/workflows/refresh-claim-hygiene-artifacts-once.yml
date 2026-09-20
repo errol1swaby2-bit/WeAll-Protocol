@@ -33,17 +33,30 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Refresh dependent artifacts in established order
-        working-directory: Weall-Protocol
+      - name: Build final tree and refresh dependent artifacts
         run: |
           set -Eeuo pipefail
+
+          # The one-shot workflow itself is part of the compiler source inventory.
+          # Remove it before regeneration so artifacts describe the final tree.
+          rm -f .github/workflows/refresh-claim-hygiene-artifacts-once.yml
+
+          cd Weall-Protocol
           PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py
           PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
           PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
           PYTHONPATH=src python scripts/gen_current_verified_claims.py
           PYTHONPATH=src python scripts/compile_v2_spec.py
+          cd ..
 
-      - name: Verify refreshed artifacts and targeted test
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Refresh generated artifacts after claim hygiene test alignment'
+
+      - name: Verify exact local final commit
         working-directory: Weall-Protocol
         run: |
           set -Eeuo pipefail
@@ -53,18 +66,17 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
-          PYTHONPATH=src python -m pytest -q tests/prod/test_readme_to_implementation_traceability.py
+          PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+          ruff format --check scripts/check_public_claim_freshness.py tests/prod/test_readme_to_implementation_traceability.py tests/test_release_docs_truth_sync.py
+          ruff check scripts/check_public_claim_freshness.py tests/prod/test_readme_to_implementation_traceability.py tests/test_release_docs_truth_sync.py
+          PYTHONPATH=src python -m pytest -q \
+            tests/prod/test_readme_to_implementation_traceability.py \
+            tests/test_release_docs_truth_sync.py \
+            tests/test_reviewer_language_cleanup.py \
+            tests/test_public_readiness_artifacts_v15.py
 
-      - name: Commit refreshed derivatives and remove one-shot workflow
+      - name: Push verified final commit
         run: |
           set -Eeuo pipefail
-          rm -f .github/workflows/refresh-claim-hygiene-artifacts-once.yml
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          if git diff --cached --quiet; then
-            echo 'No changes to commit.'
-            exit 0
-          fi
-          git commit -m 'Refresh generated artifacts after claim hygiene test alignment'
+          git status --short
           git push origin HEAD:claim-hygiene-neutral-language
