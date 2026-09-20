@@ -1,0 +1,76 @@
+name: README architectural thesis one-shot
+
+on:
+  push:
+    branches:
+      - readme-architectural-thesis
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Insert architectural thesis, refresh source-sensitive derivatives, and self-delete
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('README.md')
+          text = path.read_text(encoding='utf-8')
+          marker = 'Current allowed claim:'
+          if marker not in text:
+              raise SystemExit('README insertion marker not found')
+          if '## Architectural thesis' in text:
+              raise SystemExit('Architectural thesis already present')
+
+          thesis = '''## Architectural thesis
+
+Bitcoin demonstrated that a socially important coordination function—monetary transfer and settlement—can be represented as open, deterministic, independently verifiable protocol state rather than only as records controlled by a central operator. WeAll explores whether selected civic coordination functions can be made similarly inspectable and reproducible.
+
+The project does **not** attempt to put every human interaction on-chain. Its focus is the subset of public civic state transitions that confer or exercise authority: who is eligible to participate, what public rules apply, what proposals and disputes exist, how decisions are made, what outcomes become authoritative, and how that history can be independently reconstructed.
+
+The major protocol surfaces are intended to form one civic state machine rather than a collection of unrelated features:
+
+| Civic function | Protocol role |
+|---|---|
+| Human verification | Establishes bounded participation eligibility without making a legal-identity claim. |
+| Public social and groups | Provide publicly inspectable spaces for deliberation and collective activity. |
+| Disputes and review | Provide deterministic procedures for contesting actions and recording outcomes. |
+| Governance | Turns proposals and votes into replayable public decision records. |
+| Consensus and replay | Allow independent nodes to reproduce the same authoritative protocol history. |
+| Locked economics | Keeps civic participation separate from live financial incentives while the protocol is still under review. |
+
+The long-term research question is whether civic legitimacy can become part of the internet commons: open infrastructure whose authoritative state can be inspected, replayed, and independently operated rather than existing only inside the private database or administrative process of a single institution. The current repository is an implementation and validation effort toward that hypothesis, not a claim that the hypothesis has already been proven at public-network scale.
+
+'''
+          text = text.replace(marker, thesis + marker, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          rm -- .github/workflows/readme-architectural-thesis-one-shot.yml
+
+          cd Weall-Protocol
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          python scripts/check_public_claim_freshness.py
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py --check
+          cd ..
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Clarify WeAll architectural thesis in README'
+          git push origin HEAD:readme-architectural-thesis
