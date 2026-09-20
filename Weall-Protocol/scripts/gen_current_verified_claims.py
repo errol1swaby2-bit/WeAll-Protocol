@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TX_INDEX = ROOT / "generated" / "tx_index.json"
 BLOCKERS = ROOT / "generated" / "public_beta_blocker_report_v1_5.json"
 RELEASE = ROOT / "generated" / "release_evidence_manifest_v1_5.json"
+PERFORMANCE = ROOT / "evidence" / "performance" / "current_performance_evidence.json"
 
 JSON_OUT = ROOT / "generated" / "current_verified_claims.json"
 MD_OUT = ROOT / "docs" / "CURRENT_VERIFIED_CLAIMS.md"
@@ -18,12 +19,87 @@ MD_OUT = ROOT / "docs" / "CURRENT_VERIFIED_CLAIMS.md"
 SCHEMA = "weall.current_verified_claims.v1"
 VERSION = "1.0.0"
 
+PERFORMANCE_SCHEMA = "weall.current_performance_evidence.v1"
+PERFORMANCE_REQUIRED_BENCHMARK_FIELDS = (
+    "benchmark_id", "subject_commit_sha", "subject_tree_sha", "measured_at_utc",
+    "workload", "crypto_signature_behavior", "persistence_behavior",
+    "network_consensus_scope", "topology", "hardware", "os_runtime",
+    "duration_seconds", "repetitions", "latency_distribution",
+    "throughput_distribution", "error_rate", "resource_utilization",
+)
+
 
 def _read_json(path: Path) -> dict[str, Any]:
-    obj = json.loads(path.read_text(encoding="utf-8"))
+    if not path.is_file():
+        raise SystemExit(f"missing required JSON evidence: {path}")
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"invalid JSON evidence {path}: {exc}") from exc
     if not isinstance(obj, dict):
         raise SystemExit(f"expected JSON object: {path}")
     return obj
+
+
+def _require_bool(obj: dict[str, Any], key: str, *, source: str) -> bool:
+    if key not in obj:
+        raise SystemExit(f"{source} missing required boolean field: {key}")
+    value = obj[key]
+    if not isinstance(value, bool):
+        raise SystemExit(f"{source} field {key} must be boolean, found {type(value).__name__}")
+    return value
+
+
+def _require_string_list(obj: dict[str, Any], key: str, *, source: str) -> list[str]:
+    if key not in obj:
+        raise SystemExit(f"{source} missing required list field: {key}")
+    value = obj[key]
+    if not isinstance(value, list):
+        raise SystemExit(f"{source} field {key} must be a list, found {type(value).__name__}")
+    if not all(isinstance(item, str) and item.strip() for item in value):
+        raise SystemExit(f"{source} field {key} must contain only non-empty strings")
+    return value
+
+
+def _validate_performance_registry(obj: dict[str, Any]) -> dict[str, Any]:
+    source = str(PERFORMANCE.relative_to(ROOT))
+    if obj.get("schema") != PERFORMANCE_SCHEMA:
+        raise SystemExit(f"{source} schema must be {PERFORMANCE_SCHEMA!r}")
+    if obj.get("subject_scope") != "repository-current":
+        raise SystemExit(f"{source} subject_scope must be repository-current")
+    allowed = _require_bool(obj, "current_scalar_tps_claim_allowed", source=source)
+    historical = _require_bool(obj, "historical_measurements_current_claim_eligible", source=source)
+    if historical:
+        raise SystemExit(f"{source} must keep historical measurements ineligible for current claims")
+    benchmarks = obj.get("qualifying_benchmarks")
+    if not isinstance(benchmarks, list):
+        raise SystemExit(f"{source} qualifying_benchmarks must be a list")
+    if obj.get("qualification_requirements") != list(PERFORMANCE_REQUIRED_BENCHMARK_FIELDS):
+        raise SystemExit(f"{source} qualification_requirements do not match the enforced contract")
+    seen: set[str] = set()
+    for index, benchmark in enumerate(benchmarks):
+        if not isinstance(benchmark, dict):
+            raise SystemExit(f"{source} qualifying_benchmarks[{index}] must be an object")
+        missing = [field for field in PERFORMANCE_REQUIRED_BENCHMARK_FIELDS if field not in benchmark]
+        if missing:
+            raise SystemExit(f"{source} qualifying_benchmarks[{index}] missing fields: {missing}")
+        benchmark_id = benchmark["benchmark_id"]
+        if not isinstance(benchmark_id, str) or not benchmark_id.strip() or benchmark_id in seen:
+            raise SystemExit(f"{source} qualifying_benchmarks[{index}].benchmark_id invalid or duplicate")
+        seen.add(benchmark_id)
+        for field in ("subject_commit_sha", "subject_tree_sha"):
+            digest = benchmark[field]
+            if not isinstance(digest, str) or len(digest) != 40 or any(ch not in "0123456789abcdef" for ch in digest.lower()):
+                raise SystemExit(f"{source} qualifying_benchmarks[{index}].{field} must be a 40-character Git SHA")
+        duration = benchmark["duration_seconds"]
+        repetitions = benchmark["repetitions"]
+        if isinstance(duration, bool) or not isinstance(duration, (int, float)) or duration <= 0:
+            raise SystemExit(f"{source} qualifying_benchmarks[{index}].duration_seconds must be > 0")
+        if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions <= 0:
+            raise SystemExit(f"{source} qualifying_benchmarks[{index}].repetitions must be a positive integer")
+    if allowed and not benchmarks:
+        raise SystemExit(f"{source} cannot allow a current scalar TPS claim without a qualifying benchmark")
+    return {"current_scalar_tps_claim_allowed": allowed, "qualifying_benchmark_count": len(benchmarks)}
 
 
 def _sha256(path: Path) -> str:
@@ -66,6 +142,8 @@ def build() -> dict[str, Any]:
     tx = _read_json(TX_INDEX)
     blockers = _read_json(BLOCKERS)
     release = _read_json(RELEASE)
+    performance = _read_json(PERFORMANCE)
+    performance_summary = _validate_performance_registry(performance)
 
     tx_types = tx.get("tx_types")
     if not isinstance(tx_types, list):
@@ -77,6 +155,15 @@ def build() -> dict[str, Any]:
     boundaries = release.get("claim_boundaries")
     if not isinstance(boundaries, dict):
         raise SystemExit("release evidence manifest missing claim_boundaries")
+    for key, value in boundaries.items():
+        if not isinstance(value, bool):
+            raise SystemExit(f"release evidence manifest claim boundary {key!r} must be boolean")
+    public_beta_ready = _require_bool(release, "public_beta_ready", source="generated/release_evidence_manifest_v1_5.json")
+    mainnet_ready = _require_bool(release, "mainnet_ready", source="generated/release_evidence_manifest_v1_5.json")
+    if boundaries.get("public_beta_ready") is not public_beta_ready:
+        raise SystemExit("release evidence manifest public_beta_ready disagrees with claim_boundaries")
+    if boundaries.get("mainnet_ready") is not mainnet_ready:
+        raise SystemExit("release evidence manifest mainnet_ready disagrees with claim_boundaries")
 
     claims: list[dict[str, Any]] = []
 
@@ -90,7 +177,7 @@ def build() -> dict[str, Any]:
                 "generated/public_beta_blocker_report_v1_5.json",
                 "generated/release_evidence_manifest_v1_5.json",
             ],
-            value=bool(blockers.get("public_beta_ready")),
+            value=public_beta_ready,
             notes="The canonical generated blocker report currently records public_beta_ready=false.",
         )
     )
@@ -105,7 +192,7 @@ def build() -> dict[str, Any]:
                 "generated/public_beta_blocker_report_v1_5.json",
                 "generated/release_evidence_manifest_v1_5.json",
             ],
-            value=bool(blockers.get("mainnet_ready")),
+            value=mainnet_ready,
         )
     )
 
@@ -153,9 +240,10 @@ def build() -> dict[str, Any]:
             )
         )
 
-    open_ids = blockers.get("remaining_external_evidence_required_ids")
-    if not isinstance(open_ids, list):
-        open_ids = []
+    open_ids = _require_string_list(
+        blockers, "remaining_external_evidence_required_ids",
+        source="generated/public_beta_blocker_report_v1_5.json",
+    )
 
     claims.append(
         _claim(
@@ -191,11 +279,13 @@ def build() -> dict[str, Any]:
             "performance",
             "No scalar TPS value is asserted as a current verified performance claim by this manifest.",
             "NOT_CURRENTLY_MEASURABLE",
-            ["scripts/check_public_claim_freshness.py"],
+            ["evidence/performance/current_performance_evidence.json"],
             notes=(
-                "Historical TPS figures are not promoted to current truth. A future performance "
-                "claim requires a fresh exact-subject benchmark with methodology and provenance."
+                "Historical TPS figures are not promoted to current truth. The dedicated "
+                "performance registry is the machine-readable authority for whether any fresh "
+                "exact-subject benchmark is eligible for a current scalar performance claim."
             ),
+            value=performance_summary,
         )
     )
 
@@ -240,7 +330,8 @@ def build() -> dict[str, Any]:
         "tracked_manifest_is_commit_agnostic": True,
         "exact_commit_binding_required_for_final_audit": True,
         "generation_inputs": {
-            str(path.relative_to(ROOT)): _sha256(path) for path in (TX_INDEX, BLOCKERS, RELEASE)
+            str(path.relative_to(ROOT)): _sha256(path)
+            for path in (TX_INDEX, BLOCKERS, RELEASE, PERFORMANCE)
         },
         "claims": claims,
     }

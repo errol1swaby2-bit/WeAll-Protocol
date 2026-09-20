@@ -1,0 +1,32 @@
+{
+  "schema": "weall.current_performance_evidence.v1",
+  "version": "1.0.0",
+  "subject_scope": "repository-current",
+  "current_scalar_tps_claim_allowed": false,
+  "qualifying_benchmarks": [],
+  "qualification_requirements": [
+    "benchmark_id",
+    "subject_commit_sha",
+    "subject_tree_sha",
+    "measured_at_utc",
+    "workload",
+    "crypto_signature_behavior",
+    "persistence_behavior",
+    "network_consensus_scope",
+    "topology",
+    "hardware",
+    "os_runtime",
+    "duration_seconds",
+    "repetitions",
+    "latency_distribution",
+    "throughput_distribution",
+    "error_rate",
+    "resource_utilization"
+  ],
+  "historical_measurements_current_claim_eligible": false,
+  "notes": [
+    "Historical TPS measurements are excluded from current verified performance claims.",
+    "A benchmark is not eligible for a current scalar TPS claim unless it is explicitly recorded here with exact subject binding and the complete qualification fields above.",
+    "An empty qualifying_benchmarks array is affirmative machine-readable evidence that no benchmark has been admitted as current performance evidence by this registry."
+  ]
+}

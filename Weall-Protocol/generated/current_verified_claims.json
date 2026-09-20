@@ -300,14 +300,18 @@
       "current_or_historical": "current",
       "evidence_found": true,
       "evidence_location": [
-        "scripts/check_public_claim_freshness.py"
+        "evidence/performance/current_performance_evidence.json"
       ],
       "evidence_required": true,
       "exact_commit_bound": false,
-      "notes": "Historical TPS figures are not promoted to current truth. A future performance claim requires a fresh exact-subject benchmark with methodology and provenance.",
+      "notes": "Historical TPS figures are not promoted to current truth. The dedicated performance registry is the machine-readable authority for whether any fresh exact-subject benchmark is eligible for a current scalar performance claim.",
       "replacement_text": null,
       "scope": "repository-current",
-      "status": "NOT_CURRENTLY_MEASURABLE"
+      "status": "NOT_CURRENTLY_MEASURABLE",
+      "value": {
+        "current_scalar_tps_claim_allowed": false,
+        "qualifying_benchmark_count": 0
+      }
     },
     {
       "claim_id": "V2-DERIVATIVE-001",
@@ -346,6 +350,7 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
+    "evidence/performance/current_performance_evidence.json": "b9afc35792d21261cc84b191e34320609c6bdc2581b38626cd1381c097cdfee1",
     "generated/public_beta_blocker_report_v1_5.json": "83c205c3db1bb28a5334b6fc2d8339826c638631a3c4fd7af63f7ad40dc2d75a",
     "generated/release_evidence_manifest_v1_5.json": "c36954a4275e0c5c2089843f0f9bcfb97227163889cba5b6b15191ea7f410a2a",
     "generated/tx_index.json": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
