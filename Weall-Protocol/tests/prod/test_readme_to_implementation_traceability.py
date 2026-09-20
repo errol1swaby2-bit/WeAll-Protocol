@@ -96,7 +96,7 @@ def test_traceability_contains_required_sections_and_verification_commands() -> 
         "## Traceability status legend",
         "## README claim map",
         "## Unsupported or narrowed README claims",
-        "## Reviewer verification commands",
+        "## Verification commands",
         "## Remaining external evidence blockers",
     ):
         assert heading in text
