@@ -30,7 +30,7 @@ cryptographic review, or a current scalar TPS measurement.
 | `BOUNDARY-PUBLIC_VALIDATOR_ENABLED` | claim_boundary | `PROVEN_GENERATED_CURRENT` | Release claim boundary `public_validator_enabled` is not claimed/enabled. | `generated/release_evidence_manifest_v1_5.json` |
 | `EXTERNAL-VALIDATION-001` | external_validation | `EXTERNAL_VALIDATION_REQUIRED` | Open release blockers still require external evidence before stronger public launch claims are allowed. | `generated/public_beta_blocker_report_v1_5.json` |
 | `CRYPTO-REVIEW-001` | cryptography | `EXTERNAL_VALIDATION_REQUIRED` | Completed production cryptographic audit and production post-quantum security are not currently claimed. | `generated/public_beta_blocker_report_v1_5.json`<br>`docs/reviewer/CURRENT_READINESS_STATEMENT.md` |
-| `PERFORMANCE-001` | performance | `NOT_CURRENTLY_MEASURABLE` | No scalar TPS value is asserted as a current verified performance claim by this manifest. | `scripts/check_public_claim_freshness.py` |
+| `PERFORMANCE-001` | performance | `NOT_CURRENTLY_MEASURABLE` | No scalar TPS value is asserted as a current verified performance claim by this manifest. | `evidence/performance/current_performance_evidence.json` |
 | `V2-DERIVATIVE-001` | generated_derivative_boundary | `SUPPORTED_BUT_QUALIFICATION_REQUIRED` | V2 structural counts and derivative fingerprints are intentionally not duplicated into this claims manifest. | `generated/v2/spec_compilation_manifest.json`<br>`scripts/compile_v2_spec.py` |
 | `TEST-EVIDENCE-001` | testing | `SUPPORTED_BUT_QUALIFICATION_REQUIRED` | Volatile pytest pass counts are intentionally not stored as a durable current claim in this tracked manifest. | `.github/workflows/backend-ci.yml`<br>`scripts/check_v2_spec_clean_checkout.py` |
 
