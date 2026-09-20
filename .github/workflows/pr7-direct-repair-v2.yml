@@ -1,0 +1,135 @@
+name: PR7 Direct Repair v2
+on:
+  push:
+    branches:
+      - genesis/post-freeze-development
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: genesis/post-freeze-development
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Remove temporary workflows from final tree
+        run: |
+          git rm -f .github/workflows/pr7-direct-m3-test-isolation.yml
+          git rm -f .github/workflows/pr7-direct-repair-v2.yml
+      - name: Patch isolated M3 negative test
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('Weall-Protocol/tests/test_m3_scope_contract.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''def test_m3_formal_traceability_refuses_missing_replacement_freeze_evidence() -> None:
+              result = subprocess.run(
+                  [sys.executable, "scripts/check_m3_requirement_traceability.py"],
+                  cwd=REPO_ROOT,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.STDOUT,
+                  check=False,
+              )
+              assert result.returncode != 0
+              assert "m3_traceability_missing:artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json" in result.stdout
+          '''
+          new = '''def test_m3_formal_traceability_refuses_missing_replacement_freeze_evidence() -> None:
+              manifest_path = REPO_ROOT / "artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json"
+              manifest_bytes = manifest_path.read_bytes() if manifest_path.is_file() else None
+              if manifest_bytes is not None:
+                  manifest_path.unlink()
+              try:
+                  result = subprocess.run(
+                      [sys.executable, "scripts/check_m3_requirement_traceability.py"],
+                      cwd=REPO_ROOT,
+                      text=True,
+                      stdout=subprocess.PIPE,
+                      stderr=subprocess.STDOUT,
+                      check=False,
+                  )
+              finally:
+                  if manifest_bytes is not None:
+                      manifest_path.write_bytes(manifest_bytes)
+              assert result.returncode != 0
+              assert "m3_traceability_missing:artifacts/m3-closure/M3_EVIDENCE_MANIFEST.json" in result.stdout
+          '''
+          if old not in text:
+              raise SystemExit('expected M3 negative test block not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Install locked backend
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Format and lint focused change
+        working-directory: Weall-Protocol
+        run: |
+          ruff format tests/test_m3_scope_contract.py
+          ruff check tests/test_m3_scope_contract.py
+      - name: Restore historical closure evidence
+        run: bash scripts/restore_m2_m3_evidence_from_git.sh --destination "$GITHUB_WORKSPACE"
+      - name: Focused regression
+        working-directory: Weall-Protocol
+        run: pytest -q tests/test_m3_scope_contract.py::test_m3_formal_traceability_refuses_missing_replacement_freeze_evidence tests/test_m3_scope_contract.py::test_m3_traceability_checker_passes
+      - name: Full backend suite
+        working-directory: Weall-Protocol
+        run: pytest -q
+      - name: Restore tracked evidence baseline
+        run: |
+          git restore --source=HEAD --worktree -- artifacts/m2-closure
+          rm -rf artifacts/m3-closure
+      - name: Refresh generated truth
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/compile_v2_spec.py
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/compile_v2_spec.py --check
+          python scripts/check_tx_canon_artifacts.py
+          python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_reviewer_truth_boundaries.py
+          python scripts/check_public_claim_freshness.py
+          ruff check .
+          ruff format --check .
+      - name: Verify bounded diff
+        run: |
+          git diff --check
+          python - <<'PY'
+          import subprocess
+          allowed = {
+              '.github/workflows/pr7-direct-m3-test-isolation.yml',
+              '.github/workflows/pr7-direct-repair-v2.yml',
+              'Weall-Protocol/tests/test_m3_scope_contract.py',
+              'Weall-Protocol/generated/release_evidence_manifest_v1_5.json',
+              'Weall-Protocol/generated/current_verified_claims.json',
+              'Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md',
+              'web/src/generated/protocolStatus.ts',
+          }
+          prefixes = ('Weall-Protocol/generated/v2/',)
+          rows = subprocess.check_output(['git','status','--porcelain=v1'], text=True).splitlines()
+          bad=[]
+          for row in rows:
+              p=row[3:]
+              if p not in allowed and not any(p.startswith(x) for x in prefixes):
+                  bad.append(p)
+          if bad:
+              raise SystemExit('unexpected paths:\n'+'\n'.join(bad))
+          print('bounded paths:', len(rows))
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Isolate M3 missing-evidence regression test'
+          git push origin HEAD:genesis/post-freeze-development
