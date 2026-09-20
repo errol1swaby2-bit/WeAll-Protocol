@@ -4748,7 +4748,7 @@
       ],
       "path": "scripts/gen_public_beta_blocker_report_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d96eaf2a6b57114a796ed71550edc79be8af2bb8298534959f69bbd761a4b356",
+      "sha256": "894ac46b95358e8f2586cb441781bf8bd2991d610148a33b3f1f8aed7de8ba93",
       "source_id": "SRC-DC86EF35EF9EB00E"
     },
     {
@@ -25172,7 +25172,7 @@
       ],
       "path": "tests/test_public_beta_blocker_report_fail_closed.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "dd6db57b3ee47a6c7a901099e9291c723939d474bed41e854dd7710fe9ea61f0",
+      "sha256": "f5e7e66046b5c208e73818b37d13171004b4396df7ba5695c76750426ddc3689",
       "source_id": "SRC-56EA4B5D08AD7EC8"
     },
     {
