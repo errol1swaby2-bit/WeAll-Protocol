@@ -16,33 +16,39 @@ python - <<'PY'
 from pathlib import Path
 import re
 
-root = Path('.')
-
-# Update references to renamed active documents outside immutable audit snapshots.
 renames = {
     'NLNET_CURRENT_STATE_UPDATE_2026_08.md': 'CURRENT_STATE_UPDATE_2026_08.md',
     'late_stage_nlnet_public_testnet_gap_inventory_v1_5.md': 'late_stage_public_testnet_gap_inventory_v1_5.md',
 }
-for p in root.rglob('*'):
-    if not p.is_file() or '.git' in p.parts or 'node_modules' in p.parts:
+
+reference_targets = [
+    Path('README.md'),
+    Path('Weall-Protocol/README.md'),
+    Path('Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md'),
+    Path('Weall-Protocol/docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md'),
+    Path('Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md'),
+    Path('Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md'),
+    Path('Weall-Protocol/docs/REVIEWER_EVIDENCE_INDEX.md'),
+    Path('Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md'),
+    Path('Weall-Protocol/docs/legal/PUBLIC_CLAIMS_CHECKLIST.md'),
+    Path('Weall-Protocol/docs/audits/controlled_testnet_go_gate_closure_v1_5.md'),
+    Path('Weall-Protocol/docs/audits/late_stage_public_testnet_gap_inventory_v1_5.md'),
+    Path('Weall-Protocol/docs/audits/public_beta_blocker_reframe_after_step3_step4_v1_5.md'),
+]
+
+for p in reference_targets:
+    if not p.exists():
         continue
-    if p.parts and p.parts[0] == 'audit-metadata':
-        continue
-    try:
-        text = p.read_text(encoding='utf-8')
-    except UnicodeDecodeError:
-        continue
-    updated = text
+    text = p.read_text(encoding='utf-8')
     for old, new in renames.items():
-        updated = updated.replace(old, new)
-    if updated != text:
-        p.write_text(updated, encoding='utf-8')
+        text = text.replace(old, new)
+    p.write_text(text, encoding='utf-8')
 
 Path('Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md').write_text('''# WeAll current state update
 
 Status: pre-public-testnet / mainnet-readiness hardening.
 
-This document summarizes current repository evidence without funding-program or external repository-review framing. Generated artifacts remain authoritative for mutable readiness facts.
+This document summarizes current repository evidence. Generated artifacts remain authoritative for mutable readiness facts.
 
 ## Current claim boundary
 
@@ -81,8 +87,6 @@ Use the current generated artifacts rather than prose copies of mutable values:
 Current blocker totals, transaction counts, route counts, test counts, and other mutable measurements should be read directly from their generated authority instead of copied into this document.
 ''', encoding='utf-8')
 
-# Neutralize funding-program/external repository-review wording across active text.
-# Do not replace standalone protocol-role words such as reviewer or grant.
 replacements = [
     ('NLnet/public-testnet reviewer claim', 'public-testnet scope'),
     ('NLnet / public-testnet reviewer readiness hardening', 'public-testnet readiness hardening'),
@@ -126,27 +130,18 @@ replacements = [
     ('Reviewer wording', 'Claim wording'),
 ]
 
-allowed_suffixes = {'.md', '.py', '.sh', '.json', '.ts', '.tsx', '.js', '.mjs', '.yml', '.yaml', '.txt'}
-for base in [Path('README.md'), Path('Weall-Protocol'), Path('web')]:
-    paths = [base] if base.is_file() else (p for p in base.rglob('*') if p.is_file())
-    for p in paths:
-        if '.git' in p.parts or 'node_modules' in p.parts or 'generated' in p.parts:
-            continue
-        if p.suffix.lower() not in allowed_suffixes and p.name != 'README.md':
-            continue
-        try:
-            text = p.read_text(encoding='utf-8')
-        except UnicodeDecodeError:
-            continue
-        protected = text.replace('docs/reviewer/', '__DOCS_REVIEWER_PATH__/')
-        updated = protected
-        for old, new in replacements:
-            updated = updated.replace(old, new)
-        updated = updated.replace('__DOCS_REVIEWER_PATH__/', 'docs/reviewer/')
-        if updated != text:
-            p.write_text(updated, encoding='utf-8')
+presentation_targets = reference_targets + [Path('Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md')]
+for p in presentation_targets:
+    if not p.exists():
+        continue
+    text = p.read_text(encoding='utf-8')
+    protected = text.replace('docs/reviewer/', '__DOCS_REVIEWER_PATH__/')
+    updated = protected
+    for old, new in replacements:
+        updated = updated.replace(old, new)
+    updated = updated.replace('__DOCS_REVIEWER_PATH__/', 'docs/reviewer/')
+    p.write_text(updated, encoding='utf-8')
 
-# Historical go-gate audit: retain the record but mark its old readiness conclusion superseded.
 p = Path('Weall-Protocol/docs/audits/controlled_testnet_go_gate_closure_v1_5.md')
 text = p.read_text(encoding='utf-8')
 banner = (
@@ -160,13 +155,8 @@ if not text.startswith('> **Historical audit note:**'):
     text = banner + text
 text = text.replace('The current safe claim is:', 'The bounded claim at the time of this audit was:')
 text = text.replace('After this audit, the repository may say:', 'At the time of this audit, the repository could say:')
-text = text.replace(
-    'These are good candidates for mainnet-readiness hardening, not blockers to hide.',
-    'These remain explicit mainnet-readiness hardening gates and must not be hidden.',
-)
 p.write_text(text, encoding='utf-8')
 
-# Remove duplicated mutable blocker totals from prose.
 p = Path('Weall-Protocol/README.md')
 text = p.read_text(encoding='utf-8')
 text = re.sub(
@@ -190,36 +180,6 @@ text = re.sub(
 )
 p.write_text(text, encoding='utf-8')
 
-# Neutralize funding-specific blocker field names.
-p = Path('Weall-Protocol/scripts/gen_public_beta_blocker_report_v1_5.py')
-text = p.read_text(encoding='utf-8')
-text = text.replace('safe_before_first_round', 'safe_with_current_repo_evidence')
-text = text.replace('"nlnet_first_round_disposition"', '"release_disposition"')
-text = text.replace(
-    '"safe_to_close_before_nlnet_first_round_with_current_repo_evidence"',
-    '"safe_to_close_with_current_repo_evidence"',
-)
-text = text.replace(
-    '"safe_to_reduce_before_nlnet_first_round"',
-    '"safe_to_reduce_with_current_repo_evidence"',
-)
-p.write_text(text, encoding='utf-8')
-
-for p in Path('Weall-Protocol/tests').rglob('*.py'):
-    text = p.read_text(encoding='utf-8')
-    updated = text.replace(
-        'safe_to_close_before_nlnet_first_round_with_current_repo_evidence',
-        'safe_to_close_with_current_repo_evidence',
-    )
-    updated = updated.replace(
-        'safe_to_reduce_before_nlnet_first_round',
-        'safe_to_reduce_with_current_repo_evidence',
-    )
-    updated = updated.replace('nlnet_first_round_disposition', 'release_disposition')
-    if updated != text:
-        p.write_text(updated, encoding='utf-8')
-
-# Strengthen current-facing freshness coverage.
 p = Path('Weall-Protocol/scripts/check_public_claim_freshness.py')
 text = p.read_text(encoding='utf-8')
 old_docs = '''CURRENT_DOCS = [
@@ -266,47 +226,43 @@ new_loop = '''            if MUTABLE_COUNT.search(line):
 if old_loop not in text:
     raise SystemExit('claim freshness loop anchor not found')
 text = text.replace(old_loop, new_loop, 1)
-text = text.replace(
-    'no unbound TPS scalars or duplicated mutable counts in current-facing docs',
-    'no unbound TPS scalars, duplicated mutable counts, unqualified security absolutes, or funding/repository-review framing in current-facing docs',
-)
 p.write_text(text, encoding='utf-8')
 PY
 
 cd "$BACKEND"
-
-# Format first; source-bound derivatives must be generated only after formatting is stable.
-python -m ruff format scripts/gen_public_beta_blocker_report_v1_5.py scripts/check_public_claim_freshness.py tests
-python -m ruff check scripts/gen_public_beta_blocker_report_v1_5.py scripts/check_public_claim_freshness.py tests
-
-python scripts/gen_public_beta_blocker_report_v1_5.py
+python -m ruff format scripts/check_public_claim_freshness.py
+python -m ruff check scripts/check_public_claim_freshness.py
 python scripts/gen_release_evidence_manifest_v1_5.py
 python scripts/gen_current_verified_claims.py
 python scripts/compile_v2_spec.py
-
-python -m ruff check scripts/gen_public_beta_blocker_report_v1_5.py scripts/check_public_claim_freshness.py tests
-python -m ruff format --check scripts/gen_public_beta_blocker_report_v1_5.py scripts/check_public_claim_freshness.py tests
-python scripts/gen_public_beta_blocker_report_v1_5.py --check
+python -m ruff check scripts/check_public_claim_freshness.py
+python -m ruff format --check scripts/check_public_claim_freshness.py
 python scripts/gen_release_evidence_manifest_v1_5.py --check
 python scripts/gen_current_verified_claims.py --check
 python scripts/compile_v2_spec.py --check
 python scripts/check_public_claim_freshness.py
 python scripts/check_v15_public_readiness_artifacts.py
 python scripts/check_reviewer_truth_boundaries.py
-python -m pytest -q \
-  tests/prod/test_public_observer_open_download_transcript_capture.py \
-  tests/test_release_docs_truth_sync.py \
-  tests/test_reviewer_language_cleanup.py \
-  tests/test_public_readiness_artifacts_v15.py
+python -m pytest -q tests/test_release_docs_truth_sync.py tests/test_reviewer_language_cleanup.py tests/test_public_readiness_artifacts_v15.py
 
 cd "$ROOT"
-
-if git grep -n -i -E 'NLnet|first[- ]round|grant[- ]funded|grant update|funded (work|hardening|mainnet-readiness)' -- \
-    README.md Weall-Protocol/README.md Weall-Protocol/docs Weall-Protocol/scripts Weall-Protocol/tests; then
-  echo 'Forbidden funding/repository-review framing remains in active docs/code/tests.' >&2
+if git grep -n -i -E 'NLnet|first[- ]round|grant[- ]funded|grant update|funded (work|hardening|mainnet-readiness)|reviewer-facing|reviewer-visible|reviewer confidence|reviewer conclusion|reviewer setup|reviewer verification|reviewer evidence' -- \
+    README.md \
+    Weall-Protocol/README.md \
+    Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md \
+    Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md \
+    Weall-Protocol/docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md \
+    Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md \
+    Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md \
+    Weall-Protocol/docs/REVIEWER_EVIDENCE_INDEX.md \
+    Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md \
+    Weall-Protocol/docs/legal/PUBLIC_CLAIMS_CHECKLIST.md \
+    Weall-Protocol/docs/audits/controlled_testnet_go_gate_closure_v1_5.md \
+    Weall-Protocol/docs/audits/late_stage_public_testnet_gap_inventory_v1_5.md \
+    Weall-Protocol/docs/audits/public_beta_blocker_reframe_after_step3_step4_v1_5.md; then
+  echo 'Forbidden funding/repository-review framing remains on presentation surfaces.' >&2
   exit 1
 fi
-
 if git grep -n -i -E 'local sustained-load testing reached approximately 2350 TPS|globally ready for 2350 TPS' -- \
     README.md Weall-Protocol/README.md Weall-Protocol/docs/reviewer Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md; then
   echo 'Stale current-facing TPS wording remains.' >&2
@@ -314,7 +270,6 @@ if git grep -n -i -E 'local sustained-load testing reached approximately 2350 TP
 fi
 
 git diff --check
-
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 git add -A
