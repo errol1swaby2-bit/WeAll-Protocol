@@ -37,8 +37,8 @@ replacements = {
             "The current repository posture is pre-public-testnet / active hardening, not public beta or mainnet.",
         ),
         (
-            "after review-prep changes are committed",
-            "after the relevant repository changes are committed",
+            "clean-checkout audit after the review-prep changes are committed.",
+            "clean-checkout audit after the relevant repository changes are committed.",
         ),
     ],
     Path("Weall-Protocol/docs/TRUTH_BOUNDARY.md"): [
@@ -91,7 +91,6 @@ pytest -q tests/prod/test_public_observer_open_download_transcript_capture.py
 
 cd "$ROOT"
 
-# Active current/generated material must no longer expose the funding-review schema names.
 if git grep -n -E 'nlnet_first_round_disposition|safe_to_close_before_nlnet_first_round_with_current_repo_evidence|safe_to_reduce_before_nlnet_first_round|keep_open_and_frame_as_mainnet_readiness_hardening' -- \
   Weall-Protocol/scripts \
   Weall-Protocol/tests \
@@ -104,7 +103,7 @@ then
   exit 1
 fi
 
-# Preserve historical audit metadata; do not rewrite it.
+# Historical audit metadata is intentionally preserved.
 
 git rm -f .github/workflows/claim-evidence-schema-neutralization-once.yml scripts/claim-evidence-schema-neutralization-once.sh
 
