@@ -2,8 +2,7 @@
 
 Status: bounded public observer / pre-public-testnet hardening framing; controlled-testnet mechanism completion is NO-GO.
 
-This is the canonical reviewer-facing statement for the current repository. It
-must be read together with:
+This is the canonical current-state statement for the repository. It must be read together with:
 
 - `generated/public_beta_blocker_report_v1_5.json`;
 - `generated/controlled_testnet_go_gate_v1_5.json`;
@@ -33,8 +32,8 @@ counts. `public_beta_ready` must remain `false` while any still-open blocker rem
 
 ## Readiness tier summary
 
-- Tier A — controlled local reviewer testnet: repository hygiene, deterministic
-  artifact checks, public-only/economics-off boundaries, and local reviewer
+- Tier A — controlled local verification testnet: repository hygiene, deterministic
+  artifact checks, public-only/economics-off boundaries, and local verification
   flows.
 - Tier B — public observer testnet: external open-download observer transcript,
   state sync, frontend rendered journey, honest transaction lifecycle, and every
@@ -74,7 +73,7 @@ The repository must not claim:
 - legal/compliance approval;
 - public storage-market readiness;
 - completed production cryptographic audit or production post-quantum security;
-- quantum-proof security;
+- unconditional or universal post-quantum security;
 - complete anti-Sybil/collusion detection;
 - complete public identity infrastructure.
 
