@@ -38,7 +38,7 @@
     },
     {
       "claim_id": "READINESS-003",
-      "claim_text": "The current reviewer framing is pre-public-testnet / active hardening, not public beta or mainnet.",
+      "claim_text": "The current repository posture is pre-public-testnet / active hardening, not public beta or mainnet.",
       "claim_type": "readiness",
       "current_or_historical": "current",
       "evidence_found": true,
@@ -346,7 +346,7 @@
   ],
   "exact_commit_binding_required_for_final_audit": true,
   "generation_inputs": {
-    "generated/public_beta_blocker_report_v1_5.json": "0745e2a61f9374d1d39bc4d7dbf40243d0d147115790476d582a3cbab602ac6c",
+    "generated/public_beta_blocker_report_v1_5.json": "607493c9ed566d1e5d0d078821a65373e8c3fbd30a65e9092364c1a3a4ddc604",
     "generated/release_evidence_manifest_v1_5.json": "5216b877aa94a87bff91cff8187900ad9798e84b1c0d58c2407597d320c160b9",
     "generated/tx_index.json": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
   },

@@ -107,6 +107,6 @@ def test_public_beta_blocker_report_still_requires_external_observer_transcript(
     assert payload["public_beta_ready"] is False
     blockers = {item["id"]: item for item in payload["blockers"]}
     blocker = blockers["AUD-628-P1-001"]
-    assert blocker["safe_to_close_before_nlnet_first_round_with_current_repo_evidence"] is False
+    assert blocker["safe_to_close_with_current_repository_evidence"] is False
     assert blocker["gate_status"] == "gate_present_external_transcript_required"
     assert "external clean-clone observer transcript" in blocker["remaining_external_evidence"]

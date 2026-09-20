@@ -18,14 +18,14 @@
       "expected_production_behavior": "Independent multi-process/operator BFT proof with churn, equivocation, partition/rejoin, restart/replay, and transcript digest.",
       "gate_status": "gate_present_external_attestation_required",
       "id": "AUD-618-P0-001",
-      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "independently operated validator run",
         "operator-signed transcript",
         "fresh checkout replay of transcript digest"
       ],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
-      "safe_to_reduce_before_nlnet_first_round": false,
+      "safe_to_close_with_current_repository_evidence": false,
+      "safe_to_reduce_with_current_evidence": false,
       "severity": "P0"
     },
     {
@@ -40,7 +40,7 @@
       "expected_production_behavior": "Counsel-reviewed public claims, token/economic/governance language, and jurisdictional risk review.",
       "gate_status": "manual_counsel_attestation_required",
       "id": "AUD-618-P0-002",
-      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "token/economics claims reviewed by counsel or controlled external reviewer",
         "governance and treasury claims reviewed by counsel or controlled external reviewer",
@@ -49,8 +49,8 @@
         "public-beta jurisdictional risk checklist completed",
         "marketing/docs checked against launch-disabled matrix"
       ],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
-      "safe_to_reduce_before_nlnet_first_round": false,
+      "safe_to_close_with_current_repository_evidence": false,
+      "safe_to_reduce_with_current_evidence": false,
       "severity": "P0"
     },
     {
@@ -65,15 +65,15 @@
       "expected_production_behavior": "Signed artifact manifests, deterministic migration vectors, rollback semantics, operator approval policy, and staged multi-node rehearsal before execution.",
       "gate_status": "hardening_plan_present_execution_still_disabled",
       "id": "AUD-618-P0-003",
-      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "future production execution gate",
         "operator approval policy",
         "multi-node rollback transcript",
         "strict external upgrade execution transcript"
       ],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
-      "safe_to_reduce_before_nlnet_first_round": false,
+      "safe_to_close_with_current_repository_evidence": false,
+      "safe_to_reduce_with_current_evidence": false,
       "severity": "P0"
     },
     {
@@ -89,15 +89,15 @@
       "expected_production_behavior": "Fresh profile-aware closed-testnet rehearsal evidence, browser/local signing boundary review, helper/evidence-signing production gates, and external crypto review before long-lived public network claims.",
       "gate_status": "gate_present_real_mldsa_integrated_external_review_required",
       "id": "AUD-633-P0-004",
-      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "fresh profile-aware testnet rehearsal",
         "browser/local signing boundary review",
         "helper/evidence signing production gate",
         "external cryptographic review"
       ],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
-      "safe_to_reduce_before_nlnet_first_round": false,
+      "safe_to_close_with_current_repository_evidence": false,
+      "safe_to_reduce_with_current_evidence": false,
       "severity": "P0"
     },
     {
@@ -111,10 +111,10 @@
       "expected_production_behavior": "Expanded response vectors cover production-critical route families and auth/error boundaries.",
       "gate_status": "closed_as_artifact_gate",
       "id": "AUD-618-P1-001",
-      "nlnet_first_round_disposition": "closed_in_repository",
+      "release_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
-      "safe_to_reduce_before_nlnet_first_round": true,
+      "safe_to_close_with_current_repository_evidence": true,
+      "safe_to_reduce_with_current_evidence": true,
       "severity": "P1"
     },
     {
@@ -128,10 +128,10 @@
       "expected_production_behavior": "Evidence bundle proves public UI/API blocks live economics, public validator join, helper execution, and protocol upgrades.",
       "gate_status": "closed_as_artifact_gate",
       "id": "AUD-618-P1-002",
-      "nlnet_first_round_disposition": "closed_in_repository",
+      "release_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
-      "safe_to_reduce_before_nlnet_first_round": true,
+      "safe_to_close_with_current_repository_evidence": true,
+      "safe_to_reduce_with_current_evidence": true,
       "severity": "P1"
     },
     {
@@ -145,14 +145,14 @@
       "expected_production_behavior": "External/two-physical-machine replay transcript proving identical state roots, vector digest, and tx-index hash on the same commit.",
       "gate_status": "gate_present_external_transcript_required",
       "id": "AUD-618-P1-003",
-      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "external machine replay transcript",
         "same-commit state-root replay transcript",
         "matching tx-index hash transcript"
       ],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
-      "safe_to_reduce_before_nlnet_first_round": false,
+      "safe_to_close_with_current_repository_evidence": false,
+      "safe_to_reduce_with_current_evidence": false,
       "severity": "P1"
     },
     {
@@ -166,13 +166,13 @@
       "expected_production_behavior": "Real daemon/operator topology with failure, retrieval, corrupt-content, wrong-CID, and revalidation transcript.",
       "gate_status": "gate_present_real_operator_rehearsal_required",
       "id": "AUD-618-P1-004",
-      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "real IPFS daemon transcript",
         "independent storage operator transcript"
       ],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
-      "safe_to_reduce_before_nlnet_first_round": false,
+      "safe_to_close_with_current_repository_evidence": false,
+      "safe_to_reduce_with_current_evidence": false,
       "severity": "P1"
     },
     {
@@ -186,15 +186,15 @@
       "expected_production_behavior": "Helper assignment, receipts, merge, crash, Byzantine, capacity/backpressure, operator policy, governance/release gate, and serial equivalence proven under production topology before activation.",
       "gate_status": "hardening_plan_present_execution_still_disabled",
       "id": "AUD-618-P1-005",
-      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "future helper production enablement governance/release gate",
         "multi-node helper topology transcript",
         "serial-equivalence corpus",
         "Byzantine helper rejection matrix"
       ],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
-      "safe_to_reduce_before_nlnet_first_round": false,
+      "safe_to_close_with_current_repository_evidence": false,
+      "safe_to_reduce_with_current_evidence": false,
       "severity": "P1"
     },
     {
@@ -208,10 +208,10 @@
       "expected_production_behavior": "One-command clean-clone gate transcript from real checkout after commit, plus tracked manifest proving which artifacts and evidence gates were checked.",
       "gate_status": "closed_as_release_evidence_manifest_gate",
       "id": "AUD-618-P1-006",
-      "nlnet_first_round_disposition": "closed_in_repository",
+      "release_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
-      "safe_to_reduce_before_nlnet_first_round": true,
+      "safe_to_close_with_current_repository_evidence": true,
+      "safe_to_reduce_with_current_evidence": true,
       "severity": "P1"
     },
     {
@@ -225,14 +225,14 @@
       "expected_production_behavior": "Clean-clone transcript proves signed registry discovery, seed/validator peer discovery, state sync, and frontend visibility from a new user environment.",
       "gate_status": "gate_present_external_transcript_required",
       "id": "AUD-628-P1-001",
-      "nlnet_first_round_disposition": "keep_open_and_frame_as_mainnet_readiness_hardening",
+      "release_disposition": "keep_open_as_mainnet_readiness_hardening",
       "remaining_external_evidence": [
         "external clean-clone observer transcript",
         "state-sync proof",
         "rendered frontend operator journey"
       ],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": false,
-      "safe_to_reduce_before_nlnet_first_round": false,
+      "safe_to_close_with_current_repository_evidence": false,
+      "safe_to_reduce_with_current_evidence": false,
       "severity": "P1"
     },
     {
@@ -246,10 +246,10 @@
       "expected_production_behavior": "Guided operator wizard explains blockers and safe commands without hidden state mutation.",
       "gate_status": "closed_as_frontend_source_gate",
       "id": "AUD-618-P2-001",
-      "nlnet_first_round_disposition": "closed_in_repository",
+      "release_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
-      "safe_to_reduce_before_nlnet_first_round": true,
+      "safe_to_close_with_current_repository_evidence": true,
+      "safe_to_reduce_with_current_evidence": true,
       "severity": "P2"
     },
     {
@@ -263,10 +263,10 @@
       "expected_production_behavior": "Show submitted, locally accepted, queued/pending, forwarded/gossiped, included, finalized/confirmed, rejected, and removed-from-mempool stages without treating mempool acceptance as confirmation.",
       "gate_status": "closed_as_frontend_source_gate",
       "id": "AUD-618-P2-002",
-      "nlnet_first_round_disposition": "closed_in_repository",
+      "release_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
-      "safe_to_reduce_before_nlnet_first_round": true,
+      "safe_to_close_with_current_repository_evidence": true,
+      "safe_to_reduce_with_current_evidence": true,
       "severity": "P2"
     },
     {
@@ -280,10 +280,10 @@
       "expected_production_behavior": "Incident timeline ties mempool, peer sync, block, BFT, storage, and role blockers.",
       "gate_status": "closed_as_frontend_source_gate",
       "id": "AUD-618-P2-003",
-      "nlnet_first_round_disposition": "closed_in_repository",
+      "release_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
-      "safe_to_reduce_before_nlnet_first_round": true,
+      "safe_to_close_with_current_repository_evidence": true,
+      "safe_to_reduce_with_current_evidence": true,
       "severity": "P2"
     },
     {
@@ -297,10 +297,10 @@
       "expected_production_behavior": "One-page choose-your-node-mode quickstart.",
       "gate_status": "closed_as_docs_gate",
       "id": "AUD-618-P3-001",
-      "nlnet_first_round_disposition": "closed_in_repository",
+      "release_disposition": "closed_in_repository",
       "remaining_external_evidence": [],
-      "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": true,
-      "safe_to_reduce_before_nlnet_first_round": true,
+      "safe_to_close_with_current_repository_evidence": true,
+      "safe_to_reduce_with_current_evidence": true,
       "severity": "P3"
     }
   ],

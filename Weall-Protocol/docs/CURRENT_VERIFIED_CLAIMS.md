@@ -5,7 +5,7 @@
 
 This artifact summarizes bounded claims supported by canonical repository artifacts.
 It is intentionally commit-agnostic: final exact-commit binding is established by the
-clean-checkout audit after the review-prep changes are committed.
+clean-checkout audit after the relevant repository changes are committed.
 
 It does **not** claim public beta readiness, mainnet readiness, completed external
 cryptographic review, or a current scalar TPS measurement.
@@ -16,7 +16,7 @@ cryptographic review, or a current scalar TPS measurement.
 | --- | --- | --- | --- | --- |
 | `READINESS-001` | readiness | `PROVEN_GENERATED_CURRENT` | Public beta readiness is not currently claimed. | `generated/public_beta_blocker_report_v1_5.json`<br>`generated/release_evidence_manifest_v1_5.json` |
 | `READINESS-002` | readiness | `PROVEN_GENERATED_CURRENT` | Mainnet readiness is not currently claimed. | `generated/public_beta_blocker_report_v1_5.json`<br>`generated/release_evidence_manifest_v1_5.json` |
-| `READINESS-003` | readiness | `SUPPORTED_BUT_QUALIFICATION_REQUIRED` | The current reviewer framing is pre-public-testnet / active hardening, not public beta or mainnet. | `docs/reviewer/CURRENT_READINESS_STATEMENT.md`<br>`docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md`<br>`generated/public_beta_blocker_report_v1_5.json` |
+| `READINESS-003` | readiness | `SUPPORTED_BUT_QUALIFICATION_REQUIRED` | The current repository posture is pre-public-testnet / active hardening, not public beta or mainnet. | `docs/reviewer/CURRENT_READINESS_STATEMENT.md`<br>`docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md`<br>`generated/public_beta_blocker_report_v1_5.json` |
 | `TX-CANON-001` | structural_count | `PROVEN_GENERATED_CURRENT` | The canonical transaction index count and version are generated facts. | `generated/tx_index.json` |
 | `BOUNDARY-AUTOMATIC_PROTOCOL_UPGRADES` | claim_boundary | `PROVEN_GENERATED_CURRENT` | Release claim boundary `automatic_protocol_upgrades` is not claimed/enabled. | `generated/release_evidence_manifest_v1_5.json` |
 | `BOUNDARY-LEGAL_COMPLIANCE_READY` | claim_boundary | `PROVEN_GENERATED_CURRENT` | Release claim boundary `legal_compliance_ready` is not claimed/enabled. | `generated/release_evidence_manifest_v1_5.json` |

@@ -276,31 +276,31 @@ def _classify_blocker(
     if gate_status.startswith("closed"):
         category = "closed_by_artifact_or_docs"
         disposition = "closed_in_repository"
-        safe_before_first_round = True
+        safe_with_current_evidence = True
     elif remaining_external_evidence:
         category = "external_evidence_required"
-        disposition = "keep_open_and_frame_as_mainnet_readiness_hardening"
-        safe_before_first_round = False
+        disposition = "keep_open_as_mainnet_readiness_hardening"
+        safe_with_current_evidence = False
     elif gate_status.startswith("tracked_as_frontend") or gate_status.startswith(
         "partially_closed"
     ):
         category = "ux_or_observability_follow_up"
         disposition = "safe_to_reduce_with_bounded_frontend_docs_or_tests"
-        safe_before_first_round = True
+        safe_with_current_evidence = True
     elif can_be_closed_by_code_only:
         category = "code_or_test_hardening"
         disposition = "safe_to_reduce_only_with_fresh_tests_and_artifacts"
-        safe_before_first_round = severity not in {"P0"}
+        safe_with_current_evidence = severity not in {"P0"}
     else:
         category = "manual_attestation_required"
         disposition = "keep_open_until_external_attestation"
-        safe_before_first_round = False
+        safe_with_current_evidence = False
     return {
         "blocker_category": category,
-        "nlnet_first_round_disposition": disposition,
-        "safe_to_close_before_nlnet_first_round_with_current_repo_evidence": safe_before_first_round
+        "release_disposition": disposition,
+        "safe_to_close_with_current_repository_evidence": safe_with_current_evidence
         and gate_status.startswith("closed"),
-        "safe_to_reduce_before_nlnet_first_round": safe_before_first_round,
+        "safe_to_reduce_with_current_evidence": safe_with_current_evidence,
     }
 
 

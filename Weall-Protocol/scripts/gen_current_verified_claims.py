@@ -113,7 +113,7 @@ def build() -> dict[str, Any]:
         _claim(
             "READINESS-003",
             "readiness",
-            "The current reviewer framing is pre-public-testnet / active hardening, not public beta or mainnet.",
+            "The current repository posture is pre-public-testnet / active hardening, not public beta or mainnet.",
             "SUPPORTED_BUT_QUALIFICATION_REQUIRED",
             [
                 "docs/reviewer/CURRENT_READINESS_STATEMENT.md",
@@ -260,7 +260,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "",
         "This artifact summarizes bounded claims supported by canonical repository artifacts.",
         "It is intentionally commit-agnostic: final exact-commit binding is established by the",
-        "clean-checkout audit after the review-prep changes are committed.",
+        "clean-checkout audit after the relevant repository changes are committed.",
         "",
         "It does **not** claim public beta readiness, mainnet readiness, completed external",
         "cryptographic review, or a current scalar TPS measurement.",
