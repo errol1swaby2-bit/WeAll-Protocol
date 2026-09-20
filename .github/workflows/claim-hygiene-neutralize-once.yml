@@ -59,6 +59,27 @@ jobs:
               '        "## Verification path",',
           )
           p.write_text(text, encoding="utf-8")
+
+          presentation_replacements = {
+              Path("docs/REVIEWER_EVIDENCE_INDEX.md"): [
+                  ("# WeAll reviewer Evidence Index", "# WeAll Verification Evidence Index"),
+                  ("# WeAll Reviewer Evidence Index", "# WeAll Verification Evidence Index"),
+              ],
+              Path("docs/reviewer/EVIDENCE_INDEX.md"): [
+                  ("# Reviewer Evidence Index", "# Verification Evidence Index"),
+              ],
+              Path("docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md"): [
+                  ("Reviewer verification command", "Verification command"),
+                  ("Reviewer verification commands", "Verification commands"),
+                  ("reviewer verification command", "verification command"),
+                  ("reviewer verification commands", "verification commands"),
+              ],
+          }
+          for path, replacements in presentation_replacements.items():
+              text = path.read_text(encoding="utf-8")
+              for old, new in replacements:
+                  text = text.replace(old, new)
+              path.write_text(text, encoding="utf-8")
           PY
 
           PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py
