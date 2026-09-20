@@ -1,0 +1,300 @@
+name: Blocker report hardening one-shot
+
+on:
+  push:
+    branches:
+      - blocker-report-fail-closed-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: blocker-report-fail-closed-hardening
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r Weall-Protocol/requirements-dev.lock
+
+      - name: Apply bounded blocker-report hardening
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('Weall-Protocol/scripts/gen_public_beta_blocker_report_v1_5.py')
+          text = path.read_text(encoding='utf-8')
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one replacement target, found {count}: {old[:140]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              '''def _classify_blocker(
+              *,
+              severity: str,
+              gate_status: str,
+              remaining_external_evidence: list[str],
+              can_be_closed_by_code_only: bool,
+          ) -> Json:
+              if gate_status.startswith("closed"):
+                  category = "closed_by_artifact_or_docs"
+                  disposition = "closed_in_repository"
+                  safe_with_current_evidence = True
+              elif remaining_external_evidence:
+                  category = "external_evidence_required"
+                  disposition = "keep_open_as_mainnet_readiness_hardening"
+                  safe_with_current_evidence = False
+          ''',
+              '''def _classify_blocker(
+              *,
+              severity: str,
+              blocks: list[str],
+              gate_status: str,
+              remaining_external_evidence: list[str],
+              can_be_closed_by_code_only: bool,
+          ) -> Json:
+              if gate_status.startswith("closed"):
+                  category = "closed_by_artifact_or_docs"
+                  disposition = "closed_in_repository"
+                  safe_with_current_evidence = True
+              elif remaining_external_evidence:
+                  category = "external_evidence_required"
+                  blocked_surface = "_and_".join(blocks) if blocks else "unspecified_surface"
+                  disposition = f"keep_open_for_{blocked_surface}_external_evidence"
+                  safe_with_current_evidence = False
+          ''',
+          )
+
+          replace_once(
+              '''    classification = _classify_blocker(
+                  severity=severity,
+                  gate_status=gate_status,
+                  remaining_external_evidence=remaining,
+                  can_be_closed_by_code_only=can_be_closed_by_code_only,
+              )
+          ''',
+              '''    classification = _classify_blocker(
+                  severity=severity,
+                  blocks=blocks,
+                  gate_status=gate_status,
+                  remaining_external_evidence=remaining,
+                  can_be_closed_by_code_only=can_be_closed_by_code_only,
+              )
+          ''',
+          )
+
+          replace_once(
+              '''    high_risk_disabled = all(
+                  record.get("enabled") is False
+                  for record in (capabilities.get("capabilities") or {}).values()
+                  if isinstance(record, dict)
+              )
+          ''',
+              '''    capability_records = capabilities.get("capabilities")
+              capability_surface_well_formed = bool(
+                  isinstance(capability_records, dict)
+                  and capability_records
+                  and all(
+                      isinstance(record, dict) and isinstance(record.get("enabled"), bool)
+                      for record in capability_records.values()
+                  )
+              )
+              high_risk_disabled = bool(
+                  capability_surface_well_formed
+                  and all(record["enabled"] is False for record in capability_records.values())
+              )
+          ''',
+          )
+
+          replace_once(
+              '''            True,
+                      [
+                          "future production execution gate",
+          ''',
+              '''            False,
+                      [
+                          "future production execution gate",
+          ''',
+          )
+
+          replace_once(
+              '''            True,
+                      [
+                          "future helper production enablement governance/release gate",
+          ''',
+              '''            False,
+                      [
+                          "future helper production enablement governance/release gate",
+          ''',
+          )
+
+          replace_once(
+              '''    remaining = [
+                  b
+                  for b in blockers
+                  if b["remaining_external_evidence"]
+                  or b["gate_status"].startswith("tracked_as")
+                  or b["gate_status"].endswith("required")
+              ]
+          ''',
+              '''    # Fail closed: every blocker that is not explicitly closed remains open.
+              # This intentionally treats statuses such as "gate_failed",
+              # "needs_more_vectors", "tracked_as_*", "partially_closed_*", and
+              # "*_required" as open without depending on naming accidents.
+              remaining = [
+                  b
+                  for b in blockers
+                  if not str(b.get("gate_status", "")).startswith("closed")
+              ]
+          ''',
+          )
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          cat > Weall-Protocol/tests/test_public_beta_blocker_report_fail_closed.py <<'PYTEST'
+          from __future__ import annotations
+
+          import importlib.util
+          from pathlib import Path
+
+
+          MODULE_PATH = (
+              Path(__file__).resolve().parents[1]
+              / "scripts"
+              / "gen_public_beta_blocker_report_v1_5.py"
+          )
+
+
+          def _load_module():
+              spec = importlib.util.spec_from_file_location(
+                  "gen_public_beta_blocker_report_under_test",
+                  MODULE_PATH,
+              )
+              assert spec is not None and spec.loader is not None
+              module = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              return module
+
+
+          def test_external_evidence_disposition_tracks_actual_blocked_surface() -> None:
+              module = _load_module()
+              result = module._classify_blocker(
+                  severity="P1",
+                  blocks=["public_observer_launch"],
+                  gate_status="gate_present_external_transcript_required",
+                  remaining_external_evidence=["external observer transcript"],
+                  can_be_closed_by_code_only=False,
+              )
+              assert result["blocker_category"] == "external_evidence_required"
+              assert result["release_disposition"] == "keep_open_for_public_observer_launch_external_evidence"
+              assert result["safe_to_close_with_current_repository_evidence"] is False
+              assert result["safe_to_reduce_with_current_evidence"] is False
+
+
+          def test_external_evidence_disposition_handles_multiple_blocked_surfaces() -> None:
+              module = _load_module()
+              result = module._classify_blocker(
+                  severity="P0",
+                  blocks=["public_beta", "mainnet"],
+                  gate_status="gate_present_external_attestation_required",
+                  remaining_external_evidence=["operator-signed transcript"],
+                  can_be_closed_by_code_only=False,
+              )
+              assert result["release_disposition"] == "keep_open_for_public_beta_and_mainnet_external_evidence"
+
+
+          def test_closed_gate_remains_closed() -> None:
+              module = _load_module()
+              result = module._classify_blocker(
+                  severity="P1",
+                  blocks=["public_beta"],
+                  gate_status="closed_as_artifact_gate",
+                  remaining_external_evidence=[],
+                  can_be_closed_by_code_only=True,
+              )
+              assert result["blocker_category"] == "closed_by_artifact_or_docs"
+              assert result["release_disposition"] == "closed_in_repository"
+              assert result["safe_to_close_with_current_repository_evidence"] is True
+
+
+          def test_failed_gate_without_external_evidence_is_not_classified_closed() -> None:
+              module = _load_module()
+              result = module._classify_blocker(
+                  severity="P1",
+                  blocks=["public_beta"],
+                  gate_status="gate_failed",
+                  remaining_external_evidence=[],
+                  can_be_closed_by_code_only=True,
+              )
+              assert result["blocker_category"] == "code_or_test_hardening"
+              assert result["safe_to_close_with_current_repository_evidence"] is False
+
+
+          def test_needs_more_vectors_without_external_evidence_is_not_classified_closed() -> None:
+              module = _load_module()
+              result = module._classify_blocker(
+                  severity="P1",
+                  blocks=["public_beta"],
+                  gate_status="needs_more_vectors",
+                  remaining_external_evidence=[],
+                  can_be_closed_by_code_only=True,
+              )
+              assert result["blocker_category"] == "code_or_test_hardening"
+              assert result["safe_to_close_with_current_repository_evidence"] is False
+          PYTEST
+
+      - name: Remove one-shot workflow before source-sensitive generation
+        run: rm .github/workflows/blocker-report-hardening-one-shot.yml
+
+      - name: Format, regenerate, and validate
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cd Weall-Protocol
+          python -m ruff format scripts/gen_public_beta_blocker_report_v1_5.py tests/test_public_beta_blocker_report_fail_closed.py
+          python -m ruff check scripts/gen_public_beta_blocker_report_v1_5.py tests/test_public_beta_blocker_report_fail_closed.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py
+          PYTHONPATH=src:scripts python scripts/compile_v2_spec.py
+          PYTHONPATH=src:scripts python -m pytest -q \
+            tests/test_public_beta_blocker_report_fail_closed.py \
+            tests/test_current_verified_claims_fail_closed.py \
+            tests/prod/test_public_beta_evidence_gates.py \
+            tests/test_public_readiness_artifacts_v15.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py --check
+          PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked
+          PYTHONPATH=src python scripts/check_public_claim_freshness.py
+          PYTHONPATH=src:scripts python scripts/compile_v2_spec.py --check
+          cd ..
+          git diff --check
+
+      - name: Commit validated final tree
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git status --short
+          git commit -m 'Harden blocker report fail-closed accounting'
+          git push origin HEAD:blocker-report-fail-closed-hardening
