@@ -53,7 +53,9 @@ def live_observer_count(panel_size: int) -> int:
     return max(0, size - live_active_reviewer_count(size))
 
 
-def required_live_passes(verdict_count: int, *, numerator: Any = None, denominator: Any = None) -> int:
+def required_live_passes(
+    verdict_count: int, *, numerator: Any = None, denominator: Any = None
+) -> int:
     """Return deterministic n for an n-of-m percentile threshold.
 
     Example with the default 2/3 threshold:

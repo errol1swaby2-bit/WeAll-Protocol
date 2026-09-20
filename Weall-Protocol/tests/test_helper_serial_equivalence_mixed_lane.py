@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import pytest
 
@@ -13,15 +14,16 @@ from weall.runtime.helper_certificates import (
 from weall.runtime.parallel_execution import (
     LanePlan,
     canonical_lane_plan_fingerprint,
-    verify_serial_helper_equivalence,
     plan_parallel_execution,
+    verify_serial_helper_equivalence,
 )
-
 
 Json = dict[str, Any]
 
 
-def _serial_executor(txs: list[dict], _leader_context: dict | None = None) -> tuple[list[dict], dict]:
+def _serial_executor(
+    txs: list[dict], _leader_context: dict | None = None
+) -> tuple[list[dict], dict]:
     receipts = []
     for tx in txs:
         receipts.append(
@@ -35,7 +37,14 @@ def _serial_executor(txs: list[dict], _leader_context: dict | None = None) -> tu
     return receipts, {"count": len(receipts)}
 
 
-def _tx(tx_id: str, tx_type: str, *, read_set: list[str] | None = None, write_set: list[str] | None = None, state_prefixes: list[str] | None = None) -> Json:
+def _tx(
+    tx_id: str,
+    tx_type: str,
+    *,
+    read_set: list[str] | None = None,
+    write_set: list[str] | None = None,
+    state_prefixes: list[str] | None = None,
+) -> Json:
     row: Json = {"tx_id": tx_id, "tx_type": tx_type}
     if read_set is not None:
         row["read_set"] = list(read_set)
@@ -50,22 +59,81 @@ CORPUS: tuple[tuple[str, list[Json]], ...] = (
     (
         "content_identity_social_governance_economics",
         [
-            _tx("t1", "CONTENT_CREATE", write_set=["content:post:1"], state_prefixes=["content:post:1"]),
-            _tx("t2", "CONTENT_CREATE", write_set=["content:post:2"], state_prefixes=["content:post:2"]),
-            _tx("t3", "IDENTITY_UPDATE", read_set=["identity:user:alice"], write_set=["identity:user:alice"], state_prefixes=["identity:user:alice"]),
-            _tx("t4", "SOCIAL_FOLLOW", write_set=["social:follow:@alice:@bob"], state_prefixes=["social:follow:@alice:@bob"]),
-            _tx("t5", "GROUP_MEMBERSHIP_REQUEST", write_set=["group:membership:g1:@alice"], state_prefixes=["group:membership:g1:@alice"]),
-            _tx("t6", "TREASURY_SPEND_PROPOSE", write_set=["treasury:proposal:tr1:p1"], state_prefixes=["treasury:proposal:tr1:p1"]),
+            _tx(
+                "t1",
+                "CONTENT_CREATE",
+                write_set=["content:post:1"],
+                state_prefixes=["content:post:1"],
+            ),
+            _tx(
+                "t2",
+                "CONTENT_CREATE",
+                write_set=["content:post:2"],
+                state_prefixes=["content:post:2"],
+            ),
+            _tx(
+                "t3",
+                "IDENTITY_UPDATE",
+                read_set=["identity:user:alice"],
+                write_set=["identity:user:alice"],
+                state_prefixes=["identity:user:alice"],
+            ),
+            _tx(
+                "t4",
+                "SOCIAL_FOLLOW",
+                write_set=["social:follow:@alice:@bob"],
+                state_prefixes=["social:follow:@alice:@bob"],
+            ),
+            _tx(
+                "t5",
+                "GROUP_MEMBERSHIP_REQUEST",
+                write_set=["group:membership:g1:@alice"],
+                state_prefixes=["group:membership:g1:@alice"],
+            ),
+            _tx(
+                "t6",
+                "TREASURY_SPEND_PROPOSE",
+                write_set=["treasury:proposal:tr1:p1"],
+                state_prefixes=["treasury:proposal:tr1:p1"],
+            ),
         ],
     ),
     (
         "storage_notifications_roles_rewards",
         [
-            _tx("u1", "STORAGE_PROOF_SUBMIT", read_set=["storage:lease:l1"], write_set=["storage:proof:l1:1"], state_prefixes=["storage:lease:l1", "storage:proof:l1:1"]),
-            _tx("u2", "STORAGE_CHALLENGE_RESPOND", read_set=["storage:challenge:c1"], write_set=["storage:challenge:c1:response"], state_prefixes=["storage:challenge:c1", "storage:challenge:c1:response"]),
-            _tx("u3", "NOTIFICATION_SUBSCRIBE", write_set=["notification:topic:governance:@alice"], state_prefixes=["notification:topic:governance:@alice"]),
-            _tx("u4", "ROLE_GRANT", write_set=["role:group:g1:moderator:@alice"], state_prefixes=["role:group:g1:moderator:@alice"]),
-            _tx("u5", "REWARDS_CLAIM", read_set=["rewards:claimable:@alice"], write_set=["rewards:claimed:@alice:1"], state_prefixes=["rewards:claimable:@alice", "rewards:claimed:@alice:1"]),
+            _tx(
+                "u1",
+                "STORAGE_PROOF_SUBMIT",
+                read_set=["storage:lease:l1"],
+                write_set=["storage:proof:l1:1"],
+                state_prefixes=["storage:lease:l1", "storage:proof:l1:1"],
+            ),
+            _tx(
+                "u2",
+                "STORAGE_CHALLENGE_RESPOND",
+                read_set=["storage:challenge:c1"],
+                write_set=["storage:challenge:c1:response"],
+                state_prefixes=["storage:challenge:c1", "storage:challenge:c1:response"],
+            ),
+            _tx(
+                "u3",
+                "NOTIFICATION_SUBSCRIBE",
+                write_set=["notification:topic:governance:@alice"],
+                state_prefixes=["notification:topic:governance:@alice"],
+            ),
+            _tx(
+                "u4",
+                "ROLE_GRANT",
+                write_set=["role:group:g1:moderator:@alice"],
+                state_prefixes=["role:group:g1:moderator:@alice"],
+            ),
+            _tx(
+                "u5",
+                "REWARDS_CLAIM",
+                read_set=["rewards:claimable:@alice"],
+                write_set=["rewards:claimed:@alice:1"],
+                state_prefixes=["rewards:claimable:@alice", "rewards:claimed:@alice:1"],
+            ),
         ],
     ),
 )
@@ -90,11 +158,20 @@ def _lane_delta_ops(plan: LanePlan) -> list[Json]:
             "path": prefix,
             "value": f"applied:{tx_id}",
         }
-        for tx_id, prefix in zip(plan.tx_ids, plan.namespace_prefixes)
+        # Each transaction uses its first declared namespace in this synthetic delta.
+        for tx_id, prefix in zip(plan.tx_ids, plan.namespace_prefixes, strict=False)
     ]
 
 
-def _mk_cert(plan: LanePlan, *, block_height: int, view: int, validator_epoch: int, validator_set_hash: str, plan_id: str) -> HelperExecutionCertificate:
+def _mk_cert(
+    plan: LanePlan,
+    *,
+    block_height: int,
+    view: int,
+    validator_epoch: int,
+    validator_set_hash: str,
+    plan_id: str,
+) -> HelperExecutionCertificate:
     receipts = _lane_receipts(plan)
     delta_ops = _lane_delta_ops(plan)
     return HelperExecutionCertificate(
@@ -118,7 +195,9 @@ def _mk_cert(plan: LanePlan, *, block_height: int, view: int, validator_epoch: i
 
 
 @pytest.mark.parametrize(("_name", "txs"), CORPUS)
-def test_helper_serial_equivalence_corpus_under_mixed_lane_pressure(_name: str, txs: list[Json]) -> None:
+def test_helper_serial_equivalence_corpus_under_mixed_lane_pressure(
+    _name: str, txs: list[Json]
+) -> None:
     lane_plans = plan_parallel_execution(
         txs=list(txs),
         validators=["v1", "v2", "v3", "v4"],

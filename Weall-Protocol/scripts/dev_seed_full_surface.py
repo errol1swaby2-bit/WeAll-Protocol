@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
 
 from weall.crypto.sig import sign_tx_envelope_dict
 
@@ -54,7 +53,9 @@ def _cfg() -> Cfg:
             )
         )
     )
-    fixture_post_body = str(_env("WEALL_DEV_FIXTURE_POST_BODY", "Dev full-surface bootstrap post")).strip()
+    fixture_post_body = str(
+        _env("WEALL_DEV_FIXTURE_POST_BODY", "Dev full-surface bootstrap post")
+    ).strip()
     fixture_post_id = str(_env("WEALL_DEV_FIXTURE_POST_ID", f"post:{account}:fixture")).strip()
     return Cfg(
         api=api,
@@ -78,7 +79,9 @@ def _seed_material() -> tuple[str, str, str]:
     return priv_hex, pub_hex, secret_key_b64
 
 
-def _http_json(method: str, url: str, body: Json | None = None, headers: dict[str, str] | None = None) -> tuple[int, Any]:
+def _http_json(
+    method: str, url: str, body: Json | None = None, headers: dict[str, str] | None = None
+) -> tuple[int, Any]:
     payload = None
     req_headers = {"Accept": "application/json"}
     if headers:
@@ -161,7 +164,9 @@ def _wait_tx_confirmed(cfg: Cfg, tx_id: str) -> Json:
     raise RuntimeError(f"tx did not confirm in time: {tx_id} last={last}")
 
 
-def _wait_account(cfg: Cfg, account: str, *, nonce_at_least: int | None = None, tier_at_least: int | None = None) -> Json:
+def _wait_account(
+    cfg: Cfg, account: str, *, nonce_at_least: int | None = None, tier_at_least: int | None = None
+) -> Json:
     deadline = time.time() + cfg.wait_apply_s
     last: Json = {}
     while time.time() < deadline:
@@ -170,7 +175,10 @@ def _wait_account(cfg: Cfg, account: str, *, nonce_at_least: int | None = None, 
             continue
         last = _account_state(cfg, account)
         nonce_ok = nonce_at_least is None or int(last.get("nonce") or 0) >= nonce_at_least
-        tier_ok = tier_at_least is None or int(last.get("poh_tier") or last.get("tier") or 0) >= tier_at_least
+        tier_ok = (
+            tier_at_least is None
+            or int(last.get("poh_tier") or last.get("tier") or 0) >= tier_at_least
+        )
         if nonce_ok and tier_ok:
             return last
         time.sleep(cfg.poll_s)
@@ -252,7 +260,9 @@ def _seed_demo_objects(cfg: Cfg) -> Json:
     return _post(cfg, "/v1/dev/demo-seed", {"account": cfg.account, "post_id": cfg.fixture_post_id})
 
 
-def _write_manifest(cfg: Cfg, *, secret_key_b64: str, pub_hex: str, seeded_demo: Json | None = None) -> Path:
+def _write_manifest(
+    cfg: Cfg, *, secret_key_b64: str, pub_hex: str, seeded_demo: Json | None = None
+) -> Path:
     manifest = {
         "profile": "dev_full_surface",
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -266,7 +276,9 @@ def _write_manifest(cfg: Cfg, *, secret_key_b64: str, pub_hex: str, seeded_demo:
     if isinstance(seeded_demo, dict) and seeded_demo:
         manifest["seededDemo"] = seeded_demo
     cfg.bootstrap_manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    cfg.bootstrap_manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    cfg.bootstrap_manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return cfg.bootstrap_manifest_path
 
 
@@ -279,7 +291,9 @@ def main() -> int:
     state = _ensure_live(cfg, priv_hex=priv_hex)
     _ensure_fixture_post(cfg, priv_hex=priv_hex)
     seeded_demo = _seed_demo_objects(cfg)
-    manifest_path = _write_manifest(cfg, secret_key_b64=secret_key_b64, pub_hex=pub_hex, seeded_demo=seeded_demo)
+    manifest_path = _write_manifest(
+        cfg, secret_key_b64=secret_key_b64, pub_hex=pub_hex, seeded_demo=seeded_demo
+    )
 
     summary = {
         "ok": True,

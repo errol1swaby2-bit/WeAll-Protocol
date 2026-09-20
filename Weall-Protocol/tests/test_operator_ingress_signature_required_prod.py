@@ -22,7 +22,9 @@ def _executor(tmp_path: Path, *, chain_id: str = "operator-ingress-prod") -> WeA
     )
 
 
-def _signed_account_register(*, chain_id: str, signer: str = "@operatoruser", nonce: int = 1) -> dict[str, object]:
+def _signed_account_register(
+    *, chain_id: str, signer: str = "@operatoruser", nonce: int = 1
+) -> dict[str, object]:
     pub, priv = deterministic_mldsa_keypair(label=signer)
     payload = {"pubkey": pub}
     msg = canonical_tx_message(
@@ -44,7 +46,9 @@ def _signed_account_register(*, chain_id: str, signer: str = "@operatoruser", no
     }
 
 
-def test_prod_operator_ingress_rejects_unsigned_user_tx(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_operator_ingress_rejects_unsigned_user_tx(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _executor(tmp_path)
 
@@ -96,7 +100,6 @@ def test_explicit_public_ingress_rejects_malformed_modeled_payload_before_accept
     assert verdict.reason == "schema_validation_failed"
 
 
-
 def test_prod_operator_ingress_rejects_bad_signature_and_accepts_valid_signed_registration(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -115,8 +118,9 @@ def test_prod_operator_ingress_rejects_bad_signature_and_accepts_valid_signed_re
     assert accepted["tx_id"]
 
 
-
-def test_prod_operator_ingress_rejects_system_tx_injection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_prod_operator_ingress_rejects_system_tx_injection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     ex = _executor(tmp_path)
 
@@ -134,7 +138,6 @@ def test_prod_operator_ingress_rejects_system_tx_injection(tmp_path: Path, monke
     assert verdict.code == "system_tx_forbidden"
 
 
-
 def test_api_routes_call_submit_tx_with_explicit_public_ingress() -> None:
     offenders: list[str] = []
     for path in API_ROOT.rglob("*.py"):
@@ -143,6 +146,6 @@ def test_api_routes_call_submit_tx_with_explicit_public_ingress() -> None:
             continue
         for line_no, line in enumerate(text.splitlines(), start=1):
             if "submit_tx(" in line and "def submit_tx" not in line:
-                if "ingress=\"http\"" not in line and "ingress='http'" not in line:
+                if 'ingress="http"' not in line and "ingress='http'" not in line:
                     offenders.append(f"{path.relative_to(ROOT)}:{line_no}:{line.strip()}")
     assert offenders == []

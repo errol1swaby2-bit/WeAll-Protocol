@@ -9,7 +9,6 @@ instances and intentionally preserve behavior byte-for-byte where possible.
 """
 
 
-
 from weall.runtime.attestation_pool import PersistentAttestationPool
 from weall.runtime.executor import (
     Json,
@@ -17,16 +16,20 @@ from weall.runtime.executor import (
 )
 from weall.runtime.mempool import PersistentMempool
 
+
 def mempool(self) -> PersistentMempool:
     return self._mempool
 
+
 def attestation_pool(self) -> PersistentAttestationPool:
     return self._att_pool
+
 
 def read_mempool(self, *, limit: int = 10_000) -> list[Json]:
     """Ops/test helper: inspect the current mempool."""
     lim = int(limit) if int(limit) > 0 else 10_000
     return self._mempool.peek(limit=lim)
+
 
 def mempool_selection_diagnostics(self, *, preview_limit: int = 10) -> Json:
     base: Json = {}
@@ -45,14 +48,23 @@ def mempool_selection_diagnostics(self, *, preview_limit: int = 10) -> Json:
         base["last_candidate"] = dict(last)
     return base
 
+
 def helper_execution_diagnostics(self) -> Json:
     meta_root = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
-    marker = meta_root.get("helper_execution_last") if isinstance(meta_root.get("helper_execution_last"), dict) else None
+    marker = (
+        meta_root.get("helper_execution_last")
+        if isinstance(meta_root.get("helper_execution_last"), dict)
+        else None
+    )
     if not isinstance(marker, dict):
         return {}
     out = dict(marker)
     merge_summary = out.get("merge_summary") if isinstance(out.get("merge_summary"), dict) else {}
-    lane_decisions = merge_summary.get("lane_decisions") if isinstance(merge_summary.get("lane_decisions"), list) else []
+    lane_decisions = (
+        merge_summary.get("lane_decisions")
+        if isinstance(merge_summary.get("lane_decisions"), list)
+        else []
+    )
     lanes = out.get("lanes") if isinstance(out.get("lanes"), list) else []
     fallback_reason_counts: dict[str, int] = {}
     helper_lane_count = 0
@@ -90,12 +102,14 @@ def helper_execution_diagnostics(self) -> Json:
     }
     return out
 
+
 def transition_guardrail_diagnostics(self) -> Json:
     meta_root = self.state.get("meta") if isinstance(self.state.get("meta"), dict) else {}
     marker = meta_root.get("transition_guardrail_last")
     if isinstance(marker, dict):
         return dict(marker)
     return {}
+
 
 def get_tx_status(self, tx_id: str) -> dict[str, object]:
     """Resolve transaction lifecycle state.
@@ -159,6 +173,7 @@ def get_tx_status(self, tx_id: str) -> dict[str, object]:
         "status": "unknown",
     }
 
+
 class LedgerStateReadError(RuntimeError):
     """Raised when the authoritative persisted ledger snapshot cannot be read."""
 
@@ -179,9 +194,11 @@ def read_state(self) -> Json:
     self.state = persisted
     return self.state
 
+
 def tx_index_hash(self) -> str:
     """Return SHA-256 hex digest of the canonical tx index file."""
     return str(getattr(self, "_tx_index_hash", "") or "")
+
 
 def sqlite_maintenance_tick(self) -> None:
     """Best-effort SQLite maintenance.
@@ -218,4 +235,3 @@ def sqlite_maintenance_tick(self) -> None:
         except Exception:
             pass
         self._last_sqlite_optimize_ms = now
-

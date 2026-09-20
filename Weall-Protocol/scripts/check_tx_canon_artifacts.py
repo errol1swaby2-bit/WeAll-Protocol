@@ -108,7 +108,9 @@ def main() -> int:
 
     expected_hash = hashlib.sha256(SPEC.read_bytes()).hexdigest()
     if str(tx_index.get("source_sha256") or "") != expected_hash:
-        return _die("generated/tx_index.json source_sha256 does not match specs/tx_canon/tx_canon.yaml")
+        return _die(
+            "generated/tx_index.json source_sha256 does not match specs/tx_canon/tx_canon.yaml"
+        )
 
     meta = tx_index.get("meta") if isinstance(tx_index.get("meta"), dict) else {}
     if str(meta.get("version") or "") != EXPECTED_CANON_VERSION:
@@ -118,13 +120,17 @@ def main() -> int:
 
     index_names = _tx_index_names(tx_index)
     if len(index_names) != EXPECTED_CANON_COUNT:
-        return _die(f"tx canon count mismatch: expected {EXPECTED_CANON_COUNT}, got {len(index_names)}")
+        return _die(
+            f"tx canon count mismatch: expected {EXPECTED_CANON_COUNT}, got {len(index_names)}"
+        )
 
     if "POH_LIVE_JUROR_REPLACE" not in index_names:
         return _die("POH_LIVE_JUROR_REPLACE is not canonical in generated/tx_index.json")
 
     tx_contract_names = _contract_names(tx_contract_map, map_name="generated/tx_contract_map.json")
-    helper_contract_names = _contract_names(helper_contract_map, map_name="generated/helper_contract_map.json")
+    helper_contract_names = _contract_names(
+        helper_contract_map, map_name="generated/helper_contract_map.json"
+    )
 
     _assert_same_names("generated/tx_contract_map.json", index_names, tx_contract_names)
     _assert_same_names("generated/helper_contract_map.json", index_names, helper_contract_names)
@@ -134,7 +140,9 @@ def main() -> int:
     if _reported_count(helper_contract_map) != len(index_names):
         return _die("generated/helper_contract_map.json summary.tx_count does not match tx_index")
 
-    print(f"✅ tx canon artifacts are synchronized ({len(index_names)} tx types, version {EXPECTED_CANON_VERSION})")
+    print(
+        f"✅ tx canon artifacts are synchronized ({len(index_names)} tx types, version {EXPECTED_CANON_VERSION})"
+    )
     return 0
 
 

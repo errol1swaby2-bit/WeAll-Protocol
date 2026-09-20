@@ -108,7 +108,9 @@ def _enforce_nonce_convergence(state: Json, env: Any) -> None:
     try:
         current_i = int(current or 0)
     except Exception as exc:
-        raise NonceSideEffectError(f"nonce_side_effect_invalid_account_nonce:{type(exc).__name__}") from exc
+        raise NonceSideEffectError(
+            f"nonce_side_effect_invalid_account_nonce:{type(exc).__name__}"
+        ) from exc
 
     if current_i > target:
         raise NonceSideEffectError(
@@ -224,7 +226,6 @@ def apply_tx_atomic_meta_deepcopy(
     return meta
 
 
-
 def apply_tx_atomic_meta_bounded_rollback(
     state: Json,
     env: Any,
@@ -292,6 +293,7 @@ def apply_tx_atomic(
 
     apply_tx_atomic_meta(state, env, consume_nonce_on_fail=consume_nonce_on_fail)
     return state
+
 
 def apply_tx(state: Json, env: Any) -> Json | None:
     """Apply a tx envelope with consensus-aligned nonce semantics.

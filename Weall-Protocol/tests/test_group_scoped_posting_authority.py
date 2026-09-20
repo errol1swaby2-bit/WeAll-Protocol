@@ -17,9 +17,27 @@ def _state() -> dict:
         "height": 1,
         "tip": "d" * 64,
         "accounts": {
-            "owner": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10000, "banned": False, "locked": False},
-            "member": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10000, "banned": False, "locked": False},
-            "outsider": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10000, "banned": False, "locked": False},
+            "owner": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10000,
+                "banned": False,
+                "locked": False,
+            },
+            "member": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10000,
+                "banned": False,
+                "locked": False,
+            },
+            "outsider": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10000,
+                "banned": False,
+                "locked": False,
+            },
         },
         "roles": {
             "groups_by_id": {
@@ -35,7 +53,14 @@ def _state() -> dict:
                 }
             }
         },
-        "content": {"posts": {}, "comments": {}, "reactions": {}, "flags": {}, "media": {}, "receipts": {}},
+        "content": {
+            "posts": {},
+            "comments": {},
+            "reactions": {},
+            "flags": {},
+            "media": {},
+            "receipts": {},
+        },
     }
 
 

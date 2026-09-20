@@ -104,7 +104,11 @@ def active_juror_role_record(state: Json, account_id: str) -> Json:
     # case-scoped reviewers to the caller's account/tier checks. Once the Juror
     # namespace exists, review authority becomes explicit and fail-closed.
     if not isinstance(roles_raw, dict) or "jurors" not in roles_raw:
-        return {"account_id": _as_str(account_id), "active": True, "legacy_no_juror_namespace": True}
+        return {
+            "account_id": _as_str(account_id),
+            "active": True,
+            "legacy_no_juror_namespace": True,
+        }
     roles = _as_dict(roles_raw)
     jurors = _as_dict(roles.get("jurors"))
     by_id = _as_dict(jurors.get("by_id"))
@@ -117,7 +121,11 @@ def active_juror_role_record(state: Json, account_id: str) -> Json:
         # Legacy migrated ledgers may have an active-set entry before a by_id
         # record is backfilled. Treat that as a coarse Juror opt-in, but only
         # for the explicit juror role namespace, never for validators/operators.
-        return rec if rec else {"account_id": _as_str(account_id), "active": True, "legacy_active_set": True}
+        return (
+            rec
+            if rec
+            else {"account_id": _as_str(account_id), "active": True, "legacy_active_set": True}
+        )
     return {}
 
 

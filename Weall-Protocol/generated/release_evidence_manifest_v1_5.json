@@ -1,5 +1,5 @@
 {
-  "artifact_digest": "20ed2860c0f8ec166ec894397a7880a0ab119a48d351053442cf4bb86384ae82",
+  "artifact_digest": "67f3baa1ed1f13774a44ee49025b9234c493476294aa6c44b558e4e25daedc94",
   "claim_boundaries": {
     "automatic_protocol_upgrades": false,
     "legal_compliance_ready": false,
@@ -147,7 +147,7 @@
   "schema": "weall.v1_5.release_evidence_manifest",
   "tracked_artifacts": {
     "generated/api_contract_map_v1_5.json": {
-      "file_sha256": "20a283212706a676e07eb96f78bd335d45ee38b4ae1c7c138ae58ea828d83b1f",
+      "file_sha256": "88549291c33794f9128e74ace0fa2b64723f5d0117293fc7f84bbaf591736e93",
       "ok": true,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
@@ -163,7 +163,7 @@
       "schema": "weall.v1_5.api_response_vectors"
     },
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
-      "file_sha256": "8c37a2541aecdcca15d3d531bbc1dc6a02e217a4a7ad3f99e2be04670a52b403",
+      "file_sha256": "7986a4416f0e1d019cf59712012984fe9222339f64663f9bf39ee6ff367e2329",
       "ok": true,
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "present": true,
@@ -195,7 +195,7 @@
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "file_sha256": "c0bd58c12158a7c0bd11b782ab3db76c20f61dc8eb87929790a78d2c93e4502a",
+      "file_sha256": "85eb01cabf5a73b0c96feee7bbfebcfb8f45c91043c735020fd071465940c143",
       "ok": true,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
@@ -275,7 +275,7 @@
       "schema": "weall.v1_5.public_observer_state_sync_trusted_anchor_proof"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "file_sha256": "439951323d544a34542578bf73eb9b661b58491c28e08766f6def1debf5c3b5d",
+      "file_sha256": "2c3936f9695e2a8453a70d823f017f63f9ea94738a37958be81224d45141a7b7",
       "ok": true,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,

@@ -8,7 +8,9 @@ TRACEABILITY = ROOT / "docs" / "constitution" / "CONSTITUTIONAL_TRACEABILITY.md"
 
 
 def test_genesis_constitution_draft_is_source_controlled() -> None:
-    assert CONSTITUTION.exists(), "Genesis Constitution Draft 2 must be part of repo docs for recursive audits"
+    assert CONSTITUTION.exists(), (
+        "Genesis Constitution Draft 2 must be part of repo docs for recursive audits"
+    )
     text = CONSTITUTION.read_text(encoding="utf-8")
 
     required_phrases = [
@@ -27,7 +29,9 @@ def test_genesis_constitution_draft_is_source_controlled() -> None:
 
 
 def test_constitutional_traceability_maps_articles_to_protocol_surfaces() -> None:
-    assert TRACEABILITY.exists(), "Constitutional traceability map must exist for recursive audit use"
+    assert TRACEABILITY.exists(), (
+        "Constitutional traceability map must exist for recursive audit use"
+    )
     text = TRACEABILITY.read_text(encoding="utf-8")
 
     required_articles = [

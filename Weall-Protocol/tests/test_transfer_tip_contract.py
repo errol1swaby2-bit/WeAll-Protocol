@@ -55,7 +55,9 @@ def test_balance_transfer_accepts_canonical_to_account_id() -> None:
     assert res["amount"] == 100
     assert st["accounts"]["@alice"]["balance"] == 900
     assert st["accounts"]["@bob"]["balance"] == 125
-    assert st["economics"]["transfers_by_id"][res["transfer_id"]]["purpose"] == "profile_wallet_send"
+    assert (
+        st["economics"]["transfers_by_id"][res["transfer_id"]]["purpose"] == "profile_wallet_send"
+    )
 
 
 def test_balance_transfer_keeps_legacy_to_alias() -> None:
@@ -146,6 +148,7 @@ def test_transfer_id_dedupe_prevents_double_spend_on_replay() -> None:
     assert st["accounts"]["@alice"]["balance"] == 950
     assert st["accounts"]["@bob"]["balance"] == 75
 
+
 def test_legacy_plain_balance_transfer_receipt_shape_is_preserved() -> None:
     st = _active_state()
 
@@ -154,4 +157,3 @@ def test_legacy_plain_balance_transfer_receipt_shape_is_preserved() -> None:
     assert res == {"applied": "BALANCE_TRANSFER", "from": "@alice", "to": "@bob", "amount": 5}
     assert st["accounts"]["@alice"]["balance"] == 995
     assert st["accounts"]["@bob"]["balance"] == 30
-

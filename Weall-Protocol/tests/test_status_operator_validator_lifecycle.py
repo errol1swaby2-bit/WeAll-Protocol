@@ -29,9 +29,16 @@ class _FakeExecutor:
             "meta": {"schema_version": "1", "tx_index_hash": "txhash"},
             "roles": {"validators": {"active_set": ["@genesis"]}},
             "validators": {"registry": {}},
-            "consensus": {"epochs": {"current": 0}, "validator_set": {"epoch": 0, "set_hash": "genesis-hash", "active_set": ["@genesis"], "pending": {}}},
+            "consensus": {
+                "epochs": {"current": 0},
+                "validator_set": {
+                    "epoch": 0,
+                    "set_hash": "genesis-hash",
+                    "active_set": ["@genesis"],
+                    "pending": {},
+                },
+            },
         }
-
 
     def tx_index_hash(self) -> str:
         return "txhash"

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from weall.runtime.bft_hotstuff import BFT_MIN_VALIDATORS, normalize_validators
+from weall.runtime.commitments import consensus_active_validator_ids
 
 Json = dict[str, Any]
 
@@ -23,12 +24,9 @@ def _as_str(value: Any) -> str:
 
 def active_validator_count(state: Json) -> int:
     candidates: list[str] = []
-    consensus = state.get("consensus")
-    if isinstance(consensus, dict):
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
-            candidates = [_as_str(item).strip() for item in validator_set.get("active_set") or []]
-            return len(normalize_validators([item for item in candidates if item]))
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return len(normalize_validators(explicit))
 
     # Legacy fallback only when no explicit consensus active_set exists.
     roles = state.get("roles")

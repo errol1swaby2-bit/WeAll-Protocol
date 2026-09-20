@@ -45,7 +45,11 @@ def build_transcript() -> Json:
             "storage-machine-b": "retrieval-sha256-sample-required",
             "storage-machine-c": "retrieval-sha256-sample-required",
         },
-        "durability_window": {"started_utc": "sample-required", "ended_utc": "sample-required", "minimum_minutes": 0},
+        "durability_window": {
+            "started_utc": "sample-required",
+            "ended_utc": "sample-required",
+            "minimum_minutes": 0,
+        },
         "origin_failure": True,
         "retrieval_from_non_origin_machine": True,
         "fresh_node_retrieval": True,
@@ -53,7 +57,11 @@ def build_transcript() -> Json:
         "corrupt_content_rejected": True,
         "revalidation_exercised": True,
         "real_daemon_topology": False,
-        "operator_signatures": ["external-storage-signature-required-a", "external-storage-signature-required-b", "external-storage-signature-required-c"],
+        "operator_signatures": [
+            "external-storage-signature-required-a",
+            "external-storage-signature-required-b",
+            "external-storage-signature-required-c",
+        ],
         "claim_boundaries": {
             "public_storage_provider_market": False,
             "public_decentralized_media_durability": False,
@@ -68,14 +76,27 @@ def build_transcript() -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Emit a v1.5 external storage/IPFS operator transcript scaffold.")
+    parser = argparse.ArgumentParser(
+        description="Emit a v1.5 external storage/IPFS operator transcript scaffold."
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     payload = build_transcript()
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
         return 0
-    print(json.dumps({"ok": True, "transcript_digest": payload["transcript_digest"], "public_decentralized_media_durability": False, "real_daemon_topology_required": True}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "transcript_digest": payload["transcript_digest"],
+                "public_decentralized_media_durability": False,
+                "real_daemon_topology_required": True,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 

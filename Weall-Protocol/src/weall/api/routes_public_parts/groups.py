@@ -17,8 +17,11 @@ from weall.api.routes_public_parts.common import (
     _snapshot,
     _str_param,
 )
+from weall.api.routes_public_parts.content import (
+    _content_target_hidden_by_review,
+    _with_media_summaries,
+)
 from weall.api.security import require_account_session
-from weall.api.routes_public_parts.content import _content_target_hidden_by_review, _with_media_summaries
 
 router = APIRouter()
 
@@ -77,7 +80,9 @@ def _moderation_record_hides(rec: dict[str, Any]) -> bool:
     return vis in {"hidden", "deleted", "removed"} or action in {"hide", "delete", "remove"}
 
 
-def _post_moderated_hidden(st: dict[str, Any], post_id: str, post: dict[str, Any] | None = None) -> bool:
+def _post_moderated_hidden(
+    st: dict[str, Any], post_id: str, post: dict[str, Any] | None = None
+) -> bool:
     pid = str(post_id or "").strip()
     return _content_target_hidden_by_review(st, pid, post if isinstance(post, dict) else {})
 
@@ -132,8 +137,6 @@ def _group_record(st: dict[str, Any], group_id: str) -> dict[str, Any] | None:
     return out
 
 
-
-
 def _redacted_members_map(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return {"redacted": True, "count": len(value)}
@@ -147,6 +150,7 @@ def _redact_group_membership_maps(group: dict[str, Any]) -> dict[str, Any]:
     # group membership and role activity is inspectable; local mute/block/filter
     # controls do not create private protocol state.
     return dict(group)
+
 
 def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None) -> dict[str, Any]:
     group = _group_record(st, group_id)
@@ -162,7 +166,11 @@ def _membership_status(st: dict[str, Any], *, group_id: str, account: str | None
         }
 
     members = group.get("members") if isinstance(group.get("members"), dict) else {}
-    reqs = group.get("membership_requests") if isinstance(group.get("membership_requests"), dict) else {}
+    reqs = (
+        group.get("membership_requests")
+        if isinstance(group.get("membership_requests"), dict)
+        else {}
+    )
     phase = "anonymous"
     is_member = False
     is_pending = False
@@ -211,7 +219,9 @@ def _as_public_list(value: Any) -> list[str]:
     return []
 
 
-def _public_group_governance_contract(st: dict[str, Any], *, group_id: str, group: dict[str, Any]) -> dict[str, Any]:
+def _public_group_governance_contract(
+    st: dict[str, Any], *, group_id: str, group: dict[str, Any]
+) -> dict[str, Any]:
     """Return the public product contract for group authority and reads.
 
     This is a derived/indexed view only.  It does not grant authority and does
@@ -223,7 +233,11 @@ def _public_group_governance_contract(st: dict[str, Any], *, group_id: str, grou
     permissions = group.get("permissions") if isinstance(group.get("permissions"), dict) else {}
     roles = group.get("roles") if isinstance(group.get("roles"), dict) else {}
     members = group.get("members") if isinstance(group.get("members"), dict) else {}
-    membership_requests = group.get("membership_requests") if isinstance(group.get("membership_requests"), dict) else {}
+    membership_requests = (
+        group.get("membership_requests")
+        if isinstance(group.get("membership_requests"), dict)
+        else {}
+    )
     signers = _as_public_list(group.get("signers") or roles.get("signers"))
     moderators = _as_public_list(group.get("moderators") or roles.get("moderators"))
     threshold = _int_param(group.get("threshold"), 0)
@@ -240,11 +254,19 @@ def _public_group_governance_contract(st: dict[str, Any], *, group_id: str, grou
                 continue
             if _str_param(election.get("status")).strip().lower() != "open":
                 continue
-            active_elections.append({
-                "election_id": _str_param(election.get("election_id") or election.get("id") or election_id).strip(),
-                "status": "open",
-                "candidate_count": len(election.get("candidates") if isinstance(election.get("candidates"), list) else []),
-            })
+            active_elections.append(
+                {
+                    "election_id": _str_param(
+                        election.get("election_id") or election.get("id") or election_id
+                    ).strip(),
+                    "status": "open",
+                    "candidate_count": len(
+                        election.get("candidates")
+                        if isinstance(election.get("candidates"), list)
+                        else []
+                    ),
+                }
+            )
 
     public_inspection_routes = {
         "group": f"/v1/groups/{group_id}",
@@ -263,7 +285,14 @@ def _public_group_governance_contract(st: dict[str, Any], *, group_id: str, grou
         "public_only_contract": {
             "read_visibility": "public",
             "content_read_gated_by_membership": False,
-            "membership_may_gate": ["posting", "commenting", "voting", "moderation", "invitation", "administration"],
+            "membership_may_gate": [
+                "posting",
+                "commenting",
+                "voting",
+                "moderation",
+                "invitation",
+                "administration",
+            ],
             "membership_must_not_gate": ["reading_protocol_native_group_content"],
             "private_groups_supported": False,
             "member_only_read_supported": False,
@@ -285,7 +314,9 @@ def _public_group_governance_contract(st: dict[str, Any], *, group_id: str, grou
             "post": _normalize_group_permission(permissions.get("post"), default="members"),
             "comment": _normalize_group_permission(permissions.get("comment"), default="members"),
             "vote": _normalize_group_permission(permissions.get("vote"), default="members"),
-            "moderate": _normalize_group_permission(permissions.get("moderate"), default="moderators"),
+            "moderate": _normalize_group_permission(
+                permissions.get("moderate"), default="moderators"
+            ),
             "admin": _normalize_group_permission(permissions.get("admin"), default="admins"),
         },
         "counts": {
@@ -296,11 +327,31 @@ def _public_group_governance_contract(st: dict[str, Any], *, group_id: str, grou
             "active_elections": len(active_elections),
         },
         "tx_entrypoints": {
-            "request_membership": {"route": "/v1/groups/join", "tx_type": "GROUP_MEMBERSHIP_REQUEST", "state_effect": "public group membership/participation eligibility"},
-            "leave_membership": {"route": "/v1/groups/leave", "tx_type": "GROUP_MEMBERSHIP_REMOVE", "state_effect": "public group membership/participation eligibility"},
-            "create_group": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_CREATE", "state_effect": "public group charter"},
-            "group_election_create": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_EMISSARY_ELECTION_CREATE", "state_effect": "public group-scope governance election"},
-            "group_ballot_cast": {"route": "signed /v1/tx/submit", "tx_type": "GROUP_EMISSARY_BALLOT_CAST", "state_effect": "public group-scope governance vote"},
+            "request_membership": {
+                "route": "/v1/groups/join",
+                "tx_type": "GROUP_MEMBERSHIP_REQUEST",
+                "state_effect": "public group membership/participation eligibility",
+            },
+            "leave_membership": {
+                "route": "/v1/groups/leave",
+                "tx_type": "GROUP_MEMBERSHIP_REMOVE",
+                "state_effect": "public group membership/participation eligibility",
+            },
+            "create_group": {
+                "route": "signed /v1/tx/submit",
+                "tx_type": "GROUP_CREATE",
+                "state_effect": "public group charter",
+            },
+            "group_election_create": {
+                "route": "signed /v1/tx/submit",
+                "tx_type": "GROUP_EMISSARY_ELECTION_CREATE",
+                "state_effect": "public group-scope governance election",
+            },
+            "group_ballot_cast": {
+                "route": "signed /v1/tx/submit",
+                "tx_type": "GROUP_EMISSARY_BALLOT_CAST",
+                "state_effect": "public group-scope governance vote",
+            },
         },
         "inspection_routes": public_inspection_routes,
     }
@@ -429,7 +480,11 @@ def v1_group_get(group_id: str, request: Request):
     st = _snapshot(request)
     g = _group_record(st, group_id)
     if not isinstance(g, dict):
-        return {"ok": True, "group": {"id": group_id}, "membership": _membership_status(st, group_id=group_id, account=None)}
+        return {
+            "ok": True,
+            "group": {"id": group_id},
+            "membership": _membership_status(st, group_id=group_id, account=None),
+        }
 
     account = None
     try:
@@ -437,7 +492,11 @@ def v1_group_get(group_id: str, request: Request):
     except Exception:
         account = None
 
-    return {"ok": True, "group": _redact_group_membership_maps(g), "membership": _membership_status(st, group_id=group_id, account=account)}
+    return {
+        "ok": True,
+        "group": _redact_group_membership_maps(g),
+        "membership": _membership_status(st, group_id=group_id, account=account),
+    }
 
 
 @router.get("/groups/{group_id}/governance-contract")
@@ -502,7 +561,9 @@ def v1_group_members(group_id: str, request: Request):
     page = out[:limit]
     next_cursor = None
     if len(page) == limit:
-        next_cursor = _cursor_pack(created_at_nonce=0, content_id=str(page[-1].get("account") or ""))
+        next_cursor = _cursor_pack(
+            created_at_nonce=0, content_id=str(page[-1].get("account") or "")
+        )
 
     return {
         "ok": True,
@@ -583,7 +644,9 @@ def v1_group_content(group_id: str, request: Request):
     limit = max(1, min(100, limit))
     cursor_n, cursor_id = _cursor_unpack(qp.get("cursor"))
     default_visibility = "all"
-    visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
+    visibility = (
+        _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
+    )
     if visibility in {"pri" + "vate", "members", "scoped", "member" + "s_only", "member_only"}:
         raise ApiError.bad_request(
             "PUBLIC_READ_VISIBILITY_REQUIRED",
@@ -647,7 +710,9 @@ def v1_group_feed(group_id: str, request: Request):
     tags = _normalize_tags_param(qp.get("tags"))
     author = _str_param(qp.get("author")).strip()
     default_visibility = "all"
-    visibility = _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
+    visibility = (
+        _str_param(qp.get("visibility") or default_visibility).strip().lower() or default_visibility
+    )
     if visibility in {"pri" + "vate", "members", "scoped", "member" + "s_only", "member_only"}:
         raise ApiError.bad_request(
             "PUBLIC_READ_VISIBILITY_REQUIRED",

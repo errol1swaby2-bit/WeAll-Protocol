@@ -14,13 +14,13 @@ def test_removed_communication_routes_stay_removed_for_public_activity_surface()
     router = (WEB / "src/lib/router.ts").read_text(encoding="utf-8")
     app = (WEB / "src/App.tsx").read_text(encoding="utf-8")
 
-    assert ('| { path: "/' + 'mess' + 'ages/compose" }') not in router
-    assert ('| { path: "/' + 'mess' + 'ages/:id"; id: string }') not in router
+    assert ('| { path: "/' + "mess" + 'ages/compose" }') not in router
+    assert ('| { path: "/' + "mess" + 'ages/:id"; id: string }') not in router
     assert 'path: "/activity"' in router
 
-    assert ('<' + 'Mess' + 'aging mode="hub" />') not in app
-    assert ('<' + 'Mess' + 'aging mode="compose" />') not in app
-    assert ('<' + 'Mess' + 'aging mode="thread" threadId={route.id} />') not in app
+    assert ("<" + "Mess" + 'aging mode="hub" />') not in app
+    assert ("<" + "Mess" + 'aging mode="compose" />') not in app
+    assert ("<" + "Mess" + 'aging mode="thread" threadId={route.id} />') not in app
     assert not (WEB / "src" / "pages" / ("Mess" + "aging.tsx")).exists()
 
 
@@ -28,8 +28,8 @@ def test_report_detail_does_not_submit_review_assignment_tx() -> None:
     detail = (WEB / "src/pages/DisputeDetail.tsx").read_text(encoding="utf-8")
     assert 'submitDisputeTx("DISPUTE_JUROR_ACCEPT"' not in detail
     assert 'submitDisputeTx("DISPUTE_JUROR_DECLINE"' not in detail
-    assert 'dedicated review workspace owns assignment acceptance' in detail
-    assert 'nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)' in detail
+    assert "dedicated review workspace owns assignment acceptance" in detail
+    assert "nav(`/reviews/${encodeURIComponent(String(dispute?.id || id))}`)" in detail
 
 
 def test_assigned_report_reviewer_requires_active_juror_role() -> None:
@@ -48,7 +48,12 @@ def test_assigned_report_reviewer_requires_active_juror_role() -> None:
         },
         "params": {},
     }
-    ok, _meta = eval_gate("Juror", signer="@demo_tester", state=assigned_only_state, payload={"dispute_id": "dispute:SYSTEM:0"})
+    ok, _meta = eval_gate(
+        "Juror",
+        signer="@demo_tester",
+        state=assigned_only_state,
+        payload={"dispute_id": "dispute:SYSTEM:0"},
+    )
     assert ok is False
 
     active_role_state = dict(assigned_only_state)
@@ -58,5 +63,10 @@ def test_assigned_report_reviewer_requires_active_juror_role() -> None:
             "active_set": ["@demo_tester"],
         }
     }
-    ok, meta = eval_gate("Juror", signer="@demo_tester", state=active_role_state, payload={"dispute_id": "dispute:SYSTEM:0"})
+    ok, meta = eval_gate(
+        "Juror",
+        signer="@demo_tester",
+        state=active_role_state,
+        payload={"dispute_id": "dispute:SYSTEM:0"},
+    )
     assert ok is True, meta

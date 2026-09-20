@@ -1,6 +1,6 @@
 # Public Beta Blocker Status
 
-Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
 This document preserves blocker truth for reviewer use. It must not be used to imply public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness.
 
@@ -13,7 +13,7 @@ This document preserves blocker truth for reviewer use. It must not be used to i
 | `closed_in_repository_count` | 7 |
 | `remaining_blocker_count` | 8 |
 | `remaining_external_evidence_required_count` | 8 |
-| `p0_open_count` | 3 |
+| `p0_open_count` | 4 |
 | `p1_open_count` | 4 |
 | Current tx canon checkpoint | 236 tx types, version 1.25.0 |
 
@@ -44,6 +44,7 @@ The 7 closed entries are closed only by repository artifacts, tests, docs, or so
 | `AUD-618-P0-001` | P0 | External evidence required | Independent controlled validator/operator transcript. |
 | `AUD-618-P0-002` | P0 | External evidence required | Real counsel or controlled legal/compliance attestation. |
 | `AUD-618-P0-003` | P0 | Future execution hardening required | Future executable upgrade staging/rollback proof. |
+| `AUD-633-P0-004` | P0 | External cryptographic review required | Fresh profile-aware post-transition rehearsal evidence, browser/local signing-boundary review, helper/evidence-signing production gate, and external cryptographic review. |
 | `AUD-618-P1-003` | P1 | External evidence required | External/two-machine replay transcript. |
 | `AUD-618-P1-004` | P1 | External evidence required | Real storage/IPFS daemon/operator transcript. |
 | `AUD-618-P1-005` | P1 | Future topology hardening required | Future production helper topology proof. |
@@ -54,9 +55,9 @@ The 7 closed entries are closed only by repository artifacts, tests, docs, or so
 | Tier | Label | Meaning |
 |---|---|---|
 | Tier A | Controlled local reviewer testnet | Same-machine/local evidence for reviewer inspection only. |
-| Tier B | Public observer testnet | Requires only an external clean-clone/open-download observer transcript before public observer launch wording can be considered. |
+| Tier B | Public observer testnet | Requires the external clean-clone/open-download observer evidence plus every blocker that the generated go-gate marks as required before public-observer wording, including the post-transition cryptographic-review gate. |
 | Tier C | Controlled validator rehearsal | Can reduce validator evidence risk with invited operators, but it does not claim public validator safety. |
-| Tier D | Public validator beta / mainnet hardening | Requires public validator, BFT, storage, helper, upgrade, legal, and replay evidence before any broader readiness wording. |
+| Tier D | Public validator beta / mainnet hardening | Requires public validator, BFT, storage, helper, upgrade, legal, replay, and cryptographic-review evidence before any broader readiness wording. |
 
 See `docs/audits/public_observer_testnet_readiness_plan_v1_5.md` and `docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md` for the longer tier mapping.
 
@@ -66,11 +67,11 @@ The repository can say that it is a pre-public-testnet implementation under acti
 
 ## What must not be said
 
-Do not claim public beta readiness, public mainnet readiness, public validator safety, public multi-validator BFT readiness, live economics readiness, automatic protocol upgrade readiness, executable migration readiness, rollback execution readiness, production helper execution readiness, legal/compliance approval, public storage-market readiness, complete anti-Sybil/collusion detection, or complete public identity infrastructure.
+Do not claim public beta readiness, public mainnet readiness, public validator safety, public multi-validator BFT readiness, live economics readiness, automatic protocol upgrade readiness, executable migration readiness, rollback execution readiness, production helper execution readiness, completed production cryptographic audit, production post-quantum security, quantum-proof security, legal/compliance approval, public storage-market readiness, complete anti-Sybil/collusion detection, or complete public identity infrastructure.
 
 ## Evidence closure rule
 
-Only real evidence closes open blockers. Local scripts can prove that templates and checks exist; they cannot self-certify external operator runs, counsel/control review, cross-machine replay, real storage/IPFS operation, public observer open-download behavior, production helper topology, or executable upgrade/rollback behavior.
+Only real evidence closes open blockers. Local scripts can prove that templates and checks exist; they cannot self-certify external operator runs, counsel/control review, cross-machine replay, real storage/IPFS operation, public observer open-download behavior, production helper topology, executable upgrade/rollback behavior, or independent cryptographic review.
 
 ## Strict external evidence boundary
 

@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
 
-
 BASE_ENV = {
     "signer": "alice",
     "nonce": 1,
@@ -67,12 +66,18 @@ def test_schema_models_registered() -> None:
     ("tx_type", "payload"),
     [
         ("TREASURY_CREATE", {"treasury_id": "treasury-1"}),
-        ("TREASURY_SIGNERS_SET", {"treasury_id": "treasury-1", "signers": ["alice"], "threshold": 1}),
+        (
+            "TREASURY_SIGNERS_SET",
+            {"treasury_id": "treasury-1", "signers": ["alice"], "threshold": 1},
+        ),
         ("TREASURY_WALLET_CREATE", {"wallet_id": "wallet-1"}),
         ("TREASURY_SIGNER_ADD", {"wallet_id": "wallet-1", "signer": "alice"}),
         ("TREASURY_SIGNER_REMOVE", {"wallet_id": "wallet-1", "signer": "alice"}),
         ("TREASURY_POLICY_SET", {"policy": {"timelock_blocks": 10}}),
-        ("TREASURY_SPEND_PROPOSE", {"treasury_id": "treasury-1", "spend_id": "spend-1", "to": "bob", "amount": 25}),
+        (
+            "TREASURY_SPEND_PROPOSE",
+            {"treasury_id": "treasury-1", "spend_id": "spend-1", "to": "bob", "amount": 25},
+        ),
         ("TREASURY_SPEND_SIGN", {"treasury_id": "treasury-1", "spend_id": "spend-1"}),
         ("TREASURY_SPEND_EXPIRE", {"spend_id": "spend-1"}),
         ("TREASURY_SPEND_EXECUTE", {"spend_id": "spend-1"}),
@@ -84,19 +89,38 @@ def test_schema_models_registered() -> None:
         ("GROUP_ROLE_GRANT", {"group_id": "group-1", "account": "bob", "role": "moderator"}),
         ("GROUP_ROLE_REVOKE", {"group_id": "group-1", "account": "bob", "role": "moderator"}),
         ("GROUP_MEMBERSHIP_REQUEST", {"group_id": "group-1", "note": "please"}),
-        ("GROUP_MEMBERSHIP_DECIDE", {"group_id": "group-1", "account": "bob", "decision": "accept"}),
+        (
+            "GROUP_MEMBERSHIP_DECIDE",
+            {"group_id": "group-1", "account": "bob", "decision": "accept"},
+        ),
         ("GROUP_MEMBERSHIP_REMOVE", {"group_id": "group-1", "account": "bob"}),
         ("GROUP_SIGNERS_SET", {"group_id": "group-1", "signers": ["alice", "bob"], "threshold": 2}),
         ("GROUP_MODERATORS_SET", {"group_id": "group-1", "moderators": ["alice", "bob"]}),
         ("GROUP_TREASURY_CREATE", {"treasury_id": "group-treasury-1"}),
         ("GROUP_TREASURY_POLICY_SET", {"group_id": "group-1", "policy": {"timelock_blocks": 5}}),
-        ("GROUP_TREASURY_SPEND_PROPOSE", {"group_id": "group-1", "spend_id": "gspend-1", "to": "bob", "amount": 50}),
+        (
+            "GROUP_TREASURY_SPEND_PROPOSE",
+            {"group_id": "group-1", "spend_id": "gspend-1", "to": "bob", "amount": 50},
+        ),
         ("GROUP_TREASURY_SPEND_SIGN", {"spend_id": "gspend-1"}),
         ("GROUP_TREASURY_SPEND_CANCEL", {"spend_id": "gspend-1"}),
         ("GROUP_TREASURY_SPEND_EXPIRE", {"group_id": "group-1", "spend_id": "gspend-1"}),
         ("GROUP_TREASURY_SPEND_EXECUTE", {"spend_id": "gspend-1"}),
-        ("GROUP_TREASURY_AUDIT_ANCHOR_SET", {"group_id": "group-1", "anchor": {"cid": "bafk-test"}}),
-        ("GROUP_EMISSARY_ELECTION_CREATE", {"group_id": "group-1", "election_id": "e1", "seats": 5, "candidates": ["alice", "bob"], "start_height": 10, "end_height": 20}),
+        (
+            "GROUP_TREASURY_AUDIT_ANCHOR_SET",
+            {"group_id": "group-1", "anchor": {"cid": "bafk-test"}},
+        ),
+        (
+            "GROUP_EMISSARY_ELECTION_CREATE",
+            {
+                "group_id": "group-1",
+                "election_id": "e1",
+                "seats": 5,
+                "candidates": ["alice", "bob"],
+                "start_height": 10,
+                "end_height": 20,
+            },
+        ),
         ("GROUP_EMISSARY_BALLOT_CAST", {"election_id": "e1", "ranking": ["alice", "bob"]}),
         ("GROUP_EMISSARY_ELECTION_FINALIZE", {"election_id": "e1"}),
     ],
@@ -142,12 +166,18 @@ def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
         ("GROUP_TREASURY_SPEND_EXPIRE", {"group_id": "g1"}, "spend_id"),
         ("GROUP_TREASURY_SPEND_EXECUTE", {}, "spend_id"),
         ("GROUP_TREASURY_AUDIT_ANCHOR_SET", {}, "group_id"),
-        ("GROUP_EMISSARY_ELECTION_CREATE", {"group_id": "g1", "election_id": "e1", "seats": 5}, "candidates"),
+        (
+            "GROUP_EMISSARY_ELECTION_CREATE",
+            {"group_id": "g1", "election_id": "e1", "seats": 5},
+            "candidates",
+        ),
         ("GROUP_EMISSARY_BALLOT_CAST", {"election_id": "e1"}, "ranking"),
         ("GROUP_EMISSARY_ELECTION_FINALIZE", {}, "election_id"),
     ],
 )
-def test_missing_required_fields_are_rejected(tx_type: str, payload: dict, expected_fragment: str) -> None:
+def test_missing_required_fields_are_rejected(
+    tx_type: str, payload: dict, expected_fragment: str
+) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert expected_fragment in str(excinfo.value)
@@ -159,13 +189,28 @@ def test_missing_required_fields_are_rejected(tx_type: str, payload: dict, expec
         ("TREASURY_CREATE", {"treasury_id": "t1", "extra": True}),
         ("TREASURY_SIGNERS_SET", {"treasury_id": "t1", "signers": ["alice"], "extra": True}),
         ("TREASURY_POLICY_SET", {"policy": {}, "extra": True}),
-        ("TREASURY_SPEND_PROPOSE", {"treasury_id": "t1", "spend_id": "s1", "to": "bob", "amount": 1, "extra": True}),
+        (
+            "TREASURY_SPEND_PROPOSE",
+            {"treasury_id": "t1", "spend_id": "s1", "to": "bob", "amount": 1, "extra": True},
+        ),
         ("TREASURY_PROGRAM_CREATE", {"program_id": "p1", "extra": True}),
         ("GROUP_CREATE", {"group_id": "g1", "extra": True}),
         ("GROUP_ROLE_GRANT", {"group_id": "g1", "account": "bob", "role": "mod", "extra": True}),
         ("GROUP_SIGNERS_SET", {"group_id": "g1", "signers": ["alice"], "extra": True}),
-        ("GROUP_TREASURY_SPEND_PROPOSE", {"group_id": "g1", "spend_id": "s1", "to": "bob", "amount": 1, "extra": True}),
-        ("GROUP_EMISSARY_ELECTION_CREATE", {"group_id": "g1", "election_id": "e1", "seats": 5, "candidates": ["alice"], "extra": True}),
+        (
+            "GROUP_TREASURY_SPEND_PROPOSE",
+            {"group_id": "g1", "spend_id": "s1", "to": "bob", "amount": 1, "extra": True},
+        ),
+        (
+            "GROUP_EMISSARY_ELECTION_CREATE",
+            {
+                "group_id": "g1",
+                "election_id": "e1",
+                "seats": 5,
+                "candidates": ["alice"],
+                "extra": True,
+            },
+        ),
     ],
 )
 def test_extra_fields_are_forbidden(tx_type: str, payload: dict) -> None:

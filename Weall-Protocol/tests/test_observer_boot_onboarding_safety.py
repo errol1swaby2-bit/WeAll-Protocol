@@ -33,7 +33,9 @@ def _write_manifest(path: Path) -> Path:
     return path
 
 
-def _build_bundle(tmp_path: Path, *, genesis_api: str = "https://genesis.example.test") -> tuple[Path, Path]:
+def _build_bundle(
+    tmp_path: Path, *, genesis_api: str = "https://genesis.example.test"
+) -> tuple[Path, Path]:
     manifest = _write_manifest(tmp_path / "manifest.json")
     bundle = tmp_path / "observer-bundle.json"
     result = subprocess.run(
@@ -53,8 +55,7 @@ def _build_bundle(tmp_path: Path, *, genesis_api: str = "https://genesis.example
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert result.returncode == 0, result.stderr + result.stdout
@@ -78,11 +79,18 @@ def test_observer_bundle_rejects_unsafe_runtime_flags(tmp_path: Path) -> None:
     bundle.write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(manifest), "--json"],
+        [
+            sys.executable,
+            str(VERIFY),
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(manifest),
+            "--json",
+        ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
 
@@ -95,18 +103,27 @@ def test_observer_bundle_rejects_unsafe_runtime_flags(tmp_path: Path) -> None:
     assert "observer_helper_authority_must_be_false" in issues
     assert "observer_block_loop_autostart_must_be_false" in issues
     assert "observer_service_roles_must_be_empty" in issues
-    assert any(issue.startswith("observer_allowed_onboarding_transactions_unsafe:") for issue in issues)
+    assert any(
+        issue.startswith("observer_allowed_onboarding_transactions_unsafe:") for issue in issues
+    )
 
 
 def test_observer_bundle_emit_shell_env_forces_safe_flags(tmp_path: Path) -> None:
     manifest, bundle = _build_bundle(tmp_path)
 
     result = subprocess.run(
-        [sys.executable, str(VERIFY), "--bundle", str(bundle), "--manifest", str(manifest), "--emit-shell-env"],
+        [
+            sys.executable,
+            str(VERIFY),
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(manifest),
+            "--emit-shell-env",
+        ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
 
@@ -144,7 +161,9 @@ def test_external_observer_live_gate_rejects_ipv6_loopback_before_network(tmp_pa
     )
 
     assert result.returncode != 0
-    assert "external observer live gate requires a remote non-local genesis API base" in result.stdout
+    assert (
+        "external observer live gate requires a remote non-local genesis API base" in result.stdout
+    )
 
 
 def test_observer_secret_boundary_is_shared_by_all_observer_scripts() -> None:
@@ -159,7 +178,7 @@ def test_observer_secret_boundary_is_shared_by_all_observer_scripts() -> None:
         "WEALL_OAUTH_CLIENT_SECRET",
         "WEALL_KYC_API_KEY",
         "WEALL_CAPTCHA_SECRET",
-        "WEALL_SM\"\"TP_PASSWORD_FILE",
+        'WEALL_SM""TP_PASSWORD_FILE',
     ):
         assert needle in lib
 
@@ -179,7 +198,10 @@ def test_boot_onboarding_requires_preflight_or_public_bundle() -> None:
     assert "WEALL_OBSERVER_PREFLIGHT_ALREADY_PASSED" in script
     assert "WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE" in script
     assert "external_observer_onboarding_smoke.sh" in script
-    assert "set WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE or run scripts/external_observer_onboarding_smoke.sh" in script
+    assert (
+        "set WEALL_NODE_OPERATOR_ONBOARDING_BUNDLE or run scripts/external_observer_onboarding_smoke.sh"
+        in script
+    )
 
 
 def test_boot_node_operator_runs_prod_preflight_before_service_boot() -> None:

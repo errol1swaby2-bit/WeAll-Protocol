@@ -8,7 +8,9 @@ from weall.runtime.poh.state import effective_poh_tier, poh_tier_label, set_acco
 
 def test_legacy_live_state_is_user_facing_tier2_during_migration() -> None:
     state = {"height": 7, "accounts": {"@alice": {"poh_tier": 2}}, "poh": {}}
-    set_account_poh_status(state, account_id="@alice", poh_tier=2, verified_at_height=7, last_updated_height=7)
+    set_account_poh_status(
+        state, account_id="@alice", poh_tier=2, verified_at_height=7, last_updated_height=7
+    )
 
     assert effective_poh_tier(state, "@alice") == 2
     assert poh_tier_label(3) == "Live Verified Human"
@@ -16,7 +18,9 @@ def test_legacy_live_state_is_user_facing_tier2_during_migration() -> None:
 
 def test_former_live_user_actions_are_v2_tier2_gated() -> None:
     state = {"height": 9, "accounts": {"@alice": {"poh_tier": 2}}, "poh": {}}
-    set_account_poh_status(state, account_id="@alice", poh_tier=2, verified_at_height=9, last_updated_height=9)
+    set_account_poh_status(
+        state, account_id="@alice", poh_tier=2, verified_at_height=9, last_updated_height=9
+    )
 
     for tx_type in (
         "CONTENT_POST_CREATE",
@@ -60,6 +64,7 @@ def test_content_apply_post_create_accepts_v2_tier2_gate() -> None:
 
 def test_content_apply_post_create_rejects_tier1_after_v2_gate() -> None:
     import pytest
+
     from weall.runtime.apply.content import ContentApplyError, apply_content
     from weall.runtime.tx_admission_types import TxEnvelope
 

@@ -20,6 +20,7 @@ from weall.runtime.tx_schema import validate_tx_envelope
 
 router = APIRouter()
 
+
 def _env_bool(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name)
     if raw is None:

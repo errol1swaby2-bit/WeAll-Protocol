@@ -349,14 +349,9 @@ def run_harness() -> dict[str, Any]:
             committed_unchanged = committed_root_after == committed_root_before
 
             challenge_status = (
-                simulated.get("poh", {})
-                .get("challenges", {})
-                .get(challenge_id, {})
-                .get("status")
+                simulated.get("poh", {}).get("challenges", {}).get(challenge_id, {}).get("status")
             )
-            dispute_remedy_applied = not bool(
-                simulated["accounts"]["@alice"].get("restricted")
-            )
+            dispute_remedy_applied = not bool(simulated["accounts"]["@alice"].get("restricted"))
             storage_retrieval_confirmed = (
                 simulated.get("storage", {})
                 .get("pins", {})

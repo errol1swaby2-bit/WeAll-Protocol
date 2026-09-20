@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -13,7 +12,9 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_reviewer_builder_generates_disposable_chain_without_founder_key_dependency(tmp_path: Path) -> None:
+def test_reviewer_builder_generates_disposable_chain_without_founder_key_dependency(
+    tmp_path: Path,
+) -> None:
     out_dir = tmp_path / "reviewer"
     result = subprocess.run(
         [
@@ -25,8 +26,7 @@ def test_reviewer_builder_generates_disposable_chain_without_founder_key_depende
         ],
         cwd=ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=True,
     )
     summary = json.loads(result.stdout)

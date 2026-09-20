@@ -5,11 +5,14 @@ import json
 import os
 from typing import Any
 
-from weall.crypto.pq_mldsa import mldsa65_public_key_from_seed, sign_mldsa65, verify_mldsa65_signature
+from weall.crypto.pq_mldsa import (
+    mldsa65_public_key_from_seed,
+    sign_mldsa65,
+    verify_mldsa65_signature,
+)
 from weall.crypto.signature_profiles import (
     PQ_MLDSA_V1,
     default_signature_profile_for_mode,
-    mode_requires_explicit_sig_profile,
     normalize_signature_profile_id,
     profile_allowed_for_context,
 )
@@ -68,7 +71,11 @@ def canonical_tx_message(
     profile = normalize_signature_profile_id(sig_profile or PQ_MLDSA_V1)
     obj: Json = {
         **({"chain_id": str(chain_id)} if (isinstance(chain_id, str) and chain_id.strip()) else {}),
-        **({"network_id": str(network_id)} if (isinstance(network_id, str) and network_id.strip()) else {}),
+        **(
+            {"network_id": str(network_id)}
+            if (isinstance(network_id, str) and network_id.strip())
+            else {}
+        ),
         "domain_separator": str(domain_separator or "weall.tx.v1"),
         "object_kind": str(object_kind or "tx"),
         "sig_profile": profile,
@@ -80,7 +87,9 @@ def canonical_tx_message(
     }
     if parent is not None:
         obj["parent"] = str(parent)
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def _extract_signature_fields(tx: Json) -> tuple[str, str, str, str]:
@@ -100,7 +109,9 @@ def sign_tx_envelope_dict(*, tx: Json, privkey: str, encoding: str = "hex") -> J
     parent = tx.get("parent")
     chain_id = tx.get("chain_id")
     network_id = tx.get("network_id")
-    sig_profile = normalize_signature_profile_id(tx.get("sig_profile") or default_signature_profile_for_mode())
+    sig_profile = normalize_signature_profile_id(
+        tx.get("sig_profile") or default_signature_profile_for_mode()
+    )
     if sig_profile != PQ_MLDSA_V1:
         raise ValueError("unsupported_signature_profile")
 
@@ -128,7 +139,9 @@ def sign_tx_envelope_dict(*, tx: Json, privkey: str, encoding: str = "hex") -> J
     if isinstance(network_id, str) and network_id.strip():
         out["network_id"] = network_id.strip()
 
-    sig = sign_signature_for_profile(sig_profile=sig_profile, message=msg, privkey=privkey, encoding=encoding)
+    sig = sign_signature_for_profile(
+        sig_profile=sig_profile, message=msg, privkey=privkey, encoding=encoding
+    )
     pubkey = str(out.get("pubkey") or "").strip() or public_key_for_private_key_profile(
         sig_profile=sig_profile, privkey=privkey, encoding=encoding
     )
@@ -139,28 +152,38 @@ def sign_tx_envelope_dict(*, tx: Json, privkey: str, encoding: str = "hex") -> J
 
 
 def sign_mldsa(*, message: bytes, privkey: str, encoding: str = "hex") -> str:
-    return sign_signature_for_profile(sig_profile=PQ_MLDSA_V1, message=message, privkey=privkey, encoding=encoding)
+    return sign_signature_for_profile(
+        sig_profile=PQ_MLDSA_V1, message=message, privkey=privkey, encoding=encoding
+    )
 
 
 def verify_mldsa_signature(*, message: bytes, sig: str, pubkey: str) -> bool:
-    return verify_signature_for_profile(sig_profile=PQ_MLDSA_V1, message=message, sig=sig, pubkey=pubkey)
+    return verify_signature_for_profile(
+        sig_profile=PQ_MLDSA_V1, message=message, sig=sig, pubkey=pubkey
+    )
 
 
-def sign_signature_for_profile(*, sig_profile: str, message: bytes, privkey: str, encoding: str = "hex") -> str:
+def sign_signature_for_profile(
+    *, sig_profile: str, message: bytes, privkey: str, encoding: str = "hex"
+) -> str:
     profile = normalize_signature_profile_id(sig_profile)
     if profile == PQ_MLDSA_V1:
         return sign_mldsa65(message=message, privkey=privkey, encoding=encoding)
     raise ValueError("unsupported_signature_profile")
 
 
-def public_key_for_private_key_profile(*, sig_profile: str, privkey: str, encoding: str = "hex") -> str:
+def public_key_for_private_key_profile(
+    *, sig_profile: str, privkey: str, encoding: str = "hex"
+) -> str:
     profile = normalize_signature_profile_id(sig_profile)
     if profile == PQ_MLDSA_V1:
         return mldsa65_public_key_from_seed(privkey=privkey, encoding=encoding)
     raise ValueError("public_key_derivation_not_supported_for_profile")
 
 
-def extract_active_account_pubkeys(ledger: Json, account_id: str, *, sig_profile: str | None = None) -> list[str]:
+def extract_active_account_pubkeys(
+    ledger: Json, account_id: str, *, sig_profile: str | None = None
+) -> list[str]:
     accounts = ledger.get("accounts")
     if not isinstance(accounts, dict):
         return []
@@ -189,7 +212,9 @@ def extract_active_account_pubkeys(ledger: Json, account_id: str, *, sig_profile
     return out
 
 
-def verify_signature_for_profile(*, sig_profile: str, message: bytes, sig: str, pubkey: str) -> bool:
+def verify_signature_for_profile(
+    *, sig_profile: str, message: bytes, sig: str, pubkey: str
+) -> bool:
     profile = normalize_signature_profile_id(sig_profile)
     if profile == PQ_MLDSA_V1:
         return verify_mldsa65_signature(message=message, sig=sig, pubkey=pubkey)
@@ -213,7 +238,9 @@ def verify_tx_sig_against_any_key(
     profile = normalize_signature_profile_id(sig_profile)
     if not profile:
         return False, {"reason": "missing_signature_profile"}
-    allowed, reason = profile_allowed_for_context(profile, chain_config=chain_config, require_verifier=True)
+    allowed, reason = profile_allowed_for_context(
+        profile, chain_config=chain_config, require_verifier=True
+    )
     if not allowed:
         return False, {"reason": reason, "sig_profile": profile}
 

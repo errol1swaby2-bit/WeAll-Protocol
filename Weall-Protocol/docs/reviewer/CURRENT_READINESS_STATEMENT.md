@@ -1,8 +1,8 @@
 # Current Readiness Statement
 
-Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
-This statement reflects the repository after Passes 10–27. It is intentionally conservative and must not be read as public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness.
+This statement is tied to the current generated readiness artifacts rather than pass-number history. It is intentionally conservative and must not be read as public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, completed production cryptographic audit, production post-quantum security, legal-approval, or public storage-market readiness.
 
 ## Summary verdict
 
@@ -16,26 +16,20 @@ This statement reflects the repository after Passes 10–27. It is intentionally
 | Live economics readiness | NO-GO | Economics are locked; fees, transfers, rewards, slashing, and treasury spend are not live launch claims. |
 | Automatic protocol upgrade readiness | NO-GO | Upgrade records are deterministic metadata only; automatic apply, executable migrations, and executable rollbacks are not enabled. |
 | Production helper execution readiness | NO-GO | Helper topology remains a future hardening/evidence gate. |
+| Production cryptographic audit / post-quantum security | NO-GO | Fresh profile-aware post-transition rehearsal evidence, browser/local signing-boundary review, helper/evidence-signing production gates, and external cryptographic review remain required. |
 | Legal/compliance approval | NO-GO | Counsel or controlled legal/compliance attestation remains required. |
 | Public storage-market readiness | NO-GO | Real storage/IPFS operator transcript remains required. |
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+Current tx-canon count/version: read directly from `generated/tx_index.json`; no duplicated mutable checkpoint is authoritative in this document.
 
 ## Blocker-count truth
 
-The canonical counts are taken from `generated/public_beta_blocker_report_v1_5.json` and `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json`:
-
-| Field | Current value |
-|---|---:|
-| `blocker_catalog_count` | 15 |
-| `closed_in_repository_count` | 7 |
-| `remaining_blocker_count` | 8 |
-| `remaining_external_evidence_required_count` | 8 |
-| `p0_open_count` | 3 |
-| `p1_open_count` | 4 |
-| `public_beta_ready` | `false` |
-
-These counts must remain visible. Do not hide, soften, rename, or remove remaining blockers for presentation optics.
+Blocker counts are mutable generated facts. Reviewers must read them directly from
+`generated/public_beta_blocker_report_v1_5.json` and
+`generated/final_public_observer_controlled_testnet_go_gate_v1_5.json`. This document
+intentionally does not duplicate the numeric totals, because duplicated prose counts
+become stale when blockers open or close. `public_beta_ready` must remain `false` while
+any still-open blocker remains.
 
 ## What is implemented repository evidence
 
@@ -45,7 +39,7 @@ Repository evidence currently includes generated artifacts, tests, scripts, and 
 - release evidence manifest and claim boundaries;
 - final controlled/public-observer go-gate artifact;
 - API contract maps and response vectors;
-- transaction canon artifacts for 236 tx types, version 1.25.0;
+- transaction-canon artifacts whose current count/version are read from `generated/tx_index.json`;
 - public-only protocol docs and tests;
 - governance and dispute block-height lifecycle surfaces;
 - protocol-upgrade record-only surfaces;
@@ -77,6 +71,7 @@ Generated files are evidence of repository consistency. They are not substitutes
 | `AUD-618-P0-001` | Independent controlled validator/operator transcript. |
 | `AUD-618-P0-002` | Real counsel or controlled legal/compliance attestation. |
 | `AUD-618-P0-003` | Future executable upgrade staging/rollback proof. |
+| `AUD-633-P0-004` | Fresh profile-aware post-transition rehearsal evidence, browser/local signing-boundary review, helper/evidence-signing production gate, and external cryptographic review. |
 | `AUD-618-P1-003` | External/two-machine replay transcript. |
 | `AUD-618-P1-004` | Real storage/IPFS daemon/operator transcript. |
 | `AUD-618-P1-005` | Future production helper topology proof. |
@@ -89,7 +84,7 @@ Generated files are evidence of repository consistency. They are not substitutes
 - **Public groups:** public reads with member-gated participation and administration.
 - **Governance:** public proposal/vote/finalization flow with block-height lifecycle progression.
 - **Disputes/reviews:** public report/review surfaces, assignments, votes, receipts, outcomes, and restricted evidence boundaries.
-- **Transaction lifecycle:** canonical tx index, admission/status, mempool/block/receipt evidence, and the 236 tx type checkpoint.
+- **Transaction lifecycle:** canonical tx index, admission/status, mempool/block/receipt evidence, with mutable canon counts read from `generated/tx_index.json`.
 - **Node/operator surfaces:** readiness/status, signed discovery evidence, validator authority gating, observer status, release hygiene, and secret guard.
 - **Observer boot:** `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` runbook with signed/pinned registry checks.
 - **External evidence packages:** proof templates under `docs/proofs/` and testnet runbooks under `docs/testnet/`.
@@ -121,7 +116,7 @@ PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 
 ## Final communication boundary
 
-Do not claim public beta readiness, public mainnet readiness, public multi-validator BFT readiness, public validator safety, live economics readiness, automatic protocol upgrade readiness, executable migration readiness, rollback execution readiness, production helper execution readiness, legal/compliance approval, public storage-market readiness, complete anti-Sybil/collusion detection, or complete public identity infrastructure.
+Do not claim public beta readiness, public mainnet readiness, public multi-validator BFT readiness, public validator safety, live economics readiness, automatic protocol upgrade readiness, executable migration readiness, rollback execution readiness, production helper execution readiness, completed production cryptographic audit, production post-quantum security, quantum-proof security, legal/compliance approval, public storage-market readiness, complete anti-Sybil/collusion detection, or complete public identity infrastructure.
 
 ## Reviewer trust posture files added for this boundary
 

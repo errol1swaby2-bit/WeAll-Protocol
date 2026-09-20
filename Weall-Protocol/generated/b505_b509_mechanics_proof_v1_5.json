@@ -398,11 +398,11 @@
             {
               "result": {
                 "error": {
-                  "code": "invalid_payload",
+                  "code": "invalid_state",
                   "details": {
                     "account": "@dana"
                   },
-                  "reason": "candidate_missing_pubkey"
+                  "reason": "candidate_missing_canonical_pubkey"
                 },
                 "ok": false
               },
@@ -645,7 +645,7 @@
           }
         }
       ],
-      "artifact_hash": "65d1f1c61a7b2836bf31ef437415914c08a2f608ae682661f7470c75bef80512",
+      "artifact_hash": "9e2e987e32861203136f8bbd68057aca500a6052bddb7770be5a657f2ca2b83b",
       "batch509_stdout_compatibility": true,
       "conflict_vectors": [
         {

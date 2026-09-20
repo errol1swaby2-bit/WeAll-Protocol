@@ -51,7 +51,17 @@ def test_live_dedicated_request_requires_tier1_subject() -> None:
     with pytest.raises(Exception) as raised:
         apply_tx(
             st,
-            _env("POH_LIVE_REQUEST_OPEN", {"account_id": "bob", "session_commitment": "session:cmt:bob", "room_commitment": "room:cmt:bob", "prompt_commitment": "prompt:cmt:bob"}, signer="bob", nonce=1),
+            _env(
+                "POH_LIVE_REQUEST_OPEN",
+                {
+                    "account_id": "bob",
+                    "session_commitment": "session:cmt:bob",
+                    "room_commitment": "room:cmt:bob",
+                    "prompt_commitment": "prompt:cmt:bob",
+                },
+                signer="bob",
+                nonce=1,
+            ),
         )
 
     assert _reason(raised.value) == "live_request_requires_tier1"
@@ -108,7 +118,10 @@ def test_live_dedicated_request_creates_case_session_and_transport_boundary() ->
     assert session["case_id"] == "poh_live:alice:2"
     assert session["relay_authority"] == "transport_only"
     assert "join_url" not in session
-    assert st["poh"]["live_session_participants"]["session:poh_live:alice:2"]["alice"]["role"] == "subject"
+    assert (
+        st["poh"]["live_session_participants"]["session:poh_live:alice:2"]["alice"]["role"]
+        == "subject"
+    )
 
 
 def test_live_dedicated_request_blocks_duplicate_active_case() -> None:

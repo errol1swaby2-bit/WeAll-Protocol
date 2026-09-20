@@ -32,7 +32,9 @@ Json = dict[str, Any]
 
 OUTPUTS = {
     "registry": ROOT / "generated" / "public_seed_registry_signature_verification_v1_5.json",
-    "clean_clone": ROOT / "generated" / "public_observer_clean_clone_bootstrap_transcript_v1_5.json",
+    "clean_clone": ROOT
+    / "generated"
+    / "public_observer_clean_clone_bootstrap_transcript_v1_5.json",
     "auto_discovery": ROOT / "generated" / "public_observer_auto_discovery_proof_v1_5.json",
     "state_sync": ROOT / "generated" / "public_observer_state_sync_trusted_anchor_proof_v1_5.json",
 }
@@ -58,7 +60,7 @@ def _sha256_file(path: Path) -> str:
 
 
 def _run(cmd: list[str], *, cwd: Path) -> Json:
-    proc = subprocess.run(cmd, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    proc = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=False)
     return {
         "cmd": " ".join(cmd),
         "returncode": proc.returncode,
@@ -167,7 +169,15 @@ def _default_contracts() -> dict[str, Json]:
     }
 
     for payload in (registry_validation, clean_clone, auto_discovery, state_sync):
-        payload["artifact_digest"] = _digest({"schema": payload["schema"], "version": payload["version"], "required": payload.get("required_steps") or payload.get("required_observations") or payload.get("required_runtime_inputs")})
+        payload["artifact_digest"] = _digest(
+            {
+                "schema": payload["schema"],
+                "version": payload["version"],
+                "required": payload.get("required_steps")
+                or payload.get("required_observations")
+                or payload.get("required_runtime_inputs"),
+            }
+        )
     return {
         "registry": registry_validation,
         "clean_clone": clean_clone,
@@ -180,8 +190,12 @@ def build_runtime(*, registry_path: Path | None, api_base: str | None) -> Json:
     started_ms = int(time.time() * 1000)
     env = {
         "WEALL_PUBLIC_TESTNET": os.environ.get("WEALL_PUBLIC_TESTNET", ""),
-        "WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY": os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", ""),
-        "WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH": str(registry_path or os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH") or ""),
+        "WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY": os.environ.get(
+            "WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PUBKEY", ""
+        ),
+        "WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH": str(
+            registry_path or os.environ.get("WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH") or ""
+        ),
     }
     registry: Json = {}
     registry_error = ""
@@ -189,7 +203,9 @@ def build_runtime(*, registry_path: Path | None, api_base: str | None) -> Json:
         os.environ["WEALL_PUBLIC_TESTNET_SEED_REGISTRY_PATH"] = str(registry_path)
     os.environ.setdefault("WEALL_PUBLIC_TESTNET", "1")
     try:
-        registry = load_public_seed_registry(str(registry_path) if registry_path is not None else None)
+        registry = load_public_seed_registry(
+            str(registry_path) if registry_path is not None else None
+        )
     except PublicSeedRegistryError as exc:
         registry_error = str(exc)
     except Exception as exc:
@@ -198,7 +214,14 @@ def build_runtime(*, registry_path: Path | None, api_base: str | None) -> Json:
     endpoints: dict[str, Json] = {}
     endpoint_errors: dict[str, str] = {}
     if api_base:
-        for route in ("/v1/nodes/seeds", "/v1/nodes/validators", "/v1/observer/edge/status", "/v1/chain/identity", "/v1/status", "/v1/chain/head"):
+        for route in (
+            "/v1/nodes/seeds",
+            "/v1/nodes/validators",
+            "/v1/observer/edge/status",
+            "/v1/chain/identity",
+            "/v1/status",
+            "/v1/chain/head",
+        ):
             try:
                 endpoints[route] = _http_json(api_base, route)
             except Exception as exc:  # pragma: no cover - runtime transcript path
@@ -207,17 +230,28 @@ def build_runtime(*, registry_path: Path | None, api_base: str | None) -> Json:
     commitments = commitment_payload(registry) if registry else {}
     identity = endpoints.get("/v1/chain/identity") or {}
     validators = endpoints.get("/v1/nodes/validators") or {}
-    registry_verified = bool((registry.get("seed_registry_signature_status") or {}).get("verified")) if registry else False
-    validators_fresh = bool(validators.get("all_active_validators_have_verified_fresh_endpoint")) if validators else False
+    registry_verified = (
+        bool((registry.get("seed_registry_signature_status") or {}).get("verified"))
+        if registry
+        else False
+    )
+    validators_fresh = (
+        bool(validators.get("all_active_validators_have_verified_fresh_endpoint"))
+        if validators
+        else False
+    )
     identity_matches = bool(
         commitments
         and identity
         and str(identity.get("chain_id") or "") == str(commitments.get("chain_id") or "")
         and str(identity.get("genesis_hash") or "") == str(commitments.get("genesis_hash") or "")
-        and str(identity.get("protocol_profile_hash") or "") == str(commitments.get("protocol_profile_hash") or "")
+        and str(identity.get("protocol_profile_hash") or "")
+        == str(commitments.get("protocol_profile_hash") or "")
         and str(identity.get("tx_index_hash") or "") == str(commitments.get("tx_index_hash") or "")
     )
-    runtime_ok = bool(registry_verified and identity_matches and validators_fresh and not endpoint_errors)
+    runtime_ok = bool(
+        registry_verified and identity_matches and validators_fresh and not endpoint_errors
+    )
     payload: Json = {
         "schema": "weall.v1_5.public_observer_launch_runtime_transcript",
         "version": "2026-06-b629-runtime-public-observer-launch-transcript",
@@ -236,7 +270,18 @@ def build_runtime(*, registry_path: Path | None, api_base: str | None) -> Json:
         "all_active_validators_have_verified_fresh_endpoint": validators_fresh,
         "runtime_artifact_only_do_not_track_as_static_claim": True,
     }
-    payload["artifact_digest"] = _digest({k: payload[k] for k in ("schema", "version", "commitments", "endpoint_errors", "identity_matches_registry_commitments")})
+    payload["artifact_digest"] = _digest(
+        {
+            k: payload[k]
+            for k in (
+                "schema",
+                "version",
+                "commitments",
+                "endpoint_errors",
+                "identity_matches_registry_commitments",
+            )
+        }
+    )
     return payload
 
 
@@ -263,16 +308,25 @@ def check_static() -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check public observer launch transcript artifacts.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check public observer launch transcript artifacts."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--runtime-json", action="store_true", help="emit live runtime transcript from registry/API; not a tracked static artifact")
+    parser.add_argument(
+        "--runtime-json",
+        action="store_true",
+        help="emit live runtime transcript from registry/API; not a tracked static artifact",
+    )
     parser.add_argument("--registry", help="registry path for --runtime-json")
     parser.add_argument("--api-base", help="seed/genesis API base for --runtime-json")
     parser.add_argument("--out", help="optional output path for --runtime-json")
     args = parser.parse_args()
     if args.runtime_json:
-        payload = build_runtime(registry_path=Path(args.registry).resolve() if args.registry else None, api_base=args.api_base)
+        payload = build_runtime(
+            registry_path=Path(args.registry).resolve() if args.registry else None,
+            api_base=args.api_base,
+        )
         text = _pretty(payload)
         if args.out:
             out = Path(args.out).resolve()
@@ -284,7 +338,16 @@ def main() -> int:
         return 0 if payload.get("ok") else 1
     if args.json:
         payloads = _default_contracts()
-        print(_pretty({"schema": "weall.v1_5.public_observer_launch_transcript_bundle", "ok": True, "artifacts": payloads}), end="")
+        print(
+            _pretty(
+                {
+                    "schema": "weall.v1_5.public_observer_launch_transcript_bundle",
+                    "ok": True,
+                    "artifacts": payloads,
+                }
+            ),
+            end="",
+        )
         return 0
     if args.check:
         return check_static()

@@ -19,7 +19,6 @@ class _FakeExecutor:
             "storage": {"pins": {}, "pin_confirms": []},
         }
 
-
     def tx_index_hash(self):
         return "test"
 

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
 import time
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
-
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTER = ROOT.parent
@@ -31,9 +30,27 @@ def _state() -> dict:
         "height": 7,
         "time": 10,
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "session_keys": {"sk-alice": _session()}},
-            "@j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "session_keys": {"sk-j1": _session()}},
-            "@mallory": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "session_keys": {"sk-mallory": _session()}},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "banned": False,
+                "locked": False,
+                "session_keys": {"sk-alice": _session()},
+            },
+            "@j1": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "session_keys": {"sk-j1": _session()},
+            },
+            "@mallory": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "session_keys": {"sk-mallory": _session()},
+            },
         },
         "poh": {
             "live_cases": {
@@ -137,7 +154,17 @@ def test_webrtc_signal_bridge_rejects_nonparticipant_and_untargeted_media(monkey
     untargeted = c.post(
         f"/v1/poh/live/session/{session_id}/webrtc/signals/import",
         headers=headers,
-        json={"source_node": "observer", "source_chain_id": "weall-controlled-devnet", "signal": {"signal_id": "webrtc:bad:1", "session_id": session_id, "from_account": "@alice", "type": "offer", "sdp": "v=0"}},
+        json={
+            "source_node": "observer",
+            "source_chain_id": "weall-controlled-devnet",
+            "signal": {
+                "signal_id": "webrtc:bad:1",
+                "session_id": session_id,
+                "from_account": "@alice",
+                "type": "offer",
+                "sdp": "v=0",
+            },
+        },
     )
     assert untargeted.status_code == 400
     assert untargeted.json()["error"]["message"] == "webrtc_target_required"
@@ -145,7 +172,18 @@ def test_webrtc_signal_bridge_rejects_nonparticipant_and_untargeted_media(monkey
     nonparticipant = c.post(
         f"/v1/poh/live/session/{session_id}/webrtc/signals/import",
         headers=headers,
-        json={"source_node": "observer", "source_chain_id": "weall-controlled-devnet", "signal": {"signal_id": "webrtc:bad:2", "session_id": session_id, "from_account": "@mallory", "to_account": "@j1", "type": "offer", "sdp": "v=0"}},
+        json={
+            "source_node": "observer",
+            "source_chain_id": "weall-controlled-devnet",
+            "signal": {
+                "signal_id": "webrtc:bad:2",
+                "session_id": session_id,
+                "from_account": "@mallory",
+                "to_account": "@j1",
+                "type": "offer",
+                "sdp": "v=0",
+            },
+        },
     )
     assert nonparticipant.status_code == 403
     assert nonparticipant.json()["error"]["message"] == "webrtc_source_must_be_case_participant"

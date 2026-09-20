@@ -2,11 +2,18 @@ from __future__ import annotations
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
-from weall.runtime.helper_certificates import HelperExecutionCertificate, make_namespace_hash, sign_helper_certificate
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    make_namespace_hash,
+    sign_helper_certificate,
+)
 from weall.runtime.helper_dispatch import HelperDispatchContext
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 from weall.runtime.helper_replay_guard import HelperReplayGuard
-from weall.runtime.parallel_execution import canonical_lane_plan_fingerprint, plan_parallel_execution
+from weall.runtime.parallel_execution import (
+    canonical_lane_plan_fingerprint,
+    plan_parallel_execution,
+)
 
 
 def _pub_hex_from_seed(seed_hex: str) -> str:

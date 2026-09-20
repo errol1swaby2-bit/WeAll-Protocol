@@ -138,8 +138,6 @@ def compute_relay_id(envelope: Json) -> str:
     return _sha256_hex(_relay_signing_material(envelope) + b"|" + pubkey.encode("utf-8"))
 
 
-
-
 def _clean_relay_ids(values: Any) -> tuple[str, ...]:
     if not isinstance(values, (list, tuple)):
         return ()
@@ -209,7 +207,8 @@ def make_relay_access_request(
         "created_ms": created,
         "expires_at_ms": created + max(1, int(ttl_ms)),
         "pubkey": str(pubkey or "").strip(),
-        "sig_profile": str(sig_profile or default_signature_profile_for_mode()).strip() or PQ_MLDSA_V1,
+        "sig_profile": str(sig_profile or default_signature_profile_for_mode()).strip()
+        or PQ_MLDSA_V1,
     }
     if req_type == "fetch":
         req["limit"] = max(1, int(limit or 1))
@@ -313,6 +312,7 @@ def validate_relay_access_request(
     req["request_id"] = expected_request_id
     return req
 
+
 def make_relay_envelope(
     *,
     message: WireMessage | Json | bytes | str,
@@ -348,7 +348,8 @@ def make_relay_envelope(
         "payload": payload,
         "payload_hash": _payload_hash(payload),
         "pubkey": str(pubkey or "").strip(),
-        "sig_profile": str(sig_profile or default_signature_profile_for_mode()).strip() or PQ_MLDSA_V1,
+        "sig_profile": str(sig_profile or default_signature_profile_for_mode()).strip()
+        or PQ_MLDSA_V1,
     }
     envelope["sig_alg"] = "ML-DSA"
     envelope["sig"] = sign_signature_for_profile(
@@ -511,7 +512,9 @@ class RelaySpool:
                 """
             )
             try:
-                con.execute("ALTER TABLE relay_messages ADD COLUMN recipient_pubkey TEXT NOT NULL DEFAULT ''")
+                con.execute(
+                    "ALTER TABLE relay_messages ADD COLUMN recipient_pubkey TEXT NOT NULL DEFAULT ''"
+                )
             except sqlite3.OperationalError:
                 pass
             con.execute(
@@ -568,7 +571,6 @@ class RelaySpool:
                 ),
             )
         return {"relay_id": str(env["relay_id"]), "msg_type": str(env["msg_type"])}
-
 
     def _consume_access_request(self, req: Json) -> None:
         rid = str(req.get("request_id") or "").strip()
@@ -636,7 +638,6 @@ class RelaySpool:
                     pass
         return tuple(out)
 
-
     def fetch_authorized(
         self,
         *,
@@ -646,7 +647,9 @@ class RelaySpool:
         now_ms: int | None = None,
     ) -> tuple[Json, ...]:
         now = int(now_ms if now_ms is not None else _now_ms())
-        req = validate_relay_access_request(access_request, cfg=cfg, request_type="fetch", now_ms=now)
+        req = validate_relay_access_request(
+            access_request, cfg=cfg, request_type="fetch", now_ms=now
+        )
         self._consume_access_request(req)
         requested_limit = int(limit or req.get("limit") or 1)
         recipient = _clean_peer_id(req.get("recipient_peer_id"))
@@ -695,7 +698,9 @@ class RelaySpool:
                     pass
         return tuple(out)
 
-    def ack_authorized(self, *, access_request: Any, cfg: RelayConfig, now_ms: int | None = None) -> int:
+    def ack_authorized(
+        self, *, access_request: Any, cfg: RelayConfig, now_ms: int | None = None
+    ) -> int:
         now = int(now_ms if now_ms is not None else _now_ms())
         req = validate_relay_access_request(access_request, cfg=cfg, request_type="ack", now_ms=now)
         self._consume_access_request(req)

@@ -7,6 +7,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
 from weall.runtime.json_tools import canonical_json_str
 from weall.runtime.runtime_authority import authority_contract_from_lifecycle
 from weall.runtime.state_hash import compute_state_root
@@ -205,15 +206,11 @@ def read_db_state(db_path: str | Path, *, fail_closed: bool = False) -> tuple[Js
 
 
 def _normalized_validators_from_state(state: Json) -> list[str]:
-    consensus = state.get("consensus")
     roles = state.get("roles")
 
-    if isinstance(consensus, dict):
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict):
-            active = validator_set.get("active_set")
-            if isinstance(active, list):
-                return sorted({str(x).strip() for x in active if str(x).strip()})
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return list(explicit)
 
     validators: list[str] = []
     if isinstance(roles, dict):
@@ -228,17 +225,16 @@ def _normalized_validators_from_state(state: Json) -> list[str]:
 
 def validator_epoch_and_hash(state: Json) -> tuple[int, str, list[str]]:
     consensus = state.get("consensus")
-    epoch = 0
+    generation = consensus_validator_generation(state)
+    epoch = int(generation) if generation is not None else 0
     set_hash = ""
+    explicit = consensus_active_validator_ids(state)
     if isinstance(consensus, dict):
         validator_set = consensus.get("validator_set")
         if isinstance(validator_set, dict):
-            try:
-                epoch = int(validator_set.get("epoch") or 0)
-            except Exception:
-                epoch = 0
-            set_hash = str(validator_set.get("set_hash") or "").strip()
-        if epoch <= 0:
+            if explicit is None or isinstance(validator_set.get("active_set"), list):
+                set_hash = str(validator_set.get("set_hash") or "").strip()
+        if generation is None:
             epochs = consensus.get("epochs")
             if isinstance(epochs, dict):
                 try:

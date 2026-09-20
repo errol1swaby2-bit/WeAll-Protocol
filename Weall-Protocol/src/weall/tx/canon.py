@@ -59,6 +59,11 @@ class _SpecTxEntry:
     gate: str
     context: str
     receipt_only: bool
+    parent: str
+    parent_tx_types: tuple[str, ...]
+    system_only: bool
+    via_gov_execute: bool
+    min_reputation: float | int | None
     gates: dict[str, Any] | None
 
 
@@ -148,6 +153,42 @@ def _parse_spec_entries(spec: Json) -> list[_SpecTxEntry]:
         origin = str(t.get("origin") or "USER").strip() or "USER"
         context = str(t.get("context") or "mempool").strip() or "mempool"
         receipt_only = bool(t.get("receipt_only") is True)
+        parent = str(t.get("parent") or "").strip()
+        parent_any_raw = t.get("parent_any_of")
+        if parent_any_raw is None:
+            parent_tx_types = (parent,) if parent else ()
+        else:
+            if not isinstance(parent_any_raw, list) or not parent_any_raw:
+                raise CanonError(f"tx[{idx}].parent_any_of must be a non-empty list if present")
+            normalized_parents: list[str] = []
+            seen_parents: set[str] = set()
+            for parent_idx, raw_parent in enumerate(parent_any_raw):
+                if not isinstance(raw_parent, str) or not raw_parent.strip():
+                    raise CanonError(
+                        f"tx[{idx}].parent_any_of[{parent_idx}] must be a non-empty TxType string"
+                    )
+                parent_name = raw_parent.strip()
+                if parent_name in seen_parents:
+                    raise CanonError(f"tx[{idx}].parent_any_of contains duplicate {parent_name}")
+                seen_parents.add(parent_name)
+                normalized_parents.append(parent_name)
+            if not parent:
+                raise CanonError(f"tx[{idx}].parent_any_of requires compatibility-primary parent")
+            if parent not in seen_parents:
+                raise CanonError(f"tx[{idx}].parent must be included in parent_any_of")
+            parent_tx_types = tuple(normalized_parents)
+        system_only = bool(t.get("system_only") is True)
+        via_gov_execute = bool(t.get("via_gov_execute") is True)
+        min_reputation_raw = t.get("min_reputation")
+        min_reputation: float | int | None
+        if min_reputation_raw is None:
+            min_reputation = None
+        elif isinstance(min_reputation_raw, bool) or not isinstance(
+            min_reputation_raw, (int, float)
+        ):
+            raise CanonError(f"tx[{idx}].min_reputation must be numeric if present")
+        else:
+            min_reputation = min_reputation_raw
 
         legacy_gate = str(t.get("gate") or "").strip()
         gates = t.get("gates")
@@ -176,6 +217,11 @@ def _parse_spec_entries(spec: Json) -> list[_SpecTxEntry]:
                 gate=subject_gate,
                 context=context,
                 receipt_only=receipt_only,
+                parent=parent,
+                parent_tx_types=parent_tx_types,
+                system_only=system_only,
+                via_gov_execute=via_gov_execute,
+                min_reputation=min_reputation,
                 gates=merged_gates,
             )
         )
@@ -187,6 +233,12 @@ def _parse_spec_entries(spec: Json) -> list[_SpecTxEntry]:
     names = [e.name for e in out]
     if len(names) != len(set(names)):
         raise CanonError("duplicate tx names in tx_canon.yaml")
+
+    known_names = set(names)
+    for entry in out:
+        for parent_name in entry.parent_tx_types:
+            if parent_name not in known_names:
+                raise CanonError(f"tx {entry.name} references unknown parent TxType {parent_name}")
 
     out.sort(key=lambda e: e.id_num)
     return out
@@ -208,6 +260,19 @@ def _emit_generated_index(entries: list[_SpecTxEntry], *, spec: Json, source_sha
         }
         if e.gate:
             rec["subject_gate"] = e.gate
+        if e.parent:
+            # Canon ``parent`` names the compatibility-primary causal TxType. It is
+            # relationship metadata, not a concrete transaction-instance reference.
+            # Multi-causal receipt flows additionally expose ``parent_tx_types``.
+            rec["parent_tx_type"] = e.parent
+        if len(e.parent_tx_types) > 1:
+            rec["parent_tx_types"] = list(e.parent_tx_types)
+        if e.system_only:
+            rec["system_only"] = True
+        if e.via_gov_execute:
+            rec["via_gov_execute"] = True
+        if e.min_reputation is not None:
+            rec["min_reputation"] = e.min_reputation
         if e.gates is not None:
             rec["gates"] = e.gates
 

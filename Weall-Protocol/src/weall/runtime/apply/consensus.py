@@ -34,6 +34,10 @@ from weall.runtime.bft_hotstuff import (
 from weall.runtime.bft_hotstuff import (
     validator_set_hash as _canonical_validator_set_hash,
 )
+from weall.runtime.commitments import (  # noqa: E402 -- legacy module docstring follows __future__ import
+    consensus_active_validator_ids,
+    consensus_validator_generation,
+)
 from weall.runtime.node_operator_responsibilities import (
     active_node_pubkeys_for_account,
     evaluate_validator_responsibility,
@@ -163,8 +167,43 @@ def _ensure_consensus(state: Json) -> Json:
         "attestations_by_validator",
         "proposer_by_height",
     ):
+        if k == "validator_set" and k in c and not isinstance(c.get(k), dict):
+            raise ConsensusApplyError(
+                "invalid_state",
+                "state_invariant_violation",
+                {
+                    "field": "consensus.validator_set",
+                    "expected": "dict",
+                    "actual": type(c.get(k)).__name__,
+                },
+            )
         if not isinstance(c.get(k), dict):
             c[k] = {}
+
+    validator_set = c.get("validator_set")
+    if isinstance(validator_set, dict):
+        if "active_set" in validator_set and not isinstance(validator_set.get("active_set"), list):
+            raise ConsensusApplyError(
+                "invalid_state",
+                "state_invariant_violation",
+                {
+                    "field": "consensus.validator_set.active_set",
+                    "expected": "list",
+                    "actual": type(validator_set.get("active_set")).__name__,
+                },
+            )
+        if "epoch" in validator_set:
+            raw_epoch = validator_set.get("epoch")
+            if isinstance(raw_epoch, bool) or not isinstance(raw_epoch, int) or raw_epoch < 0:
+                raise ConsensusApplyError(
+                    "invalid_state",
+                    "state_invariant_violation",
+                    {
+                        "field": "consensus.validator_set.epoch",
+                        "expected": "nonnegative_int",
+                        "actual": type(raw_epoch).__name__,
+                    },
+                )
 
     validators = c.get("validators")
     if not isinstance(validators, dict):
@@ -262,12 +301,15 @@ def _active_validator_accounts(state: Json) -> list[str]:
     consensus active_set retain the role-set fallback for migration compatibility.
     """
 
-    c = _ensure_consensus(state)
-    vs = c.get("validator_set")
-    if isinstance(vs, dict) and isinstance(vs.get("active_set"), list):
-        active = canonicalize_account_set(vs.get("active_set"))
-        vs["active_set"] = active
-        return active
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        c = state.get("consensus")
+        vs = c.get("validator_set") if isinstance(c, dict) else None
+        if isinstance(vs, dict) and isinstance(vs.get("active_set"), list):
+            vs["active_set"] = canonicalize_account_set(explicit)
+        return canonicalize_account_set(explicit)
+
+    _ensure_consensus(state)
     return _ensure_roles_validators_active_set(state)
 
 
@@ -1261,10 +1303,8 @@ def _read_consensus_phase_without_mutation(state: Json) -> str:
     consensus = c if isinstance(c, dict) else {}
     phase_raw = consensus.get("phase")
     phase = phase_raw if isinstance(phase_raw, dict) else {}
-    validator_set_raw = consensus.get("validator_set")
-    validator_set = validator_set_raw if isinstance(validator_set_raw, dict) else {}
-    explicit_active = validator_set.get("active_set")
-    if isinstance(explicit_active, list):
+    explicit_active = consensus_active_validator_ids(state)
+    if explicit_active is not None:
         active_count = len(canonicalize_account_set(explicit_active))
     else:
         roles_raw = state.get("roles")
@@ -1873,10 +1913,12 @@ def _apply_slash_vote(state: Json, env: TxEnvelope) -> Json:
 
 
 def _current_validator_epoch(state: Json) -> int:
+    generation = consensus_validator_generation(state)
+    if generation is not None:
+        return int(generation)
     c = _ensure_consensus(state)
-    vs = c.get("validator_set") if isinstance(c.get("validator_set"), dict) else {}
     ep = c.get("epochs") if isinstance(c.get("epochs"), dict) else {}
-    return max(_as_int(vs.get("epoch"), 0), _as_int(ep.get("current"), 0), 0)
+    return max(_as_int(ep.get("current"), 0), 0)
 
 
 def _record_slash_accountability(

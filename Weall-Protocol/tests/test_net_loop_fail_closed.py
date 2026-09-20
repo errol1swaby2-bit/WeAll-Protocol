@@ -44,7 +44,7 @@ class _FakeExecutorCacheBoom:
     def bft_resolve_fetch_request_descriptor(self, desc):
         return desc
 
-    def bft_cache_remote_block(self, block_json):
+    def bft_cache_remote_block(self, block_json, *, expected_block_hash: str = ""):
         raise ValueError("cache boom")
 
 

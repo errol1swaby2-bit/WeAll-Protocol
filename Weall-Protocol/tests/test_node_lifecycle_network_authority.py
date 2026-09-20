@@ -11,7 +11,9 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_prod_lifecycle_not_validator_disables_network_bft_authority(tmp_path: Path, monkeypatch) -> None:
+def test_prod_lifecycle_not_validator_disables_network_bft_authority(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator")

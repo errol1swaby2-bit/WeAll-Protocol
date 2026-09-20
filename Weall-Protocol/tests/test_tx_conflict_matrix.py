@@ -43,7 +43,12 @@ def test_every_probe_descriptor_has_materialized_conflict_keys() -> None:
         descriptor = build_conflict_descriptor(build_conflict_probe_tx(tx_type, seed="2"))
         if not (descriptor.subject_keys or descriptor.write_keys or descriptor.authority_keys):
             empty.append(tx_type)
-        merged = list(descriptor.subject_keys) + list(descriptor.read_keys) + list(descriptor.write_keys) + list(descriptor.authority_keys)
+        merged = (
+            list(descriptor.subject_keys)
+            + list(descriptor.read_keys)
+            + list(descriptor.write_keys)
+            + list(descriptor.authority_keys)
+        )
         if len(merged) != len(tuple(merged)):
             duplicate_noise.append(tx_type)
     assert empty == []
@@ -52,14 +57,14 @@ def test_every_probe_descriptor_has_materialized_conflict_keys() -> None:
 
 def test_lane_hint_matches_family_contract_for_all_probe_txs() -> None:
     allowed_serial_overrides = {
-            "NODE_OPERATOR_STORAGE_OPT_IN",
-            "NODE_OPERATOR_VALIDATOR_OPT_IN",
-            "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
-            "REVIEWER_LANE_OPT_IN",
-            "REVIEWER_LANE_OPT_OUT",
-            "NODE_OPERATOR_HELPER_OPT_IN",
-            "STORAGE_CAPACITY_PROOF_VERIFY",
-            "VALIDATOR_READINESS_VERIFY",
+        "NODE_OPERATOR_STORAGE_OPT_IN",
+        "NODE_OPERATOR_VALIDATOR_OPT_IN",
+        "NODE_OPERATOR_RESPONSIBILITY_UPDATE",
+        "REVIEWER_LANE_OPT_IN",
+        "REVIEWER_LANE_OPT_OUT",
+        "NODE_OPERATOR_HELPER_OPT_IN",
+        "STORAGE_CAPACITY_PROOF_VERIFY",
+        "VALIDATOR_READINESS_VERIFY",
         "GROUP_SIGNERS_SET",
         "GROUP_EMISSARY_ELECTION_FINALIZE",
         "ROLE_EMISSARY_SEAT",
@@ -92,7 +97,9 @@ def test_lane_hint_matches_family_contract_for_all_probe_txs() -> None:
         if tx_type in allowed_serial_overrides and access.lane_hint == "SERIAL":
             continue
         if access.lane_hint != expected_lane:
-            mismatches.append((tx_type, descriptor.family.value, descriptor.barrier_class.value, access.lane_hint))
+            mismatches.append(
+                (tx_type, descriptor.family.value, descriptor.barrier_class.value, access.lane_hint)
+            )
     assert mismatches == []
 
 
@@ -113,6 +120,9 @@ def test_authority_barriers_materialize_authority_keys() -> None:
     for row in _tx_index_rows():
         tx_type = str(row["name"])
         descriptor = build_conflict_descriptor(build_conflict_probe_tx(tx_type, seed="5"))
-        if descriptor.barrier_class == BarrierClass.AUTHORITY_BARRIER and not descriptor.authority_keys:
+        if (
+            descriptor.barrier_class == BarrierClass.AUTHORITY_BARRIER
+            and not descriptor.authority_keys
+        ):
             missing.append(tx_type)
     assert missing == []

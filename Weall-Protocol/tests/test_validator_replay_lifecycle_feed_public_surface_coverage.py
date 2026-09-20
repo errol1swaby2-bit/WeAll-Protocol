@@ -9,7 +9,11 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
-from weall.api.routes_public_parts.content import _feed_cursor_pack, _feed_rank_score, _sort_feed_items
+from weall.api.routes_public_parts.content import (
+    _feed_cursor_pack,
+    _feed_rank_score,
+    _sort_feed_items,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,7 +36,13 @@ def _client(state: dict[str, Any]) -> TestClient:
 
 
 def _run_json(script: str) -> dict[str, Any]:
-    proc = subprocess.run([sys.executable, str(ROOT / "scripts" / script), "--json"], cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / script), "--json"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
     return json.loads(proc.stdout)
 
 
@@ -65,16 +75,42 @@ def test_full_lifecycle_exercises_real_runtime_domains() -> None:
     assert journey["storage_retrieval_confirmed"] is True
     assert journey["economics_locked_rejection"] is True
     assert journey["protocol_upgrade_record_only"] is True
-    assert out["locked_boundaries"] == {"public_validators": False, "live_economics": False, "automatic_upgrades": False, "production_helpers": False}
+    assert out["locked_boundaries"] == {
+        "public_validators": False,
+        "live_economics": False,
+        "automatic_upgrades": False,
+        "production_helpers": False,
+    }
 
 
 def test_ranked_feed_cursor_uses_score_nonce_id_and_does_not_skip_new_quiet_posts() -> None:
     state = {
         "content": {
             "posts": {
-                "old-popular": {"post_id": "old-popular", "author": "@a", "body": "old", "visibility": "public", "created_nonce": 10, "reactions": {"like": 10}},
-                "new-quiet": {"post_id": "new-quiet", "author": "@a", "body": "new", "visibility": "public", "created_nonce": 20, "reactions": {}},
-                "middle": {"post_id": "middle", "author": "@a", "body": "middle", "visibility": "public", "created_nonce": 15, "reactions": {"like": 1}},
+                "old-popular": {
+                    "post_id": "old-popular",
+                    "author": "@a",
+                    "body": "old",
+                    "visibility": "public",
+                    "created_nonce": 10,
+                    "reactions": {"like": 10},
+                },
+                "new-quiet": {
+                    "post_id": "new-quiet",
+                    "author": "@a",
+                    "body": "new",
+                    "visibility": "public",
+                    "created_nonce": 20,
+                    "reactions": {},
+                },
+                "middle": {
+                    "post_id": "middle",
+                    "author": "@a",
+                    "body": "middle",
+                    "visibility": "public",
+                    "created_nonce": 15,
+                    "reactions": {"like": 1},
+                },
             },
             "comments": {},
             "reactions": {},
@@ -97,7 +133,22 @@ def test_recency_cursor_remains_legacy_compatible() -> None:
     item = {"post_id": "post-1", "id": "post-1", "created_at_nonce": 42, "feed_rank_score": 42}
     cursor = _feed_cursor_pack(mode="recency", obj=item)
     assert "|" not in cursor
-    state = {"content": {"posts": {"post-1": {"post_id": "post-1", "author": "@a", "body": "one", "visibility": "public", "created_nonce": 42}}, "comments": {}, "reactions": {}, "media": {}}}
+    state = {
+        "content": {
+            "posts": {
+                "post-1": {
+                    "post_id": "post-1",
+                    "author": "@a",
+                    "body": "one",
+                    "visibility": "public",
+                    "created_nonce": 42,
+                }
+            },
+            "comments": {},
+            "reactions": {},
+            "media": {},
+        }
+    }
     with _client(state) as client:
         res = client.get("/v1/feed?limit=1")
         assert res.status_code == 200
@@ -114,11 +165,16 @@ def test_sort_key_matches_cursor_model_for_ranked_modes() -> None:
         obj = dict(item)
         obj["feed_rank_score"] = _feed_rank_score(obj, mode="engagement")
         ranked.append(obj)
-    assert [x["post_id"] for x in _sort_feed_items(ranked, mode="engagement")] == ["old-popular", "new-quiet"]
+    assert [x["post_id"] for x in _sort_feed_items(ranked, mode="engagement")] == [
+        "old-popular",
+        "new-quiet",
+    ]
 
 
 def test_sensitive_route_metadata_is_explicit_and_generated_artifact_is_fresh() -> None:
-    metadata = json.loads((ROOT / "specs" / "api_contracts" / "v1_5_route_metadata.json").read_text())
+    metadata = json.loads(
+        (ROOT / "specs" / "api_contracts" / "v1_5_route_metadata.json").read_text()
+    )
     routes = metadata["routes"]
     for route in [
         "GET /v1/session/me",
@@ -133,12 +189,24 @@ def test_sensitive_route_metadata_is_explicit_and_generated_artifact_is_fresh() 
         assert route in routes
         assert "static_generator_heuristic" not in json.dumps(routes[route])
 
-    proc = subprocess.run([sys.executable, "scripts/gen_api_contract_map.py", "--check"], cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    proc = subprocess.run(
+        [sys.executable, "scripts/gen_api_contract_map.py", "--check"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
 def test_proof_artifact_is_fresh() -> None:
-    proc = subprocess.run([sys.executable, "scripts/gen_b523_b527_completion_proof_v1_5.py", "--check"], cwd=str(ROOT), text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    proc = subprocess.run(
+        [sys.executable, "scripts/gen_b523_b527_completion_proof_v1_5.py", "--check"],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     artifact = json.loads((ROOT / "generated" / "b523_b527_completion_proof_v1_5.json").read_text())
     assert artifact["ok"] is True

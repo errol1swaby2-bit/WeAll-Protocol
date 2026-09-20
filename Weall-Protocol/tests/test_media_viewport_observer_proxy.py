@@ -93,9 +93,13 @@ def test_public_feed_cursor_and_filters_remain_bounded() -> None:
     assert all(item["author"] == "@alice" for item in first["items"])
     assert first["next_cursor"]
 
-    second = client.get(f"/v1/feed?limit=2&author=@alice&tags=media&cursor={first['next_cursor']}").json()
+    second = client.get(
+        f"/v1/feed?limit=2&author=@alice&tags=media&cursor={first['next_cursor']}"
+    ).json()
     assert len(second["items"]) <= 2
-    assert [item["post_id"] for item in first["items"]] != [item["post_id"] for item in second["items"]]
+    assert [item["post_id"] for item in first["items"]] != [
+        item["post_id"] for item in second["items"]
+    ]
 
 
 def test_media_resolve_is_bounded_metadata_only() -> None:
@@ -133,7 +137,9 @@ def test_media_proxy_serves_local_cache_without_provider_fetch(tmp_path: Path, m
     assert r.content == b"cached-media"
 
 
-def test_media_proxy_does_not_fetch_when_observer_fetch_disabled(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_does_not_fetch_when_observer_fetch_disabled(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MEDIA_CACHE_DIR", str(tmp_path / "media-cache"))
     monkeypatch.setenv("WEALL_MEDIA_PROXY_FETCH_ENABLED", "0")
 

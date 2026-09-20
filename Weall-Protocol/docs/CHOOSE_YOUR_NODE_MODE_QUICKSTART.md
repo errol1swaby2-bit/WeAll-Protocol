@@ -41,14 +41,14 @@ Users can opt out of each lane independently.
 
 ## Current release boundary
 
-The current repository posture is controlled testnet candidate evidence. Public beta still requires independent validator transcripts, real storage/IPFS operator transcripts, legal/compliance review, expanded public capability evidence, and future signed protocol-upgrade execution gates.
+The current repository posture is pre-public-testnet hardening with bounded local/devnet/public-observer-oriented evidence. Controlled-testnet mechanism completion remains NO-GO. Public beta still requires the open evidence in the generated blocker report, including independent validator transcripts, real storage/IPFS operator transcripts, legal/compliance review, external replay and observer evidence, future upgrade/helper hardening, and post-transition cryptographic review.
 
 
 ## Batch 620 public-beta evidence boundary
 
-Current release posture remains: controlled multi-node testnet candidate.
+Current release posture remains: pre-public-testnet implementation under active hardening; controlled-testnet mechanism completion is NO-GO.
 Do not claim public beta, mainnet, public validator enablement, live economics,
-production helper execution, public storage-market readiness, or legal/compliance
+production helper execution, completed production cryptographic audit or production post-quantum security, public storage-market readiness, or legal/compliance
 readiness until the external transcript requirements in
 `Weall-Protocol/generated/external_operator_transcript_requirements_v1_5.json`
 and `Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md` are satisfied.

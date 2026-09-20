@@ -6,10 +6,24 @@ protocol upgrades, or production helper execution readiness.
 
 The current repository may claim only:
 
-> controlled multi-node testnet candidate, with public-beta blocker
-> evidence gates present.
+> pre-public-testnet implementation under active hardening, with bounded local/devnet/public-observer-oriented evidence present and public beta still blocked by the current generated blocker report.
 
-## Required transcripts before any public-beta claim
+## Required evidence before any public-beta claim
+
+The canonical blocker report currently has 15 catalog entries, 7 closed in the
+repository, and 8 still open. This runbook does not reduce those eight blockers
+to the three transcript schemas below. In addition to validator, storage/IPFS,
+and legal evidence, the current open set includes:
+
+- `AUD-618-P0-003` — future executable protocol-upgrade staging/rollback proof;
+- `AUD-633-P0-004` — fresh profile-aware post-transition rehearsal evidence, browser/local signing-boundary review, helper/evidence-signing production gate, and external cryptographic review;
+- `AUD-618-P1-003` — external/two-machine replay transcript;
+- `AUD-618-P1-005` — future production helper topology proof;
+- `AUD-628-P1-001` — external clean-clone/open-download/state-sync/frontend rendered observer journey transcript.
+
+Use `generated/public_beta_blocker_report_v1_5.json` and
+`generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` as the
+current source of truth for the complete open set.
 
 ### 1. Public validator operator transcript
 
@@ -109,4 +123,5 @@ scripts/run_clean_clone_go_gate_v1_5.sh
 - Public decentralized media durability ready.
 - Live economics or transfer readiness.
 - Production helper execution ready.
+- Completed production cryptographic audit, production post-quantum security, or quantum-proof security.
 - Legal/compliance ready.

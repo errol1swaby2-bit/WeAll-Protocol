@@ -9,16 +9,32 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTER = ROOT.parent
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system)
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system
+    )
 
 
 def _two_account_state() -> dict:
     return {
         "height": 10,
         "accounts": {
-            "@genesis": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation_milli": 6000},
-            "@errol": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation_milli": 6000},
+            "@genesis": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": 6000,
+            },
+            "@errol": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": 6000,
+            },
         },
         "roles": {
             "validators": {"active_set": ["@genesis"]},
@@ -86,7 +102,9 @@ def test_content_review_selection_requires_exact_content_review_lane_not_generic
 
     result = apply_tx(
         state,
-        _env("REVIEWER_LANE_OPT_IN", "@errol", 3, {"account_id": "@errol", "lane": "content_review"}),
+        _env(
+            "REVIEWER_LANE_OPT_IN", "@errol", 3, {"account_id": "@errol", "lane": "content_review"}
+        ),
     )
 
     assert result["applied"] == "REVIEWER_LANE_OPT_IN"
@@ -100,7 +118,9 @@ def test_content_review_selection_requires_exact_content_review_lane_not_generic
 
 
 def test_frontend_surfaces_content_review_opt_in_and_juror_review_queue_stage() -> None:
-    verification_page = (OUTER / "web/src/pages/AccountVerificationPage.tsx").read_text(encoding="utf-8")
+    verification_page = (OUTER / "web/src/pages/AccountVerificationPage.tsx").read_text(
+        encoding="utf-8"
+    )
     juror_dashboard = (OUTER / "web/src/pages/JurorDashboard.tsx").read_text(encoding="utf-8")
 
     assert "weall.accountReviewerStatus" in verification_page

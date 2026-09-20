@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import pytest
 
 from weall.api.routes_public_parts.status import router as status_router
 from weall.runtime.bootstrap_manifest import build_manifest, verify_local_manifest
@@ -17,7 +17,9 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def _make_executor(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, acct: str = "@genesis-node") -> WeAllExecutor:
+def _make_executor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, acct: str = "@genesis-node"
+) -> WeAllExecutor:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_CHAIN_ID", "weall-test")
     monkeypatch.setenv("WEALL_GENESIS_BOOTSTRAP_ENABLE", "1")
@@ -82,7 +84,10 @@ def test_manifest_commits_pinned_genesis_bootstrap_profile(
     manifest = build_manifest(cfg, db_path=Path(cfg.db_path), tx_index_path=Path(cfg.tx_index_path))
 
     assert manifest["genesis_bootstrap_profile"]["account"] == "@genesis-node"
-    assert manifest["genesis_bootstrap_profile_hash"] == ex.state["meta"]["genesis_bootstrap_profile_hash"]
+    assert (
+        manifest["genesis_bootstrap_profile_hash"]
+        == ex.state["meta"]["genesis_bootstrap_profile_hash"]
+    )
 
 
 def test_verify_local_manifest_rejects_genesis_bootstrap_profile_drift(

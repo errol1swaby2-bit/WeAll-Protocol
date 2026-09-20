@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import json
 import os
 import random
 import sqlite3
@@ -13,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from weall.runtime.failpoints import maybe_trigger_failpoint
-from weall.runtime.json_tools import canonical_json_str
+from weall.runtime.json_tools import canonical_json_str, strict_json_loads
 from weall.runtime.runtime_time import now_ms as _now_ms
 
 Json = dict[str, Any]
@@ -49,7 +48,6 @@ def _process_local_write_lock_for(path: str) -> threading.RLock:
             lock = threading.RLock()
             _PROCESS_LOCAL_WRITE_LOCKS[key] = lock
         return lock
-
 
 
 def _canon_json(obj: Any) -> str:
@@ -351,11 +349,19 @@ class SqliteDB:
             if "nonce" not in mempool_cols:
                 con.execute("ALTER TABLE mempool ADD COLUMN nonce INTEGER;")
             if "admitted_at_height" not in mempool_cols:
-                con.execute("ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;")
+                con.execute(
+                    "ALTER TABLE mempool ADD COLUMN admitted_at_height INTEGER NOT NULL DEFAULT 0;"
+                )
             if "expires_at_height" not in mempool_cols:
-                con.execute("ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_candidate_height ON mempool(admitted_at_height, expires_at_height);")
-            con.execute("CREATE INDEX IF NOT EXISTS idx_mempool_signer_nonce_lookup ON mempool(signer, nonce);")
+                con.execute(
+                    "ALTER TABLE mempool ADD COLUMN expires_at_height INTEGER NOT NULL DEFAULT 0;"
+                )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_mempool_candidate_height ON mempool(admitted_at_height, expires_at_height);"
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_mempool_signer_nonce_lookup ON mempool(signer, nonce);"
+            )
             con.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_mempool_signer_nonce_unique
@@ -850,7 +856,7 @@ class SqliteLedgerStore:
             row = con.execute("SELECT state_json FROM ledger_state WHERE id=1;").fetchone()
             if row is None:
                 raise RuntimeError("ledger_state missing")
-            return json.loads(row["state_json"])
+            return strict_json_loads(row["state_json"])
 
     def write(self, state: Json) -> None:
         if not isinstance(state, dict):
@@ -861,15 +867,11 @@ class SqliteLedgerStore:
         block_id = str(state.get("tip") or "")
 
         with self.db.write_tx() as con:
-            row = con.execute(
-                "SELECT height, state_json FROM ledger_state WHERE id=1;"
-            ).fetchone()
+            row = con.execute("SELECT height, state_json FROM ledger_state WHERE id=1;").fetchone()
             if row is not None:
                 current_height = int(row["height"] or 0)
                 if height < current_height:
-                    raise RuntimeError(
-                        f"ledger_state_height_regression:{height}<{current_height}"
-                    )
+                    raise RuntimeError(f"ledger_state_height_regression:{height}<{current_height}")
 
                 # At a committed height, a side-channel/runtime writer may only
                 # alter state excluded by the canonical state-root projection.
@@ -878,7 +880,7 @@ class SqliteLedgerStore:
                 # intentionally migration-compatible before the first block.
                 if height == current_height and height > 0:
                     try:
-                        current = json.loads(str(row["state_json"] or "{}"))
+                        current = strict_json_loads(str(row["state_json"] or "{}"))
                     except Exception as exc:
                         raise RuntimeError("ledger_state_corrupted") from exc
                     if not isinstance(current, dict):
@@ -893,7 +895,6 @@ class SqliteLedgerStore:
                 (height, block_id, payload, _now_ms()),
             )
 
-
     def install_state_sync_checkpoint(self, *, state: Json, checkpoint_block: Json) -> None:
         """Atomically replace local canonical history with a verified sync checkpoint.
 
@@ -907,10 +908,23 @@ class SqliteLedgerStore:
         if not isinstance(checkpoint_block, dict):
             raise TypeError("checkpoint block must be a dict")
 
-        from weall.runtime.block_hash import ensure_block_hash
+        from weall.runtime.block_commitment_validation import ensure_complete_block_commitments
         from weall.runtime.state_hash import compute_state_root
 
-        block2, block_hash = ensure_block_hash(copy.deepcopy(checkpoint_block))
+        checkpoint_chain_id = str(
+            state.get("chain_id")
+            or (
+                checkpoint_block.get("header", {}).get("chain_id")
+                if isinstance(checkpoint_block.get("header"), dict)
+                else ""
+            )
+            or ""
+        ).strip()
+        block2, binding = ensure_complete_block_commitments(
+            block=copy.deepcopy(checkpoint_block),
+            chain_id=checkpoint_chain_id,
+        )
+        block_hash = binding.block_hash
         height = int(state.get("height") or 0)
         block_height = int(block2.get("height") or 0)
         block_id = str(block2.get("block_id") or "").strip()
@@ -1036,7 +1050,7 @@ class SqliteLedgerStore:
                 raise RuntimeError("ledger_state missing")
 
             try:
-                cur = json.loads(row["state_json"])
+                cur = strict_json_loads(row["state_json"])
             except Exception as e:
                 raise RuntimeError("ledger_state corrupted") from e
 
@@ -1057,9 +1071,7 @@ class SqliteLedgerStore:
             current_height = int(cur.get("height") or 0)
             height = int(nxt.get("height") or 0)
             if height != current_height:
-                raise RuntimeError(
-                    f"ledger_state_update_height_change:{current_height}->{height}"
-                )
+                raise RuntimeError(f"ledger_state_update_height_change:{current_height}->{height}")
 
             # ``update`` is reserved for side-channel/runtime metadata merges. At
             # a committed height it must never alter canonical application state;
@@ -1079,4 +1091,3 @@ class SqliteLedgerStore:
                 (height, block_id, payload, _now_ms()),
             )
             return nxt
-

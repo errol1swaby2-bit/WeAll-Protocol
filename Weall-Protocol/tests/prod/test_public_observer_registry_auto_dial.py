@@ -4,6 +4,7 @@ import json
 from types import SimpleNamespace
 
 from public_seed_test_helpers import REGISTRY_PUBKEY, signed_endpoint, signed_registry
+
 from weall.net.net_loop import NetMeshLoop
 
 
@@ -22,8 +23,19 @@ def _registry():
         "validator_endpoints": [],
     }
     data["validator_endpoints"] = [
-        signed_endpoint(data, {"account_id": "@validator1", "api_base_url": "http://127.0.0.1:8001", "p2p_url": "tcp://127.0.0.1:30304"}),
-        {"account_id": "@hint", "api_base_url": "http://127.0.0.1:8002", "p2p_url": "tcp://127.0.0.1:30305"},
+        signed_endpoint(
+            data,
+            {
+                "account_id": "@validator1",
+                "api_base_url": "http://127.0.0.1:8001",
+                "p2p_url": "tcp://127.0.0.1:30304",
+            },
+        ),
+        {
+            "account_id": "@hint",
+            "api_base_url": "http://127.0.0.1:8002",
+            "p2p_url": "tcp://127.0.0.1:30305",
+        },
     ]
     return signed_registry(data)
 

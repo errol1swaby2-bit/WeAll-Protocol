@@ -62,12 +62,18 @@ class _FakeExecutor:
             },
         }
 
-
     def tx_index_hash(self) -> str:
         return "txhash"
 
     def bft_diagnostics(self) -> dict[str, object]:
-        return {"view": 4, "stalled": False, "stall_reason": "idle", "protocol_profile_hash": "pfh", "schema_version": "1", "tx_index_hash": "txhash"}
+        return {
+            "view": 4,
+            "stalled": False,
+            "stall_reason": "idle",
+            "protocol_profile_hash": "pfh",
+            "schema_version": "1",
+            "tx_index_hash": "txhash",
+        }
 
     def validator_signing_enabled(self) -> bool:
         return False

@@ -13,7 +13,6 @@ from weall.runtime.executor import WeAllExecutor
 from weall.runtime.protocol_profile import runtime_vrf_required
 from weall.runtime.tx_admission_types import TxEnvelope
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -24,7 +23,6 @@ def _load_genesis_verifier():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.verify
-
 
 
 def _write_empty_tx_index(path: Path) -> None:

@@ -1,20 +1,18 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
-from weall.runtime.commitments import value_sha256
+from typing import Any
 
+from weall.runtime.commitments import value_sha256
+from weall.runtime.helper_certificates import HelperExecutionCertificate
 from weall.runtime.helper_dispatch import HelperDispatchContext
 from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 from weall.runtime.helper_replay_guard import HelperReplayGuard
 from weall.runtime.parallel_execution import LanePlan
-from weall.runtime.helper_certificates import HelperExecutionCertificate
-
 
 Json = dict[str, Any]
-
-
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,8 +115,7 @@ def run_helper_event_sequence(
             codes.append("unknown_event")
 
     finalized = tuple(
-        (str(item.lane_id), str(item.mode))
-        for item in orchestrator.finalized_resolutions()
+        (str(item.lane_id), str(item.mode)) for item in orchestrator.finalized_resolutions()
     )
     resolved_lanes = tuple(sorted(guard.resolved_lanes()))
     return HelperEventOutcomeSummary(

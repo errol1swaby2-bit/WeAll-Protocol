@@ -142,7 +142,8 @@ def test_executor_rejects_unverified_explicit_justify_qc(tmp_path: Path, monkeyp
 
 
 def test_hotstuff_state_reload_uses_exported_high_qc_recovery_without_explicit_justify(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     ex = _make_executor(tmp_path)
     hs = HotStuffBFT(chain_id="batch96")
@@ -173,7 +174,9 @@ def test_hotstuff_state_reload_uses_exported_high_qc_recovery_without_explicit_j
     assert ex._bft.last_voted_block_id == "D2"
 
 
-def test_executor_restart_rejects_conflicting_high_qc_block_itself(tmp_path: Path, monkeypatch) -> None:
+def test_executor_restart_rejects_conflicting_high_qc_block_itself(
+    tmp_path: Path, monkeypatch
+) -> None:
     ex = _make_executor(tmp_path)
     hs = HotStuffBFT(chain_id="batch96")
     hs.locked_qc = _qc("batch96", 4, "C1", "B1")

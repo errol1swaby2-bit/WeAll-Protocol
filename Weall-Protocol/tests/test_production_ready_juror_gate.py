@@ -53,7 +53,9 @@ def _state() -> dict:
 
 def test_juror_gate_does_not_have_case_assignment_bypass() -> None:
     gate_text = (REPO_ROOT / "src/weall/runtime/gate_expr.py").read_text(encoding="utf-8")
-    demo_seed_text = (REPO_ROOT / "src/weall/api/routes_public_parts/demo_seed.py").read_text(encoding="utf-8")
+    demo_seed_text = (REPO_ROOT / "src/weall/api/routes_public_parts/demo_seed.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "allow_case_scoped_juror_without_role" not in gate_text
     assert "poh_allow_case_scoped_juror_without_role" not in gate_text

@@ -45,5 +45,7 @@ def test_seed_registry_declares_pq_profile_before_verification(monkeypatch):
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET", "1")
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET_REQUIRE_SIGNATURES", "1")
-    with pytest.raises(PublicSeedRegistryError, match="bad_signature|signature_profile_verifier_unavailable"):
+    with pytest.raises(
+        PublicSeedRegistryError, match="bad_signature|signature_profile_verifier_unavailable"
+    ):
         normalize_public_seed_registry(_registry(PQ_MLDSA_V1), allow_local=False)

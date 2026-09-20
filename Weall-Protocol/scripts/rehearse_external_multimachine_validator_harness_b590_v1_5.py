@@ -42,11 +42,15 @@ def run_harness() -> Json:
             for n in nodes:
                 if n.online:
                     n.apply(block)
-        transcript.append({"round": round_no, "block": block, "votes": votes, "committed": committed})
+        transcript.append(
+            {"round": round_no, "block": block, "votes": votes, "committed": committed}
+        )
         if round_no == 4:
             nodes[0].online = False
             nodes[1].online = False
-            transcript.append({"event": "minority_partition", "online": [n.node_id for n in nodes if n.online]})
+            transcript.append(
+                {"event": "minority_partition", "online": [n.node_id for n in nodes if n.online]}
+            )
         if round_no == 5:
             # Only two validators online; no commit should happen for this round.
             pass
@@ -65,7 +69,10 @@ def run_harness() -> Json:
     equivocation = {
         "height": equivocation_height,
         "proposer": "validator-2",
-        "conflicting_blocks": [f"b590:eq:{equivocation_height}:A", f"b590:eq:{equivocation_height}:B"],
+        "conflicting_blocks": [
+            f"b590:eq:{equivocation_height}:A",
+            f"b590:eq:{equivocation_height}:B",
+        ],
         "rejected": True,
         "reason": "same_proposer_same_height_conflict",
     }

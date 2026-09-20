@@ -6,12 +6,34 @@ import json
 from typing import Any
 
 from rehearse_economics_activation_locked_completion_v1_5 import _complete_locked_state, _env
-from weall.runtime.apply.economics import EconomicsApplyError, _activation_precondition_report, apply_economics
+
+from weall.runtime.apply.economics import (
+    EconomicsApplyError,
+    _activation_precondition_report,
+    apply_economics,
+)
 
 
-def _simulate_reward_claim(policy: dict[str, Any], seen: set[tuple[str, str, int]], *, account_id: str, work_id: str, epoch: int, active_poh: bool, locked: bool) -> dict[str, Any]:
-    eligibility = policy.get("reward_policy", {}).get("recipient_eligibility", {}) if isinstance(policy.get("reward_policy"), dict) else {}
-    anti = policy.get("anti_farming_policy", {}) if isinstance(policy.get("anti_farming_policy"), dict) else {}
+def _simulate_reward_claim(
+    policy: dict[str, Any],
+    seen: set[tuple[str, str, int]],
+    *,
+    account_id: str,
+    work_id: str,
+    epoch: int,
+    active_poh: bool,
+    locked: bool,
+) -> dict[str, Any]:
+    eligibility = (
+        policy.get("reward_policy", {}).get("recipient_eligibility", {})
+        if isinstance(policy.get("reward_policy"), dict)
+        else {}
+    )
+    anti = (
+        policy.get("anti_farming_policy", {})
+        if isinstance(policy.get("anti_farming_policy"), dict)
+        else {}
+    )
     if eligibility.get("requires_active_poh") and not active_poh:
         return {"ok": False, "reason": "recipient_requires_active_poh"}
     if eligibility.get("no_locked_or_banned_accounts") and locked:
@@ -33,18 +55,74 @@ def run_harness() -> dict[str, Any]:
     report = _activation_precondition_report(state)
     transfer_error = ""
     try:
-        apply_economics(state, _env("BALANCE_TRANSFER", "@alice", 1, {"to_account_id": "@bob", "amount": 1, "transfer_id": "farm-transfer"}))
+        apply_economics(
+            state,
+            _env(
+                "BALANCE_TRANSFER",
+                "@alice",
+                1,
+                {"to_account_id": "@bob", "amount": 1, "transfer_id": "farm-transfer"},
+            ),
+        )
     except EconomicsApplyError as exc:
         transfer_error = exc.reason
     economics = state.get("economics", {}) if isinstance(state.get("economics"), dict) else {}
     seen: set[tuple[str, str, int]] = set()
-    first = _simulate_reward_claim(economics, seen, account_id="@alice", work_id="work:1", epoch=7, active_poh=True, locked=False)
-    duplicate = _simulate_reward_claim(economics, seen, account_id="@alice", work_id="work:1", epoch=7, active_poh=True, locked=False)
-    second_same_epoch = _simulate_reward_claim(economics, seen, account_id="@alice", work_id="work:2", epoch=7, active_poh=True, locked=False)
-    inactive = _simulate_reward_claim(economics, seen, account_id="@inactive", work_id="work:3", epoch=7, active_poh=False, locked=False)
-    locked = _simulate_reward_claim(economics, seen, account_id="@locked", work_id="work:4", epoch=7, active_poh=True, locked=True)
+    first = _simulate_reward_claim(
+        economics,
+        seen,
+        account_id="@alice",
+        work_id="work:1",
+        epoch=7,
+        active_poh=True,
+        locked=False,
+    )
+    duplicate = _simulate_reward_claim(
+        economics,
+        seen,
+        account_id="@alice",
+        work_id="work:1",
+        epoch=7,
+        active_poh=True,
+        locked=False,
+    )
+    second_same_epoch = _simulate_reward_claim(
+        economics,
+        seen,
+        account_id="@alice",
+        work_id="work:2",
+        epoch=7,
+        active_poh=True,
+        locked=False,
+    )
+    inactive = _simulate_reward_claim(
+        economics,
+        seen,
+        account_id="@inactive",
+        work_id="work:3",
+        epoch=7,
+        active_poh=False,
+        locked=False,
+    )
+    locked = _simulate_reward_claim(
+        economics,
+        seen,
+        account_id="@locked",
+        work_id="work:4",
+        epoch=7,
+        active_poh=True,
+        locked=True,
+    )
     return {
-        "ok": bool(report.get("ready") is True and transfer_error == "economics_disabled" and first.get("ok") is True and duplicate.get("reason") == "duplicate_work_id_epoch" and second_same_epoch.get("reason") == "max_reward_claims_per_epoch_exceeded" and inactive.get("reason") == "recipient_requires_active_poh" and locked.get("reason") == "recipient_locked_or_banned"),
+        "ok": bool(
+            report.get("ready") is True
+            and transfer_error == "economics_disabled"
+            and first.get("ok") is True
+            and duplicate.get("reason") == "duplicate_work_id_epoch"
+            and second_same_epoch.get("reason") == "max_reward_claims_per_epoch_exceeded"
+            and inactive.get("reason") == "recipient_requires_active_poh"
+            and locked.get("reason") == "recipient_locked_or_banned"
+        ),
         "batch": "566",
         "activation_preconditions_ready": bool(report.get("ready")),
         "live_economics_enabled": bool(state.get("params", {}).get("economics_enabled")),
@@ -61,7 +139,9 @@ def run_harness() -> dict[str, Any]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

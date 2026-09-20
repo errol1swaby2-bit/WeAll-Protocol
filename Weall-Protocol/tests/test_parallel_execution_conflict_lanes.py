@@ -12,9 +12,19 @@ def _tx(tx_id: str, tx_type: str, read_set=None, write_set=None):
 
 def test_plan_parallel_execution_splits_conflicting_same_domain_lanes() -> None:
     txs = [
-        _tx("t1", "CONTENT_POST_CREATE", read_set=["identity:user:@alice"], write_set=["content:post:1"]),
+        _tx(
+            "t1",
+            "CONTENT_POST_CREATE",
+            read_set=["identity:user:@alice"],
+            write_set=["content:post:1"],
+        ),
         _tx("t2", "CONTENT_POST_UPDATE", read_set=["content:post:1"], write_set=["content:post:1"]),
-        _tx("t3", "CONTENT_POST_CREATE", read_set=["identity:user:@bob"], write_set=["content:post:2"]),
+        _tx(
+            "t3",
+            "CONTENT_POST_CREATE",
+            read_set=["identity:user:@bob"],
+            write_set=["content:post:2"],
+        ),
     ]
     plans = plan_parallel_execution(
         txs=txs,
@@ -32,8 +42,12 @@ def test_plan_parallel_execution_splits_conflicting_same_domain_lanes() -> None:
 
 def test_plan_parallel_execution_keeps_non_conflicting_contiguous_group_together() -> None:
     txs = [
-        _tx("a1", "CONTENT_POST_CREATE", read_set=["identity:user:@a"], write_set=["content:post:1"]),
-        _tx("a2", "CONTENT_POST_CREATE", read_set=["identity:user:@b"], write_set=["content:post:2"]),
+        _tx(
+            "a1", "CONTENT_POST_CREATE", read_set=["identity:user:@a"], write_set=["content:post:1"]
+        ),
+        _tx(
+            "a2", "CONTENT_POST_CREATE", read_set=["identity:user:@b"], write_set=["content:post:2"]
+        ),
     ]
     plans = plan_parallel_execution(
         txs=txs,

@@ -46,8 +46,7 @@ def test_controlled_testnet_go_gate_manifest_is_fresh_and_bounded() -> None:
         [sys.executable, "scripts/run_controlled_testnet_go_gate_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -69,7 +68,10 @@ def test_go_gate_captures_required_artifact_and_runtime_evidence() -> None:
             assert artifacts[rel]["ok"] is True
 
     assert proof["api_response_vector_summary"]["vector_count"] >= 10
-    assert proof["b587_b594_mechanism_completion_summary"]["controlled_testnet_mechanisms_complete"] is False
+    assert (
+        proof["b587_b594_mechanism_completion_summary"]["controlled_testnet_mechanisms_complete"]
+        is False
+    )
     assert proof["b587_b594_mechanism_completion_summary"]["public_beta_ready"] is False
     assert proof["validator_go_gate_snapshot"]["state_roots_match"] is True
     assert proof["validator_go_gate_snapshot"]["requires_independent_operator_run"] is True
@@ -78,7 +80,9 @@ def test_go_gate_captures_required_artifact_and_runtime_evidence() -> None:
 
 
 def test_launch_capability_surface_includes_mechanism_completion_artifact() -> None:
-    surface = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    surface = build_testnet_capability_surface(
+        {"params": {"launch_phase": "public_beta_candidate"}}
+    )
     artifacts = surface["required_artifacts"]
     assert artifacts["b587_b594_mechanism_completion"]["present"] is True
     assert artifacts["b587_b594_mechanism_completion"]["ok"] is False
@@ -108,8 +112,7 @@ def test_readiness_artifact_gate_includes_go_gate_manifest() -> None:
         [sys.executable, "scripts/check_v15_public_readiness_artifacts.py"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr

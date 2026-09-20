@@ -69,13 +69,17 @@ def build() -> Json:
         "tests": tests,
     }
     payload["artifact_digest"] = hashlib.sha256(
-        _canon({"schema": payload["schema"], "source_order": source_order, "tests": tests}).encode("utf-8")
+        _canon({"schema": payload["schema"], "source_order": source_order, "tests": tests}).encode(
+            "utf-8"
+        )
     ).hexdigest()
     return payload
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check public discovery provider independence artifact.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check public discovery provider independence artifact."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -86,7 +90,9 @@ def main() -> int:
         return 0
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("public_discovery_provider_independence_v1_5.json is stale; rerun generator")
+            raise SystemExit(
+                "public_discovery_provider_independence_v1_5.json is stale; rerun generator"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is current")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

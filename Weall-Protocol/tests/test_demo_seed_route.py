@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -94,7 +92,9 @@ def test_demo_seed_route_persists_seeded_state_when_enabled(monkeypatch) -> None
     app.include_router(router, prefix="/v1")
     client = TestClient(app)
 
-    res = client.post("/v1/dev/demo-seed", json={"account": "@demo_tester", "post_id": "post:@demo_tester:5"})
+    res = client.post(
+        "/v1/dev/demo-seed", json={"account": "@demo_tester", "post_id": "post:@demo_tester:5"}
+    )
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["ok"] is True
@@ -111,7 +111,9 @@ def test_demo_seed_route_hidden_when_disabled(monkeypatch) -> None:
     app.state.executor = _Executor(_mk_state())
     app.include_router(router, prefix="/v1")
     client = TestClient(app, raise_server_exceptions=False)
-    res = client.post("/v1/dev/demo-seed", json={"account": "@demo_tester", "post_id": "post:@demo_tester:5"})
+    res = client.post(
+        "/v1/dev/demo-seed", json={"account": "@demo_tester", "post_id": "post:@demo_tester:5"}
+    )
     assert res.status_code == 404
 
 
@@ -123,9 +125,10 @@ def test_demo_seed_route_hidden_when_env_enabled_without_seeded_demo_profile(mon
     app.state.executor = _Executor(_mk_state())
     app.include_router(router, prefix="/v1")
     client = TestClient(app, raise_server_exceptions=False)
-    res = client.post("/v1/dev/demo-seed", json={"account": "@demo_tester", "post_id": "post:@demo_tester:5"})
+    res = client.post(
+        "/v1/dev/demo-seed", json={"account": "@demo_tester", "post_id": "post:@demo_tester:5"}
+    )
     assert res.status_code == 404
-
 
 
 def test_demo_mode_isolation_fails_when_demo_seed_is_enabled_in_devnet(monkeypatch) -> None:

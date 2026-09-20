@@ -42,20 +42,28 @@ def test_controlled_rehearsal_secret_route_rejects_non_loopback_bind(tmp_path: P
     env["GUNICORN_BIND"] = "0.0.0.0:8001"
 
     assert controlled_devnet_bootstrap_secret_route_allowed(env) is False
-    assert demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
+    assert (
+        demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
+    )
 
 
-def test_controlled_rehearsal_secret_route_rejects_secret_outside_devnet_generated(tmp_path: Path) -> None:
+def test_controlled_rehearsal_secret_route_rejects_secret_outside_devnet_generated(
+    tmp_path: Path,
+) -> None:
     env = _safe_local_rehearsal_env(tmp_path)
     bad_secret = tmp_path / "outside-secret.json"
     bad_secret.write_text("{}", encoding="utf-8")
     env["WEALL_DEV_BOOTSTRAP_SECRET_PATH"] = str(bad_secret)
 
     assert controlled_devnet_bootstrap_secret_route_allowed(env) is False
-    assert demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
+    assert (
+        demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
+    )
 
 
-def test_controlled_rehearsal_secret_route_still_rejects_demo_seed_and_session_mutation(tmp_path: Path) -> None:
+def test_controlled_rehearsal_secret_route_still_rejects_demo_seed_and_session_mutation(
+    tmp_path: Path,
+) -> None:
     env = _safe_local_rehearsal_env(tmp_path)
     env["WEALL_ENABLE_DEMO_SEED_ROUTE"] = "1"
     assert controlled_devnet_bootstrap_secret_route_allowed(env) is False
@@ -64,4 +72,6 @@ def test_controlled_rehearsal_secret_route_still_rejects_demo_seed_and_session_m
     env = _safe_local_rehearsal_env(tmp_path)
     env["WEALL_ALLOW_DIRECT_SESSION_MUTATION"] = "1"
     assert controlled_devnet_bootstrap_secret_route_allowed(env) is False
-    assert demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
+    assert (
+        demo_mode_isolation_issue(env) == "dev_bootstrap_secret_route_forbidden_in_devnet_or_prod"
+    )

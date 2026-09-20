@@ -17,9 +17,15 @@ def test_quickstart_default_demo_manifest_is_container_relative() -> None:
     text = (ROOT / "scripts/quickstart_tester.sh").read_text(encoding="utf-8")
 
     assert 'DEMO_CHAIN_MANIFEST_REL="./configs/chains/weall-demo.json"' in text
-    assert 'WEALL_CONTAINER_CHAIN_MANIFEST_PATH' in text
-    assert 'export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CONTAINER_CHAIN_MANIFEST_PATH:-${DEMO_CHAIN_MANIFEST_REL}}"' in text
-    assert 'export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-demo.json}"' not in text
+    assert "WEALL_CONTAINER_CHAIN_MANIFEST_PATH" in text
+    assert (
+        'export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CONTAINER_CHAIN_MANIFEST_PATH:-${DEMO_CHAIN_MANIFEST_REL}}"'
+        in text
+    )
+    assert (
+        'export WEALL_CHAIN_MANIFEST_PATH="${WEALL_CHAIN_MANIFEST_PATH:-${ROOT_DIR}/configs/chains/weall-demo.json}"'
+        not in text
+    )
 
 
 def test_quickstart_still_reads_host_manifest_for_chain_id() -> None:

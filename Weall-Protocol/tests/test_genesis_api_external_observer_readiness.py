@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,7 +50,10 @@ def test_external_observer_remote_gates_require_genesis_readiness_contract() -> 
 
     assert "WEALL_RUN_TWO_MACHINE_OBSERVER_PREFLIGHT" in first_gate
     assert "WEALL_RUN_SIGNED_OBSERVER_ONBOARDING" in first_gate
-    assert "Signed onboarding passing is required before claiming first trusted external observer readiness" in first_gate
+    assert (
+        "Signed onboarding passing is required before claiming first trusted external observer readiness"
+        in first_gate
+    )
 
 
 def test_public_tx_submit_remains_fail_closed_for_genesis_api() -> None:
@@ -112,4 +114,7 @@ def test_first_external_observer_gate_still_passes_local_scope() -> None:
     assert "observer authority lock" in proc.stdout
     assert "remote preflight skipped" in proc.stdout
     assert "signed onboarding skipped" in proc.stdout
-    assert "Signed onboarding passing is required before claiming first trusted external observer readiness" in proc.stdout
+    assert (
+        "Signed onboarding passing is required before claiming first trusted external observer readiness"
+        in proc.stdout
+    )

@@ -10,7 +10,9 @@ VALID_CID_1 = "bafkreigh2akiscaildc3qj6k2ol6qmk7p2xk3w5t2c5a7xqz7xqz7xqz7i"
 VALID_CID_2 = "bafkreibm6jgqve7pzq3p7uwz3r3owz3oob7xjlkvyq5m4jdokwfvlq45aq"
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict | None = None, *, system: bool = False) -> TxEnvelope:
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict | None = None, *, system: bool = False
+) -> TxEnvelope:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -158,7 +160,12 @@ def test_only_system_verification_activates_storage_and_sets_proven_capacity() -
                 "STORAGE_CHALLENGE_RESPOND",
                 "@op",
                 3,
-                {"challenge_id": "cap-2", "verification_status": "verified", "verified_capacity_bytes": 500_000, "verification_receipt_hash": "sha256:bad"},
+                {
+                    "challenge_id": "cap-2",
+                    "verification_status": "verified",
+                    "verified_capacity_bytes": 500_000,
+                    "verification_receipt_hash": "sha256:bad",
+                },
             ),
         )
 
@@ -168,7 +175,12 @@ def test_only_system_verification_activates_storage_and_sets_proven_capacity() -
             "STORAGE_CHALLENGE_RESPOND",
             "SYSTEM",
             4,
-            {"challenge_id": "cap-2", "verification_status": "verified", "verified_capacity_bytes": 750_000, "verification_receipt_hash": "sha256:ok"},
+            {
+                "challenge_id": "cap-2",
+                "verification_status": "verified",
+                "verified_capacity_bytes": 750_000,
+                "verification_receipt_hash": "sha256:ok",
+            },
             system=True,
         ),
     )
@@ -188,7 +200,15 @@ def test_unproven_storage_operator_is_not_selected_for_ipfs_allocation() -> None
     # Legacy offer records alone are no longer enough to make an account eligible
     # for production storage allocation when node-operator responsibility state exists.
     with pytest.raises(ApplyError):
-        apply_tx(st, _env("STORAGE_OFFER_CREATE", "@op", 1, {"offer_id": "offer-unproven", "capacity_bytes": 1000}))
+        apply_tx(
+            st,
+            _env(
+                "STORAGE_OFFER_CREATE",
+                "@op",
+                1,
+                {"offer_id": "offer-unproven", "capacity_bytes": 1000},
+            ),
+        )
 
     pin = apply_tx(
         st,
@@ -201,11 +221,58 @@ def test_unproven_storage_operator_is_not_selected_for_ipfs_allocation() -> None
     )
     assert pin and pin["targets"] == []
 
-    apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 3, {"proof_scope": "capacity_probe", "challenge_id": "cap-3", "account_id": "@op", "challenge_count": 1, "sample_size_bytes": 1024, "expires_height": 20}, system=True))
-    apply_tx(st, _env("STORAGE_CHALLENGE_RESPOND", "@op", 4, {"challenge_id": "cap-3", "response_commitment": "sha256:r", "sample_response_commitments": ["sha256:s"]}))
-    apply_tx(st, _env("STORAGE_CHALLENGE_RESPOND", "SYSTEM", 5, {"challenge_id": "cap-3", "verification_status": "verified", "verified_capacity_bytes": 500_000, "verification_receipt_hash": "sha256:bad"}, system=True))
+    apply_tx(
+        st,
+        _env(
+            "STORAGE_CHALLENGE_ISSUE",
+            "SYSTEM",
+            3,
+            {
+                "proof_scope": "capacity_probe",
+                "challenge_id": "cap-3",
+                "account_id": "@op",
+                "challenge_count": 1,
+                "sample_size_bytes": 1024,
+                "expires_height": 20,
+            },
+            system=True,
+        ),
+    )
+    apply_tx(
+        st,
+        _env(
+            "STORAGE_CHALLENGE_RESPOND",
+            "@op",
+            4,
+            {
+                "challenge_id": "cap-3",
+                "response_commitment": "sha256:r",
+                "sample_response_commitments": ["sha256:s"],
+            },
+        ),
+    )
+    apply_tx(
+        st,
+        _env(
+            "STORAGE_CHALLENGE_RESPOND",
+            "SYSTEM",
+            5,
+            {
+                "challenge_id": "cap-3",
+                "verification_status": "verified",
+                "verified_capacity_bytes": 500_000,
+                "verification_receipt_hash": "sha256:bad",
+            },
+            system=True,
+        ),
+    )
 
-    offer = apply_tx(st, _env("STORAGE_OFFER_CREATE", "@op", 6, {"offer_id": "offer-proven", "capacity_bytes": 1000}))
+    offer = apply_tx(
+        st,
+        _env(
+            "STORAGE_OFFER_CREATE", "@op", 6, {"offer_id": "offer-proven", "capacity_bytes": 1000}
+        ),
+    )
     assert offer and offer["applied"] == "STORAGE_OFFER_CREATE"
     pin2 = apply_tx(
         st,
@@ -221,10 +288,38 @@ def test_unproven_storage_operator_is_not_selected_for_ipfs_allocation() -> None
 
 def test_expired_capacity_challenge_cannot_be_used() -> None:
     st = _state()
-    apply_tx(st, _env("STORAGE_CHALLENGE_ISSUE", "SYSTEM", 1, {"proof_scope": "capacity_probe", "challenge_id": "cap-exp", "account_id": "@op", "challenge_count": 1, "sample_size_bytes": 1024, "expires_height": 11}, system=True))
+    apply_tx(
+        st,
+        _env(
+            "STORAGE_CHALLENGE_ISSUE",
+            "SYSTEM",
+            1,
+            {
+                "proof_scope": "capacity_probe",
+                "challenge_id": "cap-exp",
+                "account_id": "@op",
+                "challenge_count": 1,
+                "sample_size_bytes": 1024,
+                "expires_height": 11,
+            },
+            system=True,
+        ),
+    )
     st["height"] = 12
     with pytest.raises(ApplyError):
-        apply_tx(st, _env("STORAGE_CHALLENGE_RESPOND", "@op", 2, {"challenge_id": "cap-exp", "response_commitment": "sha256:r", "sample_response_commitments": ["sha256:s"]}))
+        apply_tx(
+            st,
+            _env(
+                "STORAGE_CHALLENGE_RESPOND",
+                "@op",
+                2,
+                {
+                    "challenge_id": "cap-exp",
+                    "response_commitment": "sha256:r",
+                    "sample_response_commitments": ["sha256:s"],
+                },
+            ),
+        )
     # Rejected expired responses are atomic and do not mutate state. A later
     # system maintenance transaction can mark the challenge expired, but the
     # stale operator response itself cannot advance proof state.

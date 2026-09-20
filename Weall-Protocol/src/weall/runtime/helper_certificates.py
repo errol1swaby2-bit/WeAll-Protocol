@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any
+
+from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    default_signature_profile_for_mode,
+    normalize_signature_profile_id,
+)
 from weall.runtime.commitments import (
     canonical_json_sha256,
     canonical_json_sha256_ascii,
     receipts_root,
 )
 from weall.runtime.json_tools import canonical_json_str
-
-
-from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
-from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode, normalize_signature_profile_id
-
 
 CERTIFICATE_DOMAIN = "WEALL/HELPER_CERTIFICATE/V1"
 
@@ -55,7 +58,9 @@ def hash_state_delta_ops(delta_ops: Sequence[Mapping[str, Any]]) -> str:
             continue
         row = dict(item)
         rows.append(row)
-    rows.sort(key=lambda row: (str(row.get("path") or ""), str(row.get("op") or ""), hash_json(row)))
+    rows.sort(
+        key=lambda row: (str(row.get("path") or ""), str(row.get("op") or ""), hash_json(row))
+    )
     return hash_json(rows)
 
 
@@ -167,7 +172,9 @@ class HelperExecutionCertificate:
         helper_signature = kwargs.get("helper_signature", kwargs.get("signature", ""))
         lane_delta_hash = kwargs.get("lane_delta_hash", kwargs.get("state_delta_hash", ""))
         object.__setattr__(self, "chain_id", str(kwargs.get("chain_id", "")))
-        object.__setattr__(self, "block_height", int(kwargs.get("block_height", kwargs.get("height", 0))))
+        object.__setattr__(
+            self, "block_height", int(kwargs.get("block_height", kwargs.get("height", 0)))
+        )
         object.__setattr__(self, "view", int(kwargs.get("view", 0)))
         object.__setattr__(self, "leader_id", str(kwargs.get("leader_id", "")))
         object.__setattr__(self, "helper_id", str(kwargs.get("helper_id", "")))
@@ -184,7 +191,11 @@ class HelperExecutionCertificate:
         object.__setattr__(self, "helper_signature", str(helper_signature))
         object.__setattr__(self, "manifest_hash", str(kwargs.get("manifest_hash", "")))
         object.__setattr__(self, "plan_id", str(kwargs.get("plan_id", "")))
-        object.__setattr__(self, "sig_profile", normalize_signature_profile_id(kwargs.get("sig_profile")) or PQ_MLDSA_V1)
+        object.__setattr__(
+            self,
+            "sig_profile",
+            normalize_signature_profile_id(kwargs.get("sig_profile")) or PQ_MLDSA_V1,
+        )
 
     @property
     def state_delta_hash(self) -> str:
@@ -270,7 +281,7 @@ class HelperExecutionCertificate:
         )
 
     @classmethod
-    def from_helper_certificate(cls, cert: HelperCertificate) -> "HelperExecutionCertificate":
+    def from_helper_certificate(cls, cert: HelperCertificate) -> HelperExecutionCertificate:
         return cls(**cert.to_json())
 
 
@@ -369,7 +380,9 @@ def sign_helper_certificate(
             raise ValueError("helper certificate signing requires pq-mldsa-v1 privkey")
         payload["signature"] = sign_signature_for_profile(
             sig_profile=profile,
-            message=json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8"),
+            message=json.dumps(
+                payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+            ).encode("utf-8"),
             privkey=privkey,
             encoding="hex",
         )
@@ -377,12 +390,22 @@ def sign_helper_certificate(
 
     # Legacy/mainline object API
     normalized = ensure_helper_execution_certificate(cert)
-    profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", "")) or default_signature_profile_for_mode()
+    profile = (
+        normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", ""))
+        or default_signature_profile_for_mode()
+    )
     unsigned_json = {**normalized.to_json(), "sig_profile": profile}
     normalized = HelperExecutionCertificate(**unsigned_json)
     if privkey is not None:
-        sig = sign_signature_for_profile(sig_profile=profile, message=_signature_material(normalized), privkey=str(privkey), encoding="hex")
-        return HelperExecutionCertificate(**{**normalized.to_json(), "helper_signature": sig, "sig_profile": profile})
+        sig = sign_signature_for_profile(
+            sig_profile=profile,
+            message=_signature_material(normalized),
+            privkey=str(privkey),
+            encoding="hex",
+        )
+        return HelperExecutionCertificate(
+            **{**normalized.to_json(), "helper_signature": sig, "sig_profile": profile}
+        )
     raise ValueError("helper certificate signing requires pq-mldsa-v1 privkey")
 
 
@@ -393,7 +416,10 @@ def verify_helper_certificate_signature(
     sig_profile: str | None = None,
 ) -> bool:
     normalized = ensure_helper_execution_certificate(cert)
-    profile = normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", "")) or PQ_MLDSA_V1
+    profile = (
+        normalize_signature_profile_id(sig_profile or getattr(normalized, "sig_profile", ""))
+        or PQ_MLDSA_V1
+    )
 
     if secret is not None:
         return False
@@ -439,7 +465,9 @@ def build_plan_misbehavior_proof(
         certificate_a_id=str(certificate_a["certificate_id"]),
         certificate_b_id=str(certificate_b["certificate_id"]),
         reason="conflicting_descriptor_hash_for_same_helper_plan_lane",
-        created_ms=max(int(certificate_a.get("issued_ms", 0)), int(certificate_b.get("issued_ms", 0))),
+        created_ms=max(
+            int(certificate_a.get("issued_ms", 0)), int(certificate_b.get("issued_ms", 0))
+        ),
     )
 
 
@@ -458,7 +486,6 @@ __all__ = [
     "hash_state_delta_ops",
     "make_namespace_hash",
     "make_tx_order_hash",
-    "sha256",
     "sign_helper_certificate",
     "build_plan_misbehavior_proof",
     "validate_certificate_scope",

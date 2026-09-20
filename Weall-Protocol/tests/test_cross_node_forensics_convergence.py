@@ -81,7 +81,9 @@ def _seed_protocol_treasury_open_spend(ex: WeAllExecutor) -> None:
     }
     state["roles"] = roles
     params = dict(state.get("params") or {})
-    params.update({"economic_unlock_time": 0, "economics_enabled": False, "system_signer": "SYSTEM"})
+    params.update(
+        {"economic_unlock_time": 0, "economics_enabled": False, "system_signer": "SYSTEM"}
+    )
     state["params"] = params
     state["treasury"] = {
         "spends": {
@@ -128,7 +130,9 @@ def _commit_next_block(ex: WeAllExecutor, *, max_txs: int = 10):
     return block
 
 
-def test_cross_node_forensics_converge_after_remote_apply_and_restart(tmp_path: Path, monkeypatch) -> None:
+def test_cross_node_forensics_converge_after_remote_apply_and_restart(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_HELPER_MODE_ENABLED", "1")
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
@@ -180,14 +184,26 @@ def test_cross_node_forensics_converge_after_remote_apply_and_restart(tmp_path: 
 
     leader_consensus = leader_client.get("/v1/status/consensus").json()
     follower_consensus = follower_client.get("/v1/status/consensus").json()
-    assert leader_consensus["helper_execution"]["summary"] == follower_consensus["helper_execution"]["summary"]
-    assert leader_consensus["transition_guardrails"]["reason_counts"] == follower_consensus["transition_guardrails"]["reason_counts"]
+    assert (
+        leader_consensus["helper_execution"]["summary"]
+        == follower_consensus["helper_execution"]["summary"]
+    )
+    assert (
+        leader_consensus["transition_guardrails"]["reason_counts"]
+        == follower_consensus["transition_guardrails"]["reason_counts"]
+    )
     assert leader_consensus["helper_reputation"] == follower_consensus["helper_reputation"]
 
     leader_forensics = leader_client.get("/v1/status/consensus/forensics").json()
     follower_forensics = follower_client.get("/v1/status/consensus/forensics").json()
-    assert leader_forensics["helper_execution"]["summary"] == follower_forensics["helper_execution"]["summary"]
-    assert leader_forensics["transition_guardrails"]["tx_type_counts"] == follower_forensics["transition_guardrails"]["tx_type_counts"]
+    assert (
+        leader_forensics["helper_execution"]["summary"]
+        == follower_forensics["helper_execution"]["summary"]
+    )
+    assert (
+        leader_forensics["transition_guardrails"]["tx_type_counts"]
+        == follower_forensics["transition_guardrails"]["tx_type_counts"]
+    )
     assert leader_forensics["helper_reputation"] == follower_forensics["helper_reputation"]
 
     follower_restarted = _mk_executor(tmp_path, "follower", chain_id)
@@ -195,9 +211,23 @@ def test_cross_node_forensics_converge_after_remote_apply_and_restart(tmp_path: 
     restarted_consensus = restarted_client.get("/v1/status/consensus").json()
     restarted_operator = restarted_client.get("/v1/status/operator").json()
 
-    assert restarted_consensus["helper_execution"]["summary"] == leader_consensus["helper_execution"]["summary"]
-    assert restarted_consensus["transition_guardrails"]["reason_counts"] == leader_consensus["transition_guardrails"]["reason_counts"]
+    assert (
+        restarted_consensus["helper_execution"]["summary"]
+        == leader_consensus["helper_execution"]["summary"]
+    )
+    assert (
+        restarted_consensus["transition_guardrails"]["reason_counts"]
+        == leader_consensus["transition_guardrails"]["reason_counts"]
+    )
     assert restarted_consensus["helper_reputation"] == leader_consensus["helper_reputation"]
-    assert restarted_operator["operator"]["helper_execution"]["summary"] == leader_consensus["helper_execution"]["summary"]
-    assert restarted_operator["operator"]["transition_guardrails"]["reason_counts"] == leader_consensus["transition_guardrails"]["reason_counts"]
-    assert restarted_operator["operator"]["helper_reputation"] == leader_consensus["helper_reputation"]
+    assert (
+        restarted_operator["operator"]["helper_execution"]["summary"]
+        == leader_consensus["helper_execution"]["summary"]
+    )
+    assert (
+        restarted_operator["operator"]["transition_guardrails"]["reason_counts"]
+        == leader_consensus["transition_guardrails"]["reason_counts"]
+    )
+    assert (
+        restarted_operator["operator"]["helper_reputation"] == leader_consensus["helper_reputation"]
+    )

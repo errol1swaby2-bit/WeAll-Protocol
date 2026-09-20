@@ -1,7 +1,6 @@
-from weall.testing.conflict_lanes import plan_conflict_lanes
 from weall.runtime.read_write_sets import build_tx_access_set
 from weall.runtime.tx_conflict_audit_samples import build_conflict_probe_tx
-
+from weall.testing.conflict_lanes import plan_conflict_lanes
 
 ROLE_IDENTITY_SERIAL_TYPES = {
     "ROLE_EMISSARY_NOMINATE",
@@ -27,20 +26,22 @@ def test_role_identity_bridge_txs_fail_closed_to_serial() -> None:
         assert any(key.startswith("identity:") for key in access.writes), tx_type
 
 
-
 def test_role_validator_activation_promotes_to_serial_when_consensus_membership_changes() -> None:
     access = build_tx_access_set(
         build_conflict_probe_tx(
             "ROLE_VALIDATOR_ACTIVATE",
             seed="2",
-            payload_overrides={"validator": "acct-validator", "validator_id": "acct-validator", "account_id": "acct-validator"},
+            payload_overrides={
+                "validator": "acct-validator",
+                "validator_id": "acct-validator",
+                "account_id": "acct-validator",
+            },
         )
     )
     assert access.lane_hint == "SERIAL"
     assert any(key.startswith("consensus:") for key in access.writes)
     assert any(key.startswith("identity:") for key in access.writes)
     assert any(key.startswith("roles:") for key in access.writes)
-
 
 
 def test_role_enrollment_is_not_parallelized_with_identity_mutation_for_same_account() -> None:

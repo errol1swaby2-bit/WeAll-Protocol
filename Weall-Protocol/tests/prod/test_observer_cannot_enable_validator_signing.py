@@ -33,7 +33,10 @@ def _run_preflight(extra_env: dict[str, str]) -> subprocess.CompletedProcess[str
 def test_observer_boot_refuses_validator_signing() -> None:
     result = _run_preflight({"WEALL_VALIDATOR_SIGNING_ENABLED": "1"})
     assert result.returncode != 0
-    assert "WEALL_OBSERVER_MODE=1 cannot be combined with WEALL_VALIDATOR_SIGNING_ENABLED=1" in result.stdout
+    assert (
+        "WEALL_OBSERVER_MODE=1 cannot be combined with WEALL_VALIDATOR_SIGNING_ENABLED=1"
+        in result.stdout
+    )
 
 
 def test_observer_boot_refuses_bft_enabled() -> None:

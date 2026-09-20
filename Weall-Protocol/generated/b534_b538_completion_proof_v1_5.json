@@ -41,6 +41,10 @@
     "537",
     "538"
   ],
+  "freshness": {
+    "input_digest_sha256": "1c667f898b3ab3d7ad5752bc1bfd7759a17559413c77c0585522d3446aaf595c",
+    "mode": "deterministic_input_digest_v1"
+  },
   "locked_boundaries": {
     "automatic_upgrades": false,
     "live_economics": false,

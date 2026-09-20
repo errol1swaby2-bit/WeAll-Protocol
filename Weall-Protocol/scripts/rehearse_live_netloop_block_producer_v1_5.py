@@ -59,12 +59,16 @@ def _make_executor(root: Path, node_id: str) -> WeAllExecutor:
     )
 
 
-def _make_loop(executor: WeAllExecutor, *, root: Path, node_id: str, port: int, peer_port: int) -> NetMeshLoop:
+def _make_loop(
+    executor: WeAllExecutor, *, root: Path, node_id: str, port: int, peer_port: int
+) -> NetMeshLoop:
     os.environ["WEALL_PEERS_FILE"] = str(root / f"{node_id}-peers.json")
     os.environ["WEALL_PEERS"] = f"tcp://127.0.0.1:{int(peer_port)}"
     os.environ["WEALL_PEER_ID"] = node_id
     os.environ["WEALL_AGENT"] = f"weall-b544-{node_id}"
-    cfg = NetLoopConfig(enabled=True, bind_host="127.0.0.1", bind_port=int(port), tick_ms=10, schema_version="1")
+    cfg = NetLoopConfig(
+        enabled=True, bind_host="127.0.0.1", bind_port=int(port), tick_ms=10, schema_version="1"
+    )
     return NetMeshLoop(executor=executor, mempool=executor._mempool, cfg=cfg)
 
 
@@ -93,7 +97,13 @@ def run_harness() -> dict[str, Any]:
                 source_root = compute_state_root(ex1.state)
                 follower_root = compute_state_root(ex2.state)
                 return {
-                    "ok": bool(started1 and started2 and produced_height >= 1 and getattr(meta, "ok", False) and source_root == follower_root),
+                    "ok": bool(
+                        started1
+                        and started2
+                        and produced_height >= 1
+                        and getattr(meta, "ok", False)
+                        and source_root == follower_root
+                    ),
                     "batch": "544",
                     "net_loop_started": bool(started1 and started2),
                     "net_loop_class": "weall.net.net_loop.NetMeshLoop",
@@ -110,13 +120,19 @@ def run_harness() -> dict[str, Any]:
                     "public_validator_enabled": False,
                 }
             finally:
-                loop1.stop(); loop2.stop(); loop1.join(timeout=1.0); loop2.join(timeout=1.0)
+                loop1.stop()
+                loop2.stop()
+                loop1.join(timeout=1.0)
+                loop2.join(timeout=1.0)
     finally:
-        os.environ.clear(); os.environ.update(old_env)
+        os.environ.clear()
+        os.environ.update(old_env)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

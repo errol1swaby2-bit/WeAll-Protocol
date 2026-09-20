@@ -7,6 +7,7 @@ from typing import Any
 
 from weall.runtime.bft_hotstuff import BFT_MIN_VALIDATORS, normalize_validators
 from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
+from weall.runtime.commitments import consensus_active_validator_ids
 from weall.runtime.errors import ApplyError
 from weall.runtime.poh.bootstrap_quorum import adaptive_bootstrap_review_policy
 from weall.runtime.poh.evidence_lifecycle import (
@@ -771,13 +772,9 @@ def _active_validator_count_for_bootstrap_sunset(state: Json) -> int:
     quorum.
     """
     candidates: list[str] = []
-
-    consensus = state.get("consensus")
-    if isinstance(consensus, dict):
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
-            candidates = [str(item).strip() for item in validator_set.get("active_set") or []]
-            return len(normalize_validators([item for item in candidates if item]))
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return len(normalize_validators(explicit))
 
     # Legacy fallback only when no explicit consensus active_set exists.
     roles = state.get("roles")
@@ -2313,7 +2310,10 @@ def apply_poh_async_request_open(state: Json, env: Any) -> Json:
     response_commitment = _validate_commitment_format(
         p.get("response_commitment"), field="response_commitment", case_id=case_id, required=False
     )
-    expires_height = _as_int(p.get("expires_height") or 0, 0) or height + expiry_window
+    expires_height_raw = p.get("expires_height")
+    expires_height = (
+        height + expiry_window if expires_height_raw is None else _as_int(expires_height_raw, 0)
+    )
     if expires_height <= height:
         raise ApplyError(
             "invalid_tx",
@@ -3093,7 +3093,7 @@ def apply_poh_tier2_request_open(state: Json, env: Any) -> Json:
     video_commitment = _as_str(p.get("video_commitment") or "").strip()
     video_cid = _as_str(p.get("video_cid") or "").strip()
 
-    target_tier = _as_int(p.get("target_tier") or 2, 2)
+    target_tier = _as_int(p.get("target_tier"), 2)
 
     if not account_id:
         raise ApplyError("invalid_tx", "missing_account_id", {})
@@ -3544,17 +3544,18 @@ def apply_poh_tier2_finalize(state: Json, env: Any) -> Json:
 
 
 def apply_poh_tier2_receipt(state: Json, env: Any) -> Json:
+    _require_system_tx(env, "POH_TIER2_RECEIPT")
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    case = _get_tier2_case(state, case_id)
+    if _as_str(case.get("status") or "").strip().lower() not in {"awarded", "rejected"}:
+        raise ApplyError("invalid_tx", "tier2_case_not_finalized", {"case_id": case_id})
     receipt_id = _as_str(p.get("receipt_id") or "").strip()
-    if case_id:
-        try:
-            case = _get_tier2_case(state, case_id)
-            case["tier2_receipt_emitted"] = True
-            if receipt_id:
-                case["tier2_receipt_id"] = receipt_id
-        except Exception:
-            pass
+    case["tier2_receipt_emitted"] = True
+    if receipt_id:
+        case["tier2_receipt_id"] = receipt_id
     return {"applied": "POH_TIER2_RECEIPT", "case_id": case_id, "receipt_id": receipt_id}
 
 
@@ -4237,15 +4238,15 @@ def apply_poh_live_receipt(state: Json, env: Any) -> Json:
     _require_system_tx(env, "POH_LIVE_RECEIPT")
     p = _payload(env)
     case_id = _as_str(p.get("case_id") or "").strip()
+    if not case_id:
+        raise ApplyError("invalid_tx", "missing_case_id", {})
+    case = _get_live_case(state, case_id)
+    if _as_str(case.get("status") or "").strip().lower() not in {"awarded", "rejected"}:
+        raise ApplyError("invalid_tx", "live_case_not_finalized", {"case_id": case_id})
     receipt_id = _as_str(p.get("receipt_id") or "").strip()
-    if case_id:
-        try:
-            case = _get_live_case(state, case_id)
-            case["live_receipt_emitted"] = True
-            if receipt_id:
-                case["live_receipt_id"] = receipt_id
-        except Exception:
-            pass
+    case["live_receipt_emitted"] = True
+    if receipt_id:
+        case["live_receipt_id"] = receipt_id
     return {"applied": "POH_LIVE_RECEIPT", "case_id": case_id, "receipt_id": receipt_id}
 
 
@@ -4323,9 +4324,26 @@ def apply_poh(state: Json, env: Any) -> Json | None:
             return {"applied": t, "evidence_id": evidence_id}
 
         if t == "POH_EVIDENCE_BIND":
+            evidence_id = _as_str(p.get("evidence_id") or "").strip()
+            target_id = _as_str(p.get("target_id") or "").strip()
+            if not evidence_id or not target_id:
+                raise ApplyError("invalid_tx", "missing_evidence_or_target_id", {})
+            evidence = poh.get("evidence")
+            if not isinstance(evidence, dict) or evidence_id not in evidence:
+                raise ApplyError(
+                    "invalid_tx",
+                    "evidence_not_declared",
+                    {"evidence_id": evidence_id, "target_id": target_id},
+                )
             bind_id = f"bind:{_signer(env)}:{_as_int(_get_env(env, 'nonce', 0))}"
             poh.setdefault("evidence_binds", {})
-            poh["evidence_binds"][bind_id] = {"bind_id": bind_id, "payload": p}
+            poh["evidence_binds"][bind_id] = {
+                "bind_id": bind_id,
+                "evidence_id": evidence_id,
+                "target_id": target_id,
+                "bound_by": _signer(env),
+                "payload": p,
+            }
             return {"applied": t, "bind_id": bind_id}
 
     if t == "POH_ASYNC_REQUEST_OPEN":

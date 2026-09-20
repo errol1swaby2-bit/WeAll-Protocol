@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "public_only_protocol_audit_v1_5.json"
 
+
 def _legacy_term(*parts: str) -> str:
     """Build retired scan tokens without creating self-hits in this generator."""
 
@@ -108,7 +109,16 @@ def scan() -> list[dict[str, object]]:
                 continue
             if path == OUT:
                 continue
-            if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".sqlite", ".zip", ".pyc"}:
+            if path.suffix.lower() in {
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".gif",
+                ".webp",
+                ".sqlite",
+                ".zip",
+                ".pyc",
+            }:
                 continue
             try:
                 text = path.read_text(encoding="utf-8")
@@ -116,13 +126,19 @@ def scan() -> list[dict[str, object]]:
                 continue
             hits = sorted(term for term, pattern in TERM_PATTERNS.items() if pattern.search(text))
             if hits:
-                root_relative = rel(path) if path.is_relative_to(ROOT) else "../" + str(path.relative_to(ROOT.parent)).replace("\\", "/")
-                rows.append({
-                    "path": root_relative,
-                    "category": classify_path(root_relative),
-                    "match_count": len(hits),
-                    "match_class": "retired_private_or_opaque_protocol_guardrail",
-                })
+                root_relative = (
+                    rel(path)
+                    if path.is_relative_to(ROOT)
+                    else "../" + str(path.relative_to(ROOT.parent)).replace("\\", "/")
+                )
+                rows.append(
+                    {
+                        "path": root_relative,
+                        "category": classify_path(root_relative),
+                        "match_count": len(hits),
+                        "match_class": "retired_private_or_opaque_protocol_guardrail",
+                    }
+                )
     rows.sort(key=lambda r: str(r["path"]))
     return rows
 
@@ -157,14 +173,24 @@ def build_payload() -> dict[str, object]:
                 "governance_notice",
                 "validator_operator_alert",
             ],
-            "forbidden_notice_types": ["non_public_user_to_user_notice", "restricted_notice_thread", "opaque_notice"],
+            "forbidden_notice_types": [
+                "non_public_user_to_user_notice",
+                "restricted_notice_thread",
+                "opaque_notice",
+            ],
         },
         "group_model": {
             "read_visibility": "public",
             "group_posts_readable_by": "everyone",
             "group_comments_readable_by": "everyone",
             "moderation_actions_readable_by": "everyone",
-            "membership_may_gate": ["posting", "commenting", "voting", "moderation", "administration"],
+            "membership_may_gate": [
+                "posting",
+                "commenting",
+                "voting",
+                "moderation",
+                "administration",
+            ],
             "membership_must_not_gate": ["read_visibility", "content_archives"],
         },
         "backend_enforcement_points": [
@@ -207,8 +233,13 @@ def build_payload() -> dict[str, object]:
                 "frontend guards that fail if removed communication modules return",
             ],
             "public_activity_terms": ["/v1/activity/notices is public-event-derived"],
-            "non_social_transport_terms": ["net/messages.py packet messages", "helper receipt signing fields"],
-            "non_social_identity_evidence_terms": ["reviewer_restricted_evidence remains a restricted identity evidence compatibility field, not a protocol-native social or non-public group surface"],
+            "non_social_transport_terms": [
+                "net/messages.py packet messages",
+                "helper receipt signing fields",
+            ],
+            "non_social_identity_evidence_terms": [
+                "reviewer_restricted_evidence remains a restricted identity evidence compatibility field, not a protocol-native social or non-public group surface"
+            ],
         },
         "adversarial_bypass_checks": [
             "non-inspectable payload fields through generic transaction routes reject with OPAQUE_PROTOCOL_PAYLOAD_UNSUPPORTED",

@@ -8,7 +8,9 @@ WEB_ROOT = OUTER_ROOT / "web"
 
 
 def test_external_observer_smoke_has_repeatable_live_api_gate() -> None:
-    script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(encoding="utf-8")
+    script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(
+        encoding="utf-8"
+    )
     assert "WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API" in script
     assert "requires WEALL_GENESIS_API_BASE or WEALL_API_BASE" in script
     assert "/v1/health" in script
@@ -25,7 +27,9 @@ def test_external_observer_smoke_has_repeatable_live_api_gate() -> None:
 
 
 def test_trusted_external_observer_runbook_documents_live_gate_and_contract_check() -> None:
-    doc = (ROOT / "docs" / "TRUSTED_EXTERNAL_OBSERVER_TESTER_RUNBOOK.md").read_text(encoding="utf-8")
+    doc = (ROOT / "docs" / "TRUSTED_EXTERNAL_OBSERVER_TESTER_RUNBOOK.md").read_text(
+        encoding="utf-8"
+    )
     assert "Batch 337 live-gate command sequence" in doc
     assert "WEALL_EXTERNAL_OBSERVER_REQUIRE_LIVE_API=1" in doc
     assert "npm run contract-check" in doc

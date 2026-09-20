@@ -17,7 +17,14 @@ def _state() -> dict:
     }
 
 
-def _tx(tx_type: str, *, signer: str = "alice", system: bool = False, nonce: int = 1, payload: dict | None = None) -> dict:
+def _tx(
+    tx_type: str,
+    *,
+    signer: str = "alice",
+    system: bool = False,
+    nonce: int = 1,
+    payload: dict | None = None,
+) -> dict:
     return TxEnvelope(
         tx_type=tx_type,
         signer=signer,
@@ -30,8 +37,16 @@ def _tx(tx_type: str, *, signer: str = "alice", system: bool = False, nonce: int
 @pytest.mark.parametrize(
     ("tx_type", "payload", "expected_reason"),
     [
-        ("POH_TIER_SET", {"account_id": "alice", "tier": 2, "_system": True}, "account_not_registered"),
-        ("POH_TIER2_REQUEST_OPEN", {"account_id": "alice", "video_commitment": "v1"}, "account_not_registered"),
+        (
+            "POH_TIER_SET",
+            {"account_id": "alice", "tier": 2, "_system": True},
+            "account_not_registered",
+        ),
+        (
+            "POH_TIER2_REQUEST_OPEN",
+            {"account_id": "alice", "video_commitment": "v1"},
+            "account_not_registered",
+        ),
     ],
 )
 def test_poh_apply_requires_registered_subject_account_for_consensus_visible_mutations(
@@ -42,7 +57,16 @@ def test_poh_apply_requires_registered_subject_account_for_consensus_visible_mut
     system = bool(payload.pop("_system", False))
 
     with pytest.raises(ApplyError) as excinfo:
-        apply_tx(state, _tx(tx_type, payload=payload, system=system, signer="SYSTEM" if system else "alice", nonce=0 if system else 1))
+        apply_tx(
+            state,
+            _tx(
+                tx_type,
+                payload=payload,
+                system=system,
+                signer="SYSTEM" if system else "alice",
+                nonce=0 if system else 1,
+            ),
+        )
 
     assert excinfo.value.reason == expected_reason
 
@@ -55,9 +79,7 @@ def test_poh_tier2_finalize_does_not_auto_create_missing_account() -> None:
                 "case_id": "case-1",
                 "account_id": "alice",
                 "status": "assigned",
-                "jurors": {
-                    f"j{i}": {"verdict": "pass", "ts_ms": i} for i in range(25)
-                },
+                "jurors": {f"j{i}": {"verdict": "pass", "ts_ms": i} for i in range(25)},
                 "min_total_reviews": 25,
                 "pass_threshold": 20,
                 "fail_max": 3,
@@ -92,7 +114,10 @@ def test_poh_live_finalize_does_not_auto_create_missing_account() -> None:
                     "j0": {"role": "interacting", "attended": True, "verdict": "pass"},
                     "j1": {"role": "interacting", "attended": True, "verdict": "pass"},
                     "j2": {"role": "interacting", "attended": True, "verdict": "fail"},
-                    **{f"j{i}": {"role": "observing", "attended": True, "verdict": None} for i in range(3, 10)},
+                    **{
+                        f"j{i}": {"role": "observing", "attended": True, "verdict": None}
+                        for i in range(3, 10)
+                    },
                 },
             }
         }

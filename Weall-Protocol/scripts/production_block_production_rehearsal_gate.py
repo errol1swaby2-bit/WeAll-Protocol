@@ -11,6 +11,7 @@ validator readiness, public multi-validator BFT readiness, or external testnet
 readiness. A true production validator/BFT proof must use a separate gate with
 on-chain validator authority and BFT enabled.
 """
+
 from __future__ import annotations
 
 import os
@@ -69,7 +70,9 @@ def main() -> int:
                 "WEALL_DB_PATH": os.path.join(temp_dir, "weall.db"),
                 "WEALL_NODE_ID": "block-proof-node",
                 "WEALL_CHAIN_ID": "block-proof-chain",
-                "WEALL_TX_INDEX_PATH": os.environ.get("WEALL_TX_INDEX_PATH", "./generated/tx_index.json"),
+                "WEALL_TX_INDEX_PATH": os.environ.get(
+                    "WEALL_TX_INDEX_PATH", "./generated/tx_index.json"
+                ),
                 "WEALL_MODE": "dev",
                 "WEALL_OBSERVER_MODE": "0",
                 "WEALL_BFT_ENABLED": "0",
@@ -107,7 +110,9 @@ def main() -> int:
             bft_unsafe_autocommit=False,
             validator_account="",
         )
-        loop = BlockProducerLoop(executor=ex, mempool=ex.mempool, attestation_pool=ex.attestation_pool, cfg=cfg)
+        loop = BlockProducerLoop(
+            executor=ex, mempool=ex.mempool, attestation_pool=ex.attestation_pool, cfg=cfg
+        )
         if not loop.start():
             raise RuntimeError("block loop did not start")
         try:

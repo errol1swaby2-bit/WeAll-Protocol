@@ -99,11 +99,16 @@ def _authority_contract(request: Request) -> tuple[dict[str, Any], str]:
     runtime_contract = authority_contract_from_lifecycle(lifecycle, source="runtime")
     return runtime_contract, str(runtime_contract.get("contract_source") or "runtime")
 
+
 @router.get("/status/helper/readiness")
 def helper_readiness(request: Request) -> dict[str, Any]:
     chain_id = _chain_id(request)
     authority_contract, contract_source = _authority_contract(request)
-    helper_requested = bool(authority_contract.get("helper_requested", resolve_node_runtime_config_from_env().helper_enabled_requested))
+    helper_requested = bool(
+        authority_contract.get(
+            "helper_requested", resolve_node_runtime_config_from_env().helper_enabled_requested
+        )
+    )
     release = _helper_release_gate_report(request.app.state)
 
     preflight = decide_production_preflight(
@@ -119,12 +124,19 @@ def helper_readiness(request: Request) -> dict[str, Any]:
     )
     helper_authority_known = any(
         authority_contract.get(key)
-        for key in ("effective_state", "startup_action", "promotion_failure_reasons", "effective_roles")
+        for key in (
+            "effective_state",
+            "startup_action",
+            "promotion_failure_reasons",
+            "effective_roles",
+        )
     )
     startup = evaluate_helper_startup(
         config=HelperStartupConfig(
             helper_mode_requested=helper_requested,
-            helper_authority_ok=(not helper_requested) or (not helper_authority_known) or bool(authority_contract.get("helper_effective", False)),
+            helper_authority_ok=(not helper_requested)
+            or (not helper_authority_known)
+            or bool(authority_contract.get("helper_effective", False)),
             chain_id_ok=bool(chain_id),
             protocol_profile_ok=True,
             validator_set_ok=True,

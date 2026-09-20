@@ -90,6 +90,7 @@ def _base_context():
 def _journal_factory(tmp_path: Path):
     def factory(idx: int):
         return HelperLaneJournal(str(tmp_path / f"helper_loop_{idx}.jsonl"))
+
     return factory
 
 
@@ -319,9 +320,7 @@ def test_helper_proposal_loop_restart_reuse_across_cycles(tmp_path) -> None:
         cycles=(
             HelperProposalCycleInput(
                 block_height=401,
-                events=(
-                    HelperEvent(kind="cert", cert=cert_ok, peer_id=lane_plan.helper_id),
-                ),
+                events=(HelperEvent(kind="cert", cert=cert_ok, peer_id=lane_plan.helper_id),),
                 lane_results_by_id={
                     lane_plan.lane_id: {"receipts": receipts_ok, "state_delta": delta_ok}
                 },

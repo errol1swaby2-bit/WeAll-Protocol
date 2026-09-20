@@ -9,8 +9,8 @@ records are consensus-visible state, not local operator logs.
 """
 
 import hashlib
-import json
 from typing import Any
+
 from weall.runtime.json_tools import canonical_json_str
 
 Json = dict[str, Any]

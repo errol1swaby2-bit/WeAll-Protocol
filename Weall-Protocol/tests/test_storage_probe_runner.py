@@ -1,9 +1,8 @@
-
 from __future__ import annotations
 
 import json
-import subprocess
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -38,14 +37,26 @@ def _challenge(**overrides: object) -> dict:
 
 def test_probe_rejects_capacity_above_available_space(tmp_path: Path) -> None:
     with pytest.raises(StorageProbeRunnerError, match="insufficient_available_disk"):
-        prepare_capacity_probe(tmp_path, _challenge(reserved_capacity_bytes=10_000, declared_capacity_bytes=10_000, probe_offsets=[0, 4096, 9872]), available_capacity_bytes=9_999)
+        prepare_capacity_probe(
+            tmp_path,
+            _challenge(
+                reserved_capacity_bytes=10_000,
+                declared_capacity_bytes=10_000,
+                probe_offsets=[0, 4096, 9872],
+            ),
+            available_capacity_bytes=9_999,
+        )
 
 
-def test_probe_writes_segments_inside_storage_root_and_generates_verifiable_response(tmp_path: Path) -> None:
+def test_probe_writes_segments_inside_storage_root_and_generates_verifiable_response(
+    tmp_path: Path,
+) -> None:
     challenge = _challenge()
     manifest = prepare_capacity_probe(tmp_path, challenge, available_capacity_bytes=2 * 1024 * 1024)
     assert manifest["reserved_capacity_bytes"] == challenge["reserved_capacity_bytes"]
-    assert manifest["total_probe_bytes"] == challenge["sample_count"] * challenge["sample_size_bytes"]
+    assert (
+        manifest["total_probe_bytes"] == challenge["sample_count"] * challenge["sample_size_bytes"]
+    )
     for segment in manifest["segments"]:
         path = (tmp_path / segment["path"]).resolve()
         path.relative_to(tmp_path.resolve())
@@ -78,7 +89,9 @@ def test_probe_response_fails_when_segment_is_corrupted(tmp_path: Path) -> None:
 
 def test_probe_rejects_path_traversal_challenge_id(tmp_path: Path) -> None:
     with pytest.raises(StorageProbeRunnerError, match="unsafe_challenge_id"):
-        prepare_capacity_probe(tmp_path, _challenge(challenge_id="../escape"), available_capacity_bytes=2 * 1024 * 1024)
+        prepare_capacity_probe(
+            tmp_path, _challenge(challenge_id="../escape"), available_capacity_bytes=2 * 1024 * 1024
+        )
 
 
 def test_cleanup_removes_expired_probe_material(tmp_path: Path) -> None:
@@ -96,32 +109,55 @@ def test_cli_prepare_respond_verify_and_metrics(tmp_path: Path) -> None:
     challenge_path.write_text(json.dumps(challenge), encoding="utf-8")
     root = Path(__file__).resolve().parents[1]
     prepare_proc = subprocess.run(
-        [sys.executable, "scripts/storage_probe_runner_check.py", "prepare", "--storage-root", str(tmp_path), "--challenge", str(challenge_path), "--available-capacity-bytes", str(2 * 1024 * 1024)],
+        [
+            sys.executable,
+            "scripts/storage_probe_runner_check.py",
+            "prepare",
+            "--storage-root",
+            str(tmp_path),
+            "--challenge",
+            str(challenge_path),
+            "--available-capacity-bytes",
+            str(2 * 1024 * 1024),
+        ],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=True,
         env={**os.environ, "PYTHONPATH": "src"},
     )
     assert json.loads(prepare_proc.stdout)["challenge"]["challenge_id"] == "probe-cli"
     response_proc = subprocess.run(
-        [sys.executable, "scripts/storage_probe_runner_check.py", "respond", "--storage-root", str(tmp_path), "--challenge-id", "probe-cli"],
+        [
+            sys.executable,
+            "scripts/storage_probe_runner_check.py",
+            "respond",
+            "--storage-root",
+            str(tmp_path),
+            "--challenge-id",
+            "probe-cli",
+        ],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=True,
         env={**os.environ, "PYTHONPATH": "src"},
     )
     response_path = tmp_path / "response.json"
     response_path.write_text(response_proc.stdout, encoding="utf-8")
     verify_proc = subprocess.run(
-        [sys.executable, "scripts/storage_probe_runner_check.py", "verify", "--challenge", str(challenge_path), "--response", str(response_path)],
+        [
+            sys.executable,
+            "scripts/storage_probe_runner_check.py",
+            "verify",
+            "--challenge",
+            str(challenge_path),
+            "--response",
+            str(response_path),
+        ],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=True,
         env={**os.environ, "PYTHONPATH": "src"},
     )

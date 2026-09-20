@@ -10,20 +10,15 @@ def test_tx_order_hash_consistency():
         helper_id="helper",
         validator_epoch=1,
         validator_set_hash="hash",
-
         lane_id="LANE_X",
-
         tx_ids=["a", "b", "c"],
         tx_order_hash="",
-
         receipts_root="r",
         write_set_hash="w",
         read_set_hash="r2",
-
         state_delta_hash="s",
         namespace_hash="n",
-
-        signature="sig"
+        signature="sig",
     )
 
     correct_hash = cert.compute_tx_order_hash()
@@ -42,20 +37,15 @@ def test_invalid_hash_detected():
         helper_id="helper",
         validator_epoch=1,
         validator_set_hash="hash",
-
         lane_id="LANE_X",
-
         tx_ids=["a", "b"],
         tx_order_hash="wrong",
-
         receipts_root="r",
         write_set_hash="w",
         read_set_hash="r2",
-
         state_delta_hash="s",
         namespace_hash="n",
-
-        signature="sig"
+        signature="sig",
     )
 
     assert not cert.verify_internal_consistency()

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from weall.runtime.parallel_execution import canonical_lane_plan_fingerprint, plan_parallel_execution
+from weall.runtime.parallel_execution import (
+    canonical_lane_plan_fingerprint,
+    plan_parallel_execution,
+)
 
 
 def _tx(tx_id: str, tx_type: str, prefixes: list[str]) -> dict:
@@ -24,7 +27,9 @@ def test_plan_parallel_execution_is_stable_across_repeated_runs() -> None:
             leader_id="v1",
         )
         fingerprints.add(canonical_lane_plan_fingerprint(lane_plans))
-        lane_summaries.add(tuple((plan.lane_id, plan.helper_id, plan.tx_ids) for plan in lane_plans))
+        lane_summaries.add(
+            tuple((plan.lane_id, plan.helper_id, plan.tx_ids) for plan in lane_plans)
+        )
     assert len(fingerprints) == 1
     assert len(lane_summaries) == 1
 

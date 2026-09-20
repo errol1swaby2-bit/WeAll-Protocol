@@ -52,7 +52,9 @@ def test_multi_operator_storage_durability_keeps_public_media_boundary() -> None
 def test_anti_sybil_evidence_retention_and_recovery_policy() -> None:
     out = _proof()["anti_sybil_evidence_retention_recovery"]
     assert out["ok"] is True
-    assert out["retention_before_reverification"]["status"] == "retain_until_reverification_or_appeal"
+    assert (
+        out["retention_before_reverification"]["status"] == "retain_until_reverification_or_appeal"
+    )
     assert out["retention_before_reverification"]["appeal_remedy_available"] is True
     assert out["retention_after_reverification"]["status"] == "remedy_completed_minimal_retention"
     assert out["retention_after_reverification"]["deletion_eligible"] is True
@@ -86,11 +88,14 @@ def test_controlled_testnet_candidate_bundle_preserves_claim_boundaries() -> Non
 
 def test_generated_artifact_is_fresh() -> None:
     proc = subprocess.run(
-        [sys.executable, "scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py", "--check"],
+        [
+            sys.executable,
+            "scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py",
+            "--check",
+        ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr

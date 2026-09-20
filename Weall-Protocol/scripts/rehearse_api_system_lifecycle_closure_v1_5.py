@@ -60,7 +60,9 @@ def run_harness() -> dict[str, Any]:
         "classified_remaining_domains": classified,
         "unclassified_remaining_domains": unclassified,
         "public_client_write_gaps_remaining": public_client_gaps,
-        "system_only_domains_not_public_writes": [k for k, v in classified.items() if not bool(v.get("public_client_required"))],
+        "system_only_domains_not_public_writes": [
+            k for k, v in classified.items() if not bool(v.get("public_client_required"))
+        ],
         "protocol_upgrade_record_only": bool(base.get("protocol_upgrade_record_only")),
         "live_economics_enabled": False,
         "public_validator_enabled": False,
@@ -68,7 +70,9 @@ def run_harness() -> dict[str, Any]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

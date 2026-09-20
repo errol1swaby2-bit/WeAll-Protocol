@@ -18,7 +18,6 @@ def _canon_txdef(tx_type: str) -> dict:
     return rec if isinstance(rec, dict) else {}
 
 
-
 def _minimal_env_for_tx(tx_type: str) -> TxEnvelope:
     txdef = _canon_txdef(tx_type)
     origin = str(txdef.get("origin") or "").strip().upper()
@@ -42,12 +41,10 @@ def _minimal_env_for_tx(tx_type: str) -> TxEnvelope:
     )
 
 
-
 def test_every_canon_tx_is_claimed_exactly_once() -> None:
     idx = load_default_tx_index()
     assert unclaimed_canon_tx_types(idx) == []
     assert duplicate_handler_claims(idx) == {}
-
 
 
 def test_canon_handler_routes_are_stable() -> None:
@@ -60,10 +57,8 @@ def test_canon_handler_routes_are_stable() -> None:
         assert isinstance(row["handler"], str) and row["handler"], row
 
 
-
 def test_registry_exposes_no_noncanon_legacy_extras() -> None:
     assert noncanon_registry_tx_types(load_default_tx_index()) == []
-
 
 
 def test_every_canon_handler_claims_when_invoked() -> None:
@@ -86,7 +81,6 @@ def test_every_canon_handler_claims_when_invoked() -> None:
             continue
 
         assert out is not None, tx_type
-
 
 
 def test_dispatch_prefers_canonical_reputation_route_for_account_ban() -> None:

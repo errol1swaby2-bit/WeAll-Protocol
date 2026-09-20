@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -26,4 +25,4 @@ def test_observer_bootstrap_manifest_rewritten_after_registration() -> None:
     rewrite_idx = src.index(rewrite_marker, registration_idx)
     assert registration_idx < rewrite_idx < src.index(frontend_marker)
     assert "same key material that\n# the observer account registration actually used" in src
-    assert 'signature verification failed' in src
+    assert "signature verification failed" in src

@@ -14,6 +14,7 @@ from weall.runtime.block_time_admission import (
     has_material_block_timestamp,
     validate_block_timestamp,
 )
+from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
 from weall.runtime.helper_block_validation import validate_received_helper_execution
 from weall.runtime.protocol_profile import runtime_max_block_future_drift_ms
 from weall.runtime.public_protocol_policy import mark_public_protocol_policy_checked
@@ -85,21 +86,9 @@ def _as_list(v: Any) -> list[Any]:
 
 def _get_active_validators_from_state(state: Json) -> list[str]:
     """Return the consensus validator set, with role-set fallback only for legacy states."""
-    c = state.get("consensus")
-    if isinstance(c, dict):
-        vs = c.get("validator_set")
-        if isinstance(vs, dict):
-            aset = vs.get("active_set")
-            if isinstance(aset, list):
-                out: list[str] = []
-                seen: set[str] = set()
-                for x in aset:
-                    s = _as_str(x)
-                    if not s or s in seen:
-                        continue
-                    seen.add(s)
-                    out.append(s)
-                return out
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return list(explicit)
     roles = state.get("roles")
     if isinstance(roles, dict):
         validators = roles.get("validators")
@@ -157,13 +146,12 @@ def _current_validator_epoch_from_state(state: Json) -> int:
     validator-set epoch and retain the protocol epoch only for legacy states
     that predate ``consensus.validator_set`` generation tracking.
     """
+    generation = consensus_validator_generation(state)
+    if generation is not None:
+        return int(generation)
+
     c = state.get("consensus")
     if isinstance(c, dict):
-        vs = c.get("validator_set")
-        if isinstance(vs, dict):
-            generation = _as_int(vs.get("epoch"), 0)
-            if generation > 0:
-                return generation
         ep = c.get("epochs")
         if isinstance(ep, dict):
             legacy_epoch = _as_int(ep.get("current"), 0)
@@ -173,7 +161,17 @@ def _current_validator_epoch_from_state(state: Json) -> int:
 
 
 def _current_validator_set_hash_from_state(state: Json) -> str:
+    explicit = consensus_active_validator_ids(state)
     c = state.get("consensus")
+    if explicit is not None:
+        vs = c.get("validator_set") if isinstance(c, dict) else None
+        if not isinstance(vs, dict) or not isinstance(vs.get("active_set"), list):
+            return ""
+        have = _as_str(vs.get("set_hash") or "")
+        if have:
+            return have
+        return _validator_set_hash_from_validators(explicit) if explicit else ""
+
     if isinstance(c, dict):
         vs = c.get("validator_set")
         if isinstance(vs, dict):

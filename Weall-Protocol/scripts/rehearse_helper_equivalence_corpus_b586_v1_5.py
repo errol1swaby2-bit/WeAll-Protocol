@@ -5,7 +5,9 @@ import argparse
 import json
 from typing import Any
 
-from rehearse_helper_serial_equivalence_expansion_v1_5 import run_harness as run_existing_helper_expansion
+from rehearse_helper_serial_equivalence_expansion_v1_5 import (
+    run_harness as run_existing_helper_expansion,
+)
 
 Json = dict[str, Any]
 
@@ -45,7 +47,10 @@ def run_harness() -> Json:
         "receipt_order_equivalence_proven": base.get("serial_equivalence_ok") is True,
         "missing_helper_fallback": bool(base.get("missing_helper_fallback_reasons")),
         "byzantine_helper_rejection": bool(base.get("byzantine_helper_rejection_reasons")),
-        "deterministic_merge_preserves_tx_order": bool(base.get("missing_helper_preserves_tx_order") and base.get("byzantine_helper_preserves_tx_order")),
+        "deterministic_merge_preserves_tx_order": bool(
+            base.get("missing_helper_preserves_tx_order")
+            and base.get("byzantine_helper_preserves_tx_order")
+        ),
         # The underlying equivalence report compares receipt/order outputs only.
         # It does not independently materialize and hash helper-vs-serial post-state.
         "state_root_equality_proven_by_serial_equivalence": False,

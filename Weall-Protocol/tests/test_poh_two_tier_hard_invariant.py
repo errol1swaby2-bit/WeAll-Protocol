@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from weall.runtime.apply.poh import apply_poh_tier_set
 from weall.runtime.errors import ApplyError
 from weall.runtime.gate_expr import eval_gate
 from weall.runtime.poh.eligibility import can_account_perform_action, require_poh_tier
@@ -11,7 +12,6 @@ from weall.runtime.poh.state import (
     set_account_poh_status,
     v2_poh_tier,
 )
-from weall.runtime.apply.poh import apply_poh_tier_set
 from weall.runtime.tx_schema import PAYLOAD_MODELS
 
 

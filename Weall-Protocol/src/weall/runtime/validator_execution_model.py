@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
-from weall.runtime.json_tools import canonical_json_bytes as _canon_json
+from typing import Any
 
 from weall.crypto.sig import sign_mldsa, verify_mldsa_signature
+from weall.runtime.json_tools import canonical_json_bytes as _canon_json
 from weall.runtime.parallel_execution import LanePlan
 
 Json = dict[str, Any]
-
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +87,9 @@ class ValidatorExecutionManifest:
         return hashlib.sha256(_canon_json(self.signing_payload())).hexdigest()
 
     def helper_ids(self) -> tuple[str, ...]:
-        return tuple(sorted({binding.helper_id for binding in self.helper_bindings if binding.helper_id}))
+        return tuple(
+            sorted({binding.helper_id for binding in self.helper_bindings if binding.helper_id})
+        )
 
     def role_for_node(self, node_id: str) -> str:
         nid = str(node_id or "")
@@ -116,10 +117,12 @@ class ValidatorExecutionManifest:
             return False
 
     @classmethod
-    def from_json(cls, payload: Mapping[str, Any]) -> "ValidatorExecutionManifest":
+    def from_json(cls, payload: Mapping[str, Any]) -> ValidatorExecutionManifest:
         bindings_obj = payload.get("helper_bindings")
         bindings: list[LaneHelperBinding] = []
-        if isinstance(bindings_obj, Sequence) and not isinstance(bindings_obj, (str, bytes, bytearray)):
+        if isinstance(bindings_obj, Sequence) and not isinstance(
+            bindings_obj, (str, bytes, bytearray)
+        ):
             for item in bindings_obj:
                 if not isinstance(item, Mapping):
                     continue
@@ -190,7 +193,11 @@ def verify_validator_execution_manifest(
     *,
     expected_pubkey: str | None = None,
 ) -> bool:
-    normalized = manifest if isinstance(manifest, ValidatorExecutionManifest) else ValidatorExecutionManifest.from_json(manifest)
+    normalized = (
+        manifest
+        if isinstance(manifest, ValidatorExecutionManifest)
+        else ValidatorExecutionManifest.from_json(manifest)
+    )
     if not normalized.manifest_signed:
         return False
     return normalized.verify_signature(expected_pubkey=expected_pubkey)
@@ -222,7 +229,9 @@ def build_validator_execution_manifest(
                     helper_id=helper_id,
                     tx_ids=tuple(str(tx_id) for tx_id in lane.tx_ids),
                     namespace_prefixes=tuple(str(prefix) for prefix in lane.namespace_prefixes),
-                    helper_candidates=tuple(str(v) for v in getattr(lane, "helper_candidates", ()) or ()),
+                    helper_candidates=tuple(
+                        str(v) for v in getattr(lane, "helper_candidates", ()) or ()
+                    ),
                     original_helper_id=str(getattr(lane, "original_helper_id", "") or ""),
                     rerouted_from_helper_id=str(getattr(lane, "rerouted_from_helper_id", "") or ""),
                     routing_mode=str(getattr(lane, "routing_mode", "helper") or "helper"),
@@ -255,9 +264,13 @@ def build_validator_execution_manifest(
     )
 
 
-def validator_execution_summary(*, manifest: ValidatorExecutionManifest, local_node_id: str) -> Json:
+def validator_execution_summary(
+    *, manifest: ValidatorExecutionManifest, local_node_id: str
+) -> Json:
     helper_ids = manifest.helper_ids()
-    total_lane_cost_units = sum(int(getattr(binding, "lane_cost_units", 1) or 1) for binding in manifest.helper_bindings)
+    total_lane_cost_units = sum(
+        int(getattr(binding, "lane_cost_units", 1) or 1) for binding in manifest.helper_bindings
+    )
     return {
         "model": "coordinator_helper",
         "manifest_hash": manifest.manifest_hash(),
@@ -270,8 +283,15 @@ def validator_execution_summary(*, manifest: ValidatorExecutionManifest, local_n
         "validator_set_hash": manifest.validator_set_hash,
         "validator_count": len(manifest.validators),
         "helper_count": len(helper_ids),
-        "helper_capacity_bound": any(int(getattr(binding, "helper_capacity_units", 0) or 0) > 0 for binding in manifest.helper_bindings),
-        "capability_restricted_lane_count": sum(1 for binding in manifest.helper_bindings if bool(getattr(binding, "capability_restricted", False))),
+        "helper_capacity_bound": any(
+            int(getattr(binding, "helper_capacity_units", 0) or 0) > 0
+            for binding in manifest.helper_bindings
+        ),
+        "capability_restricted_lane_count": sum(
+            1
+            for binding in manifest.helper_bindings
+            if bool(getattr(binding, "capability_restricted", False))
+        ),
         "helper_lane_cost_units": int(total_lane_cost_units),
         "helper_ids": list(helper_ids),
         "serial_lane_ids": list(manifest.serial_lane_ids),

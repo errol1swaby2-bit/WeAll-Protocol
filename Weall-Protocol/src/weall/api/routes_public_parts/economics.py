@@ -5,8 +5,8 @@ from typing import Any
 from fastapi import APIRouter, Query, Request
 
 from weall.api.routes_public_parts.common import _snapshot, _str_param
-from weall.runtime.econ_phase import econ_allowed_from_state, is_econ_unlocked
 from weall.ledger.tokenomics import tokenomics_policy_from_state
+from weall.runtime.econ_phase import econ_allowed_from_state, is_econ_unlocked
 
 Json = dict[str, Any]
 
@@ -106,7 +106,9 @@ def economics_status_from_state(st: Json, *, account: str = "") -> Json:
         "economic_unlock_time": unlock_time,
         "activation_required": not bool(enabled),
         "activation_requirements": [
-            "genesis economic lock expired" if not unlocked else "genesis economic lock expired: satisfied",
+            "genesis economic lock expired"
+            if not unlocked
+            else "genesis economic lock expired: satisfied",
             "ECONOMICS_ACTIVATION must be emitted through governance/system authority",
             "fee policy may not make civic, social, governance, PoH, or review actions pay-to-participate",
             "treasury spend remains locked until economics activation and treasury governance rules are satisfied",
@@ -125,7 +127,9 @@ def economics_status_from_state(st: Json, *, account: str = "") -> Json:
             "balance": balance,
             "balance_known": balance is not None,
             "transfer_disabled_reason": "economics_locked" if not enabled else "",
-        } if acct else None,
+        }
+        if acct
+        else None,
         "fee_policy": policy,
         "civic_fee_violations": civic_fee_violations,
         "treasury": {
@@ -134,7 +138,9 @@ def economics_status_from_state(st: Json, *, account: str = "") -> Json:
             "wallet_count": len(tre_wallets),
             "locked": not bool(enabled),
         },
-        "truth_label": "Economics are defined but locked" if not enabled else "Economics activated by governance/system rule",
+        "truth_label": "Economics are defined but locked"
+        if not enabled
+        else "Economics activated by governance/system rule",
         "claim": "Civic, social, governance, PoH, and review actions remain fee-free; WeCoin transfers, rewards, and treasury spending stay locked until explicit activation rules are satisfied.",
     }
 
@@ -142,13 +148,18 @@ def economics_status_from_state(st: Json, *, account: str = "") -> Json:
 @router.get("/economics/status")
 def economics_status(request: Request, account: str | None = Query(default=None)):
     st = _snapshot(request)
-    return economics_status_from_state(st if isinstance(st, dict) else {}, account=_str_param(account).strip())
+    return economics_status_from_state(
+        st if isinstance(st, dict) else {}, account=_str_param(account).strip()
+    )
 
 
 @router.get("/wallet/{account}")
 def wallet_status(request: Request, account: str):
     st = _snapshot(request)
-    return economics_status_from_state(st if isinstance(st, dict) else {}, account=_str_param(account).strip())
+    return economics_status_from_state(
+        st if isinstance(st, dict) else {}, account=_str_param(account).strip()
+    )
+
 
 def economics_activation_readiness_from_state(st: Json) -> Json:
     state = st if isinstance(st, dict) else {}
@@ -160,13 +171,26 @@ def economics_activation_readiness_from_state(st: Json) -> Json:
     fee_violations = list(status.get("civic_fee_violations") or [])
     requirements: list[Json] = [
         {"key": "genesis_lock_expired", "ok": unlocked, "label": "Genesis economic lock expired"},
-        {"key": "economics_not_already_enabled", "ok": not enabled, "label": "Economics not already enabled"},
-        {"key": "civic_fee_floor", "ok": len(fee_violations) == 0, "label": "Civic/social/governance actions remain fee-free"},
-        {"key": "governance_activation_tx", "ok": False, "label": "ECONOMICS_ACTIVATION still requires governance/system authority"},
+        {
+            "key": "economics_not_already_enabled",
+            "ok": not enabled,
+            "label": "Economics not already enabled",
+        },
+        {
+            "key": "civic_fee_floor",
+            "ok": len(fee_violations) == 0,
+            "label": "Civic/social/governance actions remain fee-free",
+        },
+        {
+            "key": "governance_activation_tx",
+            "ok": False,
+            "label": "ECONOMICS_ACTIVATION still requires governance/system authority",
+        },
     ]
     return {
         "ok": True,
-        "ready_for_activation_tx": all(bool(item["ok"]) for item in requirements[:-1]) and not bool(enabled),
+        "ready_for_activation_tx": all(bool(item["ok"]) for item in requirements[:-1])
+        and not bool(enabled),
         "enabled": enabled,
         "unlocked": unlocked,
         "economic_unlock_height": _as_int(params.get("economic_unlock_height"), 0),
@@ -178,7 +202,9 @@ def economics_activation_readiness_from_state(st: Json) -> Json:
     }
 
 
-def transfer_preview_from_state(st: Json, *, from_account: str, to_account: str, amount: int) -> Json:
+def transfer_preview_from_state(
+    st: Json, *, from_account: str, to_account: str, amount: int
+) -> Json:
     state = st if isinstance(st, dict) else {}
     status = economics_status_from_state(state, account=from_account)
     enabled = bool(status.get("enabled"))
@@ -260,4 +286,3 @@ def economics_transfer_preview(
 def treasury_status(request: Request):
     st = _snapshot(request)
     return treasury_status_from_state(st if isinstance(st, dict) else {})
-

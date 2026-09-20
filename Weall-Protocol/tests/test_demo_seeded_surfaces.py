@@ -91,13 +91,19 @@ def test_seeded_group_dispute_and_proposal_are_visible_through_public_routes() -
     disputes_res = client.get("/v1/disputes")
     assert disputes_res.status_code == 200, disputes_res.text
     disputes_body = disputes_res.json()
-    dispute_item = next(item for item in disputes_body["items"] if str(item.get("id") or "") == dispute_id)
+    dispute_item = next(
+        item for item in disputes_body["items"] if str(item.get("id") or "") == dispute_id
+    )
     assert dispute_item["target_id"] == "post:@demo_tester:5"
 
     proposal_res = client.get("/v1/gov/proposals")
     assert proposal_res.status_code == 200, proposal_res.text
     proposal_body = proposal_res.json()
-    proposal_item = next(item for item in proposal_body["items"] if str(item.get("proposal_id") or item.get("id") or "") == proposal_id)
+    proposal_item = next(
+        item
+        for item in proposal_body["items"]
+        if str(item.get("proposal_id") or item.get("id") or "") == proposal_id
+    )
     assert str(proposal_item.get("stage") or proposal_item.get("status") or "") == "voting"
     assert seeded["validator"]["active_validator_ids"] == ["@demo_tester"]
 

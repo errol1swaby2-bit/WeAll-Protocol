@@ -94,8 +94,8 @@ def _build_genesis(
     bootstrap_expires_height: int,
     tx_index_hash: str,
 ) -> Json:
-    from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
     from weall.runtime.block_hash import RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
+    from weall.runtime.bootstrap_audit import record_bootstrap_tier2_grant
     from weall.runtime.protocol_profile import (
         PRODUCTION_CONSENSUS_PROFILE,
         PROTOCOL_VERSION,
@@ -254,9 +254,7 @@ def _build_genesis(
             "helper_execution_profile_hash": _sha256(_canon(helper_execution_profile)),
             "genesis_bootstrap_profile": genesis_bootstrap_profile,
             "genesis_bootstrap_profile_hash": _sha256(_canon(genesis_bootstrap_profile)),
-            "recent_block_anchor_activation_height": int(
-                RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
-            ),
+            "recent_block_anchor_activation_height": int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT),
         },
         "params": {
             "economics_enabled": False,

@@ -80,7 +80,7 @@ def main() -> int:
             rel = path
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         for lineno, line in enumerate(lines, start=1):
-            previous_context = " ".join(lines[max(0, lineno - 4):lineno - 1])
+            previous_context = " ".join(lines[max(0, lineno - 4) : lineno - 1])
             combined_context = f"{previous_context} {line}"
             for pattern in RISKY_PATTERNS:
                 if pattern.search(line) and not context_is_safe(combined_context):

@@ -3,7 +3,9 @@ from __future__ import annotations
 from weall.runtime.executor import WeAllExecutor
 
 
-def test_remote_block_cache_rejects_block_hash_reused_by_different_block_id(tmp_path) -> None:
+def test_remote_block_cache_rejects_malformed_hash_alias_without_poisoning_quarantine(
+    tmp_path,
+) -> None:
     ex = WeAllExecutor(
         db_path=str(tmp_path / "ledger.sqlite"),
         chain_id="weall:test",
@@ -39,13 +41,15 @@ def test_remote_block_cache_rejects_block_hash_reused_by_different_block_id(tmp_
         "receipts": [],
     }
 
-    assert ex.bft_cache_remote_block(alias) is False
+    assert ex.bft_cache_remote_block(alias, expected_block_hash="hash-same") is False
     diag = ex.bft_diagnostics()
-    assert diag["conflicted_block_hashes_count"] == 1
-    assert "hash-same" in diag["conflicted_block_hashes"]
+    assert diag["conflicted_block_hashes_count"] == 0
+    assert ex._is_conflicted_block_hash("hash-same") is False
 
 
-def test_pending_remote_block_hash_alias_is_fail_closed(tmp_path) -> None:
+def test_pending_remote_malformed_shared_hash_is_rejected_without_creating_conflict_truth(
+    tmp_path,
+) -> None:
     ex = WeAllExecutor(
         db_path=str(tmp_path / "ledger.sqlite"),
         chain_id="weall:test",
@@ -90,8 +94,10 @@ def test_pending_remote_block_hash_alias_is_fail_closed(tmp_path) -> None:
         "receipts": [],
     }
 
-    assert ex.bft_cache_remote_block(first) is True
-    assert ex.bft_cache_remote_block(second) is False
+    assert ex.bft_cache_remote_block(first, expected_block_hash="shared-hash") is False
+    assert ex.bft_cache_remote_block(second, expected_block_hash="shared-hash") is False
     assert ex.bft_pending_fetch_requests() == []
+    assert ex.bft_diagnostics()["pending_remote_blocks_count"] == 0
     diag = ex.bft_diagnostics()
-    assert diag["conflicted_block_hashes_count"] == 1
+    assert diag["conflicted_block_hashes_count"] == 0
+    assert ex._is_conflicted_block_hash("shared-hash") is False

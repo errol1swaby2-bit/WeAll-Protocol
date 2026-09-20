@@ -6,7 +6,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_external_observer_smoke_script_forces_observer_safety() -> None:
-    script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(encoding="utf-8")
+    script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(
+        encoding="utf-8"
+    )
     assert 'WEALL_NODE_LIFECYCLE_STATE="observer_onboarding"' in script
     assert 'WEALL_OBSERVER_MODE="1"' in script
     assert 'WEALL_VALIDATOR_SIGNING_ENABLED="0"' in script
@@ -21,7 +23,9 @@ def test_external_observer_smoke_script_forces_observer_safety() -> None:
 
 
 def test_external_observer_runbook_documents_no_external_identity_authority() -> None:
-    doc = (ROOT / "docs" / "TRUSTED_EXTERNAL_OBSERVER_TESTER_RUNBOOK.md").read_text(encoding="utf-8")
+    doc = (ROOT / "docs" / "TRUSTED_EXTERNAL_OBSERVER_TESTER_RUNBOOK.md").read_text(
+        encoding="utf-8"
+    )
     assert "observer-first" in doc
     assert "cannot propose blocks" in doc
     assert "cannot" in doc and "sign validator messages" in doc
@@ -33,7 +37,9 @@ def test_external_observer_runbook_documents_no_external_identity_authority() ->
 
 
 def test_external_observer_runbook_documents_transport_only_relay() -> None:
-    script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(encoding="utf-8")
+    script = (ROOT / "scripts" / "external_observer_onboarding_smoke.sh").read_text(
+        encoding="utf-8"
+    )
     doc = (ROOT / "docs" / "PRODUCTION_RELAY_NETWORK_RUNBOOK.md").read_text(encoding="utf-8")
     assert "WEALL_NET_RELAY_URLS" in script
     assert "/v1/net/relay/status" in script

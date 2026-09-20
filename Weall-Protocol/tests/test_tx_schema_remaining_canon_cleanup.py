@@ -5,7 +5,6 @@ from pydantic import ValidationError
 
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
 
-
 BASE_ENV = {
     "signer": "alice",
     "nonce": 1,
@@ -110,17 +109,32 @@ def test_models_registered() -> None:
         ("REWARD_POOL_OPT_IN_SET", {"enabled": True}),
         ("BLOCK_REWARD_MINT", {"block_id": "b1", "amount": 25}),
         ("BLOCK_REWARD_DISTRIBUTE", {"block_id": "b1", "transfers": [], "debits": []}),
-        ("CREATOR_REWARD_ALLOCATE", {"block_id": "b1", "alloc_id": "a1", "transfers": [], "debits": []}),
-        ("TREASURY_REWARD_ALLOCATE", {"block_id": "b1", "alloc_id": "a2", "transfers": [], "debits": []}),
+        (
+            "CREATOR_REWARD_ALLOCATE",
+            {"block_id": "b1", "alloc_id": "a1", "transfers": [], "debits": []},
+        ),
+        (
+            "TREASURY_REWARD_ALLOCATE",
+            {"block_id": "b1", "alloc_id": "a2", "transfers": [], "debits": []},
+        ),
         ("CREATOR_PERFORMANCE_REPORT", {"subject": "@alice", "metrics": {"posts": 5}}),
         ("NODE_OPERATOR_PERFORMANCE_REPORT", {"subject": "@nodeop", "metrics": {"uptime": 99}}),
         ("PERFORMANCE_EVALUATE", {"subject": "@alice", "score": 88}),
         ("PERFORMANCE_SCORE_APPLY", {"subject": "@alice", "score": 91}),
         ("CONTENT_LABEL_SET", {"target_id": "post-1", "labels": ["spam"]}),
         ("CONTENT_THREAD_LOCK_SET", {"target_id": "post-1", "locked": True}),
-        ("CONTENT_MEDIA_REPLACE", {"media_id": "m1", "new_cid": "bafkreigh2akiscaildc4qyq5shxktex3utzx3wb5f2pfquce7yhlzzkvx4a"}),
+        (
+            "CONTENT_MEDIA_REPLACE",
+            {
+                "media_id": "m1",
+                "new_cid": "bafkreigh2akiscaildc4qyq5shxktex3utzx3wb5f2pfquce7yhlzzkvx4a",
+            },
+        ),
         ("CONTENT_MEDIA_UNBIND", {"binding_id": "bind-1"}),
-        ("CONTENT_ESCALATE_TO_DISPUTE", {"target_type": "content", "target_id": "post-1", "reason": "spam"}),
+        (
+            "CONTENT_ESCALATE_TO_DISPUTE",
+            {"target_type": "content", "target_id": "post-1", "reason": "spam"},
+        ),
         ("NOTIFICATION_EMIT_RECEIPT", {"topic": "mentions"}),
         ("INDEX_ANCHOR_SET", {"anchor_id": "anc-1"}),
         ("STATE_SNAPSHOT_DECLARE", {"snapshot_id": "snap-1"}),
@@ -133,9 +147,15 @@ def test_models_registered() -> None:
         ("ROLE_EMISSARY_REMOVE", {"account_id": "@bob", "reason": "term end"}),
         ("ROLE_JUROR_REINSTATE", {"account_id": "@bob"}),
         ("ROLE_VALIDATOR_SUSPEND", {"account_id": "@bob"}),
-        ("REPUTATION_THRESHOLD_CROSS", {"account_id": "@bob", "threshold": "tier2", "direction": "down"}),
+        (
+            "REPUTATION_THRESHOLD_CROSS",
+            {"account_id": "@bob", "threshold": "tier2", "direction": "down"},
+        ),
         ("VALIDATOR_REGISTER", {"endpoint": "https://node.example"}),
-        ("VALIDATOR_CANDIDATE_REGISTER", {"node_id": "node-bob", "pubkey": "mldsa:bob", "endpoints": ["https://node.example"]}),
+        (
+            "VALIDATOR_CANDIDATE_REGISTER",
+            {"node_id": "node-bob", "pubkey": "mldsa:bob", "endpoints": ["https://node.example"]},
+        ),
         ("VALIDATOR_SET_UPDATE", {"active_set": ["@alice", "@bob"], "activate_at_epoch": 3}),
         ("BLOCK_PROPOSE", {"block_id": "b1", "height": 1}),
         ("BLOCK_FINALIZE", {"block_id": "b1", "height": 1}),
@@ -164,16 +184,26 @@ def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
         ("INDEX_TOPIC_REGISTER", {}, "topic"),
         ("TX_RECEIPT_EMIT", {}, "either receipt_id or tx_id+tx_type is required"),
         ("ROLE_ELIGIBILITY_SET", {"account": "@bob"}, "role"),
-        ("REPUTATION_DELTA_APPLY", {"account_id": "@bob"}, "either delta or delta_milli is required"),
+        (
+            "REPUTATION_DELTA_APPLY",
+            {"account_id": "@bob"},
+            "either delta or delta_milli is required",
+        ),
         ("VALIDATOR_REGISTER", {}, "endpoint"),
-        ("VALIDATOR_CANDIDATE_REGISTER", {"node_id": "node-bob", "pubkey": "mldsa:bob"}, "either endpoint or endpoints is required"),
+        (
+            "VALIDATOR_CANDIDATE_REGISTER",
+            {"node_id": "node-bob", "pubkey": "mldsa:bob"},
+            "either endpoint or endpoints is required",
+        ),
         ("VALIDATOR_CANDIDATE_APPROVE", {"account": "@bob"}, "activate_at_epoch"),
         ("VALIDATOR_HEARTBEAT", {"account": "@bob", "ts_ms": 1}, "node_id"),
         ("BLOCK_PROPOSE", {"height": 1}, "block_id"),
         ("SLASH_VOTE", {"slash_id": "s1"}, "vote"),
     ],
 )
-def test_missing_required_fields_are_rejected(tx_type: str, payload: dict, expected_fragment: str) -> None:
+def test_missing_required_fields_are_rejected(
+    tx_type: str, payload: dict, expected_fragment: str
+) -> None:
     with pytest.raises((ValidationError, ValueError)) as excinfo:
         validate_tx_envelope(_env(tx_type, payload))
     assert expected_fragment in str(excinfo.value)

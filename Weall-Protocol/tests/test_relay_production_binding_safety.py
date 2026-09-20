@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
@@ -26,6 +25,7 @@ class _SimpleExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self) -> dict[str, Any]:
         return {}
 
@@ -93,7 +93,13 @@ def _ping_envelope(*, bind_recipient: bool, now_ms: int | None = None) -> dict[s
     )
 
 
-def _access_request(request_type: str, *, recipient: str = "node-b", relay_ids: list[str] | None = None, now_ms: int = 2_000) -> dict[str, Any]:
+def _access_request(
+    request_type: str,
+    *,
+    recipient: str = "node-b",
+    relay_ids: list[str] | None = None,
+    now_ms: int = 2_000,
+) -> dict[str, Any]:
     pub, priv = _priv_hex(recipient)
     return make_relay_access_request(
         request_type=request_type,
@@ -120,7 +126,9 @@ def _prod_client(tmp_path: Path, monkeypatch) -> TestClient:
     return TestClient(app)
 
 
-def test_prod_relay_submit_requires_recipient_pubkey_even_if_unbound_env_enabled(tmp_path: Path, monkeypatch) -> None:
+def test_prod_relay_submit_requires_recipient_pubkey_even_if_unbound_env_enabled(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_NET_RELAY_ALLOW_UNBOUND_FETCH", "1")
     client = _prod_client(tmp_path, monkeypatch)
 
@@ -130,20 +138,28 @@ def test_prod_relay_submit_requires_recipient_pubkey_even_if_unbound_env_enabled
     assert limits["allow_unbound_recipient_fetch"] is False
     assert limits["require_recipient_pubkey"] is True
 
-    unbound = client.post("/v1/net/relay/submit", json={"envelope": _ping_envelope(bind_recipient=False)})
+    unbound = client.post(
+        "/v1/net/relay/submit", json={"envelope": _ping_envelope(bind_recipient=False)}
+    )
     assert unbound.status_code == 400, unbound.text
     assert unbound.json()["error"]["code"] == "relay_missing_recipient_pubkey"
 
-    bound = client.post("/v1/net/relay/submit", json={"envelope": _ping_envelope(bind_recipient=True)})
+    bound = client.post(
+        "/v1/net/relay/submit", json={"envelope": _ping_envelope(bind_recipient=True)}
+    )
     assert bound.status_code == 200, bound.text
     assert bound.json()["accepted"] is True
 
 
-def test_prod_legacy_unsigned_fetch_is_disabled_even_if_compat_env_enabled(tmp_path: Path, monkeypatch) -> None:
+def test_prod_legacy_unsigned_fetch_is_disabled_even_if_compat_env_enabled(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_NET_RELAY_ALLOW_LEGACY_UNSIGNED_FETCH", "1")
     client = _prod_client(tmp_path, monkeypatch)
 
-    response = client.get("/v1/net/relay/fetch", params={"recipient_peer_id": "node-b", "limit": 10})
+    response = client.get(
+        "/v1/net/relay/fetch", params={"recipient_peer_id": "node-b", "limit": 10}
+    )
     assert response.status_code == 410, response.text
     assert response.json()["error"]["code"] == "legacy_endpoint_removed"
 
@@ -161,11 +177,14 @@ def test_strict_authorized_fetch_and_ack_ignore_legacy_unbound_mailbox_rows(tmp_
         now_ms=3_000,
     )
     assert fetched == ()
-    assert spool.ack_authorized(
-        access_request=_access_request("ack", relay_ids=[env["relay_id"]], now_ms=4_000),
-        cfg=_strict_relay_cfg(),
-        now_ms=4_000,
-    ) == 0
+    assert (
+        spool.ack_authorized(
+            access_request=_access_request("ack", relay_ids=[env["relay_id"]], now_ms=4_000),
+            cfg=_strict_relay_cfg(),
+            now_ms=4_000,
+        )
+        == 0
+    )
 
     status = spool.status(now_ms=4_000)
     assert status["messages_total"] == 1
@@ -179,11 +198,15 @@ def _relay_loop(monkeypatch, *, recipient_map: dict[str, str] | None = None) -> 
     monkeypatch.setenv("WEALL_NODE_PUBKEY", node_pub)
     monkeypatch.setenv("WEALL_NODE_PRIVKEY", node_priv)
     if recipient_map is not None:
-        monkeypatch.setenv("WEALL_NET_RELAY_RECIPIENT_PUBKEYS", json.dumps(recipient_map, sort_keys=True))
+        monkeypatch.setenv(
+            "WEALL_NET_RELAY_RECIPIENT_PUBKEYS", json.dumps(recipient_map, sort_keys=True)
+        )
     loop = NetMeshLoop(
         executor=_SimpleExecutor(),
         mempool=_DummyMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = NetNode(
         cfg=NetConfig(
@@ -196,19 +219,23 @@ def _relay_loop(monkeypatch, *, recipient_map: dict[str, str] | None = None) -> 
     return loop
 
 
-def test_prod_relay_client_refuses_to_submit_to_named_peer_without_recipient_pubkey(monkeypatch) -> None:
+def test_prod_relay_client_refuses_to_submit_to_named_peer_without_recipient_pubkey(
+    monkeypatch,
+) -> None:
     loop = _relay_loop(monkeypatch)
     msg = PingMsg(header=_header(MsgType.PING), ping_id="out")
 
     try:
         loop._relay_submit_message(msg, recipients=["genesis"])
-        assert False, "production relay client must require recipient pubkey binding"
+        raise AssertionError("production relay client must require recipient pubkey binding")
     except NetLoopRuntimeError as exc:
         assert "relay_envelope_build_failed" in str(exc)
         assert getattr(exc.__cause__, "args", [""])[0] == "net_relay_missing_recipient_pubkey"
 
 
-def test_prod_relay_client_submits_bound_envelopes_when_recipient_pubkey_map_exists(monkeypatch) -> None:
+def test_prod_relay_client_submits_bound_envelopes_when_recipient_pubkey_map_exists(
+    monkeypatch,
+) -> None:
     genesis_pub = _priv_hex("genesis")[0]
     loop = _relay_loop(monkeypatch, recipient_map={"genesis": genesis_pub})
     sent: list[dict[str, Any]] = []
@@ -218,7 +245,9 @@ def test_prod_relay_client_submits_bound_envelopes_when_recipient_pubkey_map_exi
         return {"ok": True, "accepted": True}
 
     monkeypatch.setattr("weall.net.net_loop._http_post_json", fake_post)
-    loop._relay_submit_message(PingMsg(header=_header(MsgType.PING), ping_id="out"), recipients=["genesis"])
+    loop._relay_submit_message(
+        PingMsg(header=_header(MsgType.PING), ping_id="out"), recipients=["genesis"]
+    )
 
     assert sent
     envelope = sent[0]["obj"]["envelope"]

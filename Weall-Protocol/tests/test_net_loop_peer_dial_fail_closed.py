@@ -34,6 +34,7 @@ class _SimpleExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self):
         return {}
 

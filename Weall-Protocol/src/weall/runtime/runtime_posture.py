@@ -113,7 +113,6 @@ def _init_validator_runtime_posture(self) -> None:
     previous_clean = bool(meta.get("last_shutdown_clean", True)) and not runtime_open
     observer_requested = _env_bool("WEALL_OBSERVER_MODE", False)
     signing_requested = _env_bool("WEALL_VALIDATOR_SIGNING_ENABLED", True)
-    allow_dirty_signing = _env_bool("WEALL_ALLOW_DIRTY_SIGNING", False)
     lifecycle = self._evaluate_node_lifecycle_status()
 
     forced_observer = False
@@ -122,11 +121,14 @@ def _init_validator_runtime_posture(self) -> None:
         signing_requested = False
         forced_observer = True
         reason = "observer_mode_env"
+    elif signing_requested and not bool(getattr(self, "_bft_restart_safety_ok", True)):
+        signing_requested = False
+        forced_observer = True
+        reason = "bft_restart_qc_revalidation_failed"
     elif (
         _mode() == "prod"
         and getattr(self, "_startup_clock_observer_required", False)
         and signing_requested
-        and not allow_dirty_signing
     ):
         signing_requested = False
         forced_observer = True
@@ -139,7 +141,7 @@ def _init_validator_runtime_posture(self) -> None:
         signing_requested = False
         forced_observer = True
         reason = "node_lifecycle_not_validator_ready"
-    elif _mode() == "prod" and not previous_clean and signing_requested and not allow_dirty_signing:
+    elif _mode() == "prod" and not previous_clean and signing_requested:
         signing_requested = False
         forced_observer = True
         reason = "unclean_shutdown"
@@ -181,6 +183,8 @@ def _effective_validator_signing_state(self) -> tuple[bool, str]:
     reason = str(self._signing_block_reason or "")
     if not enabled:
         return False, reason
+    if not bool(getattr(self, "_bft_restart_safety_ok", True)):
+        return False, "bft_restart_qc_revalidation_failed"
 
     # Production validator operators must never keep automatic signing
     # enabled once the local security model degrades below public BFT.
@@ -262,6 +266,8 @@ def _explicit_validator_signing_override(self) -> bool:
 
 
 def _validator_signing_permitted(self) -> bool:
+    if not bool(getattr(self, "_bft_restart_safety_ok", True)):
+        return False
     enabled, _reason = self._effective_validator_signing_state()
     return bool(enabled) or self._explicit_validator_signing_override()
 

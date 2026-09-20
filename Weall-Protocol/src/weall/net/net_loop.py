@@ -157,6 +157,23 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def _interval_due_or_clock_rollback(*, now_ms: int, last_ms: int, interval_ms: int) -> bool:
+    """Return whether a local scheduler interval is due.
+
+    These timestamps are deliberately node-local and non-consensus. A backwards
+    host-clock adjustment must re-arm work instead of suppressing it until the prior
+    wall-clock value is reached again.
+    """
+    now = int(now_ms)
+    last = int(last_ms)
+    interval = max(0, int(interval_ms))
+    if last <= 0:
+        return True
+    if now < last:
+        return True
+    return (now - last) >= interval
+
+
 def _env_bool(name: str, default: bool) -> bool:
     v = os.environ.get(name)
     if v is None:
@@ -561,11 +578,13 @@ class NetMeshLoop:
         self._relay_ttl_ms = max(1_000, _env_int("WEALL_NET_RELAY_ENVELOPE_TTL_MS", 60_000))
         self._relay_last_poll_ms = 0
         self._relay_seen: dict[str, int] = {}
+        self._relay_bft_ack_guards: dict[str, tuple[str, Json]] = {}
         self._relay_seen_ttl_ms = max(
             10_000, _env_int("WEALL_NET_RELAY_DEDUPE_TTL_MS", 10 * 60 * 1000)
         )
         self._relay_seen_max = max(128, _env_int("WEALL_NET_RELAY_DEDUPE_MAX", 16_384))
         self._relay_nonce = 0
+        self._bft_branch_generation_seen = self._executor_bft_branch_generation()
         if self._relay_client_enabled and _is_prod():
             if not self._relay_urls:
                 raise NetStartupError("net_relay_client_enabled_without_urls")
@@ -1167,39 +1186,94 @@ class NetMeshLoop:
         )
 
     def _relay_process_envelope(self, envelope: Json) -> bool:
+        self._sync_bft_branch_generation()
         cfg = self._relay_cfg()
         if cfg is None:
             return False
         env = validate_relay_envelope(envelope, cfg=cfg)
         rid = str(env.get("relay_id") or "")
         now = _now_ms()
-        if rid and self._dedupe_seen(
-            self._relay_seen,
-            rid,
-            ttl_ms=int(self._relay_seen_ttl_ms),
-            now_ms=now,
-            max_entries=int(self._relay_seen_max),
-        ):
-            return True
         msg = decode_relay_payload(env)
         sender = str(env.get("sender_peer_id") or "relay-peer")
+        is_bft = isinstance(msg, (BftProposalMsg, BftVoteMsg, BftQcMsg, BftTimeoutMsg))
+
+        if rid:
+            if is_bft:
+                # Consensus artifacts are retryable until the authenticated runtime
+                # path accepts them. Merely fetching a relay envelope is not a trust
+                # event and must not suppress an exact later delivery.
+                if self._seen_contains(
+                    self._relay_seen,
+                    rid,
+                    ttl_ms=int(self._relay_seen_ttl_ms),
+                    now_ms=now,
+                ):
+                    return True
+            elif self._dedupe_seen(
+                self._relay_seen,
+                rid,
+                ttl_ms=int(self._relay_seen_ttl_ms),
+                now_ms=now,
+                max_entries=int(self._relay_seen_max),
+            ):
+                return True
+
         if isinstance(msg, TxEnvelopeMsg):
             self._on_tx(sender, msg)
             return True
+
+        accepted = False
         if isinstance(msg, BftProposalMsg):
-            self._on_bft_proposal(sender, msg)
+            accepted = bool(self._on_bft_proposal(sender, msg))
+        elif isinstance(msg, BftVoteMsg):
+            accepted = bool(self._on_bft_vote(sender, msg))
+        elif isinstance(msg, BftQcMsg):
+            accepted = bool(self._on_bft_qc(sender, msg))
+        elif isinstance(msg, BftTimeoutMsg):
+            accepted = bool(self._on_bft_timeout(sender, msg))
+        else:
+            # Non-consensus peer utility messages are accepted as delivered but do
+            # not mutate chain state through relay polling.
             return True
-        if isinstance(msg, BftVoteMsg):
-            self._on_bft_vote(sender, msg)
-            return True
-        if isinstance(msg, BftQcMsg):
-            self._on_bft_qc(sender, msg)
-            return True
-        if isinstance(msg, BftTimeoutMsg):
-            self._on_bft_timeout(sender, msg)
-            return True
-        # Non-consensus peer utility messages are accepted as delivered but do
-        # not mutate chain state through relay polling.
+
+        if not accepted:
+            return False
+        if rid and is_bft:
+            guard = self._bft_relay_guard_payload(msg)
+            if guard is None:
+                return False
+            kind, payload = guard
+
+            def _record_relay_acceptance() -> None:
+                self._dedupe_seen(
+                    self._relay_seen,
+                    rid,
+                    ttl_ms=int(self._relay_seen_ttl_ms),
+                    now_ms=now,
+                    max_entries=int(self._relay_seen_max),
+                )
+                self._relay_bft_ack_guards[rid] = (str(kind), dict(payload))
+                while len(self._relay_bft_ack_guards) > int(self._relay_seen_max):
+                    oldest = next(iter(self._relay_bft_ack_guards), "")
+                    if not oldest:
+                        break
+                    self._relay_bft_ack_guards.pop(oldest, None)
+
+            if not self._run_postauth_bft_side_effect_if_current(
+                kind,
+                payload,
+                _record_relay_acceptance,
+            ):
+                inc_counter("net_relay_bft_postauth_branch_drop")
+                return False
+        elif rid:
+            self._dedupe_seen(
+                self._relay_seen,
+                rid,
+                ttl_ms=int(self._relay_seen_ttl_ms),
+                now_ms=now,
+                max_entries=int(self._relay_seen_max),
+            )
         return True
 
     def _relay_poll_tick(self) -> None:
@@ -1234,7 +1308,34 @@ class NetMeshLoop:
                     if rid:
                         ack_ids.append(rid)
                     continue
-            self._relay_ack(base, peer_id, ack_ids)
+            if not ack_ids:
+                # Preserve the existing no-op call contract used by focused relay
+                # tests and compatibility shims.
+                self._relay_ack(base, peer_id, [])
+                continue
+
+            plain_ack_ids: list[str] = []
+            for rid in ack_ids:
+                guard = self._relay_bft_ack_guards.get(rid)
+                if guard is None:
+                    plain_ack_ids.append(rid)
+                    continue
+                kind, payload = guard
+
+                def _ack_one(
+                    relay_id: str = rid,
+                    relay_base: str = base,
+                    relay_peer_id: str = peer_id,
+                ) -> None:
+                    self._relay_ack(relay_base, relay_peer_id, [relay_id])
+
+                if self._run_postauth_bft_side_effect_if_current(kind, payload, _ack_one):
+                    self._relay_bft_ack_guards.pop(rid, None)
+                else:
+                    inc_counter("net_relay_bft_ack_postauth_branch_drop")
+
+            if plain_ack_ids:
+                self._relay_ack(base, peer_id, plain_ack_ids)
 
     # ----------------------------
     # Ingress handlers
@@ -1324,20 +1425,8 @@ class NetMeshLoop:
         return t
 
     def _bft_timeout_key(self, msg: BftTimeoutMsg) -> str:
-        try:
-            t = getattr(msg, "timeout", None) or {}
-            if isinstance(t, dict):
-                view = str(t.get("view") or getattr(msg, "view", "") or "")
-                signer = str(t.get("signer") or "")
-                sig = str(t.get("sig") or "")
-                high_qc_id = str(t.get("high_qc_id") or "")
-                return f"{view}|{signer}|{sig}|{high_qc_id}"
-        except Exception:
-            pass
-        try:
-            return json.dumps(getattr(msg, "timeout", None), sort_keys=True, separators=(",", ":"))
-        except Exception:
-            return repr(getattr(msg, "timeout", None))
+        timeoutj = self._mk_bft_timeout_json(msg)
+        return self._bft_network_dedupe_key("timeout", timeoutj)
 
     def _bft_generic_key(self, payload: Any) -> str:
         try:
@@ -1345,9 +1434,121 @@ class NetMeshLoop:
         except Exception:
             return repr(payload)
 
-    def _dedupe_seen(
-        self, cache: dict[str, int], key: str, *, ttl_ms: int, now_ms: int, max_entries: int = 0
+    def _executor_bft_branch_generation(self) -> int:
+        fn = getattr(self._executor, "bft_branch_generation", None)
+        if not callable(fn):
+            return 0
+        try:
+            return max(0, int(fn() or 0))
+        except Exception:
+            if _is_prod():
+                raise NetLoopRuntimeError("bft_branch_generation_read_failed")
+            return 0
+
+    def _sync_bft_branch_generation(self) -> bool:
+        """Invalidate branch-sensitive network caches after destructive reset."""
+        current = self._executor_bft_branch_generation()
+        previous = max(0, int(getattr(self, "_bft_branch_generation_seen", 0) or 0))
+        if current == previous:
+            return False
+
+        # These caches encode prior branch-local handling/gossip truth. The
+        # executor clears the corresponding runtime/persistent truth at the
+        # checkpoint boundary; retaining network copies could otherwise suppress
+        # fresh branch-B admission or propagation with branch-A evidence.
+        self._bft_msg_seen.clear()
+        self._bft_timeout_seen.clear()
+        self._relay_seen.clear()
+        self._relay_bft_ack_guards.clear()
+        self._tx_seen.clear()
+        # Missing-block requests are derived from branch-local BFT identity truth.
+        # A checkpoint invalidates both their per-block cooldowns and the fetch
+        # scheduler timestamp so the adopted branch can immediately request its
+        # own missing dependencies. Source penalties are transport-quality state
+        # and intentionally survive branch replacement.
+        self._bft_fetch_cooldowns.clear()
+        self._last_bft_fetch_ms = 0
+        self._bft_branch_generation_seen = current
+        inc_counter("net_bft_branch_dedupe_reset")
+        inc_counter("net_tx_branch_dedupe_reset")
+        inc_counter("net_bft_fetch_branch_reset")
+        return True
+
+    def _bft_network_dedupe_key(self, kind: str, payload: Json) -> str:
+        """Prefer runtime canonical BFT identity after authenticated admission.
+
+        The cache is populated only after runtime acceptance, so computing this
+        key before verification cannot poison retries. Test doubles and older
+        executors fall back to the exact wire representation.
+        """
+        fn = getattr(self._executor, "bft_artifact_dedupe_key", None)
+        if callable(fn):
+            try:
+                semantic_key = str(fn(str(kind), payload) or "").strip()
+            except Exception:
+                semantic_key = ""
+            if semantic_key:
+                return f"semantic:{str(kind).strip().lower()}:{semantic_key}"
+        return self._bft_generic_key({"t": str(kind), "v": payload})
+
+    def _bft_runtime_accepted(self, kind: str, payload: Json, result: Any) -> bool:
+        """Return whether runtime authenticated/admitted an inbound BFT artifact."""
+        fn = getattr(self._executor, "bft_artifact_was_accepted", None)
+        if callable(fn):
+            try:
+                return bool(fn(str(kind), payload))
+            except Exception:
+                if _is_prod():
+                    raise
+                return False
+        # Compatibility for test doubles and non-runtime executors.
+        return result is not None
+
+    def _run_postauth_bft_side_effect_if_current(
+        self,
+        kind: str,
+        payload: Json,
+        side_effect,
     ) -> bool:
+        """Run a post-authentication BFT side effect under branch authority.
+
+        Production WeAllExecutor holds the canonical-branch lock while it
+        revalidates that the artifact is still admitted and runs ``side_effect``.
+        This prevents a destructive checkpoint from landing between admission
+        and transport-visible work such as re-gossip or relay acknowledgement.
+        """
+        guarded = getattr(self._executor, "bft_run_postauth_side_effect_if_current", None)
+        if callable(guarded):
+            try:
+                return bool(guarded(str(kind), payload, side_effect))
+            except Exception:
+                if _is_prod():
+                    raise
+                return False
+
+        # Compatibility for focused non-production test doubles. Production
+        # WeAllExecutor exposes the branch-guarded API.
+        if _is_prod():
+            raise NetLoopRuntimeError("bft_postauth_branch_guard_missing")
+        side_effect()
+        return True
+
+    def _bft_relay_guard_payload(self, msg: object) -> tuple[str, Json] | None:
+        if isinstance(msg, BftProposalMsg):
+            payload = self._mk_bft_proposal_json(msg)
+            return ("proposal", payload) if isinstance(payload, dict) and payload else None
+        if isinstance(msg, BftVoteMsg):
+            payload = self._mk_bft_vote_json(msg)
+            return ("vote", payload) if isinstance(payload, dict) and payload else None
+        if isinstance(msg, BftQcMsg):
+            payload = getattr(msg, "qc", {}) or {}
+            return ("qc", payload) if isinstance(payload, dict) and payload else None
+        if isinstance(msg, BftTimeoutMsg):
+            payload = self._mk_bft_timeout_json(msg)
+            return ("timeout", payload) if isinstance(payload, dict) and payload else None
+        return None
+
+    def _seen_contains(self, cache: dict[str, int], key: str, *, ttl_ms: int, now_ms: int) -> bool:
         ttl = int(ttl_ms)
         if ttl <= 0:
             return False
@@ -1359,8 +1560,12 @@ class NetMeshLoop:
                     cache.pop(k, None)
         except Exception:
             pass
+        return key in cache
 
-        if key in cache:
+    def _dedupe_seen(
+        self, cache: dict[str, int], key: str, *, ttl_ms: int, now_ms: int, max_entries: int = 0
+    ) -> bool:
+        if self._seen_contains(cache, key, ttl_ms=ttl_ms, now_ms=now_ms):
             return True
 
         if int(max_entries or 0) > 0 and len(cache) >= int(max_entries):
@@ -1522,15 +1727,30 @@ class NetMeshLoop:
         for base in ordered:
             allow_at = int(self._bft_fetch_source_cooldowns.get(base, 0) or 0)
             if allow_at > now:
-                continue
+                # A normal source penalty can only be at most one configured penalty
+                # window into the future. A larger gap means the wall clock moved
+                # backwards after the cooldown was recorded; clear that local penalty
+                # rather than black-holing this source until the old clock catches up.
+                if (allow_at - now) <= int(self._bft_fetch_source_penalty_ms):
+                    continue
+                self._bft_fetch_source_cooldowns.pop(base, None)
             active.append(base)
         return active
 
     def _bft_fetch_tick(self) -> None:
         if not self._bft_fetch_enabled:
             return
+        # Re-arm branch-local fetch state before the interval/cooldown gates.
+        # Otherwise a recent branch-A fetch can suppress the first branch-B fetch
+        # after destructive checkpoint replacement.
+        self._sync_bft_branch_generation()
+        fetch_generation = self._executor_bft_branch_generation()
         now = _now_ms()
-        if (now - int(self._last_bft_fetch_ms)) < int(self._bft_fetch_interval_ms):
+        if not _interval_due_or_clock_rollback(
+            now_ms=now,
+            last_ms=int(self._last_bft_fetch_ms),
+            interval_ms=int(self._bft_fetch_interval_ms),
+        ):
             return
         self._last_bft_fetch_ms = int(now)
         raw_wants = []
@@ -1595,10 +1815,29 @@ class NetMeshLoop:
                 continue
             allow_at = int(self._bft_fetch_cooldowns.get(sbid, 0) or 0)
             if allow_at > now:
-                continue
+                # As with per-source penalties, an allowance farther into the future
+                # than one configured cooldown window indicates a backwards host-clock
+                # adjustment. Re-arm the missing-block fetch rather than suppressing it
+                # until the previous wall-clock value is reached again.
+                if (allow_at - now) <= int(self._bft_fetch_cooldown_ms):
+                    continue
+                self._bft_fetch_cooldowns.pop(sbid, None)
             self._bft_fetch_cooldowns[sbid] = int(now) + int(self._bft_fetch_cooldown_ms)
             for base in self._candidate_bft_fetch_sources(now_ms=now):
+                if self._executor_bft_branch_generation() != fetch_generation:
+                    self._sync_bft_branch_generation()
+                    inc_counter("net_bft_fetch_discarded_branch_change")
+                    self._record_net_metric_gauges()
+                    return
                 blk = self._fetch_committed_block(base, sbid)
+                # The HTTP request can outlive a destructive checkpoint. Never
+                # let a response derived from branch-A descriptor truth reach the
+                # branch-B cache boundary.
+                if self._executor_bft_branch_generation() != fetch_generation:
+                    self._sync_bft_branch_generation()
+                    inc_counter("net_bft_fetch_discarded_branch_change")
+                    self._record_net_metric_gauges()
+                    return
                 if not isinstance(blk, dict):
                     inc_counter("net_bft_fetch_miss")
                     continue
@@ -1638,11 +1877,34 @@ class NetMeshLoop:
                     inc_counter("net_bft_fetch_hash_mismatch")
                     continue
                 try:
-                    ok = bool(
-                        getattr(self._executor, "bft_cache_remote_block", lambda *_a, **_k: False)(
-                            blk
-                        )
+                    cache_remote = getattr(
+                        self._executor, "bft_cache_remote_block", lambda *_a, **_k: False
                     )
+                    try:
+                        ok = bool(
+                            cache_remote(
+                                blk,
+                                expected_block_hash=expected_hash,
+                                expected_branch_generation=fetch_generation,
+                            )
+                        )
+                    except TypeError:
+                        # Test doubles and older non-production adapters may not
+                        # expose the generation-aware keyword yet. Production still
+                        # fails closed through the established cache_remote_block_failed
+                        # contract; only non-production compatibility paths may fall
+                        # back after rechecking the branch generation.
+                        if _is_prod():
+                            raise
+                        if self._executor_bft_branch_generation() != fetch_generation:
+                            ok = False
+                        else:
+                            ok = bool(
+                                cache_remote(
+                                    blk,
+                                    expected_block_hash=expected_hash,
+                                )
+                            )
                 except Exception as e:
                     if _is_prod():
                         raise BftFetchDescriptorError("cache_remote_block_failed") from e
@@ -1670,7 +1932,29 @@ class NetMeshLoop:
                 raise BftOutboundBridgeError(f"mark_outbound_sent_failed:{str(kind)}") from e
             return
 
+    def _send_local_bft_artifact_if_current(self, kind: str, payload: Json, send_fn) -> bool:
+        """Serialize a local BFT transport send against destructive branch reset."""
+        guarded = getattr(self._executor, "bft_send_local_artifact_if_current", None)
+        if callable(guarded):
+            try:
+                ok = bool(guarded(str(kind), payload, send_fn))
+            except Exception as e:
+                if _is_prod():
+                    raise BftOutboundBridgeError(f"branch_guarded_send_failed:{str(kind)}") from e
+                return False
+            if not ok:
+                inc_counter("net_bft_stale_local_artifact_drop")
+            return ok
+
+        # Compatibility path for focused test doubles and legacy non-production
+        # executors. The production WeAllExecutor exposes the guarded API.
+        send_fn()
+        if str(kind) in {"proposal", "vote", "timeout"}:
+            self._mark_bft_outbound_sent(str(kind), payload)
+        return True
+
     def _broadcast_bft_proposal(self, proposal_json: Json, *, exclude_peer_id: str = "") -> None:
+        self._sync_bft_branch_generation()
         if self.node is None or not isinstance(proposal_json, dict) or not proposal_json:
             return
 
@@ -1712,9 +1996,12 @@ class NetMeshLoop:
             justify_qc=justify_qc if isinstance(justify_qc, dict) else None,
         )
         try:
-            self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
-            self._relay_submit_message(msg)
-            self._mark_bft_outbound_sent("proposal", block)
+
+            def _send() -> None:
+                self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
+                self._relay_submit_message(msg)
+
+            self._send_local_bft_artifact_if_current("proposal", block, _send)
         except Exception as e:
             if _is_prod():
                 if isinstance(e, BftOutboundBridgeError):
@@ -1722,6 +2009,7 @@ class NetMeshLoop:
                 raise BftOutboundBridgeError("proposal_broadcast_failed") from e
 
     def _broadcast_bft_vote(self, vote_json: Json, *, exclude_peer_id: str = "") -> None:
+        self._sync_bft_branch_generation()
         if self.node is None:
             return
         try:
@@ -1730,9 +2018,19 @@ class NetMeshLoop:
             view = 0
         msg = BftVoteMsg(header=self._mk_header(mtype=MsgType.BFT_VOTE), view=view, vote=vote_json)
         try:
-            self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
-            self._relay_submit_message(msg)
-            self._mark_bft_outbound_sent("vote", vote_json)
+
+            def _send() -> None:
+                self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
+                self._dedupe_seen(
+                    self._bft_msg_seen,
+                    self._bft_network_dedupe_key("vote", vote_json),
+                    ttl_ms=self._bft_msg_seen_ttl_ms,
+                    now_ms=_now_ms(),
+                    max_entries=self._bft_msg_seen_max,
+                )
+                self._relay_submit_message(msg)
+
+            self._send_local_bft_artifact_if_current("vote", vote_json, _send)
         except Exception as e:
             if _is_prod():
                 if isinstance(e, BftOutboundBridgeError):
@@ -1740,6 +2038,7 @@ class NetMeshLoop:
                 raise BftOutboundBridgeError("vote_broadcast_failed") from e
 
     def _broadcast_bft_timeout(self, timeout_json: Json, *, exclude_peer_id: str = "") -> None:
+        self._sync_bft_branch_generation()
         if self.node is None:
             return
         try:
@@ -1750,16 +2049,27 @@ class NetMeshLoop:
             header=self._mk_header(mtype=MsgType.BFT_TIMEOUT), view=view, timeout=timeout_json
         )
         try:
-            self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
-            self._relay_submit_message(msg)
-            self._mark_bft_outbound_sent("timeout", timeout_json)
+
+            def _send() -> None:
+                self.node.broadcast_message(msg, exclude_peer_id=str(exclude_peer_id or ""))
+                self._dedupe_seen(
+                    self._bft_timeout_seen,
+                    self._bft_network_dedupe_key("timeout", timeout_json),
+                    ttl_ms=self._bft_timeout_seen_ttl_ms,
+                    now_ms=_now_ms(),
+                    max_entries=self._bft_timeout_seen_max,
+                )
+                self._relay_submit_message(msg)
+
+            self._send_local_bft_artifact_if_current("timeout", timeout_json, _send)
         except Exception as e:
             if _is_prod():
                 if isinstance(e, BftOutboundBridgeError):
                     raise
                 raise BftOutboundBridgeError("timeout_broadcast_failed") from e
 
-    def _on_bft_proposal(self, peer_id: str, msg: BftProposalMsg) -> None:
+    def _on_bft_proposal(self, peer_id: str, msg: BftProposalMsg) -> bool:
+        self._sync_bft_branch_generation()
         try:
             if not self._bft_enabled:
                 return
@@ -1768,15 +2078,22 @@ class NetMeshLoop:
 
             now = _now_ms()
             key = self._bft_generic_key({"t": "proposal", "v": proposal})
-            if self._dedupe_seen(
+            if self._seen_contains(
                 self._bft_msg_seen,
                 key,
                 ttl_ms=self._bft_msg_seen_ttl_ms,
                 now_ms=now,
-                max_entries=self._bft_msg_seen_max,
             ):
-                inc_counter("net_bft_proposal_duplicate")
-                return
+                accepted_fn = getattr(self._executor, "bft_artifact_was_accepted", None)
+                if not callable(accepted_fn) or bool(accepted_fn("proposal", proposal)):
+                    inc_counter("net_bft_proposal_duplicate")
+                    return True
+                # A destructive checkpoint can land after the generation sync
+                # above but before this seen-cache check. A branch-A cache hit
+                # is not sufficient authority to suppress branch-B runtime
+                # adjudication once the executor no longer admits the artifact.
+                self._bft_msg_seen.pop(key, None)
+                self._sync_bft_branch_generation()
 
             local_chain_id = str(
                 getattr(getattr(self.node, "cfg", None), "chain_id", "")
@@ -1806,14 +2123,21 @@ class NetMeshLoop:
                 return
 
             votej = fn(proposal)
-            if votej is None:
+            if not self._bft_runtime_accepted("proposal", proposal, votej):
                 inc_counter("net_bft_proposal_executor_rejected")
                 _emit_bft_rejection_diagnostic(
                     self._executor, "proposal", proposal, "executor_rejected"
                 )
-                return
+                return False
+            self._dedupe_seen(
+                self._bft_msg_seen,
+                key,
+                ttl_ms=self._bft_msg_seen_ttl_ms,
+                now_ms=now,
+                max_entries=self._bft_msg_seen_max,
+            )
             if isinstance(votej, dict) and votej:
-                vote_key = self._bft_generic_key({"t": "vote", "v": votej})
+                vote_key = self._bft_network_dedupe_key("vote", votej)
                 if not self._dedupe_seen(
                     self._bft_msg_seen,
                     vote_key,
@@ -1823,6 +2147,7 @@ class NetMeshLoop:
                 ):
                     self._broadcast_bft_vote(votej, exclude_peer_id=str(peer_id or ""))
             self._record_net_metric_gauges()
+            return True
         except Exception as e:
             if _is_prod():
                 if isinstance(e, BftInboundProcessingError):
@@ -1830,7 +2155,8 @@ class NetMeshLoop:
                 raise BftInboundProcessingError("proposal_executor_failed") from e
             return
 
-    def _on_bft_vote(self, peer_id: str, msg: BftVoteMsg) -> None:
+    def _on_bft_vote(self, peer_id: str, msg: BftVoteMsg) -> bool:
+        self._sync_bft_branch_generation()
         try:
             if not self._bft_enabled:
                 return
@@ -1840,16 +2166,19 @@ class NetMeshLoop:
                 return
 
             now = _now_ms()
-            key = self._bft_generic_key({"t": "vote", "v": votej})
-            if self._dedupe_seen(
+            key = self._bft_network_dedupe_key("vote", votej)
+            if self._seen_contains(
                 self._bft_msg_seen,
                 key,
                 ttl_ms=self._bft_msg_seen_ttl_ms,
                 now_ms=now,
-                max_entries=self._bft_msg_seen_max,
             ):
-                inc_counter("net_bft_vote_duplicate")
-                return
+                accepted_fn = getattr(self._executor, "bft_artifact_was_accepted", None)
+                if not callable(accepted_fn) or bool(accepted_fn("vote", votej)):
+                    inc_counter("net_bft_vote_duplicate")
+                    return True
+                self._bft_msg_seen.pop(key, None)
+                self._sync_bft_branch_generation()
 
             local_chain_id = str(
                 getattr(getattr(self.node, "cfg", None), "chain_id", "")
@@ -1877,10 +2206,17 @@ class NetMeshLoop:
                 return
 
             qcj = fn(votej)
-            if qcj is None:
+            if not self._bft_runtime_accepted("vote", votej, qcj):
                 inc_counter("net_bft_vote_executor_rejected")
                 _emit_bft_rejection_diagnostic(self._executor, "vote", votej, "executor_rejected")
-                return
+                return False
+            self._dedupe_seen(
+                self._bft_msg_seen,
+                key,
+                ttl_ms=self._bft_msg_seen_ttl_ms,
+                now_ms=now,
+                max_entries=self._bft_msg_seen_max,
+            )
             if isinstance(qcj, dict) and qcj:
                 try:
                     apply_fn = getattr(self._executor, "bft_on_qc", None)
@@ -1889,7 +2225,7 @@ class NetMeshLoop:
                 except Exception as e:
                     if _is_prod():
                         raise BftInboundProcessingError("vote_local_qc_apply_failed") from e
-                qc_key = self._bft_generic_key({"t": "qc", "v": qcj})
+                qc_key = self._bft_network_dedupe_key("qc", qcj)
                 if not self._dedupe_seen(
                     self._bft_msg_seen,
                     qc_key,
@@ -1899,11 +2235,19 @@ class NetMeshLoop:
                 ):
                     qmsg = BftQcMsg(header=self._mk_header(mtype=MsgType.BFT_QC), qc=qcj)
                     try:
-                        self.node.broadcast_message(qmsg, exclude_peer_id=str(peer_id or ""))
+                        self._send_local_bft_artifact_if_current(
+                            "qc",
+                            qcj,
+                            lambda: self.node.broadcast_message(
+                                qmsg,
+                                exclude_peer_id=str(peer_id or ""),
+                            ),
+                        )
                     except Exception as e:
                         if _is_prod():
                             raise BftInboundProcessingError("vote_qc_broadcast_failed") from e
             self._record_net_metric_gauges()
+            return True
         except Exception as e:
             if _is_prod():
                 if isinstance(e, BftInboundProcessingError):
@@ -1911,7 +2255,8 @@ class NetMeshLoop:
                 raise BftInboundProcessingError("vote_executor_failed") from e
             return
 
-    def _on_bft_qc(self, peer_id: str, msg: BftQcMsg) -> None:
+    def _on_bft_qc(self, peer_id: str, msg: BftQcMsg) -> bool:
+        self._sync_bft_branch_generation()
         try:
             if not self._bft_enabled:
                 return
@@ -1942,54 +2287,80 @@ class NetMeshLoop:
                 return
 
             now = _now_ms()
-            key = self._bft_generic_key({"t": "qc", "v": qcj})
-            if self._dedupe_seen(
+            key = self._bft_network_dedupe_key("qc", qcj)
+            if self._seen_contains(
+                self._bft_msg_seen,
+                key,
+                ttl_ms=self._bft_msg_seen_ttl_ms,
+                now_ms=now,
+            ):
+                accepted_fn = getattr(self._executor, "bft_artifact_was_accepted", None)
+                if not callable(accepted_fn) or bool(accepted_fn("qc", qcj)):
+                    inc_counter("net_bft_qc_duplicate")
+                    return True
+                self._bft_msg_seen.pop(key, None)
+                self._sync_bft_branch_generation()
+
+            fn = getattr(self._executor, "bft_on_qc", None)
+            if not callable(fn):
+                return False
+            out = fn(qcj)
+            if not self._bft_runtime_accepted("qc", qcj, out):
+                inc_counter("net_bft_qc_executor_rejected")
+                _emit_bft_rejection_diagnostic(self._executor, "qc", qcj, "executor_rejected")
+                return False
+            self._dedupe_seen(
                 self._bft_msg_seen,
                 key,
                 ttl_ms=self._bft_msg_seen_ttl_ms,
                 now_ms=now,
                 max_entries=self._bft_msg_seen_max,
-            ):
-                inc_counter("net_bft_qc_duplicate")
-                return
-
-            fn = getattr(self._executor, "bft_on_qc", None)
-            if callable(fn):
-                out = fn(qcj)
-                if out is None:
-                    inc_counter("net_bft_qc_executor_rejected")
-                    _emit_bft_rejection_diagnostic(self._executor, "qc", qcj, "executor_rejected")
+            )
             self._record_net_metric_gauges()
+            return True
         except Exception as e:
             if _is_prod():
                 raise BftInboundProcessingError("qc_executor_failed") from e
             return
 
-    def _on_bft_timeout(self, peer_id: str, msg: BftTimeoutMsg) -> None:
+    def _on_bft_timeout(self, peer_id: str, msg: BftTimeoutMsg) -> bool:
         """Ingress handler for BFT timeouts.
 
         This is intentionally *always-on* when the net loop is running:
-          - Timeouts are cheap and carry liveness information.
-          - The loop dedupes to avoid amplification.
-          - Tests rely on the loop re-broadcasting the exact received wire msg.
+          - Timeouts carry liveness information.
+          - Exact retries remain eligible until runtime verification accepts them.
+          - Only verified/admitted timeouts enter network dedupe and relay.
 
-        We still best-effort notify the executor if it exposes bft_on_timeout.
+        The executor remains the authority for cryptographic timeout admission.
         """
 
+        self._sync_bft_branch_generation()
         try:
             now = _now_ms()
             key = self._bft_timeout_key(msg)
-            if self._dedupe_seen(
+            if self._seen_contains(
                 self._bft_timeout_seen,
                 key,
                 ttl_ms=self._bft_timeout_seen_ttl_ms,
                 now_ms=now,
-                max_entries=self._bft_timeout_seen_max,
             ):
-                inc_counter("net_bft_timeout_duplicate")
-                return
+                timeoutj = self._mk_bft_timeout_json(msg)
+                timeout_accepted_fn = getattr(self._executor, "bft_timeout_was_accepted", None)
+                accepted_fn = getattr(self._executor, "bft_artifact_was_accepted", None)
+                if callable(timeout_accepted_fn):
+                    still_current = bool(timeout_accepted_fn(timeoutj))
+                elif callable(accepted_fn):
+                    still_current = bool(accepted_fn("timeout", timeoutj))
+                else:
+                    still_current = True
+                if still_current:
+                    inc_counter("net_bft_timeout_duplicate")
+                    return True
+                self._bft_timeout_seen.pop(key, None)
+                self._sync_bft_branch_generation()
+            else:
+                timeoutj = self._mk_bft_timeout_json(msg)
 
-            timeoutj = self._mk_bft_timeout_json(msg)
             local_chain_id = str(
                 getattr(getattr(self.node, "cfg", None), "chain_id", "")
                 or getattr(getattr(msg, "header", None), "chain_id", "")
@@ -2014,30 +2385,54 @@ class NetMeshLoop:
                 return
 
             out = None
+            accepted = False
             fn = getattr(self._executor, "bft_on_timeout", None)
             if callable(fn):
                 out = fn(timeoutj)
-                if out is None:
-                    inc_counter("net_bft_timeout_executor_rejected")
-                    _emit_bft_rejection_diagnostic(
-                        self._executor, "timeout", timeoutj, "executor_rejected"
-                    )
-            if isinstance(out, dict) and out:
-                try:
-                    apply_fn = getattr(self._executor, "bft_on_qc", None)
-                    if callable(apply_fn):
-                        apply_fn(out)
-                except Exception as e:
-                    if _is_prod():
-                        raise BftInboundProcessingError("timeout_local_qc_apply_failed") from e
+                accepted_fn = getattr(self._executor, "bft_timeout_was_accepted", None)
+                if callable(accepted_fn):
+                    accepted = bool(accepted_fn(timeoutj))
+                else:
+                    accepted = self._bft_runtime_accepted("timeout", timeoutj, out)
+            if not accepted:
+                inc_counter("net_bft_timeout_executor_rejected")
+                _emit_bft_rejection_diagnostic(
+                    self._executor, "timeout", timeoutj, "executor_rejected"
+                )
+                return
+            duplicate = {"value": False}
 
-            if self.node is not None:
-                try:
+            def _postauth_timeout_side_effect() -> None:
+                if self._dedupe_seen(
+                    self._bft_timeout_seen,
+                    key,
+                    ttl_ms=self._bft_timeout_seen_ttl_ms,
+                    now_ms=now,
+                    max_entries=self._bft_timeout_seen_max,
+                ):
+                    duplicate["value"] = True
+                    return
+                if self.node is not None:
                     self.node.broadcast_message(msg, exclude_peer_id=str(peer_id or ""))
-                except Exception as e:
-                    if _is_prod():
-                        raise BftInboundProcessingError("timeout_broadcast_failed") from e
+
+            try:
+                current = self._run_postauth_bft_side_effect_if_current(
+                    "timeout",
+                    timeoutj,
+                    _postauth_timeout_side_effect,
+                )
+            except Exception as e:
+                if _is_prod():
+                    raise BftInboundProcessingError("timeout_broadcast_failed") from e
+                return False
+            if not current:
+                inc_counter("net_bft_timeout_postauth_branch_drop")
+                return False
+            if bool(duplicate["value"]):
+                inc_counter("net_bft_timeout_duplicate")
+                return True
             self._record_net_metric_gauges()
+            return True
         except Exception as e:
             if _is_prod():
                 if isinstance(e, BftInboundProcessingError):
@@ -2069,10 +2464,15 @@ class NetMeshLoop:
         except Exception:
             pass
 
-    def _tx_seen_has(self, tx_id: str, now_ms: int) -> bool:
+    def _tx_seen_contains(self, tx_id: str, now_ms: int) -> bool:
+        self._tx_seen_prune(now_ms)
+        return tx_id in self._tx_seen
+
+    def _tx_seen_record(self, tx_id: str, now_ms: int) -> None:
         self._tx_seen_prune(now_ms)
         if tx_id in self._tx_seen:
-            return True
+            self._tx_seen[tx_id] = int(now_ms)
+            return
         if int(self._tx_seen_max or 0) > 0 and len(self._tx_seen) >= int(self._tx_seen_max):
             try:
                 overflow = (len(self._tx_seen) - int(self._tx_seen_max)) + 1
@@ -2087,12 +2487,19 @@ class NetMeshLoop:
                 except Exception:
                     pass
         self._tx_seen[tx_id] = int(now_ms)
+
+    def _tx_seen_has(self, tx_id: str, now_ms: int) -> bool:
+        """Back-compat check-and-record helper used by cache-cap tests."""
+        if self._tx_seen_contains(tx_id, now_ms):
+            return True
+        self._tx_seen_record(tx_id, now_ms)
         return False
 
     def _outbound_tx_gossip_tick(self) -> None:
         if self.node is None:
             return
 
+        self._sync_bft_branch_generation()
         now = _now_ms()
         if (now - int(self._last_tx_gossip_ms)) < int(self._tx_gossip_interval_ms):
             return
@@ -2130,7 +2537,7 @@ class NetMeshLoop:
                 tx_id = ""
             if not tx_id:
                 continue
-            if self._tx_seen_has(tx_id, now):
+            if self._tx_seen_contains(tx_id, now):
                 continue
 
             msg = TxEnvelopeMsg(
@@ -2151,6 +2558,11 @@ class NetMeshLoop:
             except Exception as e:
                 if _is_prod():
                     raise TxGossipBridgeError("tx_gossip_relay_submit_failed") from e
+                continue
+
+            # Dedupe authority is earned only after every enabled transport path
+            # completes without error. Failed sends must remain retryable.
+            self._tx_seen_record(tx_id, now)
 
     # ----------------------------
     # Outbound BFT gossip
@@ -2184,7 +2596,11 @@ class NetMeshLoop:
 
         now = _now_ms()
 
-        if (now - int(self._last_bft_propose_ms)) >= int(self._bft_propose_interval_ms):
+        if _interval_due_or_clock_rollback(
+            now_ms=now,
+            last_ms=int(self._last_bft_propose_ms),
+            interval_ms=int(self._bft_propose_interval_ms),
+        ):
             self._last_bft_propose_ms = int(now)
             try:
                 out = getattr(self._executor, "bft_leader_propose", lambda: None)()
@@ -2196,7 +2612,11 @@ class NetMeshLoop:
                         raise
                     raise BftOutboundBridgeError("leader_propose_failed") from e
 
-        if (now - int(self._last_bft_vote_ms)) >= int(self._bft_vote_interval_ms):
+        if _interval_due_or_clock_rollback(
+            now_ms=now,
+            last_ms=int(self._last_bft_vote_ms),
+            interval_ms=int(self._bft_vote_interval_ms),
+        ):
             self._last_bft_vote_ms = int(now)
             try:
                 drive_timeouts = getattr(
@@ -2224,7 +2644,11 @@ class NetMeshLoop:
                     raise BftOutboundBridgeError("drive_timeouts_failed") from e
                 pass
 
-        if (now - int(self._last_bft_timeout_ms)) >= int(self._bft_timeout_interval_ms):
+        if _interval_due_or_clock_rollback(
+            now_ms=now,
+            last_ms=int(self._last_bft_timeout_ms),
+            interval_ms=int(self._bft_timeout_interval_ms),
+        ):
             self._last_bft_timeout_ms = int(now)
             try:
                 out = getattr(self._executor, "bft_timeout_check", lambda: None)()

@@ -1,8 +1,8 @@
 # Reviewer Evidence Index
 
-Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
-This index separates implemented repository evidence, generated artifacts, local/controlled rehearsal readiness, external evidence still required, and future mainnet-readiness hardening. It does not claim public beta, public mainnet, public multi-validator BFT/public validator safety, live economics, automatic upgrades, production helper execution, legal approval, or public storage-market readiness.
+This index separates implemented repository evidence, generated artifacts, local/controlled rehearsal readiness, external evidence still required, and future mainnet-readiness hardening. It does not claim public beta, public mainnet, public multi-validator BFT/public validator safety, live economics, automatic upgrades, production helper execution, completed production cryptographic audit, production post-quantum security, legal approval, or public storage-market readiness.
 
 ## Current status
 
@@ -14,6 +14,7 @@ This index separates implemented repository evidence, generated artifacts, local
 | Public mainnet readiness | NO-GO | Remaining mainnet-hardening gates remain open |
 | Live economics | NO-GO | Release claim boundaries remain false |
 | Automatic upgrade execution | NO-GO | Upgrade execution remains record-only/non-executable |
+| Production cryptographic audit / post-quantum security | NO-GO | `AUD-633-P0-004` remains open; fresh post-transition evidence and external cryptographic review are required |
 | Legal/compliance approval | NO-GO | Attestation remains required |
 
 Current tx canon checkpoint: **236 tx types, version 1.25.0**.
@@ -102,6 +103,7 @@ Local/controlled evidence is useful for review, but local scripts are not author
 | `AUD-618-P0-001` | Independent controlled validator/operator transcript |
 | `AUD-618-P0-002` | Real counsel or controlled legal/compliance attestation |
 | `AUD-618-P0-003` | Future executable upgrade staging/rollback proof |
+| `AUD-633-P0-004` | Fresh profile-aware post-transition rehearsal evidence, browser/local signing-boundary review, helper/evidence-signing production gate, and external cryptographic review |
 | `AUD-618-P1-005` | Future production helper topology proof |
 
 The corresponding templates and runbooks live under `docs/proofs/` and `docs/testnet/`. They should be completed only with real external evidence.
@@ -114,6 +116,7 @@ The following remain future hardening gates, not present-tense readiness claims:
 - executable protocol upgrade staging, migration, and rollback proof;
 - real storage/IPFS operator durability proof and storage-market posture;
 - production helper topology proof;
+- fresh post-transition signing-profile evidence and independent cryptographic review;
 - legal/compliance attestation for public claims.
 
 ## Major protocol surfaces

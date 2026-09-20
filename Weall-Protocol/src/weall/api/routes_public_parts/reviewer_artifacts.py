@@ -65,9 +65,13 @@ def _read_json(path: Path) -> dict[str, Any]:
     try:
         obj = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"reviewer_artifact_invalid_json:{path.name}") from exc
+        raise HTTPException(
+            status_code=500, detail=f"reviewer_artifact_invalid_json:{path.name}"
+        ) from exc
     if not isinstance(obj, dict):
-        raise HTTPException(status_code=500, detail=f"reviewer_artifact_root_not_object:{path.name}")
+        raise HTTPException(
+            status_code=500, detail=f"reviewer_artifact_root_not_object:{path.name}"
+        )
     return obj
 
 

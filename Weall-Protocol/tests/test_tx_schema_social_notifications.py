@@ -5,9 +5,6 @@ from pydantic import ValidationError
 
 from weall.runtime.tx_schema import model_for_tx_type, validate_tx_envelope
 
-
-
-
 BASE_ENV = {
     "signer": "alice",
     "nonce": 1,

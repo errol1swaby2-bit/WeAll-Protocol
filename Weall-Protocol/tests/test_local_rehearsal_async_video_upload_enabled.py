@@ -2,14 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _script() -> str:
-    return (ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(
-        encoding="utf-8"
-    )
+    return (ROOT / "scripts" / "devnet_local_two_frontend_rehearsal.sh").read_text(encoding="utf-8")
 
 
 def test_local_rehearsal_enables_async_video_upload_route_for_controlled_devnet() -> None:

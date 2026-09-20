@@ -51,6 +51,27 @@ def _install_synthetic_late_post_scheduler(monkeypatch, *, replay_post) -> dict[
 
     monkeypatch.setattr(block_builder, "admit_block_txs", admit_all)
     monkeypatch.setattr(block_replay, "admit_block_txs", admit_all)
+
+    # This suite isolates late post-scheduler parity. PB-001B-D separately tests
+    # canonical BLOCK_FINALIZE -> EPOCH_* SINGLE_TX lineage and queue binding, so
+    # let this deliberately synthetic parentless EPOCH_OPEN reach the scheduler
+    # behavior under test instead of failing at the earlier lineage boundary.
+    monkeypatch.setattr(
+        block_builder,
+        "validate_same_block_single_tx_lineage",
+        lambda *args, **kwargs: (True, ""),
+    )
+    monkeypatch.setattr(
+        block_replay,
+        "validate_same_block_single_tx_lineage",
+        lambda *args, **kwargs: (True, ""),
+    )
+    monkeypatch.setattr(
+        block_replay,
+        "validate_system_tx_queue_binding",
+        lambda *args, **kwargs: (True, ""),
+    )
+
     monkeypatch.setattr(block_builder, "run_leader_pre_schedulers", lambda *a, **k: None)
 
     def leader_post(state, *, next_height, scheduler_set=None):

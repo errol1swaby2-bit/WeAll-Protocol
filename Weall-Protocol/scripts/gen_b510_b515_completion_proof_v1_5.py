@@ -14,21 +14,44 @@ for p in (SRC, SCRIPTS):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
+from rehearse_controlled_validator_network_completion_v1_5 import (
+    run_harness as run_validator_network,
+)
 from rehearse_fresh_node_sync_completion_v1_5 import run_harness as run_fresh_sync
-from rehearse_controlled_validator_network_completion_v1_5 import run_harness as run_validator_network
+
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.governance import apply_governance
 from weall.runtime.apply.poh import apply_poh
 from weall.runtime.apply.storage import apply_storage
-from weall.runtime.poh.state import POH_STATUS_ACTIVE, canonical_account_poh_status, set_account_poh_status
+from weall.runtime.poh.state import (
+    POH_STATUS_ACTIVE,
+    canonical_account_poh_status,
+    set_account_poh_status,
+)
 from weall.runtime.tx_admission import TxEnvelope
 
 Json = dict[str, Any]
 CID_A = "bafkreigh2akiscaildc3qj6k2ol6qmk7p2xk3w5t2c5a7xqz7xqz7i"
 
 
-def _env(tx_type: str, *, signer: str = "alice", nonce: int = 1, payload: Json | None = None, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload or {}, sig="", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    *,
+    signer: str = "alice",
+    nonce: int = 1,
+    payload: Json | None = None,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload or {},
+        sig="",
+        system=system,
+        parent=parent,
+    )
 
 
 def run_storage_reassignment() -> Json:
@@ -43,13 +66,35 @@ def run_storage_reassignment() -> Json:
             }
         },
     }
-    pin = apply_storage(state, _env("IPFS_PIN_REQUEST", signer="alice", nonce=1, payload={"pin_id": "pin-complete", "cid": CID_A, "size_bytes": 0}))
+    pin = apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_REQUEST",
+            signer="alice",
+            nonce=1,
+            payload={"pin_id": "pin-complete", "cid": CID_A, "size_bytes": 0},
+        ),
+    )
     targets = list(pin["targets"])
     failed = targets[0]
-    confirm = apply_storage(state, _env("IPFS_PIN_CONFIRM", signer="SYSTEM", system=True, parent="pin-complete", nonce=2, payload={"pin_id": "pin-complete", "cid": CID_A, "operator_id": failed, "ok": False}))
+    confirm = apply_storage(
+        state,
+        _env(
+            "IPFS_PIN_CONFIRM",
+            signer="SYSTEM",
+            system=True,
+            parent="pin-complete",
+            nonce=2,
+            payload={"pin_id": "pin-complete", "cid": CID_A, "operator_id": failed, "ok": False},
+        ),
+    )
     rec = state["storage"]["pins"]["pin-complete"]
     return {
-        "ok": bool(confirm.get("reassignment", {}).get("reassigned") is True and failed not in rec.get("targets", []) and len(rec.get("targets", [])) == 2),
+        "ok": bool(
+            confirm.get("reassignment", {}).get("reassigned") is True
+            and failed not in rec.get("targets", [])
+            and len(rec.get("targets", [])) == 2
+        ),
         "initial_targets": targets,
         "failed_operator_id": failed,
         "reassignment": confirm.get("reassignment"),
@@ -71,42 +116,132 @@ def run_dispute_account_enforcement() -> Json:
                 "resolution": {
                     "summary": "account abuse upheld",
                     "actions": [
-                        {"tx_type": "ACCOUNT_RESTRICTION_SET", "payload": {"account_id": "mallory", "restriction": "posting_limited", "reason": "abuse_upheld"}}
+                        {
+                            "tx_type": "ACCOUNT_RESTRICTION_SET",
+                            "payload": {
+                                "account_id": "mallory",
+                                "restriction": "posting_limited",
+                                "reason": "abuse_upheld",
+                            },
+                        }
                     ],
                 },
-                "appeal_panel_result": {"reached": True, "decision": "uphold", "resolution": {"decision": "uphold"}},
+                "appeal_panel_result": {
+                    "reached": True,
+                    "decision": "uphold",
+                    "resolution": {"decision": "uphold"},
+                },
             }
         },
     }
-    out = apply_dispute(state, _env("DISPUTE_FINAL_RECEIPT", signer="SYSTEM", system=True, parent="d-account", nonce=9, payload={"dispute_id": "d-account"}))
+    out = apply_dispute(
+        state,
+        _env(
+            "DISPUTE_FINAL_RECEIPT",
+            signer="SYSTEM",
+            system=True,
+            parent="d-account",
+            nonce=9,
+            payload={"dispute_id": "d-account"},
+        ),
+    )
     rec = state["accounts"]["mallory"]
     return {
-        "ok": bool(rec.get("restricted") is True and rec.get("latest_restriction") == "posting_limited" and out.get("appeal_finalization", {}).get("decision") == "uphold"),
+        "ok": bool(
+            rec.get("restricted") is True
+            and rec.get("latest_restriction") == "posting_limited"
+            and out.get("appeal_finalization", {}).get("decision") == "uphold"
+        ),
         "account": rec,
         "enforcement_applied": out.get("enforcement_applied"),
     }
 
 
 def run_poh_challenge_completion() -> Json:
-    state: Json = {"height": 10, "accounts": {"alice": {"poh_tier": 2}, "juror-a": {}, "juror-b": {}, "juror-c": {}}, "roles": {"validators": {"active_set": ["juror-a", "juror-b", "juror-c"]}}}
+    state: Json = {
+        "height": 10,
+        "accounts": {"alice": {"poh_tier": 2}, "juror-a": {}, "juror-b": {}, "juror-c": {}},
+        "roles": {"validators": {"active_set": ["juror-a", "juror-b", "juror-c"]}},
+    }
     for acct in ("alice", "juror-a", "juror-b", "juror-c"):
-        set_account_poh_status(state, account_id=acct, poh_tier=2, status=POH_STATUS_ACTIVE, verified_at_height=1)
-    apply_poh(state, _env("POH_CHALLENGE_OPEN", signer="bob", nonce=1, payload={"account_id": "alice", "reason": "duplicate"}))
-    apply_poh(state, _env("POH_CHALLENGE_RESOLVE", signer="reviewer", nonce=2, payload={"challenge_id": "pohc:alice:1", "resolution": "upheld"}))
+        set_account_poh_status(
+            state, account_id=acct, poh_tier=2, status=POH_STATUS_ACTIVE, verified_at_height=1
+        )
+    apply_poh(
+        state,
+        _env(
+            "POH_CHALLENGE_OPEN",
+            signer="bob",
+            nonce=1,
+            payload={"account_id": "alice", "reason": "duplicate"},
+        ),
+    )
+    apply_poh(
+        state,
+        _env(
+            "POH_CHALLENGE_RESOLVE",
+            signer="reviewer",
+            nonce=2,
+            payload={"challenge_id": "pohc:alice:1", "resolution": "upheld"},
+        ),
+    )
     case_id = "pohasync:alice:3"
     apply_poh(state, _env("POH_ASYNC_REQUEST_OPEN", signer="alice", nonce=3, payload={"tier": 1}))
-    apply_poh(state, _env("POH_ASYNC_EVIDENCE_DECLARE", signer="alice", nonce=4, payload={"case_id": case_id, "evidence_commitment": "a" * 64}))
-    apply_poh(state, _env("POH_ASYNC_JUROR_ASSIGN", signer="SYSTEM", system=True, parent="assign", nonce=5, payload={"case_id": case_id, "jurors": ["juror-a", "juror-b", "juror-c"]}))
+    apply_poh(
+        state,
+        _env(
+            "POH_ASYNC_EVIDENCE_DECLARE",
+            signer="alice",
+            nonce=4,
+            payload={"case_id": case_id, "evidence_commitment": "a" * 64},
+        ),
+    )
+    apply_poh(
+        state,
+        _env(
+            "POH_ASYNC_JUROR_ASSIGN",
+            signer="SYSTEM",
+            system=True,
+            parent="assign",
+            nonce=5,
+            payload={"case_id": case_id, "jurors": ["juror-a", "juror-b", "juror-c"]},
+        ),
+    )
     for i, juror in enumerate(("juror-a", "juror-b", "juror-c"), start=6):
-        apply_poh(state, _env("POH_ASYNC_JUROR_ACCEPT", signer=juror, nonce=i, payload={"case_id": case_id}))
+        apply_poh(
+            state,
+            _env("POH_ASYNC_JUROR_ACCEPT", signer=juror, nonce=i, payload={"case_id": case_id}),
+        )
     for i, juror in enumerate(("juror-a", "juror-b", "juror-c"), start=9):
-        apply_poh(state, _env("POH_ASYNC_REVIEW_SUBMIT", signer=juror, nonce=i, payload={"case_id": case_id, "verdict": "approve"}))
+        apply_poh(
+            state,
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                signer=juror,
+                nonce=i,
+                payload={"case_id": case_id, "verdict": "approve"},
+            ),
+        )
     state["height"] = 11
-    final = apply_poh(state, _env("POH_ASYNC_FINALIZE", signer="SYSTEM", system=True, parent="final", nonce=12, payload={"case_id": case_id}))
+    final = apply_poh(
+        state,
+        _env(
+            "POH_ASYNC_FINALIZE",
+            signer="SYSTEM",
+            system=True,
+            parent="final",
+            nonce=12,
+            payload={"case_id": case_id},
+        ),
+    )
     ch = state["poh"]["challenges"]["pohc:alice:1"]
     status = canonical_account_poh_status(state, "alice")
     return {
-        "ok": bool(final.get("outcome") == "approved" and ch.get("status") == "resolved_reverified" and status.get("status") == "active"),
+        "ok": bool(
+            final.get("outcome") == "approved"
+            and ch.get("status") == "resolved_reverified"
+            and status.get("status") == "active"
+        ),
         "challenge_status": ch.get("status"),
         "post_challenge_reverification": ch.get("post_challenge_reverification"),
         "canonical_status": status,
@@ -125,7 +260,17 @@ def run_governance_execution_audit() -> Json:
             }
         },
     }
-    out = apply_governance(state, _env("GOV_EXECUTE", signer="SYSTEM", system=True, parent="gp-audit", nonce=21, payload={"proposal_id": "gp-audit"}))
+    out = apply_governance(
+        state,
+        _env(
+            "GOV_EXECUTE",
+            signer="SYSTEM",
+            system=True,
+            parent="gp-audit",
+            nonce=21,
+            payload={"proposal_id": "gp-audit"},
+        ),
+    )
     audit = state.get("governance_execution_audit", [])
     execution = state.get("gov_proposals_by_id", {}).get("gp-audit", {}).get("executions", [])
     latest_audit = audit[-1] if audit else {}

@@ -2160,8 +2160,10 @@ def _webrtc_signal_queue_path() -> Path:
     if raw:
         return Path(raw).expanduser()
     return (
-        (Path(os.environ["WEALL_RUNTIME_DIR"]).expanduser() if os.environ.get("WEALL_RUNTIME_DIR") else Path.home() / ".local" / "share" / "weall" / "runtime") / "webrtc_signal_bridge_tx_queue.json"
-    )
+        Path(os.environ["WEALL_RUNTIME_DIR"]).expanduser()
+        if os.environ.get("WEALL_RUNTIME_DIR")
+        else Path.home() / ".local" / "share" / "weall" / "runtime"
+    ) / "webrtc_signal_bridge_tx_queue.json"
 
 
 def _webrtc_signal_queue_lock():

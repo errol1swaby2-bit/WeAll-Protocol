@@ -38,7 +38,6 @@ def test_nodes_seeds_invalid_env_fails_closed_in_prod(monkeypatch):
     assert "seed_nodes_invalid_base_url" in str(excinfo.value)
 
 
-
 def test_legacy_v1_nodes_endpoint_is_removed(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
     app = create_app(boot_runtime=False)
@@ -46,6 +45,7 @@ def test_legacy_v1_nodes_endpoint_is_removed(monkeypatch):
     r = c.get("/v1/nodes")
     assert r.status_code == 410
     assert r.json()["error"]["code"] == "legacy_endpoint_removed"
+
 
 def test_nodes_seeds_invalid_env_stays_permissive_in_dev(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "dev")

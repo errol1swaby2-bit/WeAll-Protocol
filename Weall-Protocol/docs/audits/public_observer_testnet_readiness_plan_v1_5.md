@@ -1,6 +1,6 @@
 # Public observer / controlled testnet readiness plan v1.5
 
-Status: canonical bounded-testnet readiness plan.
+Status: canonical bounded-testnet readiness plan; controlled-testnet mechanism completion is currently NO-GO.
 
 This plan defines the next launch target for WeAll v1.5. It is intentionally
 narrower than public beta, public mainnet, public multi-validator BFT, live
@@ -10,11 +10,10 @@ economics, automatic upgrade, or production helper readiness.
 
 Allowed target statement:
 
-> WeAll is ready to prepare a bounded public observer / controlled testnet
-> launch candidate. Public beta, mainnet, public multi-validator BFT, live
-> economics, automatic upgrade, production helper, public validator, public
-> storage-market, and legal/compliance readiness remain unclaimed until the
-> explicit external evidence and hardening gates are satisfied.
+> WeAll is a pre-public-testnet implementation under active hardening. Bounded
+> local/devnet/public-observer-oriented rehearsal evidence is available, while
+> controlled-testnet mechanism completion and public beta remain NO-GO until
+> the generated mechanism, external-evidence, and hardening gates are satisfied.
 
 If external observer evidence is still missing, use the narrower statement:
 
@@ -33,8 +32,8 @@ If external observer evidence is still missing, use the narrower statement:
 
 ## Current repository classification
 
-The current blocker catalog preserves 14 entries for audit continuity. Seven are
-closed by repository evidence. Seven remain open and continue to block public
+The current blocker catalog preserves 15 entries for audit continuity. Seven are
+closed by repository evidence. Eight remain open and continue to block public
 beta claims.
 
 | Blocker | Current class | Tier that can close it | Closure evidence |
@@ -42,6 +41,7 @@ beta claims.
 | `AUD-618-P0-001` | External evidence / future public validator hardening | Tier C can reduce; Tier D closes public-validator beta claim | Independent public validator/operator transcript with fresh checkout, operator-signed transcript, validator-candidate activation rehearsal, restart/fail-closed proof, and transcript digest replay. |
 | `AUD-618-P0-002` | Legal/compliance attestation | Tier D | Counsel-reviewed attestation covering launch claims, token/economics disabled state, governance claims, public-only content posture, treasury/staking/fees disabled matrix, and compliance limitations. |
 | `AUD-618-P0-003` | Future executable upgrade hardening | Tier D | Signed upgrade artifact manifests, deterministic migration vectors, rollback semantics, operator approval policy, staged multi-node rollout and rollback transcript. Current implementation remains record-only. |
+| `AUD-633-P0-004` | Post-transition cryptographic evidence / independent review | Tier B and later public-network claims | Fresh profile-aware closed-testnet rehearsal evidence, browser/local signing-boundary review, helper/evidence-signing production gate, and external cryptographic review. |
 | `AUD-618-P1-003` | External replay evidence | Tier B can reduce; Tier D/public beta package should close or explicitly defer | External machine or two-physical-machine replay transcript proving identical state roots, vectors, and tx index hash on the same commit. |
 | `AUD-618-P1-004` | Real storage/IPFS operator evidence | Tier D | Real daemon/operator transcript with publish, retrieve, wrong/corrupt content rejection, durability proof, and bounded storage-market claims. |
 | `AUD-618-P1-005` | Production helper topology hardening | Tier D | Production helper enablement gate, serial equivalence, deterministic assignment/lane ordering/merge, crash-safety, Byzantine-output rejection, and multi-node adversarial proof. |
@@ -65,9 +65,11 @@ hardening gates.
 
 ## Canonical next external transcript: public observer open-download journey
 
-The next evidence package should target `AUD-628-P1-001`. It must be captured on
-a machine not controlled by the founder, or it must be explicitly labeled local
-practice evidence and kept open.
+The next observer evidence package should target `AUD-628-P1-001`. It must be
+captured on a machine not controlled by the founder, or it must be explicitly
+labeled local practice evidence and kept open. Closing that transcript does not
+close `AUD-633-P0-004`; post-transition cryptographic evidence and independent
+review remain a separate required gate.
 
 ### Transcript metadata
 

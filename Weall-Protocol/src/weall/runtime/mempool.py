@@ -155,6 +155,27 @@ def _height_or_zero(value: int | None) -> int:
         return 0
 
 
+def _durable_ledger_height(*, con) -> int | None:
+    row = con.execute("SELECT height FROM ledger_state WHERE id=1 LIMIT 1;").fetchone()
+    if row is None:
+        return None
+    try:
+        return max(0, int(row["height"] or 0))
+    except Exception:
+        return None
+
+
+def _stale_admission_result(*, admitted_at_height: int, durable_height: int) -> Json:
+    return {
+        "ok": False,
+        "error": "mempool_stale_admission_height",
+        "details": {
+            "admitted_at_height": int(admitted_at_height),
+            "durable_height": int(durable_height),
+        },
+    }
+
+
 def _elapsed_ms(start_ns: int) -> float:
     return round(float(time.perf_counter_ns() - int(start_ns)) / 1_000_000.0, 3)
 
@@ -652,6 +673,22 @@ class PersistentMempool:
             )
 
         with self.db.write_tx() as con:
+            # Admission is evaluated against a canonical ledger height before this
+            # local-pool transaction starts. Revalidate that height while holding
+            # the same SQLite writer lock used by canonical block/checkpoint
+            # commits. Otherwise a tx admitted on branch/height H can be inserted
+            # after a winning H+1 commit or destructive checkpoint has already
+            # cleared the mempool.
+            if current_height is not None:
+                durable_height = _durable_ledger_height(con=con)
+                if durable_height is None:
+                    return {"ok": False, "error": "mempool_admission_ledger_state_missing"}
+                if int(durable_height) != int(admitted_at_height):
+                    return _stale_admission_result(
+                        admitted_at_height=int(admitted_at_height),
+                        durable_height=int(durable_height),
+                    )
+
             now = _now_ms()
             self._prune_expired_if_due(con=con, now_ms=int(now))
 
@@ -945,6 +982,34 @@ class PersistentMempool:
             )
 
         with self.db.write_tx() as con:
+            if current_height is not None:
+                durable_height = _durable_ledger_height(con=con)
+                if durable_height is None:
+                    stale_result: Json = {
+                        "ok": False,
+                        "error": "mempool_admission_ledger_state_missing",
+                    }
+                elif int(durable_height) != int(admitted_at_height):
+                    stale_result = _stale_admission_result(
+                        admitted_at_height=int(admitted_at_height),
+                        durable_height=int(durable_height),
+                    )
+                else:
+                    stale_result = {}
+                if stale_result:
+                    for idx, _env, *_rest in prepared:
+                        if results[idx] is None:
+                            results[idx] = dict(stale_result)
+                    if timings is not None:
+                        timings["tx_submit_total_wall_ms"] = _elapsed_ms(total_start)
+                    return [
+                        _with_timings(
+                            dict(result or {"ok": False, "error": "mempool_batch_internal_error"}),
+                            timings,
+                        )
+                        for result in results
+                    ]
+
             now = _now_ms()
             self._prune_expired_if_due(con=con, now_ms=int(now))
 

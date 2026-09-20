@@ -318,12 +318,10 @@ def test_shadow_protocol_implementations_are_reference_only_and_authority_bound(
         assert mid in authority["mechanisms"]
         assert mid in authority["required_high_risk_mechanisms"]
 
-    assert "src/weall/poh/finalize.py" in authority["mechanisms"]["M-028"][
-        "forbidden_shadow_paths"
-    ]
-    assert "src/weall/ledger/rewards.py" in authority["mechanisms"]["M-061"][
-        "forbidden_shadow_paths"
-    ]
+    assert "src/weall/poh/finalize.py" in authority["mechanisms"]["M-028"]["forbidden_shadow_paths"]
+    assert (
+        "src/weall/ledger/rewards.py" in authority["mechanisms"]["M-061"]["forbidden_shadow_paths"]
+    )
 
 
 def test_bft_outbox_preserves_more_than_256_unsent_obligations_across_journal_trim(

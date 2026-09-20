@@ -61,8 +61,9 @@ def compute_block_hash(*, header: Json) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-
-def compute_recent_block_anchor(*, block_ids: list[str], window_size: int = RECENT_BLOCK_ANCHOR_WINDOW) -> str:
+def compute_recent_block_anchor(
+    *, block_ids: list[str], window_size: int = RECENT_BLOCK_ANCHOR_WINDOW
+) -> str:
     """Compute a deterministic commitment to recent canonical block context.
 
     The input order is newest-to-oldest: state tip first, then its parent, up to
@@ -90,7 +91,9 @@ def compute_recent_block_anchor(*, block_ids: list[str], window_size: int = RECE
     return hashlib.sha256(_canon_json(payload).encode("utf-8")).hexdigest()
 
 
-def recent_block_ids_from_state(*, state: Json, window_size: int = RECENT_BLOCK_ANCHOR_WINDOW) -> list[str]:
+def recent_block_ids_from_state(
+    *, state: Json, window_size: int = RECENT_BLOCK_ANCHOR_WINDOW
+) -> list[str]:
     """Return previous canonical block IDs from state without scanning history.
 
     State records a bounded ancestry map at ``state["blocks"][block_id]["prev_block_id"]``.
@@ -117,8 +120,11 @@ def recent_block_ids_from_state(*, state: Json, window_size: int = RECENT_BLOCK_
 
 def compute_helper_execution_root(*, helper_execution: Json) -> str:
     """Compute a deterministic commitment for helper execution metadata."""
-    payload = _canon_json(helper_execution if isinstance(helper_execution, dict) else {}).encode("utf-8")
+    payload = _canon_json(helper_execution if isinstance(helper_execution, dict) else {}).encode(
+        "utf-8"
+    )
     return hashlib.sha256(payload).hexdigest()
+
 
 def compute_receipts_root(*, receipts: list[Json]) -> str:
     """Compute a deterministic receipts root.
@@ -173,6 +179,47 @@ def make_block_header(
         hdr["vrf"] = vrf
 
     return hdr
+
+
+class BlockHashBindingError(ValueError):
+    """Raised when an advertised block hash does not match its canonical header."""
+
+
+def ensure_canonical_block_hash(block: Json) -> tuple[Json, str]:
+    """Return ``(block, canonical_hash)`` while verifying any advertised hash.
+
+    Unlike :func:`ensure_block_hash`, this helper is for trust boundaries
+    (received blocks, persisted blocks, checkpoint import).  When a canonical
+    header is present, the header is always re-hashed and an existing
+    ``block_hash`` must match exactly.  Headerless legacy objects retain the
+    historical construction fallback so old diagnostic/replay fixtures remain
+    readable.
+    """
+
+    if not isinstance(block, dict):
+        raise BlockHashBindingError("block_not_object")
+
+    header = block.get("header")
+    if isinstance(header, dict):
+        try:
+            canonical_hash = compute_block_hash(header=header)
+        except Exception as exc:
+            raise BlockHashBindingError("block_header_hash_invalid") from exc
+
+        advertised = block.get("block_hash")
+        if isinstance(advertised, str) and advertised.strip():
+            if advertised.strip() != canonical_hash:
+                raise BlockHashBindingError("block_hash_mismatch")
+        elif advertised not in (None, ""):
+            raise BlockHashBindingError("block_hash_not_string")
+
+        block["block_hash"] = canonical_hash
+        return block, canonical_hash
+
+    # Upgrade compatibility for legacy/headerless objects.  Current canonical
+    # persisted/checkpoint blocks have headers, so this path cannot bypass the
+    # binding check for modern protocol material.
+    return ensure_block_hash(block)
 
 
 def ensure_block_hash(block: Json) -> tuple[Json, str]:

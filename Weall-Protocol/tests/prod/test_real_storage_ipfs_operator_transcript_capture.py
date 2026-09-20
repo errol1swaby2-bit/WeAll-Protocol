@@ -20,8 +20,7 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
         cwd=ROOT,
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
         timeout=45,
     )
@@ -33,16 +32,30 @@ def _read(rel: str) -> str:
 
 def _digest_without_self(payload: dict[str, Any]) -> str:
     material = {k: v for k, v in payload.items() if k != "transcript_digest"}
-    return hashlib.sha256(json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    return hashlib.sha256(
+        json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def _sample_storage_transcript() -> dict[str, Any]:
     payload: dict[str, Any] = {
         "schema": "weall.v1_5.storage_ipfs_operator_transcript",
         "blocker": "AUD-618-P1-004",
-        "operator_ids": ["storage-alpha-real-20260705", "storage-beta-real-20260705", "storage-gamma-real-20260705"],
-        "machine_ids": ["storage-host-alpha-20260705", "storage-host-beta-20260705", "storage-host-gamma-20260705"],
-        "ipfs_peer_ids": ["12D3KooWalphaRealPeer20260705", "12D3KooWbetaRealPeer20260705", "12D3KooWgammaRealPeer20260705"],
+        "operator_ids": [
+            "storage-alpha-real-20260705",
+            "storage-beta-real-20260705",
+            "storage-gamma-real-20260705",
+        ],
+        "machine_ids": [
+            "storage-host-alpha-20260705",
+            "storage-host-beta-20260705",
+            "storage-host-gamma-20260705",
+        ],
+        "ipfs_peer_ids": [
+            "12D3KooWalphaRealPeer20260705",
+            "12D3KooWbetaRealPeer20260705",
+            "12D3KooWgammaRealPeer20260705",
+        ],
         "daemon_versions": {
             "storage-host-alpha-20260705": "kubo-v0.29.0-alpha-real",
             "storage-host-beta-20260705": "kubo-v0.29.0-beta-real",
@@ -51,7 +64,10 @@ def _sample_storage_transcript() -> dict[str, Any]:
         "payload_sha256": "a" * 64,
         "cid": "bafybeigdyrztrealoperatorcidb621evidencecandidate",
         "replication_factor": 3,
-        "publish_proofs": {"origin_machine": "storage-host-alpha-20260705", "ipfs_add_output_sha256": "b" * 64},
+        "publish_proofs": {
+            "origin_machine": "storage-host-alpha-20260705",
+            "ipfs_add_output_sha256": "b" * 64,
+        },
         "pin_proofs": {
             "storage-host-alpha-20260705": "pin-proof-alpha-real-001",
             "storage-host-beta-20260705": "pin-proof-beta-real-002",
@@ -62,7 +78,11 @@ def _sample_storage_transcript() -> dict[str, Any]:
             "storage-host-beta-20260705": "a" * 64,
             "storage-host-gamma-20260705": "a" * 64,
         },
-        "durability_window": {"started_utc": "2026-07-05T00:00:00Z", "ended_utc": "2026-07-05T00:30:00Z", "minimum_minutes": 30},
+        "durability_window": {
+            "started_utc": "2026-07-05T00:00:00Z",
+            "ended_utc": "2026-07-05T00:30:00Z",
+            "minimum_minutes": 30,
+        },
         "origin_failure": True,
         "retrieval_from_non_origin_machine": True,
         "fresh_node_retrieval": True,
@@ -72,7 +92,11 @@ def _sample_storage_transcript() -> dict[str, Any]:
         "real_daemon_topology": True,
         "external_attestation_attached": True,
         "operator_attestation": "external_storage_operator_signed",
-        "operator_signatures": ["sig-storage-alpha-real-attestation-001", "sig-storage-beta-real-attestation-002", "sig-storage-gamma-real-attestation-003"],
+        "operator_signatures": [
+            "sig-storage-alpha-real-attestation-001",
+            "sig-storage-beta-real-attestation-002",
+            "sig-storage-gamma-real-attestation-003",
+        ],
         "claim_boundaries": {
             "public_storage_provider_market": False,
             "public_decentralized_media_durability": False,
@@ -130,9 +154,15 @@ def test_real_storage_ipfs_docs_and_template_keep_blocker_open() -> None:
 
 
 def test_real_storage_ipfs_schema_and_validator_accept_real_shape(tmp_path: Path) -> None:
-    proc = _run(sys.executable, "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check")
+    proc = _run(
+        sys.executable, "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check"
+    )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "external_operator_transcript_requirements_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "external_operator_transcript_requirements_v1_5.json").read_text(
+            encoding="utf-8"
+        )
+    )
     schemas = payload["schemas"]
     assert "storage_ipfs_operator_transcript" in schemas
     schema = schemas["storage_ipfs_operator_transcript"]
@@ -142,7 +172,9 @@ def test_real_storage_ipfs_schema_and_validator_accept_real_shape(tmp_path: Path
     assert payload["public_beta_ready"] is False
 
     transcript_path = tmp_path / "storage-ipfs-operator-transcript.json"
-    transcript_path.write_text(json.dumps(_sample_storage_transcript(), indent=2, sort_keys=True), encoding="utf-8")
+    transcript_path.write_text(
+        json.dumps(_sample_storage_transcript(), indent=2, sort_keys=True), encoding="utf-8"
+    )
     validate = _run(
         sys.executable,
         "scripts/validate_external_operator_transcript_v1_5.py",
@@ -163,7 +195,9 @@ def test_public_beta_and_release_artifacts_reference_real_storage_ipfs_capture()
         proc = _run(sys.executable, f"scripts/{script}", "--check")
         assert proc.returncode == 0, proc.stdout + proc.stderr
 
-    report = json.loads((ROOT / "generated" / "public_beta_blocker_report_v1_5.json").read_text(encoding="utf-8"))
+    report = json.loads(
+        (ROOT / "generated" / "public_beta_blocker_report_v1_5.json").read_text(encoding="utf-8")
+    )
     blockers = {row["id"]: row for row in report["blockers"]}
     blocker = blockers["AUD-618-P1-004"]
     assert blocker["gate_status"] == "gate_present_real_operator_rehearsal_required"
@@ -171,7 +205,9 @@ def test_public_beta_and_release_artifacts_reference_real_storage_ipfs_capture()
     assert "real IPFS daemon transcript" in blocker["remaining_external_evidence"]
     assert report["public_beta_ready"] is False
 
-    manifest = json.loads((ROOT / "generated" / "release_evidence_manifest_v1_5.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (ROOT / "generated" / "release_evidence_manifest_v1_5.json").read_text(encoding="utf-8")
+    )
     gate = manifest["release_evidence_gates"]["storage_ipfs_operator_transcript"]
     assert gate["blocker"] == "AUD-618-P1-004"
     assert gate["required_before_public_beta"] is True

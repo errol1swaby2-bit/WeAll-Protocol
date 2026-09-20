@@ -1,7 +1,8 @@
 # Public Beta Blockers
 
-The repository is currently a controlled multi-node testnet candidate.
-Public beta and mainnet readiness remain blocked by evidence and release gates.
+The repository is a pre-public-testnet implementation under active hardening.
+Controlled-testnet mechanism completion is currently NO-GO, and public beta and
+mainnet readiness remain blocked by explicit evidence and release gates.
 
 The source of truth is:
 
@@ -19,11 +20,11 @@ not the number still open. Reviewers should read the top-level counts this way:
 
 | Field | Current meaning | Expected value in this branch |
 | --- | --- | ---: |
-| `blocker_catalog_count` / `blocker_count` | Full blocker catalog kept visible for audit continuity. | 14 |
+| `blocker_catalog_count` / `blocker_count` | Full blocker catalog kept visible for audit continuity. | 15 |
 | `closed_in_repository_count` / `closed_blocker_count` | Closed by repository evidence, generated artifacts, docs, or source-level UX gates. | 7 |
-| `remaining_blocker_count` / `open_blocker_count` | Still-open blockers before public beta can be claimed. | 7 |
-| `remaining_external_evidence_required_count` | Open blockers that need independent transcripts, real-operator proof, counsel attestation, or other external evidence. | 7 |
-| `p0_open_count` | Still-open P0 blockers. | 3 |
+| `remaining_blocker_count` / `open_blocker_count` | Still-open blockers before public beta can be claimed. | 8 |
+| `remaining_external_evidence_required_count` | Open blockers that need independent transcripts, real-operator proof, counsel attestation, cryptographic review, or other external evidence. | 8 |
+| `p0_open_count` | Still-open P0 blockers. | 4 |
 | `p1_open_count` | Still-open P1 blockers. | 4 |
 | `p2_open_count` | Still-open P2 blockers. | 0 |
 | `p3_open_count` | Still-open P3 blockers. | 0 |
@@ -36,6 +37,7 @@ blocker inventory only means the evidence gates are current and explicit.
 - `AUD-618-P0-001` — independent public validator/operator transcript.
 - `AUD-618-P0-002` — legal/compliance counsel attestation.
 - `AUD-618-P0-003` — executable protocol upgrade staging/rollback proof.
+- `AUD-633-P0-004` — fresh post-transition signing-profile rehearsal evidence and external cryptographic review.
 - `AUD-618-P1-003` — external machine replay transcript.
 - `AUD-618-P1-004` — real IPFS/storage operator transcript.
 - `AUD-618-P1-005` — production helper topology enablement gate.
@@ -56,15 +58,14 @@ tracked repository artifacts/docs/source gates rather than external evidence:
 
 ## Remaining blocker classes
 
-1. Independent validator operator transcript.
-2. Real storage/IPFS daemon/operator topology transcript.
-3. Legal/compliance attestation.
-4. Production helper execution safety gates.
-5. Signed protocol upgrade execution/rollback gates.
-6. External state-sync and restart evidence.
-7. Rendered frontend evidence for launch blockers and accessibility.
-8. Public route response-vector expansion and freshness checks.
-9. Release runbook and clean worktree gate.
+1. Independent validator/operator transcript.
+2. Legal/compliance attestation.
+3. Executable protocol upgrade staging/rollback proof.
+4. Fresh post-transition signing-profile rehearsal evidence and external cryptographic review.
+5. External cross-machine replay evidence.
+6. Real storage/IPFS daemon/operator evidence.
+7. Production helper topology proof.
+8. External public-observer open-download/state-sync/rendered journey evidence.
 
 These blockers are intentional. They prevent the project from accidentally
 marketing a local controlled rehearsal as a public decentralized network.

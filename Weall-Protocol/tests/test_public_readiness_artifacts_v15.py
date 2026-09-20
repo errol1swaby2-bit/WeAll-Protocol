@@ -19,13 +19,17 @@ LEGAL_DOCS = [
 
 
 def test_v15_gap_register_marks_recent_batches_resolved_and_remaining_gaps() -> None:
-    payload = json.loads((ROOT / "generated/v15_implementation_gap_register.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated/v15_implementation_gap_register.json").read_text(encoding="utf-8")
+    )
     resolved = {item["id"]: item for item in payload["resolved_since_prior_evidence_map"]}
     remaining = {item["id"]: item for item in payload["remaining_p0_p1_gaps"]}
 
     assert resolved["V15-TOKENOMICS-EPOCH-ISSUANCE"]["status"] == "resolved_locked_implementation"
     assert resolved["V15-RUNTIME-BLOCK-TIMING-CONFIG"]["status"] == "resolved_config_alignment"
-    assert remaining["P0-PROTOCOL-UPGRADE-DELIVERY"]["status"] == "record_only_hardened_not_automatic"
+    assert (
+        remaining["P0-PROTOCOL-UPGRADE-DELIVERY"]["status"] == "record_only_hardened_not_automatic"
+    )
     assert remaining["P0-LEGAL-COMPLIANCE-PACK"]["status"] == "draft_pending_counsel_review"
     assert remaining["P0-PUBLIC-VALIDATOR-BFT-PROOF"]["status"] == "proof_plan_defined_not_passed"
 
@@ -38,7 +42,9 @@ def test_legal_compliance_pack_exists_and_is_counsel_pending() -> None:
 
 
 def test_public_validator_bft_plan_preserves_truth_boundary() -> None:
-    text = (ROOT / "docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md").read_text(encoding="utf-8")
+    text = (ROOT / "docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md").read_text(
+        encoding="utf-8"
+    )
     required = [
         "equivocation",
         "partition/rejoin",

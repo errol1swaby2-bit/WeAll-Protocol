@@ -26,12 +26,14 @@ def _make_executor(tmp_path: Path, name: str, chain_id: str = "recursive-sync") 
 
 
 def _produce_register_block(ex: WeAllExecutor, signer: str) -> None:
-    sub = ex.submit_tx({
-        "tx_type": "ACCOUNT_REGISTER",
-        "signer": signer,
-        "nonce": 1,
-        "payload": {"pubkey": f"k:{signer}"},
-    })
+    sub = ex.submit_tx(
+        {
+            "tx_type": "ACCOUNT_REGISTER",
+            "signer": signer,
+            "nonce": 1,
+            "payload": {"pubkey": f"k:{signer}"},
+        }
+    )
     assert sub["ok"] is True
     meta = ex.produce_block(max_txs=1)
     assert meta.ok is True
@@ -112,14 +114,19 @@ def test_snapshot_checkpoint_mismatch_is_rejected(tmp_path: Path) -> None:
     bad_block = copy.deepcopy(resp.blocks[0])
     bad_block["height"] = 99
     bad = StateSyncResponseMsg(
-        header=resp.header, ok=True, reason=resp.reason, height=resp.height,
-        snapshot=resp.snapshot, snapshot_hash=resp.snapshot_hash,
-        snapshot_anchor=resp.snapshot_anchor, blocks=(bad_block,),
+        header=resp.header,
+        ok=True,
+        reason=resp.reason,
+        height=resp.height,
+        snapshot=resp.snapshot,
+        snapshot_hash=resp.snapshot_hash,
+        snapshot_anchor=resp.snapshot_anchor,
+        blocks=(bad_block,),
     )
-    with pytest.raises(ExecutorError, match="state_sync_verify_failed:snapshot_checkpoint_height_mismatch"):
-        lagger.apply_state_sync_response(
-            bad, trusted_anchor=anchor, allow_snapshot_bootstrap=True
-        )
+    with pytest.raises(
+        ExecutorError, match="state_sync_verify_failed:snapshot_checkpoint_height_mismatch"
+    ):
+        lagger.apply_state_sync_response(bad, trusted_anchor=anchor, allow_snapshot_bootstrap=True)
 
 
 def test_restart_rebinds_wrong_nonzero_tip_timestamp_to_persisted_tip(tmp_path: Path) -> None:
@@ -150,7 +157,10 @@ def test_authority_map_covers_declared_consensus_execution_recovery_set() -> Non
     assert len(required) >= 18
     assert required <= mapped
     assert {"M-010", "M-011", "M-012", "M-015", "M-016", "M-018", "M-021"} <= required
-    assert "src/weall/runtime/block_signature_profiles.py" in obj["mechanisms"]["M-018"]["forbidden_shadow_paths"]
+    assert (
+        "src/weall/runtime/block_signature_profiles.py"
+        in obj["mechanisms"]["M-018"]["forbidden_shadow_paths"]
+    )
 
 
 def test_helper_receive_rejects_self_consistent_noncanonical_plan() -> None:
@@ -160,39 +170,72 @@ def test_helper_receive_rejects_self_consistent_noncanonical_plan() -> None:
         "helper_capabilities_by_helper": {},
     }
     block = {
-        "height": 2, "view": 3, "proposer": "@v1", "block_ts_ms": 1000,
-        "txs": [{"tx_id": "t1", "tx_type": "ACCOUNT_REGISTER", "signer": "@u", "nonce": 1, "payload": {}}],
+        "height": 2,
+        "view": 3,
+        "proposer": "@v1",
+        "block_ts_ms": 1000,
+        "txs": [
+            {
+                "tx_id": "t1",
+                "tx_type": "ACCOUNT_REGISTER",
+                "signer": "@u",
+                "nonce": 1,
+                "payload": {},
+            }
+        ],
     }
     from weall.runtime.parallel_execution import (
-        plan_parallel_execution, canonical_helper_execution_plan_fingerprint
+        canonical_helper_execution_plan_fingerprint,
+        plan_parallel_execution,
     )
+
     local = plan_parallel_execution(
-        txs=block["txs"], validators=["@v1", "@v2"], validator_set_hash="set",
-        view=3, leader_id="@v1", state_snapshot_metadata={
-            "validator_epoch": 1, "quarantined_helper_ids": [],
-            "helper_capacity_by_helper": {}, "helper_capabilities_by_helper": {},
-            "helper_planning_inputs_source": "state_root", "allow_helper_overcommit": True,
+        txs=block["txs"],
+        validators=["@v1", "@v2"],
+        validator_set_hash="set",
+        view=3,
+        leader_id="@v1",
+        state_snapshot_metadata={
+            "validator_epoch": 1,
+            "quarantined_helper_ids": [],
+            "helper_capacity_by_helper": {},
+            "helper_capabilities_by_helper": {},
+            "helper_planning_inputs_source": "state_root",
+            "allow_helper_overcommit": True,
         },
     )
     assert local
     lane = local[0]
     wrong_helper = "@v2" if str(lane.helper_id or "") != "@v2" else "@v1"
-    remote_lanes = [{
-        "lane_id": lane.lane_id, "helper_id": wrong_helper,
-        "tx_ids": list(lane.tx_ids), "descriptor_hash": lane.descriptor_hash,
-    }]
+    remote_lanes = [
+        {
+            "lane_id": lane.lane_id,
+            "helper_id": wrong_helper,
+            "tx_ids": list(lane.tx_ids),
+            "descriptor_hash": lane.descriptor_hash,
+        }
+    ]
     remote_plan_id = canonical_helper_execution_plan_fingerprint(remote_lanes)
     for row in remote_lanes:
         row["plan_id"] = remote_plan_id
     block["helper_execution"] = {
-        "plan_id": remote_plan_id, "view": 3, "validator_epoch": 1,
-        "validator_set_hash": "set", "coordinator_id": "@v1",
-        "lanes": remote_lanes, "accepted_certificates": [],
+        "plan_id": remote_plan_id,
+        "view": 3,
+        "validator_epoch": 1,
+        "validator_set_hash": "set",
+        "coordinator_id": "@v1",
+        "lanes": remote_lanes,
+        "accepted_certificates": [],
         "helper_reputation": {"transition_policy": "diagnostic_only_v1", "state_committed": False},
     }
     ok, reason = validate_received_helper_execution(
-        block=block, state=state, chain_id="chain", validators=["@v1", "@v2"],
-        validator_pubkeys={}, validator_epoch=1, validator_set_hash="set"
+        block=block,
+        state=state,
+        chain_id="chain",
+        validators=["@v1", "@v2"],
+        validator_pubkeys={},
+        validator_epoch=1,
+        validator_set_hash="set",
     )
     assert ok is False
     assert reason == "helper_execution_canonical_plan_mismatch"

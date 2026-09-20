@@ -11,13 +11,14 @@ class _DummyExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self) -> dict:
         return {}
 
     def bft_resolved_pending_fetch_request_descriptors(self) -> list[dict]:
         return [dict(item) for item in self._wants]
 
-    def bft_cache_remote_block(self, blk: dict) -> bool:
+    def bft_cache_remote_block(self, blk: dict, *, expected_block_hash: str = "") -> bool:
         self.cached.append(dict(blk))
         return False
 

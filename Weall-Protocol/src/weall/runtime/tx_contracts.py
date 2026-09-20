@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from weall.runtime.apply.consensus import CONSENSUS_TX_TYPES, apply_consensus
 from weall.runtime.apply.content import CONTENT_TX_TYPES, apply_content
@@ -240,7 +241,11 @@ def load_default_tx_index() -> TxIndex:
 
 
 def build_tx_contract_map(canon: TxIndex | Json | None = None) -> list[Json]:
-    idx = load_default_tx_index() if canon is None else (canon if isinstance(canon, TxIndex) else TxIndex.from_raw(canon))
+    idx = (
+        load_default_tx_index()
+        if canon is None
+        else (canon if isinstance(canon, TxIndex) else TxIndex.from_raw(canon))
+    )
     rows: list[Json] = []
     for tx_type in idx.list_types():
         txdef = idx.get(tx_type, {})

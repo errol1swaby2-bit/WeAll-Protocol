@@ -6,6 +6,9 @@ from pathlib import Path
 import pytest
 
 from weall.net.state_sync import build_snapshot_anchor
+from weall.runtime import bft_artifact_cache as bft_artifact_cache_mod
+from weall.runtime.block_hash import compute_block_hash
+from weall.runtime.block_id import compute_block_id
 from weall.runtime.executor import ExecutorError, WeAllExecutor
 
 
@@ -41,18 +44,56 @@ def _advance_source(source: WeAllExecutor) -> None:
         _produce_register_block(source, signer)
 
 
-def _seed_stale_bft_recovery_state(ex: WeAllExecutor) -> None:
+def _stale_proposal_admission_alias(ex: WeAllExecutor) -> dict[str, object]:
+    return {
+        "chain_id": ex.chain_id,
+        "view": 4,
+        "block_id": "discarded-proposal",
+        "block_hash": "44" * 32,
+        "transport_alias": "old-branch-shape",
+    }
+
+
+def _seed_stale_bft_recovery_state(ex: WeAllExecutor) -> tuple[str, str]:
+    height = 50
+    prev_block_id = "discarded-tip"
+    prev_block_hash = "11" * 32
+    block_ts_ms = 50_000
+    receipts_root = "22" * 32
+    header = {
+        "chain_id": ex.chain_id,
+        "height": height,
+        "prev_block_hash": prev_block_hash,
+        "block_ts_ms": block_ts_ms,
+        "tx_ids": [],
+        "receipts_root": receipts_root,
+        "state_root": "33" * 32,
+    }
+    block_hash = compute_block_hash(header=header)
+    block_id = compute_block_id(
+        chain_id=ex.chain_id,
+        height=height,
+        prev_block_id=prev_block_id,
+        prev_block_hash=prev_block_hash,
+        ts_ms=block_ts_ms,
+        tx_ids=[],
+        receipts_root=receipts_root,
+    )
     stale_block = {
-        "block_id": "stale-branch-block",
-        "block_hash": "stale-branch-hash",
-        "height": 50,
-        "prev_block_id": "discarded-tip",
+        "block_id": block_id,
+        "block_hash": block_hash,
+        "height": height,
+        "prev_block_id": prev_block_id,
+        "block_ts_ms": block_ts_ms,
+        "header": header,
+        "txs": [],
+        "receipts": [],
         "validator_epoch": 0,
         "validator_set_hash": "",
     }
     ex._persist_pending_bft_artifact(
         kind="pending_remote_block",
-        block_id="stale-branch-block",
+        block_id=block_id,
         payload=stale_block,
     )
     ex._restore_pending_bft_frontier()
@@ -76,11 +117,17 @@ def _seed_stale_bft_recovery_state(ex: WeAllExecutor) -> None:
 
     # Also seed purely in-memory branch identity/resource caches. A destructive
     # checkpoint must not retain these even when validator epoch/set is unchanged.
-    ex._known_block_hashes["stale-branch-block"] = "stale-branch-hash"
-    ex._known_block_ids_by_hash["stale-branch-hash"] = "stale-branch-block"
-    ex._conflicted_block_ids["stale-branch-block"] = {"reason": "old-branch"}
-    ex._conflicted_block_hashes["stale-branch-hash"] = {"reason": "old-branch"}
+    ex._known_block_hashes[block_id] = block_hash
+    ex._known_block_ids_by_hash[block_hash] = block_id
+    ex._conflicted_block_ids[block_id] = {"reason": "old-branch"}
+    ex._conflicted_block_hashes[block_hash] = {"reason": "old-branch"}
     ex._recent_bft_timeouts["stale-timeout"] = 1
+    bft_artifact_cache_mod._record_bft_admission_alias(
+        ex,
+        "proposal",
+        _stale_proposal_admission_alias(ex),
+    )
+    return block_id, block_hash
 
 
 def _aux_counts(ex: WeAllExecutor) -> tuple[int, int]:
@@ -102,10 +149,14 @@ def test_checkpoint_sync_purges_old_branch_bft_recovery_state(tmp_path: Path) ->
     source = _make_executor(tmp_path, "source")
     lagger = _make_executor(tmp_path, "lagger")
     _advance_source(source)
-    _seed_stale_bft_recovery_state(lagger)
+    stale_block_id, stale_block_hash = _seed_stale_bft_recovery_state(lagger)
 
-    assert list(lagger._pending_remote_blocks) == ["stale-branch-block"]
+    assert list(lagger._pending_remote_blocks) == [stale_block_id]
     assert len(lagger.bft_pending_outbound_messages()) == 1
+    assert (
+        lagger.bft_artifact_was_accepted("proposal", _stale_proposal_admission_alias(lagger))
+        is True
+    )
     assert _aux_counts(lagger) == (1, 1)
 
     source._db.prune_history(
@@ -125,11 +176,16 @@ def test_checkpoint_sync_purges_old_branch_bft_recovery_state(tmp_path: Path) ->
     assert int(lagger.state.get("height") or 0) == int(source.state.get("height") or 0)
     assert list(lagger._pending_remote_blocks) == []
     assert lagger.bft_pending_outbound_messages() == []
-    assert lagger._known_block_hashes.get("stale-branch-block") is None
-    assert lagger._known_block_ids_by_hash.get("stale-branch-hash") is None
-    assert lagger._conflicted_block_ids.get("stale-branch-block") is None
-    assert lagger._conflicted_block_hashes.get("stale-branch-hash") is None
+    assert lagger._known_block_hashes.get(stale_block_id) is None
+    assert lagger._known_block_ids_by_hash.get(stale_block_hash) is None
+    assert lagger._conflicted_block_ids.get(stale_block_id) is None
+    assert lagger._conflicted_block_hashes.get(stale_block_hash) is None
     assert lagger._recent_bft_timeouts.get("stale-timeout") is None
+    assert lagger._recent_bft_admission_aliases == {}
+    assert (
+        lagger.bft_artifact_was_accepted("proposal", _stale_proposal_admission_alias(lagger))
+        is False
+    )
     assert _aux_counts(lagger) == (0, 0)
 
     restarted = _make_executor(tmp_path, "lagger")
@@ -138,7 +194,9 @@ def test_checkpoint_sync_purges_old_branch_bft_recovery_state(tmp_path: Path) ->
     assert _aux_counts(restarted) == (0, 0)
 
 
-def test_restart_reconciles_crash_after_ledger_checkpoint_before_aux_reset(tmp_path: Path) -> None:
+def test_restart_reconciles_crash_after_ledger_checkpoint_before_aux_reset(
+    tmp_path: Path,
+) -> None:
     source = _make_executor(tmp_path, "source")
     lagger = _make_executor(tmp_path, "lagger")
     _advance_source(source)
@@ -234,4 +292,82 @@ def test_checkpoint_install_failure_still_clears_old_branch_bft_replay_state(
     assert int(lagger.state.get("height") or 0) == before_height
     assert lagger.bft_pending_outbound_messages() == []
     assert list(lagger._pending_remote_blocks) == []
+    assert lagger._recent_bft_admission_aliases == {}
+    assert (
+        lagger.bft_artifact_was_accepted("proposal", _stale_proposal_admission_alias(lagger))
+        is False
+    )
     assert _aux_counts(lagger) == (0, 0)
+
+
+def test_checkpoint_post_commit_housekeeping_failure_is_not_reported_as_noncommit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    source = _make_executor(tmp_path, "source")
+    lagger = _make_executor(tmp_path, "lagger")
+    _advance_source(source)
+
+    source._db.prune_history(
+        retain_last_blocks=1,
+        retain_blocks_ms=0,
+        retain_bft_candidates_ms=0,
+    )
+    anchor = build_snapshot_anchor(source.state)
+
+    def _fail_persist_bft_state() -> None:
+        raise RuntimeError("injected-post-checkpoint-persist-failure")
+
+    monkeypatch.setattr(lagger, "_persist_bft_state", _fail_persist_bft_state)
+
+    with pytest.raises(
+        ExecutorError,
+        match=(
+            "state_sync_checkpoint_committed_restart_required:"
+            "state_sync_checkpoint_post_commit_failed:RuntimeError:"
+            "injected-post-checkpoint-persist-failure"
+        ),
+    ):
+        lagger.request_and_apply_state_sync(
+            _SyncPeer(source),
+            "source",
+            trusted_anchor=anchor,
+            timeout_ms=100,
+            sleep_ms=0,
+        )
+
+    expected_height = int(source.state.get("height") or 0)
+    expected_tip = str(source.state.get("tip") or "")
+    assert int(lagger.state.get("height") or 0) == expected_height
+    assert str(lagger.state.get("tip") or "") == expected_tip
+
+    with lagger._db.connection() as con:
+        row = con.execute(
+            "SELECT height, block_id FROM ledger_state WHERE id=1 LIMIT 1;"
+        ).fetchone()
+    assert row is not None
+    assert int(row["height"]) == expected_height
+    assert str(row["block_id"] or "") == expected_tip
+
+    post_commit_error = str(getattr(lagger, "_post_commit_housekeeping_error", "") or "")
+    assert post_commit_error.startswith("state_sync_checkpoint_post_commit_failed:")
+    assert lagger._validator_signing_enabled is False
+    assert lagger._observer_mode_forced is True
+    assert lagger.block_loop_unhealthy is True
+
+    meta = lagger.produce_block(max_txs=0, allow_empty=True)
+    assert meta.ok is False
+    assert meta.error == f"executor_unhealthy:{post_commit_error}"
+
+    with pytest.raises(ExecutorError, match=f"executor_unhealthy:{post_commit_error}"):
+        lagger.request_and_apply_state_sync(
+            _SyncPeer(source),
+            "source",
+            trusted_anchor=anchor,
+            timeout_ms=100,
+            sleep_ms=0,
+        )
+
+    restarted = _make_executor(tmp_path, "lagger")
+    assert int(restarted.state.get("height") or 0) == expected_height
+    assert str(restarted.state.get("tip") or "") == expected_tip
+    assert str(getattr(restarted, "_post_commit_housekeeping_error", "") or "") == ""

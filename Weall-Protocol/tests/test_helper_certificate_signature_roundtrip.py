@@ -10,13 +10,9 @@ from weall.runtime.helper_certificates import (
 )
 
 
-
-
-
 def _pub_hex_from_seed(seed_hex: str) -> str:
     key = MLDSA65PrivateKey.from_seed_bytes(bytes.fromhex(seed_hex))
     return key.public_key().public_bytes_raw().hex()
-
 
 
 def test_helper_certificate_signature_roundtrip() -> None:

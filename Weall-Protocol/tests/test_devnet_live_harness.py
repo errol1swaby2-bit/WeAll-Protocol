@@ -73,9 +73,13 @@ def test_live_review_cli_waits_for_each_dependent_canonical_state() -> None:
     assert 'field="accepted"' in source
     assert 'field="attended"' in source
     assert 'field="verdict"' in source
-    live_review = source[source.index("def cmd_live_review"):source.index("def cmd_live_session")]
-    assert live_review.index('field="accepted"') < live_review.index('route="/v1/poh/live/tx/attendance"')
-    assert live_review.index('field="attended"') < live_review.index('route="/v1/poh/live/tx/verdict"')
+    live_review = source[source.index("def cmd_live_review") : source.index("def cmd_live_session")]
+    assert live_review.index('field="accepted"') < live_review.index(
+        'route="/v1/poh/live/tx/attendance"'
+    )
+    assert live_review.index('field="attended"') < live_review.index(
+        'route="/v1/poh/live/tx/verdict"'
+    )
 
 
 def test_devnet_live_cli_commands_are_exposed() -> None:
@@ -111,7 +115,9 @@ def test_full_onboarding_smoke_can_run_protocol_native_live_flow() -> None:
     assert "devnet_review_live.sh" in script
     assert "devnet_live_session.sh" in script
     assert "Requesting protocol-native Live live PoH through node 1 normal tx flow" in script
-    assert "Submitting assigned Live reviewer attendance/verdict txs through normal tx flow" in script
+    assert (
+        "Submitting assigned Live reviewer attendance/verdict txs through normal tx flow" in script
+    )
     assert "live-finalization" in script
     assert "Syncing node 2 from node 1 after Live finalization" in script
 
@@ -129,8 +135,14 @@ def test_controlled_devnet_uses_partial_live_panel_not_open_bootstrap() -> None:
     joining = _script("scripts/devnet_boot_joining_node.sh").read_text(encoding="utf-8")
     assert 'WEALL_POH_BOOTSTRAP_OPEN="${WEALL_POH_BOOTSTRAP_OPEN:-0}"' in genesis
     assert 'WEALL_POH_BOOTSTRAP_OPEN="${WEALL_POH_BOOTSTRAP_OPEN:-0}"' in joining
-    assert 'WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"' in genesis
-    assert 'WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"' in joining
+    assert (
+        'WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"'
+        in genesis
+    )
+    assert (
+        'WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED="${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED:-1}"'
+        in joining
+    )
     assert "live_partial_panels=${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED}" in genesis
     assert "live_partial_panels=${WEALL_POH_LIVE_PARTIAL_PANELS_ENABLED}" in joining
 
@@ -145,7 +157,9 @@ def test_live_devnet_flow_uses_normal_txs_not_operator_mutation() -> None:
     ]
     combined = "\n".join(_script(rel).read_text(encoding="utf-8") for rel in files)
     assert "GENESIS_REVIEWER_ACCOUNT" in combined
-    assert "POH_BOOTSTRAP_TIER2_GRANT" in _script("scripts/devnet_tx.py").read_text(encoding="utf-8")
+    assert "POH_BOOTSTRAP_TIER2_GRANT" in _script("scripts/devnet_tx.py").read_text(
+        encoding="utf-8"
+    )
     assert "/poh/operator/live/init" not in combined
     assert "/poh/operator/live/finalize" not in combined
     assert "WEALL_ENABLE_OPERATOR_POH" not in combined

@@ -105,7 +105,11 @@ def _safe_int(value: Any) -> int:
 
 
 def _stable_from_genesis(genesis: Json) -> Json:
-    bootstrap = genesis.get("genesis_bootstrap") if isinstance(genesis.get("genesis_bootstrap"), dict) else {}
+    bootstrap = (
+        genesis.get("genesis_bootstrap")
+        if isinstance(genesis.get("genesis_bootstrap"), dict)
+        else {}
+    )
     return {
         **{field: _safe_str(genesis.get(field)) for field in STABLE_FIELDS},
         "genesis_bootstrap": {
@@ -177,13 +181,33 @@ def _compare_stable(expected: Json, live_expected: Json) -> list[Json]:
     for field in STABLE_FIELDS:
         if _safe_str(expected.get(field)) != _safe_str(live_expected.get(field)):
             mismatches.append(
-                {"field": field, "expected": expected.get(field), "actual": live_expected.get(field)}
+                {
+                    "field": field,
+                    "expected": expected.get(field),
+                    "actual": live_expected.get(field),
+                }
             )
-    exp_boot = expected.get("genesis_bootstrap") if isinstance(expected.get("genesis_bootstrap"), dict) else {}
-    act_boot = live_expected.get("genesis_bootstrap") if isinstance(live_expected.get("genesis_bootstrap"), dict) else {}
+    exp_boot = (
+        expected.get("genesis_bootstrap")
+        if isinstance(expected.get("genesis_bootstrap"), dict)
+        else {}
+    )
+    act_boot = (
+        live_expected.get("genesis_bootstrap")
+        if isinstance(live_expected.get("genesis_bootstrap"), dict)
+        else {}
+    )
     for field in BOOTSTRAP_FIELDS:
-        exp_val: Any = bool(exp_boot.get(field, False)) if field == "enabled" else _safe_str(exp_boot.get(field))
-        act_val: Any = bool(act_boot.get(field, False)) if field == "enabled" else _safe_str(act_boot.get(field))
+        exp_val: Any = (
+            bool(exp_boot.get(field, False))
+            if field == "enabled"
+            else _safe_str(exp_boot.get(field))
+        )
+        act_val: Any = (
+            bool(act_boot.get(field, False))
+            if field == "enabled"
+            else _safe_str(act_boot.get(field))
+        )
         if exp_val != act_val:
             mismatches.append(
                 {
@@ -197,11 +221,25 @@ def _compare_stable(expected: Json, live_expected: Json) -> list[Json]:
 
 def _compare_anchor(expected: Json, live_expected: Json) -> list[Json]:
     mismatches: list[Json] = []
-    exp_anchor = expected.get("trusted_anchor") if isinstance(expected.get("trusted_anchor"), dict) else {}
-    act_anchor = live_expected.get("trusted_anchor") if isinstance(live_expected.get("trusted_anchor"), dict) else {}
+    exp_anchor = (
+        expected.get("trusted_anchor") if isinstance(expected.get("trusted_anchor"), dict) else {}
+    )
+    act_anchor = (
+        live_expected.get("trusted_anchor")
+        if isinstance(live_expected.get("trusted_anchor"), dict)
+        else {}
+    )
     for field in ANCHOR_FIELDS:
-        exp_val: Any = _safe_int(exp_anchor.get(field)) if field in {"height", "finalized_height"} else _safe_str(exp_anchor.get(field))
-        act_val: Any = _safe_int(act_anchor.get(field)) if field in {"height", "finalized_height"} else _safe_str(act_anchor.get(field))
+        exp_val: Any = (
+            _safe_int(exp_anchor.get(field))
+            if field in {"height", "finalized_height"}
+            else _safe_str(exp_anchor.get(field))
+        )
+        act_val: Any = (
+            _safe_int(act_anchor.get(field))
+            if field in {"height", "finalized_height"}
+            else _safe_str(act_anchor.get(field))
+        )
         if exp_val != act_val:
             mismatches.append(
                 {"field": f"trusted_anchor.{field}", "expected": exp_val, "actual": act_val}
@@ -274,7 +312,9 @@ def main(argv: list[str] | None = None) -> int:
     p_export.add_argument("--api", default="http://127.0.0.1:8001")
     p_export.add_argument("--out", default="./.weall-devnet/join-anchor.json")
 
-    p_verify = sub.add_parser("verify", help="Verify a peer against a locally pinned join-anchor file")
+    p_verify = sub.add_parser(
+        "verify", help="Verify a peer against a locally pinned join-anchor file"
+    )
     p_verify.add_argument("--api", default="http://127.0.0.1:8001")
     p_verify.add_argument("--anchor", default="./.weall-devnet/join-anchor.json")
     p_verify.add_argument(
@@ -283,7 +323,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Also require the peer's current state-sync anchor to match exactly",
     )
 
-    p_tamper = sub.add_parser("tamper", help="Write a deliberately tampered anchor for rejection tests")
+    p_tamper = sub.add_parser(
+        "tamper", help="Write a deliberately tampered anchor for rejection tests"
+    )
     p_tamper.add_argument("--in", dest="in_path", required=True)
     p_tamper.add_argument("--out", dest="out_path", required=True)
     p_tamper.add_argument("--field", required=True)
@@ -295,7 +337,11 @@ def main(argv: list[str] | None = None) -> int:
             _print(export_anchor(args.api, args.out))
             return 0
         if args.command == "verify":
-            _print(verify_anchor(args.api, args.anchor, strict_current_anchor=args.strict_current_anchor))
+            _print(
+                verify_anchor(
+                    args.api, args.anchor, strict_current_anchor=args.strict_current_anchor
+                )
+            )
             return 0
         if args.command == "tamper":
             _print(tamper_anchor(args.in_path, args.out_path, args.field, args.value))

@@ -43,18 +43,20 @@ class _VoteExecutorQcApply:
         return {"ok": True}
 
 
-class _TimeoutExecutorQcApply:
+class _TimeoutExecutorViewAdvance:
     def __init__(self) -> None:
         self.applied_qcs = []
 
     def bft_on_timeout(self, timeout):
-        return {
-            "chain_id": "chain-A",
-            "view": int(timeout.get("view") or 0),
-            "block_id": str(timeout.get("high_qc_id") or ""),
-            "parent_id": "b5",
-            "votes": [{"signer": str(timeout.get("signer") or "")}],
-        }
+        return int(timeout.get("view") or 0) + 1
+
+    def bft_timeout_was_accepted(self, timeout):
+        return True
+
+    def bft_run_postauth_side_effect_if_current(self, kind, payload, side_effect):
+        del kind, payload
+        side_effect()
+        return True
 
     def bft_on_qc(self, qc):
         self.applied_qcs.append(dict(qc))
@@ -66,9 +68,16 @@ class _VoteExecutorQcApplyBoom(_VoteExecutorQcApply):
         raise RuntimeError("qc apply boom")
 
 
-class _TimeoutExecutorQcApplyBoom(_TimeoutExecutorQcApply):
-    def bft_on_qc(self, qc):
-        raise RuntimeError("qc apply boom")
+class _TimeoutExecutorLegacyQcLikeReturn(_TimeoutExecutorViewAdvance):
+    def bft_on_timeout(self, timeout):
+        return {
+            "t": "QC",
+            "chain_id": "chain-A",
+            "view": int(timeout.get("view") or 0),
+            "block_id": str(timeout.get("high_qc_id") or ""),
+            "parent_id": "b5",
+            "votes": [{"signer": str(timeout.get("signer") or "")}],
+        }
 
 
 def _mk_loop(executor) -> NetMeshLoop:
@@ -133,12 +142,11 @@ def test_vote_formed_qc_is_applied_locally_before_broadcast() -> None:
     assert len(loop.node.calls) == 1
 
 
-def test_timeout_formed_qc_is_applied_locally_before_rebroadcast() -> None:
-    ex = _TimeoutExecutorQcApply()
+def test_timeout_view_advance_is_not_reinterpreted_as_qc_before_rebroadcast() -> None:
+    ex = _TimeoutExecutorViewAdvance()
     loop = _mk_loop(ex)
     loop._on_bft_timeout("peer-a", _timeout_msg())
-    assert len(ex.applied_qcs) == 1
-    assert ex.applied_qcs[0]["block_id"] == "b6"
+    assert ex.applied_qcs == []
     assert len(loop.node.calls) == 1
 
 
@@ -149,8 +157,12 @@ def test_vote_formed_qc_apply_fails_closed_in_prod(monkeypatch: pytest.MonkeyPat
         loop._on_bft_vote("peer-a", _vote_msg())
 
 
-def test_timeout_formed_qc_apply_fails_closed_in_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_timeout_legacy_qc_like_return_is_not_applied_as_qc_in_prod(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
-    loop = _mk_loop(_TimeoutExecutorQcApplyBoom())
-    with pytest.raises(BftInboundProcessingError, match="timeout_local_qc_apply_failed"):
-        loop._on_bft_timeout("peer-a", _timeout_msg())
+    ex = _TimeoutExecutorLegacyQcLikeReturn()
+    loop = _mk_loop(ex)
+    loop._on_bft_timeout("peer-a", _timeout_msg())
+    assert ex.applied_qcs == []
+    assert len(loop.node.calls) == 1

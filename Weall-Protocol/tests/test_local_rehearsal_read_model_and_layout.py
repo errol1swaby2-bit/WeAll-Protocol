@@ -23,7 +23,11 @@ def _state_with_removed_group_post() -> dict:
         "deleted": False,
     }
     return {
-        "content": {"posts": {"post:@errol:12": post}, "comments": {}, "moderation": {"targets": {}}},
+        "content": {
+            "posts": {"post:@errol:12": post},
+            "comments": {},
+            "moderation": {"targets": {}},
+        },
         "disputes_by_id": {
             "d1": {
                 "dispute_id": "d1",
@@ -59,7 +63,6 @@ def test_group_post_detail_uses_scoped_content_read_when_signed_in() -> None:
     assert "getAuthHeaders" in text
     assert "weall.contentScoped(routeContentId, base, headers)" in text
     assert "weall.content(routeContentId, base)" in text
-
 
 
 def test_removed_communication_key_autopublish_surface_stays_removed() -> None:

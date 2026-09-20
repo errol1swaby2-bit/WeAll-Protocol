@@ -6,7 +6,6 @@ import multiprocessing as mp
 import queue
 import socket
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -78,7 +77,9 @@ def run_harness() -> Json:
         for node_id in node_ids:
             mempool_seen[node_id].append(tx_id)
             roots[node_id] = _sha(f"root|{height}|{tx_id}|{block_hash}")
-        committed_blocks.append({"height": height, "proposer": proposer, "tx_id": tx_id, "block_hash": block_hash})
+        committed_blocks.append(
+            {"height": height, "proposer": proposer, "tx_id": tx_id, "block_hash": block_hash}
+        )
     final_root = roots[node_ids[0]]
     roots = {n: final_root for n in node_ids}
 
@@ -87,7 +88,8 @@ def run_harness() -> Json:
     for proc in procs:
         proc.join(timeout=2)
         if proc.is_alive():
-            proc.terminate(); proc.join(timeout=1)
+            proc.terminate()
+            proc.join(timeout=1)
 
     return {
         "ok": len(ready) == 4 and len(set(ports)) == 4 and len(set(roots.values())) == 1,
@@ -99,7 +101,9 @@ def run_harness() -> Json:
         "peer_discovery_configured": True,
         "peer_matrix_edges": sum(len(v) for v in peer_matrix.values()),
         "rounds": len(committed_blocks),
-        "mempool_gossip_exercised": all(len(v) == len(committed_blocks) for v in mempool_seen.values()),
+        "mempool_gossip_exercised": all(
+            len(v) == len(committed_blocks) for v in mempool_seen.values()
+        ),
         "proposal_vote_qc_commit_exercised": True,
         "restart_catchup_exercised": True,
         "restart_node": restarted,
@@ -113,4 +117,5 @@ def run_harness() -> Json:
 
 if __name__ == "__main__":
     import json
+
     print(json.dumps(run_harness(), indent=2, sort_keys=True))

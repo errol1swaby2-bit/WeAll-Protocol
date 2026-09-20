@@ -116,7 +116,12 @@ def test_live_verdict_submit_rejects_after_finalize() -> None:
             "status": "rejected",
             "session_commitment": "sc:1",
             "jurors": {
-                "j1": {"role": "interacting", "accepted": True, "attended": True, "verdict": "pass"},
+                "j1": {
+                    "role": "interacting",
+                    "accepted": True,
+                    "attended": True,
+                    "verdict": "pass",
+                },
             },
         }
     }

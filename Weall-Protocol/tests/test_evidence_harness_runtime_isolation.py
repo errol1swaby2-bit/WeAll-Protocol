@@ -13,9 +13,9 @@ SRC = ROOT / "src"
 def _env_without_api_runtime_boot() -> dict[str, str]:
     env = os.environ.copy()
     env.pop("WEALL_API_BOOT_RUNTIME", None)
-    env["PYTHONPATH"] = os.pathsep.join(
-        [str(SRC), str(SCRIPTS), env.get("PYTHONPATH", "")]
-    ).rstrip(os.pathsep)
+    env["PYTHONPATH"] = os.pathsep.join([str(SRC), str(SCRIPTS), env.get("PYTHONPATH", "")]).rstrip(
+        os.pathsep
+    )
     return env
 
 

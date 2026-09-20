@@ -1,10 +1,19 @@
 from __future__ import annotations
 
-from weall.runtime.helper_certificates import HelperExecutionCertificate, hash_receipts, make_namespace_hash
-from weall.runtime.parallel_execution import plan_parallel_execution, verify_serial_helper_equivalence
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    hash_receipts,
+    make_namespace_hash,
+)
+from weall.runtime.parallel_execution import (
+    plan_parallel_execution,
+    verify_serial_helper_equivalence,
+)
 
 
-def _serial_executor(txs: list[dict], _leader_context: dict | None = None) -> tuple[list[dict], dict]:
+def _serial_executor(
+    txs: list[dict], _leader_context: dict | None = None
+) -> tuple[list[dict], dict]:
     receipts = []
     for tx in txs:
         receipts.append(
@@ -22,7 +31,9 @@ def _tx(tx_id: str, tx_type: str, prefix: str) -> dict:
     return {"tx_id": tx_id, "tx_type": tx_type, "state_prefixes": [prefix]}
 
 
-def _helper_cert_and_receipts(lane, *, block_height: int, view: int, validator_epoch: int, validator_set_hash: str):
+def _helper_cert_and_receipts(
+    lane, *, block_height: int, view: int, validator_epoch: int, validator_set_hash: str
+):
     receipts = [
         {"tx_id": tx["tx_id"], "tx_type": tx["tx_type"], "ok": True, "path": "serial"}
         for tx in lane.txs
@@ -107,7 +118,11 @@ def test_helper_merge_reports_receipt_mismatch() -> None:
         canonical_txs=txs,
         lane_plans=lane_plans,
         helper_certificates={lane.lane_id: cert},
-        helper_receipts_by_lane={lane.lane_id: [{"tx_id": "t1", "tx_type": "CONTENT_CREATE", "ok": False, "path": "serial"}]},
+        helper_receipts_by_lane={
+            lane.lane_id: [
+                {"tx_id": "t1", "tx_type": "CONTENT_CREATE", "ok": False, "path": "serial"}
+            ]
+        },
         serial_executor=_serial_executor,
         leader_context={
             "chain_id": "c1",

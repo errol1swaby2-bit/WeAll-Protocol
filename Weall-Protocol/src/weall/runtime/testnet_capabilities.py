@@ -8,9 +8,10 @@ payload that frontends and docs can use to avoid overclaiming public beta,
 validators, live economics, protocol upgrades, or helper production execution.
 """
 
-from pathlib import Path
-from typing import Any, Mapping
 import json
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
 
 from weall.runtime.launch_matrix import (
     FEATURE_AUTO_PROTOCOL_UPGRADE,
@@ -72,10 +73,15 @@ def _load_artifact(rel: str) -> Json:
     return value if isinstance(value, dict) else {}
 
 
-def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, phase: str | None = None) -> Json:
+def build_testnet_capability_surface(
+    state: Mapping[str, Any] | None = None, *, phase: str | None = None
+) -> Json:
     st = state if isinstance(state, Mapping) else {}
     params = st.get("params") if isinstance(st.get("params"), Mapping) else {}
-    selected_phase = normalize_launch_phase(phase or str(params.get("launch_phase") or params.get("network_phase") or "public_beta_candidate"))
+    selected_phase = normalize_launch_phase(
+        phase
+        or str(params.get("launch_phase") or params.get("network_phase") or "public_beta_candidate")
+    )
     capabilities: Json = {}
     for cap, feature in _CAPABILITY_TO_FEATURE.items():
         status = feature_status(selected_phase, feature)
@@ -101,7 +107,11 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
     blockers = [
         key for key, record in capabilities.items() if bool(record.get("blocked_by_launch_matrix"))
     ]
-    artifact_blockers = [key for key, record in artifacts.items() if not bool(record.get("present")) or not bool(record.get("ok"))]
+    artifact_blockers = [
+        key
+        for key, record in artifacts.items()
+        if not bool(record.get("present")) or not bool(record.get("ok"))
+    ]
     controlled_mechanism_artifact_blockers = [
         key
         for key, record in artifacts.items()
@@ -113,7 +123,10 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
         blocker_report
         and blocker_report.get("schema") == "weall.v1_5.public_beta_blocker_report"
         and blocker_report.get("public_beta_ready") is False
-        and int(blocker_report.get("blocker_catalog_count") or blocker_report.get("blocker_count") or 0) >= 12
+        and int(
+            blocker_report.get("blocker_catalog_count") or blocker_report.get("blocker_count") or 0
+        )
+        >= 12
     )
     return {
         "schema": "weall.v1_5.testnet_capability_surface",
@@ -123,23 +136,53 @@ def build_testnet_capability_surface(state: Mapping[str, Any] | None = None, *, 
         "blocked_capabilities": blockers,
         "artifact_blockers": artifact_blockers,
         "controlled_mechanism_artifact_blockers": controlled_mechanism_artifact_blockers,
-        "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": sorted(_CONTROLLED_MECHANISM_ADVISORY_ARTIFACTS),
+        "advisory_artifacts_not_counted_as_controlled_mechanism_blockers": sorted(
+            _CONTROLLED_MECHANISM_ADVISORY_ARTIFACTS
+        ),
         "public_beta_blocker_report": {
             "present": bool(blocker_report),
             "ok": public_beta_blocker_inventory_ok,
-            "public_beta_ready": bool(blocker_report.get("public_beta_ready", False)) if blocker_report else False,
-            "mainnet_ready": bool(blocker_report.get("mainnet_ready", False)) if blocker_report else False,
+            "public_beta_ready": bool(blocker_report.get("public_beta_ready", False))
+            if blocker_report
+            else False,
+            "mainnet_ready": bool(blocker_report.get("mainnet_ready", False))
+            if blocker_report
+            else False,
             "blocker_count": int(blocker_report.get("blocker_count") or 0) if blocker_report else 0,
-            "blocker_catalog_count": int(blocker_report.get("blocker_catalog_count") or blocker_report.get("blocker_count") or 0) if blocker_report else 0,
-            "remaining_blocker_count": int(blocker_report.get("remaining_blocker_count") or 0) if blocker_report else 0,
-            "closed_in_repository_count": int(blocker_report.get("closed_in_repository_count") or blocker_report.get("closed_blocker_count") or 0) if blocker_report else 0,
-            "remaining_external_evidence_required_count": int(blocker_report.get("remaining_external_evidence_required_count") or 0) if blocker_report else 0,
-            "remaining_mainnet_hardening_count": int(blocker_report.get("remaining_mainnet_hardening_count") or 0) if blocker_report else 0,
+            "blocker_catalog_count": int(
+                blocker_report.get("blocker_catalog_count")
+                or blocker_report.get("blocker_count")
+                or 0
+            )
+            if blocker_report
+            else 0,
+            "remaining_blocker_count": int(blocker_report.get("remaining_blocker_count") or 0)
+            if blocker_report
+            else 0,
+            "closed_in_repository_count": int(
+                blocker_report.get("closed_in_repository_count")
+                or blocker_report.get("closed_blocker_count")
+                or 0
+            )
+            if blocker_report
+            else 0,
+            "remaining_external_evidence_required_count": int(
+                blocker_report.get("remaining_external_evidence_required_count") or 0
+            )
+            if blocker_report
+            else 0,
+            "remaining_mainnet_hardening_count": int(
+                blocker_report.get("remaining_mainnet_hardening_count") or 0
+            )
+            if blocker_report
+            else 0,
             "p0_open_count": int(blocker_report.get("p0_open_count") or 0) if blocker_report else 0,
             "p1_open_count": int(blocker_report.get("p1_open_count") or 0) if blocker_report else 0,
             "p2_open_count": int(blocker_report.get("p2_open_count") or 0) if blocker_report else 0,
             "p3_open_count": int(blocker_report.get("p3_open_count") or 0) if blocker_report else 0,
-            "next_allowed_claim": blocker_report.get("next_allowed_claim", "") if blocker_report else "",
+            "next_allowed_claim": blocker_report.get("next_allowed_claim", "")
+            if blocker_report
+            else "",
         },
         "protocol_upgrade_lifecycle": {
             "public_record_state": True,

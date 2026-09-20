@@ -32,4 +32,6 @@ def test_reviews_page_prioritizes_assigned_flagged_content() -> None:
     assert "Content preview" in text
     assert "Open review workspace" in text
     # The content-review section should appear before the account verification queue section.
-    assert text.index("Assigned content reviews") < text.index("Assigned async verification reviews")
+    assert text.index("Assigned content reviews") < text.index(
+        "Assigned async verification reviews"
+    )

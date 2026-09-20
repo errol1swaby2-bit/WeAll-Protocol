@@ -11,12 +11,21 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
-from rehearse_protocol_upgrade_signed_staging_b589_v1_5 import run_harness as run_upgrade_staging
-from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
-from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
-from rehearse_reviewer_accountability_appeal_b592_v1_5 import run_harness as run_reviewer_accountability
+from rehearse_external_multimachine_validator_harness_b590_v1_5 import (
+    run_harness as run_validator_harness,
+)
 from rehearse_helper_block_path_adversarial_b593_v1_5 import run_harness as run_helper_block_path
-from rehearse_locked_economics_adversarial_expansion_b594_v1_5 import run_harness as run_locked_economics
+from rehearse_locked_economics_adversarial_expansion_b594_v1_5 import (
+    run_harness as run_locked_economics,
+)
+from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import (
+    run_harness as run_storage_harness,
+)
+from rehearse_protocol_upgrade_signed_staging_b589_v1_5 import run_harness as run_upgrade_staging
+from rehearse_reviewer_accountability_appeal_b592_v1_5 import (
+    run_harness as run_reviewer_accountability,
+)
+
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
 OUT = ROOT / "generated" / "b587_b594_testnet_mechanism_completion_v1_5.json"
@@ -25,7 +34,9 @@ Json = dict[str, Any]
 
 def build() -> Json:
     api_vectors = build_api_response_vectors()
-    capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    capabilities = build_testnet_capability_surface(
+        {"params": {"launch_phase": "public_beta_candidate"}}
+    )
     upgrade = run_upgrade_staging()
     validator = run_validator_harness()
     storage = run_storage_harness()
@@ -46,10 +57,7 @@ def build() -> Json:
         )
     )
     pieces = [api_vectors, upgrade, validator, storage, reviewer, helper, economics]
-    piece_ok = bool(
-        high_risk_capability_wiring_ok
-        and all(bool(item.get("ok")) for item in pieces)
-    )
+    piece_ok = bool(high_risk_capability_wiring_ok and all(bool(item.get("ok")) for item in pieces))
     helper_state_root_proof_complete = bool(
         helper.get("production_block_path_state_root_equivalence_proven") is True
         and helper.get("mechanism_complete") is True
@@ -157,14 +165,18 @@ def _canon(obj: Any) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Generate/check B587-B594 testnet mechanism completion artifact.")
+    ap = argparse.ArgumentParser(
+        description="Generate/check B587-B594 testnet mechanism completion artifact."
+    )
     ap.add_argument("--check", action="store_true")
     args = ap.parse_args()
     payload = build()
     text = _canon(payload)
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("b587_b594_testnet_mechanism_completion_v1_5.json is stale; rerun generator")
+            raise SystemExit(
+                "b587_b594_testnet_mechanism_completion_v1_5.json is stale; rerun generator"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is fresh")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

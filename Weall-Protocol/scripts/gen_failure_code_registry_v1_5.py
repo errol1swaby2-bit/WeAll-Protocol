@@ -169,7 +169,9 @@ def build_payload() -> dict[str, Any]:
                 "sample_reason": "stable public genesis launch readiness failure code",
             },
         )
-    entries = sorted(seen.values(), key=lambda r: (r["code"], r["family"], r["source"], r["source_lineno"]))
+    entries = sorted(
+        seen.values(), key=lambda r: (r["code"], r["family"], r["source"], r["source_lineno"])
+    )
     by_code: dict[str, int] = {}
     by_domain: dict[str, int] = {}
     for rec in entries:

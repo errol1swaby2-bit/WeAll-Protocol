@@ -14,7 +14,6 @@ def _make_executor(tmp_path: Path, monkeypatch) -> WeAllExecutor:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@v1")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)
-    monkeypatch.delenv("WEALL_ALLOW_DIRTY_SIGNING", raising=False)
     monkeypatch.delenv("WEALL_VALIDATOR_SIGNING_ENABLED", raising=False)
 
     db_path = tmp_path / "weall.db"

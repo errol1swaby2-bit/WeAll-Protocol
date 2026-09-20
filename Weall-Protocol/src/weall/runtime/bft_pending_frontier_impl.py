@@ -2,7 +2,11 @@ from __future__ import annotations
 
 """BFT runtime helpers extracted from bft_runtime_adapter (bft_pending_frontier.py)."""
 
+from weall.runtime.block_commitment_validation import ensure_received_block_commitments
+from weall.runtime.block_hash import compute_block_hash
+from weall.runtime.block_id import compute_block_id
 from weall.runtime.executor import (
+    ExecutorError,
     ExecutorMeta,
     Json,
     OrderedDict,
@@ -12,11 +16,11 @@ from weall.runtime.executor import (
     _mode,
     _now_ms,
     _safe_int,
-    ensure_block_hash,
     is_descendant,
     json,
     leader_for_view,
 )
+
 
 def _persist_pending_bft_artifact(self, *, kind: str, block_id: str, payload: Json) -> None:
     skind = str(kind or "").strip()
@@ -39,6 +43,7 @@ def _persist_pending_bft_artifact(self, *, kind: str, block_id: str, payload: Js
     except Exception:
         return
 
+
 def _delete_pending_bft_artifact(self, *, kind: str, block_id: str) -> None:
     skind = str(kind or "").strip()
     bid = str(block_id or "").strip()
@@ -52,31 +57,136 @@ def _delete_pending_bft_artifact(self, *, kind: str, block_id: str) -> None:
     except Exception:
         return
 
+
+def _persist_bft_conflict_marker(self, *, kind: str, key: str, payload: Json, cap: int) -> None:
+    skind = str(kind or "").strip()
+    marker_key = str(key or "").strip()
+    if skind not in {"conflicted_block_id", "conflicted_block_hash"}:
+        raise ExecutorError("bft_conflict_marker_kind_invalid")
+    if not marker_key or not isinstance(payload, dict):
+        raise ExecutorError("bft_conflict_marker_invalid")
+    now_ms = _now_ms()
+    block_hash = str(
+        payload.get("block_hash")
+        or payload.get("known_block_hash")
+        or payload.get("new_block_hash")
+        or ""
+    ).strip()
+    try:
+        with self._aux_db.write_tx() as con:
+            row = con.execute(
+                "SELECT created_ms FROM bft_pending_artifacts WHERE kind=? AND block_id=? LIMIT 1;",
+                (skind, marker_key),
+            ).fetchone()
+            created_ms = int(row[0]) if row is not None and row[0] is not None else int(now_ms)
+            con.execute(
+                "INSERT OR REPLACE INTO bft_pending_artifacts"
+                "(kind, block_id, block_hash, payload_json, created_ms, updated_ms) "
+                "VALUES(?,?,?,?,?,?);",
+                (
+                    skind,
+                    marker_key,
+                    block_hash,
+                    _canon_json(payload),
+                    int(created_ms),
+                    int(now_ms),
+                ),
+            )
+            keep = max(1, int(cap))
+            stale = list(
+                con.execute(
+                    "SELECT block_id FROM bft_pending_artifacts WHERE kind=? "
+                    "ORDER BY updated_ms DESC, block_id DESC LIMIT -1 OFFSET ?;",
+                    (skind, keep),
+                ).fetchall()
+            )
+            for stale_row in stale:
+                stale_key = str(stale_row[0] or "").strip()
+                if stale_key:
+                    con.execute(
+                        "DELETE FROM bft_pending_artifacts WHERE kind=? AND block_id=?;",
+                        (skind, stale_key),
+                    )
+    except Exception as exc:
+        raise ExecutorError("bft_conflict_quarantine_persist_failed") from exc
+
+
 def _restore_pending_bft_frontier(self) -> None:
     stale_rows: list[tuple[str, str]] = []
     try:
         with self._aux_db.connection() as con:
             rows = list(
                 con.execute(
-                    "SELECT kind, block_id, payload_json FROM bft_pending_artifacts ORDER BY updated_ms ASC, kind ASC, block_id ASC;"
+                    "SELECT kind, block_id, payload_json FROM bft_pending_artifacts "
+                    "ORDER BY updated_ms ASC, kind ASC, block_id ASC;"
                 ).fetchall()
             )
-    except Exception:
-        return
+    except Exception as exc:
+        raise ExecutorError("bft_pending_frontier_restore_failed") from exc
+
+    decoded: list[tuple[str, str, Json]] = []
     for row in rows:
+        kind = str(row[0] or "").strip()
+        bid = str(row[1] or "").strip()
         try:
-            kind = str(row[0] or "").strip()
-            bid = str(row[1] or "").strip()
             payload = json.loads(str(row[2] or "{}"))
-        except Exception:
-            continue
-        if not kind or not bid or not isinstance(payload, dict):
+        except Exception as exc:
+            if kind in {"conflicted_block_id", "conflicted_block_hash"}:
+                raise ExecutorError("bft_conflict_quarantine_corrupt") from exc
             stale_rows.append((kind, bid))
             continue
-        if self._has_local_block(bid) or not self._bft_epoch_binding_matches(payload):
+        if not kind or not bid or not isinstance(payload, dict):
+            if kind in {"conflicted_block_id", "conflicted_block_hash"}:
+                raise ExecutorError("bft_conflict_quarantine_corrupt")
+            stale_rows.append((kind, bid))
+            continue
+        decoded.append((kind, bid, payload))
+
+    # Restore safety-critical conflict truth before any speculative frontier.
+    # Pending artifacts that reference a quarantined identity are then discarded
+    # rather than transiently becoming authoritative during restart.
+    for kind, key, payload in decoded:
+        if kind == "conflicted_block_id":
+            _bounded_put(
+                self._conflicted_block_ids,
+                key,
+                dict(payload),
+                cap=self._max_conflicted_block_ids,
+            )
+        elif kind == "conflicted_block_hash":
+            _bounded_put(
+                self._conflicted_block_hashes,
+                key,
+                dict(payload),
+                cap=self._max_conflicted_block_hashes,
+            )
+
+    for kind, bid, payload in decoded:
+        if kind in {"conflicted_block_id", "conflicted_block_hash"}:
+            continue
+        payload_hash = str(payload.get("block_hash") or "").strip()
+        if (
+            self._is_conflicted_block_id(bid)
+            or (payload_hash and self._is_conflicted_block_hash(payload_hash))
+            or self._has_local_block(bid)
+            or not self._bft_epoch_binding_matches(payload)
+        ):
             stale_rows.append((kind, bid))
             continue
         if kind == "pending_remote_block":
+            try:
+                rebound, _binding = ensure_received_block_commitments(
+                    block=dict(payload),
+                    chain_id=self.chain_id,
+                )
+            except Exception:
+                stale_rows.append((kind, bid))
+                continue
+            rebound_id = str(rebound.get("block_id") or "").strip()
+            if not rebound_id or rebound_id != bid:
+                stale_rows.append((kind, bid))
+                continue
+            payload = rebound
             _bounded_put(
                 self._pending_remote_blocks,
                 bid,
@@ -103,6 +213,7 @@ def _restore_pending_bft_frontier(self) -> None:
         self._delete_pending_bft_artifact(kind=kind, block_id=bid)
     self._prune_pending_bft_artifacts()
 
+
 def _prune_pending_bft_artifacts_on_local_validator_transition(
     self,
     *,
@@ -118,6 +229,7 @@ def _prune_pending_bft_artifacts_on_local_validator_transition(
         return False
     return self._prune_pending_bft_artifacts()
 
+
 def _cache_known_block_hash(self, block_id: str, block_hash: str) -> None:
     bid = str(block_id or "").strip()
     bh = str(block_hash or "").strip()
@@ -125,6 +237,7 @@ def _cache_known_block_hash(self, block_id: str, block_hash: str) -> None:
         return
     _bounded_put(self._known_block_hashes, bid, bh, cap=self._max_known_block_hashes)
     _bounded_put(self._known_block_ids_by_hash, bh, bid, cap=self._max_known_block_ids_by_hash)
+
 
 def _lookup_committed_block_hash_index(self, block_id: str) -> str:
     bid = str(block_id or "").strip()
@@ -148,6 +261,7 @@ def _lookup_committed_block_hash_index(self, block_id: str) -> str:
         self._cache_known_block_hash(bid, bh)
     return bh
 
+
 def _lookup_committed_block_id_by_hash(self, block_hash: str) -> str:
     bh = str(block_hash or "").strip()
     if not bh:
@@ -170,7 +284,11 @@ def _lookup_committed_block_id_by_hash(self, block_hash: str) -> str:
         self._cache_known_block_hash(bid, bh)
     return bid
 
+
 def _known_block_hash_for_id(self, block_id: str, *, include_qc_cache: bool = False) -> str:
+    # SECURITY: unverified quarantine entries are not identity truth. They may be
+    # inspected for diagnostics or promoted after authentication, but cannot bind
+    # block-id/hash aliases used by conflict detection, QC resolution, or fetch.
     bid = str(block_id or "").strip()
     if not bid:
         return ""
@@ -210,12 +328,6 @@ def _known_block_hash_for_id(self, block_id: str, *, include_qc_cache: bool = Fa
         if known:
             return known
 
-    quarantined = self._quarantined_remote_blocks.get(bid)
-    if isinstance(quarantined, dict):
-        known = _block_hash_from_any(quarantined)
-        if known:
-            return known
-
     candidate = self._pending_candidates.get(bid)
     if isinstance(candidate, tuple) and candidate and isinstance(candidate[0], dict):
         known = _block_hash_from_any(candidate[0])
@@ -240,7 +352,11 @@ def _known_block_hash_for_id(self, block_id: str, *, include_qc_cache: bool = Fa
         return known
     return ""
 
+
 def _known_block_id_for_hash(self, block_hash: str) -> str:
+    # SECURITY: do not resolve authenticated/public block hashes through the
+    # unauthenticated proposal quarantine. Only committed or promoted artifacts
+    # may establish hash -> block-id identity.
     bh = str(block_hash or "").strip()
     if not bh:
         return ""
@@ -277,17 +393,6 @@ def _known_block_id_for_hash(self, block_hash: str) -> str:
         )
         self._cache_known_block_hash(pending_remote_bid, bh)
         return pending_remote_bid
-
-    quarantined_bid = str(self._quarantined_remote_block_ids_by_hash.get(bh) or "").strip()
-    if quarantined_bid:
-        _bounded_put(
-            self._quarantined_remote_block_ids_by_hash,
-            bh,
-            quarantined_bid,
-            cap=self._max_quarantined_remote_blocks,
-        )
-        self._cache_known_block_hash(quarantined_bid, bh)
-        return quarantined_bid
 
     pending_candidate_bid = str(self._pending_candidate_ids_by_hash.get(bh) or "").strip()
     if pending_candidate_bid:
@@ -333,13 +438,18 @@ def _known_block_id_for_hash(self, block_hash: str) -> str:
             return latest_id
     return ""
 
+
 def _is_conflicted_block_id(self, block_id: str) -> bool:
     bid = str(block_id or "").strip()
-    return bool(bid and bid in self._conflicted_block_ids)
+    conflicts = getattr(self, "_conflicted_block_ids", None)
+    return bool(bid and isinstance(conflicts, dict) and bid in conflicts)
+
 
 def _is_conflicted_block_hash(self, block_hash: str) -> bool:
     bh = str(block_hash or "").strip()
-    return bool(bh and bh in self._conflicted_block_hashes)
+    conflicts = getattr(self, "_conflicted_block_hashes", None)
+    return bool(bh and isinstance(conflicts, dict) and bh in conflicts)
+
 
 def _drop_pending_candidate_artifacts(self, block_id: str) -> None:
     bid = str(block_id or "").strip()
@@ -354,6 +464,7 @@ def _drop_pending_candidate_artifacts(self, block_id: str) -> None:
         pass
     self._delete_pending_bft_artifact(kind="pending_candidate", block_id=bid)
     self._drop_pending_remote_artifacts(bid)
+
 
 def _mark_block_id_conflict(
     self, *, block_id: str, known_hash: str, new_hash: str, source: str, parent_id: str = ""
@@ -371,6 +482,13 @@ def _mark_block_id_conflict(
     if pid:
         detail["parent_id"] = pid
     _bounded_put(self._conflicted_block_ids, bid, detail, cap=self._max_conflicted_block_ids)
+    _persist_bft_conflict_marker(
+        self,
+        kind="conflicted_block_id",
+        key=bid,
+        payload=detail,
+        cap=self._max_conflicted_block_ids,
+    )
     self._drop_pending_candidate_artifacts(bid)
     self._remove_pending_missing_qc(block_id=bid)
     self._bft_record_event(
@@ -381,6 +499,7 @@ def _mark_block_id_conflict(
         source=str(source or "").strip(),
         parent_id=pid,
     )
+
 
 def _mark_block_hash_conflict(
     self,
@@ -403,8 +522,13 @@ def _mark_block_hash_conflict(
     pid = str(parent_id or "").strip()
     if pid:
         detail["parent_id"] = pid
-    _bounded_put(
-        self._conflicted_block_hashes, bh, detail, cap=self._max_conflicted_block_hashes
+    _bounded_put(self._conflicted_block_hashes, bh, detail, cap=self._max_conflicted_block_hashes)
+    _persist_bft_conflict_marker(
+        self,
+        kind="conflicted_block_hash",
+        key=bh,
+        payload=detail,
+        cap=self._max_conflicted_block_hashes,
     )
     for bid in (str(known_block_id or "").strip(), str(new_block_id or "").strip()):
         if bid:
@@ -418,6 +542,7 @@ def _mark_block_hash_conflict(
         source=str(source or "").strip(),
         parent_id=pid,
     )
+
 
 def _qc_identity_conflicts(self, qcj: Json, *, source: str = "qc") -> bool:
     if not isinstance(qcj, dict):
@@ -453,7 +578,57 @@ def _qc_identity_conflicts(self, qcj: Json, *, source: str = "qc") -> bool:
             return True
     return False
 
-def _block_identity_conflicts(self, block: Json) -> bool:
+
+def _canonical_conflict_identity(block: Json) -> tuple[bool, str, str] | None:
+    """Return canonical identity for conflict evidence when the header permits it.
+
+    ``None`` preserves compatibility for legacy/headerless diagnostic objects.
+    ``(False, "", "")`` means the advertised identity is internally
+    inconsistent and must be rejected without creating equivocation truth.
+    """
+    if not isinstance(block, dict):
+        return (False, "", "")
+    header = block.get("header")
+    if not isinstance(header, dict):
+        return None
+    try:
+        canonical_hash = compute_block_hash(header=header)
+    except Exception:
+        return (False, "", "")
+    advertised_hash = str(block.get("block_hash") or "").strip()
+    if advertised_hash and advertised_hash != canonical_hash:
+        return (False, "", "")
+
+    tx_ids_any = header.get("tx_ids")
+    if not isinstance(tx_ids_any, list):
+        return (False, "", "")
+    try:
+        height = int(header.get("height") or block.get("height") or 0)
+        ts_ms = int(header.get("block_ts_ms") or block.get("block_ts_ms") or 0)
+    except Exception:
+        return (False, "", "")
+    if height <= 0 or ts_ms <= 0:
+        return (False, "", "")
+    try:
+        canonical_id = compute_block_id(
+            chain_id=str(header.get("chain_id") or block.get("chain_id") or ""),
+            height=height,
+            prev_block_id=str(block.get("prev_block_id") or ""),
+            prev_block_hash=str(header.get("prev_block_hash") or ""),
+            ts_ms=ts_ms,
+            node_id=str(block.get("proposer") or block.get("node_id") or ""),
+            tx_ids=[str(value or "") for value in tx_ids_any],
+            receipts_root=str(header.get("receipts_root") or ""),
+        )
+    except Exception:
+        return (False, "", "")
+    advertised_id = str(block.get("block_id") or "").strip()
+    if advertised_id and advertised_id != canonical_id:
+        return (False, "", "")
+    return (True, canonical_id, canonical_hash)
+
+
+def _block_identity_conflicts(self, block: Json, *, record_conflicts: bool = True) -> bool:
     if not isinstance(block, dict):
         return False
     bid = str(block.get("block_id") or "").strip()
@@ -466,27 +641,52 @@ def _block_identity_conflicts(self, block: Json) -> bool:
         return False
     if self._is_conflicted_block_hash(block_hash):
         return True
+
     known = self._known_block_hash_for_id(bid)
     if known and known != block_hash:
-        self._mark_block_id_conflict(
-            block_id=bid,
-            known_hash=known,
-            new_hash=block_hash,
-            source="block",
-            parent_id=str(block.get("prev_block_id") or ""),
-        )
+        canonical = _canonical_conflict_identity(block)
+        if canonical is not None:
+            valid, canonical_bid, canonical_hash = canonical
+            if not valid:
+                return True
+            bid = canonical_bid
+            block_hash = canonical_hash
+            known = self._known_block_hash_for_id(bid)
+            if not known or known == block_hash:
+                return False
+        if record_conflicts:
+            self._mark_block_id_conflict(
+                block_id=bid,
+                known_hash=known,
+                new_hash=block_hash,
+                source="block",
+                parent_id=str(block.get("prev_block_id") or ""),
+            )
         return True
+
     known_block_id = self._known_block_id_for_hash(block_hash)
     if known_block_id and known_block_id != bid:
-        self._mark_block_hash_conflict(
-            block_hash=block_hash,
-            known_block_id=known_block_id,
-            new_block_id=bid,
-            source="block_hash_alias",
-            parent_id=str(block.get("prev_block_id") or ""),
-        )
+        canonical = _canonical_conflict_identity(block)
+        if canonical is not None:
+            valid, canonical_bid, canonical_hash = canonical
+            if not valid:
+                return True
+            bid = canonical_bid
+            block_hash = canonical_hash
+            known_block_id = self._known_block_id_for_hash(block_hash)
+            if not known_block_id or known_block_id == bid:
+                return False
+        if record_conflicts:
+            self._mark_block_hash_conflict(
+                block_hash=block_hash,
+                known_block_id=known_block_id,
+                new_block_id=bid,
+                source="block_hash_alias",
+                parent_id=str(block.get("prev_block_id") or ""),
+            )
         return True
     return False
+
 
 def _block_height_hint(self, block: Json) -> int:
     if not isinstance(block, dict):
@@ -496,6 +696,7 @@ def _block_height_hint(self, block: Json) -> int:
         return int(hdr.get("height") or block.get("height") or 0)
     except Exception:
         return 0
+
 
 def _has_local_block(self, block_id: str) -> bool:
     bid = str(block_id or "").strip()
@@ -511,6 +712,7 @@ def _has_local_block(self, block_id: str) -> bool:
     except Exception:
         return False
 
+
 def _index_pending_remote_block(self, block: Json) -> None:
     if not isinstance(block, dict):
         return
@@ -520,6 +722,7 @@ def _index_pending_remote_block(self, block: Json) -> None:
         _bounded_put(
             self._pending_remote_block_ids_by_hash, bh, bid, cap=self._max_pending_remote_blocks
         )
+
 
 def _index_quarantined_remote_block(self, block: Json) -> None:
     if not isinstance(block, dict):
@@ -533,6 +736,7 @@ def _index_quarantined_remote_block(self, block: Json) -> None:
             bid,
             cap=self._max_quarantined_remote_blocks,
         )
+
 
 def _quarantine_remote_block(self, block: Json) -> None:
     if not isinstance(block, dict):
@@ -555,6 +759,7 @@ def _quarantine_remote_block(self, block: Json) -> None:
             self._drop_quarantined_remote_artifacts(sevicted)
     self._index_quarantined_remote_block(incoming)
 
+
 def _drop_quarantined_remote_artifacts(self, block_id: str) -> None:
     bid = str(block_id or "").strip()
     if not bid:
@@ -567,6 +772,7 @@ def _drop_quarantined_remote_artifacts(self, block_id: str) -> None:
         pass
     if bh and str(self._quarantined_remote_block_ids_by_hash.get(bh) or "").strip() == bid:
         self._quarantined_remote_block_ids_by_hash.pop(bh, None)
+
 
 def _put_pending_remote_block(self, *, block_id: str, block: Json) -> None:
     bid = str(block_id or "").strip()
@@ -584,9 +790,8 @@ def _put_pending_remote_block(self, *, block_id: str, block: Json) -> None:
     self._persist_pending_bft_artifact(kind="pending_remote_block", block_id=bid, payload=blk)
     self._index_pending_remote_block(blk)
 
-def _promote_quarantined_remote_block(
-    self, block_id: str, *, block: Json | None = None
-) -> None:
+
+def _promote_quarantined_remote_block(self, block_id: str, *, block: Json | None = None) -> None:
     bid = str(block_id or "").strip()
     blk = dict(block) if isinstance(block, dict) else None
     if blk is None and bid:
@@ -598,15 +803,15 @@ def _promote_quarantined_remote_block(
     self._drop_quarantined_remote_artifacts(bid)
     self._put_pending_remote_block(block_id=bid, block=blk)
 
+
 def _index_pending_candidate(self, block: Json) -> None:
     if not isinstance(block, dict):
         return
     bid = str(block.get("block_id") or "").strip()
     bh = _block_hash_from_any(block)
     if bid and bh:
-        _bounded_put(
-            self._pending_candidate_ids_by_hash, bh, bid, cap=self._max_pending_candidates
-        )
+        _bounded_put(self._pending_candidate_ids_by_hash, bh, bid, cap=self._max_pending_candidates)
+
 
 def _index_pending_missing_qc(self, qcj: Json) -> None:
     if not isinstance(qcj, dict):
@@ -616,6 +821,7 @@ def _index_pending_missing_qc(self, qcj: Json) -> None:
         _bounded_put(
             self._pending_missing_qcs_by_hash, bh, dict(qcj), cap=self._max_pending_missing_qcs
         )
+
 
 def _put_pending_missing_qc(self, qcj: Json) -> None:
     if not isinstance(qcj, dict):
@@ -631,14 +837,11 @@ def _put_pending_missing_qc(self, qcj: Json) -> None:
             if sevicted and sevicted != bid and sevicted not in kept:
                 self._drop_pending_missing_qc_aliases(block_id=sevicted)
                 self._delete_pending_bft_artifact(kind="pending_missing_qc", block_id=sevicted)
-        self._persist_pending_bft_artifact(
-            kind="pending_missing_qc", block_id=bid, payload=payload
-        )
+        self._persist_pending_bft_artifact(kind="pending_missing_qc", block_id=bid, payload=payload)
     self._index_pending_missing_qc(payload)
 
-def _drop_pending_missing_qc_aliases(
-    self, *, block_id: str = "", qcj: Json | None = None
-) -> None:
+
+def _drop_pending_missing_qc_aliases(self, *, block_id: str = "", qcj: Json | None = None) -> None:
     bid = str(block_id or "").strip()
     q = dict(qcj) if isinstance(qcj, dict) else None
     if q is None and bid:
@@ -651,6 +854,7 @@ def _drop_pending_missing_qc_aliases(
         if not isinstance(cached, dict) or str(cached.get("block_id") or "").strip() == bid:
             self._pending_missing_qcs_by_hash.pop(bh, None)
 
+
 def _remove_pending_missing_qc(self, *, block_id: str) -> None:
     bid = str(block_id or "").strip()
     if not bid:
@@ -661,6 +865,7 @@ def _remove_pending_missing_qc(self, *, block_id: str) -> None:
     except Exception:
         pass
     self._delete_pending_bft_artifact(kind="pending_missing_qc", block_id=bid)
+
 
 def _pending_missing_qc_json(self, *, block_id: str = "", block_hash: str = "") -> Json | None:
     bid = str(block_id or "").strip()
@@ -690,6 +895,7 @@ def _pending_missing_qc_json(self, *, block_id: str = "", block_hash: str = "") 
                 return dict(qcj)
     return None
 
+
 def _pending_missing_qc_entries(self) -> OrderedDict[str, Json]:
     out: OrderedDict[str, Json] = OrderedDict()
     for bid, qcj in list(self._pending_missing_qcs.items()):
@@ -706,6 +912,7 @@ def _pending_missing_qc_entries(self) -> OrderedDict[str, Json]:
             continue
         out[sbid] = dict(qcj)
     return out
+
 
 def _drop_pending_hash_aliases(self, *, block_id: str, block: Json | None = None) -> None:
     bid = str(block_id or "").strip()
@@ -729,6 +936,7 @@ def _drop_pending_hash_aliases(self, *, block_id: str, block: Json | None = None
         if str(self._pending_candidate_ids_by_hash.get(bh) or "").strip() == bid:
             self._pending_candidate_ids_by_hash.pop(bh, None)
 
+
 def _pending_block_identity_tuple(self, block_id: str) -> tuple[int, str, str]:
     bid = str(block_id or "").strip()
     blk = self._bft_pending_block_json(bid)
@@ -736,17 +944,17 @@ def _pending_block_identity_tuple(self, block_id: str) -> tuple[int, str, str]:
         return (0, "", bid)
     return (int(self._block_height_hint(blk) or 0), _block_hash_from_any(blk), bid)
 
+
 def _ordered_pending_block_ids(self) -> list[str]:
     ids = list(
         dict.fromkeys(
-            list(self._pending_remote_blocks.keys())
-            + list(self._quarantined_remote_blocks.keys())
-            + list(self._pending_candidates.keys())
+            list(self._pending_remote_blocks.keys()) + list(self._pending_candidates.keys())
         )
     )
     ids = [str(bid or "").strip() for bid in ids if str(bid or "").strip()]
     ids.sort(key=lambda bid: self._pending_block_identity_tuple(bid))
     return ids
+
 
 def _drop_pending_remote_artifacts(self, block_id: str) -> None:
     bid = str(block_id or "").strip()
@@ -762,11 +970,14 @@ def _drop_pending_remote_artifacts(self, block_id: str) -> None:
     self._drop_quarantined_remote_artifacts(bid)
     self._remove_pending_missing_qc(block_id=bid)
 
+
 def _bft_speculative_blocks_map(self) -> dict[str, Json]:
     blocks_any = self.state.get("blocks")
     blocks_map: dict[str, Json] = dict(blocks_any) if isinstance(blocks_any, dict) else {}
 
-    for source in (self._quarantined_remote_blocks, self._pending_remote_blocks):
+    # Quarantined proposals are explicitly unauthenticated and must never become
+    # speculative consensus truth. Only promoted pending-remote blocks participate.
+    for source in (self._pending_remote_blocks,):
         for bid, blk in list(source.items()):
             sbid = str(bid or "").strip()
             if not sbid or sbid in blocks_map or not isinstance(blk, dict):
@@ -775,9 +986,9 @@ def _bft_speculative_blocks_map(self) -> dict[str, Json]:
                 "height": int(self._block_height_hint(blk) or 0),
                 "prev_block_id": str(blk.get("prev_block_id") or "").strip(),
                 "block_ts_ms": _safe_int(
-                    (
-                        (blk.get("header") or {}) if isinstance(blk.get("header"), dict) else {}
-                    ).get("block_ts_ms")
+                    ((blk.get("header") or {}) if isinstance(blk.get("header"), dict) else {}).get(
+                        "block_ts_ms"
+                    )
                     or blk.get("block_ts_ms"),
                     0,
                 ),
@@ -805,6 +1016,7 @@ def _bft_speculative_blocks_map(self) -> dict[str, Json]:
         }
     return blocks_map
 
+
 def _bft_pending_block_json(self, block_id: str) -> Json | None:
     bid = str(block_id or "").strip()
     if not bid or self._is_conflicted_block_id(bid):
@@ -812,13 +1024,11 @@ def _bft_pending_block_json(self, block_id: str) -> Json | None:
     blk = self._pending_remote_blocks.get(bid)
     if isinstance(blk, dict):
         return dict(blk)
-    blk = self._quarantined_remote_blocks.get(bid)
-    if isinstance(blk, dict):
-        return dict(blk)
     tup = self._pending_candidates.get(bid)
     if isinstance(tup, tuple) and tup and isinstance(tup[0], dict):
         return dict(tup[0])
     return None
+
 
 def _bft_pending_block_json_by_hash(self, block_hash: str) -> Json | None:
     bh = str(block_hash or "").strip()
@@ -829,12 +1039,6 @@ def _bft_pending_block_json_by_hash(self, block_hash: str) -> Json | None:
         blk = self._bft_pending_block_json(pending_remote_bid)
         if isinstance(blk, dict) and _block_hash_from_any(blk) == bh:
             self._index_pending_remote_block(blk)
-            return blk
-    quarantined_bid = str(self._quarantined_remote_block_ids_by_hash.get(bh) or "").strip()
-    if quarantined_bid:
-        blk = self._bft_pending_block_json(quarantined_bid)
-        if isinstance(blk, dict) and _block_hash_from_any(blk) == bh:
-            self._index_quarantined_remote_block(blk)
             return blk
     pending_candidate_bid = str(self._pending_candidate_ids_by_hash.get(bh) or "").strip()
     if pending_candidate_bid:
@@ -852,6 +1056,7 @@ def _bft_pending_block_json_by_hash(self, block_hash: str) -> Json | None:
             return blk
     return None
 
+
 def _resolve_pending_block_identity(
     self, *, block_id: str = "", block_hash: str = ""
 ) -> tuple[str, Json | None]:
@@ -866,6 +1071,7 @@ def _resolve_pending_block_identity(
             return (str(blk.get("block_id") or "").strip(), blk)
     return (bid, None)
 
+
 def _bft_pending_artifact_matches_current_epoch(self, payload: Json) -> bool:
     if not isinstance(payload, dict):
         return False
@@ -875,15 +1081,12 @@ def _bft_pending_artifact_matches_current_epoch(self, payload: Json) -> bool:
     local_set_hash = self._current_validator_set_hash() if int(local_epoch) > 0 else ""
     payload_epoch = _safe_int(payload.get("validator_epoch"), 0)
     payload_set_hash = str(payload.get("validator_set_hash") or "").strip()
-    if (
-        int(local_epoch) > 0
-        and int(payload_epoch) > 0
-        and int(payload_epoch) != int(local_epoch)
-    ):
+    if int(local_epoch) > 0 and int(payload_epoch) > 0 and int(payload_epoch) != int(local_epoch):
         return False
     if local_set_hash and payload_set_hash and payload_set_hash != local_set_hash:
         return False
     return True
+
 
 def _prune_pending_bft_artifacts(self) -> bool:
     changed = False
@@ -921,9 +1124,7 @@ def _prune_pending_bft_artifacts(self) -> bool:
             self._drop_pending_candidate_artifacts(sbid)
             changed = True
             continue
-        if self._has_local_block(sbid) or not self._bft_pending_artifact_matches_current_epoch(
-            blk
-        ):
+        if self._has_local_block(sbid) or not self._bft_pending_artifact_matches_current_epoch(blk):
             self._drop_pending_candidate_artifacts(sbid)
             changed = True
             continue
@@ -944,6 +1145,7 @@ def _prune_pending_bft_artifacts(self) -> bool:
 
     return changed
 
+
 def _bft_block_is_applyable_finalized_descendant(
     self, block: Json, finalized_block_id: str
 ) -> bool:
@@ -955,6 +1157,7 @@ def _bft_block_is_applyable_finalized_descendant(
         return True
     return is_descendant(self._bft_speculative_blocks_map(), candidate=bid, ancestor=fin)
 
+
 def _bft_parent_ready_for_apply(self, block: Json) -> bool:
     parent_id = str(block.get("prev_block_id") or "").strip()
     height = self._block_height_hint(block)
@@ -965,6 +1168,7 @@ def _bft_parent_ready_for_apply(self, block: Json) -> bool:
     if parent_id == str(self.state.get("tip") or "").strip():
         return True
     return self._has_local_block(parent_id)
+
 
 def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
     """Attempt deterministic catch-up replay for pending BFT blocks.
@@ -1025,9 +1229,7 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
                 scanned += 1
                 continue
         else:
-            qcj = self._pending_missing_qc_json(
-                block_id=bid, block_hash=_block_hash_from_any(blk)
-            )
+            qcj = self._pending_missing_qc_json(block_id=bid, block_hash=_block_hash_from_any(blk))
             if not (allow_qc_replay and isinstance(qcj, dict)):
                 self._pending_replay_cursor = bid
                 scanned += 1
@@ -1136,9 +1338,8 @@ def bft_try_apply_pending_remote_blocks(self) -> list[ExecutorMeta]:
                 results.extend(extra)
     return results
 
-def _bft_try_apply_pending_remote_blocks_followup(
-    self, *, max_extra: int
-) -> list[ExecutorMeta]:
+
+def _bft_try_apply_pending_remote_blocks_followup(self, *, max_extra: int) -> list[ExecutorMeta]:
     if max_extra <= 0:
         return []
     saved = int(getattr(self, "_max_pending_replay_applies_per_call", 8) or 8)
@@ -1148,24 +1349,41 @@ def _bft_try_apply_pending_remote_blocks_followup(
     finally:
         self._max_pending_replay_applies_per_call = saved
 
-def bft_cache_remote_block(self, block_json: Json) -> bool:
-    """Cache a fetched remote block for deterministic replay.
+
+def bft_cache_remote_block(self, block_json: Json, *, expected_block_hash: str = "") -> bool:
+    """Cache an unauthenticated fetched block only under prior identity truth.
+
+    ``expected_block_hash`` must come from a verified/locally bound fetch
+    descriptor (for example a QC block hash or a child's ``prev_block_hash``).
+    The fetched body/header commitments are recomputed before persistence; the
+    peer's advertised block ID/hash are never allowed to create identity truth.
 
     Returns True when the block is locally compatible and stored (or already
     present locally), else False.
     """
     if not isinstance(block_json, dict) or not block_json:
         return False
+    expected_hash = str(expected_block_hash or "").strip()
+    if not expected_hash:
+        return False
     try:
-        blk, _ = ensure_block_hash(dict(block_json))
+        blk, binding = ensure_received_block_commitments(
+            block=dict(block_json),
+            chain_id=self.chain_id,
+        )
     except Exception:
+        return False
+    if str(binding.block_hash or "").strip() != expected_hash:
         return False
     bid = str(blk.get("block_id") or "").strip()
     if not bid:
         return False
     if self._is_conflicted_block_id(bid):
         return False
-    if self._block_identity_conflicts(blk):
+    # Fetch responses are not themselves authenticated. They may be rejected
+    # against already-known identity truth, but must never create durable
+    # equivocation quarantine merely by presenting a canonical-looking header.
+    if self._block_identity_conflicts(blk, record_conflicts=False):
         return False
     if self._has_local_block(bid):
         self._drop_pending_remote_artifacts(bid)
@@ -1187,4 +1405,3 @@ def bft_cache_remote_block(self, block_json: Json) -> bool:
     self._put_pending_remote_block(block_id=bid, block=blk)
     self.bft_try_apply_pending_remote_blocks()
     return True
-

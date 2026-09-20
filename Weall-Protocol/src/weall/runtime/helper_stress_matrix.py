@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import permutations
-from typing import Sequence
 
 from weall.runtime.helper_dispatch import HelperDispatchContext
 from weall.runtime.helper_event_driver import (
@@ -10,7 +10,6 @@ from weall.runtime.helper_event_driver import (
     HelperEventOutcomeSummary,
     run_helper_event_sequence,
 )
-from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.parallel_execution import LanePlan
 
 

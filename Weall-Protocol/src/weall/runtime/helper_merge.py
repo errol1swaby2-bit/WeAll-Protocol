@@ -4,7 +4,6 @@ import copy
 from dataclasses import dataclass
 from typing import Any
 
-from weall.runtime.execution_lanes import canonical_scope_prefixes
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
     hash_json,
@@ -71,9 +70,13 @@ def _canon_paths(values: list[str] | tuple[str, ...]) -> tuple[str, ...]:
     return tuple(out)
 
 
-def _canon_delta_ops(delta_ops: list[HelperDeltaOp] | tuple[HelperDeltaOp, ...]) -> tuple[Json, ...]:
+def _canon_delta_ops(
+    delta_ops: list[HelperDeltaOp] | tuple[HelperDeltaOp, ...],
+) -> tuple[Json, ...]:
     rows = [op.to_json() for op in delta_ops]
-    rows.sort(key=lambda row: (str(row.get("path") or ""), str(row.get("op") or ""), hash_json(row)))
+    rows.sort(
+        key=lambda row: (str(row.get("path") or ""), str(row.get("op") or ""), hash_json(row))
+    )
     return tuple(rows)
 
 
@@ -86,7 +89,7 @@ def _delta_op_scope_key(path: str) -> tuple[str, str]:
     if not raw:
         return "", ""
     if raw.startswith("namespaced/"):
-        return "namespaced", raw[len("namespaced/"):].strip()
+        return "namespaced", raw[len("namespaced/") :].strip()
     return "legacy", raw
 
 
@@ -96,7 +99,9 @@ def _delta_ops_scope_status(
     write_set: tuple[str, ...],
     delta_ops: tuple[HelperDeltaOp, ...],
 ) -> str:
-    allowed_prefixes = tuple(str(item or "").strip().lower() for item in namespace_prefixes if str(item or "").strip())
+    allowed_prefixes = tuple(
+        str(item or "").strip().lower() for item in namespace_prefixes if str(item or "").strip()
+    )
     allowed_writes = set(_canon_paths(write_set))
     seen_paths: set[tuple[str, str]] = set()
     for op in delta_ops:
@@ -108,7 +113,9 @@ def _delta_ops_scope_status(
             return "delta_path_duplicate"
         if mode == "namespaced":
             lowered = key.lower()
-            if not any(lowered == prefix or lowered.startswith(prefix) for prefix in allowed_prefixes):
+            if not any(
+                lowered == prefix or lowered.startswith(prefix) for prefix in allowed_prefixes
+            ):
                 return "delta_namespace_scope_invalid"
             if key not in allowed_writes:
                 return "delta_write_scope_mismatch"
@@ -200,7 +207,9 @@ def _delete_path(root: Json, path: str) -> None:
     cur.pop(parts[-1], None)
 
 
-def apply_materialized_delta_ops(state: Json, delta_ops: list[HelperDeltaOp] | tuple[HelperDeltaOp, ...]) -> Json:
+def apply_materialized_delta_ops(
+    state: Json, delta_ops: list[HelperDeltaOp] | tuple[HelperDeltaOp, ...]
+) -> Json:
     out: Json = copy.deepcopy(state)
     for op in _canon_delta_ops(delta_ops):
         op_name = str(op.get("op") or "")
@@ -222,7 +231,9 @@ def merge_materialized_lane_results(
 ) -> MaterializedMergeOutcome:
     verified: list[MaterializedLaneResult] = []
     serialized: list[str] = []
-    for result in sorted(lane_results, key=lambda item: (item.cert.lane_id, list(item.cert.tx_ids))):
+    for result in sorted(
+        lane_results, key=lambda item: (item.cert.lane_id, list(item.cert.tx_ids))
+    ):
         status = verify_materialized_lane_result(result)
         if not status.ok:
             serialized.append(str(result.cert.lane_id))

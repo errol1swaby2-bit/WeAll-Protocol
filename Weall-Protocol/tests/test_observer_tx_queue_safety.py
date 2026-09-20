@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
@@ -30,7 +29,9 @@ class _FakeResponse:
         return json.dumps(self.payload, sort_keys=True).encode("utf-8")
 
 
-def _signed_account_register(account: str, *, chain_id: str = "weall-observer-361") -> dict[str, Any]:
+def _signed_account_register(
+    account: str, *, chain_id: str = "weall-observer-361"
+) -> dict[str, Any]:
     seed = bytes.fromhex("61" * 32)
     sk = MLDSA65PrivateKey.from_seed_bytes(seed)
     pubkey = sk.public_key().public_bytes_raw().hex()
@@ -90,7 +91,9 @@ def test_observer_submit_is_nonblocking_and_queues_tx_queue(tmp_path: Path, monk
     assert stored["records"][0]["attempts"] == 0
 
 
-def test_observer_operator_routes_require_token_and_redact_tx_queue_path(tmp_path: Path, monkeypatch) -> None:
+def test_observer_operator_routes_require_token_and_redact_tx_queue_path(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
     monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test")
@@ -100,14 +103,18 @@ def test_observer_operator_routes_require_token_and_redact_tx_queue_path(tmp_pat
     with _client(tmp_path) as client:
         denied = client.get("/v1/observer/edge/status")
         assert denied.status_code == 403
-        allowed = client.get("/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "edge-secret"})
+        allowed = client.get(
+            "/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "edge-secret"}
+        )
         assert allowed.status_code == 200, allowed.text
         tx_queue_status = allowed.json()["tx_queue"]
         assert "path" not in tx_queue_status
         assert "count" in tx_queue_status
 
 
-def test_observer_drain_verifies_upstream_identity_before_forwarding(tmp_path: Path, monkeypatch) -> None:
+def test_observer_drain_verifies_upstream_identity_before_forwarding(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_queue = tmp_path / "tx_queue.json"
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -132,7 +139,9 @@ def test_observer_drain_verifies_upstream_identity_before_forwarding(tmp_path: P
 
     monkeypatch.setattr("weall.api.routes_public_parts.tx.urllib.request.urlopen", fake_urlopen)
     with _client(tmp_path) as client:
-        drained = client.post("/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-secret"})
+        drained = client.post(
+            "/v1/observer/edge/tx-queue/drain", headers={"X-WeAll-Operator-Token": "edge-secret"}
+        )
 
     assert drained.status_code == 200, drained.text
     result = drained.json()["result"]["results"][0]["results"][0]
@@ -151,7 +160,9 @@ def test_observer_tx_queue_quarantines_corrupt_json(tmp_path: Path, monkeypatch)
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
 
     with _client(tmp_path) as client:
-        res = client.get("/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "edge-secret"})
+        res = client.get(
+            "/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "edge-secret"}
+        )
 
     assert res.status_code == 200, res.text
     assert res.json()["tx_queue"]["count"] == 0
@@ -169,7 +180,9 @@ def test_observer_tx_queue_prunes_to_configured_record_limit(tmp_path: Path, mon
 
     with _client(tmp_path) as client:
         for idx in range(3):
-            res = client.post("/v1/tx/submit", json=_signed_account_register(f"@observer_361_prune_{idx}"))
+            res = client.post(
+                "/v1/tx/submit", json=_signed_account_register(f"@observer_361_prune_{idx}")
+            )
             assert res.status_code == 200, res.text
 
     stored = _read_tx_queue(tx_queue)

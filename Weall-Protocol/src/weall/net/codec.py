@@ -65,9 +65,13 @@ type AnyWireMsg = (
 
 def dumps_json(obj: Any) -> bytes:
     try:
-        return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-            "utf-8"
-        )
+        return json.dumps(
+            obj,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
     except Exception as e:
         raise WireEncodeError("encode_failed", f"encode failed: {e}") from e
 
@@ -76,11 +80,17 @@ def loads_json(data: bytes | str) -> Any:
     try:
         if isinstance(data, bytes):
             data = data.decode("utf-8")
-        return json.loads(data)
+
+        def reject_nonfinite(token: str) -> Any:
+            raise ValueError(f"non_finite_json_number:{token}")
+
+        return json.loads(data, parse_constant=reject_nonfinite)
     except json.JSONDecodeError as e:
         raise WireDecodeError("invalid_json", f"invalid json: {e}") from e
     except UnicodeDecodeError as e:
         raise WireDecodeError("invalid_utf8", f"invalid utf-8: {e}") from e
+    except ValueError as e:
+        raise WireDecodeError("invalid_json", f"invalid json: {e}") from e
 
 
 _MSG_REGISTRY: dict[MsgType, type[AnyWireMsg]] = {

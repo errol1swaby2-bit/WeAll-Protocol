@@ -47,28 +47,39 @@ def _helper_block(tmp_path: Path, monkeypatch):
     follower = _new_executor(tmp_path / "follower")
     _bootstrap_account(leader, account_id="@alice")
     _bootstrap_account(follower, account_id="@alice")
-    assert leader.submit_tx({
-        "tx_type": "CONTENT_POST_CREATE",
-        "signer": "@alice",
-        "nonce": 2,
-        "payload": {"body": "hello", "visibility": "public", "tags": [], "media": []},
-    })["ok"] is True
+    assert (
+        leader.submit_tx(
+            {
+                "tx_type": "CONTENT_POST_CREATE",
+                "signer": "@alice",
+                "nonce": 2,
+                "payload": {"body": "hello", "visibility": "public", "tags": [], "media": []},
+            }
+        )["ok"]
+        is True
+    )
     block, _new_state, _applied_ids, _invalid_ids, err = leader.build_block_candidate(max_txs=1)
     assert err == ""
     assert isinstance(block.get("helper_execution"), dict)
     return follower, block
 
 
-def test_helper_execution_root_is_in_header_when_helper_metadata_exists(tmp_path: Path, monkeypatch) -> None:
+def test_helper_execution_root_is_in_header_when_helper_metadata_exists(
+    tmp_path: Path, monkeypatch
+) -> None:
     _follower, block = _helper_block(tmp_path, monkeypatch)
     helper_execution = block.get("helper_execution")
     assert isinstance(helper_execution, dict)
     header = block.get("header")
     assert isinstance(header, dict)
-    assert header.get("helper_execution_root") == compute_helper_execution_root(helper_execution=helper_execution)
+    assert header.get("helper_execution_root") == compute_helper_execution_root(
+        helper_execution=helper_execution
+    )
 
 
-def test_apply_block_rejects_tampered_helper_execution_metadata(tmp_path: Path, monkeypatch) -> None:
+def test_apply_block_rejects_tampered_helper_execution_metadata(
+    tmp_path: Path, monkeypatch
+) -> None:
     follower, block = _helper_block(tmp_path, monkeypatch)
     tampered = copy.deepcopy(block)
     helper_execution = tampered.get("helper_execution")
@@ -81,7 +92,9 @@ def test_apply_block_rejects_tampered_helper_execution_metadata(tmp_path: Path, 
     assert res.error == "bad_block:helper_execution_root_mismatch"
 
 
-def test_apply_block_rejects_helper_execution_without_header_root(tmp_path: Path, monkeypatch) -> None:
+def test_apply_block_rejects_helper_execution_without_header_root(
+    tmp_path: Path, monkeypatch
+) -> None:
     follower, block = _helper_block(tmp_path, monkeypatch)
     missing = copy.deepcopy(block)
     header = missing.get("header")

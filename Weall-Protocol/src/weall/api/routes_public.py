@@ -3,10 +3,13 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from weall.api.routes_public_parts.accounts import router as accounts_router
+from weall.api.routes_public_parts.activity import router as activity_router
 from weall.api.routes_public_parts.consensus import router as consensus_router
 from weall.api.routes_public_parts.content import router as content_router
 from weall.api.routes_public_parts.demo_seed import (
     demo_seed_router_should_mount,
+)
+from weall.api.routes_public_parts.demo_seed import (
     router as demo_seed_router,
 )
 from weall.api.routes_public_parts.disputes import router as disputes_router
@@ -15,7 +18,6 @@ from weall.api.routes_public_parts.gov import router as gov_router
 from weall.api.routes_public_parts.groups import router as groups_router
 from weall.api.routes_public_parts.health import router as health_router
 from weall.api.routes_public_parts.media import router as media_router
-from weall.api.routes_public_parts.activity import router as activity_router
 from weall.api.routes_public_parts.mempool import router as mempool_router
 from weall.api.routes_public_parts.metrics import router as metrics_router
 from weall.api.routes_public_parts.net_debug import router as net_debug_router

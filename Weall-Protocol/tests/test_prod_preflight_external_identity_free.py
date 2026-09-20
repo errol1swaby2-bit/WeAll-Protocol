@@ -28,6 +28,7 @@ def test_removed_external_identity_operator_scripts_are_absent() -> None:
     ]:
         assert not (ROOT / rel).exists(), rel
 
+
 def test_prod_preflight_rejects_current_and_legacy_authority_private_key_envs() -> None:
     checks = {
         "WEALL_AUTHORITY_SIGNER_PRIVKEY",

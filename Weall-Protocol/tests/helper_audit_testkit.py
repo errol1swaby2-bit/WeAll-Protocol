@@ -2,9 +2,17 @@ from __future__ import annotations
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
-from weall.runtime.helper_certificates import HelperExecutionCertificate, make_namespace_hash, sign_helper_certificate
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    make_namespace_hash,
+    sign_helper_certificate,
+)
 from weall.runtime.helper_dispatch import HelperDispatchContext
-from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_fingerprint, plan_parallel_execution
+from weall.runtime.parallel_execution import (
+    LanePlan,
+    canonical_lane_plan_fingerprint,
+    plan_parallel_execution,
+)
 
 
 def pub_hex_from_seed(seed_hex: str) -> str:
@@ -12,7 +20,9 @@ def pub_hex_from_seed(seed_hex: str) -> str:
     return key.public_key().public_bytes_raw().hex()
 
 
-def lane_setup(*, txs, validators=("v1", "v2", "v3"), validator_set_hash="vhash", view=7, leader_id="v1"):
+def lane_setup(
+    *, txs, validators=("v1", "v2", "v3"), validator_set_hash="vhash", view=7, leader_id="v1"
+):
     lane_plans = plan_parallel_execution(
         txs=txs,
         validators=list(validators),
@@ -28,7 +38,14 @@ def first_helper_lane(lane_plans: tuple[LanePlan, ...]) -> LanePlan:
     return next(plan for plan in lane_plans if str(plan.helper_id or ""))
 
 
-def dispatch_context(*, plan_id="", manifest_hash="", manifest_payload=None, coordinator_pubkey="", manifest_signature_required=False):
+def dispatch_context(
+    *,
+    plan_id="",
+    manifest_hash="",
+    manifest_payload=None,
+    coordinator_pubkey="",
+    manifest_signature_required=False,
+):
     return HelperDispatchContext(
         chain_id="c1",
         block_height=22,

@@ -15,7 +15,9 @@ def test_mldsa_account_key_record_shape():
 
 def test_ambiguous_key_rejected_in_closed_testnet(monkeypatch):
     monkeypatch.setenv("WEALL_CRYPTO_MODE", "closed-testnet")
-    ok, reason = validate_account_key_record({"pubkey": "aa", "active": True}, require_verifier=False)
+    ok, reason = validate_account_key_record(
+        {"pubkey": "aa", "active": True}, require_verifier=False
+    )
     assert ok is False
     assert reason == "account_key_missing_sig_profile"
 

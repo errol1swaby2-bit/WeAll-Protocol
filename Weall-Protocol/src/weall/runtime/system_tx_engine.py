@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -18,12 +18,26 @@ from weall.ledger.issuance import (
     issuance_epoch_index_for_due_height,
 )
 from weall.ledger.roles_schema import ensure_roles_schema
-from weall.runtime.bounded_rollback import journal_append_list, journal_set_dict_key
+from weall.runtime.bounded_rollback import (
+    journal_append_list,
+    journal_set_dict_key,
+    materialize_journaled,
+)
 from weall.runtime.econ_phase import econ_allowed_from_state
+from weall.runtime.lineage_witness import (
+    LineageWitness,
+    LineageWitnessKind,
+    make_single_tx_witness,
+    validate_lineage_witness,
+)
 from weall.runtime.tx_admission import TxEnvelope
 from weall.tx.canon import TxIndex
 
 Json = dict[str, Any]
+
+LINEAGE_WITNESS_PAYLOAD_KEY = "_lineage_witness"
+BLOCK_FINALIZE_TX_TYPE = "BLOCK_FINALIZE"
+EPOCH_FINALITY_SINGLE_TX_CHILDREN = frozenset({"EPOCH_OPEN", "EPOCH_CLOSE"})
 
 
 class SystemTxEngineError(RuntimeError):
@@ -106,13 +120,147 @@ def _is_receipt_only(canon: Any, tx_type: str) -> bool:
     return bool(info.get("receipt_only") is True) if isinstance(info, dict) else False
 
 
-def _canon_parent_required(canon: Any, tx_type: str) -> str:
-    """Return the canon-declared parent type (string) for receipt-only txs, if any."""
+def _canon_parent_tx_type(canon: Any, tx_type: str) -> str:
     info = _canon_info(canon, tx_type)
     if not isinstance(info, dict):
         return ""
-    p = info.get("parent")
-    return _as_opt_str(p).strip().upper()
+    return _as_str(info.get("parent_tx_type") or "").strip().upper()
+
+
+def _single_tx_lineage_shape(
+    canon: Any,
+    env: TxEnvelope,
+    *,
+    required_child_tx_types: Collection[str],
+) -> tuple[bool, str, LineageWitness | None]:
+    tx_type = _as_str(getattr(env, "tx_type", "") or "").strip().upper()
+    required = {_as_str(value).strip().upper() for value in required_child_tx_types}
+    if tx_type not in required:
+        return True, "", None
+
+    expected_parent = _canon_parent_tx_type(canon, tx_type)
+    if not expected_parent:
+        return False, "lineage_parent_tx_type_missing", None
+
+    payload = env.payload if isinstance(env.payload, dict) else {}
+    raw = payload.get(LINEAGE_WITNESS_PAYLOAD_KEY)
+    if not isinstance(raw, Mapping):
+        return False, "lineage_witness_missing", None
+
+    verdict = validate_lineage_witness(raw, expected_parent_tx_type=expected_parent)
+    if not verdict.ok or verdict.witness is None:
+        return False, f"lineage_witness_invalid:{verdict.reason}", None
+    witness = verdict.witness
+    if witness.kind is not LineageWitnessKind.SINGLE_TX:
+        return False, "lineage_witness_kind_mismatch", None
+    if witness.same_block_position is None:
+        return False, "lineage_same_block_position_missing", None
+    if witness.scope:
+        return False, "lineage_same_block_scope_must_be_empty", None
+    return True, "", witness
+
+
+def validate_same_block_single_tx_lineage(
+    canon: Any,
+    env: TxEnvelope,
+    *,
+    prior_txs: Sequence[Mapping[str, Any]],
+    required_child_tx_types: Collection[str],
+) -> tuple[bool, str]:
+    """Verify an enforced SINGLE_TX witness against an earlier block transaction."""
+
+    ok, reason, witness = _single_tx_lineage_shape(
+        canon, env, required_child_tx_types=required_child_tx_types
+    )
+    if not ok or witness is None:
+        return ok, reason
+
+    position = int(witness.same_block_position)
+    if position < 0 or position >= len(prior_txs):
+        return False, "lineage_parent_position_not_prior"
+    parent = prior_txs[position]
+    if not isinstance(parent, Mapping):
+        return False, "lineage_parent_not_object"
+
+    parent_tx_id = _as_str(parent.get("tx_id") or "").strip()
+    if parent_tx_id != witness.parent_tx_id:
+        return False, "lineage_parent_tx_id_mismatch"
+    parent_tx_type = _as_str(parent.get("tx_type") or "").strip().upper()
+    if parent_tx_type != witness.parent_tx_type:
+        return False, "lineage_parent_tx_type_mismatch"
+    return True, ""
+
+
+def bind_new_same_block_single_tx_children(
+    state: Json,
+    canon: Any,
+    *,
+    queue_ids_before: Collection[str],
+    parent_tx_type: str,
+    parent_tx_id: str,
+    parent_position: int,
+    child_tx_types: Collection[str],
+) -> int:
+    """Bind newly queued exact children to the concrete parent transaction instance.
+
+    This is intentionally narrow: only queue entries appended by the just-applied
+    parent transaction and explicitly named by ``child_tx_types`` are eligible.
+    Existing/delayed queue entries are never rebound by a global latest-by-type
+    lookup.  The legacy ``parent`` context reference remains untouched.
+    """
+
+    parent_type = _as_str(parent_tx_type).strip().upper()
+    parent_id = _as_str(parent_tx_id).strip()
+    if not parent_type:
+        raise SystemQueueCorruptionError("single_tx_lineage_parent_type_required")
+    parent_witness = make_single_tx_witness(
+        parent_tx_type=parent_type,
+        parent_tx_id=parent_id,
+        same_block_position=int(parent_position),
+    ).to_json()
+
+    before = {_as_str(value).strip() for value in queue_ids_before if _as_str(value).strip()}
+    children = {_as_str(value).strip().upper() for value in child_tx_types}
+    root = _queue_root(state)
+    items = _validated_queue_items_from_root(root)
+    known_ids = {item.queue_id for _idx, item in items}
+    rebound = 0
+
+    for idx, item in items:
+        if item.queue_id in before or item.tx_type not in children:
+            continue
+        expected_parent = _canon_parent_tx_type(canon, item.tx_type)
+        if expected_parent != parent_type:
+            raise SystemQueueCorruptionError(
+                "single_tx_lineage_parent_type_mismatch:"
+                f"{item.tx_type}:{expected_parent}:{parent_type}"
+            )
+        payload = dict(item.payload or {})
+        if LINEAGE_WITNESS_PAYLOAD_KEY in payload:
+            raise SystemQueueCorruptionError(
+                f"single_tx_lineage_witness_already_present:{item.tx_type}"
+            )
+        payload[LINEAGE_WITNESS_PAYLOAD_KEY] = dict(parent_witness)
+        new_qid = _queue_id_for_fields(
+            tx_type=item.tx_type,
+            payload=payload,
+            signer=item.signer,
+            due_height=item.due_height,
+            parent=item.parent,
+            phase=item.phase,
+            once=item.once,
+        )
+        if new_qid != item.queue_id and new_qid in known_ids:
+            raise SystemQueueCorruptionError(
+                f"single_tx_lineage_queue_id_collision:{item.tx_type}:{new_qid}"
+            )
+        known_ids.discard(item.queue_id)
+        known_ids.add(new_qid)
+        root[idx]["payload"] = payload
+        root[idx]["queue_id"] = new_qid
+        rebound += 1
+
+    return rebound
 
 
 # ---------------------------------------------------------------------------
@@ -367,9 +515,11 @@ class SystemQueueItem:
 
 def _queue_root(state: Json) -> list[Json]:
     root = state.get("system_queue")
-    if not isinstance(root, list):
+    if root is None:
         root = []
         journal_set_dict_key(state, "system_queue", root, "system_queue")
+    elif not isinstance(root, list):
+        raise SystemQueueCorruptionError("system_queue_not_list")
     return root
 
 
@@ -522,13 +672,7 @@ def system_queue_phase_for_id(state: Json, *, queue_id: str) -> str:
 
 
 def _queue_ids(state: Json) -> set[str]:
-    ids: set[str] = set()
-    for obj in _queue_root(state):
-        if isinstance(obj, dict):
-            qid = _as_str(obj.get("queue_id")).strip()
-            if qid:
-                ids.add(qid)
-    return ids
+    return {item.queue_id for item in _validated_queue_items(state)}
 
 
 def _queue_id_for_fields(
@@ -541,9 +685,12 @@ def _queue_id_for_fields(
     phase: str,
     once: bool,
 ) -> str:
+    raw_payload = materialize_journaled(payload)
+    if not isinstance(raw_payload, dict):
+        raise ValueError("system_queue_payload_not_object")
     base = {
         "tx_type": _as_str(tx_type).strip().upper(),
-        "payload": dict(payload),
+        "payload": raw_payload,
         "signer": _as_str(signer).strip() or "SYSTEM",
         "due_height": int(due_height),
         "parent": _as_opt_str(parent).strip(),
@@ -577,9 +724,12 @@ def enqueue_system_tx(
     if not isinstance(payload, dict):
         raise ValueError("system_queue_payload_not_object")
 
+    raw_payload = materialize_journaled(payload)
+    if not isinstance(raw_payload, dict):
+        raise ValueError("system_queue_payload_not_object")
     base = {
         "tx_type": tx_type_u,
-        "payload": dict(payload),
+        "payload": raw_payload,
         "signer": _as_str(signer).strip() or "SYSTEM",
         "due_height": int(due_height),
         "parent": parent_norm,
@@ -673,19 +823,9 @@ def system_tx_emitter(
         # Prefer explicit queue parent, then payload ref
         parent_ref = it.parent.strip() if it.parent else payload_parent_ref
 
-        # Receipt-only means it can only be emitted on the system/block path,
-        # but it does *not* necessarily imply a parent reference is required.
-        # Parent requirements are tracked separately in canon.
-        parent_required = _canon_parent_required(canon, it.tx_type)
-
-        # Autofill parent_ref from canon *only* when canon explicitly requires it.
-        if parent_required and not parent_ref:
-            parent_ref = parent_required
-
-        # If canon requires a parent and we still do not have one, skip emission
-        # rather than emitting an invalid receipt envelope.
-        if parent_required and not parent_ref:
-            continue
+        # Canon parent metadata names a parent TxType, while ``parent_ref`` is a
+        # concrete transaction/context reference supplied by the scheduler. Never
+        # synthesize an instance reference from the TxType name.
 
         # Keep payload consistent with envelope (helps downstream apply paths)
         if parent_ref:
@@ -742,9 +882,6 @@ def _expected_emitted_system_env_fields(
 
     payload_parent_ref = _as_opt_str(payload.get("_parent_ref")).strip()
     parent_ref = item.parent.strip() if item.parent else payload_parent_ref
-    parent_required = _canon_parent_required(canon, item.tx_type)
-    if parent_required and not parent_ref:
-        parent_ref = parent_required
     if parent_ref:
         payload.setdefault("_parent_ref", parent_ref)
     return payload, str(signer or "SYSTEM"), parent_ref if parent_ref else ""
@@ -778,6 +915,13 @@ def validate_system_tx_queue_binding(
     tx_type = _as_str(getattr(env, "tx_type", "") or "").strip().upper()
     if found.tx_type != tx_type:
         return False, "system_queue_tx_type_mismatch"
+    lineage_ok, lineage_reason, _ = _single_tx_lineage_shape(
+        canon,
+        env,
+        required_child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+    )
+    if not lineage_ok:
+        return False, lineage_reason
     if int(found.due_height) != int(next_height):
         return False, "system_queue_due_height_mismatch"
     if int(payload.get("_due_height") or 0) != int(next_height):
@@ -832,6 +976,10 @@ __all__ = [
     "SystemSchedulerError",
     "SystemTxEngineError",
     "SystemQueueItem",
+    "BLOCK_FINALIZE_TX_TYPE",
+    "EPOCH_FINALITY_SINGLE_TX_CHILDREN",
+    "LINEAGE_WITNESS_PAYLOAD_KEY",
+    "bind_new_same_block_single_tx_children",
     "build_system_queue_lookup",
     "confirm_system_tx_emitted",
     "enqueue_system_tx",
@@ -839,5 +987,6 @@ __all__ = [
     "system_queue_phase_for_id",
     "schedule_block_rewards_system_txs",
     "system_tx_emitter",
+    "validate_same_block_single_tx_lineage",
     "validate_system_tx_queue_binding",
 ]

@@ -75,8 +75,7 @@ def test_api_contract_generator_is_deterministic_and_checkable() -> None:
         [sys.executable, "scripts/gen_api_contract_map.py", "--check"],
         cwd=ROOT,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     after = MAP_PATH.read_text(encoding="utf-8")
@@ -99,4 +98,7 @@ def test_api_contract_auth_metadata_does_not_overclaim_sensitive_get_routes() ->
         assert "public_read_redacted_snapshot" not in routes[key]["auth"]
         assert "metadata_source" in routes[key]
 
-    assert routes["GET /v1/status/launch-matrix"]["auth"] == "public_read_launch_capability_truth_boundary"
+    assert (
+        routes["GET /v1/status/launch-matrix"]["auth"]
+        == "public_read_launch_capability_truth_boundary"
+    )

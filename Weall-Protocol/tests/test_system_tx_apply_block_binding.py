@@ -81,9 +81,7 @@ def _retx(block: dict) -> None:
     header = block.get("header")
     if isinstance(header, dict):
         header["tx_ids"] = [
-            str(tx.get("tx_id") or "")
-            for tx in block.get("txs") or []
-            if isinstance(tx, dict)
+            str(tx.get("tx_id") or "") for tx in block.get("txs") or [] if isinstance(tx, dict)
         ]
         block["block_id"] = compute_block_id(
             chain_id=str(header.get("chain_id") or "apply-block-system-binding"),

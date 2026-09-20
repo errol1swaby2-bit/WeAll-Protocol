@@ -73,23 +73,29 @@ def test_public_observer_readiness_plan_includes_external_transcript_checklist()
     assert "must not close `AUD-628-P1-001`" in text
 
 
-def test_current_testnet_readiness_statement_preserves_count_semantics() -> None:
+def test_current_testnet_readiness_statement_preserves_generated_count_semantics() -> None:
     text = _read(STATEMENT)
+
     for required in (
-        "blocker_catalog_count",
-        "closed_in_repository_count",
-        "remaining_blocker_count",
-        "remaining_external_evidence_required_count",
-        "p0_open_count",
-        "p1_open_count",
+        "generated/public_beta_blocker_report_v1_5.json",
+        "generated/controlled_testnet_go_gate_v1_5.json",
+        "generated facts, not durable prose facts",
+        "intentionally does not duplicate numeric",
         "public_beta_ready` must remain `false`",
         "AUD-628-P1-001",
         "AUD-618-P1-003",
     ):
         assert required in text
-    assert "15" in text
-    assert "7" in text
-    assert "8" in text
+
+    # Mutable blocker totals belong to generated artifacts rather than
+    # reviewer-facing prose.
+    assert "blocker_catalog_count" not in text
+    assert "closed_in_repository_count" not in text
+    assert "remaining_blocker_count" not in text
+    assert "remaining_external_evidence_required_count" not in text
+    assert "p0_open_count" not in text
+    assert "p1_open_count" not in text
+
     assert "controlled-testnet mechanism completion is no-go" in text.lower()
 
 
@@ -98,4 +104,6 @@ def test_public_beta_blocker_status_points_to_canonical_readiness_docs() -> None
     assert "docs/audits/public_observer_testnet_readiness_plan_v1_5.md" in text
     assert "docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md" in text
     assert "Canonical testnet readiness tier mapping" in text
-    assert "only an external clean-clone/open-download" in text
+    assert "external clean-clone/open-download" in text
+    assert "Only real evidence closes open blockers." in text
+    assert "AUD-628-P1-001" in text

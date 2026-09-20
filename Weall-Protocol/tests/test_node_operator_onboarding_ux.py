@@ -13,7 +13,7 @@ def test_node_operator_ui_does_not_offer_self_activation() -> None:
     assert "automatically activates baseline Node Operator status" in text
     assert "ROLE_NODE_OPERATOR_ACTIVATE" not in text
     assert "Activate node operator role" not in text
-    assert "runOperatorTx(\"activate\")" not in text
+    assert 'runOperatorTx("activate")' not in text
     assert "Activating…" not in text
 
 

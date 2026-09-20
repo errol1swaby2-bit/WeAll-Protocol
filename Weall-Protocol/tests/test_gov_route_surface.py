@@ -58,7 +58,9 @@ def _seed_state() -> dict:
 def test_gov_proposals_active_only_and_summary() -> None:
     client = TestClient(_app_with_state(_seed_state()))
 
-    res = client.get("/v1/gov/proposals", params={"active_only": 1, "include_summary": 1, "limit": 50})
+    res = client.get(
+        "/v1/gov/proposals", params={"active_only": 1, "include_summary": 1, "limit": 50}
+    )
     assert res.status_code == 200
     body = res.json()
 

@@ -51,4 +51,8 @@ def test_missing_helper_certificate_falls_back_deterministically() -> None:
     assert first.receipts == second.receipts
     assert first.lane_decisions == second.lane_decisions
     assert all(not d.used_helper for d in first.lane_decisions)
-    assert any(d.fallback_reason == "missing_helper_certificate" for d in first.lane_decisions if d.lane_id != "SERIAL")
+    assert any(
+        d.fallback_reason == "missing_helper_certificate"
+        for d in first.lane_decisions
+        if d.lane_id != "SERIAL"
+    )

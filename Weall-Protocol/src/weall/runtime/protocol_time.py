@@ -9,7 +9,8 @@ Wall-clock milliseconds remain acceptable for transport diagnostics, logs, and
 TTL caches, but not for protocol-readiness or source-of-truth payloads.
 """
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 Json = dict[str, Any]
 

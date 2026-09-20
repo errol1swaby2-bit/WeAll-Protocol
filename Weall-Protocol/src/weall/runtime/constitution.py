@@ -7,8 +7,9 @@ stable commitments that chain manifests, status endpoints, and tests can use to
 prove which constitutional document a node is claiming to run under.
 """
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from weall.runtime.chain_manifest import sha256_hex
 
@@ -45,8 +46,16 @@ def manifest_constitution_commitment(raw: Mapping[str, Any] | None) -> Json:
     return {
         "version": str(obj.get("constitution_version") or nested.get("version") or "").strip(),
         "hash": str(obj.get("constitution_hash") or nested.get("hash") or "").strip().lower(),
-        "document_path": str(obj.get("constitution_document_path") or nested.get("document_path") or CONSTITUTION_DOC_RELATIVE_PATH).strip(),
-        "traceability_hash": str(obj.get("constitution_traceability_hash") or nested.get("traceability_hash") or "").strip().lower(),
+        "document_path": str(
+            obj.get("constitution_document_path")
+            or nested.get("document_path")
+            or CONSTITUTION_DOC_RELATIVE_PATH
+        ).strip(),
+        "traceability_hash": str(
+            obj.get("constitution_traceability_hash") or nested.get("traceability_hash") or ""
+        )
+        .strip()
+        .lower(),
     }
 
 
@@ -66,5 +75,7 @@ def active_constitution_commitment(raw_manifest: Mapping[str, Any] | None = None
         "active": bool(version and claimed_hash and claimed_hash == doc_hash),
         "hash_matches_source": bool(claimed_hash and claimed_hash == doc_hash),
         "traceability_hash_matches_source": bool(claimed_trace and claimed_trace == trace_hash),
-        "status": "genesis_bound" if claimed_hash == doc_hash and version else "unbound_or_mismatch",
+        "status": "genesis_bound"
+        if claimed_hash == doc_hash and version
+        else "unbound_or_mismatch",
     }

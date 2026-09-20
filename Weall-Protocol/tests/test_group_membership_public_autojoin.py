@@ -6,7 +6,9 @@ from weall.runtime.apply.groups import GroupsApplyError, apply_groups
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _request(state: dict, *, signer: str = "@alice", nonce: int = 7, note: str | None = None) -> dict:
+def _request(
+    state: dict, *, signer: str = "@alice", nonce: int = 7, note: str | None = None
+) -> dict:
     payload: dict[str, object] = {"group_id": "g:public"}
     if note is not None:
         payload["note"] = note
@@ -25,7 +27,9 @@ def _request(state: dict, *, signer: str = "@alice", nonce: int = 7, note: str |
     return result
 
 
-def _decision(state: dict, *, account: str = "@alice", decision: str = "accept", nonce: int = 8) -> dict:
+def _decision(
+    state: dict, *, account: str = "@alice", decision: str = "accept", nonce: int = 8
+) -> dict:
     result = apply_groups(
         state,
         TxEnvelope(
@@ -135,7 +139,12 @@ def test_duplicate_approval_request_is_deterministically_deduped() -> None:
     assert first.get("deduped") is not True
     assert second["membership"] == "pending"
     assert second["deduped"] is True
-    assert state["roles"]["groups_by_id"]["g:public"]["membership_requests"]["@alice"]["requested_at_nonce"] == 7
+    assert (
+        state["roles"]["groups_by_id"]["g:public"]["membership_requests"]["@alice"][
+            "requested_at_nonce"
+        ]
+        == 7
+    )
 
 
 def test_approval_accept_consumes_request_and_creates_member() -> None:

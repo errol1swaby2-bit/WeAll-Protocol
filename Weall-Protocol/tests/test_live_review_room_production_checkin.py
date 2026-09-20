@@ -36,14 +36,14 @@ def test_live_review_join_records_chain_attendance_before_room_presence_or_media
 
     assert "pohLiveTxJurorAccept" in body
     assert "pohLiveTxAttendance" in body
-    assert "waitForLiveJurorState(\"Live room attendance\"" in body
-    assert "await updatePresence(\"joined\")" not in body
-    assert "tryUpdatePresence(\"joined\")" in body
+    assert 'waitForLiveJurorState("Live room attendance"' in body
+    assert 'await updatePresence("joined")' not in body
+    assert 'tryUpdatePresence("joined")' in body
 
     accept_idx = body.index("pohLiveTxJurorAccept")
     attendance_idx = body.index("pohLiveTxAttendance")
     media_idx = body.index("ensureP2PRoomStarted")
-    external_presence_idx = body.index("tryUpdatePresence(\"joined\")")
+    external_presence_idx = body.index('tryUpdatePresence("joined")')
 
     assert accept_idx < attendance_idx < media_idx < external_presence_idx
 
@@ -51,10 +51,10 @@ def test_live_review_join_records_chain_attendance_before_room_presence_or_media
 def test_p2p_room_presence_is_recorded_before_local_media_but_running_requires_media() -> None:
     body = _function_body(_page(), "ensureP2PRoomStarted")
 
-    presence_idx = body.index("await updatePresence(\"joined\")")
+    presence_idx = body.index('await updatePresence("joined")')
     media_idx = body.index("await ensureLocalP2PMedia()")
     running_idx = body.index("setP2pRunning(true)")
-    hello_idx = body.index("sendWebRTCSignal({ type: \"hello\" })")
+    hello_idx = body.index('sendWebRTCSignal({ type: "hello" })')
 
     assert presence_idx < media_idx < running_idx < hello_idx
     assert "room presence recorded; local media unavailable" in body
@@ -65,7 +65,7 @@ def test_inbound_webrtc_signals_do_not_require_local_media_capture_first() -> No
 
     assert "getOrCreatePeerConnection(from)" in body
     assert "ensureLocalP2PMedia" not in body
-    assert "setRemoteDescription({ type: \"offer\"" in body
+    assert 'setRemoteDescription({ type: "offer"' in body
     assert "createAnswer()" in body
 
 

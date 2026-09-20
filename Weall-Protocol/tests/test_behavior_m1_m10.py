@@ -61,9 +61,7 @@ def test_m03_slash_execute_records_non_economic_validator_accountability() -> No
     state: Json = {
         "state_version": 1,
         "validators": {
-            "registry": {
-                "alice": {"status": "active", "active": True, "pubkey": "mldsa:alice"}
-            }
+            "registry": {"alice": {"status": "active", "active": True, "pubkey": "mldsa:alice"}}
         },
         "roles": {"validators": {"active_set": ["alice"]}},
     }
@@ -111,7 +109,12 @@ def test_m05_upheld_poh_challenge_revokes_poh_status() -> None:
 
     opened = apply_tx(
         state,
-        _env("POH_CHALLENGE_OPEN", {"account_id": "bob", "reason": "duplicate-human"}, signer="alice", nonce=1),
+        _env(
+            "POH_CHALLENGE_OPEN",
+            {"account_id": "bob", "reason": "duplicate-human"},
+            signer="alice",
+            nonce=1,
+        ),
     )
     challenge_id = opened["challenge_id"]
 
@@ -143,7 +146,12 @@ def test_m05_dismissed_poh_challenge_does_not_revoke() -> None:
     }
     opened = apply_tx(
         state,
-        _env("POH_CHALLENGE_OPEN", {"account_id": "bob", "reason": "mistake"}, signer="alice", nonce=1),
+        _env(
+            "POH_CHALLENGE_OPEN",
+            {"account_id": "bob", "reason": "mistake"},
+            signer="alice",
+            nonce=1,
+        ),
     )
     resolved = apply_tx(
         state,
@@ -180,10 +188,21 @@ def test_m10_state_root_vectors_encode_canonicalization_contract() -> None:
     assert data["schema"] == "weall.v1_5.state_root_vectors"
     vectors = {v["name"]: v for v in data["vectors"]}
     assert vectors["base"]["state_root"] == vectors["reordered_dicts_same_semantics"]["state_root"]
-    assert vectors["base"]["state_root"] == vectors["with_ephemeral_fields_same_semantics"]["state_root"]
-    assert vectors["base"]["state_root"] != vectors["consensus_meta_policy_is_root_bound"]["state_root"]
-    assert vectors["nested_meta_reference"]["state_root"] != vectors["nested_meta_semantic_change"]["state_root"]
-    assert vectors["list_order_reference"]["state_root"] != vectors["list_order_changed"]["state_root"]
+    assert (
+        vectors["base"]["state_root"]
+        == vectors["with_ephemeral_fields_same_semantics"]["state_root"]
+    )
+    assert (
+        vectors["base"]["state_root"]
+        != vectors["consensus_meta_policy_is_root_bound"]["state_root"]
+    )
+    assert (
+        vectors["nested_meta_reference"]["state_root"]
+        != vectors["nested_meta_semantic_change"]["state_root"]
+    )
+    assert (
+        vectors["list_order_reference"]["state_root"] != vectors["list_order_changed"]["state_root"]
+    )
     assert compute_state_root({"a": 1, "meta": {"local": True}}) == compute_state_root({"a": 1})
 
 

@@ -78,7 +78,9 @@ MECHANICS: list[Json] = [
             "epoch-bound suspension/removal policy after slash quorum",
             "stake or bond penalty mechanics after economics activation",
         ],
-        "acceptance_tests": ["pytest -q tests/test_behavior_m1_m10.py::test_m03_slash_execute_records_non_economic_validator_accountability"],
+        "acceptance_tests": [
+            "pytest -q tests/test_behavior_m1_m10.py::test_m03_slash_execute_records_non_economic_validator_accountability"
+        ],
         "do_not_cross": ["do not add stake slashing while economics is locked"],
     },
     {
@@ -118,7 +120,9 @@ MECHANICS: list[Json] = [
             "reviewer/juror accountability for bad approvals",
             "duplicate-human detection beyond reused proof commitments",
         ],
-        "acceptance_tests": ["pytest -q tests/test_behavior_m1_m10.py::test_m05_upheld_poh_challenge_revokes_poh_status"],
+        "acceptance_tests": [
+            "pytest -q tests/test_behavior_m1_m10.py::test_m05_upheld_poh_challenge_revokes_poh_status"
+        ],
         "do_not_cross": ["do not claim full one-human-one-account Sybil resistance"],
     },
     {
@@ -126,7 +130,10 @@ MECHANICS: list[Json] = [
         "title": "Dispute appeal and enforcement completion",
         "domain": "disputes/moderation",
         "status": "partial_mechanic_non_content_enforcement_missing",
-        "current_files": ["src/weall/runtime/apply/dispute.py", "src/weall/runtime/apply/content.py"],
+        "current_files": [
+            "src/weall/runtime/apply/dispute.py",
+            "src/weall/runtime/apply/content.py",
+        ],
         "missing_mechanics": [
             "full appeal panel vote/tally/finalize path",
             "non-content enforcement targets",
@@ -168,7 +175,12 @@ MECHANICS: list[Json] = [
         "title": "Economics activation blockade and simulation",
         "domain": "tokenomics/economics",
         "status": "locked_mechanic_simulation_added_activation_missing",
-        "locked_features": ["live_economics", "balance_transfer", "reward_issuance", "treasury_spend"],
+        "locked_features": [
+            "live_economics",
+            "balance_transfer",
+            "reward_issuance",
+            "treasury_spend",
+        ],
         "current_files": [
             "src/weall/runtime/econ_phase.py",
             "src/weall/runtime/apply/economics.py",
@@ -192,7 +204,11 @@ MECHANICS: list[Json] = [
         "title": "Storage/IPFS durability proof",
         "domain": "storage/media",
         "status": "partial_mechanic_durability_proof_missing",
-        "current_files": ["src/weall/runtime/apply/storage.py", "src/weall/storage", "src/weall/ipfs"],
+        "current_files": [
+            "src/weall/runtime/apply/storage.py",
+            "src/weall/storage",
+            "src/weall/ipfs",
+        ],
         "missing_mechanics": [
             "multi-node pin durability proof",
             "pin target failure detection and reassignment",

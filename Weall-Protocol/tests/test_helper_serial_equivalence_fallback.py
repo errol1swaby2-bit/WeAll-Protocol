@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
@@ -16,11 +17,12 @@ from weall.runtime.parallel_execution import (
     verify_serial_helper_equivalence,
 )
 
-
 Json = dict[str, Any]
 
 
-def _serial_executor(txs: list[dict], _leader_context: dict | None = None) -> tuple[list[dict], dict]:
+def _serial_executor(
+    txs: list[dict], _leader_context: dict | None = None
+) -> tuple[list[dict], dict]:
     receipts = []
     for tx in txs:
         receipts.append(
@@ -56,10 +58,22 @@ def _lane_receipts(plan: LanePlan) -> list[Json]:
 
 
 def _lane_delta_ops(plan: LanePlan) -> list[Json]:
-    return [{"op": "put", "path": prefix, "value": f"ok:{idx}"} for idx, prefix in enumerate(plan.namespace_prefixes, start=1)]
+    return [
+        {"op": "put", "path": prefix, "value": f"ok:{idx}"}
+        for idx, prefix in enumerate(plan.namespace_prefixes, start=1)
+    ]
 
 
-def _mk_cert(plan: LanePlan, *, block_height: int, view: int, validator_epoch: int, validator_set_hash: str, plan_id: str, delta_hash: str | None = None) -> HelperExecutionCertificate:
+def _mk_cert(
+    plan: LanePlan,
+    *,
+    block_height: int,
+    view: int,
+    validator_epoch: int,
+    validator_set_hash: str,
+    plan_id: str,
+    delta_hash: str | None = None,
+) -> HelperExecutionCertificate:
     receipts = _lane_receipts(plan)
     delta_ops = _lane_delta_ops(plan)
     return HelperExecutionCertificate(
@@ -106,14 +120,39 @@ def test_helper_serial_equivalence_survives_mixed_fallback_paths() -> None:
     governance_lane = plan_by_tx["t4"]
 
     helper_certificates = {
-        content_lane.lane_id: _mk_cert(content_lane, block_height=45, view=22, validator_epoch=7, validator_set_hash="vh", plan_id=plan_id),
-        identity_lane.lane_id: _mk_cert(identity_lane, block_height=45, view=22, validator_epoch=7, validator_set_hash="vh", plan_id=plan_id, delta_hash="bad-delta"),
-        governance_lane.lane_id: _mk_cert(governance_lane, block_height=45, view=22, validator_epoch=7, validator_set_hash="vh", plan_id=plan_id),
+        content_lane.lane_id: _mk_cert(
+            content_lane,
+            block_height=45,
+            view=22,
+            validator_epoch=7,
+            validator_set_hash="vh",
+            plan_id=plan_id,
+        ),
+        identity_lane.lane_id: _mk_cert(
+            identity_lane,
+            block_height=45,
+            view=22,
+            validator_epoch=7,
+            validator_set_hash="vh",
+            plan_id=plan_id,
+            delta_hash="bad-delta",
+        ),
+        governance_lane.lane_id: _mk_cert(
+            governance_lane,
+            block_height=45,
+            view=22,
+            validator_epoch=7,
+            validator_set_hash="vh",
+            plan_id=plan_id,
+        ),
     }
+    assert social_lane.lane_id not in helper_certificates
     helper_receipts: dict[str, list[Mapping[str, Any]]] = {
         content_lane.lane_id: _lane_receipts(content_lane),
         identity_lane.lane_id: _lane_receipts(identity_lane),
-        governance_lane.lane_id: [{"tx_id": "wrong", "tx_type": "GROUP_MEMBERSHIP_REQUEST", "ok": True, "path": "serial"}],
+        governance_lane.lane_id: [
+            {"tx_id": "wrong", "tx_type": "GROUP_MEMBERSHIP_REQUEST", "ok": True, "path": "serial"}
+        ],
     }
     helper_state_deltas: dict[str, list[Mapping[str, Any]]] = {
         content_lane.lane_id: _lane_delta_ops(content_lane),

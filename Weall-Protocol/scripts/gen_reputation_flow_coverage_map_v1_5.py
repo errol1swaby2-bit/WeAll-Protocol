@@ -38,5 +38,6 @@ def main(argv: list[str] | None = None) -> int:
     print(f"wrote {OUT.relative_to(ROOT)}")
     return 0
 
+
 if __name__ == "__main__":
     raise SystemExit(main())

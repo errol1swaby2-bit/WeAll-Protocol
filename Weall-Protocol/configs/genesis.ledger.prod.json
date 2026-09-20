@@ -123,7 +123,7 @@
     "reputation_scale": 1000,
     "schema_version": "1",
     "state_root_commitment_version": "weall.state-root.v2",
-    "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+    "tx_index_hash": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
   },
   "params": {
     "bft_signing_public_beta_gate_enabled": true,

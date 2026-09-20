@@ -52,9 +52,7 @@ def test_canonical_mempool_selection_orders_candidate_independently_of_arrival(
     assert len(diag["last_candidate"]["selected_tx_ids"]) == 3
 
 
-def test_canonical_policy_is_default_for_plain_mempool_reads(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_canonical_policy_is_default_for_plain_mempool_reads(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("WEALL_MEMPOOL_SELECTION_POLICY", raising=False)
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")

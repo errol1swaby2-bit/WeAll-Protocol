@@ -39,7 +39,9 @@ def build() -> Json:
             else:
                 os.environ[k] = v
 
-    static_gate_passes = not errors and bool(registry.get("seed_api_urls")) and bool(registry.get("seed_p2p_urls"))
+    static_gate_passes = (
+        not errors and bool(registry.get("seed_api_urls")) and bool(registry.get("seed_p2p_urls"))
+    )
     return {
         "schema": "weall.v1_5.public_genesis_seed_endpoint_requirements",
         "version": "2026-06-public-genesis-launch",
@@ -81,7 +83,9 @@ def build() -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check public genesis seed endpoint requirements artifact.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check public genesis seed endpoint requirements artifact."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -92,7 +96,9 @@ def main() -> int:
         return 0
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit(f"stale generated public genesis endpoint requirements: {OUT.relative_to(ROOT)}")
+            raise SystemExit(
+                f"stale generated public genesis endpoint requirements: {OUT.relative_to(ROOT)}"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is current")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

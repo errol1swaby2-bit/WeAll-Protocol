@@ -90,7 +90,9 @@ def _require_wallet(state: Json, treasury_id: str) -> Json:
     wallets = _ensure_wallets(state)
     wallet = wallets.get(treasury_id)
     if not isinstance(wallet, dict):
-        raise TreasuryApplyError("not_found", "treasury_wallet_not_found", {"treasury_id": treasury_id})
+        raise TreasuryApplyError(
+            "not_found", "treasury_wallet_not_found", {"treasury_id": treasury_id}
+        )
     wallet.setdefault("wallet_id", treasury_id)
     wallet.setdefault("balance", 0)
     return wallet
@@ -105,7 +107,9 @@ def _spend_transfer_fields(spend: Json) -> tuple[str, int]:
         or payload.get("account")
         or payload.get("account_id")
     ).strip()
-    amount = _as_int(spend.get("amount") if spend.get("amount") is not None else payload.get("amount"), 0)
+    amount = _as_int(
+        spend.get("amount") if spend.get("amount") is not None else payload.get("amount"), 0
+    )
     return to, int(amount)
 
 
@@ -122,6 +126,7 @@ def _has_active_treasury_spend(state: Json) -> Json | None:
             continue
         return spend
     return None
+
 
 def _ensure_spends_expired(state: Json) -> list[Json]:
     root = state.get("treasury_spends_expired")
@@ -248,7 +253,12 @@ def _apply_treasury_spend_propose(state: Json, env: TxEnvelope) -> Json:
     spend_id = _as_str(payload.get("spend_id")).strip()
     if not spend_id:
         raise TreasuryApplyError("invalid_payload", "missing_spend_id", {"tx_type": env.tx_type})
-    to = _as_str(payload.get("to") or payload.get("target") or payload.get("account") or payload.get("account_id")).strip()
+    to = _as_str(
+        payload.get("to")
+        or payload.get("target")
+        or payload.get("account")
+        or payload.get("account_id")
+    ).strip()
     if not to:
         raise TreasuryApplyError("invalid_payload", "missing_to", {"tx_type": env.tx_type})
     amount = _as_int(payload.get("amount"), 0)
@@ -433,7 +443,12 @@ def _apply_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
     if not isinstance(s, dict):
         raise TreasuryApplyError("not_found", "spend_not_found", {"spend_id": spend_id})
 
-    treasury_id = _as_str(payload.get("treasury_id") or payload.get("wallet_id") or payload.get("id") or s.get("treasury_id")).strip()
+    treasury_id = _as_str(
+        payload.get("treasury_id")
+        or payload.get("wallet_id")
+        or payload.get("id")
+        or s.get("treasury_id")
+    ).strip()
     if not treasury_id:
         raise TreasuryApplyError("invalid_payload", "missing_treasury_id", {"spend_id": spend_id})
 
@@ -509,7 +524,9 @@ def _apply_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
     if not to_account:
         raise TreasuryApplyError("invalid_state", "missing_spend_recipient", {"spend_id": spend_id})
     if amount <= 0:
-        raise TreasuryApplyError("invalid_state", "bad_spend_amount", {"spend_id": spend_id, "amount": amount})
+        raise TreasuryApplyError(
+            "invalid_state", "bad_spend_amount", {"spend_id": spend_id, "amount": amount}
+        )
     wallet = _require_wallet(state, treasury_id)
     recipient = _require_account(state, to_account, field="to")
     wallet_balance = _as_int(wallet.get("balance"), 0)
@@ -529,7 +546,12 @@ def _apply_treasury_spend_execute(state: Json, env: TxEnvelope) -> Json:
     s["treasury_balance_after"] = int(wallet["balance"])
     spends[spend_id] = s
 
-    return {"applied": "TREASURY_SPEND_EXECUTE", "spend_id": spend_id, "to": to_account, "amount": int(amount)}
+    return {
+        "applied": "TREASURY_SPEND_EXECUTE",
+        "spend_id": spend_id,
+        "to": to_account,
+        "amount": int(amount),
+    }
 
 
 # --- Canon coverage additions ---------------------------------------------
@@ -553,7 +575,9 @@ def _apply_treasury_wallet_create(state: Json, env: TxEnvelope) -> Json:
 
     initial_balance = _as_int(payload.get("balance"), 0)
     if initial_balance < 0:
-        raise TreasuryApplyError("invalid_payload", "bad_balance", {"balance": payload.get("balance")})
+        raise TreasuryApplyError(
+            "invalid_payload", "bad_balance", {"balance": payload.get("balance")}
+        )
     wallets[wallet_id] = {
         "wallet_id": wallet_id,
         "created_by": _as_str(env.signer).strip(),
@@ -705,7 +729,9 @@ def _apply_treasury_spend_expire(state: Json, env: TxEnvelope) -> Json:
     )
     state["treasury_spends_expired"] = expired
     if spend_id not in spends:
-        raise TreasuryApplyError("invalid_state", "spend_missing_during_expire", {"spend_id": spend_id})
+        raise TreasuryApplyError(
+            "invalid_state", "spend_missing_during_expire", {"spend_id": spend_id}
+        )
     del spends[spend_id]
     tre["spends"] = spends
     return {"applied": "TREASURY_SPEND_EXPIRE", "spend_id": spend_id}

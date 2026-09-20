@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import json
-from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
+from public_seed_test_helpers import REGISTRY_PUBKEY, signed_endpoint, signed_registry
 
 from weall.api.app import create_app
-from public_seed_test_helpers import REGISTRY_PUBKEY, signed_endpoint, signed_registry
 
 
 def _registry():
@@ -42,7 +41,6 @@ def _registry():
     return signed_registry(data)
 
 
-
 class _FakeExecutor:
     def read_state(self):
         return {
@@ -50,15 +48,25 @@ class _FakeExecutor:
                 "validators": {
                     "active_set": ["@validator1", "@validator2"],
                     "by_id": {
-                        "@validator1": {"active": True, "node_pubkey": "", "readiness_status": "verified"},
-                        "@validator2": {"active": True, "node_pubkey": "node-key-2", "readiness_status": "ready"},
+                        "@validator1": {
+                            "active": True,
+                            "node_pubkey": "",
+                            "readiness_status": "verified",
+                        },
+                        "@validator2": {
+                            "active": True,
+                            "node_pubkey": "node-key-2",
+                            "readiness_status": "ready",
+                        },
                     },
                 }
             }
         }
 
 
-def test_public_validator_endpoint_route_distinguishes_protocol_membership_from_hints(tmp_path, monkeypatch):
+def test_public_validator_endpoint_route_distinguishes_protocol_membership_from_hints(
+    tmp_path, monkeypatch
+):
     path = tmp_path / "public_seed_registry.json"
     path.write_text(json.dumps(_registry()), encoding="utf-8")
     monkeypatch.setenv("WEALL_MODE", "test")
@@ -77,7 +85,9 @@ def test_public_validator_endpoint_route_distinguishes_protocol_membership_from_
     assert j["public_testnet"] is True
     assert j["active_validator_count"] == 2
     assert j["verified_endpoint_count"] == 1
-    assert j["endpoint_authority_boundary"]["endpoint_advertisement_grants_validator_status"] is False
+    assert (
+        j["endpoint_authority_boundary"]["endpoint_advertisement_grants_validator_status"] is False
+    )
 
     by_acct = {v["account_id"]: v for v in j["validators"]}
     assert by_acct["@validator1"]["active_in_protocol_state"] is True
@@ -87,7 +97,9 @@ def test_public_validator_endpoint_route_distinguishes_protocol_membership_from_
     assert j["unverified_endpoint_hints"][0]["account_id"] == "@not-active"
 
 
-def test_public_validator_endpoint_route_reports_freshness_and_missing_fresh_endpoints(tmp_path, monkeypatch):
+def test_public_validator_endpoint_route_reports_freshness_and_missing_fresh_endpoints(
+    tmp_path, monkeypatch
+):
     import time
 
     data = {

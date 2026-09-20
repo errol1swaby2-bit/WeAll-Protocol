@@ -16,16 +16,27 @@ def _proof() -> dict:
 def test_gap_register_truth_reflects_initial_artifacts_without_overclaiming() -> None:
     proof = _proof()["gap_register_truth_refresh"]
     assert proof["ok"] is True
-    assert proof["state_root_vector_gap_status"] == "initial_vector_pack_added_needs_cross_machine_release_vectors"
-    assert proof["economic_simulation_gap_status"] == "initial_simulation_added_activation_still_blocked"
+    assert (
+        proof["state_root_vector_gap_status"]
+        == "initial_vector_pack_added_needs_cross_machine_release_vectors"
+    )
+    assert (
+        proof["economic_simulation_gap_status"]
+        == "initial_simulation_added_activation_still_blocked"
+    )
     assert proof["public_beta_ready_claimed"] is False
     assert proof["live_economics_claimed"] is False
     assert proof["public_validator_readiness_claimed"] is False
 
-    gap = json.loads((ROOT / "generated" / "v15_implementation_gap_register.json").read_text(encoding="utf-8"))
+    gap = json.loads(
+        (ROOT / "generated" / "v15_implementation_gap_register.json").read_text(encoding="utf-8")
+    )
     entries = {item["id"]: item for item in gap["remaining_p0_p1_gaps"]}
     assert "generated/state_root_vectors_v1_5.json" in entries["P1-STATE-ROOT-VECTORS"]["evidence"]
-    assert "generated/tokenomics_simulation_v1_5.json" in entries["P1-ECONOMIC-SIMULATION-PACK"]["evidence"]
+    assert (
+        "generated/tokenomics_simulation_v1_5.json"
+        in entries["P1-ECONOMIC-SIMULATION-PACK"]["evidence"]
+    )
     assert "public beta" in entries["P1-STATE-ROOT-VECTORS"]["next_gate"].lower()
     assert "before any activation" in entries["P1-ECONOMIC-SIMULATION-PACK"]["next_gate"].lower()
 
@@ -49,17 +60,21 @@ def test_poh_operator_routes_have_explicit_env_token_metadata() -> None:
         [sys.executable, "scripts/gen_api_contract_map.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
-def test_storage_ipfs_durability_rejects_wrong_and_corrupt_content_without_public_media_claim() -> None:
+def test_storage_ipfs_durability_rejects_wrong_and_corrupt_content_without_public_media_claim() -> (
+    None
+):
     out = _proof()["storage_ipfs_durability_rehearsal"]
     assert out["ok"] is True
-    assert out["worker_model"] == "multi_daemon_ipfs_compatible_operator_processes_with_failure_and_corruption_checks"
+    assert (
+        out["worker_model"]
+        == "multi_daemon_ipfs_compatible_operator_processes_with_failure_and_corruption_checks"
+    )
     assert out["daemon_count"] >= 3
     assert out["operator_failure_exercised"] is True
     assert out["reassignment_recorded"] is True
@@ -76,11 +91,20 @@ def test_storage_ipfs_durability_rejects_wrong_and_corrupt_content_without_publi
 def test_anti_sybil_suspicion_review_lifecycle_has_recovery_but_not_complete_sybil_claim() -> None:
     out = _proof()["anti_sybil_suspicion_review_lifecycle"]
     assert out["ok"] is True
-    assert out["lifecycle_model"] == "anti_sybil_suspicion_to_review_to_appeal_recovery_without_auto_deletion"
+    assert (
+        out["lifecycle_model"]
+        == "anti_sybil_suspicion_to_review_to_appeal_recovery_without_auto_deletion"
+    )
     assert out["suspicion_record"]["recorded"] is True
-    assert out["suspicion_record"]["review_window_close_height"] > out["suspicion_record"]["review_window_open_height"]
+    assert (
+        out["suspicion_record"]["review_window_close_height"]
+        > out["suspicion_record"]["review_window_open_height"]
+    )
     assert out["follow_up_panel_assignment"]["selected_count"] >= 3
-    assert out["false_positive_appeal_recovery_path"]["dismissed_adjudication"]["status"] == "adjudicated_dismissed"
+    assert (
+        out["false_positive_appeal_recovery_path"]["dismissed_adjudication"]["status"]
+        == "adjudicated_dismissed"
+    )
     assert out["false_positive_appeal_recovery_path"]["evidence_deletion"]["deleted"] is True
     assert out["reviewer_accountability_record"]["scores_after_confirm"]
     assert out["reviewer_accountability_record"]["scores_after_dismiss"]
@@ -130,8 +154,7 @@ def test_claim_boundaries_and_artifact_freshness() -> None:
         [sys.executable, "scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -140,8 +163,7 @@ def test_claim_boundaries_and_artifact_freshness() -> None:
         [sys.executable, "scripts/check_v15_public_readiness_artifacts.py"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert gate.returncode == 0, gate.stdout + gate.stderr

@@ -29,7 +29,8 @@ def test_bootstrap_live_cli_payload_matches_strict_schema() -> None:
         for inner in ast.walk(node):
             if isinstance(inner, ast.Assign):
                 is_payload = any(
-                    isinstance(target, ast.Name) and target.id == "payload" for target in inner.targets
+                    isinstance(target, ast.Name) and target.id == "payload"
+                    for target in inner.targets
                 )
                 value = inner.value
             elif isinstance(inner, ast.AnnAssign):

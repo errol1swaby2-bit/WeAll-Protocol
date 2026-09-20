@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import stat
 import subprocess
 from pathlib import Path
@@ -26,7 +25,9 @@ IGNORED_RUNTIME_PATHS = (
 
 
 def _git(args: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["git", "-C", str(ROOT), *args], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    return subprocess.run(
+        ["git", "-C", str(ROOT), *args], text=True, capture_output=True, check=False
+    )
 
 
 def _is_executable(path: Path) -> bool:
@@ -57,7 +58,9 @@ def _tracked_under(path: str, tracked: list[str]) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Check WeAll v1.5 release hygiene invariants.")
-    ap.add_argument("--allow-dirty", action="store_true", help="Report but do not fail on a dirty worktree.")
+    ap.add_argument(
+        "--allow-dirty", action="store_true", help="Report but do not fail on a dirty worktree."
+    )
     args = ap.parse_args()
 
     errors: list[str] = []

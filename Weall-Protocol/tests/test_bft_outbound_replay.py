@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
+from weall.net import net_loop as net_loop_module
 from weall.net.messages import BftTimeoutMsg, BftVoteMsg
 from weall.net.net_loop import NetMeshLoop, net_loop_config_from_env
 from weall.runtime.executor import WeAllExecutor
@@ -108,12 +109,14 @@ def test_vote_replayed_after_restart_when_persisted_but_unsent(tmp_path: Path, m
     loop = NetMeshLoop(executor=ex2, mempool=_FakeMempool(), cfg=cfg)
     loop.node = _FakeNode()
     loop._bft_enabled = True
-    loop._bft_propose_interval_ms = 999999999
-    loop._bft_vote_interval_ms = 999999999
-    loop._bft_timeout_interval_ms = 999999999
-    loop._last_bft_propose_ms = 10**18
-    loop._last_bft_vote_ms = 10**18
-    loop._last_bft_timeout_ms = 10**18
+    loop._bft_propose_interval_ms = 10**18
+    loop._bft_vote_interval_ms = 10**18
+    loop._bft_timeout_interval_ms = 10**18
+    now = net_loop_module._now_ms()
+    monkeypatch.setattr(net_loop_module, "_now_ms", lambda: now)
+    loop._last_bft_propose_ms = now
+    loop._last_bft_vote_ms = now
+    loop._last_bft_timeout_ms = now
     loop._outbound_bft_tick()
 
     assert len(loop.node.calls) == 1
@@ -156,12 +159,14 @@ def test_timeout_replayed_after_restart_until_sent(tmp_path: Path, monkeypatch) 
     loop = NetMeshLoop(executor=ex2, mempool=_FakeMempool(), cfg=cfg)
     loop.node = _FakeNode()
     loop._bft_enabled = True
-    loop._bft_propose_interval_ms = 999999999
-    loop._bft_vote_interval_ms = 999999999
-    loop._bft_timeout_interval_ms = 999999999
-    loop._last_bft_propose_ms = 10**18
-    loop._last_bft_vote_ms = 10**18
-    loop._last_bft_timeout_ms = 10**18
+    loop._bft_propose_interval_ms = 10**18
+    loop._bft_vote_interval_ms = 10**18
+    loop._bft_timeout_interval_ms = 10**18
+    now = net_loop_module._now_ms()
+    monkeypatch.setattr(net_loop_module, "_now_ms", lambda: now)
+    loop._last_bft_propose_ms = now
+    loop._last_bft_vote_ms = now
+    loop._last_bft_timeout_ms = now
     loop._outbound_bft_tick()
 
     assert len(loop.node.calls) == 1

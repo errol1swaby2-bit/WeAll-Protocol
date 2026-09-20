@@ -10,7 +10,10 @@ from rehearse_live_ipfs_worker_durability_v1_5 import run_harness as run_live_ip
 
 def run_harness() -> dict[str, Any]:
     out = run_live_ipfs_worker()
-    operators = sorted({str(out.get("failed_operator") or ""), str(out.get("replacement_operator") or ""), "op-c"} - {""})
+    operators = sorted(
+        {str(out.get("failed_operator") or ""), str(out.get("replacement_operator") or ""), "op-c"}
+        - {""}
+    )
     return {
         "ok": bool(out.get("ok") and len(operators) >= 3 and out.get("retrieval_confirmed")),
         "batch": "551",
@@ -28,7 +31,9 @@ def run_harness() -> dict[str, Any]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

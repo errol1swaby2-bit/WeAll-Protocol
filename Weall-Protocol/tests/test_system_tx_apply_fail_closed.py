@@ -61,6 +61,14 @@ def test_leader_aborts_candidate_when_due_system_apply_fails(
     before = copy.deepcopy(leader.state)
 
     monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
+    # This regression isolates mandatory SYSTEM apply failure handling. PB-001B-D
+    # independently covers EPOCH_* SINGLE_TX lineage, so bypass that earlier gate
+    # here to keep exercising the downstream epoch payload failure contract.
+    monkeypatch.setattr(
+        block_builder,
+        "validate_same_block_single_tx_lineage",
+        lambda *args, **kwargs: (True, ""),
+    )
 
     block, new_state, applied, invalid, err = leader.build_block_candidate(
         max_txs=0,
@@ -87,6 +95,23 @@ def test_follower_rejects_system_apply_failure_without_state_mutation(
 
     monkeypatch.setattr(block_builder, "runtime_vrf_required", lambda: False)
     monkeypatch.setattr(block_replay, "runtime_vrf_required", lambda: False)
+    # Keep this test focused on replay apply atomicity. Canonical lineage and
+    # queue-binding failures are covered by the PB-001B-D finality regressions.
+    monkeypatch.setattr(
+        block_builder,
+        "validate_same_block_single_tx_lineage",
+        lambda *args, **kwargs: (True, ""),
+    )
+    monkeypatch.setattr(
+        block_replay,
+        "validate_same_block_single_tx_lineage",
+        lambda *args, **kwargs: (True, ""),
+    )
+    monkeypatch.setattr(
+        block_replay,
+        "validate_system_tx_queue_binding",
+        lambda *args, **kwargs: (True, ""),
+    )
 
     block, new_state, applied, invalid, err = leader.build_block_candidate(
         max_txs=0,

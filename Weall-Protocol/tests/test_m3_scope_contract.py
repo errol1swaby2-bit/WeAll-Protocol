@@ -39,14 +39,18 @@ def test_m3_traceability_records_implementation_ready_and_evidence_pending() -> 
         for row in trace["requirements"]  # type: ignore[index]
     }
     assert rows
-    assert {str(row["status"]) for row in rows.values()} == {"implemented_requires_integrated_evidence"}
+    assert {str(row["status"]) for row in rows.values()} == {
+        "implemented_requires_integrated_evidence"
+    }
     assert all(row.get("evidence") for row in rows.values())
 
     crosswalk = _json(CROSSWALK_PATH)
     assert crosswalk["blocking_protocol_gaps"] == []
     deliverables = crosswalk["deliverables"]  # type: ignore[index]
     assert deliverables
-    assert {str(row["status"]) for row in deliverables} == {"implemented_requires_integrated_evidence"}
+    assert {str(row["status"]) for row in deliverables} == {
+        "implemented_requires_integrated_evidence"
+    }
     assert all(row.get("evidence") for row in deliverables)
     corrections = {
         str(row["mechanism_id"])
@@ -205,11 +209,9 @@ def test_m3_formal_wrappers_supply_actor_validator_output_contract() -> None:
             "--out-transcript",
             "m13_make_tmp",
             "trap cleanup_validation EXIT INT TERM",
-            "test -s \"$PUBLIC_MANIFEST\"",
-            "test -s \"$PUBLIC_TRANSCRIPT\"",
+            'test -s "$PUBLIC_MANIFEST"',
+            'test -s "$PUBLIC_TRANSCRIPT"',
         ):
             assert marker in source, f"{wrapper}: missing {marker}"
 
-        assert source.index("--out-public-manifest") < source.index(
-            "--out-transcript"
-        )
+        assert source.index("--out-public-manifest") < source.index("--out-transcript")

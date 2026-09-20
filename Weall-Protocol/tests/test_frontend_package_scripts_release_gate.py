@@ -9,7 +9,9 @@ def test_frontend_package_script_targets_exist() -> None:
     repo = Path(__file__).resolve().parents[2]
     web = repo / "web"
     package_json = web / "package.json"
-    assert package_json.is_file(), "outer web/package.json must be present in release/testnet bundle"
+    assert package_json.is_file(), (
+        "outer web/package.json must be present in release/testnet bundle"
+    )
 
     pkg = json.loads(package_json.read_text(encoding="utf-8"))
     scripts = pkg.get("scripts") if isinstance(pkg.get("scripts"), dict) else {}

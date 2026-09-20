@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Callable
+import json
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -94,13 +96,43 @@ def test_bounded_rollback_matches_full_deepcopy_for_mixed_success_and_failure_lo
     txs = [
         _tx("PROFILE_UPDATE", "@alice", 1, {"display_name": "Alice", "bio": "Builder"}),
         _tx("GROUP_CREATE", "@alice", 2, {"group_id": "g:builders", "charter": "Build in public"}),
-        _tx("CONTENT_POST_CREATE", "@alice", 3, {"post_id": "post:1", "body": "hello", "tags": ["group:g:builders"]}),
-        _tx("CONTENT_COMMENT_CREATE", "@bob", 1, {"comment_id": "comment:1", "post_id": "post:1", "body": "reply"}),
+        _tx(
+            "CONTENT_POST_CREATE",
+            "@alice",
+            3,
+            {"post_id": "post:1", "body": "hello", "tags": ["group:g:builders"]},
+        ),
+        _tx(
+            "CONTENT_COMMENT_CREATE",
+            "@bob",
+            1,
+            {"comment_id": "comment:1", "post_id": "post:1", "body": "reply"},
+        ),
         _tx("CONTENT_REACTION_SET", "@carol", 1, {"target_id": "post:1", "reaction": "like"}),
         _tx("FOLLOW_SET", "@bob", 2, {"target": "@alice", "active": True}),
-        _tx("GOV_PROPOSAL_CREATE", "@alice", 4, {"proposal_id": "prop:1", "title": "Tune", "body": "proposal"}),
-        _tx("GOV_PROPOSAL_COMMENT", "@bob", 3, {"proposal_id": "prop:1", "comment_id": "gov-comment:1", "body": "comment"}),
-        _tx("VALIDATOR_CANDIDATE_REGISTER", "@validator", 1, {"account": "@validator", "pubkey": "vpub", "node_id": "node-v", "endpoint": "https://node.invalid"}),
+        _tx(
+            "GOV_PROPOSAL_CREATE",
+            "@alice",
+            4,
+            {"proposal_id": "prop:1", "title": "Tune", "body": "proposal"},
+        ),
+        _tx(
+            "GOV_PROPOSAL_COMMENT",
+            "@bob",
+            3,
+            {"proposal_id": "prop:1", "comment_id": "gov-comment:1", "body": "comment"},
+        ),
+        _tx(
+            "VALIDATOR_CANDIDATE_REGISTER",
+            "@validator",
+            1,
+            {
+                "account": "@validator",
+                "pubkey": "vpub",
+                "node_id": "node-v",
+                "endpoint": "https://node.invalid",
+            },
+        ),
         _tx("CONTENT_REACTION_SET", "@carol", 2, {"target_id": "", "reaction": "like"}),
         _tx("PROFILE_UPDATE", "@carol", 2, {"display_name": "Carol"}),
     ]
@@ -134,7 +166,11 @@ def test_bounded_rollback_restores_partial_writes_after_apply_error(
 
     env = _tx("PROFILE_UPDATE", "@alice", 1, {"display_name": "Alice"})
 
-    for apply_fn in (apply_tx_atomic_meta_deepcopy, apply_tx_atomic_meta_bounded_rollback, apply_tx_atomic_meta):
+    for apply_fn in (
+        apply_tx_atomic_meta_deepcopy,
+        apply_tx_atomic_meta_bounded_rollback,
+        apply_tx_atomic_meta,
+    ):
         state = copy.deepcopy(_base_state())
         monkeypatch.setattr(da, "_apply_tx_internal", mutates_then_rejects)
         with pytest.raises(ApplyError, match="forced_reject_after_touch"):
@@ -145,13 +181,17 @@ def test_bounded_rollback_restores_partial_writes_after_apply_error(
     monkeypatch.setattr(da, "_apply_tx_internal", original)
 
 
-def test_default_atomic_meta_uses_bounded_rollback_entrypoint(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_default_atomic_meta_uses_bounded_rollback_entrypoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from weall.runtime import domain_apply as da
 
     original = da.run_with_bounded_rollback
     calls = {"count": 0}
 
-    def counted_run_with_bounded_rollback(state: Json, fn: Callable[[Json], Any]) -> tuple[Any, int]:
+    def counted_run_with_bounded_rollback(
+        state: Json, fn: Callable[[Json], Any]
+    ) -> tuple[Any, int]:
         calls["count"] += 1
         return original(state, fn)
 
@@ -173,12 +213,21 @@ def test_legacy_deepcopy_oracle_remains_equivalent_to_new_default() -> None:
     txs = [
         _tx("PROFILE_UPDATE", "@alice", 1, {"display_name": "Alice"}),
         _tx("CONTENT_POST_CREATE", "@alice", 2, {"post_id": "post:equiv", "body": "hello"}),
-        _tx("CONTENT_COMMENT_CREATE", "@bob", 1, {"comment_id": "comment:equiv", "post_id": "post:equiv", "body": "reply"}),
+        _tx(
+            "CONTENT_COMMENT_CREATE",
+            "@bob",
+            1,
+            {"comment_id": "comment:equiv", "post_id": "post:equiv", "body": "reply"},
+        ),
         _tx("CONTENT_REACTION_SET", "@carol", 1, {"target_id": "post:equiv", "reaction": "like"}),
     ]
 
-    default_state, default_receipts = _run_sequence(copy.deepcopy(_base_state()), apply_tx_atomic_meta, txs)
-    deepcopy_state, deepcopy_receipts = _run_sequence(copy.deepcopy(_base_state()), apply_tx_atomic_meta_deepcopy, txs)
+    default_state, default_receipts = _run_sequence(
+        copy.deepcopy(_base_state()), apply_tx_atomic_meta, txs
+    )
+    deepcopy_state, deepcopy_receipts = _run_sequence(
+        copy.deepcopy(_base_state()), apply_tx_atomic_meta_deepcopy, txs
+    )
 
     assert default_receipts == deepcopy_receipts
     assert default_state == deepcopy_state
@@ -449,3 +498,293 @@ def test_roles_schema_avoids_noop_active_set_snapshots_when_already_canonical() 
 
     assert diagnostics["rollback_snapshot_count"] == 0
     assert diagnostics["rollback_top_snapshot_paths"] == []
+
+
+def _canonical_json(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _assert_no_journal_proxy(value: Any) -> None:
+    from weall.runtime.bounded_rollback import JournaledDict, JournaledList
+
+    assert not isinstance(value, (JournaledDict, JournaledList))
+    if isinstance(value, dict):
+        for key, child in value.items():
+            _assert_no_journal_proxy(key)
+            _assert_no_journal_proxy(child)
+    elif isinstance(value, list):
+        for child in value:
+            _assert_no_journal_proxy(child)
+
+
+def _system_tx(tx_type: str, nonce: int, payload: Json, *, parent: str) -> Json:
+    return {
+        "tx_type": tx_type,
+        "signer": "SYSTEM",
+        "nonce": int(nonce),
+        "payload": payload,
+        "sig": "",
+        "system": True,
+        "parent": parent,
+    }
+
+
+def test_bounded_rollback_detaches_nested_proxy_values_at_state_and_result_boundaries() -> None:
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    state = {
+        "source": {
+            "scalar": 7,
+            "nested": {"alpha": 1, "beta": {"items": [1, {"deep": "value"}]}},
+        }
+    }
+
+    def copy_through_builtin(st: Json) -> Json:
+        # dict(JournaledDict) is intentionally not a raw-state materializer: its
+        # nested values are still journal proxies. The journal boundary must
+        # detach those proxies before either state or metadata can retain them.
+        candidate = dict(st["source"])
+        st["copied"] = candidate
+        return {"copied": candidate}
+
+    result, _records = run_with_bounded_rollback(state, copy_through_builtin)
+    expected = {
+        "scalar": 7,
+        "nested": {"alpha": 1, "beta": {"items": [1, {"deep": "value"}]}},
+    }
+
+    assert state["copied"] == expected
+    assert result == {"copied": expected}
+    assert _canonical_json(state["copied"]) == _canonical_json(expected)
+    assert _canonical_json(result) == _canonical_json({"copied": expected})
+    _assert_no_journal_proxy(state)
+    _assert_no_journal_proxy(result)
+
+
+def test_bounded_rollback_nested_proxy_write_rolls_back_then_subsequent_success_is_canonical() -> (
+    None
+):
+    from weall.runtime.bounded_rollback import run_with_bounded_rollback
+
+    original = {"source": {"nested": {"items": [{"id": "a"}, {"id": "b"}]}}}
+    state = copy.deepcopy(original)
+
+    def fail_after_nested_copy(st: Json) -> None:
+        st["derived"] = dict(st["source"])
+        st["source"]["nested"]["items"].append({"id": "c"})
+        raise ApplyError("probe", "rollback_after_nested_copy", {})
+
+    with pytest.raises(ApplyError, match="rollback_after_nested_copy"):
+        run_with_bounded_rollback(state, fail_after_nested_copy)
+    assert state == original
+
+    def succeed(st: Json) -> Json:
+        st["derived"] = dict(st["source"])
+        st["derived"]["nested"]["items"].append({"id": "c"})
+        return {"derived": dict(st["derived"])}
+
+    result, _records = run_with_bounded_rollback(state, succeed)
+    # Preserve Python's shallow dict-copy contract: source and derived share
+    # the nested raw container in both the deepcopy oracle and bounded path.
+    assert state["source"]["nested"]["items"][-1] == {"id": "c"}
+    assert state["derived"]["nested"]["items"][-1] == {"id": "c"}
+    assert result["derived"] == state["derived"]
+    _assert_no_journal_proxy(state)
+    _assert_no_journal_proxy(result)
+
+
+def test_protocol_upgrade_multi_activation_deepcopy_bounded_and_persistence_are_equivalent(
+    tmp_path,
+) -> None:
+    from weall.runtime.sqlite_db import SqliteDB, SqliteLedgerStore
+
+    initial = {
+        "height": 50,
+        "protocol": {"supported_upgrade_targets": ["v1.5.2", "v1.5.3"]},
+    }
+    txs = [
+        _system_tx(
+            "PROTOCOL_UPGRADE_DECLARE",
+            1,
+            {"upgrade_id": "u1", "version": "v1.5.2"},
+            parent="GOV_EXECUTE",
+        ),
+        _system_tx(
+            "PROTOCOL_UPGRADE_DECLARE",
+            2,
+            {"upgrade_id": "u2", "version": "v1.5.3"},
+            parent="GOV_EXECUTE",
+        ),
+        _system_tx(
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            3,
+            {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 90},
+            parent="PROTOCOL_UPGRADE_DECLARE",
+        ),
+        _system_tx(
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            4,
+            {"upgrade_id": "u2", "version": "v1.5.3", "activation_height": 100},
+            parent="PROTOCOL_UPGRADE_DECLARE",
+        ),
+        _system_tx(
+            "PROTOCOL_UPGRADE_ACTIVATE",
+            5,
+            {"upgrade_id": "u1", "version": "v1.5.2", "activation_height": 90},
+            parent="PROTOCOL_UPGRADE_DECLARE",
+        ),
+    ]
+
+    oracle = copy.deepcopy(initial)
+    bounded = copy.deepcopy(initial)
+    for env in txs:
+        oracle_meta = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(env))
+        bounded_meta = apply_tx_atomic_meta_bounded_rollback(bounded, copy.deepcopy(env))
+        assert _canonical_json(bounded_meta) == _canonical_json(oracle_meta)
+        assert _canonical_json(bounded) == _canonical_json(oracle)
+        assert compute_state_root(bounded) == compute_state_root(oracle)
+        _assert_no_journal_proxy(bounded)
+        _assert_no_journal_proxy(bounded_meta)
+
+    assert bounded["protocol"]["scheduled_upgrades"]["u1"]["upgrade_id"] == "u1"
+    assert bounded["protocol"]["scheduled_upgrades"]["u2"]["upgrade_id"] == "u2"
+
+    db = SqliteDB(path=str(tmp_path / "bounded-representation.sqlite"))
+    db.init_schema()
+    store = SqliteLedgerStore(db=db)
+    store.write(bounded)
+    restored = store.read()
+    assert _canonical_json(restored) == _canonical_json(oracle)
+    assert compute_state_root(restored) == compute_state_root(oracle)
+    _assert_no_journal_proxy(restored)
+
+
+def test_constitution_multi_activation_deepcopy_and_bounded_are_equivalent() -> None:
+    rights_hash = "sha256:" + "c" * 64
+
+    def declaration(cid: str, version: str, nonce: int, doc_char: str, trace_char: str) -> Json:
+        return _system_tx(
+            "CONSTITUTION_UPGRADE_DECLARE",
+            nonce,
+            {
+                "constitution_id": cid,
+                "constitution_version": version,
+                "document_hash": "sha256:" + doc_char * 64,
+                "traceability_hash": "sha256:" + trace_char * 64,
+                "rights_floor_hash": rights_hash,
+            },
+            parent="GOV_EXECUTE",
+        )
+
+    txs = [
+        declaration("c1", "v0.2", 1, "a", "b"),
+        declaration("c2", "v0.3", 2, "d", "e"),
+        _system_tx(
+            "CONSTITUTION_UPGRADE_ACTIVATE",
+            3,
+            {"constitution_id": "c1", "activation_height": 90},
+            parent="CONSTITUTION_UPGRADE_DECLARE",
+        ),
+        _system_tx(
+            "CONSTITUTION_UPGRADE_ACTIVATE",
+            4,
+            {"constitution_id": "c2", "activation_height": 100},
+            parent="CONSTITUTION_UPGRADE_DECLARE",
+        ),
+    ]
+
+    oracle: Json = {"height": 50}
+    bounded: Json = {"height": 50}
+    for env in txs:
+        oracle_meta = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(env))
+        bounded_meta = apply_tx_atomic_meta_bounded_rollback(bounded, copy.deepcopy(env))
+        assert _canonical_json(bounded_meta) == _canonical_json(oracle_meta)
+        assert _canonical_json(bounded) == _canonical_json(oracle)
+        assert compute_state_root(bounded) == compute_state_root(oracle)
+    _assert_no_journal_proxy(bounded)
+
+
+def test_nested_account_security_policy_updates_preserve_canonical_state() -> None:
+    initial: Json = {
+        "accounts": {},
+        "roles": {},
+        "params": {"guardian_recovery_new_admission": True},
+        "poh": {},
+        "last_block_ts_ms": 0,
+    }
+    txs = [
+        _tx("ACCOUNT_REGISTER", "@user000", 1, {"pubkey": "k:u"}),
+        _tx(
+            "ACCOUNT_SECURITY_POLICY_SET",
+            "@user000",
+            2,
+            {
+                "policy": {
+                    "nested": {"rules": [{"mode": "strict"}, {"mode": "backup"}]},
+                    "scalar": "v1",
+                }
+            },
+        ),
+        _tx("ACCOUNT_SECURITY_POLICY_SET", "@user000", 3, {"session_ttl_s": 3600}),
+    ]
+
+    oracle = copy.deepcopy(initial)
+    bounded = copy.deepcopy(initial)
+    for env in txs:
+        oracle_meta = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(env))
+        bounded_meta = apply_tx_atomic_meta_bounded_rollback(bounded, copy.deepcopy(env))
+        assert _canonical_json(bounded_meta) == _canonical_json(oracle_meta)
+        assert _canonical_json(bounded) == _canonical_json(oracle)
+        assert compute_state_root(bounded) == compute_state_root(oracle)
+
+    policy = bounded["accounts"]["@user000"]["security_policy"]
+    assert policy["nested"]["rules"] == [{"mode": "strict"}, {"mode": "backup"}]
+    assert policy["session_ttl_s"] == 3600
+    _assert_no_journal_proxy(bounded)
+
+
+def test_governance_execute_nested_action_queue_and_emission_match_deepcopy_oracle() -> None:
+    from weall.runtime.scheduler_pipeline import emit_system_txs
+    from weall.tx.canon import load_tx_index_json
+
+    initial: Json = {
+        "height": 6,
+        "params": {"system_signer": "SYSTEM", "gov_action_allowlist": ["GOV_RULES_SET"]},
+        "system_queue": [],
+        "gov_proposals_by_id": {
+            "p": {
+                "proposal_id": "p",
+                "stage": "tallied",
+                "actions": [
+                    {
+                        "tx_type": "GOV_RULES_SET",
+                        "payload": {"params": {"poh": {"tier2_n_jurors": 7}}},
+                    }
+                ],
+                "tallies": [{"height": 6, "payload": {"passed": True}}],
+            }
+        },
+    }
+    env = _system_tx("GOV_EXECUTE", 1, {"proposal_id": "p"}, parent="tx:p")
+
+    oracle = copy.deepcopy(initial)
+    bounded = copy.deepcopy(initial)
+    oracle_meta = apply_tx_atomic_meta_deepcopy(oracle, copy.deepcopy(env))
+    bounded_meta = apply_tx_atomic_meta_bounded_rollback(bounded, copy.deepcopy(env))
+
+    assert _canonical_json(bounded_meta) == _canonical_json(oracle_meta)
+    assert _canonical_json(bounded) == _canonical_json(oracle)
+    assert compute_state_root(bounded) == compute_state_root(oracle)
+    assert bounded["system_queue"][0]["queue_id"] == oracle["system_queue"][0]["queue_id"]
+    assert (
+        bounded["governance_execution_audit"][0]["execution_hash"]
+        == oracle["governance_execution_audit"][0]["execution_hash"]
+    )
+
+    tx_index = load_tx_index_json("generated/tx_index.json")
+    oracle_emitted = emit_system_txs(oracle, tx_index, next_height=8, phase="post", proposer="")
+    bounded_emitted = emit_system_txs(bounded, tx_index, next_height=8, phase="post", proposer="")
+    assert [env.to_json() for env in bounded_emitted] == [env.to_json() for env in oracle_emitted]
+    assert _canonical_json(bounded) == _canonical_json(oracle)
+    assert compute_state_root(bounded) == compute_state_root(oracle)
+    _assert_no_journal_proxy(bounded)

@@ -70,7 +70,6 @@ class _FakeExecutor:
             },
         }
 
-
     def tx_index_hash(self) -> str:
         return "txindexhash-batch6"
 

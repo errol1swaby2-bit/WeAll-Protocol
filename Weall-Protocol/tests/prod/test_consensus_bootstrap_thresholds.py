@@ -12,8 +12,7 @@ def test_consensus_bootstrap_thresholds_artifact_records_bft_boundary():
         [sys.executable, "scripts/gen_consensus_bootstrap_thresholds_v1_5.py", "--json"],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -34,8 +33,7 @@ def test_public_launch_artifacts_expose_static_partial_until_live_rehearsal():
         [sys.executable, "scripts/gen_genesis_testnet_launch_readiness_v1_5.py", "--json"],
         cwd=root,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr

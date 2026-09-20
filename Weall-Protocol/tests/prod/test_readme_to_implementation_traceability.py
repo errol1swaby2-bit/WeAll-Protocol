@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 OUTER_ROOT = ROOT.parent
 TRACE = ROOT / "docs" / "reviewer" / "README_TO_IMPLEMENTATION_TRACEABILITY.md"
@@ -120,12 +119,26 @@ def test_traceability_maps_at_least_forty_readme_claims_with_evidence_or_limitat
     for row in rows:
         cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
         assert len(cells) == 10, row
-        claim_id, _readme_claim, _supported_claim, status, implementation, tests, generated, docs, limitation, command = cells
+        (
+            claim_id,
+            _readme_claim,
+            _supported_claim,
+            status,
+            implementation,
+            tests,
+            generated,
+            docs,
+            limitation,
+            command,
+        ) = cells
         assert re.fullmatch(r"R-\d{2}", claim_id), row
         assert status, row
         assert limitation, row
         assert command, row
-        assert any(field and field != "N/A" for field in (implementation, tests, generated, docs, limitation)), row
+        assert any(
+            field and field != "N/A"
+            for field in (implementation, tests, generated, docs, limitation)
+        ), row
 
 
 def test_traceability_has_no_unbounded_risky_readiness_phrases() -> None:

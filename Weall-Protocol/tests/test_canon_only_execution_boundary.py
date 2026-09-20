@@ -8,7 +8,6 @@ from weall.runtime.tx_admission import admit_tx
 from weall.runtime.tx_contracts import load_default_tx_index, noncanon_registry_tx_types
 from weall.runtime.tx_schema import model_for_tx_type
 
-
 NONCANON_LEGACY_TXS = [
     "SLASH",
     "POST_CREATE",
@@ -50,7 +49,14 @@ def _state() -> dict:
     }
 
 
-def _tx(tx_type: str, *, signer: str = "@alice", nonce: int = 1, system: bool = False, payload: dict | None = None) -> dict:
+def _tx(
+    tx_type: str,
+    *,
+    signer: str = "@alice",
+    nonce: int = 1,
+    system: bool = False,
+    payload: dict | None = None,
+) -> dict:
     return {
         "tx_type": tx_type,
         "signer": signer,
@@ -112,7 +118,13 @@ def test_treasury_params_set_removed_use_treasury_policy_set() -> None:
     with pytest.raises(ApplyError) as excinfo:
         apply_tx(
             state,
-            _tx("TREASURY_PARAMS_SET", signer="SYSTEM", nonce=1, system=True, payload={"timelock_blocks": 5}),
+            _tx(
+                "TREASURY_PARAMS_SET",
+                signer="SYSTEM",
+                nonce=1,
+                system=True,
+                payload={"timelock_blocks": 5},
+            ),
         )
     assert excinfo.value.reason == "noncanonical_tx_type"
 

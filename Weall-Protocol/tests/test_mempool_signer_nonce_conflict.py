@@ -125,4 +125,3 @@ def test_mempool_conflict_rule_persists_across_restart(tmp_path: Path) -> None:
     assert conflict.get("ok") is False
     assert conflict.get("error") == "mempool_signer_nonce_conflict"
     assert ex2.mempool.size() == 1
-

@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from fastapi.testclient import TestClient
 
 from weall.api.app import app
@@ -30,7 +29,9 @@ class _FakeResponse:
         return json.dumps(self.payload, sort_keys=True).encode("utf-8")
 
 
-def _signed_account_register(account: str, *, chain_id: str = "weall-observer-edge") -> dict[str, Any]:
+def _signed_account_register(
+    account: str, *, chain_id: str = "weall-observer-edge"
+) -> dict[str, Any]:
     seed = bytes.fromhex("57" * 32)
     sk = MLDSA65PrivateKey.from_seed_bytes(seed)
     pubkey = sk.public_key().public_bytes_raw().hex()
@@ -158,12 +159,16 @@ def test_required_upstream_failure_is_visible_to_local_frontend(
 
 def test_observer_edge_status_surfaces_upstream_posture(monkeypatch) -> None:
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
-    monkeypatch.setenv("WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test,https://peer.example.test/")
+    monkeypatch.setenv(
+        "WEALL_TX_UPSTREAM_URLS", "https://genesis.example.test,https://peer.example.test/"
+    )
     monkeypatch.setenv("WEALL_TX_UPSTREAM_REQUIRED", "1")
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-token")
 
     with TestClient(app, raise_server_exceptions=False) as client:
-        res = client.get("/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "edge-token"})
+        res = client.get(
+            "/v1/observer/edge/status", headers={"X-WeAll-Operator-Token": "edge-token"}
+        )
 
     assert res.status_code == 200, res.text
     body = res.json()

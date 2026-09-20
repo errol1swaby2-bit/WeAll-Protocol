@@ -1059,11 +1059,27 @@ def _scan_transaction_contracts(
         test_hits = _search_files_for_token(test_files, tx_type)
         if not test_hits:
             test_hits = ["tests/test_tx_contract_coverage.py", "tests/test_v2_spec_compiler.py"]
-        receipt_kind = (
-            "receipt_only_parent_bound"
-            if bool(txdef.get("receipt_only", False))
-            else ("system_apply_result" if origin == "SYSTEM" else "user_transaction_apply_result")
+        primary_parent = str(txdef.get("parent") or "").strip()
+        raw_parent_any = txdef.get("parent_any_of")
+        parent_tx_types = (
+            [str(value or "").strip().upper() for value in raw_parent_any]
+            if isinstance(raw_parent_any, list) and raw_parent_any
+            else ([primary_parent.upper()] if primary_parent else [])
         )
+        multi_causal_receipt = bool(txdef.get("receipt_only", False)) and len(parent_tx_types) > 1
+        receipt_kind = (
+            "receipt_only_multi_causal_scheduler_bound"
+            if multi_causal_receipt
+            else (
+                "receipt_only_parent_bound"
+                if bool(txdef.get("receipt_only", False))
+                else (
+                    "system_apply_result" if origin == "SYSTEM" else "user_transaction_apply_result"
+                )
+            )
+        )
+        if multi_causal_receipt:
+            authority = "canonical_scheduler_system_authority"
         row: Json = {
             "stable_id": stable_ids.resolve("transaction", tx_type),
             "numeric_id": numeric_id,
@@ -1088,14 +1104,26 @@ def _scan_transaction_contracts(
             "receipt_contract": {
                 "stable_id": stable_ids.resolve("receipt", tx_type),
                 "kind": receipt_kind,
-                "parent": str(txdef.get("parent") or "") or None,
+                "parent": primary_parent or None,
+                **(
+                    {
+                        "parents": parent_tx_types,
+                        "binding": "deterministic_system_queue_multi_causal_context",
+                    }
+                    if multi_causal_receipt
+                    else {}
+                ),
                 "return_fields": analysis["return_keys"],
             },
             "failure_codes": analysis["failure_codes"],
             "replay_behavior": (
-                "block_only_parent_and_context_bound_deterministic_replay"
-                if context == "block"
-                else "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication"
+                "block_only_system_queue_bound_multi_causal_deterministic_replay"
+                if multi_causal_receipt
+                else (
+                    "block_only_parent_and_context_bound_deterministic_replay"
+                    if context == "block"
+                    else "mempool_admission_then_block_revalidation_with_nonce_and_tx_id_deduplication"
+                )
             ),
             "api_routes": sorted(set(route_by_tx.get(tx_type, []))),
             "frontend_surfaces": frontend_hits,
@@ -1758,6 +1786,16 @@ def _receipt_index(tx_rows: list[Json]) -> list[Json]:
                 "tx_type": tx["tx_type"],
                 "kind": receipt["kind"],
                 "parent": receipt.get("parent"),
+                **(
+                    {"parents": receipt.get("parents")}
+                    if isinstance(receipt.get("parents"), list)
+                    else {}
+                ),
+                **(
+                    {"binding": receipt.get("binding")}
+                    if str(receipt.get("binding") or "").strip()
+                    else {}
+                ),
                 "fields": receipt.get("return_fields") or [],
                 "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
                 "replay_binding": tx["replay_behavior"],
@@ -2106,7 +2144,10 @@ def compile_artifacts() -> tuple[dict[Path, bytes], Json]:
         # production-authoritative entry points. Keep broad source mappings in
         # the source-coverage registry instead of re-inflating this compatibility
         # list with supporting/test/reference paths after validation.
-        if str(row.get("repository_evidence_overlay") or "") == "weall.authoritative_mechanism_map.v1":
+        if (
+            str(row.get("repository_evidence_overlay") or "")
+            == "weall.authoritative_mechanism_map.v1"
+        ):
             row["repository_evidence_paths"] = sorted(
                 {
                     str(item.get("path") or "")

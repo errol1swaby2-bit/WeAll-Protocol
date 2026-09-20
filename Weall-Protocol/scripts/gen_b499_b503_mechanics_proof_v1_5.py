@@ -63,7 +63,9 @@ def build_artifact() -> Json:
             "public_bft_multi_process": bft,
             "fresh_node_state_sync": state_sync,
         },
-        "ok": all(bool(v.get("ok")) for v in batches.values()) and bool(bft.get("ok")) and bool(state_sync.get("ok")),
+        "ok": all(bool(v.get("ok")) for v in batches.values())
+        and bool(bft.get("ok"))
+        and bool(state_sync.get("ok")),
     }
 
 

@@ -10,16 +10,40 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=system,
+        parent=parent,
+    )
 
 
 def _state(validators: list[str] | None = None) -> dict:
     vals = validators or ["@alice", "@bob", "@carol"]
     return {
         "height": 10,
-        "accounts": {acct: {"poh_tier": 2, "banned": False, "locked": False, "reputation_milli": 6000} for acct in vals},
-        "roles": {"validators": {"active_set": list(vals), "by_id": {acct: {"active": True} for acct in vals}}},
+        "accounts": {
+            acct: {"poh_tier": 2, "banned": False, "locked": False, "reputation_milli": 6000}
+            for acct in vals
+        },
+        "roles": {
+            "validators": {
+                "active_set": list(vals),
+                "by_id": {acct: {"active": True} for acct in vals},
+            }
+        },
         "gov_proposals_by_id": {},
         "system_queue": [],
     }
@@ -71,7 +95,11 @@ def test_invalid_and_duplicate_options_are_rejected_deterministically() -> None:
                 "GOV_PROPOSAL_CREATE",
                 "@alice",
                 1,
-                {"proposal_id": "p-one", "rules": {"start_stage": "voting"}, "options": [{"option_id": "only", "label": "Only"}]},
+                {
+                    "proposal_id": "p-one",
+                    "rules": {"start_stage": "voting"},
+                    "options": [{"option_id": "only", "label": "Only"}],
+                },
             ),
         )
     assert one_option.value.reason == "proposal_options_require_at_least_two"
@@ -109,17 +137,24 @@ def test_multi_option_votes_reference_option_ids_and_reject_unknown_options() ->
                 "proposal_id": "p-vote",
                 "title": "Vote by canonical option id",
                 "rules": {"start_stage": "voting"},
-                "options": [{"option_id": "north", "label": "North"}, {"option_id": "south", "label": "South"}],
+                "options": [
+                    {"option_id": "north", "label": "North"},
+                    {"option_id": "south", "label": "South"},
+                ],
             },
         ),
     )
 
     with pytest.raises(ApplyError) as invalid:
-        apply_governance(st, _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p-vote", "option_id": "east"}))
+        apply_governance(
+            st, _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p-vote", "option_id": "east"})
+        )
     assert invalid.value.reason == "invalid_option_vote"
     assert invalid.value.details["allowed_option_ids"] == ["north", "south", "abstain"]
 
-    apply_governance(st, _env("GOV_VOTE_CAST", "@alice", 3, {"proposal_id": "p-vote", "option_id": "north"}))
+    apply_governance(
+        st, _env("GOV_VOTE_CAST", "@alice", 3, {"proposal_id": "p-vote", "option_id": "north"})
+    )
     vote = st["gov_proposals_by_id"]["p-vote"]["votes"]["@alice"]
     assert vote == {"vote": "north", "height": 11, "option_id": "north"}
 
@@ -136,18 +171,27 @@ def test_duplicate_multi_option_vote_replaces_prior_choice_before_quorum() -> No
                 "proposal_id": "p-replace",
                 "title": "Replacement semantics",
                 "rules": {"start_stage": "voting"},
-                "options": [{"option_id": "alpha", "label": "Alpha"}, {"option_id": "beta", "label": "Beta"}],
+                "options": [
+                    {"option_id": "alpha", "label": "Alpha"},
+                    {"option_id": "beta", "label": "Beta"},
+                ],
             },
         ),
     )
 
-    apply_governance(st, _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p-replace", "option_id": "alpha"}))
-    apply_governance(st, _env("GOV_VOTE_CAST", "@alice", 3, {"proposal_id": "p-replace", "option_id": "beta"}))
+    apply_governance(
+        st, _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p-replace", "option_id": "alpha"})
+    )
+    apply_governance(
+        st, _env("GOV_VOTE_CAST", "@alice", 3, {"proposal_id": "p-replace", "option_id": "beta"})
+    )
     proposal = st["gov_proposals_by_id"]["p-replace"]
     assert proposal["votes"]["@alice"]["option_id"] == "beta"
     assert proposal["stage"] == "voting"
 
-    apply_governance(st, _env("GOV_VOTE_CAST", "@bob", 4, {"proposal_id": "p-replace", "option_id": "beta"}))
+    apply_governance(
+        st, _env("GOV_VOTE_CAST", "@bob", 4, {"proposal_id": "p-replace", "option_id": "beta"})
+    )
     latest = proposal["tallies"][-1]["payload"]
     assert proposal["stage"] == "finalized"
     assert latest["selected_option_id"] == "beta"
@@ -167,14 +211,23 @@ def test_multi_option_abstain_quorum_and_tie_have_no_automatic_winner() -> None:
                 "proposal_id": "p-tie",
                 "title": "Tie handling",
                 "rules": {"start_stage": "voting"},
-                "options": [{"option_id": "alpha", "label": "Alpha"}, {"option_id": "beta", "label": "Beta"}],
+                "options": [
+                    {"option_id": "alpha", "label": "Alpha"},
+                    {"option_id": "beta", "label": "Beta"},
+                ],
             },
         ),
     )
 
-    apply_governance(st, _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p-tie", "option_id": "alpha"}))
-    apply_governance(st, _env("GOV_VOTE_CAST", "@bob", 3, {"proposal_id": "p-tie", "option_id": "beta"}))
-    apply_governance(st, _env("GOV_VOTE_CAST", "@carol", 4, {"proposal_id": "p-tie", "vote": "abstain"}))
+    apply_governance(
+        st, _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p-tie", "option_id": "alpha"})
+    )
+    apply_governance(
+        st, _env("GOV_VOTE_CAST", "@bob", 3, {"proposal_id": "p-tie", "option_id": "beta"})
+    )
+    apply_governance(
+        st, _env("GOV_VOTE_CAST", "@carol", 4, {"proposal_id": "p-tie", "vote": "abstain"})
+    )
 
     proposal = st["gov_proposals_by_id"]["p-tie"]
     latest = proposal["tallies"][-1]["payload"]
@@ -185,7 +238,10 @@ def test_multi_option_abstain_quorum_and_tie_have_no_automatic_winner() -> None:
     assert latest["tie_option_ids"] == ["alpha", "beta"]
     assert latest["selected_option_id"] == ""
     assert latest["passed"] is False
-    assert latest["deterministic_tie_break"] == "no automatic winner; tied option_ids are published in lexicographic order"
+    assert (
+        latest["deterministic_tie_break"]
+        == "no automatic winner; tied option_ids are published in lexicographic order"
+    )
     assert proposal["stage"] == "finalized"
 
 
@@ -203,7 +259,10 @@ def test_multi_option_proposals_cannot_carry_executable_actions_in_testnet_slice
                 {
                     "proposal_id": "p-action",
                     "rules": {"start_stage": "voting"},
-                    "options": [{"option_id": "alpha", "label": "Alpha"}, {"option_id": "beta", "label": "Beta"}],
+                    "options": [
+                        {"option_id": "alpha", "label": "Alpha"},
+                        {"option_id": "beta", "label": "Beta"},
+                    ],
                     "actions": [{"tx_type": "GOV_QUORUM_SET", "payload": {"quorum_bps": 6000}}],
                 },
             ),
@@ -222,7 +281,10 @@ def test_multi_option_vote_replay_equivalence_for_observer_and_follower() -> Non
                 "proposal_id": "p-replay",
                 "title": "Replay deterministic choice",
                 "rules": {"start_stage": "voting"},
-                "options": [{"option_id": "alpha", "label": "Alpha"}, {"option_id": "beta", "label": "Beta"}],
+                "options": [
+                    {"option_id": "alpha", "label": "Alpha"},
+                    {"option_id": "beta", "label": "Beta"},
+                ],
             },
         ),
         _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p-replay", "option_id": "alpha"}),

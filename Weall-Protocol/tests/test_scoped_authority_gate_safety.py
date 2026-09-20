@@ -78,8 +78,12 @@ def test_group_moderator_atom_requires_tier2_and_active_moderator() -> None:
         "roles": {"groups_by_id": {"g1": {"moderators": ["@mod", "@tier1"]}}},
     }
 
-    ok, _meta = eval_gate("GroupModerator", signer="@mod", ledger=ledger, payload={"group_id": "g1"})
-    low, _meta2 = eval_gate("GroupModerator", signer="@tier1", ledger=ledger, payload={"group_id": "g1"})
+    ok, _meta = eval_gate(
+        "GroupModerator", signer="@mod", ledger=ledger, payload={"group_id": "g1"}
+    )
+    low, _meta2 = eval_gate(
+        "GroupModerator", signer="@tier1", ledger=ledger, payload={"group_id": "g1"}
+    )
 
     assert ok is True
     assert low is False
@@ -99,7 +103,9 @@ def test_group_emissary_requires_tier2_and_denies_global_removal() -> None:
     assert ok is False
 
 
-def test_treasury_emissary_requires_emissary_controlled_treasury_signer_and_seated_emissary() -> None:
+def test_treasury_emissary_requires_emissary_controlled_treasury_signer_and_seated_emissary() -> (
+    None
+):
     ledger = {
         "accounts": {"@emi": {"poh_tier": 2}, "@outsider": {"poh_tier": 2}},
         "roles": {
@@ -114,7 +120,9 @@ def test_treasury_emissary_requires_emissary_controlled_treasury_signer_and_seat
     }
 
     ok, _meta = eval_gate("Emissary", signer="@emi", ledger=ledger, payload={"treasury_id": "t1"})
-    outsider, _meta2 = eval_gate("Emissary", signer="@outsider", ledger=ledger, payload={"treasury_id": "t1"})
+    outsider, _meta2 = eval_gate(
+        "Emissary", signer="@outsider", ledger=ledger, payload={"treasury_id": "t1"}
+    )
 
     assert ok is True
     assert outsider is False

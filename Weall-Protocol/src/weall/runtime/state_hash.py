@@ -113,5 +113,5 @@ def consensus_state_root_view(state: Json) -> Json:
 
 def compute_state_root(state: Json) -> str:
     canonical = consensus_state_root_view(state)
-    payload = json.dumps(canonical, separators=(",", ":"), ensure_ascii=False)
+    payload = json.dumps(canonical, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()

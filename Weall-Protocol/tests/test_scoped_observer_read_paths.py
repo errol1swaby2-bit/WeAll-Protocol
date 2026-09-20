@@ -49,20 +49,54 @@ def _state() -> dict:
         },
         "activity": {
             "items_by_id": {
-                "activity:1": {"kind": "mention", "account": "@alice", "body": "public mention", "created_at_nonce": 1},
-                "activity:2": {"kind": "reply", "account": "@bob", "body": "public reply", "created_at_nonce": 2},
+                "activity:1": {
+                    "kind": "mention",
+                    "account": "@alice",
+                    "body": "public mention",
+                    "created_at_nonce": 1,
+                },
+                "activity:2": {
+                    "kind": "reply",
+                    "account": "@bob",
+                    "body": "public reply",
+                    "created_at_nonce": 2,
+                },
             },
         },
         "content": {
             "posts": {
-                "post:1": {"post_id": "post:1", "author": "@alice", "body": "root", "visibility": "public", "media": ["media:1"], "created_nonce": 10, "created_at_nonce": 10}
+                "post:1": {
+                    "post_id": "post:1",
+                    "author": "@alice",
+                    "body": "root",
+                    "visibility": "public",
+                    "media": ["media:1"],
+                    "created_nonce": 10,
+                    "created_at_nonce": 10,
+                }
             },
             "comments": {
-                f"comment:{i}": {"comment_id": f"comment:{i}", "post_id": "post:1", "author": "@bob", "body": f"comment {i}", "media": ["media:1"] if i == 1 else [], "created_nonce": i, "created_at_nonce": i}
+                f"comment:{i}": {
+                    "comment_id": f"comment:{i}",
+                    "post_id": "post:1",
+                    "author": "@bob",
+                    "body": f"comment {i}",
+                    "media": ["media:1"] if i == 1 else [],
+                    "created_nonce": i,
+                    "created_at_nonce": i,
+                }
                 for i in range(1, 5)
             },
             "media": {
-                "media:1": {"media_id": "media:1", "payload": {"cid": CID, "mime": "image/png", "name": "demo.png", "size_bytes": 1234}}
+                "media:1": {
+                    "media_id": "media:1",
+                    "payload": {
+                        "cid": CID,
+                        "mime": "image/png",
+                        "name": "demo.png",
+                        "size_bytes": 1234,
+                    },
+                }
             },
             "reactions": {},
         },
@@ -93,7 +127,9 @@ def test_removed_message_thread_detail_route_is_unmounted() -> None:
     client = _client(_state())
 
     for account in ["@alice", "@carol"]:
-        res = client.get("/v1/" + "mess" + "ages/threads/" + "d" + "m" + ":@alice:@bob", headers=_auth(account))
+        res = client.get(
+            "/v1/" + "mess" + "ages/threads/" + "d" + "m" + ":@alice:@bob", headers=_auth(account)
+        )
         assert res.status_code == 404, res.text
 
 

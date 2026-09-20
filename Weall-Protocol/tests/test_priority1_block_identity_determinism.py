@@ -117,7 +117,9 @@ def test_restart_before_production_does_not_change_first_block_identity(tmp_path
         Path(db2).unlink(missing_ok=True)
 
 
-def test_different_chain_ids_may_change_block_identity_without_state_divergence(tmp_path: Path) -> None:
+def test_different_chain_ids_may_change_block_identity_without_state_divergence(
+    tmp_path: Path,
+) -> None:
     root = _repo_root()
     tx_index_path = str(root / "generated" / "tx_index.json")
 

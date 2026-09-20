@@ -7,8 +7,24 @@ from weall.runtime.errors import ApplyError
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=system,
+        parent=parent,
+    )
 
 
 def _base_state() -> dict:
@@ -23,7 +39,11 @@ def _base_state() -> dict:
             "genesis_time": 0,
             "economic_unlock_time": 1,
             "economics_enabled": False,
-            "gov_action_allowlist": ["ECONOMICS_ACTIVATION", "GOV_QUORUM_SET", "VALIDATOR_SET_UPDATE"],
+            "gov_action_allowlist": [
+                "ECONOMICS_ACTIVATION",
+                "GOV_QUORUM_SET",
+                "VALIDATOR_SET_UPDATE",
+            ],
         },
         "system_queue": [],
     }
@@ -74,7 +94,11 @@ def test_non_executable_community_decision_preserves_creator_fallback() -> None:
             "GOV_PROPOSAL_CREATE",
             "@alice",
             1,
-            {"proposal_id": "p-community", "title": "community signal", "rules": {"start_stage": "voting"}},
+            {
+                "proposal_id": "p-community",
+                "title": "community signal",
+                "rules": {"start_stage": "voting"},
+            },
         ),
     )
     proposal = st["gov_proposals_by_id"]["p-community"]

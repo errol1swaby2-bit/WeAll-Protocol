@@ -5,7 +5,6 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from weall.runtime.lane_identity import lane_base_id
 from weall.runtime.commitments import canonical_json_sha256
 from weall.runtime.helper_assignment import (
     assign_helper_candidates_for_lane,
@@ -29,6 +28,7 @@ from weall.runtime.helper_certificates import (
     verify_helper_certificate_signature,
 )
 from weall.runtime.lane_assignment import assign_execution_lane
+from weall.runtime.lane_identity import lane_base_id
 from weall.runtime.read_write_sets import (
     CONTENT_LANE,
     ECONOMICS_LANE,

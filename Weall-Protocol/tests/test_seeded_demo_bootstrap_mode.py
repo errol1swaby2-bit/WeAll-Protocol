@@ -11,7 +11,7 @@ def test_quickstart_seeded_demo_uses_dev_mode_for_open_bootstrap() -> None:
     assert 'export WEALL_RUNTIME_PROFILE="${WEALL_RUNTIME_PROFILE:-seeded_demo}"' in text
     assert 'export WEALL_MODE="${WEALL_MODE:-dev}"' in text
     assert 'export WEALL_MODE="${WEALL_MODE:-demo}"' not in text
-    assert 'WEALL_POH_BOOTSTRAP_OPEN: ${WEALL_POH_BOOTSTRAP_OPEN:-1}' in (
+    assert "WEALL_POH_BOOTSTRAP_OPEN: ${WEALL_POH_BOOTSTRAP_OPEN:-1}" in (
         ROOT / "docker-compose.yml"
     ).read_text(encoding="utf-8")
 

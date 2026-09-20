@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any
 
 from weall.runtime.helper_merge_admission import (
     HelperMergeAdmissionDecision,
     admit_helper_merge,
 )
 from weall.runtime.helper_proposal_orchestrator import HelperLaneResolution
-
 
 Json = dict[str, Any]
 

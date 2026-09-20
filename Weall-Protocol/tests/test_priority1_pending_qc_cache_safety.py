@@ -93,7 +93,8 @@ def _make_executor(tmp_path: Path, *, chain_id: str = "batch97") -> WeAllExecuto
 
 
 def test_invalid_leader_proposal_drops_quarantine_and_does_not_cache_qc(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     ex = _make_executor(tmp_path)
     monkeypatch.setattr(executor_mod, "admit_bft_block", lambda block, state: (True, ""))
@@ -126,7 +127,8 @@ def test_invalid_leader_proposal_drops_quarantine_and_does_not_cache_qc(
 
 
 def test_unrelated_justify_qc_branch_is_rejected_without_cache_pollution(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     ex = _make_executor(tmp_path)
     monkeypatch.setattr(executor_mod, "admit_bft_block", lambda block, state: (True, ""))
@@ -157,7 +159,8 @@ def test_unrelated_justify_qc_branch_is_rejected_without_cache_pollution(
 
 
 def test_valid_justify_qc_is_cached_only_after_proposal_survives_checks(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     ex = _make_executor(tmp_path)
     ex._bft.locked_qc = _qc("batch97", 4, "C1", "B1")

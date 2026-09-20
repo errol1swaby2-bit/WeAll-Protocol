@@ -59,7 +59,6 @@ def test_prod_effective_posture_ignores_unsafe_raw_env_overrides(
     assert posture["trusted_anchor_required"] is True
 
 
-
 def test_production_consensus_env_audit_detects_alias_conflict(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -70,8 +69,10 @@ def test_production_consensus_env_audit_detects_alias_conflict(
     audit = production_consensus_env_audit()
 
     assert audit["ok"] is False
-    assert "env_alias_conflict:WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR" in audit["violations"]
-
+    assert (
+        "env_alias_conflict:WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR/WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR"
+        in audit["violations"]
+    )
 
 
 def test_startup_fingerprint_is_deterministic(monkeypatch: pytest.MonkeyPatch) -> None:

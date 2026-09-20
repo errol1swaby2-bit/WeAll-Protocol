@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Iterable, Mapping
-
+from typing import Any
 
 JsonDict = dict[str, Any]
 
 
-class TxFamily(str, Enum):
+# Keep ``str, Enum``: changing to StrEnum would alter ``str(member)`` and protocol serialization.
+class TxFamily(str, Enum):  # noqa: UP042
     CONSENSUS = "CONSENSUS"
     GOVERNANCE = "GOVERNANCE"
     ROLES = "ROLES"
@@ -32,7 +33,7 @@ class TxFamily(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class BarrierClass(str, Enum):
+class BarrierClass(str, Enum):  # noqa: UP042
     GLOBAL_BARRIER = "GLOBAL_BARRIER"
     AUTHORITY_BARRIER = "AUTHORITY_BARRIER"
     SUBJECT_BARRIER = "SUBJECT_BARRIER"
@@ -149,7 +150,9 @@ def _signer(tx: Mapping[str, Any]) -> str:
 
 
 def _account_subject(tx: Mapping[str, Any]) -> str:
-    return _field(tx, "account_id", "user_id", "subject_id", "actor_id", "target_account_id") or _signer(tx)
+    return _field(
+        tx, "account_id", "user_id", "subject_id", "actor_id", "target_account_id"
+    ) or _signer(tx)
 
 
 def _proposal_id(tx: Mapping[str, Any]) -> str:
@@ -192,7 +195,6 @@ def _media_id(tx: Mapping[str, Any]) -> str:
     return _field(tx, "media_id", "cid") or _stable_tx_id(tx)
 
 
-
 def _peer_id(tx: Mapping[str, Any]) -> str:
     return _field(tx, "peer_id", "node_id") or _stable_tx_id(tx)
 
@@ -214,7 +216,9 @@ def _election_id(tx: Mapping[str, Any]) -> str:
 
 
 def _validator_id(tx: Mapping[str, Any]) -> str:
-    return _field(tx, "validator_id", "subject_id", "account_id") or _signer(tx) or _stable_tx_id(tx)
+    return (
+        _field(tx, "validator_id", "subject_id", "account_id") or _signer(tx) or _stable_tx_id(tx)
+    )
 
 
 def _object_account_keys(tx: Mapping[str, Any]) -> tuple[str, ...]:
@@ -242,7 +246,14 @@ def _object_relationship_keys(tx: Mapping[str, Any]) -> tuple[str, ...]:
     return ()
 
 
-def _rule(tx_type: str, family: TxFamily, barrier: BarrierClass, *, derived_only: bool = False, serial_only_on_missing_fields: bool = False) -> TxConflictRule:
+def _rule(
+    tx_type: str,
+    family: TxFamily,
+    barrier: BarrierClass,
+    *,
+    derived_only: bool = False,
+    serial_only_on_missing_fields: bool = False,
+) -> TxConflictRule:
     return TxConflictRule(
         tx_type=tx_type,
         family=family,
@@ -255,9 +266,22 @@ def _rule(tx_type: str, family: TxFamily, barrier: BarrierClass, *, derived_only
 REGISTRY: dict[str, TxConflictRule] = {}
 
 
-def _register_many(names: Iterable[str], family: TxFamily, barrier: BarrierClass, *, derived_only: bool = False, serial_only_on_missing_fields: bool = False) -> None:
+def _register_many(
+    names: Iterable[str],
+    family: TxFamily,
+    barrier: BarrierClass,
+    *,
+    derived_only: bool = False,
+    serial_only_on_missing_fields: bool = False,
+) -> None:
     for name in names:
-        REGISTRY[name] = _rule(name, family, barrier, derived_only=derived_only, serial_only_on_missing_fields=serial_only_on_missing_fields)
+        REGISTRY[name] = _rule(
+            name,
+            family,
+            barrier,
+            derived_only=derived_only,
+            serial_only_on_missing_fields=serial_only_on_missing_fields,
+        )
 
 
 _register_many(
@@ -433,7 +457,12 @@ _register_many(
     BarrierClass.SUBJECT_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["ACCOUNT_LOCK", "ACCOUNT_UNLOCK", "ACCOUNT_RECOVERY_FINALIZE"], TxFamily.IDENTITY, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    ["ACCOUNT_LOCK", "ACCOUNT_UNLOCK", "ACCOUNT_RECOVERY_FINALIZE"],
+    TxFamily.IDENTITY,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
 _register_many(
     [
@@ -454,12 +483,37 @@ _register_many(
     BarrierClass.SUBJECT_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["TREASURY_SIGNER_ADD", "TREASURY_SIGNER_REMOVE", "TREASURY_POLICY_SET"], TxFamily.TREASURY, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    ["TREASURY_SIGNER_ADD", "TREASURY_SIGNER_REMOVE", "TREASURY_POLICY_SET"],
+    TxFamily.TREASURY,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
-_register_many(["BALANCE_TRANSFER", "FEE_PAY"], TxFamily.ECONOMICS, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
-_register_many(["ECONOMICS_ACTIVATION", "FEE_POLICY_SET", "RATE_LIMIT_POLICY_SET"], TxFamily.ECONOMICS, BarrierClass.GLOBAL_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["RATE_LIMIT_STRIKE_APPLY"], TxFamily.ECONOMICS, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["MEMPOOL_REJECT_RECEIPT"], TxFamily.ECONOMICS, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    ["BALANCE_TRANSFER", "FEE_PAY"],
+    TxFamily.ECONOMICS,
+    BarrierClass.SCOPED_PARALLEL,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["ECONOMICS_ACTIVATION", "FEE_POLICY_SET", "RATE_LIMIT_POLICY_SET"],
+    TxFamily.ECONOMICS,
+    BarrierClass.GLOBAL_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["RATE_LIMIT_STRIKE_APPLY"],
+    TxFamily.ECONOMICS,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["MEMPOOL_REJECT_RECEIPT"],
+    TxFamily.ECONOMICS,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
 _register_many(
     [
@@ -487,7 +541,12 @@ _register_many(
     BarrierClass.SUBJECT_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["GROUP_TREASURY_POLICY_SET"], TxFamily.GROUPS, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    ["GROUP_TREASURY_POLICY_SET"],
+    TxFamily.GROUPS,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
 _register_many(
     [
@@ -515,7 +574,12 @@ _register_many(
     BarrierClass.SUBJECT_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["CONTENT_LABEL_SET", "CONTENT_VISIBILITY_SET", "CONTENT_THREAD_LOCK_SET"], TxFamily.CONTENT, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    ["CONTENT_LABEL_SET", "CONTENT_VISIBILITY_SET", "CONTENT_THREAD_LOCK_SET"],
+    TxFamily.CONTENT,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
 _register_many(
     [
@@ -533,15 +597,66 @@ _register_many(
     BarrierClass.SUBJECT_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["DISPUTE_STAGE_SET", "DISPUTE_JUROR_ASSIGN", "DISPUTE_JUROR_TIMEOUT", "DISPUTE_JUROR_ATTENDANCE", "DISPUTE_RESOLVE"], TxFamily.DISPUTE, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    [
+        "DISPUTE_STAGE_SET",
+        "DISPUTE_JUROR_ASSIGN",
+        "DISPUTE_JUROR_TIMEOUT",
+        "DISPUTE_JUROR_ATTENDANCE",
+        "DISPUTE_RESOLVE",
+    ],
+    TxFamily.DISPUTE,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
-_register_many(["CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE", "CASE_OUTCOME_RECEIPT"], TxFamily.CASES, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["MOD_ACTION_RECEIPT", "FLAG_ESCALATION_RECEIPT"], TxFamily.MODERATION, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["PEER_ADVERTISE", "PEER_REQUEST_CONNECT", "PEER_RENDEZVOUS_TICKET_CREATE", "PEER_RENDEZVOUS_TICKET_REVOKE"], TxFamily.NETWORKING, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
-_register_many(["PEER_BAN_SET"], TxFamily.NETWORKING, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["PEER_REPUTATION_SIGNAL"], TxFamily.NETWORKING, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["NOTIFICATION_SUBSCRIBE", "NOTIFICATION_UNSUBSCRIBE"], TxFamily.NOTIFICATIONS, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
-_register_many(["NOTIFICATION_EMIT_RECEIPT"], TxFamily.NOTIFICATIONS, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    ["CASE_TYPE_REGISTER", "CASE_BIND_TO_DISPUTE", "CASE_OUTCOME_RECEIPT"],
+    TxFamily.CASES,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["MOD_ACTION_RECEIPT", "FLAG_ESCALATION_RECEIPT"],
+    TxFamily.MODERATION,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    [
+        "PEER_ADVERTISE",
+        "PEER_REQUEST_CONNECT",
+        "PEER_RENDEZVOUS_TICKET_CREATE",
+        "PEER_RENDEZVOUS_TICKET_REVOKE",
+    ],
+    TxFamily.NETWORKING,
+    BarrierClass.SCOPED_PARALLEL,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["PEER_BAN_SET"],
+    TxFamily.NETWORKING,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["PEER_REPUTATION_SIGNAL"],
+    TxFamily.NETWORKING,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["NOTIFICATION_SUBSCRIBE", "NOTIFICATION_UNSUBSCRIBE"],
+    TxFamily.NOTIFICATIONS,
+    BarrierClass.SCOPED_PARALLEL,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["NOTIFICATION_EMIT_RECEIPT"],
+    TxFamily.NOTIFICATIONS,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 _register_many(
     [
         "INDEX_ANCHOR_SET",
@@ -557,15 +672,86 @@ _register_many(
     BarrierClass.SUBJECT_BARRIER,
     serial_only_on_missing_fields=True,
 )
-_register_many(["REPUTATION_DELTA_APPLY", "REPUTATION_THRESHOLD_CROSS"], TxFamily.REPUTATION, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["ROLE_ELIGIBILITY_SET", "ROLE_ELIGIBILITY_REVOKE", "ACCOUNT_BAN", "ACCOUNT_REINSTATE"], TxFamily.REPUTATION, BarrierClass.AUTHORITY_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["REWARD_POOL_OPT_IN_SET", "BLOCK_REWARD_MINT", "BLOCK_REWARD_DISTRIBUTE", "CREATOR_REWARD_ALLOCATE", "TREASURY_REWARD_ALLOCATE", "FORFEITURE_APPLY"], TxFamily.REWARDS, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
-_register_many(["VALIDATOR_PERFORMANCE_REPORT", "NODE_OPERATOR_PERFORMANCE_REPORT", "CREATOR_PERFORMANCE_REPORT"], TxFamily.PERFORMANCE, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
-_register_many(["PERFORMANCE_EVALUATE", "PERFORMANCE_SCORE_APPLY"], TxFamily.PERFORMANCE, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["PROFILE_UPDATE", "CONTENT_SHARE_CREATE"], TxFamily.SOCIAL, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
-_register_many(["FOLLOW_SET", "BLOCK_SET", "MUTE_SET"], TxFamily.SOCIAL, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
-_register_many(["IPFS_PIN_REQUEST", "STORAGE_OFFER_CREATE", "STORAGE_OFFER_WITHDRAW", "STORAGE_LEASE_CREATE", "STORAGE_LEASE_RENEW", "STORAGE_LEASE_REVOKE", "STORAGE_PROOF_SUBMIT", "STORAGE_CHALLENGE_RESPOND"], TxFamily.STORAGE, BarrierClass.SCOPED_PARALLEL, serial_only_on_missing_fields=True)
-_register_many(["IPFS_PIN_CONFIRM", "STORAGE_CHALLENGE_ISSUE", "STORAGE_CAPACITY_PROOF_VERIFY", "STORAGE_PAYOUT_EXECUTE", "STORAGE_REPORT_ANCHOR"], TxFamily.STORAGE, BarrierClass.SUBJECT_BARRIER, serial_only_on_missing_fields=True)
+_register_many(
+    ["REPUTATION_DELTA_APPLY", "REPUTATION_THRESHOLD_CROSS"],
+    TxFamily.REPUTATION,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["ROLE_ELIGIBILITY_SET", "ROLE_ELIGIBILITY_REVOKE", "ACCOUNT_BAN", "ACCOUNT_REINSTATE"],
+    TxFamily.REPUTATION,
+    BarrierClass.AUTHORITY_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    [
+        "REWARD_POOL_OPT_IN_SET",
+        "BLOCK_REWARD_MINT",
+        "BLOCK_REWARD_DISTRIBUTE",
+        "CREATOR_REWARD_ALLOCATE",
+        "TREASURY_REWARD_ALLOCATE",
+        "FORFEITURE_APPLY",
+    ],
+    TxFamily.REWARDS,
+    BarrierClass.SCOPED_PARALLEL,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    [
+        "VALIDATOR_PERFORMANCE_REPORT",
+        "NODE_OPERATOR_PERFORMANCE_REPORT",
+        "CREATOR_PERFORMANCE_REPORT",
+    ],
+    TxFamily.PERFORMANCE,
+    BarrierClass.SCOPED_PARALLEL,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["PERFORMANCE_EVALUATE", "PERFORMANCE_SCORE_APPLY"],
+    TxFamily.PERFORMANCE,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["PROFILE_UPDATE", "CONTENT_SHARE_CREATE"],
+    TxFamily.SOCIAL,
+    BarrierClass.SCOPED_PARALLEL,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    ["FOLLOW_SET", "BLOCK_SET", "MUTE_SET"],
+    TxFamily.SOCIAL,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    [
+        "IPFS_PIN_REQUEST",
+        "STORAGE_OFFER_CREATE",
+        "STORAGE_OFFER_WITHDRAW",
+        "STORAGE_LEASE_CREATE",
+        "STORAGE_LEASE_RENEW",
+        "STORAGE_LEASE_REVOKE",
+        "STORAGE_PROOF_SUBMIT",
+        "STORAGE_CHALLENGE_RESPOND",
+    ],
+    TxFamily.STORAGE,
+    BarrierClass.SCOPED_PARALLEL,
+    serial_only_on_missing_fields=True,
+)
+_register_many(
+    [
+        "IPFS_PIN_CONFIRM",
+        "STORAGE_CHALLENGE_ISSUE",
+        "STORAGE_CAPACITY_PROOF_VERIFY",
+        "STORAGE_PAYOUT_EXECUTE",
+        "STORAGE_REPORT_ANCHOR",
+    ],
+    TxFamily.STORAGE,
+    BarrierClass.SUBJECT_BARRIER,
+    serial_only_on_missing_fields=True,
+)
 
 
 def lookup_rule(tx_type: str) -> TxConflictRule | None:
@@ -610,7 +796,9 @@ def _barrier_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[str, ...
     return _sorted_unique(out)
 
 
-def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
+def _base_keys(
+    rule: TxConflictRule, tx: Mapping[str, Any]
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
     subject: list[str] = []
     reads: list[str] = []
     writes: list[str] = []
@@ -646,10 +834,12 @@ def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, 
         if "VALIDATOR" in _tx_type(tx):
             authority.extend(["consensus:validator_set", "consensus:validator_epoch"])
         if _tx_type(tx) in {"ROLE_EMISSARY_SEAT", "ROLE_EMISSARY_REMOVE"}:
-            writes.extend([
-                _key("treasury:wallet", "TREASURY_PROTOCOL"),
-                _key("treasury:policy", "TREASURY_PROTOCOL"),
-            ])
+            writes.extend(
+                [
+                    _key("treasury:wallet", "TREASURY_PROTOCOL"),
+                    _key("treasury:policy", "TREASURY_PROTOCOL"),
+                ]
+            )
 
     elif rule.family == TxFamily.POH:
         account_id = _account_subject(tx)
@@ -668,7 +858,9 @@ def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, 
         if account_id:
             subject.append(_key("identity:user", account_id))
             writes.append(_key("identity:user", account_id))
-            authority.append(_key("authority:identity", account_id)) if rule.barrier_class == BarrierClass.AUTHORITY_BARRIER else None
+            authority.append(
+                _key("authority:identity", account_id)
+            ) if rule.barrier_class == BarrierClass.AUTHORITY_BARRIER else None
         key_id = _field(tx, "key_id", "device_id", "session_key", "guardian_id", "request_id")
         if key_id:
             writes.append(_key("identity:subobject", f"{account_id}:{key_id}"))
@@ -714,10 +906,12 @@ def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, 
         if _tx_type(tx) in {"GROUP_SIGNERS_SET", "GROUP_EMISSARY_ELECTION_FINALIZE"}:
             treasury_id = _group_treasury_id(tx)
             if treasury_id:
-                writes.extend([
-                    _key("treasury:wallet", treasury_id),
-                    _key("treasury:policy", treasury_id),
-                ])
+                writes.extend(
+                    [
+                        _key("treasury:wallet", treasury_id),
+                        _key("treasury:policy", treasury_id),
+                    ]
+                )
         if rule.barrier_class == BarrierClass.AUTHORITY_BARRIER:
             authority.append(_key("groups:treasury_policy", group_id))
 
@@ -817,7 +1011,12 @@ def _base_keys(rule: TxConflictRule, tx: Mapping[str, Any]) -> tuple[tuple[str, 
         if cid:
             writes.append(_key("storage:pin", cid))
 
-    return _sorted_unique(subject), _sorted_unique(reads), _sorted_unique(writes), _sorted_unique(authority)
+    return (
+        _sorted_unique(subject),
+        _sorted_unique(reads),
+        _sorted_unique(writes),
+        _sorted_unique(authority),
+    )
 
 
 def build_conflict_descriptor(tx: Mapping[str, Any]) -> ConflictDescriptor:

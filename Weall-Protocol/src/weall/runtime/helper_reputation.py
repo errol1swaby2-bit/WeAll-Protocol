@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
-from weall.runtime.runtime_env import safe_int
+from typing import Any
 
 from weall.runtime.helper_audit import LaneAuditResult
 from weall.runtime.parallel_execution import LanePlan
+from weall.runtime.runtime_env import safe_int
 
 Json = dict[str, Any]
 
@@ -26,7 +27,9 @@ class HelperReputationRecord:
     last_reason: str = ""
 
     def to_json(self) -> Json:
-        score = max(0, (self.success_count * 2) - (self.fraud_count * 10) - (self.timeout_count * 4))
+        score = max(
+            0, (self.success_count * 2) - (self.fraud_count * 10) - (self.timeout_count * 4)
+        )
         return {
             "helper_id": self.helper_id,
             "audits_total": int(self.audits_total),
@@ -41,7 +44,7 @@ class HelperReputationRecord:
         }
 
     @classmethod
-    def from_json(cls, payload: Mapping[str, Any]) -> "HelperReputationRecord":
+    def from_json(cls, payload: Mapping[str, Any]) -> HelperReputationRecord:
         return cls(
             helper_id=str(payload.get("helper_id") or ""),
             audits_total=_safe_int(payload.get("audits_total"), 0),
@@ -58,7 +61,9 @@ DEFAULT_QUARANTINE_FRAUD_MS = 30 * 60 * 1000
 DEFAULT_QUARANTINE_TIMEOUT_MS = 10 * 60 * 1000
 
 
-def _normalized_state(helper_reputation_state: Mapping[str, Any] | None) -> dict[str, HelperReputationRecord]:
+def _normalized_state(
+    helper_reputation_state: Mapping[str, Any] | None,
+) -> dict[str, HelperReputationRecord]:
     normalized: dict[str, HelperReputationRecord] = {}
     for helper_id, raw in dict(helper_reputation_state or {}).items():
         hid = str(helper_id or "").strip()
@@ -123,7 +128,9 @@ def update_helper_reputation_state(
             success_count=int(current.success_count),
             fraud_count=int(current.fraud_count),
             timeout_count=int(current.timeout_count) + 1,
-            quarantine_until_ms=max(int(current.quarantine_until_ms), int(now_ms) + int(timeout_quarantine_ms)),
+            quarantine_until_ms=max(
+                int(current.quarantine_until_ms), int(now_ms) + int(timeout_quarantine_ms)
+            ),
             last_event_ms=int(now_ms),
             last_reason="helper_timeout",
         )

@@ -10,7 +10,9 @@ Json = dict[str, Any]
 
 
 def _sha(obj: Any) -> str:
-    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 def run_harness(seed: int = 577581, rounds: int = 160) -> Json:
@@ -19,7 +21,12 @@ def run_harness(seed: int = 577581, rounds: int = 160) -> Json:
     roots = {n: _sha({"genesis": n}) for n in nodes}
     queues = {n: [] for n in nodes}
     heights = {n: 0 for n in nodes}
-    delayed = 0; dup = 0; dropped = 0; restarts = 0; partitions = 0; resource_pressure_events = 0
+    delayed = 0
+    dup = 0
+    dropped = 0
+    restarts = 0
+    partitions = 0
+    resource_pressure_events = 0
     committed: list[Json] = []
     for r in range(1, rounds + 1):
         proposer = nodes[(r - 1) % len(nodes)]
@@ -28,7 +35,12 @@ def run_harness(seed: int = 577581, rounds: int = 160) -> Json:
             resource_pressure_events += 1
             tx_count += 12
         txs = [f"tx:{r}:{i}:{rng.randrange(10_000)}" for i in range(tx_count)]
-        block = {"height": r, "proposer": proposer, "txs": txs, "parent": committed[-1]["hash"] if committed else "genesis"}
+        block = {
+            "height": r,
+            "proposer": proposer,
+            "txs": txs,
+            "parent": committed[-1]["hash"] if committed else "genesis",
+        }
         block["hash"] = _sha(block)
         committed.append(block)
         if r % 23 == 0:
@@ -41,7 +53,8 @@ def run_harness(seed: int = 577581, rounds: int = 160) -> Json:
             if rng.randrange(5) == 0:
                 delayed += 1
             if rng.randrange(19) == 0:
-                queues[n].append(block); dup += 1
+                queues[n].append(block)
+                dup += 1
         if r % 41 == 0:
             restarts += 1
             restarted = nodes[(r // 41) % len(nodes)]
@@ -54,7 +67,8 @@ def run_harness(seed: int = 577581, rounds: int = 160) -> Json:
         for b in sorted(queues[n], key=lambda x: (x["height"], x["hash"])):
             if b["hash"] in seen:
                 continue
-            seen.add(b["hash"]); ordered.append(b)
+            seen.add(b["hash"])
+            ordered.append(b)
         # Catch-up from committed canonical chain after partitions/restarts.
         if len(ordered) < len(committed):
             ordered = list(committed)
@@ -81,6 +95,7 @@ def run_harness(seed: int = 577581, rounds: int = 160) -> Json:
         "heights_final": heights,
         "public_validator_readiness_claimed": False,
     }
+
 
 if __name__ == "__main__":
     print(json.dumps(run_harness(), indent=2, sort_keys=True))

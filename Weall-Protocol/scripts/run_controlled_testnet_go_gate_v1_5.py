@@ -13,12 +13,19 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
-from gen_public_beta_blocker_report_v1_5 import build as build_public_beta_blocker_report
-from gen_external_operator_transcript_requirements_v1_5 import build as build_external_operator_transcript_requirements
-from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
 from gen_b587_b594_testnet_mechanism_completion_v1_5 import build as build_b587_b594
-from rehearse_external_multimachine_validator_harness_b590_v1_5 import run_harness as run_validator_harness
-from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import run_harness as run_storage_harness
+from gen_external_operator_transcript_requirements_v1_5 import (
+    build as build_external_operator_transcript_requirements,
+)
+from gen_public_beta_blocker_report_v1_5 import build as build_public_beta_blocker_report
+from gen_release_evidence_manifest_v1_5 import build as build_release_evidence_manifest
+from rehearse_external_multimachine_validator_harness_b590_v1_5 import (
+    run_harness as run_validator_harness,
+)
+from rehearse_multimachine_storage_ipfs_durability_b591_v1_5 import (
+    run_harness as run_storage_harness,
+)
+
 from weall.runtime.testnet_capabilities import build_testnet_capability_surface
 
 OUT = ROOT / "generated" / "controlled_testnet_go_gate_v1_5.json"
@@ -97,19 +104,28 @@ def _artifact_summary(rel: str) -> Json:
 
 
 def _summarize_b587(payload: Json) -> Json:
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
     return {
         "present": bool(payload),
         "ok": bool(payload.get("ok")),
-        "controlled_testnet_mechanisms_complete": bool(payload.get("controlled_testnet_mechanisms_complete")),
-        "controlled_testnet_ready_candidate": bool(payload.get("controlled_testnet_ready_candidate")),
+        "controlled_testnet_mechanisms_complete": bool(
+            payload.get("controlled_testnet_mechanisms_complete")
+        ),
+        "controlled_testnet_ready_candidate": bool(
+            payload.get("controlled_testnet_ready_candidate")
+        ),
         "public_beta_ready": bool(payload.get("public_beta_ready")),
-        "unsafe_claims_false": all(boundaries.get(k, False) is False for k in (
-            "live_economics",
-            "public_validator_readiness",
-            "production_helper_execution",
-            "automatic_protocol_upgrades",
-        )),
+        "unsafe_claims_false": all(
+            boundaries.get(k, False) is False
+            for k in (
+                "live_economics",
+                "public_validator_readiness",
+                "production_helper_execution",
+                "automatic_protocol_upgrades",
+            )
+        ),
     }
 
 
@@ -121,11 +137,17 @@ def build() -> Json:
     release_evidence = build_release_evidence_manifest()
     quantum_readiness = _load_json("generated/quantum_resistance_readiness_v1_5.json")
     real_mldsa_ready = bool(quantum_readiness.get("real_mldsa_implemented_in_this_environment"))
-    capabilities = build_testnet_capability_surface({"params": {"launch_phase": "public_beta_candidate"}})
+    capabilities = build_testnet_capability_surface(
+        {"params": {"launch_phase": "public_beta_candidate"}}
+    )
     validator = run_validator_harness()
     storage = run_storage_harness()
 
-    artifact_summaries = {rel: _artifact_summary(rel) for rel in _REQUIRED_TRACKED_ARTIFACTS if rel != OUT.relative_to(ROOT).as_posix()}
+    artifact_summaries = {
+        rel: _artifact_summary(rel)
+        for rel in _REQUIRED_TRACKED_ARTIFACTS
+        if rel != OUT.relative_to(ROOT).as_posix()
+    }
     high_risk_blocked = all(
         capabilities.get("capabilities", {}).get(key, {}).get("enabled") is False
         for key in (
@@ -139,18 +161,20 @@ def build() -> Json:
             "production_helper_execution",
         )
     )
-    deterministic_go_gate_ready = all([
-        bool(api_vectors.get("ok")),
-        bool(public_beta_blockers.get("ok")),
-        bool(external_transcripts.get("ok")),
-        bool(release_evidence.get("ok")),
-        real_mldsa_ready,
-        bool(b587.get("ok")),
-        bool(capabilities.get("controlled_testnet_mechanisms_complete")),
-        bool(validator.get("ok")),
-        bool(storage.get("ok")),
-        high_risk_blocked,
-    ])
+    deterministic_go_gate_ready = all(
+        [
+            bool(api_vectors.get("ok")),
+            bool(public_beta_blockers.get("ok")),
+            bool(external_transcripts.get("ok")),
+            bool(release_evidence.get("ok")),
+            real_mldsa_ready,
+            bool(b587.get("ok")),
+            bool(capabilities.get("controlled_testnet_mechanisms_complete")),
+            bool(validator.get("ok")),
+            bool(storage.get("ok")),
+            high_risk_blocked,
+        ]
+    )
 
     return {
         "schema": "weall.v1_5.controlled_testnet_go_gate",
@@ -169,17 +193,30 @@ def build() -> Json:
             "vector_count": int(api_vectors.get("vector_count") or 0),
             "truth_boundaries": api_vectors.get("truth_boundaries", {}),
         },
-
         "public_beta_blocker_report_summary": {
             "ok": bool(public_beta_blockers.get("ok")),
             "public_beta_ready": bool(public_beta_blockers.get("public_beta_ready")),
             "mainnet_ready": bool(public_beta_blockers.get("mainnet_ready")),
             "blocker_count": int(public_beta_blockers.get("blocker_count") or 0),
-            "blocker_catalog_count": int(public_beta_blockers.get("blocker_catalog_count") or public_beta_blockers.get("blocker_count") or 0),
-            "remaining_blocker_count": int(public_beta_blockers.get("remaining_blocker_count") or 0),
-            "closed_in_repository_count": int(public_beta_blockers.get("closed_in_repository_count") or public_beta_blockers.get("closed_blocker_count") or 0),
-            "remaining_external_evidence_required_count": int(public_beta_blockers.get("remaining_external_evidence_required_count") or 0),
-            "remaining_mainnet_hardening_count": int(public_beta_blockers.get("remaining_mainnet_hardening_count") or 0),
+            "blocker_catalog_count": int(
+                public_beta_blockers.get("blocker_catalog_count")
+                or public_beta_blockers.get("blocker_count")
+                or 0
+            ),
+            "remaining_blocker_count": int(
+                public_beta_blockers.get("remaining_blocker_count") or 0
+            ),
+            "closed_in_repository_count": int(
+                public_beta_blockers.get("closed_in_repository_count")
+                or public_beta_blockers.get("closed_blocker_count")
+                or 0
+            ),
+            "remaining_external_evidence_required_count": int(
+                public_beta_blockers.get("remaining_external_evidence_required_count") or 0
+            ),
+            "remaining_mainnet_hardening_count": int(
+                public_beta_blockers.get("remaining_mainnet_hardening_count") or 0
+            ),
             "p0_open_count": int(public_beta_blockers.get("p0_open_count") or 0),
             "p1_open_count": int(public_beta_blockers.get("p1_open_count") or 0),
             "p2_open_count": int(public_beta_blockers.get("p2_open_count") or 0),
@@ -191,23 +228,33 @@ def build() -> Json:
             "schema_count": len(external_transcripts.get("schemas") or {}),
             "public_beta_ready": bool(external_transcripts.get("public_beta_ready")),
             "mainnet_ready": bool(external_transcripts.get("mainnet_ready")),
-            "external_attestation_required_before_public_beta": bool(external_transcripts.get("external_attestation_required_before_public_beta")),
+            "external_attestation_required_before_public_beta": bool(
+                external_transcripts.get("external_attestation_required_before_public_beta")
+            ),
         },
         "release_evidence_manifest_summary": {
             "ok": bool(release_evidence.get("ok")),
             "schema": release_evidence.get("schema"),
             "public_beta_ready": bool(release_evidence.get("public_beta_ready")),
             "mainnet_ready": bool(release_evidence.get("mainnet_ready")),
-            "runtime_commit_binding_required": bool(release_evidence.get("runtime_commit_binding_required")),
-            "tracked_manifest_is_commit_agnostic": bool(release_evidence.get("tracked_manifest_is_commit_agnostic")),
+            "runtime_commit_binding_required": bool(
+                release_evidence.get("runtime_commit_binding_required")
+            ),
+            "tracked_manifest_is_commit_agnostic": bool(
+                release_evidence.get("tracked_manifest_is_commit_agnostic")
+            ),
         },
         "quantum_resistance_readiness_summary": {
             "ok": real_mldsa_ready,
             "schema": quantum_readiness.get("schema"),
-            "controlled_testnet_target_profile": quantum_readiness.get("controlled_testnet_target_profile"),
+            "controlled_testnet_target_profile": quantum_readiness.get(
+                "controlled_testnet_target_profile"
+            ),
             "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
             "remaining_crypto_blockers": quantum_readiness.get("remaining_crypto_blockers") or [],
-            "production_crypto_audit_complete": bool(quantum_readiness.get("production_crypto_audit_complete")),
+            "production_crypto_audit_complete": bool(
+                quantum_readiness.get("production_crypto_audit_complete")
+            ),
         },
         "launch_matrix_capability_snapshot": {
             "phase": capabilities.get("phase"),
@@ -221,26 +268,36 @@ def build() -> Json:
             "machine_count": validator.get("machine_count"),
             "threshold": validator.get("threshold"),
             "partition_rejoin_exercised": validator.get("partition_rejoin_exercised"),
-            "minority_partition_cannot_finalize": validator.get("minority_partition_cannot_finalize"),
+            "minority_partition_cannot_finalize": validator.get(
+                "minority_partition_cannot_finalize"
+            ),
             "fresh_node_catchup_exercised": validator.get("fresh_node_catchup_exercised"),
             "equivocation_rejected": validator.get("equivocation_rejected"),
             "observer_vote_rejected": validator.get("observer_vote_rejected"),
             "state_roots_match": validator.get("state_roots_match"),
             "transcript_digest": validator.get("transcript_digest"),
             "requires_independent_operator_run": validator.get("requires_independent_operator_run"),
-            "public_validator_readiness_claimed": validator.get("public_validator_readiness_claimed"),
+            "public_validator_readiness_claimed": validator.get(
+                "public_validator_readiness_claimed"
+            ),
         },
         "storage_go_gate_snapshot": {
             "ok": bool(storage.get("ok")),
             "machine_count": storage.get("machine_count"),
             "origin_failure_exercised": storage.get("origin_failure_exercised"),
-            "replication_factor_after_reassignment": storage.get("replication_factor_after_reassignment"),
+            "replication_factor_after_reassignment": storage.get(
+                "replication_factor_after_reassignment"
+            ),
             "retrieval_from_non_origin_machine": storage.get("retrieval_from_non_origin_machine"),
-            "fresh_node_retrieval_path_exercised": storage.get("fresh_node_retrieval_path_exercised"),
+            "fresh_node_retrieval_path_exercised": storage.get(
+                "fresh_node_retrieval_path_exercised"
+            ),
             "wrong_cid_rejected": storage.get("wrong_cid_rejected"),
             "corrupt_content_rejected_by_hash": storage.get("corrupt_content_rejected_by_hash"),
             "requires_real_operator_rehearsal": storage.get("requires_real_operator_rehearsal"),
-            "public_decentralized_media_durability_claimed": storage.get("public_decentralized_media_durability_claimed"),
+            "public_decentralized_media_durability_claimed": storage.get(
+                "public_decentralized_media_durability_claimed"
+            ),
         },
         "required_manual_or_runtime_evidence_before_public_beta": [
             "full pytest suite output from repo virtualenv",
@@ -261,7 +318,9 @@ def build() -> Json:
         "artifact_freshness_commands": [" ".join(cmd) for cmd in _CHECK_COMMANDS],
         "claim_boundaries": dict(_FORBIDDEN_CLAIMS),
         "next_allowed_claim_if_runtime_go_gate_passes": "pre-public-testnet hardening evidence refreshed; controlled-testnet candidate remains disallowed while deterministic mechanism completion is false",
-        "claims_still_forbidden_after_this_gate": [key for key, enabled in _FORBIDDEN_CLAIMS.items() if enabled is False],
+        "claims_still_forbidden_after_this_gate": [
+            key for key, enabled in _FORBIDDEN_CLAIMS.items() if enabled is False
+        ],
     }
 
 
@@ -286,8 +345,13 @@ def _run(cmd: list[str]) -> Json:
     with tempfile.TemporaryDirectory(prefix="weall_gate_cmd_") as tmp:
         stdout_path = Path(tmp) / "stdout.txt"
         stderr_path = Path(tmp) / "stderr.txt"
-        with stdout_path.open("w", encoding="utf-8") as stdout, stderr_path.open("w", encoding="utf-8") as stderr:
-            proc = subprocess.run(normalized, cwd=ROOT, text=True, stdout=stdout, stderr=stderr, check=False)
+        with (
+            stdout_path.open("w", encoding="utf-8") as stdout,
+            stderr_path.open("w", encoding="utf-8") as stderr,
+        ):
+            proc = subprocess.run(
+                normalized, cwd=ROOT, text=True, stdout=stdout, stderr=stderr, check=False
+            )
         return {
             "cmd": " ".join(cmd),
             "returncode": proc.returncode,
@@ -314,15 +378,24 @@ def _check_required_tracked_artifacts() -> Json:
         "cmd": "embedded required tracked artifact check",
         "returncode": 0 if not missing else 1,
         "ok": not missing,
-        "stdout_tail": "all required release artifacts are tracked/staged in git index" if not missing else "",
+        "stdout_tail": "all required release artifacts are tracked/staged in git index"
+        if not missing
+        else "",
         "stderr_tail": "" if not missing else "missing tracked artifacts: " + ", ".join(missing),
     }
 
 
-def run_runtime_gates(*, require_git_tracked: bool = False, include_full_pytest: bool = False) -> Json:
+def run_runtime_gates(
+    *, require_git_tracked: bool = False, include_full_pytest: bool = False
+) -> Json:
     commands = list(_CHECK_COMMANDS)
     if not require_git_tracked:
-        commands = [cmd if cmd[1] != "scripts/check_v15_public_readiness_artifacts.py" else ["python", "scripts/check_v15_public_readiness_artifacts.py"] for cmd in commands]
+        commands = [
+            cmd
+            if cmd[1] != "scripts/check_v15_public_readiness_artifacts.py"
+            else ["python", "scripts/check_v15_public_readiness_artifacts.py"]
+            for cmd in commands
+        ]
     if include_full_pytest:
         commands.append(["python", "-m", "pytest", "-q"])
     results = [_run(cmd) for cmd in commands]
@@ -342,15 +415,34 @@ def run_runtime_gates(*, require_git_tracked: bool = False, include_full_pytest:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Generate/check/run the v1.5 controlled-testnet go-gate evidence manifest.")
-    ap.add_argument("--check", action="store_true", help="check the tracked deterministic manifest is fresh")
-    ap.add_argument("--run-gates", action="store_true", help="run readiness gates and write a local runtime report")
-    ap.add_argument("--require-git-tracked", action="store_true", help="when running gates, require release artifacts to be tracked in git")
-    ap.add_argument("--include-full-pytest", action="store_true", help="when running gates, include the full pytest suite")
+    ap = argparse.ArgumentParser(
+        description="Generate/check/run the v1.5 controlled-testnet go-gate evidence manifest."
+    )
+    ap.add_argument(
+        "--check", action="store_true", help="check the tracked deterministic manifest is fresh"
+    )
+    ap.add_argument(
+        "--run-gates",
+        action="store_true",
+        help="run readiness gates and write a local runtime report",
+    )
+    ap.add_argument(
+        "--require-git-tracked",
+        action="store_true",
+        help="when running gates, require release artifacts to be tracked in git",
+    )
+    ap.add_argument(
+        "--include-full-pytest",
+        action="store_true",
+        help="when running gates, include the full pytest suite",
+    )
     args = ap.parse_args()
 
     if args.run_gates:
-        report = run_runtime_gates(require_git_tracked=args.require_git_tracked, include_full_pytest=args.include_full_pytest)
+        report = run_runtime_gates(
+            require_git_tracked=args.require_git_tracked,
+            include_full_pytest=args.include_full_pytest,
+        )
         print(json.dumps(report, indent=2, sort_keys=True))
         return 0 if report.get("ok") else 1
 
@@ -358,7 +450,9 @@ def main() -> int:
     text = _canon(payload)
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("controlled_testnet_go_gate_v1_5.json is stale; rerun scripts/run_controlled_testnet_go_gate_v1_5.py")
+            raise SystemExit(
+                "controlled_testnet_go_gate_v1_5.json is stale; rerun scripts/run_controlled_testnet_go_gate_v1_5.py"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is fresh")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

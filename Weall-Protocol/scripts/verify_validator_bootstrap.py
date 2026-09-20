@@ -137,7 +137,12 @@ def main() -> int:
 
     authority_contract = {}
     if isinstance(bundle_report, dict):
-        authority_contract = dict(bundle_report.get("compatibility_contract", {}).get("local", {}).get("authority_contract") or {})
+        authority_contract = dict(
+            bundle_report.get("compatibility_contract", {})
+            .get("local", {})
+            .get("authority_contract")
+            or {}
+        )
 
     bootstrap_report = production_bootstrap_report(cfg)
     for item in list(bootstrap_report.get("issues") or []):
@@ -175,10 +180,17 @@ def main() -> int:
             "observed": observed_anchor,
         },
         "authority_contract": authority_contract if isinstance(authority_contract, dict) else {},
-        "authority_contract_source": str(((authority_contract or {}) if isinstance(authority_contract, dict) else {}).get("contract_source") or "runtime"),
+        "authority_contract_source": str(
+            ((authority_contract or {}) if isinstance(authority_contract, dict) else {}).get(
+                "contract_source"
+            )
+            or "runtime"
+        ),
         "bundle_integrity_issues": bundle_integrity,
         "release_manifest": bundle_report,
-        "compatibility_contract": (bundle_report.get("compatibility_contract") if isinstance(bundle_report, dict) else {}),
+        "compatibility_contract": (
+            bundle_report.get("compatibility_contract") if isinstance(bundle_report, dict) else {}
+        ),
         "bootstrap_report": bootstrap_report,
         "issues": issues,
     }

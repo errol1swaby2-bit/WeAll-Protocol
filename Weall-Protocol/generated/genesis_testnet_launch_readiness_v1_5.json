@@ -20,7 +20,7 @@
     "errors": [
       "public_testnet_seed_registry_rotation_required"
     ],
-    "genesis_hash": "180bb54f86edf1d8e193b3707d8b1afe8eadd98e9b6977e057d98162980abfba",
+    "genesis_hash": "f2796de68e743bd54fbdce3689891b23eeda0e4a7d2f55a9485d55fbca6ecca0",
     "network_id": "weall-public-observer-testnet-v1",
     "protocol_profile_hash": "0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25",
     "seed_api_urls": [
@@ -35,7 +35,7 @@
       "verified": false
     },
     "source_kind": "checked_in_rotation_pending",
-    "tx_index_hash": "89fa58d29c9980caf01ccb03eee89f3006e7693804d53865e1ffc4039cedbb69"
+    "tx_index_hash": "54226cca3ee1489351b933a80b1734f781cc5915cdef4518249ca11955175f44"
   },
   "relay_fallback_only": true,
   "schema": "weall.v1_5.genesis_testnet_launch_readiness",

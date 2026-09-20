@@ -169,7 +169,6 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
     can be adversarial and apply_tx() may be invoked directly in tests/tools.
 
     We enforce:
-      - receipt_only => parent required
       - system_only or origin=SYSTEM => system flag required AND signer is system_signer/SYSTEM
       - Option-2 bootstrap founder hard-lock after expiry height
     """
@@ -243,20 +242,6 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
     if not isinstance(txdef, dict):
         raise ApplyError("invalid_tx", "noncanonical_tx_type", {"tx_type": t})
 
-    # Receipt-only txs may require a parent pointer (block context) depending on canon.
-    # Canon distinguishes "receipt_only" (not mempool-admissible) from whether a
-    # parent reference is *required*.
-    if bool(txdef.get("receipt_only", False)):
-        parent_required = str(txdef.get("parent") or "").strip()
-        if parent_required:
-            parent = _get(env, "parent", None)
-            if parent is None or not str(parent).strip():
-                raise ApplyError(
-                    "forbidden",
-                    "receipt_only_requires_parent",
-                    {"tx_type": t, "parent_required": parent_required},
-                )
-
     # Canon-derived system-only/origin=SYSTEM enforcement at apply-time.
     #
     # POH bootstrap open-mode is consensus-critical and therefore must be driven
@@ -291,6 +276,12 @@ def _enforce_apply_time_canon(state: Json, env: Any) -> None:
                     "system_signers": sorted(canonical_system_signers),
                 },
             )
+
+    # Canon parent metadata identifies a required parent *TxType*. The envelope
+    # ``parent`` field is a concrete transaction/context reference. Direct apply
+    # does not have enough ancestry context to prove that relationship, so it must
+    # not treat a TxType string as a concrete parent reference. Concrete queue
+    # parent-reference integrity is checked where queue/block context exists.
 
 
 _APPLIERS: tuple[ApplyFn, ...] = (

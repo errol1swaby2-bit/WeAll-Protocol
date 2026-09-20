@@ -79,13 +79,31 @@ def _state() -> dict:
         },
         "content": {
             "posts": {
-                "post:1": {"post_id": "post:1", "author": "@alice", "visibility": "public", "created_nonce": 10},
-                "post:2": {"post_id": "post:2", "author": "@alice", "visibility": "public", "deleted": True},
+                "post:1": {
+                    "post_id": "post:1",
+                    "author": "@alice",
+                    "visibility": "public",
+                    "created_nonce": 10,
+                },
+                "post:2": {
+                    "post_id": "post:2",
+                    "author": "@alice",
+                    "visibility": "public",
+                    "deleted": True,
+                },
                 "post:3": {"post_id": "post:3", "author": "@bob", "visibility": "public"},
             },
             "comments": {
-                "comment:1": {"comment_id": "comment:1", "author": "@alice", "visibility": "public"},
-                "comment:2": {"comment_id": "comment:2", "author": "@alice", "visibility": "private"},
+                "comment:1": {
+                    "comment_id": "comment:1",
+                    "author": "@alice",
+                    "visibility": "public",
+                },
+                "comment:2": {
+                    "comment_id": "comment:2",
+                    "author": "@alice",
+                    "visibility": "private",
+                },
             },
         },
     }
@@ -109,7 +127,10 @@ def test_public_profile_read_model_exposes_public_metadata_and_activity_only() -
     assert body["account"] == "@alice"
     assert body["exists"] is True
     assert body["truth_boundary"] == "public_derived_index_view_of_chain_state"
-    assert body["privacy_boundary"] == "raw_poh_identity_evidence_device_secrets_and_recovery_material_are_not_exposed"
+    assert (
+        body["privacy_boundary"]
+        == "raw_poh_identity_evidence_device_secrets_and_recovery_material_are_not_exposed"
+    )
 
     profile = body["profile"]
     assert profile == {
@@ -155,7 +176,10 @@ def test_public_profile_read_model_exposes_public_metadata_and_activity_only() -
         "can_publish_posts": True,
         "can_comment": True,
     }
-    assert body["receipt_paths"] == {"submit": "/v1/tx/submit", "status_template": "/v1/tx/status/{tx_id}"}
+    assert body["receipt_paths"] == {
+        "submit": "/v1/tx/submit",
+        "status_template": "/v1/tx/status/{tx_id}",
+    }
 
     dumped = str(body)
     assert "session_keys" not in dumped
@@ -191,7 +215,10 @@ def test_profile_update_endpoint_returns_public_transaction_skeleton_only() -> N
 
     assert body["ok"] is True
     assert body["truth_boundary"] == "transaction_skeleton_only_sign_and_submit_via_v1_tx_submit"
-    assert body["public_notice"] == "Profile metadata is public protocol state after the PROFILE_UPDATE transaction commits."
+    assert (
+        body["public_notice"]
+        == "Profile metadata is public protocol state after the PROFILE_UPDATE transaction commits."
+    )
     assert body["tx"] == {
         "tx_type": "PROFILE_UPDATE",
         "signer_hint": "@alice",

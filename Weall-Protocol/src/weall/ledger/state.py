@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from weall.ledger.roles_schema import canonicalize_account_set
+from weall.runtime.commitments import consensus_active_validator_ids
 from weall.runtime.reputation_units import account_reputation_units, units_to_reputation
 
 Json = dict[str, Any]
@@ -353,10 +354,9 @@ class LedgerView:
         retained only as a legacy fallback for snapshots that predate the
         consensus validator-set subtree.
         """
-        consensus = self.consensus if isinstance(self.consensus, dict) else {}
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict) and "active_set" in validator_set:
-            return canonicalize_account_set(validator_set.get("active_set"))
+        explicit = consensus_active_validator_ids(self.ledger)
+        if explicit is not None:
+            return list(explicit)
 
         validators = self.roles.get("validators")
         if not isinstance(validators, dict):

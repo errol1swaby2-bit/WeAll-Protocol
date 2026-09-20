@@ -49,6 +49,7 @@ from weall.net.transport_memory import InMemoryTransport
 from weall.net.transport_tcp import TcpTransport
 from weall.net.transport_tls import TlsTransport
 from weall.runtime.bft_hotstuff import validator_set_hash as _canonical_validator_set_hash
+from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
 from weall.runtime.protocol_profile import (
     active_consensus_profile,
     runtime_protocol_profile_hash,
@@ -479,6 +480,14 @@ class NetNode:
             return
         cutoff = int(now_ms) - ttl_ms
         try:
+            # This cache is node-local abuse hardening, not consensus truth. If the
+            # host wall clock moves backward, timestamps already in the cache may
+            # appear to be arbitrarily far in the future and suppress legitimate
+            # traffic until that old coordinate is reached again. Fail open and
+            # rebase the bounded cache instead.
+            if any(int(last_seen_ms) > int(now_ms) for last_seen_ms in cache.values()):
+                cache.clear()
+                return
             while cache:
                 _digest, last_seen_ms = next(iter(cache.items()))
                 if int(last_seen_ms) > cutoff and len(cache) <= cap:
@@ -617,17 +626,9 @@ class NetNode:
         Role membership records eligibility/lifecycle state; it must not grant
         consensus-network authority when an explicit validator set exists.
         """
-        consensus = ledger.get("consensus") if isinstance(ledger, dict) else None
-        if isinstance(consensus, dict):
-            validator_set = consensus.get("validator_set")
-            if isinstance(validator_set, dict) and isinstance(
-                validator_set.get("active_set"), list
-            ):
-                return str(account_id).strip() in {
-                    str(item).strip()
-                    for item in validator_set.get("active_set") or []
-                    if str(item).strip()
-                }
+        explicit = consensus_active_validator_ids(ledger)
+        if explicit is not None:
+            return str(account_id).strip() in set(explicit)
         roles = ledger.get("roles")
         if not isinstance(roles, dict):
             return False
@@ -639,16 +640,12 @@ class NetNode:
 
     def _handshake_validator_epoch(self) -> int:
         ledger = self._get_ledger() or {}
+        generation = consensus_validator_generation(ledger)
+        if generation is not None:
+            return int(generation)
+
         consensus = ledger.get("consensus") if isinstance(ledger, dict) else {}
         if isinstance(consensus, dict):
-            validator_set = consensus.get("validator_set")
-            if isinstance(validator_set, dict):
-                try:
-                    generation = int(validator_set.get("epoch") or 0)
-                    if generation > 0:
-                        return generation
-                except Exception:
-                    pass
             epochs = consensus.get("epochs")
             if isinstance(epochs, dict):
                 try:
@@ -661,17 +658,26 @@ class NetNode:
 
     def _handshake_validator_set_hash(self) -> str:
         ledger = self._get_ledger() or {}
+        explicit = consensus_active_validator_ids(ledger)
         consensus = ledger.get("consensus") if isinstance(ledger, dict) else {}
+        if explicit is not None:
+            validator_set = consensus.get("validator_set") if isinstance(consensus, dict) else None
+            if not isinstance(validator_set, dict) or not isinstance(
+                validator_set.get("active_set"), list
+            ):
+                return ""
+            have = str(validator_set.get("set_hash") or "").strip()
+            if have:
+                return have
+            vals = _normalize_validators(explicit)
+            return _canonical_validator_set_hash(vals) if vals else ""
+
         if isinstance(consensus, dict):
             validator_set = consensus.get("validator_set")
             if isinstance(validator_set, dict):
                 have = str(validator_set.get("set_hash") or "").strip()
                 if have:
                     return have
-                active = validator_set.get("active_set")
-                if isinstance(active, list):
-                    vals = _normalize_validators(active)
-                    return _canonical_validator_set_hash(vals) if vals else ""
         roles = ledger.get("roles") if isinstance(ledger, dict) else {}
         validators = roles.get("validators") if isinstance(roles, dict) else {}
         active = validators.get("active_set") if isinstance(validators, dict) else []
@@ -1227,9 +1233,20 @@ class NetNode:
         if established and int(rec.established_at_ms) <= 0:
             rec.established_at_ms = int(now)
         mtype = getattr(getattr(msg, "header", None), "type", None)
+        # BFT artifacts intentionally bypass this raw-payload duplicate cache.
+        # Proposal/vote/QC/timeout retry safety is decided by the downstream
+        # trust-aware BFT caches only after authentication/admission. Recording
+        # them here would let a pre-auth packet suppress an exact later retry.
+        raw_duplicate_bypass_types = {
+            MsgType.BFT_PROPOSAL,
+            MsgType.BFT_VOTE,
+            MsgType.BFT_QC,
+            MsgType.BFT_TIMEOUT,
+        }
         if (
             established
             and mtype not in {MsgType.PEER_HELLO, MsgType.PEER_HELLO_ACK}
+            and mtype not in raw_duplicate_bypass_types
             and self._is_duplicate_payload(rec, payload, now_ms=now)
         ):
             return

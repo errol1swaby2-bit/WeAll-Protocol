@@ -10,7 +10,9 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_helper_requested_but_not_effective_disables_runtime_helper_profile(tmp_path: Path, monkeypatch) -> None:
+def test_helper_requested_but_not_effective_disables_runtime_helper_profile(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "helper")
@@ -35,14 +37,24 @@ def test_helper_requested_but_not_effective_disables_runtime_helper_profile(tmp_
 
     state = ex.read_state()
     meta = state.get("meta") if isinstance(state.get("meta"), dict) else {}
-    committed_profile = meta.get("helper_execution_profile") if isinstance(meta.get("helper_execution_profile"), dict) else {}
-    runtime_profile = meta.get("runtime_helper_execution_profile") if isinstance(meta.get("runtime_helper_execution_profile"), dict) else {}
+    committed_profile = (
+        meta.get("helper_execution_profile")
+        if isinstance(meta.get("helper_execution_profile"), dict)
+        else {}
+    )
+    runtime_profile = (
+        meta.get("runtime_helper_execution_profile")
+        if isinstance(meta.get("runtime_helper_execution_profile"), dict)
+        else {}
+    )
     assert committed_profile["helper_mode_enabled"] is True
     assert runtime_profile["helper_mode_enabled"] is False
     assert runtime_profile["helper_fast_path_enabled"] is False
 
 
-def test_validator_requested_but_not_effective_forces_observer_mode(tmp_path: Path, monkeypatch) -> None:
+def test_validator_requested_but_not_effective_forces_observer_mode(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "production_service")
     monkeypatch.setenv("WEALL_SERVICE_ROLES", "validator")

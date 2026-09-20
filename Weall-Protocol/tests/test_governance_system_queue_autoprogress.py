@@ -9,14 +9,22 @@ from weall.tx.canon import TxIndex
 
 
 def _tx_index() -> TxIndex:
-    return TxIndex.load_from_file(str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json"))
+    return TxIndex.load_from_file(
+        str(Path(__file__).resolve().parents[1] / "generated" / "tx_index.json")
+    )
 
 
 def _state() -> dict:
     return {
         "height": 10,
         "accounts": {
-            "@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation_milli": 6000},
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation_milli": 6000,
+            },
         },
         "roles": {"validators": {"active_set": ["@alice"], "by_id": {"@alice": {"active": True}}}},
         "system_queue": [],
@@ -32,8 +40,24 @@ def _state() -> dict:
     }
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=system,
+        parent=parent,
+    )
 
 
 def test_governance_autoprogress_enqueues_bound_system_txs_instead_of_direct_apply() -> None:
@@ -81,7 +105,15 @@ def test_governance_autoprogress_enqueues_bound_system_txs_instead_of_direct_app
 def test_governance_autoprogress_emitted_system_txs_are_queue_bound() -> None:
     st = _state()
     canon = _tx_index()
-    apply_tx(st, _env("GOV_PROPOSAL_CREATE", "@alice", 1, {"proposal_id": "p-auto", "title": "approve", "rules": {"start_stage": "voting"}}))
+    apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            "@alice",
+            1,
+            {"proposal_id": "p-auto", "title": "approve", "rules": {"start_stage": "voting"}},
+        ),
+    )
     apply_tx(st, _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p-auto", "vote": "yes"}))
 
     emitted = system_tx_emitter(st, canon, next_height=11, phase="post")

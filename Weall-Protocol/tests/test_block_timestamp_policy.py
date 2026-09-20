@@ -73,9 +73,7 @@ def test_executor_warns_and_forces_observer_mode_when_tip_is_far_ahead_of_local_
     restarted_state = ex2.read_state()
     assert int(restarted_state.get("tip_ts_ms") or 0) == canonical_tip_ts_ms
     warning = (
-        (restarted_state.get("meta") or {})
-        if isinstance(restarted_state.get("meta"), dict)
-        else {}
+        (restarted_state.get("meta") or {}) if isinstance(restarted_state.get("meta"), dict) else {}
     ).get("clock_warning")
     assert isinstance(warning, dict)
     assert int(warning.get("canonical_tip_ts_ms") or 0) == canonical_tip_ts_ms

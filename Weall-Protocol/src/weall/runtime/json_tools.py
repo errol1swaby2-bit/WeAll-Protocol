@@ -50,9 +50,25 @@ def canonical_json_str(value: Any) -> str:
     """
     import json
 
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
 
 
 def canonical_json_bytes(value: Any) -> bytes:
     """Return UTF-8 bytes for ``canonical_json_str(value)``."""
     return canonical_json_str(value).encode("utf-8")
+
+
+def strict_json_loads(value: str | bytes | bytearray) -> Any:
+    """Decode JSON while rejecting non-standard NaN/Infinity constants."""
+    import json
+
+    def reject_nonfinite(token: str) -> Any:
+        raise ValueError(f"non_finite_json_number:{token}")
+
+    return json.loads(value, parse_constant=reject_nonfinite)

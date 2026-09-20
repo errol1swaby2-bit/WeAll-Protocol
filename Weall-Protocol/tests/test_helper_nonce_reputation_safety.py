@@ -4,7 +4,11 @@ import pytest
 
 from weall.ledger.migrations import migrate_state_dict
 from weall.runtime.apply.identity import apply_identity
-from weall.runtime.helper_certificates import HelperExecutionCertificate, sign_helper_certificate, verify_helper_certificate_signature
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    sign_helper_certificate,
+    verify_helper_certificate_signature,
+)
 from weall.runtime.parallel_execution import LanePlan, merge_helper_lane_results
 from weall.runtime.tx_admission_types import TxEnvelope
 
@@ -32,7 +36,10 @@ def test_helper_shared_secret_signature_compatibility_is_removed() -> None:
 
     cert = sign_helper_certificate(unsigned, privkey=("02" * 32))
     assert verify_helper_certificate_signature(cert, helper_pubkey=None) is False
-    assert verify_helper_certificate_signature(cert, helper_pubkey=None, secret="compat-hmac-material") is False
+    assert (
+        verify_helper_certificate_signature(cert, helper_pubkey=None, secret="compat-hmac-material")
+        is False
+    )
 
 
 def test_merge_helper_lane_results_rejects_missing_pubkey_when_signature_enforced() -> None:
@@ -66,7 +73,13 @@ def test_merge_helper_lane_results_rejects_missing_pubkey_when_signature_enforce
         canonical_txs=[tx],
         lane_plans=(lane,),
         helper_certificates={lane.lane_id: cert},
-        serial_executor=lambda txs, _ctx: ([{"tx_id": str(tx.get("tx_id") or ""), "ok": True, "path": "serial"} for tx in list(txs or [])], {}),
+        serial_executor=lambda txs, _ctx: (
+            [
+                {"tx_id": str(tx.get("tx_id") or ""), "ok": True, "path": "serial"}
+                for tx in list(txs or [])
+            ],
+            {},
+        ),
         leader_context={
             "chain_id": "batch124",
             "block_height": 7,
@@ -112,17 +125,19 @@ def test_identity_apply_rejects_nonce_gaps() -> None:
 
 
 def test_migration_normalizes_reputation_to_string_and_units() -> None:
-    st = migrate_state_dict({
-        "accounts": {
-            "@alice": {
-                "nonce": 0,
-                "poh_tier": 2,
-                "banned": False,
-                "locked": False,
-                "reputation": "1.25",
+    st = migrate_state_dict(
+        {
+            "accounts": {
+                "@alice": {
+                    "nonce": 0,
+                    "poh_tier": 2,
+                    "banned": False,
+                    "locked": False,
+                    "reputation": "1.25",
+                }
             }
         }
-    })
+    )
     acct = st["accounts"]["@alice"]
     assert acct["reputation"] == "1.25"
     assert int(acct["reputation_milli"]) == 1250

@@ -125,6 +125,29 @@ class BftOutboxStore:
                 (outbound_key, outbound_kind, encoded, enqueue_seq, now, now),
             )
 
+    def contains_equivalent(self, *, key: str, kind: str, payload: Json) -> bool:
+        """Return whether the exact semantic send obligation is still pending."""
+        outbound_key = str(key or "").strip()
+        outbound_kind = str(kind or "").strip().lower()
+        if not outbound_key or not outbound_kind or not isinstance(payload, dict):
+            return False
+        with self._db.connection() as con:
+            row = con.execute(
+                "SELECT kind, payload_json FROM bft_outbox WHERE outbound_key=?;",
+                (outbound_key,),
+            ).fetchone()
+        if row is None:
+            return False
+        existing_kind = str(row["kind"] or "").strip().lower()
+        if existing_kind != outbound_kind:
+            return False
+        existing_payload = self._decode_payload(str(row["payload_json"]), key=outbound_key)
+        return self._payloads_equivalent(
+            kind=outbound_kind,
+            left=existing_payload,
+            right=payload,
+        )
+
     def mark_sent(self, *, key: str) -> None:
         outbound_key = str(key or "").strip()
         if not outbound_key:
@@ -190,9 +213,7 @@ class BftOutboxStore:
                     raise BftOutboxStoreError(f"bft_outbox_key_collision:{key}")
                 continue
             seen[key] = (kind, semantic, encoded)
-        normalized = [
-            (key, kind, encoded) for key, (kind, _semantic, encoded) in seen.items()
-        ]
+        normalized = [(key, kind, encoded) for key, (kind, _semantic, encoded) in seen.items()]
 
         now = int(_now_ms())
         with self._db.write_tx() as con:

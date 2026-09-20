@@ -33,9 +33,9 @@ def test_pof_reference_helpers_are_not_production_authority_or_cid_placeholders(
     assert not (BACKEND / "src" / "weall" / "poh" / "apply.py").exists()
     assert not (BACKEND / "src" / "weall" / "poh" / "finalize.py").exists()
 
-    apply_source = (
-        BACKEND / "src" / "weall" / "testing" / "poh_apply_reference.py"
-    ).read_text(encoding="utf-8")
+    apply_source = (BACKEND / "src" / "weall" / "testing" / "poh_apply_reference.py").read_text(
+        encoding="utf-8"
+    )
     finalize_source = (
         BACKEND / "src" / "weall" / "testing" / "poh_finalize_reference.py"
     ).read_text(encoding="utf-8")

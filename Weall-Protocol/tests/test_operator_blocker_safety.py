@@ -16,7 +16,9 @@ WEB_API = ROOT.parent / "web" / "src" / "api" / "weall.ts"
 ACCOUNTS_ROUTE = ROOT / "src" / "weall" / "api" / "routes_public_parts" / "accounts.py"
 
 
-def _account(*, pubkey: str, tier: int = 2, rep: int = 6000, banned: bool = False, locked: bool = False) -> dict:
+def _account(
+    *, pubkey: str, tier: int = 2, rep: int = 6000, banned: bool = False, locked: bool = False
+) -> dict:
     return {
         "nonce": 0,
         "poh_tier": tier,

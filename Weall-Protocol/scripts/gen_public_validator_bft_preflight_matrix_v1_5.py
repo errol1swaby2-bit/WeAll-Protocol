@@ -27,7 +27,12 @@ SCENARIOS: list[Json] = [
     {
         "id": "bft-multiprocess-finality",
         "title": "independent multi-process validator finality",
-        "required_evidence": ["process logs", "block roots", "quorum certificates", "receipt root comparison"],
+        "required_evidence": [
+            "process logs",
+            "block roots",
+            "quorum certificates",
+            "receipt root comparison",
+        ],
         "minimum_result": "same finalized height/hash/root across honest validators",
         "current_status": "planned_or_private_rehearsal_only",
     },
@@ -48,28 +53,44 @@ SCENARIOS: list[Json] = [
     {
         "id": "equivocation-rejection",
         "title": "equivocating validator evidence is rejected/accounted",
-        "required_evidence": ["double proposal/vote fixture", "rejection receipt", "active set/accountability state"],
+        "required_evidence": [
+            "double proposal/vote fixture",
+            "rejection receipt",
+            "active set/accountability state",
+        ],
         "minimum_result": "equivocation cannot finalize conflicting blocks",
         "current_status": "must_be_captured_before_public_claim",
     },
     {
         "id": "lagging-node-catchup",
         "title": "lagging/fresh node catches up by verified replay",
-        "required_evidence": ["source block range", "fresh replay transcript", "final root equality"],
+        "required_evidence": [
+            "source block range",
+            "fresh replay transcript",
+            "final root equality",
+        ],
         "minimum_result": "fresh node reaches same root from canonical blocks",
         "current_status": "must_be_captured_before_public_claim",
     },
     {
         "id": "observer-non-authority",
         "title": "observer cannot vote, validate, or produce blocks",
-        "required_evidence": ["observer route transcript", "vote rejection", "block production rejection"],
+        "required_evidence": [
+            "observer route transcript",
+            "vote rejection",
+            "block production rejection",
+        ],
         "minimum_result": "observer grants no validator authority",
         "current_status": "must_be_captured_before_public_claim",
     },
     {
         "id": "helper-production-disabled",
         "title": "helper execution cannot become production authority during validator proof",
-        "required_evidence": ["launch matrix", "helper readiness surface", "serial fallback transcript"],
+        "required_evidence": [
+            "launch matrix",
+            "helper readiness surface",
+            "serial fallback transcript",
+        ],
         "minimum_result": "production_helper_execution_enabled=false",
         "current_status": "guardrail_required",
     },
@@ -106,7 +127,9 @@ def build_payload() -> Json:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate/check public validator BFT preflight matrix.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check public validator BFT preflight matrix."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -116,9 +139,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.check:
         if not OUT.exists():
-            raise SystemExit(f"missing generated public validator preflight matrix: {OUT.relative_to(ROOT)}")
+            raise SystemExit(
+                f"missing generated public validator preflight matrix: {OUT.relative_to(ROOT)}"
+            )
         if OUT.read_text(encoding="utf-8") != rendered:
-            raise SystemExit(f"stale generated public validator preflight matrix: {OUT.relative_to(ROOT)}")
+            raise SystemExit(
+                f"stale generated public validator preflight matrix: {OUT.relative_to(ROOT)}"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is current")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

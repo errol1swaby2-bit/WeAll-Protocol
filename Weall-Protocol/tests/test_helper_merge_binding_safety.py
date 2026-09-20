@@ -4,13 +4,13 @@ from weall.runtime.helper_certificates import HelperExecutionCertificate, make_n
 from weall.runtime.parallel_execution import LanePlan, merge_helper_lane_results
 
 
-
 def _serial_executor(txs, _leader_context):
     return ([{"tx_id": str(tx.get("tx_id") or ""), "path": "serial"} for tx in list(txs or [])], {})
 
 
-
-def _helper_cert(*, lane_plan: LanePlan, height: int = 7, view: int = 3) -> HelperExecutionCertificate:
+def _helper_cert(
+    *, lane_plan: LanePlan, height: int = 7, view: int = 3
+) -> HelperExecutionCertificate:
     return HelperExecutionCertificate(
         chain_id="c1",
         block_height=height,
@@ -30,13 +30,24 @@ def _helper_cert(*, lane_plan: LanePlan, height: int = 7, view: int = 3) -> Help
     )
 
 
-
 def test_merge_falls_back_when_lane_plan_contract_mismatches_canonical() -> None:
     tx1 = {"tx_id": "t1", "tx_type": "CONTENT_POST_CREATE"}
     tx2 = {"tx_id": "t2", "tx_type": "IDENTITY_UPDATE"}
     lane_plans = (
-        LanePlan(lane_id="L1", helper_id="h1", txs=(tx2,), tx_ids=("t2",), namespace_prefixes=("identity:user:bob",)),
-        LanePlan(lane_id="L2", helper_id="h2", txs=(tx1,), tx_ids=("t1",), namespace_prefixes=("content:post:t1",)),
+        LanePlan(
+            lane_id="L1",
+            helper_id="h1",
+            txs=(tx2,),
+            tx_ids=("t2",),
+            namespace_prefixes=("identity:user:bob",),
+        ),
+        LanePlan(
+            lane_id="L2",
+            helper_id="h2",
+            txs=(tx1,),
+            tx_ids=("t1",),
+            namespace_prefixes=("content:post:t1",),
+        ),
     )
 
     result = merge_helper_lane_results(
@@ -64,15 +75,29 @@ def test_merge_falls_back_when_lane_plan_contract_mismatches_canonical() -> None
     assert [rec["tx_id"] for rec in result.receipts] == ["t1", "t2"]
     assert all(rec["path"] == "serial" for rec in result.receipts)
     assert all(decision.used_helper is False for decision in result.lane_decisions)
-    assert all(decision.fallback_reason == "lane_plan_contract_mismatch" for decision in result.lane_decisions)
-
+    assert all(
+        decision.fallback_reason == "lane_plan_contract_mismatch"
+        for decision in result.lane_decisions
+    )
 
 
 def test_merge_falls_back_when_lane_plans_duplicate_tx_id() -> None:
     tx1 = {"tx_id": "t1", "tx_type": "CONTENT_POST_CREATE"}
     lane_plans = (
-        LanePlan(lane_id="L1", helper_id="h1", txs=(tx1,), tx_ids=("t1",), namespace_prefixes=("content:post:t1",)),
-        LanePlan(lane_id="L2", helper_id="h2", txs=(tx1,), tx_ids=("t1",), namespace_prefixes=("content:post:t1",)),
+        LanePlan(
+            lane_id="L1",
+            helper_id="h1",
+            txs=(tx1,),
+            tx_ids=("t1",),
+            namespace_prefixes=("content:post:t1",),
+        ),
+        LanePlan(
+            lane_id="L2",
+            helper_id="h2",
+            txs=(tx1,),
+            tx_ids=("t1",),
+            namespace_prefixes=("content:post:t1",),
+        ),
     )
 
     result = merge_helper_lane_results(
@@ -99,16 +124,30 @@ def test_merge_falls_back_when_lane_plans_duplicate_tx_id() -> None:
 
     assert result.receipts == [{"tx_id": "t1", "path": "serial"}]
     assert all(decision.used_helper is False for decision in result.lane_decisions)
-    assert all(decision.fallback_reason == "lane_plan_duplicate_tx_id" for decision in result.lane_decisions)
-
+    assert all(
+        decision.fallback_reason == "lane_plan_duplicate_tx_id"
+        for decision in result.lane_decisions
+    )
 
 
 def test_merge_falls_back_when_materialized_receipts_do_not_cover_canonical_order() -> None:
     tx1 = {"tx_id": "t1", "tx_type": "CONTENT_POST_CREATE"}
     tx2 = {"tx_id": "t2", "tx_type": "IDENTITY_UPDATE"}
     lane_plans = (
-        LanePlan(lane_id="L1", helper_id="h1", txs=(tx1,), tx_ids=("t1",), namespace_prefixes=("content:post:t1",)),
-        LanePlan(lane_id="L2", helper_id="h2", txs=(tx2,), tx_ids=("t2",), namespace_prefixes=("identity:user:bob",)),
+        LanePlan(
+            lane_id="L1",
+            helper_id="h1",
+            txs=(tx1,),
+            tx_ids=("t1",),
+            namespace_prefixes=("content:post:t1",),
+        ),
+        LanePlan(
+            lane_id="L2",
+            helper_id="h2",
+            txs=(tx2,),
+            tx_ids=("t2",),
+            namespace_prefixes=("identity:user:bob",),
+        ),
     )
 
     result = merge_helper_lane_results(

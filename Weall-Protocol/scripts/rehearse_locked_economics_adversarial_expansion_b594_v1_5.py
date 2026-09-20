@@ -14,11 +14,32 @@ def run_harness() -> Json:
     for epoch in range(1, 73):
         for i in range(10):
             reason = "economics_locked" if epoch % 3 else "duplicate_review_ring_or_sybil_cluster"
-            attempted.append({"epoch": epoch, "account": f"@sybil{i}", "amount": 100, "accepted": False, "reason": reason})
+            attempted.append(
+                {
+                    "epoch": epoch,
+                    "account": f"@sybil{i}",
+                    "amount": 100,
+                    "accepted": False,
+                    "reason": reason,
+                }
+            )
             rejected += 1
-    treasury_attack = {"proposal": "treasury-drain", "amount": 10_000_000, "accepted": False, "reason": "treasury_spend_locked"}
-    validator_concentration = {"top_validator_share_attempted": 0.91, "accepted": False, "reason": "live_rewards_locked"}
-    fee_market_attack = {"positive_civic_fee_attempted": True, "accepted": False, "reason": "civic_social_governance_fee_free_required"}
+    treasury_attack = {
+        "proposal": "treasury-drain",
+        "amount": 10_000_000,
+        "accepted": False,
+        "reason": "treasury_spend_locked",
+    }
+    validator_concentration = {
+        "top_validator_share_attempted": 0.91,
+        "accepted": False,
+        "reason": "live_rewards_locked",
+    }
+    fee_market_attack = {
+        "positive_civic_fee_attempted": True,
+        "accepted": False,
+        "reason": "civic_social_governance_fee_free_required",
+    }
     return {
         "ok": all(balance == 0 for balance in accounts.values()) and rejected == len(attempted),
         "batch": "594",

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from weall.runtime.parallel_execution import LanePlan, merge_helper_lane_results
 from weall.runtime.executor import WeAllExecutor
+from weall.runtime.parallel_execution import LanePlan, merge_helper_lane_results
 
 
 def _repo_root() -> Path:
@@ -15,7 +15,13 @@ def _tx_index_path() -> str:
 
 
 def _serial_executor(txs, _leader_context):
-    return ([{"tx_id": str(tx.get("tx_id") or ""), "ok": True, "path": "serial"} for tx in list(txs or [])], {})
+    return (
+        [
+            {"tx_id": str(tx.get("tx_id") or ""), "ok": True, "path": "serial"}
+            for tx in list(txs or [])
+        ],
+        {},
+    )
 
 
 def test_merge_helper_lane_results_rejects_missing_signature_when_enforced() -> None:

@@ -15,7 +15,6 @@ def test_explicit_authority_scope_forces_fail_closed_serial() -> None:
     assert access.authority_keys == ("authority:roles",)
 
 
-
 def test_explicit_subject_scope_missing_from_writes_fails_closed() -> None:
     tx = {
         "tx_id": "t-subject",
@@ -28,7 +27,6 @@ def test_explicit_subject_scope_missing_from_writes_fails_closed() -> None:
     assert access.lane_hint == "SERIAL"
     assert access.fail_closed_serial is True
     assert access.subject_keys == ("social:profile:@alice",)
-
 
 
 def test_explicit_scoped_writes_remain_parallel_when_scope_is_materialized() -> None:

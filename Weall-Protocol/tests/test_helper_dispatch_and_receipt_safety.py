@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
 
-from weall.runtime.helper_certificates import HelperExecutionCertificate, make_namespace_hash, sign_helper_certificate
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    make_namespace_hash,
+    sign_helper_certificate,
+)
 from weall.runtime.helper_dispatch import HelperCertificateStore, HelperDispatchContext
 from weall.runtime.helper_receipts import sign_helper_receipt, verify_helper_receipt
 from weall.runtime.parallel_execution import plan_parallel_execution
@@ -103,16 +107,19 @@ def test_helper_receipt_accepts_pubkey_signature() -> None:
         privkey=priv,
         plan_id="plan-1",
     )
-    assert verify_helper_receipt(
-        receipt,
-        helper_pubkey=pub,
-        expected_chain_id="c1",
-        expected_height=10,
-        expected_validator_epoch=3,
-        expected_validator_set_hash="vh",
-        expected_parent_block_id="p1",
-        expected_lane_id="L1",
-        expected_helper_id="h1",
-        expected_plan_id="plan-1",
-        expected_ordered_tx_ids=("t1",),
-    ) is True
+    assert (
+        verify_helper_receipt(
+            receipt,
+            helper_pubkey=pub,
+            expected_chain_id="c1",
+            expected_height=10,
+            expected_validator_epoch=3,
+            expected_validator_set_hash="vh",
+            expected_parent_block_id="p1",
+            expected_lane_id="L1",
+            expected_helper_id="h1",
+            expected_plan_id="plan-1",
+            expected_ordered_tx_ids=("t1",),
+        )
+        is True
+    )

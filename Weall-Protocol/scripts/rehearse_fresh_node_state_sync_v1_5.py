@@ -70,7 +70,12 @@ def run_harness() -> Json:
     )
     bad_response = service.handle_request(bad_request)
 
-    ok = bool(response.ok) and source_root == fresh_root and bad_response.ok is False and bad_response.reason == "trusted_anchor_mismatch"
+    ok = (
+        bool(response.ok)
+        and source_root == fresh_root
+        and bad_response.ok is False
+        and bad_response.reason == "trusted_anchor_mismatch"
+    )
     return {
         "artifact": "fresh_node_state_sync_proof_v1_5",
         "source_height": int(source_state["height"]),
@@ -79,7 +84,8 @@ def run_harness() -> Json:
         "source_state_root": source_root,
         "fresh_node_state_root": fresh_root,
         "same_state_root": source_root == fresh_root,
-        "bad_anchor_rejected": bad_response.ok is False and bad_response.reason == "trusted_anchor_mismatch",
+        "bad_anchor_rejected": bad_response.ok is False
+        and bad_response.reason == "trusted_anchor_mismatch",
         "ok": ok,
     }
 

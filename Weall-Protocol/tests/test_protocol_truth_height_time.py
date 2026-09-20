@@ -34,7 +34,6 @@ class _FakeExecutor:
             "roles": {},
         }
 
-
     def tx_index_hash(self) -> str:
         return "txindex-height-truth"
 

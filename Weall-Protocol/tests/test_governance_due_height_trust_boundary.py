@@ -4,8 +4,24 @@ from weall.runtime.apply.governance import apply_governance
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=system,
+        parent=parent,
+    )
 
 
 def test_user_governance_payload_cannot_forge_due_height_for_creation_or_vote() -> None:

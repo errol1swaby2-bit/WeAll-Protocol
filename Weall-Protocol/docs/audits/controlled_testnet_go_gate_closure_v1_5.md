@@ -93,13 +93,9 @@ The frontend node dashboard renders this as “Public record-only, block-height 
 
 ## Performance evidence status
 
-The repository contains the block-schedule survivability harness and reviewer wording that allows a local 2350 TPS claim only when matching evidence exists for the submitted commit. This audit did not locate tracked, commit-bound 2350 TPS evidence in the generated release artifacts.
+The repository contains a block-schedule survivability harness, but the historical 2350 TPS figure is **superseded as a current-facing claim**. This audit did not locate tracked, exact-commit evidence that justifies publishing that scalar for the current tree.
 
-Allowed wording remains:
-
-> Local sustained-load testing reached approximately 2350 TPS under the documented test harness.
-
-Use that wording only when the matching `rehearsal-evidence/` JSON or transcript is captured for the submitted commit and attached outside ignored local output.
+Current wording must therefore avoid a TPS number until a fresh benchmark is captured with transaction semantics, cryptographic work, persistence, node/validator topology, hardware/software environment, warmup, duration, repetitions, error rate, latency distribution, and exact commit/tree identity.
 
 Forbidden wording remains:
 

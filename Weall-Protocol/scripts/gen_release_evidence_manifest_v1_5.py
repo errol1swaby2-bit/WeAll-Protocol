@@ -79,18 +79,25 @@ def _load_json(rel: str) -> Json:
 
 def _artifact(rel: str) -> Json:
     payload = _load_json(rel)
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
-    readiness_no_go_artifact = rel in {
-        "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
-        "generated/controlled_testnet_go_gate_v1_5.json",
-        "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
-    } and bool(payload) and (
-        payload.get("controlled_testnet_mechanisms_complete") is False
-        or payload.get("controlled_testnet_ready_candidate") is False
-        or payload.get("controlled_testnet_candidate") is False
-        or payload.get("controlled_rehearsal_candidate_ready") is False
-        or payload.get("public_beta_ready") is False
-        or boundaries.get("public_beta_ready") is False
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
+    readiness_no_go_artifact = (
+        rel
+        in {
+            "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
+            "generated/controlled_testnet_go_gate_v1_5.json",
+            "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+        }
+        and bool(payload)
+        and (
+            payload.get("controlled_testnet_mechanisms_complete") is False
+            or payload.get("controlled_testnet_ready_candidate") is False
+            or payload.get("controlled_testnet_candidate") is False
+            or payload.get("controlled_rehearsal_candidate_ready") is False
+            or payload.get("public_beta_ready") is False
+            or boundaries.get("public_beta_ready") is False
+        )
     )
     artifact_ok = bool(payload.get("ok", True)) if payload else False
     return {
@@ -104,13 +111,22 @@ def _artifact(rel: str) -> Json:
 
 
 def _run_git(args: list[str]) -> str:
-    proc = subprocess.run(["git", *args], cwd=ROOT.parent, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    proc = subprocess.run(
+        ["git", *args],
+        cwd=ROOT.parent,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
     return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
 def build() -> Json:
     artifacts = {rel: _artifact(rel) for rel in _TRACKED_ARTIFACTS}
-    all_artifacts_ok = all(item["present"] and item["ok"] and item["file_sha256"] for item in artifacts.values())
+    all_artifacts_ok = all(
+        item["present"] and item["ok"] and item["file_sha256"] for item in artifacts.values()
+    )
     mechanism_completion_payload = _load_json(
         "generated/b587_b594_testnet_mechanism_completion_v1_5.json"
     )
@@ -138,7 +154,7 @@ def build() -> Json:
         "recursive_release_artifacts_checked_by_go_gate_but_not_hashed_here": [
             "generated/controlled_testnet_go_gate_v1_5.json",
             "generated/public_beta_blocker_report_v1_5.json",
-            "generated/release_evidence_manifest_v1_5.json"
+            "generated/release_evidence_manifest_v1_5.json",
         ],
         "release_evidence_gates": {
             "clean_clone_go_gate": {
@@ -156,7 +172,7 @@ def build() -> Json:
                     "generated/public_seed_registry_signature_verification_v1_5.json",
                     "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json",
                     "generated/public_observer_auto_discovery_proof_v1_5.json",
-                    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
+                    "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json",
                 ],
             },
             "public_validator_endpoint_churn_proof": {
@@ -274,7 +290,11 @@ def build() -> Json:
             "live_economics": False,
             "legal_compliance_ready": False,
         },
-        "artifact_digest": hashlib.sha256(_canon({"artifacts": artifacts, "version": "2026-06-b621-release-evidence-hardening"}).encode("utf-8")).hexdigest(),
+        "artifact_digest": hashlib.sha256(
+            _canon(
+                {"artifacts": artifacts, "version": "2026-06-b621-release-evidence-hardening"}
+            ).encode("utf-8")
+        ).hexdigest(),
     }
 
 
@@ -301,8 +321,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Generate/check v1.5 release evidence manifest.")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--runtime-json", action="store_true", help="emit concrete git HEAD/worktree/runtime metadata; not suitable as tracked artifact")
-    parser.add_argument("--clean-gate-report", help="optional clean-gate report file to digest in --runtime-json")
+    parser.add_argument(
+        "--runtime-json",
+        action="store_true",
+        help="emit concrete git HEAD/worktree/runtime metadata; not suitable as tracked artifact",
+    )
+    parser.add_argument(
+        "--clean-gate-report", help="optional clean-gate report file to digest in --runtime-json"
+    )
     args = parser.parse_args()
     if args.runtime_json:
         report = Path(args.clean_gate_report).resolve() if args.clean_gate_report else None
@@ -316,7 +342,9 @@ def main() -> int:
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
             raise SystemExit("release_evidence_manifest_v1_5.json is stale; rerun generator")
-        print(f"OK: {OUT.relative_to(ROOT)} is current ({len(payload['tracked_artifacts'])} artifacts)")
+        print(
+            f"OK: {OUT.relative_to(ROOT)} is current ({len(payload['tracked_artifacts'])} artifacts)"
+        )
         return 0 if payload.get("ok") else 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")

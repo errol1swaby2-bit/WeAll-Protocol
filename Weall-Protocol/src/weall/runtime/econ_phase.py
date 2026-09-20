@@ -154,7 +154,11 @@ def is_economic_system_tx(tx_type: str) -> bool:
 
     origin = str(entry.get("origin", "")).strip().upper()
     ctx = str(entry.get("context", "")).strip().lower()
-    return origin in {"SYSTEM", "VALIDATOR"} or ctx == "block" or bool(entry.get("receipt_only", False))
+    return (
+        origin in {"SYSTEM", "VALIDATOR"}
+        or ctx == "block"
+        or bool(entry.get("receipt_only", False))
+    )
 
 
 def deny_if_econ_disabled(

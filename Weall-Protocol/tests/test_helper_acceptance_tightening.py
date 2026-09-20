@@ -1,7 +1,15 @@
 from __future__ import annotations
 
-from weall.runtime.helper_certificates import HelperExecutionCertificate, make_namespace_hash, make_tx_order_hash
-from weall.runtime.parallel_execution import LanePlan, merge_helper_lane_results, verify_helper_certificate
+from weall.runtime.helper_certificates import (
+    HelperExecutionCertificate,
+    make_namespace_hash,
+    make_tx_order_hash,
+)
+from weall.runtime.parallel_execution import (
+    LanePlan,
+    merge_helper_lane_results,
+    verify_helper_certificate,
+)
 
 
 def _serial_executor(txs, _leader_context=None):
@@ -83,7 +91,9 @@ def test_verify_helper_certificate_rejects_missing_manifest_hash_when_strictly_r
     assert reason == "manifest_hash_mismatch"
 
 
-def test_verify_helper_certificate_can_enforce_tx_order_hash_without_full_internal_consistency() -> None:
+def test_verify_helper_certificate_can_enforce_tx_order_hash_without_full_internal_consistency() -> (
+    None
+):
     lane = _lane_plan()
     cert = _base_cert(lane, tx_order_hash="wrong-order")
     ok, reason = verify_helper_certificate(

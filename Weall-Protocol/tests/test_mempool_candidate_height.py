@@ -70,15 +70,13 @@ def test_mempool_candidate_height_expiry_boundary_is_deterministic(
     add = ex.mempool.add(_register_tx("@alice"), current_height=0, expires_at_height=1)
     assert add["ok"] is True
 
-    assert [str(tx.get("signer") or "") for tx in ex.mempool.fetch_for_block(candidate_height=1)] == [
-        "@alice"
-    ]
+    assert [
+        str(tx.get("signer") or "") for tx in ex.mempool.fetch_for_block(candidate_height=1)
+    ] == ["@alice"]
     assert ex.mempool.fetch_for_block(candidate_height=2) == []
 
 
-def test_mempool_candidate_height_selection_survives_restart(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_mempool_candidate_height_selection_survives_restart(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MEMPOOL_SELECTION_POLICY", "canonical")
     monkeypatch.setenv("WEALL_UNSAFE_DEV", "1")
     monkeypatch.setenv("WEALL_SIGVERIFY", "0")
@@ -96,7 +94,9 @@ def test_mempool_candidate_height_selection_survives_restart(
         add = ex1.mempool.add(_register_tx(signer), current_height=0, expires_at_height=1)
         assert add["ok"] is True
 
-    selected1 = [str(tx.get("signer") or "") for tx in ex1.mempool.fetch_for_block(candidate_height=1)]
+    selected1 = [
+        str(tx.get("signer") or "") for tx in ex1.mempool.fetch_for_block(candidate_height=1)
+    ]
     assert selected1 == ["@alice", "@bob", "@carol"]
 
     ex2 = WeAllExecutor(
@@ -105,6 +105,8 @@ def test_mempool_candidate_height_selection_survives_restart(
         chain_id="batch600-height-restart",
         tx_index_path=tx_index_path,
     )
-    selected2 = [str(tx.get("signer") or "") for tx in ex2.mempool.fetch_for_block(candidate_height=1)]
+    selected2 = [
+        str(tx.get("signer") or "") for tx in ex2.mempool.fetch_for_block(candidate_height=1)
+    ]
     assert selected2 == selected1
     assert ex2.mempool.fetch_for_block(candidate_height=2) == []

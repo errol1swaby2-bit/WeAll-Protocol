@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass, replace
 
 from weall.runtime.chain_manifest import load_chain_manifest
+from weall.runtime.commitments import consensus_active_validator_ids
 from weall.runtime.constitutional_clock import policy_from_manifest
 from weall.runtime.metrics import inc_counter, set_gauge
 from weall.runtime.protocol_profile import validate_runtime_consensus_profile
@@ -184,11 +185,9 @@ def _active_validators_from_executor(executor) -> list[str]:
             out.append(s)
         return out
 
-    consensus = st.get("consensus")
-    if isinstance(consensus, dict):
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict) and "active_set" in validator_set:
-            return _normalize(validator_set.get("active_set"))
+    explicit = consensus_active_validator_ids(st)
+    if explicit is not None:
+        return _normalize(explicit)
 
     roles = st.get("roles")
     if isinstance(roles, dict):
@@ -450,14 +449,22 @@ class BlockProducerLoop:
             # --------------------------
             try:
                 if hasattr(self._executor, "produce_block_from_pools"):
-                    self._executor.produce_block_from_pools(
+                    result = self._executor.produce_block_from_pools(
                         mempool=self._mempool, attestation_pool=self._att_pool
                     )
                 else:
-                    self._executor.produce_block(
+                    result = self._executor.produce_block(
                         max_txs=int(self._cfg.max_block_txs),
                         allow_empty=bool(self._cfg.produce_empty_blocks),
                     )
+                if result is not None:
+                    result_ok = bool(getattr(result, "ok", True))
+                    result_error = str(getattr(result, "error", "") or "")
+                    if (not result_ok) or result_error:
+                        raise RuntimeError(
+                            "produce_block_result_failed:"
+                            + (result_error or "executor_returned_not_ok")
+                        )
                 inc_counter("block_loop_produce_ok_total", 1)
                 self._clear_error()
             except Exception as err:

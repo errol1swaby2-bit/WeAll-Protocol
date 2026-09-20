@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 Json = dict[str, Any]
 
@@ -94,8 +95,6 @@ def _device_summary(devices: Any) -> Json:
         },
         "by_id": {},
     }
-
-
 
 
 def _content_summary(content: Any) -> Json:

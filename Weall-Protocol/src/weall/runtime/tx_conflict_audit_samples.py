@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from weall.runtime.tx_conflicts import build_conflict_descriptor
-
 
 Json = dict[str, Any]
 
@@ -93,7 +93,11 @@ def build_conflict_probe_payload(tx_type: str, *, seed: str = "1") -> Json:
     if tx_type_norm in {"FOLLOW_SET", "BLOCK_SET", "MUTE_SET"}:
         payload["actor_id"] = _seeded(seed, "acct-actor")
         payload["target_user_id"] = _seeded(seed, "acct-target")
-    elif tx_type_norm in {"NOTIFICATION_SUBSCRIBE", "NOTIFICATION_UNSUBSCRIBE", "NOTIFICATION_EMIT_RECEIPT"}:
+    elif tx_type_norm in {
+        "NOTIFICATION_SUBSCRIBE",
+        "NOTIFICATION_UNSUBSCRIBE",
+        "NOTIFICATION_EMIT_RECEIPT",
+    }:
         payload["topic"] = _seeded(seed, "notifications")
     elif tx_type_norm == "BALANCE_TRANSFER":
         payload["from_account_id"] = _seeded(seed, "acct-src")
@@ -132,7 +136,10 @@ def build_conflict_probe_payload(tx_type: str, *, seed: str = "1") -> Json:
     elif tx_type_norm.startswith("PEER_"):
         payload["peer_id"] = _seeded(seed, "peer")
         payload["node_id"] = payload["peer_id"]
-    elif tx_type_norm.startswith(("INDEX_", "STATE_SNAPSHOT_", "COLD_SYNC_")) or tx_type_norm == "TX_RECEIPT_EMIT":
+    elif (
+        tx_type_norm.startswith(("INDEX_", "STATE_SNAPSHOT_", "COLD_SYNC_"))
+        or tx_type_norm == "TX_RECEIPT_EMIT"
+    ):
         payload["anchor_id"] = _seeded(seed, "anchor")
         payload["snapshot_id"] = _seeded(seed, "snapshot")
         payload["request_id"] = _seeded(seed, "request")
@@ -182,7 +189,11 @@ def build_helper_conflict_probe_tx(
     descriptor = build_conflict_descriptor(tx)
     explicit = dict(tx)
     explicit["read_set"] = list(descriptor.read_keys)
-    explicit["write_set"] = list(tuple(descriptor.write_keys) + tuple(descriptor.subject_keys) + tuple(descriptor.authority_keys))
+    explicit["write_set"] = list(
+        tuple(descriptor.write_keys)
+        + tuple(descriptor.subject_keys)
+        + tuple(descriptor.authority_keys)
+    )
     explicit["subject_set"] = list(descriptor.subject_keys)
     explicit["authority_set"] = list(descriptor.authority_keys)
     explicit["family"] = descriptor.family.value

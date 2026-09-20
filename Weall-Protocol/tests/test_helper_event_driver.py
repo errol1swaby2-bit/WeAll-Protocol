@@ -34,7 +34,14 @@ def _lane_setup():
     return lane_plans, lane_plan
 
 
-def _mk_signed_cert(*, helper_id: str, lane_id: str, tx_ids: tuple[str, ...], seed_byte: int, receipts_root: str = "receipts"):
+def _mk_signed_cert(
+    *,
+    helper_id: str,
+    lane_id: str,
+    tx_ids: tuple[str, ...],
+    seed_byte: int,
+    receipts_root: str = "receipts",
+):
     seed = (bytes([seed_byte]) * 32).hex()
     pub = _pub_hex_from_seed(seed)
     cert = sign_helper_certificate(
@@ -186,9 +193,7 @@ def test_event_driver_restart_equivalent_when_reusing_journal(tmp_path) -> None:
         helper_pubkeys={lane_plan.helper_id: pub},
         journal=journal,
         helper_timeout_ms=50,
-        events=(
-            HelperEvent(kind="cert", cert=cert, peer_id=lane_plan.helper_id),
-        ),
+        events=(HelperEvent(kind="cert", cert=cert, peer_id=lane_plan.helper_id),),
     )
     assert summary1.resolved_lanes == summary2.resolved_lanes
     assert summary1.finalized_modes == summary2.finalized_modes

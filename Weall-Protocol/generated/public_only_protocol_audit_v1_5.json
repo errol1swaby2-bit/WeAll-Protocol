@@ -316,6 +316,12 @@
       "category": "backend/runtime",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "src/weall/runtime/bft_runtime_adapter.py"
+    },
+    {
+      "category": "backend/runtime",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "src/weall/runtime/executor.py"
     },
     {
@@ -406,6 +412,18 @@
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "tests/test_pb001bam_inflight_local_bft_emission_branch_atomicity.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
+      "path": "tests/test_pb001by_pacemaker_timeout_emission.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "tests/test_poh_async_recorded_video_frontend.py"
     },
     {
@@ -486,7 +504,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 71,
+  "inventory_hit_count": 74,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

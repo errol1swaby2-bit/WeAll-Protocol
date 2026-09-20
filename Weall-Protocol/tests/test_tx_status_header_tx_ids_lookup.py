@@ -5,17 +5,20 @@ import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_tx_status_block_lookup_uses_header_tx_ids() -> None:
-    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "tx.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "weall" / "api" / "routes_public_parts" / "tx.py").read_text(
+        encoding="utf-8"
+    )
     fn = src.split("def _tx_block_lookup", 1)[1].split("def _http_requires_sig_by_default", 1)[0]
 
     assert "Header tx_ids are consensus-visible committed tx IDs" in fn
-    assert "header_tx_ids = header.get(\"tx_ids\")" in fn
-    assert fn.index("header_tx_ids = header.get(\"tx_ids\")") < fn.index("Fallback path: compute deterministic tx_id from tx envelopes")
+    assert 'header_tx_ids = header.get("tx_ids")' in fn
+    assert fn.index('header_tx_ids = header.get("tx_ids")') < fn.index(
+        "Fallback path: compute deterministic tx_id from tx envelopes"
+    )
 
 
 def test_tx_block_lookup_finds_receiptless_committed_header_tx_id(tmp_path, monkeypatch) -> None:
@@ -54,7 +57,11 @@ def test_tx_block_lookup_finds_receiptless_committed_header_tx_id(tmp_path, monk
             return conn
 
     monkeypatch.setattr(tx_routes, "_safe_mempool", lambda _request: SimpleNamespace(db=_Db()))
-    monkeypatch.setattr(tx_routes, "_safe_executor", lambda _request: SimpleNamespace(chain_id="weall-controlled-devnet"))
+    monkeypatch.setattr(
+        tx_routes,
+        "_safe_executor",
+        lambda _request: SimpleNamespace(chain_id="weall-controlled-devnet"),
+    )
 
     found = tx_routes._tx_block_lookup(SimpleNamespace(), "tx:header-only")
     assert found == {

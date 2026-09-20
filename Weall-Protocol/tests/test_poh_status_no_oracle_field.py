@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import copy
 
-from weall.runtime.poh.state import canonical_account_poh_status, revoke_account_poh_status, set_account_poh_status
+from weall.runtime.poh.state import (
+    canonical_account_poh_status,
+    revoke_account_poh_status,
+    set_account_poh_status,
+)
 from weall.runtime.state_hash import compute_state_root
 
 

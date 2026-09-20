@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 """Testing/reference conflict planner.
 
@@ -30,7 +31,6 @@ class PlannedLane:
 class ConflictLanePlan:
     lanes: tuple[PlannedLane, ...]
     serialized_tx_ids: tuple[str, ...]
-
 
 
 def _set(values: Iterable[str]) -> set[str]:
@@ -68,7 +68,11 @@ def partition_conflict_lanes(access_sets: Iterable[TxAccessSet]) -> tuple[Planne
 
     for access in access_sets:
         base = lane_base_id(access.lane_hint)
-        if access.fail_closed_serial or base == "SERIAL" or access.barrier_class == "GLOBAL_BARRIER":
+        if (
+            access.fail_closed_serial
+            or base == "SERIAL"
+            or access.barrier_class == "GLOBAL_BARRIER"
+        ):
             if "SERIAL" not in grouped:
                 grouped["SERIAL"] = []
                 group_order.append("SERIAL")

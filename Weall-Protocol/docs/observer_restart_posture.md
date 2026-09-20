@@ -6,7 +6,7 @@ This batch hardens validator restart safety.
 
 - Every executor startup marks the persisted node state as `last_shutdown_clean=false` immediately.
 - A graceful API/process shutdown calls `mark_clean_shutdown()` and flips the flag back to `true`.
-- In production mode, if the previous shutdown was not clean, validator signing is disabled on the next boot unless `WEALL_ALLOW_DIRTY_SIGNING=1` is set explicitly.
+- In production mode, if the previous shutdown was not clean, validator signing is disabled on the next boot. There is no environment-variable bypass; the node must remain an observer until recovery and a clean shutdown complete.
 - Operators may also force observer mode using `WEALL_OBSERVER_MODE=1`.
 
 ## Consensus impact

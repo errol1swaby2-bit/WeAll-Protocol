@@ -94,9 +94,7 @@ def _run_ruff(backend_root: Path, paths: list[str]) -> list[dict[str, object]]:
     try:
         payload = json.loads(result.stdout or "[]")
     except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            f"Ruff returned invalid JSON in {backend_root}: {exc}"
-        ) from exc
+        raise RuntimeError(f"Ruff returned invalid JSON in {backend_root}: {exc}") from exc
 
     if not isinstance(payload, list):
         raise RuntimeError("Ruff JSON output must be a list")
@@ -206,9 +204,7 @@ def main() -> int:
         base_commit,
     )
 
-    temporary_root = Path(
-        tempfile.mkdtemp(prefix="weall-ruff-baseline-")
-    )
+    temporary_root = Path(tempfile.mkdtemp(prefix="weall-ruff-baseline-"))
     baseline_worktree = temporary_root / "worktree"
     baseline_attached = False
 
@@ -243,11 +239,7 @@ def main() -> int:
             changed_paths,
         )
 
-        baseline_paths = [
-            path
-            for path in changed_paths
-            if (baseline_backend / path).is_file()
-        ]
+        baseline_paths = [path for path in changed_paths if (baseline_backend / path).is_file()]
 
         baseline_diagnostics = _run_ruff(
             baseline_backend,
@@ -255,13 +247,11 @@ def main() -> int:
         )
 
         current_counts: Counter[DiagnosticKey] = Counter(
-            _diagnostic_key(item, backend_root)
-            for item in current_diagnostics
+            _diagnostic_key(item, backend_root) for item in current_diagnostics
         )
 
         baseline_counts: Counter[DiagnosticKey] = Counter(
-            _diagnostic_key(item, baseline_backend)
-            for item in baseline_diagnostics
+            _diagnostic_key(item, baseline_backend) for item in baseline_diagnostics
         )
 
         added_counts = current_counts - baseline_counts
@@ -310,11 +300,7 @@ def main() -> int:
             "baseline_diagnostic_count": len(baseline_diagnostics),
             "added_diagnostic_count": sum(added_counts.values()),
             "added_diagnostics": added_diagnostics,
-            "status": (
-                "passed"
-                if not added_diagnostics
-                else "failed"
-            ),
+            "status": ("passed" if not added_diagnostics else "failed"),
             "claim_boundary": (
                 "This gate rejects newly added Ruff diagnostics in changed "
                 "Python files. It does not claim that the full repository is "
@@ -322,11 +308,14 @@ def main() -> int:
             ),
         }
 
-        rendered = json.dumps(
-            summary,
-            sort_keys=True,
-            indent=2,
-        ) + "\n"
+        rendered = (
+            json.dumps(
+                summary,
+                sort_keys=True,
+                indent=2,
+            )
+            + "\n"
+        )
 
         print(rendered, end="")
 

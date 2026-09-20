@@ -5,13 +5,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "build_production_genesis_manifest.py"
 
 
 def _write_tx_index(path: Path) -> None:
-    path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}, sort_keys=True), encoding="utf-8")
+    path.write_text(
+        json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}, sort_keys=True), encoding="utf-8"
+    )
 
 
 def test_production_genesis_manifest_builder_rejects_placeholder_pubkeys(tmp_path: Path) -> None:
@@ -36,8 +37,7 @@ def test_production_genesis_manifest_builder_rejects_placeholder_pubkeys(tmp_pat
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
     )
 
     assert result.returncode != 0
@@ -72,8 +72,7 @@ def test_production_genesis_manifest_builder_pins_lock_and_manifest(tmp_path: Pa
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="${ROOT_DIR}/Weall-Protocol"
 WEB_DIR="${ROOT_DIR}/web"
@@ -47,10 +49,10 @@ WEALL_MEDIA_CACHE_DIR="${WEALL_MEDIA_CACHE_DIR:-${RUNTIME_DIR}/media_cache}" \
 WEALL_REVIEWER_ARTIFACTS_DIR="${WEALL_REVIEWER_ARTIFACTS_DIR:-${RUNTIME_DIR}/reviewer_artifacts}" \
 WEALL_TEST_FAILPOINT_MARKER_DIR="${WEALL_TEST_FAILPOINT_MARKER_DIR:-${RUNTIME_DIR}/failpoints}" \
 WEALL_TX_INDEX_PATH="${WEALL_TX_INDEX_PATH:-${BACKEND_DIR}/generated/tx_index.json}" \
-python3 -m weall.api >"${LOG_FILE}" 2>&1 &
+"${PYTHON_BIN}" -m weall.api >"${LOG_FILE}" 2>&1 &
 SERVER_PID="$!"
 
-python3 - "${API_BASE}" "${LOG_FILE}" <<'PY'
+"${PYTHON_BIN}" - "${API_BASE}" "${LOG_FILE}" <<'PY'
 from __future__ import annotations
 import json
 import pathlib

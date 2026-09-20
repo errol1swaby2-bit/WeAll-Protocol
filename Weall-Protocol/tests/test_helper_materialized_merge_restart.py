@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-
 from helper_audit_testkit import lane_setup
+
 from weall.runtime.helper_certificates import (
     HelperExecutionCertificate,
     hash_json,
@@ -23,7 +23,9 @@ def _pub_hex_from_seed(seed_hex: str) -> str:
     return key.public_key().public_bytes_raw().hex()
 
 
-def _materialized_result(*, lane_plan, path: str, value: str, seed_byte: int, plan_id: str) -> MaterializedLaneResult:
+def _materialized_result(
+    *, lane_plan, path: str, value: str, seed_byte: int, plan_id: str
+) -> MaterializedLaneResult:
     receipts = tuple({"tx_id": tx_id, "ok": True} for tx_id in lane_plan.tx_ids)
     delta_ops = (HelperDeltaOp(op="set", path=path, value=value),)
     read_set = tuple()
@@ -67,20 +69,35 @@ def test_materialized_merge_is_canonical_under_restart_order_changes() -> None:
         {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},
     ]
     lane_plans, plan_id = lane_setup(txs=txs)
-    helper_lanes = tuple(sorted((plan for plan in lane_plans if str(plan.helper_id or "")), key=lambda item: item.lane_id))
+    helper_lanes = tuple(
+        sorted(
+            (plan for plan in lane_plans if str(plan.helper_id or "")),
+            key=lambda item: item.lane_id,
+        )
+    )
     assert len(helper_lanes) == 2
 
-    result_a = _materialized_result(lane_plan=helper_lanes[0], path="state/content/1", value="A", seed_byte=61, plan_id=plan_id)
-    result_b = _materialized_result(lane_plan=helper_lanes[1], path="state/identity/alice", value="B", seed_byte=62, plan_id=plan_id)
+    result_a = _materialized_result(
+        lane_plan=helper_lanes[0], path="state/content/1", value="A", seed_byte=61, plan_id=plan_id
+    )
+    result_b = _materialized_result(
+        lane_plan=helper_lanes[1],
+        path="state/identity/alice",
+        value="B",
+        seed_byte=62,
+        plan_id=plan_id,
+    )
 
     outcome1 = merge_materialized_lane_results(base_state={}, lane_results=[result_b, result_a])
     outcome2 = merge_materialized_lane_results(base_state={}, lane_results=[result_a, result_b])
     expected_lanes = tuple(sorted(plan.lane_id for plan in helper_lanes))
     assert outcome1.accepted_lane_ids == outcome2.accepted_lane_ids == expected_lanes
     assert outcome1.serialized_lane_ids == outcome2.serialized_lane_ids == ()
-    assert outcome1.merged_state == outcome2.merged_state == {
-        "state": {"content": {"1": "A"}, "identity": {"alice": "B"}}
-    }
+    assert (
+        outcome1.merged_state
+        == outcome2.merged_state
+        == {"state": {"content": {"1": "A"}, "identity": {"alice": "B"}}}
+    )
 
 
 def test_materialized_merge_serializes_all_lanes_on_overlap_after_restart() -> None:
@@ -89,13 +106,24 @@ def test_materialized_merge_serializes_all_lanes_on_overlap_after_restart() -> N
         {"tx_id": "i1", "tx_type": "IDENTITY_UPDATE", "state_prefixes": ["identity:user:alice"]},
     ]
     lane_plans, plan_id = lane_setup(txs=txs)
-    helper_lanes = tuple(sorted((plan for plan in lane_plans if str(plan.helper_id or "")), key=lambda item: item.lane_id))
+    helper_lanes = tuple(
+        sorted(
+            (plan for plan in lane_plans if str(plan.helper_id or "")),
+            key=lambda item: item.lane_id,
+        )
+    )
     assert len(helper_lanes) == 2
 
-    result_a = _materialized_result(lane_plan=helper_lanes[0], path="shared/conflict", value="A", seed_byte=63, plan_id=plan_id)
-    result_b = _materialized_result(lane_plan=helper_lanes[1], path="shared/conflict", value="B", seed_byte=64, plan_id=plan_id)
+    result_a = _materialized_result(
+        lane_plan=helper_lanes[0], path="shared/conflict", value="A", seed_byte=63, plan_id=plan_id
+    )
+    result_b = _materialized_result(
+        lane_plan=helper_lanes[1], path="shared/conflict", value="B", seed_byte=64, plan_id=plan_id
+    )
 
-    outcome = merge_materialized_lane_results(base_state={"sentinel": True}, lane_results=[result_b, result_a])
+    outcome = merge_materialized_lane_results(
+        base_state={"sentinel": True}, lane_results=[result_b, result_a]
+    )
     assert outcome.merged_state == {"sentinel": True}
     assert outcome.accepted_lane_ids == ()
     assert outcome.serialized_lane_ids == tuple(sorted(plan.lane_id for plan in helper_lanes))

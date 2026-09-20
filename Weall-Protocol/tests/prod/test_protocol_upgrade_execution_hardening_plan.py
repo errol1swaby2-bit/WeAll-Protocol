@@ -13,23 +13,42 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _env(tx_type: str, nonce: int, payload: dict, *, parent: str | None = None) -> TxEnvelope:
     if parent is None:
-        parent = "CONSTITUTION_UPGRADE_DECLARE" if tx_type == "CONSTITUTION_UPGRADE_ACTIVATE" else "GOV_EXECUTE"
+        parent = (
+            "CONSTITUTION_UPGRADE_DECLARE"
+            if tx_type == "CONSTITUTION_UPGRADE_ACTIVATE"
+            else "GOV_EXECUTE"
+        )
         if tx_type == "PROTOCOL_UPGRADE_ACTIVATE":
             parent = "PROTOCOL_UPGRADE_DECLARE"
-    return TxEnvelope(tx_type=tx_type, signer="@system", nonce=nonce, payload=payload, sig="", system=True, parent=parent)
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer="@system",
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=True,
+        parent=parent,
+    )
 
 
 def test_protocol_upgrade_execution_hardening_plan_artifact_is_fresh_and_open() -> None:
     proc = subprocess.run(
-        [sys.executable, "scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py", "--check"],
+        [
+            sys.executable,
+            "scripts/gen_protocol_upgrade_execution_hardening_plan_v1_5.py",
+            "--check",
+        ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "protocol_upgrade_execution_hardening_plan_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "protocol_upgrade_execution_hardening_plan_v1_5.json").read_text(
+            encoding="utf-8"
+        )
+    )
     assert payload["blocker"] == "AUD-618-P0-003"
     assert payload["blocker_status"] == "open_future_mainnet_hardening"
     assert payload["execution_enabled"] is False
@@ -37,14 +56,22 @@ def test_protocol_upgrade_execution_hardening_plan_artifact_is_fresh_and_open() 
     assert payload["claim_boundaries"]["automatic_protocol_upgrades"] is False
     assert payload["claim_boundaries"]["protocol_migrations"] is False
     assert payload["claim_boundaries"]["protocol_rollbacks"] is False
-    assert "deterministic_migration_vectors_with_before_after_state_roots" in payload["future_required_evidence"]
+    assert (
+        "deterministic_migration_vectors_with_before_after_state_roots"
+        in payload["future_required_evidence"]
+    )
     assert "multi_node_staged_rollout_transcript" in payload["future_required_evidence"]
 
 
 def test_upgrade_execution_hardening_docs_and_template_preserve_non_claims() -> None:
     docs = [
         ROOT / "docs" / "testnet" / "UPGRADE_EXECUTION_HARDENING_PLAN.md",
-        ROOT / "docs" / "proofs" / "protocol-upgrade-execution-hardening" / "2026-07-05" / "README.md",
+        ROOT
+        / "docs"
+        / "proofs"
+        / "protocol-upgrade-execution-hardening"
+        / "2026-07-05"
+        / "README.md",
     ]
     for path in docs:
         text = path.read_text(encoding="utf-8").lower()
@@ -54,7 +81,16 @@ def test_upgrade_execution_hardening_docs_and_template_preserve_non_claims() -> 
         assert "migration" in text
         assert "rollback" in text
         assert "public beta" in text
-    template = json.loads((ROOT / "docs" / "proofs" / "protocol-upgrade-execution-hardening" / "2026-07-05" / "PLAN_TEMPLATE.json").read_text(encoding="utf-8"))
+    template = json.loads(
+        (
+            ROOT
+            / "docs"
+            / "proofs"
+            / "protocol-upgrade-execution-hardening"
+            / "2026-07-05"
+            / "PLAN_TEMPLATE.json"
+        ).read_text(encoding="utf-8")
+    )
     assert template["template_only"] is True
     assert template["external_execution_evidence_attached"] is False
     assert template["current_record_only_boundary"]["software_apply_enabled"] is False
@@ -75,7 +111,10 @@ def test_protocol_upgrade_future_execution_fields_are_ignored_and_disabled() -> 
                 "version": "v1.6.0",
                 "signed_manifest": {"digest": "sha256:" + "1" * 64},
                 "artifact_cid": "bafyfutureartifact",
-                "compatibility_window": {"stage_after_height": 110, "activate_not_before_height": 150},
+                "compatibility_window": {
+                    "stage_after_height": 110,
+                    "activate_not_before_height": 150,
+                },
                 "operator_approval_policy": {"explicit_operator_approval_required": True},
                 "migration_vector_hash": "sha256:" + "2" * 64,
                 "rollback_vector_hash": "sha256:" + "3" * 64,
@@ -95,7 +134,14 @@ def test_protocol_upgrade_future_execution_fields_are_ignored_and_disabled() -> 
     assert boundary["rollback_execution_enabled"] is False
     assert boundary["restart_or_process_control_enabled"] is False
     assert boundary["automatic_upgrade_supported"] is False
-    for key in ("signed_manifest", "artifact_cid", "migration_vector_hash", "rollback_vector_hash", "execute_rollback", "restart_node"):
+    for key in (
+        "signed_manifest",
+        "artifact_cid",
+        "migration_vector_hash",
+        "rollback_vector_hash",
+        "execute_rollback",
+        "restart_node",
+    ):
         assert key in boundary["requested_execution_fields_ignored"]
 
     activate = apply_protocol(
@@ -150,7 +196,14 @@ def test_constitution_upgrade_future_execution_fields_are_ignored_and_disabled()
     assert boundary["migration_execution_enabled"] is False
     assert boundary["rollback_execution_enabled"] is False
     assert boundary["restart_or_process_control_enabled"] is False
-    for key in ("fetch_document", "apply_document", "execute_migration", "rollback", "restart_node", "auto_apply"):
+    for key in (
+        "fetch_document",
+        "apply_document",
+        "execute_migration",
+        "rollback",
+        "restart_node",
+        "auto_apply",
+    ):
         assert key in boundary["requested_execution_fields_ignored"]
 
     activate = apply_protocol(

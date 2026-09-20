@@ -5,12 +5,6 @@ from pathlib import Path
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import BftVote, canonical_vote_message
@@ -133,7 +127,7 @@ def _build_committed_block(ex: WeAllExecutor, *, force_ts_ms: int) -> dict:
     return blk
 
 
-def test_conflicting_block_variants_for_same_block_id_are_quarantined(
+def test_unauthenticated_block_variants_do_not_become_conflict_truth_until_promoted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "testnet")
@@ -171,9 +165,23 @@ def test_conflicting_block_variants_for_same_block_id_are_quarantined(
     assert follower.bft_on_proposal({"view": 1, "proposer": "v1", "block": proposal_a}) is None
     assert follower.bft_on_proposal({"view": 1, "proposer": "v1", "block": proposal_b}) is None
 
+    # PB-001B-Q: unauthenticated quarantine entries are bounded diagnostics only.
+    # Two unsigned variants must not manufacture authoritative conflict truth.
+    diag = follower.bft_diagnostics()
+    assert diag["conflicted_block_ids_count"] == 0
+    assert str(blk["block_id"]) not in diag["conflicted_block_ids"]
+    assert diag["quarantined_remote_blocks_count"] == 1
+
+    # Once the canonical variant crosses the trusted pending-remote boundary, the
+    # conflicting quarantined variant must still be detected fail-closed.
+    bid = str(blk["block_id"])
+    quarantined_variant = dict(follower._quarantined_remote_blocks[bid])
+    follower._put_pending_remote_block(block_id=bid, block=proposal_a)
+    assert follower._block_identity_conflicts(quarantined_variant) is True
+
     diag = follower.bft_diagnostics()
     assert diag["conflicted_block_ids_count"] == 1
-    assert str(blk["block_id"]) in diag["conflicted_block_ids"]
+    assert bid in diag["conflicted_block_ids"]
     assert follower.bft_pending_fetch_requests() == []
     assert follower.state.get("height") == 0
 

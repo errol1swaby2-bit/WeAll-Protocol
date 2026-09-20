@@ -5,7 +5,6 @@ from typing import Any
 
 from weall.runtime.helper_operator_diagnostics import HelperOperatorDiagnostic
 
-
 Json = dict[str, Any]
 
 

@@ -32,7 +32,9 @@ def test_pending_block_lookup_by_hash_and_identity_descriptors(tmp_path: Path) -
     assert err == ""
     assert isinstance(block, dict)
 
-    assert ex.bft_cache_remote_block(dict(block)) is True
+    assert (
+        ex.bft_cache_remote_block(dict(block), expected_block_hash=str(block["block_hash"])) is True
+    )
     bh = str(block.get("block_hash") or "")
     bid = str(block.get("block_id") or "")
 

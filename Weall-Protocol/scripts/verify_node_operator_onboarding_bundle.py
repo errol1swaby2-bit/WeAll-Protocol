@@ -5,6 +5,7 @@ This checker validates that the bundle is public-only, matches the expected
 chain manifest when one is supplied, and can be converted into safe shell exports
 for normal node-operator preflight scripts.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,7 +22,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 Json = dict[str, Any]
 
-SECRET_KEY_PATTERNS = re.compile(r"(privkey|private[_-]?key|secret|api[_-]?key|token|password)", re.IGNORECASE)
+SECRET_KEY_PATTERNS = re.compile(
+    r"(privkey|private[_-]?key|secret|api[_-]?key|token|password)", re.IGNORECASE
+)
 ALLOWED_PUBLIC_KEY_NAMES = {
     "trusted_authority_pubkeys",
     "pubkey",
@@ -95,7 +98,9 @@ def _authority_url_issues(bundle: Json, authority: Json) -> list[str]:
         return issues
 
     is_production = profile in PRODUCTION_BUNDLE_PROFILES
-    is_rehearsal = profile in REHEARSAL_BUNDLE_PROFILES or authority_profile in REHEARSAL_BUNDLE_PROFILES
+    is_rehearsal = (
+        profile in REHEARSAL_BUNDLE_PROFILES or authority_profile in REHEARSAL_BUNDLE_PROFILES
+    )
 
     if is_production:
         if scheme != "https":
@@ -239,7 +244,13 @@ def _validate_observer_posture(bundle: Json) -> list[str]:
         if not isinstance(allowed, list):
             issues.append("observer_allowed_onboarding_transactions_not_list")
         else:
-            unsafe = sorted({str(tx or "").strip() for tx in allowed if str(tx or "").strip() and str(tx or "").strip() not in SAFE_ONBOARDING_TXS})
+            unsafe = sorted(
+                {
+                    str(tx or "").strip()
+                    for tx in allowed
+                    if str(tx or "").strip() and str(tx or "").strip() not in SAFE_ONBOARDING_TXS
+                }
+            )
             if unsafe:
                 issues.append("observer_allowed_onboarding_transactions_unsafe:" + ",".join(unsafe))
     return issues
@@ -278,12 +289,22 @@ def _validate(
 
     chain = _chain(bundle)
     authority = _authority(bundle)
-    required_chain = ["chain_id", "genesis_hash", "genesis_state_root", "tx_index_hash", "schema_version"]
+    required_chain = [
+        "chain_id",
+        "genesis_hash",
+        "genesis_state_root",
+        "tx_index_hash",
+        "schema_version",
+    ]
     for key in required_chain:
         if not str(chain.get(key) or "").strip():
             issues.append(f"missing_chain_{key}")
     modern_observer_bundle = isinstance(bundle.get("observer"), dict) or "authority" in bundle
-    if modern_observer_bundle and str(bundle.get("profile") or "").lower() in {"prod", "production", "production_service"}:
+    if modern_observer_bundle and str(bundle.get("profile") or "").lower() in {
+        "prod",
+        "production",
+        "production_service",
+    }:
         if not str(chain.get("protocol_profile_hash") or "").strip():
             issues.append("missing_chain_protocol_profile_hash")
 
@@ -294,7 +315,9 @@ def _validate(
     pubkeys = [str(pk).strip().lower() for pk in (authority.get("trusted_authority_pubkeys") or [])]
     if not pubkeys:
         issues.append("missing_trusted_authority_pubkeys")
-    elif any(pk in PLACEHOLDER_AUTHORITY_PUBKEYS or pk.startswith("replace_with") for pk in pubkeys):
+    elif any(
+        pk in PLACEHOLDER_AUTHORITY_PUBKEYS or pk.startswith("replace_with") for pk in pubkeys
+    ):
         if allow_placeholder_authority:
             warnings.append("placeholder_trusted_authority_pubkey")
         else:
@@ -320,10 +343,19 @@ def _validate(
         comparisons = {
             "chain_id": (chain.get("chain_id"), manifest.get("chain_id")),
             "genesis_hash": (chain.get("genesis_hash"), manifest.get("genesis_hash")),
-            "genesis_state_root": (chain.get("genesis_state_root"), manifest.get("genesis_state_root")),
+            "genesis_state_root": (
+                chain.get("genesis_state_root"),
+                manifest.get("genesis_state_root"),
+            ),
             "tx_index_hash": (chain.get("tx_index_hash"), manifest.get("tx_index_hash")),
-            "schema_version": (str(chain.get("schema_version") or ""), str(manifest.get("schema_version") or "")),
-            "protocol_profile_hash": (chain.get("protocol_profile_hash"), manifest.get("protocol_profile_hash")),
+            "schema_version": (
+                str(chain.get("schema_version") or ""),
+                str(manifest.get("schema_version") or ""),
+            ),
+            "protocol_profile_hash": (
+                chain.get("protocol_profile_hash"),
+                manifest.get("protocol_profile_hash"),
+            ),
         }
         for name, (local, expected) in comparisons.items():
             if str(local or "").strip().lower() != str(expected or "").strip().lower():
@@ -341,7 +373,8 @@ def _validate(
         "authority_url": authority.get("authority_url") or authority.get("url"),
         "trusted_authority_pubkeys_count": len(pubkeys),
         "relay_recipient_pubkeys_count": len(_relay_recipient_pubkeys(bundle)),
-        "legacy_authority_section_used": "authority" not in bundle and isinstance(bundle.get("oracle"), dict),
+        "legacy_authority_section_used": "authority" not in bundle
+        and isinstance(bundle.get("oracle"), dict),
     }
 
 
@@ -349,26 +382,46 @@ def _shell_env(bundle: Json) -> str:
     chain = _chain(bundle)
     authority = _authority(bundle)
     observer = _observer(bundle)
-    pubkeys = ",".join(str(pk).strip() for pk in (authority.get("trusted_authority_pubkeys") or []) if str(pk).strip())
-    relay_recipient_pubkeys = json.dumps(_relay_recipient_pubkeys(bundle), separators=(",", ":"), sort_keys=True)
+    pubkeys = ",".join(
+        str(pk).strip()
+        for pk in (authority.get("trusted_authority_pubkeys") or [])
+        if str(pk).strip()
+    )
+    relay_recipient_pubkeys = json.dumps(
+        _relay_recipient_pubkeys(bundle), separators=(",", ":"), sort_keys=True
+    )
     lifecycle = str(observer.get("node_lifecycle_state") or "observer_onboarding").strip()
     if lifecycle not in SAFE_OBSERVER_LIFECYCLE_STATES:
         lifecycle = "observer_onboarding"
     env = {
-        "WEALL_MODE": "prod" if str(bundle.get("profile") or "").lower() in PRODUCTION_BUNDLE_PROFILES else ("controlled_devnet" if str(bundle.get("profile") or "").lower() in REHEARSAL_BUNDLE_PROFILES else str(bundle.get("profile") or "")),
+        "WEALL_MODE": "prod"
+        if str(bundle.get("profile") or "").lower() in PRODUCTION_BUNDLE_PROFILES
+        else (
+            "controlled_devnet"
+            if str(bundle.get("profile") or "").lower() in REHEARSAL_BUNDLE_PROFILES
+            else str(bundle.get("profile") or "")
+        ),
         "WEALL_CHAIN_ID": str(chain.get("chain_id") or ""),
         "WEALL_EXPECTED_CHAIN_ID": str(chain.get("chain_id") or ""),
         "WEALL_EXPECTED_GENESIS_HASH": str(chain.get("genesis_hash") or ""),
         "WEALL_EXPECTED_TX_INDEX_HASH": str(chain.get("tx_index_hash") or ""),
         "WEALL_EXPECTED_PROTOCOL_PROFILE_HASH": str(chain.get("protocol_profile_hash") or ""),
-        "WEALL_CHAIN_AUTHORITY_URL": str(authority.get("authority_url") or authority.get("url") or ""),
+        "WEALL_CHAIN_AUTHORITY_URL": str(
+            authority.get("authority_url") or authority.get("url") or ""
+        ),
         "WEALL_AUTHORITY_PUBKEYS": pubkeys,
-        "WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS": str(authority.get("authority_snapshot_max_age_ms") or "120000"),
+        "WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS": str(
+            authority.get("authority_snapshot_max_age_ms") or "120000"
+        ),
         "WEALL_MIN_AUTHORITY_HEIGHT": str(authority.get("min_authority_height") or "0"),
         "WEALL_AUTHORITY_PROFILE": str(authority.get("profile") or "production"),
         "WEALL_GENESIS_API_BASE": str(observer.get("genesis_api_base") or ""),
-        "WEALL_NET_RELAY_URLS": ",".join(str(url).strip() for url in (observer.get("relay_urls") or []) if str(url).strip()),
-        "WEALL_NET_RELAY_RECIPIENT_PUBKEYS": relay_recipient_pubkeys if _relay_recipient_pubkeys(bundle) else "",
+        "WEALL_NET_RELAY_URLS": ",".join(
+            str(url).strip() for url in (observer.get("relay_urls") or []) if str(url).strip()
+        ),
+        "WEALL_NET_RELAY_RECIPIENT_PUBKEYS": relay_recipient_pubkeys
+        if _relay_recipient_pubkeys(bundle)
+        else "",
         # Observer posture is hard-coded here after validation.  The verifier must
         # never convert bundle-supplied authority toggles into shell exports.
         "WEALL_NODE_LIFECYCLE_STATE": lifecycle,
@@ -388,7 +441,9 @@ def _shell_env(bundle: Json) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Verify a public WeAll node-operator onboarding bundle.")
+    parser = argparse.ArgumentParser(
+        description="Verify a public WeAll node-operator onboarding bundle."
+    )
     parser.add_argument("--bundle", required=True)
     parser.add_argument("--manifest", default="")
     parser.add_argument("--allow-placeholder-authority", action="store_true")

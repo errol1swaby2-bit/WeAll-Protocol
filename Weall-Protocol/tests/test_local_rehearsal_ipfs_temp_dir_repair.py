@@ -23,10 +23,12 @@ def test_local_rehearsal_restart_stale_compose_ipfs_before_reset() -> None:
     src = _script()
 
     reset_index = src.index('if _bool_true "${RESET}"; then')
-    reset_block = src[reset_index : src.index('_start_local_ipfs_daemon', reset_index)]
+    reset_block = src[reset_index : src.index("_start_local_ipfs_daemon", reset_index)]
     assert "_stop_local_ipfs_daemon" in src
     assert 'docker compose -f "${IPFS_COMPOSE_FILE}" rm -sf "${IPFS_SERVICE}"' in src
-    assert reset_block.index("_stop_local_ipfs_daemon") < reset_block.index("scripts/devnet_reset_state.sh")
+    assert reset_block.index("_stop_local_ipfs_daemon") < reset_block.index(
+        "scripts/devnet_reset_state.sh"
+    )
 
 
 def test_local_rehearsal_ipfs_ready_requires_add_healthcheck() -> None:

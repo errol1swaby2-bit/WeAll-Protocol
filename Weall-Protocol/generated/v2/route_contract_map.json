@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c1f4f3aad1bc7f5400192f0cbb3f7084f3bf7c3b72ffd13bb8df5a5a6d312614"
+    "source_tree_digest": "c826728b8d1cc0f948f2305789c1dff0a559a8b38e6ae4e6aa913867499a5a1b"
   },
   "required_fields": [
     "stable_id",
@@ -247,7 +247,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "account_nonce_status",
-        "line": 1775,
+        "line": 2011,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -535,7 +535,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_genesis",
-        "line": 1732,
+        "line": 1736,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -585,7 +585,7 @@
       ],
       "implementation_source": {
         "function": "chain_head",
-        "line": 1765,
+        "line": 1769,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -633,7 +633,7 @@
       ],
       "implementation_source": {
         "function": "chain_identity",
-        "line": 1585,
+        "line": 1589,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -694,7 +694,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_manifest",
-        "line": 1757,
+        "line": 1761,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -764,7 +764,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "chain_state_root",
-        "line": 1718,
+        "line": 1722,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1097,7 +1097,7 @@
       ],
       "implementation_source": {
         "function": "v1_dev_bootstrap_secret",
-        "line": 486,
+        "line": 505,
         "path": "src/weall/api/routes_public_parts/demo_seed.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1143,7 +1143,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_demo_seed",
-        "line": 496,
+        "line": 515,
         "path": "src/weall/api/routes_public_parts/demo_seed.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1593,7 +1593,7 @@
       ],
       "implementation_source": {
         "function": "economics_activation_readiness",
-        "line": 238,
+        "line": 264,
         "path": "src/weall/api/routes_public_parts/economics.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1641,7 +1641,7 @@
       ],
       "implementation_source": {
         "function": "economics_status",
-        "line": 143,
+        "line": 149,
         "path": "src/weall/api/routes_public_parts/economics.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1692,7 +1692,7 @@
       ],
       "implementation_source": {
         "function": "economics_transfer_preview",
-        "line": 244,
+        "line": 270,
         "path": "src/weall/api/routes_public_parts/economics.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1824,7 +1824,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "genesis_api_readiness",
-        "line": 1711,
+        "line": 1715,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -1870,7 +1870,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "genesis_observer_readiness",
-        "line": 1706,
+        "line": 1710,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2388,7 +2388,7 @@
       ],
       "implementation_source": {
         "function": "v1_groups_list",
-        "line": 390,
+        "line": 441,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2445,7 +2445,7 @@
       ],
       "implementation_source": {
         "function": "v1_group_join",
-        "line": 517,
+        "line": 578,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -2495,7 +2495,7 @@
       ],
       "implementation_source": {
         "function": "v1_group_leave",
-        "line": 547,
+        "line": 608,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -2544,7 +2544,7 @@
       ],
       "implementation_source": {
         "function": "v1_group_get",
-        "line": 428,
+        "line": 479,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2591,7 +2591,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_group_content",
-        "line": 574,
+        "line": 635,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2640,7 +2640,7 @@
       ],
       "implementation_source": {
         "function": "v1_group_feed",
-        "line": 634,
+        "line": 697,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2686,7 +2686,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_group_governance_contract",
-        "line": 444,
+        "line": 503,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2732,7 +2732,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_group_members",
-        "line": 464,
+        "line": 523,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2779,7 +2779,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_group_membership",
-        "line": 453,
+        "line": 512,
         "path": "src/weall/api/routes_public_parts/groups.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -2858,6 +2858,7 @@
         "tests/test_api_tx_status_routes.py",
         "tests/test_constitution_source_traceability.py",
         "tests/test_diagnostics_helper_fail_closed.py",
+        "tests/test_executor_atomic_commit_crash_recovery.py",
         "tests/test_external_observer_live_gate_docs.py",
         "tests/test_external_observer_two_machine_rehearsal.py",
         "tests/test_final_recursive_mempool_block_loop_integrity.py",
@@ -2877,6 +2878,7 @@
         "tests/test_readyz_empty_chain_and_restored_chain.py",
         "tests/test_recursive_ai_closure_post_green.py",
         "tests/test_reviewer_rehearsal_wrappers.py",
+        "tests/test_state_sync_bft_branch_reset.py",
         "tests/test_status_consensus_diagnostics.py",
         "tests/test_status_operator_validator_lifecycle.py",
         "tests/test_validator_lifecycle_status.py"
@@ -3240,7 +3242,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "mempool_submit",
-        "line": 75,
+        "line": 76,
         "path": "src/weall/api/routes_public_parts/mempool.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3683,7 +3685,7 @@
       ],
       "implementation_source": {
         "function": "v1_nodes",
-        "line": 525,
+        "line": 517,
         "path": "src/weall/api/routes_nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3743,7 +3745,7 @@
       ],
       "implementation_source": {
         "function": "nodes",
-        "line": 16,
+        "line": 20,
         "path": "src/weall/api/routes_public_parts/nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3793,6 +3795,7 @@
         "tests/test_local_rehearsal_account_register_state_fallback.py",
         "tests/test_m3_closure_integrity.py",
         "tests/test_operator_helpers_fail_closed.py",
+        "tests/test_pb001bm_validator_authority_fail_closed.py",
         "tests/test_priority1_cross_node_merge_consistency.py",
         "tests/test_priority1_deterministic_execution.py",
         "tests/test_priority2_state_sync_transport_safety.py",
@@ -3818,7 +3821,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_nodes_known",
-        "line": 545,
+        "line": 537,
         "path": "src/weall/api/routes_nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3866,7 +3869,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "nodes_known",
-        "line": 30,
+        "line": 34,
         "path": "src/weall/api/routes_public_parts/nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3919,7 +3922,7 @@
       ],
       "implementation_source": {
         "function": "v1_nodes_seeds",
-        "line": 539,
+        "line": 531,
         "path": "src/weall/api/routes_nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -3978,7 +3981,7 @@
       ],
       "implementation_source": {
         "function": "nodes_seeds",
-        "line": 25,
+        "line": 29,
         "path": "src/weall/api/routes_public_parts/nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4035,7 +4038,7 @@
       ],
       "implementation_source": {
         "function": "v1_nodes_validators",
-        "line": 554,
+        "line": 546,
         "path": "src/weall/api/routes_nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4086,7 +4089,7 @@
       ],
       "implementation_source": {
         "function": "nodes_validators",
-        "line": 35,
+        "line": 39,
         "path": "src/weall/api/routes_public_parts/nodes.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4134,7 +4137,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_reconcile_tx",
-        "line": 1820,
+        "line": 2062,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4183,7 +4186,7 @@
       ],
       "implementation_source": {
         "function": "observer_edge_status",
-        "line": 1788,
+        "line": 2024,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4232,7 +4235,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "observer_edge_tx_queue_drain",
-        "line": 1812,
+        "line": 2050,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -4480,7 +4483,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_juror_accept",
-        "line": 3125,
+        "line": 3127,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4530,7 +4533,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_juror_decline",
-        "line": 3147,
+        "line": 3149,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4580,7 +4583,7 @@
       ],
       "implementation_source": {
         "function": "poh_async_tx_review",
-        "line": 3167,
+        "line": 3169,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -4628,7 +4631,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_challenge_tx_open",
-        "line": 3087,
+        "line": 3089,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5051,7 +5054,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_live_webrtc_signals",
-        "line": 2610,
+        "line": 2612,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -5100,7 +5103,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_live_webrtc_signal_send",
-        "line": 2763,
+        "line": 2765,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -5149,7 +5152,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_live_webrtc_signal_bridge_import",
-        "line": 2667,
+        "line": 2669,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -5249,7 +5252,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_attendance",
-        "line": 3339,
+        "line": 3341,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5301,7 +5304,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_juror_accept",
-        "line": 3294,
+        "line": 3296,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5351,7 +5354,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_juror_decline",
-        "line": 3318,
+        "line": 3320,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5401,7 +5404,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_request",
-        "line": 3246,
+        "line": 3248,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5451,7 +5454,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_tx_verdict",
-        "line": 3379,
+        "line": 3381,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5500,7 +5503,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_webrtc_relay_config",
-        "line": 2569,
+        "line": 2571,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -5548,7 +5551,7 @@
       ],
       "implementation_source": {
         "function": "poh_live_webrtc_signal_diagnostics",
-        "line": 2582,
+        "line": 2584,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -5594,7 +5597,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_live_webrtc_signal_queue_drain",
-        "line": 2600,
+        "line": 2602,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -5644,7 +5647,7 @@
       ],
       "implementation_source": {
         "function": "operator_poh_live_finalize",
-        "line": 2983,
+        "line": 2985,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5692,7 +5695,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "operator_poh_live_init",
-        "line": 2927,
+        "line": 2929,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5741,7 +5744,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "operator_poh_tier2_finalize",
-        "line": 2879,
+        "line": 2881,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -5929,7 +5932,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "poh_tier2_tx_request",
-        "line": 3203,
+        "line": 3205,
         "path": "src/weall/api/routes_public_parts/poh.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6320,7 +6323,7 @@
       ],
       "implementation_source": {
         "function": "v1_reputation_event_codes",
-        "line": 46,
+        "line": 50,
         "path": "src/weall/api/routes_public_parts/reputation.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6368,7 +6371,7 @@
       ],
       "implementation_source": {
         "function": "v1_reputation_me",
-        "line": 35,
+        "line": 39,
         "path": "src/weall/api/routes_public_parts/reputation.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6414,7 +6417,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_reputation_account",
-        "line": 62,
+        "line": 66,
         "path": "src/weall/api/routes_public_parts/reputation.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6460,7 +6463,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_reputation_eligibility",
-        "line": 86,
+        "line": 94,
         "path": "src/weall/api/routes_public_parts/reputation.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6506,7 +6509,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_reputation_events",
-        "line": 100,
+        "line": 108,
         "path": "src/weall/api/routes_public_parts/reputation.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6552,7 +6555,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_reputation_matrix",
-        "line": 77,
+        "line": 83,
         "path": "src/weall/api/routes_public_parts/reputation.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6598,7 +6601,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_reputation_summary",
-        "line": 68,
+        "line": 72,
         "path": "src/weall/api/routes_public_parts/reputation.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6644,7 +6647,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "reviewer_artifacts_index",
-        "line": 93,
+        "line": 97,
         "path": "src/weall/api/routes_public_parts/reviewer_artifacts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6691,7 +6694,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "reviewer_artifacts_bundle",
-        "line": 117,
+        "line": 121,
         "path": "src/weall/api/routes_public_parts/reviewer_artifacts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6738,7 +6741,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "reviewer_artifacts_manifest",
-        "line": 123,
+        "line": 127,
         "path": "src/weall/api/routes_public_parts/reviewer_artifacts.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6785,7 +6788,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_session_create",
-        "line": 412,
+        "line": 426,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6835,7 +6838,7 @@
       ],
       "implementation_source": {
         "function": "v1_session_login",
-        "line": 200,
+        "line": 208,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -6884,7 +6887,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "v1_session_me",
-        "line": 517,
+        "line": 531,
         "path": "src/weall/api/routes_public_parts/session.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7375,6 +7378,7 @@
         "tests/test_launch_disabled_matrix_v15.py",
         "tests/test_launch_gate_proof_surfaces.py",
         "tests/test_ledger_migrations_registry.py",
+        "tests/test_lineage_witness_contract.py",
         "tests/test_live_case_id_alignment.py",
         "tests/test_live_media_group_post_message_refresh.py",
         "tests/test_live_netloop_api_ipfs_poh_claim_boundaries.py",
@@ -7434,6 +7438,7 @@
         "tests/test_mempool_signer_nonce_conflict.py",
         "tests/test_mempool_survives_restart_before_commit.py",
         "tests/test_mixed_node_posture_fail_closed.py",
+        "tests/test_multi_causal_receipt_contract_truthfulness.py",
         "tests/test_multinode_liveness.py",
         "tests/test_native_async_demo_scripts.py",
         "tests/test_native_poh_solo_bootstrap_quorum.py",
@@ -7510,6 +7515,35 @@
         "tests/test_p0_p2_observer_media_safety.py",
         "tests/test_parallel_execution.py",
         "tests/test_parallel_execution_conflict_lanes.py",
+        "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
+        "tests/test_pb001bab_http_relay_bft_admission_ack_boundary.py",
+        "tests/test_pb001bad_bft_semantic_alias_budget_and_ack.py",
+        "tests/test_pb001bae_postauth_network_semantic_dedupe.py",
+        "tests/test_pb001baf_pacemaker_anchor_export_contract.py",
+        "tests/test_pb001bag_network_branch_reset_dedupe_isolation.py",
+        "tests/test_pb001bah_checkpoint_signing_authority_atomicity.py",
+        "tests/test_pb001bai_canonical_ledger_checkpoint_atomicity.py",
+        "tests/test_pb001baj_mempool_canonical_height_atomicity.py",
+        "tests/test_pb001bak_tx_gossip_branch_retry.py",
+        "tests/test_pb001bal_bft_fetch_branch_generation_isolation.py",
+        "tests/test_pb001bam_inflight_local_bft_emission_branch_atomicity.py",
+        "tests/test_pb001ban_inbound_postauth_branch_side_effect_atomicity.py",
+        "tests/test_pb001bao_direct_p2p_branch_linearization.py",
+        "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
+        "tests/test_pb001bm_validator_authority_fail_closed.py",
+        "tests/test_pb001bn_bft_identity_quarantine_restart.py",
+        "tests/test_pb001bo_canonical_block_hash_persistence.py",
+        "tests/test_pb001bp_bft_fetch_identity_binding.py",
+        "tests/test_pb001bq_quarantine_trust_boundary.py",
+        "tests/test_pb001br_proposal_duplicate_cache_trust_boundary.py",
+        "tests/test_pb001bs_network_dedupe_trust_boundary.py",
+        "tests/test_pb001bt_timeout_tc_qc_contract.py",
+        "tests/test_pb001bu_timeout_certificate_restart_proof.py",
+        "tests/test_pb001bv_qc_restart_revalidation.py",
+        "tests/test_pb001bw_pending_timeout_restart_revalidation.py",
+        "tests/test_pb001bx_pending_vote_restart_revalidation.py",
+        "tests/test_pb001by_pacemaker_timeout_emission.py",
+        "tests/test_pb001bz_clock_rollback_recovery.py",
         "tests/test_peer_advertise_node_binding_safety.py",
         "tests/test_peer_list_store.py",
         "tests/test_pending_block_hash_surface.py",
@@ -7543,6 +7577,7 @@
         "tests/test_poh_two_tier_hard_invariant.py",
         "tests/test_poh_v2_two_tier_migration.py",
         "tests/test_poh_video_upload_request_cap.py",
+        "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_pq_mldsa_signature_profile.py",
         "tests/test_priority0_account_key_normalization.py",
         "tests/test_priority0_block_admission_ancestry_unbounded.py",
@@ -7791,6 +7826,7 @@
         "tests/test_storage_probe_runner.py",
         "tests/test_storage_responsibility_scaffold.py",
         "tests/test_storage_revalidation_and_accounting.py",
+        "tests/test_strict_canonical_json_domain.py",
         "tests/test_system_queue_idempotency.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_system_tx_apply_block_binding.py",
@@ -7938,7 +7974,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_block",
-        "line": 372,
+        "line": 383,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -7984,7 +8020,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_block_header",
-        "line": 356,
+        "line": 367,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8032,7 +8068,7 @@
       ],
       "implementation_source": {
         "function": "state_snapshot",
-        "line": 335,
+        "line": 346,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8118,7 +8154,7 @@
       ],
       "implementation_source": {
         "function": "status",
-        "line": 1123,
+        "line": 1125,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8310,6 +8346,7 @@
         "tests/test_media_upload_ipfs_fail_closed.py",
         "tests/test_media_upload_tier2_gate.py",
         "tests/test_media_viewport_observer_proxy.py",
+        "tests/test_multi_causal_receipt_contract_truthfulness.py",
         "tests/test_net_duplicate_packet_suppression.py",
         "tests/test_net_http_relay.py",
         "tests/test_no_stale_operator_lifecycle_artifacts.py",
@@ -8338,6 +8375,10 @@
         "tests/test_operator_route_consistency.py",
         "tests/test_operator_storage_validator_production_safety.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_pb001baa_raw_bft_duplicate_cache_trust_boundary.py",
+        "tests/test_pb001bl_zero_truthiness_and_tier2_schema.py",
+        "tests/test_pb001bm_validator_authority_fail_closed.py",
+        "tests/test_pb001bn_bft_identity_quarantine_restart.py",
         "tests/test_poh_async_threshold_safety.py",
         "tests/test_poh_case_scoped_juror_gate.py",
         "tests/test_poh_eligibility_rules.py",
@@ -8353,6 +8394,7 @@
         "tests/test_poh_tier2_completion_grants_protocol_access.py",
         "tests/test_poh_two_tier_hard_invariant.py",
         "tests/test_poh_v2_two_tier_migration.py",
+        "tests/test_post_r03_ai_exhaustion_objective_closure.py",
         "tests/test_pq_mldsa_signature_profile.py",
         "tests/test_priority0_chainid_and_schema_safety.py",
         "tests/test_priority0_poh_determinism_account_existence.py",
@@ -8486,7 +8528,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "status_attestations",
-        "line": 1474,
+        "line": 1476,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8535,7 +8577,7 @@
       ],
       "implementation_source": {
         "function": "status_consensus",
-        "line": 1320,
+        "line": 1322,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8594,7 +8636,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "status_consensus_forensics",
-        "line": 1400,
+        "line": 1402,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8647,7 +8689,7 @@
       ],
       "implementation_source": {
         "function": "helper_readiness",
-        "line": 103,
+        "line": 104,
         "path": "src/weall/api/routes_public_parts/helper_readiness.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8702,7 +8744,7 @@
       ],
       "implementation_source": {
         "function": "status_launch_matrix",
-        "line": 1153,
+        "line": 1155,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8753,7 +8795,7 @@
       ],
       "implementation_source": {
         "function": "status_mempool",
-        "line": 1441,
+        "line": 1443,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8805,7 +8847,7 @@
       ],
       "implementation_source": {
         "function": "status_operator",
-        "line": 1199,
+        "line": 1201,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8870,7 +8912,7 @@
       ],
       "implementation_source": {
         "function": "status_testnet_capabilities",
-        "line": 1180,
+        "line": 1182,
         "path": "src/weall/api/routes_public_parts/status.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8966,7 +9008,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_sync_apply",
-        "line": 454,
+        "line": 463,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -8997,6 +9039,7 @@
         "tests/test_devnet_join_anchor_safety.py",
         "tests/test_media_cache_peer_sync_safety.py",
         "tests/test_p0_p2_observer_media_safety.py",
+        "tests/test_pb001bo_canonical_block_hash_persistence.py",
         "tests/test_public_api_redaction_and_route_surface.py"
       ],
       "vector_ids": [
@@ -9015,7 +9058,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "state_sync_request",
-        "line": 389,
+        "line": 400,
         "path": "src/weall/api/routes_public_parts/state.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9114,7 +9157,7 @@
       ],
       "implementation_source": {
         "function": "treasury_status",
-        "line": 260,
+        "line": 286,
         "path": "src/weall/api/routes_public_parts/economics.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9163,7 +9206,7 @@
       ],
       "implementation_source": {
         "function": "tx_catalog",
-        "line": 2028,
+        "line": 2293,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9212,7 +9255,7 @@
       ],
       "implementation_source": {
         "function": "tx_status",
-        "line": 1833,
+        "line": 2075,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",
@@ -9293,7 +9336,7 @@
       ],
       "implementation_source": {
         "function": "tx_submit",
-        "line": 1590,
+        "line": 1810,
         "path": "src/weall/api/routes_public_parts/tx.py"
       },
       "local_or_service_status": "canonical_transaction_submission",
@@ -9366,7 +9409,7 @@
       "frontend_consumers": [],
       "implementation_source": {
         "function": "wallet_status",
-        "line": 149,
+        "line": 157,
         "path": "src/weall/api/routes_public_parts/economics.py"
       },
       "local_or_service_status": "service_projection_or_local_control_surface",

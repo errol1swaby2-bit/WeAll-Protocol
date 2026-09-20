@@ -89,8 +89,7 @@ def test_generated_artifact_is_fresh() -> None:
         [sys.executable, "scripts/gen_b544_b548_live_network_final_proof_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr

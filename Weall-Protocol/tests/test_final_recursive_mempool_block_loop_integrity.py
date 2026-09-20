@@ -122,3 +122,39 @@ def test_block_loop_validator_helper_uses_explicit_consensus_set() -> None:
 
     del executor.state["consensus"]["validator_set"]
     assert _active_validators_from_executor(executor) == ["@stale"]
+
+
+@pytest.mark.parametrize(
+    ("result_ok", "result_error"),
+    [
+        (False, "synthetic_executor_failure"),
+        (True, "post_commit_housekeeping_failed:RuntimeError:synthetic"),
+    ],
+)
+def test_block_loop_treats_returned_executor_failure_or_warning_as_failure(
+    tmp_path, result_ok: bool, result_error: str
+) -> None:
+    executor = _LoopExecutor()
+    loop = BlockProducerLoop(
+        executor=executor,
+        mempool=object(),
+        attestation_pool=object(),
+        cfg=_loop_config(str(tmp_path / "returned-meta.lock")),
+    )
+
+    class _Result:
+        ok = result_ok
+        error = result_error
+
+    def _produce_block(**_kwargs):
+        # End the loop after this one attempt so the assertion is bounded even
+        # against the pre-fix behavior that silently counted the result success.
+        loop._stop.set()
+        return _Result()
+
+    executor.produce_block = _produce_block
+    loop._run()
+
+    assert loop._consecutive_failures == 1
+    assert "produce_block_result_failed" in loop._last_error
+    assert result_error in loop._last_error

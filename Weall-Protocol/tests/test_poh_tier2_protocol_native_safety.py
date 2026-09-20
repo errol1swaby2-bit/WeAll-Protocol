@@ -41,7 +41,13 @@ def _state() -> dict:
         "accounts": {
             "alice": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0},
             "bob": {"nonce": 0, "poh_tier": 1, "banned": False, "locked": False, "reputation": 0},
-            "charlie": {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "reputation": 0},
+            "charlie": {
+                "nonce": 0,
+                "poh_tier": 0,
+                "banned": False,
+                "locked": False,
+                "reputation": 0,
+            },
             "j1": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1},
             "j2": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1},
             "j3": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 1},

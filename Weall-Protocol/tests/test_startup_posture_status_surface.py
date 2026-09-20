@@ -19,7 +19,6 @@ def test_status_surfaces_persisted_startup_posture_after_unclean_restart(
 ) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)
-    monkeypatch.delenv("WEALL_ALLOW_DIRTY_SIGNING", raising=False)
     monkeypatch.delenv("WEALL_VALIDATOR_SIGNING_ENABLED", raising=False)
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@v1")
 

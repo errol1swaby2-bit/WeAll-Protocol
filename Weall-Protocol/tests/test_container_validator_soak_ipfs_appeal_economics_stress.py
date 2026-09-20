@@ -109,11 +109,14 @@ def test_claim_boundaries_and_artifact_freshness() -> None:
         "public_validator_readiness": False,
     }
     proc = subprocess.run(
-        [sys.executable, "scripts/gen_b577_b581_containerized_adversarial_proof_v1_5.py", "--check"],
+        [
+            sys.executable,
+            "scripts/gen_b577_b581_containerized_adversarial_proof_v1_5.py",
+            "--check",
+        ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr

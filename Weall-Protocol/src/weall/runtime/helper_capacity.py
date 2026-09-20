@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 from weall.runtime.runtime_env import safe_int
 
 Json = dict[str, object]
@@ -20,7 +22,7 @@ def normalize_helper_capacity_map(
 ) -> dict[str, int]:
     normalized: dict[str, int] = {}
     for helper_id, raw in dict(helper_capacity_by_helper or {}).items():
-        hid = str(helper_id or '').strip()
+        hid = str(helper_id or "").strip()
         if not hid:
             continue
         normalized[hid] = max(0, _safe_int(raw, default_capacity_units))
@@ -36,18 +38,23 @@ def lane_cost_units(
 ) -> int:
     if override_units is not None:
         return max(1, int(override_units))
-    lid = str(lane_id or '').strip().upper()
-    if lid == 'SERIAL':
+    lid = str(lane_id or "").strip().upper()
+    if lid == "SERIAL":
         return 1
-    prefixes = tuple(str(v).strip().lower() for v in list(namespace_prefixes or []) if str(v).strip())
+    prefixes = tuple(
+        str(v).strip().lower() for v in list(namespace_prefixes or []) if str(v).strip()
+    )
     units = 1
     if tx_count >= 8:
         units += 2
     elif tx_count >= 4:
         units += 1
-    if any(prefix.startswith((
-        'economics:', 'treasury:', 'governance:', 'identity:', 'poh:', 'roles:', 'group:'
-    )) for prefix in prefixes):
+    if any(
+        prefix.startswith(
+            ("economics:", "treasury:", "governance:", "identity:", "poh:", "roles:", "group:")
+        )
+        for prefix in prefixes
+    ):
         units += 1
     return max(1, int(units))
 
@@ -58,7 +65,11 @@ def summarize_helper_capacity_usage(
     helper_load_by_helper: Mapping[str, Any] | None,
 ) -> Json:
     capacities = normalize_helper_capacity_map(helper_capacity_by_helper)
-    loads = {str(k): _safe_int(v, 0) for k, v in dict(helper_load_by_helper or {}).items() if str(k).strip()}
+    loads = {
+        str(k): _safe_int(v, 0)
+        for k, v in dict(helper_load_by_helper or {}).items()
+        if str(k).strip()
+    }
     helper_ids = sorted(set(capacities) | set(loads))
     rows: list[Json] = []
     saturated: list[str] = []
@@ -69,26 +80,28 @@ def summarize_helper_capacity_usage(
         saturated_now = capacity_units > 0 and load_units >= capacity_units
         if saturated_now:
             saturated.append(helper_id)
-        rows.append({
-            'helper_id': helper_id,
-            'capacity_units': int(capacity_units),
-            'load_units': int(load_units),
-            'available_units': int(available_units),
-            'saturated': bool(saturated_now),
-        })
+        rows.append(
+            {
+                "helper_id": helper_id,
+                "capacity_units": int(capacity_units),
+                "load_units": int(load_units),
+                "available_units": int(available_units),
+                "saturated": bool(saturated_now),
+            }
+        )
     return {
-        'helper_count': len(rows),
-        'saturated_helper_ids': saturated,
-        'by_helper': rows,
-        'capacity_units_total': sum(int(row['capacity_units']) for row in rows),
-        'load_units_total': sum(int(row['load_units']) for row in rows),
+        "helper_count": len(rows),
+        "saturated_helper_ids": saturated,
+        "by_helper": rows,
+        "capacity_units_total": sum(int(row["capacity_units"]) for row in rows),
+        "load_units_total": sum(int(row["load_units"]) for row in rows),
     }
 
 
 __all__ = [
-    'DEFAULT_HELPER_CAPACITY_UNITS',
-    'DEFAULT_SERIAL_CAPACITY_UNITS',
-    'lane_cost_units',
-    'normalize_helper_capacity_map',
-    'summarize_helper_capacity_usage',
+    "DEFAULT_HELPER_CAPACITY_UNITS",
+    "DEFAULT_SERIAL_CAPACITY_UNITS",
+    "lane_cost_units",
+    "normalize_helper_capacity_map",
+    "summarize_helper_capacity_usage",
 ]

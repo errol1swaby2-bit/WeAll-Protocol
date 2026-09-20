@@ -7,7 +7,6 @@ from weall.runtime.bft_hotstuff import quorum_threshold
 from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 
-
 Json = dict[str, Any]
 
 
@@ -151,15 +150,15 @@ def _remove_validator(st: Json, account: str, *, effective_epoch: int, nonce: in
 
 
 def _active_set(st: Json) -> list[str]:
-    return list((((st.get("roles") or {}).get("validators") or {}).get("active_set") or []))
+    return list(((st.get("roles") or {}).get("validators") or {}).get("active_set") or [])
 
 
 def _set_hash(st: Json) -> str:
-    return str((((st.get("consensus") or {}).get("validator_set") or {}).get("set_hash") or ""))
+    return str(((st.get("consensus") or {}).get("validator_set") or {}).get("set_hash") or "")
 
 
 def _validator_epoch(st: Json) -> int:
-    return int((((st.get("consensus") or {}).get("validator_set") or {}).get("epoch") or 0))
+    return int(((st.get("consensus") or {}).get("validator_set") or {}).get("epoch") or 0)
 
 
 def _quorum(st: Json) -> int:

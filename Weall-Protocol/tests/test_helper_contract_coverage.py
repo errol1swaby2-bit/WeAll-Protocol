@@ -8,7 +8,6 @@ from weall.runtime.helper_contracts import (
     helper_contract_for_tx,
 )
 
-
 ROOT = Path(__file__).resolve().parents[1]
 TX_INDEX = ROOT / "generated" / "tx_index.json"
 

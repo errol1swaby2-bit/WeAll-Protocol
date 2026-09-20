@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 
 def test_prod_profile_requires_chain_id(monkeypatch):
     monkeypatch.setenv("WEALL_MODE", "prod")
@@ -42,4 +40,6 @@ def test_prod_profile_requires_signature_verification(monkeypatch):
             chain_config.validate_runtime_env()
         except Exception:
             return
-        raise AssertionError("prod startup did not fail closed when signature verification was disabled")
+        raise AssertionError(
+            "prod startup did not fail closed when signature verification was disabled"
+        )

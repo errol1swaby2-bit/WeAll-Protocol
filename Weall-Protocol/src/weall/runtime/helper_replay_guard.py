@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Deque, Mapping, Sequence
-from weall.runtime.commitments import value_sha256
+from typing import Any
 
+from weall.runtime.commitments import value_sha256
 from weall.runtime.helper_certificates import HelperExecutionCertificate
 from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
@@ -17,8 +18,6 @@ def _expected_helper_id(orchestrator: HelperProposalOrchestrator | None, lane_id
         return ""
     lane = orchestrator.lane_plans.get(str(lane_id or ""))
     return str(getattr(lane, "helper_id", "") or "") if lane is not None else ""
-
-
 
 
 def _certificate_fingerprint(cert: HelperExecutionCertificate) -> str:
@@ -64,7 +63,7 @@ class HelperReplayGuard:
         # budget/rate-limit mode state
         self._seen_receipt_ids: set[str] = set()
         self._plan_totals: dict[str, int] = defaultdict(int)
-        self._helper_windows: dict[tuple[str, str], Deque[int]] = defaultdict(deque)
+        self._helper_windows: dict[tuple[str, str], deque[int]] = defaultdict(deque)
         self._conflicts: dict[tuple[str, str, str], str] = {}
 
         # orchestrator/replay mode state
@@ -75,7 +74,7 @@ class HelperReplayGuard:
         if self.orchestrator is not None and self.journal is not None:
             self._recover_from_journal()
 
-    def _trim(self, timestamps: Deque[int], *, now_ms: int) -> None:
+    def _trim(self, timestamps: deque[int], *, now_ms: int) -> None:
         cutoff = now_ms - self.budget.window_ms
         while timestamps and timestamps[0] < cutoff:
             timestamps.popleft()
@@ -104,7 +103,9 @@ class HelperReplayGuard:
         if existing_hash is None and descriptor_hash:
             self._conflicts[conflict_key] = descriptor_hash
         elif existing_hash is not None and descriptor_hash and existing_hash != descriptor_hash:
-            return ReplayDecision(False, "conflicting_artifact_for_same_helper_lane", helper_id, plan_id, lane_id)
+            return ReplayDecision(
+                False, "conflicting_artifact_for_same_helper_lane", helper_id, plan_id, lane_id
+            )
 
         if receipt_id:
             self._seen_receipt_ids.add(receipt_id)
@@ -156,7 +157,12 @@ class HelperReplayGuard:
                 if expected_helper_id and helper_id and helper_id != expected_helper_id:
                     continue
                 self._resolved_fingerprints[lane_id] = value_sha256(
-                    {"lane_id": lane_id, "helper_id": helper_id or expected_helper_id, "mode": "fallback", "plan_id": plan_id}
+                    {
+                        "lane_id": lane_id,
+                        "helper_id": helper_id or expected_helper_id,
+                        "mode": "fallback",
+                        "plan_id": plan_id,
+                    }
                 )
                 self._resolved_modes[lane_id] = "fallback"
 
@@ -166,34 +172,54 @@ class HelperReplayGuard:
         mode = self._resolved_modes.get(lane_id2)
         if not fingerprint or not mode:
             return None
-        return HelperReplayOutcome(accepted=True, code=f"resolved:{mode}", lane_id=lane_id2, fingerprint=fingerprint)
+        return HelperReplayOutcome(
+            accepted=True, code=f"resolved:{mode}", lane_id=lane_id2, fingerprint=fingerprint
+        )
 
-    def ingest_certificate(self, *, cert: HelperExecutionCertificate, peer_id: str) -> HelperReplayOutcome:
+    def ingest_certificate(
+        self, *, cert: HelperExecutionCertificate, peer_id: str
+    ) -> HelperReplayOutcome:
         if self.orchestrator is None:
             raise TypeError("HelperReplayGuard.ingest_certificate requires orchestrator mode")
         lane_id = str(cert.lane_id or "")
         fingerprint = _certificate_fingerprint(cert)
         if self.plan_id and str(cert.plan_id or "") not in {"", self.plan_id}:
-            return HelperReplayOutcome(accepted=False, code="plan_id_mismatch", lane_id=lane_id, fingerprint=fingerprint)
+            return HelperReplayOutcome(
+                accepted=False, code="plan_id_mismatch", lane_id=lane_id, fingerprint=fingerprint
+            )
 
         existing_fp = self._resolved_fingerprints.get(lane_id)
         existing_mode = self._resolved_modes.get(lane_id)
         if existing_fp is not None:
             if existing_mode == "fallback":
                 return HelperReplayOutcome(
-                    accepted=False, code="lane_already_resolved_fallback", lane_id=lane_id, fingerprint=fingerprint
+                    accepted=False,
+                    code="lane_already_resolved_fallback",
+                    lane_id=lane_id,
+                    fingerprint=fingerprint,
                 )
             if existing_fp == fingerprint:
-                return HelperReplayOutcome(accepted=False, code="duplicate_replay", lane_id=lane_id, fingerprint=fingerprint)
-            return HelperReplayOutcome(accepted=False, code="conflicting_replay", lane_id=lane_id, fingerprint=fingerprint)
+                return HelperReplayOutcome(
+                    accepted=False,
+                    code="duplicate_replay",
+                    lane_id=lane_id,
+                    fingerprint=fingerprint,
+                )
+            return HelperReplayOutcome(
+                accepted=False, code="conflicting_replay", lane_id=lane_id, fingerprint=fingerprint
+            )
 
         status = self.orchestrator.ingest_certificate(cert=cert, peer_id=peer_id)
         if not status.accepted:
-            return HelperReplayOutcome(accepted=False, code=str(status.code), lane_id=lane_id, fingerprint=fingerprint)
+            return HelperReplayOutcome(
+                accepted=False, code=str(status.code), lane_id=lane_id, fingerprint=fingerprint
+            )
 
         self._resolved_fingerprints[lane_id] = fingerprint
         self._resolved_modes[lane_id] = "helper"
-        return HelperReplayOutcome(accepted=True, code="accepted", lane_id=lane_id, fingerprint=fingerprint)
+        return HelperReplayOutcome(
+            accepted=True, code="accepted", lane_id=lane_id, fingerprint=fingerprint
+        )
 
     def ingest_certificates_batch(
         self,
@@ -206,7 +232,9 @@ class HelperReplayGuard:
             fingerprint = _certificate_fingerprint(cert)
             ordered.append((lane_id, fingerprint, str(peer_id or ""), cert))
         ordered.sort(key=lambda item: (item[0], item[1], item[2]))
-        outcomes = [self.ingest_certificate(cert=cert, peer_id=peer_id) for _, _, peer_id, cert in ordered]
+        outcomes = [
+            self.ingest_certificate(cert=cert, peer_id=peer_id) for _, _, peer_id, cert in ordered
+        ]
         return tuple(outcomes)
 
     def finalize_timeouts(self, *, now_ms: int) -> tuple[HelperReplayOutcome, ...]:
@@ -218,11 +246,23 @@ class HelperReplayGuard:
             lane_id = str(resolution.lane_id)
             helper_id = str(resolution.helper_id)
             fingerprint = value_sha256(
-                {"lane_id": lane_id, "helper_id": helper_id, "mode": "fallback", "plan_id": self.plan_id}
+                {
+                    "lane_id": lane_id,
+                    "helper_id": helper_id,
+                    "mode": "fallback",
+                    "plan_id": self.plan_id,
+                }
             )
             self._resolved_fingerprints[lane_id] = fingerprint
             self._resolved_modes[lane_id] = "fallback"
-            out.append(HelperReplayOutcome(accepted=True, code="fallback_finalized", lane_id=lane_id, fingerprint=fingerprint))
+            out.append(
+                HelperReplayOutcome(
+                    accepted=True,
+                    code="fallback_finalized",
+                    lane_id=lane_id,
+                    fingerprint=fingerprint,
+                )
+            )
         out.sort(key=lambda item: item.lane_id)
         return tuple(out)
 

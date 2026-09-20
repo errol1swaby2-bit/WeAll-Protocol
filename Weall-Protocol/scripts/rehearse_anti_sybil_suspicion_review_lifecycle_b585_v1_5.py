@@ -44,7 +44,9 @@ def run_harness() -> Json:
         },
         "false_positive_appeal_recovery_path": {
             "dismissed_adjudication": adjudication.get("dismissed_adjudication"),
-            "false_positive_compensation_policy": adjudication.get("false_positive_compensation_policy"),
+            "false_positive_compensation_policy": adjudication.get(
+                "false_positive_compensation_policy"
+            ),
             "evidence_deletion": adjudication.get("evidence_deletion"),
         },
         "reviewer_accountability_record": {

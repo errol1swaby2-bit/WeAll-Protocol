@@ -101,7 +101,11 @@ def _state_with_media(cid: str, *, include_sha: bool = False, data: bytes = b"")
             "media": {"media:raw": {"media_id": "media:raw", "payload": payload}},
             "reactions": {},
         },
-        "storage": {"pin_confirms": [{"cid": cid, "ok": True, "provider_url": "https://provider.example.test/ipfs/{cid}"}]},
+        "storage": {
+            "pin_confirms": [
+                {"cid": cid, "ok": True, "provider_url": "https://provider.example.test/ipfs/{cid}"}
+            ]
+        },
     }
 
 
@@ -120,7 +124,9 @@ def test_cidv1_raw_sha256_multihash_verifies_supported_bytes() -> None:
     assert bad.reason == "cid_multihash_mismatch"
 
 
-def test_media_proxy_accepts_cid_verified_raw_bytes_without_committed_sha(tmp_path: Path, monkeypatch) -> None:
+def test_media_proxy_accepts_cid_verified_raw_bytes_without_committed_sha(
+    tmp_path: Path, monkeypatch
+) -> None:
     data = b"raw cid bytes served through observer"
     cid = _cidv1_raw_sha256(data)
     calls: list[str] = []
@@ -174,11 +180,15 @@ def test_media_providers_redacts_urls_in_prod_without_operator_auth(monkeypatch)
         body = public.json()
         assert body["urls_redacted"] is True
         assert body["providers"]
-        assert all(isinstance(item, dict) and item.get("redacted") is True for item in body["providers"])
+        assert all(
+            isinstance(item, dict) and item.get("redacted") is True for item in body["providers"]
+        )
         assert "lan.internal" not in json.dumps(body)
 
         monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "media-secret")
-        operator = client.get(f"/v1/media/providers/{cid}", headers={"X-WeAll-Operator-Token": "media-secret"})
+        operator = client.get(
+            f"/v1/media/providers/{cid}", headers={"X-WeAll-Operator-Token": "media-secret"}
+        )
         assert operator.status_code == 200, operator.text
         assert operator.json()["urls_redacted"] is False
         assert operator.json()["providers"][0] == f"https://lan.internal.example/ipfs/{cid}"
@@ -196,7 +206,9 @@ def test_account_feed_returns_metadata_first_media_summaries() -> None:
         assert media["load_policy"] == "viewport"
 
 
-def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_apply(tmp_path: Path, monkeypatch) -> None:
+def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_apply(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_id = "tx:batch365"
     tx_queue = tmp_path / "tx_queue.json"
     tx_queue.write_text(
@@ -211,7 +223,13 @@ def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_a
                         "updated_ms": 1,
                         "attempts": 1,
                         "upstream_status": "accepted",
-                        "envelope": {"tx_type": "ACCOUNT_REGISTER", "signer": "@a", "nonce": 1, "chain_id": "batch365", "payload": {"pubkey": "00"}},
+                        "envelope": {
+                            "tx_type": "ACCOUNT_REGISTER",
+                            "signer": "@a",
+                            "nonce": 1,
+                            "chain_id": "batch365",
+                            "payload": {"pubkey": "00"},
+                        },
                     }
                 ],
             }
@@ -225,9 +243,17 @@ def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_a
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
 
     def fake_status(_url: str, _tx_id: str, *, timeout_s: int) -> dict[str, Any]:
-        return {"ok": True, "tx_id": _tx_id, "status": "confirmed", "height": 4, "block_id": "block:4"}
+        return {
+            "ok": True,
+            "tx_id": _tx_id,
+            "status": "confirmed",
+            "height": 4,
+            "block_id": "block:4",
+        }
 
-    def fake_sync(request, url: str, *, tx_id: str, target_height: int, timeout_s: int) -> dict[str, Any]:  # noqa: ANN001
+    def fake_sync(
+        request, url: str, *, tx_id: str, target_height: int, timeout_s: int
+    ) -> dict[str, Any]:  # noqa: ANN001
         from weall.api.routes_public_parts import tx as tx_routes
 
         tx_routes._update_tx_queue_record(
@@ -243,10 +269,17 @@ def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_a
         return {"ok": True, "local_state_synced": True, "upstream": url, "applied_count": 1}
 
     monkeypatch.setattr("weall.api.routes_public_parts.tx._status_from_upstream", fake_status)
-    monkeypatch.setattr("weall.api.routes_public_parts.tx._request_and_apply_state_sync_from_upstream", fake_sync)
+    monkeypatch.setattr(
+        "weall.api.routes_public_parts.tx._request_and_apply_state_sync_from_upstream", fake_sync
+    )
 
-    with _client({"chain_id": "batch365", "height": 3, "content": {"posts": {}, "comments": {}, "media": {}}}) as client:
-        res = client.post(f"/v1/observer/edge/reconcile/{tx_id}", headers={"X-WeAll-Operator-Token": "edge-secret"})
+    with _client(
+        {"chain_id": "batch365", "height": 3, "content": {"posts": {}, "comments": {}, "media": {}}}
+    ) as client:
+        res = client.post(
+            f"/v1/observer/edge/reconcile/{tx_id}",
+            headers={"X-WeAll-Operator-Token": "edge-secret"},
+        )
         assert res.status_code == 200, res.text
         body = res.json()
         assert body["ok"] is True
@@ -254,11 +287,27 @@ def test_observer_reconcile_endpoint_marks_local_state_synced_only_after_local_a
         assert body["source"] == "state_sync"
 
 
-def test_observer_reconcile_endpoint_does_not_pretend_sync_when_apply_fails(tmp_path: Path, monkeypatch) -> None:
+def test_observer_reconcile_endpoint_does_not_pretend_sync_when_apply_fails(
+    tmp_path: Path, monkeypatch
+) -> None:
     tx_id = "tx:batch365-nosync"
     tx_queue = tmp_path / "tx_queue.json"
     tx_queue.write_text(
-        json.dumps({"version": 2, "records": [{"tx_id": tx_id, "chain_id": "batch365", "created_ms": 1, "updated_ms": 1, "upstream_status": "accepted", "envelope": {"chain_id": "batch365"}}]}),
+        json.dumps(
+            {
+                "version": 2,
+                "records": [
+                    {
+                        "tx_id": tx_id,
+                        "chain_id": "batch365",
+                        "created_ms": 1,
+                        "updated_ms": 1,
+                        "upstream_status": "accepted",
+                        "envelope": {"chain_id": "batch365"},
+                    }
+                ],
+            }
+        ),
         encoding="utf-8",
     )
     monkeypatch.setenv("WEALL_OBSERVER_EDGE_MODE", "1")
@@ -267,15 +316,29 @@ def test_observer_reconcile_endpoint_does_not_pretend_sync_when_apply_fails(tmp_
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "edge-secret")
     monkeypatch.setattr(
         "weall.api.routes_public_parts.tx._status_from_upstream",
-        lambda _url, _tx_id, timeout_s=0: {"ok": True, "tx_id": _tx_id, "status": "confirmed", "height": 5, "block_id": "block:5"},
+        lambda _url, _tx_id, timeout_s=0: {
+            "ok": True,
+            "tx_id": _tx_id,
+            "status": "confirmed",
+            "height": 5,
+            "block_id": "block:5",
+        },
     )
     monkeypatch.setattr(
         "weall.api.routes_public_parts.tx._request_and_apply_state_sync_from_upstream",
-        lambda request, url, *, tx_id, target_height, timeout_s: {"ok": False, "error": "state_sync_apply_failed"},
+        lambda request, url, *, tx_id, target_height, timeout_s: {
+            "ok": False,
+            "error": "state_sync_apply_failed",
+        },
     )
 
-    with _client({"chain_id": "batch365", "height": 0, "content": {"posts": {}, "comments": {}, "media": {}}}) as client:
-        res = client.post(f"/v1/observer/edge/reconcile/{tx_id}", headers={"X-WeAll-Operator-Token": "edge-secret"})
+    with _client(
+        {"chain_id": "batch365", "height": 0, "content": {"posts": {}, "comments": {}, "media": {}}}
+    ) as client:
+        res = client.post(
+            f"/v1/observer/edge/reconcile/{tx_id}",
+            headers={"X-WeAll-Operator-Token": "edge-secret"},
+        )
         assert res.status_code == 200, res.text
         body = res.json()
         assert body["ok"] is False

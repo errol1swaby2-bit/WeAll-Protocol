@@ -13,7 +13,6 @@ import time
 from pathlib import Path
 from typing import Any
 from urllib import request as urlrequest
-from urllib.error import URLError
 
 from weall.runtime.bft_hotstuff import quorum_threshold, validator_set_hash
 from weall.runtime.state_hash import compute_state_root
@@ -22,7 +21,9 @@ VALIDATORS = ["validator-a", "validator-b", "validator-c", "validator-d"]
 
 
 def _hash(obj: Any) -> str:
-    return hashlib.sha256(json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(obj, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 def _state_path(root: Path, node_id: str) -> Path:
@@ -85,6 +86,7 @@ def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
     # parent probes /v1/readyz; the added endpoints are isolated under /__controlled_validator.
     import uvicorn
     from fastapi import Body
+
     from weall.api.app import create_app
 
     app = create_app(boot_runtime=False)
@@ -93,14 +95,26 @@ def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
     @app.get("/__controlled_validator/state")
     def state() -> dict[str, Any]:
         st = _load_state(state_file, node_id=node_id, role=role)
-        return {"ok": True, "node_id": node_id, "role": role, "height": int(st.get("height") or 0), "root": _state_root(st), "state": st}
+        return {
+            "ok": True,
+            "node_id": node_id,
+            "role": role,
+            "height": int(st.get("height") or 0),
+            "root": _state_root(st),
+            "state": st,
+        }
 
     @app.post("/__controlled_validator/vote")
     def vote(body: dict[str, Any] = Body(default_factory=dict)) -> dict[str, Any]:
         if role != "validator" or node_id not in VALIDATORS:
             return {"ok": False, "node_id": node_id, "error": "not_validator"}
         proposal = body.get("proposal") if isinstance(body.get("proposal"), dict) else {}
-        payload = {"node_id": node_id, "height": proposal.get("height"), "view": proposal.get("view"), "block_hash": proposal.get("block_hash")}
+        payload = {
+            "node_id": node_id,
+            "height": proposal.get("height"),
+            "view": proposal.get("view"),
+            "block_hash": proposal.get("block_hash"),
+        }
         return {"ok": True, "node_id": node_id, "vote": {**payload, "vote_hash": _hash(payload)}}
 
     @app.post("/__controlled_validator/commit")
@@ -112,8 +126,12 @@ def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
         if len(votes) < quorum_threshold(len(VALIDATORS)):
             return {"ok": False, "node_id": node_id, "error": "finality_threshold_not_met"}
         st = _load_state(state_file, node_id=node_id, role=role)
-        committed = st.get("committed_blocks") if isinstance(st.get("committed_blocks"), list) else []
-        if not any(isinstance(b, dict) and b.get("block_id") == block.get("block_id") for b in committed):
+        committed = (
+            st.get("committed_blocks") if isinstance(st.get("committed_blocks"), list) else []
+        )
+        if not any(
+            isinstance(b, dict) and b.get("block_id") == block.get("block_id") for b in committed
+        ):
             committed.append(block)
         st["committed_blocks"] = committed
         st["height"] = int(block.get("height") or st.get("height") or 0)
@@ -136,7 +154,10 @@ def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
         st = _load_state(state_file, node_id=node_id, role=role)
         st["committed_blocks"] = committed
         st["height"] = int(committed[-1]["height"]) if committed else 0
-        st["finalized"] = {"height": st["height"], "block_id": committed[-1].get("block_id") if committed else "genesis"}
+        st["finalized"] = {
+            "height": st["height"],
+            "block_id": committed[-1].get("block_id") if committed else "genesis",
+        }
         _save_state(state_file, st)
         return {"ok": True, "node_id": node_id, "height": st["height"], "root": _state_root(st)}
 
@@ -144,14 +165,30 @@ def _node_app_main(port: int, state_file: Path, node_id: str, role: str) -> int:
     return 0
 
 
-def _start_node(root: Path, node_id: str, port: int, role: str = "validator") -> subprocess.Popen[str]:
+def _start_node(
+    root: Path, node_id: str, port: int, role: str = "validator"
+) -> subprocess.Popen[str]:
     env = os.environ.copy()
     repo = Path(__file__).resolve().parents[1]
-    env["PYTHONPATH"] = f"{repo / 'src'}:{repo / 'scripts'}" + ((":" + env["PYTHONPATH"]) if env.get("PYTHONPATH") else "")
+    env["PYTHONPATH"] = f"{repo / 'src'}:{repo / 'scripts'}" + (
+        (":" + env["PYTHONPATH"]) if env.get("PYTHONPATH") else ""
+    )
     env.setdefault("WEALL_MODE", "test")
     env["WEALL_API_BOOT_RUNTIME"] = "0"
     return subprocess.Popen(
-        [sys.executable, __file__, "--node", "--port", str(port), "--state-file", str(_state_path(root, node_id)), "--node-id", node_id, "--role", role],
+        [
+            sys.executable,
+            __file__,
+            "--node",
+            "--port",
+            str(port),
+            "--state-file",
+            str(_state_path(root, node_id)),
+            "--node-id",
+            node_id,
+            "--role",
+            role,
+        ],
         cwd=str(repo),
         env=env,
         text=True,
@@ -160,26 +197,79 @@ def _start_node(root: Path, node_id: str, port: int, role: str = "validator") ->
     )
 
 
-def _http_json(method: str, port: int, path: str, body: dict[str, Any] | None = None, *, timeout: float = 3.0) -> dict[str, Any]:
+def _http_json(
+    method: str, port: int, path: str, body: dict[str, Any] | None = None, *, timeout: float = 3.0
+) -> dict[str, Any]:
     data = None if body is None else json.dumps(body, sort_keys=True).encode("utf-8")
-    req = urlrequest.Request(f"http://127.0.0.1:{port}{path}", data=data, method=method, headers={"Content-Type": "application/json"})
+    req = urlrequest.Request(
+        f"http://127.0.0.1:{port}{path}",
+        data=data,
+        method=method,
+        headers={"Content-Type": "application/json"},
+    )
     with urlrequest.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - localhost test harness
         return json.loads(resp.read().decode("utf-8") or "{}")
 
 
-def _wait_ready(port: int, *, timeout: float = 5.0) -> dict[str, Any]:
-    deadline = time.time() + timeout
+def _wait_ready(
+    port: int,
+    *,
+    proc: subprocess.Popen[str] | None = None,
+    node_id: str = "",
+    timeout: float = 15.0,
+) -> dict[str, Any]:
+    deadline = time.monotonic() + timeout
     last: Exception | None = None
-    while time.time() < deadline:
+    while time.monotonic() < deadline:
+        if proc is not None and proc.poll() is not None:
+            stdout, stderr = proc.communicate()
+            stderr_tail = (stderr or "").strip().replace("\n", " | ")[-1200:]
+            stdout_tail = (stdout or "").strip().replace("\n", " | ")[-1200:]
+            raise RuntimeError(
+                f"node_exited_before_ready:{node_id}:{port}:rc={proc.returncode}:"
+                f"stderr={stderr_tail}:stdout={stdout_tail}"
+            )
         try:
-            return _http_json("GET", port, "/v1/readyz", timeout=1.0)
+            ready = _http_json("GET", port, "/v1/readyz", timeout=1.0)
+            if ready.get("service") == "weall-node":
+                return ready
+            last = RuntimeError(f"ready_payload_invalid:{ready}")
         except Exception as exc:
             last = exc
-            time.sleep(0.05)
-    raise RuntimeError(f"ready_timeout:{port}:{last}")
+        time.sleep(0.05)
+    raise RuntimeError(f"ready_timeout:{node_id}:{port}:{last}")
 
 
-def _commit_round(ports: dict[str, int], *, height: int, view: int, participants: list[str] | None = None, parent_id: str = "genesis", tx_ids: list[str] | None = None) -> dict[str, Any]:
+def _start_node_ready(
+    root: Path,
+    node_id: str,
+    port: int,
+    role: str = "validator",
+) -> tuple[subprocess.Popen[str], dict[str, Any]]:
+    proc = _start_node(root, node_id, port, role)
+    try:
+        ready = _wait_ready(port, proc=proc, node_id=node_id)
+    except Exception:
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=3)
+        raise
+    return proc, ready
+
+
+def _commit_round(
+    ports: dict[str, int],
+    *,
+    height: int,
+    view: int,
+    participants: list[str] | None = None,
+    parent_id: str = "genesis",
+    tx_ids: list[str] | None = None,
+) -> dict[str, Any]:
     participants = participants or list(VALIDATORS)
     prop = _proposal(height, view, parent_id, tx_ids or [])
     votes = []
@@ -187,42 +277,96 @@ def _commit_round(ports: dict[str, int], *, height: int, view: int, participants
         reply = _http_json("POST", ports[vid], "/__controlled_validator/vote", {"proposal": prop})
         if reply.get("ok"):
             votes.append(reply["vote"])
-    block = {"height": height, "block_id": prop["block_id"], "parent_block_id": parent_id, "block_hash": prop["block_hash"], "votes_hash": _hash(votes), "tx_ids": list(tx_ids or [])}
-    commit_replies = [_http_json("POST", ports[vid], "/__controlled_validator/commit", {"block": block, "votes": votes}) for vid in VALIDATORS]
-    return {"committed": all(r.get("ok") for r in commit_replies), "height": height, "votes": len(votes), "threshold": quorum_threshold(len(VALIDATORS)), "block": block, "commit_replies": commit_replies}
+    block = {
+        "height": height,
+        "block_id": prop["block_id"],
+        "parent_block_id": parent_id,
+        "block_hash": prop["block_hash"],
+        "votes_hash": _hash(votes),
+        "tx_ids": list(tx_ids or []),
+    }
+    commit_replies = [
+        _http_json(
+            "POST", ports[vid], "/__controlled_validator/commit", {"block": block, "votes": votes}
+        )
+        for vid in VALIDATORS
+    ]
+    return {
+        "committed": all(r.get("ok") for r in commit_replies),
+        "height": height,
+        "votes": len(votes),
+        "threshold": quorum_threshold(len(VALIDATORS)),
+        "block": block,
+        "commit_replies": commit_replies,
+    }
 
 
 def run_harness() -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="weall-full-node-process-") as td:
         root = Path(td)
-        ports = {vid: _free_port() for vid in VALIDATORS}
-        procs = {vid: _start_node(root, vid, ports[vid]) for vid in VALIDATORS}
+        ports: dict[str, int] = {}
+        procs: dict[str, subprocess.Popen[str]] = {}
+        readyz: dict[str, dict[str, Any]] = {}
+        for vid in VALIDATORS:
+            port = _free_port()
+            ports[vid] = port
+            proc, ready = _start_node_ready(root, vid, port)
+            procs[vid] = proc
+            readyz[vid] = ready
         try:
-            readyz = {vid: _wait_ready(port) for vid, port in ports.items()}
             r1 = _commit_round(ports, height=1, view=0, tx_ids=["tx:account"])
-            r2 = _commit_round(ports, height=2, view=1, parent_id=r1["block"]["block_id"], tx_ids=["tx:poh"])
-            roots_before = {vid: _http_json("GET", port, "/__controlled_validator/state")["root"] for vid, port in ports.items()}
-            procs["validator-d"].terminate(); procs["validator-d"].wait(timeout=5)
-            procs["validator-d"] = _start_node(root, "validator-d", ports["validator-d"])
-            _wait_ready(ports["validator-d"])
-            restart_root = _http_json("GET", ports["validator-d"], "/__controlled_validator/state")["root"]
-            minority = _commit_round(ports, height=3, view=2, parent_id=r2["block"]["block_id"], participants=["validator-a", "validator-b"], tx_ids=["tx:minority"])
-            r3 = _commit_round(ports, height=3, view=3, parent_id=r2["block"]["block_id"], tx_ids=["tx:dispute"])
+            r2 = _commit_round(
+                ports, height=2, view=1, parent_id=r1["block"]["block_id"], tx_ids=["tx:poh"]
+            )
+            roots_before = {
+                vid: _http_json("GET", port, "/__controlled_validator/state")["root"]
+                for vid, port in ports.items()
+            }
+            procs["validator-d"].terminate()
+            procs["validator-d"].wait(timeout=5)
+            procs["validator-d"], _ = _start_node_ready(root, "validator-d", ports["validator-d"])
+            restart_root = _http_json("GET", ports["validator-d"], "/__controlled_validator/state")[
+                "root"
+            ]
+            minority = _commit_round(
+                ports,
+                height=3,
+                view=2,
+                parent_id=r2["block"]["block_id"],
+                participants=["validator-a", "validator-b"],
+                tx_ids=["tx:minority"],
+            )
+            r3 = _commit_round(
+                ports, height=3, view=3, parent_id=r2["block"]["block_id"], tx_ids=["tx:dispute"]
+            )
             lag_port = _free_port()
-            lag_proc = _start_node(root, "validator-lag", lag_port)
+            lag_proc, _ = _start_node_ready(root, "validator-lag", lag_port)
             try:
-                _wait_ready(lag_port)
-                sync = _http_json("POST", lag_port, "/__controlled_validator/sync", {"blocks": [r1["block"], r2["block"], r3["block"]]})
+                sync = _http_json(
+                    "POST",
+                    lag_port,
+                    "/__controlled_validator/sync",
+                    {"blocks": [r1["block"], r2["block"], r3["block"]]},
+                )
             finally:
-                lag_proc.terminate(); lag_proc.wait(timeout=5)
+                lag_proc.terminate()
+                lag_proc.wait(timeout=5)
             obs_port = _free_port()
-            obs_proc = _start_node(root, "observer-1", obs_port, role="observer")
+            obs_proc, _ = _start_node_ready(root, "observer-1", obs_port, role="observer")
             try:
-                _wait_ready(obs_port)
-                observer_vote = _http_json("POST", obs_port, "/__controlled_validator/vote", {"proposal": _proposal(9, 0, "genesis", [])})
+                observer_vote = _http_json(
+                    "POST",
+                    obs_port,
+                    "/__controlled_validator/vote",
+                    {"proposal": _proposal(9, 0, "genesis", [])},
+                )
             finally:
-                obs_proc.terminate(); obs_proc.wait(timeout=5)
-            roots_after = {vid: _http_json("GET", port, "/__controlled_validator/state")["root"] for vid, port in ports.items()}
+                obs_proc.terminate()
+                obs_proc.wait(timeout=5)
+            roots_after = {
+                vid: _http_json("GET", port, "/__controlled_validator/state")["root"]
+                for vid, port in ports.items()
+            }
         finally:
             for proc in procs.values():
                 if proc.poll() is None:
@@ -252,9 +396,12 @@ def run_harness() -> dict[str, Any]:
         "node_processes": 4,
         "ports_bound": 4,
         "quorum_threshold": quorum_threshold(len(VALIDATORS)),
-        "minority_partition_result": "finality_threshold_not_met" if not minority["committed"] else "unexpected_commit",
+        "minority_partition_result": "finality_threshold_not_met"
+        if not minority["committed"]
+        else "unexpected_commit",
         "restart_root_preserved": restart_root == roots_before["validator-d"],
-        "lagging_rejoin_root_matches_reference": sync.get("root") == next(iter(roots_after.values())),
+        "lagging_rejoin_root_matches_reference": sync.get("root")
+        == next(iter(roots_after.values())),
         "observer_vote_rejected": bool(observer_vote.get("ok")) is False,
         "claim": "local_private_node_process_rehearsal_not_public_validator_readiness",
         "public_validator_enabled": False,
@@ -271,7 +418,9 @@ def main() -> int:
     parser.add_argument("--role", default="validator")
     args = parser.parse_args()
     if args.node:
-        return _node_app_main(int(args.port), Path(args.state_file), str(args.node_id), str(args.role))
+        return _node_app_main(
+            int(args.port), Path(args.state_file), str(args.node_id), str(args.role)
+        )
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=None if args.json else 2))
     return 0 if out.get("ok") else 1

@@ -89,4 +89,3 @@ def test_open_mode_still_allows_self_bootstrap_without_system_flag() -> None:
     acct = state["accounts"]["alice"]
     assert acct["poh_tier"] == 2
     assert acct["poh_bootstrap_mode"] == "open"
-

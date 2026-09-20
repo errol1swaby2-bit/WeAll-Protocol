@@ -101,6 +101,8 @@ def test_claim_boundaries_and_artifact_freshness() -> None:
     assert proof["ok"] is True
     assert proof["controlled_testnet_candidate_strengthened"] is True
     assert proof["public_beta_ready"] is False
+    assert proof["freshness"]["mode"] == "deterministic_input_digest_v1"
+    assert len(proof["freshness"]["input_digest_sha256"]) == 64
     assert proof["claim_boundaries"] == {
         "automatic_protocol_upgrades": False,
         "complete_anti_sybil_solved": False,
@@ -115,8 +117,20 @@ def test_claim_boundaries_and_artifact_freshness() -> None:
         [sys.executable, "scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py", "--check"],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
+
+    live = subprocess.run(
+        [
+            sys.executable,
+            "scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py",
+            "--verify-live",
+        ],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert live.returncode == 0, live.stdout + live.stderr

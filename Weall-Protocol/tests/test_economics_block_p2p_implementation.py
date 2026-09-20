@@ -43,7 +43,6 @@ def test_block_production_readiness_endpoint_and_script() -> None:
     assert "observer_reported_as_producer" in script
 
 
-
 def test_removed_private_communication_frontend_modules_stay_removed() -> None:
     assert not (OUTER / "web" / "src" / "lib" / ("message" + "Crypto.ts")).exists()
     assert not (OUTER / "web" / "src" / "pages" / ("Mess" + "aging.tsx")).exists()

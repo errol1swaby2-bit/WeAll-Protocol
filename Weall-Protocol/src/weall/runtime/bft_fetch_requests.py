@@ -9,6 +9,7 @@ from weall.runtime.executor import (
     os,
 )
 
+
 def _ensure_pending_fetch_budgets(self) -> None:
     if not hasattr(self, "_max_missing_parent_fetches_per_call"):
         self._max_missing_parent_fetches_per_call = max(
@@ -24,6 +25,7 @@ def _ensure_pending_fetch_budgets(self) -> None:
         self._missing_parent_fetch_cursor = 0
     if not hasattr(self, "_missing_qc_fetch_cursor"):
         self._missing_qc_fetch_cursor = 0
+
 
 def _bounded_fetch_request_descriptors(self, descriptors: list[Json]) -> list[Json]:
     self._ensure_pending_fetch_budgets()
@@ -75,6 +77,7 @@ def _bounded_fetch_request_descriptors(self, descriptors: list[Json]) -> list[Js
 
     return out
 
+
 def bft_pending_fetch_request_descriptors(self) -> list[Json]:
     wants: OrderedDict[str, Json] = OrderedDict()
 
@@ -104,10 +107,7 @@ def bft_pending_fetch_request_descriptors(self) -> list[Json]:
         height = self._block_height_hint(blk)
         if height <= 1 or not parent_id or parent_id == local_tip:
             continue
-        if (
-            self._has_local_block(parent_id)
-            or self._bft_pending_block_json(parent_id) is not None
-        ):
+        if self._has_local_block(parent_id) or self._bft_pending_block_json(parent_id) is not None:
             continue
         header = blk.get("header") if isinstance(blk.get("header"), dict) else {}
         expected_hash = str(header.get("prev_block_hash") or "").strip()
@@ -127,6 +127,7 @@ def bft_pending_fetch_request_descriptors(self) -> list[Json]:
         d["block_id"] = sbid
         out.append(d)
     return self._bounded_fetch_request_descriptors(out)
+
 
 def _resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
     if not isinstance(desc, dict):
@@ -158,6 +159,7 @@ def _resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
         out["requested_block_id"] = bid
     return out
 
+
 def bft_resolved_pending_fetch_request_descriptors(self) -> list[Json]:
     out: list[Json] = []
     seen: set[tuple[str, str]] = set()
@@ -174,6 +176,7 @@ def bft_resolved_pending_fetch_request_descriptors(self) -> list[Json]:
         out.append(desc)
     return out
 
+
 def bft_pending_fetch_requests(self) -> list[str]:
     return [
         str(d.get("block_id") or "").strip()
@@ -181,10 +184,10 @@ def bft_pending_fetch_requests(self) -> list[str]:
         if isinstance(d, dict) and str(d.get("block_id") or "").strip()
     ]
 
+
 def bft_resolve_fetch_request_descriptor(self, desc: Json) -> Json | None:
     out = self._resolve_fetch_request_descriptor(desc)
     if isinstance(out, dict):
         out = dict(out)
         out.pop("requested_block_id", None)
     return out
-

@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c1f4f3aad1bc7f5400192f0cbb3f7084f3bf7c3b72ffd13bb8df5a5a6d312614"
+    "source_tree_digest": "c826728b8d1cc0f948f2305789c1dff0a559a8b38e6ae4e6aa913867499a5a1b"
   },
   "rows": [
     {
@@ -1197,8 +1197,14 @@
       "mutators": [],
       "primary_mechanism_id": "M-018",
       "reads_by": [
+        "TX-0600",
+        "TX-0601",
+        "TX-0602",
         "TX-0603",
         "TX-0605",
+        "TX-0606",
+        "TX-0607",
+        "TX-0608",
         "TX-0609",
         "TX-0610"
       ],
@@ -31262,11 +31268,13 @@
         "TX-0112",
         "TX-0114",
         "TX-0115",
+        "TX-0116",
         "TX-0117",
         "TX-0120",
         "TX-0124",
         "TX-0125",
         "TX-0126",
+        "TX-0127",
         "TX-0129",
         "TX-2603",
         "TX-2609",

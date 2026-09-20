@@ -63,7 +63,9 @@ def _operator_state(*, legacy_tier: int = 1) -> dict:
     }
 
 
-def test_canonical_active_tier2_status_grants_operator_responsibility_when_legacy_field_is_stale() -> None:
+def test_canonical_active_tier2_status_grants_operator_responsibility_when_legacy_field_is_stale() -> (
+    None
+):
     state = _operator_state(legacy_tier=1)
     set_account_poh_status(
         state,
@@ -98,7 +100,9 @@ def test_canonical_active_tier2_status_grants_operator_responsibility_when_legac
     assert storage["declared_capacity_bytes"] == 1_000_000
 
 
-def test_canonical_revocation_blocks_operator_responsibility_even_when_legacy_field_is_tier2() -> None:
+def test_canonical_revocation_blocks_operator_responsibility_even_when_legacy_field_is_tier2() -> (
+    None
+):
     state = _operator_state(legacy_tier=2)
     set_account_poh_status(
         state,

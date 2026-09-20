@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 
 from fastapi.testclient import TestClient
+from public_seed_test_helpers import REGISTRY_PUBKEY, signed_registry
 
 from weall.api.app import create_app
-from public_seed_test_helpers import REGISTRY_PUBKEY, signed_registry
 
 
 def _registry(**overrides):
@@ -57,7 +57,10 @@ def test_public_mode_empty_seed_registry_fails_closed(tmp_path, monkeypatch):
 
 def test_public_mode_rejects_insecure_non_local_public_seed(tmp_path, monkeypatch):
     path = tmp_path / "public_seed_registry.json"
-    path.write_text(json.dumps(signed_registry(_registry(seed_api_urls=["http://evil.example.com"]))), encoding="utf-8")
+    path.write_text(
+        json.dumps(signed_registry(_registry(seed_api_urls=["http://evil.example.com"]))),
+        encoding="utf-8",
+    )
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_API_MODE", "prod")
     monkeypatch.setenv("WEALL_PUBLIC_TESTNET", "1")
@@ -90,7 +93,10 @@ def test_public_mode_valid_seed_registry_returns_commitments(tmp_path, monkeypat
 
 def test_local_dev_seed_registry_still_works_without_public_mode(tmp_path, monkeypatch):
     path = tmp_path / "nodes_registry.json"
-    path.write_text(json.dumps({"version": 3, "nodes": [{"base_url": "http://127.0.0.1:8000"}]}), encoding="utf-8")
+    path.write_text(
+        json.dumps({"version": 3, "nodes": [{"base_url": "http://127.0.0.1:8000"}]}),
+        encoding="utf-8",
+    )
     monkeypatch.setenv("WEALL_MODE", "test")
     monkeypatch.setenv("WEALL_API_MODE", "dev")
     monkeypatch.setenv("WEALL_ALLOW_INSECURE_LOCALHOST", "1")
@@ -119,7 +125,10 @@ def test_public_seed_registry_rejects_bad_signature(tmp_path, monkeypatch):
 
 def test_public_seed_registry_rejects_unsupported_p2p_scheme(tmp_path, monkeypatch):
     path = tmp_path / "public_seed_registry.json"
-    path.write_text(json.dumps(signed_registry(_registry(seed_p2p_urls=["p2p://127.0.0.1:30303"]))), encoding="utf-8")
+    path.write_text(
+        json.dumps(signed_registry(_registry(seed_p2p_urls=["p2p://127.0.0.1:30303"]))),
+        encoding="utf-8",
+    )
     _public_env(monkeypatch, path)
     app = create_app(boot_runtime=False)
     r = TestClient(app).get("/v1/nodes/seeds")

@@ -104,7 +104,6 @@ def test_validator_candidate_approve_requires_account_and_epoch() -> None:
     assert rej.code == "invalid_payload"
 
 
-
 def test_validator_suspend_requires_account_and_effective_epoch() -> None:
     idx = _load_index()
     ledger = _ledger(0)

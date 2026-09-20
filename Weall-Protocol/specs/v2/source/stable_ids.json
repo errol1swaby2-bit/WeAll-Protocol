@@ -30390,6 +30390,62 @@
       "kind": "failure",
       "stable_id": "FAIL-6DA71AD154AA869C",
       "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:tier2_case_not_finalized",
+      "kind": "failure",
+      "stable_id": "FAIL-5B49480E2EA77A66",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:live_case_not_finalized",
+      "kind": "failure",
+      "stable_id": "FAIL-9FE3F25AC5EA9B8E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:missing_evidence_or_target_id",
+      "kind": "failure",
+      "stable_id": "FAIL-7D5326DD9AF90EB9",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/lineage_witness.py:lineage_certificate_commitment:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-5C92C3F33FD8C5A6",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/runtime/lineage_witness.py:make_certificate_witness:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-97914B6B16DAE6B1",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "domain_error:system_followup_enqueue_failed",
+      "kind": "failure",
+      "stable_id": "FAIL-89796493A47C2730",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/net/net_loop.py:_bft_relay_guard_payload:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-0592D19C83C75C5B",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "src/weall/net/net_loop.py:_record_relay_acceptance:message_builder_or_handler",
+      "kind": "message",
+      "stable_id": "MSG-E65D3916D735CB5D",
+      "status": "active"
     }
   ],
   "reuse_forbidden": true,

@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
 from fastapi.testclient import TestClient
 
 from weall.api.app import create_app
@@ -35,6 +34,7 @@ class _SimpleExecutor:
 
     def read_state(self):
         return self.snapshot()
+
     def snapshot(self) -> dict[str, Any]:
         return {}
 
@@ -59,7 +59,9 @@ def _header(t: MsgType) -> WireHeader:
     return WireHeader(type=t, chain_id="chain-A", schema_version="1", tx_index_hash="hash-A")
 
 
-def _ping_envelope(*, recipient: str = "node-b", now_ms: int | None = None, bind_recipient: bool = False) -> dict[str, Any]:
+def _ping_envelope(
+    *, recipient: str = "node-b", now_ms: int | None = None, bind_recipient: bool = False
+) -> dict[str, Any]:
     pub, priv = _priv_hex("node-a")
     recipient_pubkey = _priv_hex(recipient)[0] if bind_recipient else ""
     return make_relay_envelope(
@@ -78,7 +80,13 @@ def _ping_envelope(*, recipient: str = "node-b", now_ms: int | None = None, bind
     )
 
 
-def _access_request(request_type: str, *, recipient: str = "node-b", relay_ids: list[str] | None = None, now_ms: int | None = None) -> dict[str, Any]:
+def _access_request(
+    request_type: str,
+    *,
+    recipient: str = "node-b",
+    relay_ids: list[str] | None = None,
+    now_ms: int | None = None,
+) -> dict[str, Any]:
     pub, priv = _priv_hex(recipient)
     return make_relay_access_request(
         request_type=request_type,
@@ -106,7 +114,7 @@ def test_relay_envelope_verifies_and_tampering_fails() -> None:
     tampered["recipient_peer_id"] = "node-c"
     try:
         validate_relay_envelope(tampered, cfg=_relay_cfg(), now_ms=2000)
-        assert False, "tampered recipient must fail signature verification"
+        raise AssertionError("tampered recipient must fail signature verification")
     except RelayEnvelopeError as exc:
         assert exc.code in {"relay_bad_signature", "relay_id_mismatch"}
 
@@ -114,14 +122,14 @@ def test_relay_envelope_verifies_and_tampering_fails() -> None:
     wrong_chain["chain_id"] = "chain-B"
     try:
         validate_relay_envelope(wrong_chain, cfg=_relay_cfg(), now_ms=2000)
-        assert False, "wrong chain must fail"
+        raise AssertionError("wrong chain must fail")
     except RelayEnvelopeError as exc:
         assert exc.code == "relay_chain_mismatch"
 
     expired = _ping_envelope(now_ms=1000)
     try:
         validate_relay_envelope(expired, cfg=_relay_cfg(), now_ms=70_000)
-        assert False, "expired envelope must fail"
+        raise AssertionError("expired envelope must fail")
     except RelayEnvelopeError as exc:
         assert exc.code == "relay_expired"
 
@@ -137,12 +145,26 @@ def test_relay_spool_fetches_and_acks_without_mutation(tmp_path: Path) -> None:
     status = spool.status(now_ms=2000)
     assert status["messages_total"] == 1
 
-    fetched = spool.fetch_authorized(access_request=_access_request("fetch", now_ms=2000), cfg=_relay_cfg(), now_ms=2000)
+    fetched = spool.fetch_authorized(
+        access_request=_access_request("fetch", now_ms=2000), cfg=_relay_cfg(), now_ms=2000
+    )
     assert len(fetched) == 1
     assert fetched[0]["relay_id"] == env["relay_id"]
 
-    assert spool.ack_authorized(access_request=_access_request("ack", relay_ids=[env["relay_id"]], now_ms=3000), cfg=_relay_cfg(), now_ms=3000) == 1
-    assert spool.fetch_authorized(access_request=_access_request("fetch", now_ms=4000), cfg=_relay_cfg(), now_ms=4000) == ()
+    assert (
+        spool.ack_authorized(
+            access_request=_access_request("ack", relay_ids=[env["relay_id"]], now_ms=3000),
+            cfg=_relay_cfg(),
+            now_ms=3000,
+        )
+        == 1
+    )
+    assert (
+        spool.fetch_authorized(
+            access_request=_access_request("fetch", now_ms=4000), cfg=_relay_cfg(), now_ms=4000
+        )
+        == ()
+    )
 
 
 def test_http_relay_routes_store_fetch_and_ack(tmp_path: Path, monkeypatch) -> None:
@@ -189,13 +211,20 @@ def test_http_relay_rejects_wrong_recipient_fetch_and_ack(tmp_path: Path, monkey
     assert client.post("/v1/net/relay/submit", json={"envelope": env}).status_code == 200
 
     # An attacker can sign as itself, but cannot fetch or ack node-b messages.
-    bad_fetch = client.post("/v1/net/relay/fetch", json={"access_request": _access_request("fetch", recipient="attacker")})
+    bad_fetch = client.post(
+        "/v1/net/relay/fetch",
+        json={"access_request": _access_request("fetch", recipient="attacker")},
+    )
     assert bad_fetch.status_code == 200
     assert bad_fetch.json()["count"] == 0
 
     bad_ack = client.post(
         "/v1/net/relay/ack",
-        json={"access_request": _access_request("ack", recipient="attacker", relay_ids=[env["relay_id"]])},
+        json={
+            "access_request": _access_request(
+                "ack", recipient="attacker", relay_ids=[env["relay_id"]]
+            )
+        },
     )
     assert bad_ack.status_code == 200
     assert bad_ack.json()["acked"] == 0
@@ -236,7 +265,9 @@ def test_net_loop_relay_poll_consumes_and_acks(monkeypatch) -> None:
     loop = NetMeshLoop(
         executor=_SimpleExecutor(),
         mempool=_DummyMempool(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=30303, tick_ms=25, schema_version="1"
+        ),
     )
     loop.node = NetNode(
         cfg=NetConfig(
@@ -256,7 +287,10 @@ def test_net_loop_relay_poll_consumes_and_acks(monkeypatch) -> None:
             return {"ok": True, "messages": [env]}
         acks.append({"url": url, "obj": obj})
         access = obj.get("access_request") if isinstance(obj, dict) else {}
-        return {"ok": True, "acked": len(access.get("relay_ids") or []) if isinstance(access, dict) else 0}
+        return {
+            "ok": True,
+            "acked": len(access.get("relay_ids") or []) if isinstance(access, dict) else 0,
+        }
 
     monkeypatch.setattr("weall.net.net_loop._http_post_json", fake_post)
 

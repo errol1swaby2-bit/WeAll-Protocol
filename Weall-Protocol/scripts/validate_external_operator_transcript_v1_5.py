@@ -19,8 +19,13 @@ from typing import Any
 from gen_external_operator_transcript_requirements_v1_5 import build as build_requirements
 
 Json = dict[str, Any]
-_PLACEHOLDER_RE = re.compile(r"(sample|placeholder|external[-_ ]?signature[-_ ]?required|required|todo|example|dummy)", re.IGNORECASE)
-_SAMPLE_ID_RE = re.compile(r"^(operator-[a-d]|machine-[a-d]|v-[a-d]|storage-operator-[a-c]|storage-machine-[a-c]|replay-operator-[ab]|replay-machine-[ab]|12D3KooWsample[A-Z]?)$")
+_PLACEHOLDER_RE = re.compile(
+    r"(sample|placeholder|external[-_ ]?signature[-_ ]?required|required|todo|example|dummy)",
+    re.IGNORECASE,
+)
+_SAMPLE_ID_RE = re.compile(
+    r"^(operator-[a-d]|machine-[a-d]|v-[a-d]|storage-operator-[a-c]|storage-machine-[a-c]|replay-operator-[ab]|replay-machine-[ab]|12D3KooWsample[A-Z]?)$"
+)
 
 
 def _canon(obj: Any) -> str:
@@ -28,7 +33,13 @@ def _canon(obj: Any) -> str:
 
 
 def _stable_digest(payload: Json) -> str:
-    return __import__("hashlib").sha256(_canon({k: v for k, v in payload.items() if k != "transcript_digest"}).encode("utf-8")).hexdigest()
+    return (
+        __import__("hashlib")
+        .sha256(
+            _canon({k: v for k, v in payload.items() if k != "transcript_digest"}).encode("utf-8")
+        )
+        .hexdigest()
+    )
 
 
 def _get_path(payload: Json, dotted: str) -> Any:
@@ -63,7 +74,9 @@ def _has_placeholder(value: Any) -> bool:
 
 
 def _has_sample_identity(value: Any) -> bool:
-    return any(_SAMPLE_ID_RE.match(item) or _PLACEHOLDER_RE.search(item) for item in _as_strings(value))
+    return any(
+        _SAMPLE_ID_RE.match(item) or _PLACEHOLDER_RE.search(item) for item in _as_strings(value)
+    )
 
 
 def validate(kind: str, payload: Json, *, strict_release: bool = False) -> list[str]:
@@ -83,8 +96,12 @@ def validate(kind: str, payload: Json, *, strict_release: bool = False) -> list[
     for field, minimum in (schema.get("minimum_counts") or {}).items():
         actual_count = _count(_get_path(payload, str(field)))
         if actual_count < int(minimum):
-            errors.append(f"minimum count failed: {field} expected >= {minimum}, got {actual_count}")
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+            errors.append(
+                f"minimum count failed: {field} expected >= {minimum}, got {actual_count}"
+            )
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
     for forbidden in schema.get("forbidden_claims", []):
         if boundaries.get(str(forbidden)) is True or payload.get(str(forbidden)) is True:
             errors.append(f"forbidden claim asserted: {forbidden}")
@@ -104,10 +121,17 @@ def _strict_release_errors(kind: str, payload: Json) -> list[str]:
     if payload.get("sample_transcript_only") is True:
         errors.append("strict release mode rejects sample_transcript_only=true")
     if payload.get("external_attestation_required") is True:
-        errors.append("strict release mode rejects external_attestation_required=true; attach actual external_attestation instead")
+        errors.append(
+            "strict release mode rejects external_attestation_required=true; attach actual external_attestation instead"
+        )
     if payload.get("real_daemon_topology_required") is True:
-        errors.append("strict release mode rejects real_daemon_topology_required=true; attach actual real_daemon_topology evidence")
-    if payload.get("external_attestation_attached") is not True and kind != "legal_compliance_attestation":
+        errors.append(
+            "strict release mode rejects real_daemon_topology_required=true; attach actual real_daemon_topology evidence"
+        )
+    if (
+        payload.get("external_attestation_attached") is not True
+        and kind != "legal_compliance_attestation"
+    ):
         errors.append("strict release mode requires external_attestation_attached=true")
 
     for field in ("operator_ids", "node_ids", "machine_ids", "ipfs_peer_ids"):
@@ -126,10 +150,20 @@ def _strict_release_errors(kind: str, payload: Json) -> list[str]:
             errors.append("strict release mode rejects placeholder operator signatures")
 
     if kind == "public_validator_operator_transcript":
-        if payload.get("operator_attestation") not in ("external_operator_signed", "independent_operator_signed"):
-            errors.append("public validator strict release transcript requires operator_attestation=external_operator_signed or independent_operator_signed")
-        if payload.get("machine_isolation") not in ("independent_machines", "isolated_containers_with_operator_attestation"):
-            errors.append("public validator strict release transcript requires machine_isolation proof")
+        if payload.get("operator_attestation") not in (
+            "external_operator_signed",
+            "independent_operator_signed",
+        ):
+            errors.append(
+                "public validator strict release transcript requires operator_attestation=external_operator_signed or independent_operator_signed"
+            )
+        if payload.get("machine_isolation") not in (
+            "independent_machines",
+            "isolated_containers_with_operator_attestation",
+        ):
+            errors.append(
+                "public validator strict release transcript requires machine_isolation proof"
+            )
         for field in (
             "fresh_clone",
             "node_registration",
@@ -143,37 +177,71 @@ def _strict_release_errors(kind: str, payload: Json) -> list[str]:
         ):
             if payload.get(field) is not True:
                 errors.append(f"public validator strict release transcript requires {field}=true")
-        boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+        boundaries = (
+            payload.get("claim_boundaries")
+            if isinstance(payload.get("claim_boundaries"), dict)
+            else {}
+        )
         if boundaries.get("public_multi_validator_bft") is not False:
-            errors.append("public validator strict release transcript must keep claim_boundaries.public_multi_validator_bft=false")
+            errors.append(
+                "public validator strict release transcript must keep claim_boundaries.public_multi_validator_bft=false"
+            )
     elif kind == "external_cross_machine_replay_transcript":
-        if payload.get("operator_attestation") not in ("external_replay_operator_signed", "independent_operator_signed"):
-            errors.append("external replay strict release transcript requires external_replay_operator_signed or independent_operator_signed")
-        if payload.get("machine_isolation") not in ("two_physical_machines", "external_machine_plus_isolated_founder_machine", "independent_machines"):
-            errors.append("external replay strict release transcript requires machine_isolation proof")
+        if payload.get("operator_attestation") not in (
+            "external_replay_operator_signed",
+            "independent_operator_signed",
+        ):
+            errors.append(
+                "external replay strict release transcript requires external_replay_operator_signed or independent_operator_signed"
+            )
+        if payload.get("machine_isolation") not in (
+            "two_physical_machines",
+            "external_machine_plus_isolated_founder_machine",
+            "independent_machines",
+        ):
+            errors.append(
+                "external replay strict release transcript requires machine_isolation proof"
+            )
         if payload.get("same_commit") is not True:
             errors.append("external replay strict release transcript requires same_commit=true")
         if payload.get("same_vectors") is not True:
             errors.append("external replay strict release transcript requires same_vectors=true")
     elif kind == "storage_ipfs_operator_transcript":
         if payload.get("real_daemon_topology") is not True:
-            errors.append("storage/IPFS strict release transcript requires real_daemon_topology=true")
-        if payload.get("operator_attestation") not in ("external_storage_operator_signed", "independent_operator_signed"):
-            errors.append("storage/IPFS strict release transcript requires external storage operator attestation")
+            errors.append(
+                "storage/IPFS strict release transcript requires real_daemon_topology=true"
+            )
+        if payload.get("operator_attestation") not in (
+            "external_storage_operator_signed",
+            "independent_operator_signed",
+        ):
+            errors.append(
+                "storage/IPFS strict release transcript requires external storage operator attestation"
+            )
     elif kind == "legal_compliance_attestation":
         for field in ("reviewer_or_counsel_reference", "signature_or_controlled_reference"):
             if _has_placeholder(payload.get(field)):
                 errors.append(f"strict release mode rejects placeholder {field}")
         if payload.get("counsel_or_control_attestation_attached") is not True:
-            errors.append("legal strict release transcript requires counsel_or_control_attestation_attached=true")
+            errors.append(
+                "legal strict release transcript requires counsel_or_control_attestation_attached=true"
+            )
     return errors
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Validate an external operator transcript against v1.5 release schemas.")
-    parser.add_argument("--kind", required=True, choices=sorted(build_requirements()["schemas"].keys()))
+    parser = argparse.ArgumentParser(
+        description="Validate an external operator transcript against v1.5 release schemas."
+    )
+    parser.add_argument(
+        "--kind", required=True, choices=sorted(build_requirements()["schemas"].keys())
+    )
     parser.add_argument("--path", required=True)
-    parser.add_argument("--strict-release", action="store_true", help="reject scaffold/sample evidence and require external attestation fields")
+    parser.add_argument(
+        "--strict-release",
+        action="store_true",
+        help="reject scaffold/sample evidence and require external attestation fields",
+    )
     args = parser.parse_args(argv)
     path = Path(args.path)
     try:

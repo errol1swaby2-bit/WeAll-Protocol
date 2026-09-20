@@ -10,7 +10,6 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
-from weall.api.errors import ApiError
 from weall.api.public_redaction import redact_public_state
 from weall.api.routes_public_parts.common import _read_json_limited
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
@@ -89,7 +88,9 @@ def _state_raw_block_public() -> bool:
 def _require_state_raw_read_operator(request: Request) -> None:
     if _state_raw_block_public():
         return
-    if _request_is_loopback(request) and _as_bool_env("WEALL_STATE_RAW_READ_ALLOW_LOOPBACK_WITHOUT_TOKEN", False):
+    if _request_is_loopback(request) and _as_bool_env(
+        "WEALL_STATE_RAW_READ_ALLOW_LOOPBACK_WITHOUT_TOKEN", False
+    ):
         return
     want = _state_raw_read_token()
     if not want:
@@ -120,7 +121,10 @@ def _block_header(blk: Json) -> Json:
     return {
         "block_id": blk.get("block_id") or blk.get("id") or blk.get("hash") or "",
         "height": blk.get("height"),
-        "parent": blk.get("parent") or blk.get("parent_id") or blk.get("prev") or blk.get("prev_hash"),
+        "parent": blk.get("parent")
+        or blk.get("parent_id")
+        or blk.get("prev")
+        or blk.get("prev_hash"),
         "state_root": blk.get("state_root"),
         "tx_root": blk.get("tx_root"),
         "time": blk.get("time") or blk.get("timestamp") or blk.get("ts_ms"),
@@ -170,7 +174,9 @@ def _require_state_sync_operator(request: Request, *, for_apply: bool = False) -
     # Optional loopback exemption exists only for legacy local harnesses.  It is
     # off by default in prod so a browser/process on the same host cannot pull
     # sync payloads without an operator token.
-    if _request_is_loopback(request) and _as_bool_env("WEALL_STATE_SYNC_ALLOW_LOOPBACK_WITHOUT_TOKEN", False):
+    if _request_is_loopback(request) and _as_bool_env(
+        "WEALL_STATE_SYNC_ALLOW_LOOPBACK_WITHOUT_TOKEN", False
+    ):
         return
     want = _state_sync_operator_token()
     if not want:
@@ -220,7 +226,7 @@ def _header_from_json(raw: Any, *, expected_type: MsgType | None = None) -> Wire
     typ_raw = _message_type_value(raw.get("type"))
     try:
         typ = MsgType(typ_raw)
-    except Exception as exc:
+    except Exception:
         # Some serializers emit enum names rather than values.
         try:
             typ = MsgType[typ_raw]
@@ -309,7 +315,12 @@ def _executor_schema_version(ex: Any) -> str:
             return str(fn() or "1").strip() or "1"
         except TypeError:
             pass
-    return str(getattr(ex, "_schema_version_cached", "") or getattr(ex, "schema_version", "") or "1").strip() or "1"
+    return (
+        str(
+            getattr(ex, "_schema_version_cached", "") or getattr(ex, "schema_version", "") or "1"
+        ).strip()
+        or "1"
+    )
 
 
 def _executor_wire_header(ex: Any, msg_type: MsgType, *, corr_id: str | None = None) -> WireHeader:
@@ -415,9 +426,7 @@ async def state_sync_request(request: Request) -> Json:
         )
     selector = body.get("selector")
     if selector is not None and not isinstance(selector, dict):
-        raise HTTPException(
-            status_code=400, detail={"code": "bad_request", "message": "selector"}
-        )
+        raise HTTPException(status_code=400, detail={"code": "bad_request", "message": "selector"})
     try:
         from_height = int(body.get("from_height") or 0)
         raw_to_height = body.get("to_height")

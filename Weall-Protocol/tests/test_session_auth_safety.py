@@ -116,10 +116,7 @@ def test_seeded_demo_direct_session_mutation_is_bootstrap_only_after_height_zero
         json={"account": "@alice", "session_key": "demo-key"},
     )
     assert r.status_code == 403, r.text
-    assert (
-        r.json()["error"]["code"]
-        == "direct_session_mutation_forbidden_after_genesis"
-    )
+    assert r.json()["error"]["code"] == "direct_session_mutation_forbidden_after_genesis"
 
 
 def test_account_session_key_issue_stores_hash_and_revoke_accepts_raw_key() -> None:
@@ -164,10 +161,14 @@ def test_account_session_key_issue_stores_hash_and_revoke_accepts_raw_key() -> N
             tx_id="tx-revoke",
         ),
     )
-    assert session_record_for(state["accounts"]["@alice"]["session_keys"], raw_key)["active"] is False
+    assert (
+        session_record_for(state["accounts"]["@alice"]["session_keys"], raw_key)["active"] is False
+    )
 
 
-def test_seeded_demo_direct_login_stores_hashed_session_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_seeded_demo_direct_login_stores_hashed_session_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "dev")
     monkeypatch.setenv("WEALL_RUNTIME_PROFILE", "seeded_demo")
     monkeypatch.setenv("WEALL_ENABLE_DEMO_SEED_ROUTE", "1")
@@ -248,14 +249,21 @@ def test_frontend_key_storage_never_writes_secret_to_localstorage() -> None:
     assert "KEYRING_PREFIX" not in text
     assert "localStorage.setItem(`${KEYRING_PREFIX}${normalized}`" not in text
     assert "secretKey: secretKeyB64" not in text
-    assert "secretKeyB64," not in text.split("export function saveKeypair", 1)[1].split("export function loadKeypair", 1)[0]
+    assert (
+        "secretKeyB64,"
+        not in text.split("export function saveKeypair", 1)[1].split(
+            "export function loadKeypair", 1
+        )[0]
+    )
     assert "sessionStorage.setItem(secretStorageKey(normalized), secretKeyB64)" in text
 
 
 def test_frontend_logout_revokes_and_clears_local_state() -> None:
     text = (OUTER_ROOT / "web/src/auth/session.ts").read_text(encoding="utf-8")
     assert "export async function logoutCurrentDevice" in text
-    logout_block = text.split("export async function logoutCurrentDevice", 1)[1].split("export async function issueFreshSessionKey", 1)[0]
+    logout_block = text.split("export async function logoutCurrentDevice", 1)[1].split(
+        "export async function issueFreshSessionKey", 1
+    )[0]
     assert "revokeCurrentSessionKey" in logout_block
     assert "endSession()" in logout_block
     assert "clearNonceReservation(account)" in logout_block

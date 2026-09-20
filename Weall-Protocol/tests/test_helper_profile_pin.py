@@ -68,7 +68,6 @@ def test_restart_rejects_helper_execution_profile_mismatch(
         )
 
 
-
 def test_startup_rejects_helper_fast_path_without_helper_mode(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -78,14 +77,15 @@ def test_startup_rejects_helper_fast_path_without_helper_mode(
     monkeypatch.delenv("WEALL_HELPER_MODE_ENABLED", raising=False)
     monkeypatch.setenv("WEALL_HELPER_FAST_PATH", "1")
 
-    with pytest.raises(ExecutorError, match="helper fast path requires WEALL_HELPER_MODE_ENABLED=1"):
+    with pytest.raises(
+        ExecutorError, match="helper fast path requires WEALL_HELPER_MODE_ENABLED=1"
+    ):
         WeAllExecutor(
             db_path=str(tmp_path / "helper_requires_mode.db"),
             node_id="@node",
             chain_id="batch111-requires-mode",
             tx_index_path=_tx_index_path(),
         )
-
 
 
 def test_build_block_candidate_uses_committed_helper_profile_policy(
@@ -133,7 +133,6 @@ def test_build_block_candidate_uses_committed_helper_profile_policy(
         "enforce_helper_namespace_hash": True,
         "enforce_helper_receipts_root": True,
     }
-
 
 
 def test_apply_block_ignores_local_runtime_helper_profile_drift(

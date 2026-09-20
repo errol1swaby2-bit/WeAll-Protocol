@@ -14,7 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT.parent / "web" / "src"
 
 
-def _executor_with_account(tmp_path: Path, *, legacy_tier: int, canonical_tier: int, canonical_status: str) -> WeAllExecutor:
+def _executor_with_account(
+    tmp_path: Path, *, legacy_tier: int, canonical_tier: int, canonical_status: str
+) -> WeAllExecutor:
     ex = WeAllExecutor(
         db_path=str(tmp_path / "content-post-regression.db"),
         node_id="content-post-regression-node",
@@ -72,9 +74,13 @@ def _content_post_tx(*, nonce: int = 21) -> dict[str, Any]:
     }
 
 
-def test_http_content_post_uses_canonical_poh_status_without_500(tmp_path: Path, monkeypatch) -> None:
+def test_http_content_post_uses_canonical_poh_status_without_500(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "test")
-    ex = _executor_with_account(tmp_path, legacy_tier=1, canonical_tier=2, canonical_status="active")
+    ex = _executor_with_account(
+        tmp_path, legacy_tier=1, canonical_tier=2, canonical_status="active"
+    )
 
     response = _client(ex).post("/v1/tx/submit", json=_content_post_tx())
 
@@ -85,9 +91,13 @@ def test_http_content_post_uses_canonical_poh_status_without_500(tmp_path: Path,
     assert ex._mempool.size() == 1  # type: ignore[attr-defined]
 
 
-def test_revoked_canonical_poh_blocks_content_post_without_server_error(tmp_path: Path, monkeypatch) -> None:
+def test_revoked_canonical_poh_blocks_content_post_without_server_error(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "test")
-    ex = _executor_with_account(tmp_path, legacy_tier=2, canonical_tier=2, canonical_status="revoked")
+    ex = _executor_with_account(
+        tmp_path, legacy_tier=2, canonical_tier=2, canonical_status="revoked"
+    )
 
     response = _client(ex).post("/v1/tx/submit", json=_content_post_tx())
 
@@ -133,7 +143,7 @@ def test_frontend_operator_controls_are_directly_deep_linked_and_opened() -> Non
 
     assert "operatorSetupRequested" in account_page
     assert "shouldOpenOperatorPanel" in account_page
-    assert 'open={shouldOpenOperatorPanel}' in account_page
+    assert "open={shouldOpenOperatorPanel}" in account_page
     assert "Network service opt-ins: validator, storage, and helper setup" in account_page
 
 

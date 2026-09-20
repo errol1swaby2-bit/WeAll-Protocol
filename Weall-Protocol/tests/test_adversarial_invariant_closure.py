@@ -20,7 +20,6 @@ from weall.runtime.executor import ExecutorError, WeAllExecutor
 from weall.runtime.state_hash import compute_state_root
 from weall.testing.prod_fixtures import write_strict_prod_chain_manifest
 
-
 ROOT = Path(__file__).resolve().parents[1]
 TX_INDEX = ROOT / "generated" / "tx_index.json"
 
@@ -82,9 +81,7 @@ def test_state_root_binds_protocol_meta_but_not_local_runtime_posture() -> None:
     local_only["meta"]["runtime_open"] = True
     local_only["meta"]["observer_mode"] = True
     local_only["meta"]["operator_note"] = "node-b"
-    local_only["meta"]["runtime_helper_execution_profile"] = {
-        "helper_mode_enabled": True
-    }
+    local_only["meta"]["runtime_helper_execution_profile"] = {"helper_mode_enabled": True}
     assert compute_state_root(local_only) == compute_state_root(base)
 
     activation_changed = copy.deepcopy(base)
@@ -306,10 +303,7 @@ def test_validator_bootstrap_verifier_fails_when_production_bootstrap_is_unsafe(
     payload = json.loads(proc.stdout)
     assert payload["ok"] is False
     assert payload["bootstrap_report"]["ok"] is False
-    assert any(
-        "WEALL_SIGVERIFY=0" in str(issue)
-        for issue in payload.get("issues", [])
-    )
+    assert any("WEALL_SIGVERIFY=0" in str(issue) for issue in payload.get("issues", []))
 
 
 def test_side_channel_ledger_update_cannot_mutate_committed_canonical_state(

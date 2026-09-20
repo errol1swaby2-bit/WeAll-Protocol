@@ -6,7 +6,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from rehearse_anti_sybil_escalation_recovery_windows_v1_5 import run_harness as run_anti_sybil_windows
+from rehearse_anti_sybil_escalation_recovery_windows_v1_5 import (
+    run_harness as run_anti_sybil_windows,
+)
 from rehearse_economics_farming_simulation_locked_v1_5 import run_harness as run_economics_farming
 from rehearse_live_peer_catchup_from_follower_state_v1_5 import run_harness as run_follower_sync
 from rehearse_storage_worker_failure_retry_loop_v1_5 import run_harness as run_storage_retry
@@ -34,7 +36,10 @@ def build() -> dict[str, Any]:
     }
     return {
         "schema": "weall.v1_5.batch562_566.mechanics_hardening_proof",
-        "ok": all(bool(x.get("ok")) for x in (validator, follower_sync, storage_retry, anti_sybil, economics)),
+        "ok": all(
+            bool(x.get("ok"))
+            for x in (validator, follower_sync, storage_retry, anti_sybil, economics)
+        ),
         "batch_range": "562-566",
         "validator_follower_apply_hardening": validator,
         "live_peer_catchup_from_follower_state": follower_sync,
@@ -59,12 +64,16 @@ def _canon(obj: Any) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--check", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--check", action="store_true")
+    args = ap.parse_args()
     artifact = build()
     text = _canon(artifact)
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("b562_b566_mechanics_hardening_proof_v1_5.json is stale; rerun generator")
+            raise SystemExit(
+                "b562_b566_mechanics_hardening_proof_v1_5.json is stale; rerun generator"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is fresh")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

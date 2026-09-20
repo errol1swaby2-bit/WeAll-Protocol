@@ -111,7 +111,9 @@ def _client(state: dict[str, Any] | None = None) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-def test_verified_media_cache_metadata_avoids_full_rehash_on_range_hit(tmp_path: Path, monkeypatch) -> None:
+def test_verified_media_cache_metadata_avoids_full_rehash_on_range_hit(
+    tmp_path: Path, monkeypatch
+) -> None:
     from weall.api.routes_public_parts import media as media_routes
 
     data = b"0123456789" * 32
@@ -140,7 +142,9 @@ def test_verified_media_cache_metadata_avoids_full_rehash_on_range_hit(tmp_path:
         assert meta["verification"] == "sha256"
 
         def fail_full_reverify(**_kwargs):  # noqa: ANN003
-            raise AssertionError("range cache hit should trust verified metadata, not rehash full file")
+            raise AssertionError(
+                "range cache hit should trust verified metadata, not rehash full file"
+            )
 
         monkeypatch.setattr(media_routes, "_verify_cached_media_bytes", fail_full_reverify)
         res = client.get(f"/v1/media/proxy/{cid}", headers={"Range": "bytes=10-19"})
@@ -151,7 +155,9 @@ def test_verified_media_cache_metadata_avoids_full_rehash_on_range_hit(tmp_path:
         assert res.headers.get("x-weall-media-byte-verified") == "sha256"
 
 
-def test_verified_media_cache_strict_reverify_can_force_full_hash(tmp_path: Path, monkeypatch) -> None:
+def test_verified_media_cache_strict_reverify_can_force_full_hash(
+    tmp_path: Path, monkeypatch
+) -> None:
     from weall.api.routes_public_parts import media as media_routes
 
     data = b"strict reverify bytes"
@@ -177,10 +183,14 @@ def test_verified_media_cache_strict_reverify_can_force_full_hash(tmp_path: Path
         assert client.get(f"/v1/media/proxy/{cid}").status_code == 200
         assert calls["verify"] == 1
         # Metadata should avoid full reverify by default.
-        assert client.get(f"/v1/media/proxy/{cid}", headers={"Range": "bytes=0-1"}).status_code == 206
+        assert (
+            client.get(f"/v1/media/proxy/{cid}", headers={"Range": "bytes=0-1"}).status_code == 206
+        )
         assert calls["verify"] == 1
         monkeypatch.setenv("WEALL_MEDIA_CACHE_STRICT_REVERIFY", "1")
-        assert client.get(f"/v1/media/proxy/{cid}", headers={"Range": "bytes=2-3"}).status_code == 206
+        assert (
+            client.get(f"/v1/media/proxy/{cid}", headers={"Range": "bytes=2-3"}).status_code == 206
+        )
         assert calls["verify"] == 2
 
 
@@ -202,7 +212,9 @@ def test_peer_committed_block_fetch_sends_raw_read_token(monkeypatch, tmp_path: 
     loop = NetMeshLoop(
         executor=object(),
         mempool=object(),
-        cfg=NetLoopConfig(enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"),
+        cfg=NetLoopConfig(
+            enabled=False, bind_host="127.0.0.1", bind_port=0, tick_ms=25, schema_version="1"
+        ),
     )
     block = loop._fetch_committed_block("https://peer.example", "block:1")
     assert block == {"block_id": "block:1", "height": 1}
@@ -241,6 +253,8 @@ def test_prod_sync_apply_requires_operator_token_when_enabled(monkeypatch) -> No
 
 def test_media_upload_docstring_discloses_ipfs_adapter_buffering() -> None:
     root = Path(__file__).resolve().parents[1]
-    text = (root / "src" / "weall" / "api" / "routes_public_parts" / "media.py").read_text(encoding="utf-8")
+    text = (root / "src" / "weall" / "api" / "routes_public_parts" / "media.py").read_text(
+        encoding="utf-8"
+    )
     assert "sha256 calculation is streaming/bounded" in text
     assert "IPFS HTTP" in text and "buffer" in text

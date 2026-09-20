@@ -17,7 +17,9 @@ def _write_min_tx_index(path: Path) -> None:
 
 def _mk_executor(tmp_path: Path, monkeypatch, *, observer: bool) -> WeAllExecutor:
     monkeypatch.setenv("WEALL_MODE", "prod")
-    monkeypatch.setenv("WEALL_NODE_LIFECYCLE_STATE", "observer_onboarding" if observer else "production_service")
+    monkeypatch.setenv(
+        "WEALL_NODE_LIFECYCLE_STATE", "observer_onboarding" if observer else "production_service"
+    )
     monkeypatch.setenv("WEALL_OBSERVER_MODE", "1" if observer else "0")
     monkeypatch.setenv("WEALL_VALIDATOR_SIGNING_ENABLED", "0" if observer else "1")
     monkeypatch.setenv("WEALL_BFT_ENABLED", "0" if observer else "1")
@@ -37,7 +39,9 @@ def _mk_executor(tmp_path: Path, monkeypatch, *, observer: bool) -> WeAllExecuto
     )
 
 
-def test_prod_observer_mode_beats_explicit_validator_signing_override(tmp_path: Path, monkeypatch) -> None:
+def test_prod_observer_mode_beats_explicit_validator_signing_override(
+    tmp_path: Path, monkeypatch
+) -> None:
     ex = _mk_executor(tmp_path, monkeypatch, observer=True)
     ex.state.setdefault("roles", {})["validators"] = {"active_set": ["alice"]}
     ex.state.setdefault("consensus", {})["validators"] = {

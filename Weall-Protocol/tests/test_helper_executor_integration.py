@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from weall.runtime.executor import WeAllExecutor
 from weall.runtime.execution_lanes import canonical_scope_prefixes
+from weall.runtime.executor import WeAllExecutor
 
 
 def _repo_root() -> Path:
@@ -32,7 +32,6 @@ def _bootstrap_account(ex: WeAllExecutor, *, account_id: str) -> None:
     ex.state = ex._ledger_store.read()  # type: ignore[attr-defined]
 
 
-
 def test_scope_prefixes_infer_from_tx_type() -> None:
     tx = {
         "tx_type": "CONTENT_POST_CREATE",
@@ -41,7 +40,6 @@ def test_scope_prefixes_infer_from_tx_type() -> None:
         "payload": {"body": "hello", "visibility": "public", "tags": [], "media": []},
     }
     assert canonical_scope_prefixes(tx) == ("content:",)
-
 
 
 def test_build_block_candidate_emits_helper_execution_metadata(tmp_path: Path, monkeypatch) -> None:
@@ -94,7 +92,6 @@ def test_build_block_candidate_emits_helper_execution_metadata(tmp_path: Path, m
     assert isinstance(marker, dict)
     assert marker.get("height") == block.get("height")
     assert marker.get("validator_epoch") == 7
-
 
 
 def test_commit_persists_helper_execution_replay_marker(tmp_path: Path, monkeypatch) -> None:

@@ -21,6 +21,7 @@ from weall.runtime.executor import (
 
 Json = dict[str, Any]
 
+
 def _votecheck_cache_get(self, block_hash: str) -> bool | None:
     key = str(block_hash or "").strip()
     if not key:
@@ -35,12 +36,14 @@ def _votecheck_cache_get(self, block_hash: str) -> bool | None:
     except Exception:
         return None
 
+
 def _votecheck_cache_put(self, block_hash: str, ok: bool) -> None:
     key = str(block_hash or "").strip()
     if not key:
         return
     with self._votecheck_lock:
         _bounded_put(self._votecheck_cache, key, bool(ok), cap=self._max_votecheck_cache)
+
 
 def _proposal_votecheck_budget_ok(self, peer_id: str) -> bool:
     key = str(peer_id or "").strip() or "<unknown>"
@@ -63,6 +66,7 @@ def _proposal_votecheck_budget_ok(self, peer_id: str) -> bool:
         )
         return count <= self._proposal_peer_budget_max
 
+
 def _spec_exec_paths_for_slot(self, slot: str) -> tuple[str, str]:
     root = self._spec_exec_pool_root / str(slot)
     root.mkdir(parents=True, exist_ok=True)
@@ -70,17 +74,20 @@ def _spec_exec_paths_for_slot(self, slot: str) -> tuple[str, str]:
     aux_path = str(root / "votecheck.aux.sqlite")
     return db_path, aux_path
 
+
 def _make_spec_exec_slot(self) -> tuple[str, str]:
     with self._votecheck_lock:
         sequence = int(self._spec_exec_slot_seq)
         self._spec_exec_slot_seq = sequence + 1
     return self._spec_exec_paths_for_slot(f"slot-{sequence}")
 
+
 def _acquire_spec_exec_slot(self) -> tuple[str, str]:
     with self._votecheck_lock:
         if self._spec_exec_pool:
             return self._spec_exec_pool.pop()
     return self._make_spec_exec_slot()
+
 
 def _release_spec_exec_slot(self, slot: tuple[str, str]) -> None:
     with self._votecheck_lock:
@@ -89,6 +96,7 @@ def _release_spec_exec_slot(self, slot: tuple[str, str]) -> None:
         if slot in self._spec_exec_pool:
             return
         self._spec_exec_pool.append(slot)
+
 
 def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
     db_path, aux_path = slot
@@ -110,6 +118,7 @@ def _reset_spec_exec_slot(self, slot: tuple[str, str]) -> WeAllExecutor:
         tx_index_path=str(self.tx_index_path),
     )
 
+
 def _proposal_votecheck_static_ok(self, block: Json) -> bool:
     if not isinstance(block, dict):
         return False
@@ -122,7 +131,12 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
         # before a committed height exists. Keep production strict, but allow this
         # non-prod qc-less path so vote-state persistence can be tested.
         mode = str(os.environ.get("WEALL_MODE") or "prod").strip().lower()
-        allow_qcless = str(os.environ.get("WEALL_BFT_ALLOW_QC_LESS_BLOCKS") or "").strip() in {"1", "true", "yes", "on"}
+        allow_qcless = str(os.environ.get("WEALL_BFT_ALLOW_QC_LESS_BLOCKS") or "").strip() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         if mode == "prod" or not allow_qcless:
             return False
     txs = block.get("txs")
@@ -148,7 +162,9 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
         return False
     helper_execution = block.get("helper_execution")
     if helper_execution is not None:
-        advertised_plan_id = str(helper_execution.get("plan_id") or "") if isinstance(helper_execution, dict) else ""
+        advertised_plan_id = (
+            str(helper_execution.get("plan_id") or "") if isinstance(helper_execution, dict) else ""
+        )
         ok_helper_meta, _helper_reason = verify_block_helper_plan_metadata(
             helper_execution=helper_execution if isinstance(helper_execution, dict) else None,
             expected_plan_id=advertised_plan_id,
@@ -156,6 +172,7 @@ def _proposal_votecheck_static_ok(self, block: Json) -> bool:
         if not ok_helper_meta:
             return False
     return True
+
 
 def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
     if not isinstance(block, dict):
@@ -218,4 +235,3 @@ def _validate_remote_proposal_for_vote(self, block: Json) -> bool:
             self._proposal_validation_semaphore.release()
         except Exception:
             pass
-

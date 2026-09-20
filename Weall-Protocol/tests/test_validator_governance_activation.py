@@ -18,8 +18,20 @@ def _mk_state() -> dict:
     return {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
-            "SYSTEM": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
+            "SYSTEM": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
         },
         "roles": {"validators": {"active_set": ["alice"]}},
         "system_queue": [],
@@ -32,7 +44,6 @@ def _mk_state() -> dict:
             ]
         },
     }
-
 
 
 def _advance_to_passed_tally(st: dict, proposal_id: str) -> None:
@@ -78,6 +89,7 @@ def _advance_to_passed_tally(st: dict, proposal_id: str) -> None:
         ),
     )
 
+
 def test_governance_execute_can_schedule_suspend_receipt() -> None:
     idx = _load_index()
     st = _mk_state()
@@ -93,7 +105,11 @@ def test_governance_execute_can_schedule_suspend_receipt() -> None:
                 "actions": [
                     {
                         "tx_type": "VALIDATOR_SUSPEND",
-                        "payload": {"account": "alice", "effective_epoch": 3, "reason": "maintenance"},
+                        "payload": {
+                            "account": "alice",
+                            "effective_epoch": 3,
+                            "reason": "maintenance",
+                        },
                     }
                 ],
             },
@@ -110,7 +126,11 @@ def test_governance_execute_can_schedule_suspend_receipt() -> None:
             tx_type="GOV_EXECUTE",
             signer="SYSTEM",
             nonce=1,
-            payload={"proposal_id": "p-suspend", "_due_height": 1, "_system_queue_id": "qid-suspend"},
+            payload={
+                "proposal_id": "p-suspend",
+                "_due_height": 1,
+                "_system_queue_id": "qid-suspend",
+            },
             sig="",
             system=True,
         ),
@@ -140,7 +160,11 @@ def test_governance_execute_can_schedule_remove_receipt() -> None:
                 "actions": [
                     {
                         "tx_type": "VALIDATOR_REMOVE",
-                        "payload": {"account": "alice", "effective_epoch": 4, "reason": "governance_remove"},
+                        "payload": {
+                            "account": "alice",
+                            "effective_epoch": 4,
+                            "reason": "governance_remove",
+                        },
                     }
                 ],
             },

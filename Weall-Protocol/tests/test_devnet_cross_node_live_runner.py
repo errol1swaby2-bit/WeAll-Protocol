@@ -33,17 +33,17 @@ def test_devnet_cross_node_live_runner_starts_both_nodes_and_probe() -> None:
     assert "devnet_boot_genesis_node.sh" in text
     assert "devnet_boot_joining_node.sh" in text
     assert "devnet_cross_node_convergence.sh" in text
-    assert "wait_http_ready \"node1\"" in text
-    assert "wait_http_ready \"node2\"" in text
+    assert 'wait_http_ready "node1"' in text
+    assert 'wait_http_ready "node2"' in text
 
 
 def test_devnet_cross_node_live_runner_has_cleanup_and_logs() -> None:
     text = RUNNER.read_text(encoding="utf-8")
     assert "trap cleanup EXIT INT TERM" in text
-    assert "kill \"${NODE1_PID}\"" in text
-    assert "kill \"${NODE2_PID}\"" in text
-    assert "tail -80 \"${NODE1_LOG}\"" in text
-    assert "tail -80 \"${NODE2_LOG}\"" in text
+    assert 'kill "${NODE1_PID}"' in text
+    assert 'kill "${NODE2_PID}"' in text
+    assert 'tail -80 "${NODE1_LOG}"' in text
+    assert 'tail -80 "${NODE2_LOG}"' in text
 
 
 def test_devnet_cross_node_live_runner_uses_normal_devnet_flow_not_demo_seed() -> None:
@@ -68,7 +68,9 @@ def test_devnet_cross_node_live_runner_auto_activates_repo_venv() -> None:
     assert "WEALL_DEVNET_AUTO_VENV" in text
     assert "activate_repo_venv" in text
     assert 'source "${activate_path}"' in text
-    assert text.index("activate_repo_venv") < text.index('NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"')
+    assert text.index("activate_repo_venv") < text.index(
+        'NODE1_API="${NODE1_API:-http://127.0.0.1:8001}"'
+    )
 
 
 def test_devnet_boot_scripts_auto_activate_repo_venv() -> None:
@@ -79,4 +81,6 @@ def test_devnet_boot_scripts_auto_activate_repo_venv() -> None:
         assert "activate_repo_venv" in text
         assert 'source "${activate_path}"' in text
         assert "python3 scripts/devnet_tx.py ensure-keyfile" in text
-        assert text.index("activate_repo_venv") < text.index("python3 scripts/devnet_tx.py ensure-keyfile")
+        assert text.index("activate_repo_venv") < text.index(
+            "python3 scripts/devnet_tx.py ensure-keyfile"
+        )

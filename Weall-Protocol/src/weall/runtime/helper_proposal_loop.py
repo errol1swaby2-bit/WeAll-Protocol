@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from weall.runtime.helper_assembly_gate import (
     HelperAssemblyProfile,
@@ -13,7 +14,6 @@ from weall.runtime.helper_lane_journal import HelperLaneJournal
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
 from weall.runtime.helper_replay_guard import HelperReplayGuard
 from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_fingerprint
-
 
 Json = dict[str, Any]
 
@@ -61,7 +61,9 @@ class HelperProposalLoopSummary:
 
     def helper_assisted_heights(self) -> tuple[int, ...]:
         return tuple(
-            result.block_height for result in self.results if result.assembly_mode == "helper_assisted"
+            result.block_height
+            for result in self.results
+            if result.assembly_mode == "helper_assisted"
         )
 
     def plan_ids(self) -> tuple[str, ...]:
@@ -89,7 +91,9 @@ def run_helper_proposal_cycle(
     The goal is not to replace block production, but to prove the helper path stays
     deterministic when exercised as repeated proposer-local cycles.
     """
-    computed_plan_id = str(context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ())))
+    computed_plan_id = str(
+        context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ()))
+    )
     if computed_plan_id and computed_plan_id != str(context.plan_id or ""):
         context = replace(context, plan_id=computed_plan_id)
 
@@ -143,8 +147,7 @@ def run_helper_proposal_cycle(
     )
 
     finalized_modes = tuple(
-        (str(item.lane_id), str(item.mode))
-        for item in orchestrator.finalized_resolutions()
+        (str(item.lane_id), str(item.mode)) for item in orchestrator.finalized_resolutions()
     )
     return HelperProposalCycleResult(
         block_height=int(cycle.block_height),
@@ -177,7 +180,9 @@ def run_helper_proposal_loop(
     - restart / replay continuity across cycles
     """
     results: list[HelperProposalCycleResult] = []
-    computed_plan_id = str(base_context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ())))
+    computed_plan_id = str(
+        base_context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ()))
+    )
 
     for idx, cycle in enumerate(cycles):
         journal = journal_factory(idx) if journal_factory is not None else None

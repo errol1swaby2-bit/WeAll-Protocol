@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Sequence
-from weall.runtime.commitments import value_sha256
-from weall.runtime.json_tools import canonical_json_str as _canon_json
+from typing import Any
 
 from weall.crypto.sig import sign_signature_for_profile, verify_signature_for_profile
-from weall.crypto.signature_profiles import PQ_MLDSA_V1, default_signature_profile_for_mode, normalize_signature_profile_id
-
-
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    default_signature_profile_for_mode,
+    normalize_signature_profile_id,
+)
+from weall.runtime.commitments import value_sha256
+from weall.runtime.json_tools import canonical_json_str as _canon_json
 
 
 def _normalize_tx_ids(values: Sequence[str] | None) -> tuple[str, ...]:
@@ -31,7 +34,7 @@ class HelperReceipt:
     plan_id: str = ""
     sig_profile: str = PQ_MLDSA_V1
 
-    def signing_payload(self) -> Dict[str, Any]:
+    def signing_payload(self) -> dict[str, Any]:
         return {
             "t": "HELPER_RECEIPT",
             "chain_id": self.chain_id,
@@ -66,7 +69,7 @@ class HelperReceipt:
             }
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         payload = self.signing_payload()
         payload["signature"] = self.signature
         return payload
@@ -118,7 +121,9 @@ def sign_helper_receipt(
         raise ValueError("helper receipt signing requires pq-mldsa-v1 privkey")
     if profile != PQ_MLDSA_V1:
         raise ValueError("unsupported_signature_profile")
-    signature = sign_signature_for_profile(sig_profile=profile, message=payload, privkey=str(privkey), encoding="hex")
+    signature = sign_signature_for_profile(
+        sig_profile=profile, message=payload, privkey=str(privkey), encoding="hex"
+    )
     return HelperReceipt(
         chain_id=str(chain_id),
         height=int(height),
@@ -167,16 +172,23 @@ def verify_helper_receipt(
         return False
     if str(expected_plan_id or "") != str(receipt.plan_id or ""):
         return False
-    if expected_ordered_tx_ids is not None and receipt.ordered_tx_ids != _normalize_tx_ids(expected_ordered_tx_ids):
+    if expected_ordered_tx_ids is not None and receipt.ordered_tx_ids != _normalize_tx_ids(
+        expected_ordered_tx_ids
+    ):
         return False
 
     payload = _signing_material(receipt.signing_payload())
     if helper_pubkey is None:
         return False
-    profile = normalize_signature_profile_id(sig_profile or getattr(receipt, "sig_profile", "")) or PQ_MLDSA_V1
+    profile = (
+        normalize_signature_profile_id(sig_profile or getattr(receipt, "sig_profile", ""))
+        or PQ_MLDSA_V1
+    )
     if profile != PQ_MLDSA_V1:
         return False
-    return verify_signature_for_profile(sig_profile=profile, message=payload, sig=receipt.signature, pubkey=str(helper_pubkey))
+    return verify_signature_for_profile(
+        sig_profile=profile, message=payload, sig=receipt.signature, pubkey=str(helper_pubkey)
+    )
 
 
 __all__ = [

@@ -48,7 +48,9 @@ def _daemon(name: str, input_queue: mp.Queue, tx_queue: mp.Queue, root: str) -> 
             digest = hashlib.sha256(p.read_bytes()).hexdigest() if ok else ""
             tx_queue.put({"operator": name, "op": op, "ok": ok, "cid": cid, "sha256": digest})
         else:
-            tx_queue.put({"operator": name, "op": op, "ok": False, "cid": cid, "error": "unknown_op"})
+            tx_queue.put(
+                {"operator": name, "op": op, "ok": False, "cid": cid, "error": "unknown_op"}
+            )
 
 
 def _get(tx_queue: mp.Queue) -> Json:
@@ -60,7 +62,10 @@ def run_harness() -> Json:
     with tempfile.TemporaryDirectory(prefix="weall-b584-ipfs-daemons-") as td:
         tx_queue: mp.Queue = mp.Queue()
         input_queuees = {op: mp.Queue() for op in operators}
-        procs = {op: mp.Process(target=_daemon, args=(op, input_queuees[op], tx_queue, td), daemon=True) for op in operators}
+        procs = {
+            op: mp.Process(target=_daemon, args=(op, input_queuees[op], tx_queue, td), daemon=True)
+            for op in operators
+        }
         for proc in procs.values():
             proc.start()
         try:
@@ -80,11 +85,15 @@ def run_harness() -> Json:
             input_queuees[replacement].put({"op": "cat", "cid": "bafy" + "0" * 59})
             wrong_cid_cat = _get(tx_queue)
 
-            input_queuees[corrupt_operator].put({"op": "replicate", "cid": cid, "data_hex": corrupt.hex()})
+            input_queuees[corrupt_operator].put(
+                {"op": "replicate", "cid": cid, "data_hex": corrupt.hex()}
+            )
             corrupt_repl = _get(tx_queue)
             input_queuees[corrupt_operator].put({"op": "cat", "cid": cid})
             corrupt_cat = _get(tx_queue)
-            corrupt_content_rejected = bool(corrupt_cat.get("ok") and corrupt_cat.get("sha256") != expected_sha)
+            corrupt_content_rejected = bool(
+                corrupt_cat.get("ok") and corrupt_cat.get("sha256") != expected_sha
+            )
 
             procs[corrupt_operator].terminate()
             procs[corrupt_operator].join(timeout=1.0)
@@ -93,7 +102,9 @@ def run_harness() -> Json:
             replacement_repl = _get(tx_queue)
             input_queuees[replacement].put({"op": "cat", "cid": cid})
             replacement_cat = _get(tx_queue)
-            retrieval_ok = bool(replacement_cat.get("ok") and replacement_cat.get("sha256") == expected_sha)
+            retrieval_ok = bool(
+                replacement_cat.get("ok") and replacement_cat.get("sha256") == expected_sha
+            )
 
             ok = bool(
                 add_result.get("ok")

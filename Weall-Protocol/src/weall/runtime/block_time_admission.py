@@ -8,10 +8,10 @@ pure function of height and the pinned manifest clock policy.  In legacy/dev
 mode, timestamps remain bounded by the committed chain-time floor.
 """
 
-from dataclasses import dataclass
-from typing import Any, Mapping
-
 import os
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
 
 from weall.runtime.chain_manifest import load_chain_manifest
 from weall.runtime.constitutional_clock import (
@@ -142,7 +142,9 @@ def validate_block_timestamp(
     policy = runtime_block_clock_policy(state=state, mode=str(mode or ""))
     if bool(policy.enabled):
         if ts <= 0:
-            return BlockTimeVerdict(False, "ts", "block_ts_ms_must_be_positive", {"block_ts_ms": ts})
+            return BlockTimeVerdict(
+                False, "ts", "block_ts_ms_must_be_positive", {"block_ts_ms": ts}
+            )
         expected = expected_block_time_ms(policy, height=h)
         if int(ts) != int(expected):
             return BlockTimeVerdict(
@@ -162,7 +164,9 @@ def validate_block_timestamp(
                 "local_clock_before_constitutional_slot",
                 {"height": h, "block_ts_ms": ts, "expected_block_ts_ms": int(expected)},
             )
-        return BlockTimeVerdict(True, details={"clock_policy": "constitutional", "expected_block_ts_ms": int(expected)})
+        return BlockTimeVerdict(
+            True, details={"clock_policy": "constitutional", "expected_block_ts_ms": int(expected)}
+        )
 
     successor_ts_ms = max(1, int(floor) + 1)
     if int(ts) < int(successor_ts_ms):
@@ -170,16 +174,26 @@ def validate_block_timestamp(
             False,
             "ts_before_chain_floor",
             "block_timestamp_before_chain_floor",
-            {"block_ts_ms": ts, "chain_floor_ms": int(floor), "minimum_block_ts_ms": int(successor_ts_ms)},
+            {
+                "block_ts_ms": ts,
+                "chain_floor_ms": int(floor),
+                "minimum_block_ts_ms": int(successor_ts_ms),
+            },
         )
     if int(ts) > int(floor) + int(max_advance):
         return BlockTimeVerdict(
             False,
             "ts_beyond_chain_time_window",
             "block_timestamp_beyond_chain_time_window",
-            {"block_ts_ms": ts, "chain_floor_ms": int(floor), "max_block_time_advance_ms": int(max_advance)},
+            {
+                "block_ts_ms": ts,
+                "chain_floor_ms": int(floor),
+                "max_block_time_advance_ms": int(max_advance),
+            },
         )
-    return BlockTimeVerdict(True, details={"clock_policy": "legacy", "minimum_block_ts_ms": int(successor_ts_ms)})
+    return BlockTimeVerdict(
+        True, details={"clock_policy": "legacy", "minimum_block_ts_ms": int(successor_ts_ms)}
+    )
 
 
 def block_height_from_header(block: Mapping[str, Any] | None) -> int:

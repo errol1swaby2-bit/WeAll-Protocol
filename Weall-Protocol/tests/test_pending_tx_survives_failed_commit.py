@@ -50,7 +50,9 @@ def test_pending_tx_survives_failed_commit(tmp_path: Path) -> None:
         tx_index_path=tx_index_path,
     )
 
-    sub = ex.submit_tx(_signed_account_register(chain_id="pending-survives-failed-commit", signer="@user1"))
+    sub = ex.submit_tx(
+        _signed_account_register(chain_id="pending-survives-failed-commit", signer="@user1")
+    )
     assert sub["ok"] is True
     tx_id = sub["tx_id"]
 

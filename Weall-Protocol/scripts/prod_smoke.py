@@ -112,7 +112,9 @@ def main() -> int:
             client = TestClient(app)
 
             health = _assert_ok_json(client, "/v1/health")
-            assert bool(health.get("ok")) is True, f"/v1/health returned unexpected payload: {health}"
+            assert bool(health.get("ok")) is True, (
+                f"/v1/health returned unexpected payload: {health}"
+            )
 
             ready = _assert_ok_json(client, "/v1/readyz")
             assert "chain_id" in ready, f"/v1/readyz missing chain_id: {ready}"
@@ -132,9 +134,7 @@ def main() -> int:
 
             end_h = int(ex.read_state().get("height") or 0)
             if end_h < start_h + 1:
-                raise RuntimeError(
-                    f"block height did not advance: start={start_h} end={end_h}"
-                )
+                raise RuntimeError(f"block height did not advance: start={start_h} end={end_h}")
 
             print(
                 "OK: health/ready/status + produced empty block",

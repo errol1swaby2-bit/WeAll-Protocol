@@ -99,7 +99,9 @@ def build() -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check observer-to-validator launch flow artifact.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check observer-to-validator launch flow artifact."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()

@@ -34,8 +34,14 @@ def test_local_rehearsal_sets_one_reviewer_async_quorum() -> None:
 
     assert 'export WEALL_POH_ASYNC_N_JURORS="${WEALL_POH_ASYNC_N_JURORS:-1}"' in script
     assert 'export WEALL_POH_ASYNC_MIN_REVIEWS="${WEALL_POH_ASYNC_MIN_REVIEWS:-1}"' in script
-    assert 'export WEALL_POH_ASYNC_APPROVAL_THRESHOLD="${WEALL_POH_ASYNC_APPROVAL_THRESHOLD:-1}"' in script
-    assert 'export WEALL_POH_ASYNC_REJECTION_THRESHOLD="${WEALL_POH_ASYNC_REJECTION_THRESHOLD:-1}"' in script
+    assert (
+        'export WEALL_POH_ASYNC_APPROVAL_THRESHOLD="${WEALL_POH_ASYNC_APPROVAL_THRESHOLD:-1}"'
+        in script
+    )
+    assert (
+        'export WEALL_POH_ASYNC_REJECTION_THRESHOLD="${WEALL_POH_ASYNC_REJECTION_THRESHOLD:-1}"'
+        in script
+    )
     assert 'export WEALL_POH_ASYNC_MIN_REP_MILLI="${WEALL_POH_ASYNC_MIN_REP_MILLI:-0}"' in script
 
     assert '"async_n_jurors": "WEALL_POH_ASYNC_N_JURORS"' in executor

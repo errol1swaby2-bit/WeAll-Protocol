@@ -2,7 +2,7 @@
 
 WeAll is an experimental public-only civic protocol implementation. This repository contains the backend node/runtime, public API, frontend, operator scripts, generated evidence artifacts, and reviewer-facing documentation for the current local/devnet/public-observer-oriented hardening track.
 
-Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
 This repository should be reviewed as an implementation under active hardening. It is not a public beta, public mainnet, public validator, public multi-validator BFT, live-economics, automatic-upgrade, production-helper, legal-approval, or public storage-market readiness claim.
 
@@ -23,10 +23,11 @@ Private, direct, encrypted, inbox/outbox, chat, or protocol-native messaging is 
 | Public validator / public multi-validator BFT readiness | NO-GO | Independent validator/operator evidence remains required. |
 | Live economics | NO-GO | Fees, transfers, rewards, slashing, treasury spend, and production economics remain locked by default. |
 | Automatic protocol upgrade execution | NO-GO | Upgrade records are deterministic public metadata only; software apply, migration execution, and rollback execution are not enabled. |
+| Production cryptographic audit / post-quantum security | NO-GO | Profile-aware ML-DSA is implemented for covered authority surfaces, but fresh post-transition rehearsal evidence and external cryptographic review remain required. |
 | Legal/compliance approval | NO-GO | Legal materials are non-lawyer drafts pending counsel or controlled external review. |
 | Public storage-market readiness | NO-GO | Storage/IPFS proof is not yet a public storage-provider market claim. |
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+Current tx-canon count/version is authoritative only in `Weall-Protocol/generated/tx_index.json`; this README intentionally does not duplicate mutable values.
 
 Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
 
@@ -79,7 +80,7 @@ Frontend state is not protocol authority. Local scripts are not public-readiness
 
 | Evidence area | Canonical location | Current meaning |
 |---|---|---|
-| Public beta blocker status | `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md` and `Weall-Protocol/generated/public_beta_blocker_report_v1_5.json` | 15 blocker catalog entries remain visible; 7 are closed in repository; 8 remain open as external evidence or mainnet-hardening gates. |
+| Public beta blocker status | `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md` and `Weall-Protocol/generated/public_beta_blocker_report_v1_5.json` | Read current blocker/open/closed counts directly from the generated blocker report; public beta remains blocked while any required gate is open. |
 | Final bounded go-gate | `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` and `Weall-Protocol/generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` | NO-GO for controlled-testnet mechanism completion until production helper state-root/restart proof is complete; local observer/reviewer rehearsal remains available. |
 | Release evidence manifest | `Weall-Protocol/generated/release_evidence_manifest_v1_5.json` | Tracks generated artifacts and preserves release claim boundaries. |
 | Reviewer evidence index | `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md` | Maps implemented evidence, generated artifacts, and external transcript templates. |
@@ -116,10 +117,10 @@ Frontend state is not protocol authority. Local scripts are not public-readiness
 | Public groups | Publicly readable group content with membership-gated posting, commenting, voting, moderation, invitation, and administration. |
 | Governance | Public proposal, voting, block-height lifecycle progression, tally/finalization records, and record-only protocol-upgrade metadata. |
 | Disputes/reviews | Public report/review surfaces, block-height lifecycle progression, reviewer assignments, votes, receipts, outcomes, and restricted private identity evidence boundaries. |
-| Transaction lifecycle | Canonical tx index, admission/status surfaces, mempool/block evidence, receipts, and current tx canon checkpoint of 236 tx types, version 1.25.0. |
+| Transaction lifecycle | Canonical tx index, admission/status surfaces, mempool/block evidence, receipts, and current canon metadata from `Weall-Protocol/generated/tx_index.json`. |
 | Node/operator surfaces | Readiness/status endpoints, signed seed/validator discovery evidence, validator authority gating, observer/operator status, secret guard, and release hygiene checks. |
 | Observer boot | `WEALL_PUBLIC_TESTNET=1 bash scripts/boot_public_observer_testnet.sh` with signed/pinned registry and chain commitment checks. |
-| External evidence packages | Clean-clone/open-download observer transcript, cross-machine replay transcript, independent validator/operator transcript, real storage/IPFS transcript, legal attestation, upgrade hardening proof, and helper-topology proof. |
+| External evidence packages | Clean-clone/open-download observer transcript, cross-machine replay transcript, independent validator/operator transcript, real storage/IPFS transcript, legal attestation, upgrade hardening proof, helper-topology proof, and post-transition cryptographic review evidence. |
 
 ## What is intentionally disabled
 

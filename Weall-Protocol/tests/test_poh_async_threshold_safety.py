@@ -70,8 +70,6 @@ def _open_async_case(st: dict) -> str:
     return str(opened["case_id"])
 
 
-
-
 def _declare_async_evidence(st: dict, case_id: str, *, nonce: int = 2) -> None:
     declared = apply_tx(
         st,
@@ -88,6 +86,7 @@ def _declare_async_evidence(st: dict, case_id: str, *, nonce: int = 2) -> None:
         ),
     )
     assert declared and declared["applied"] == "POH_ASYNC_EVIDENCE_DECLARE"
+
 
 def test_async_threshold_policy_is_fixed_at_case_open() -> None:
     st = _state()
@@ -119,7 +118,11 @@ def test_async_threshold_policy_is_fixed_at_case_open() -> None:
         )
 
     assert raised.value.reason == "async_threshold_override_forbidden"
-    assert raised.value.details["fields"] == ["min_reviews", "approval_threshold", "rejection_threshold"]
+    assert raised.value.details["fields"] == [
+        "min_reviews",
+        "approval_threshold",
+        "rejection_threshold",
+    ]
     assert case["minimum_reviews"] == 3
     assert case["approval_threshold"] == 2
     assert case["rejection_threshold"] == 2

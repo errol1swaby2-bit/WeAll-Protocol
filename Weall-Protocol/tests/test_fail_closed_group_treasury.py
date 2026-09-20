@@ -7,7 +7,9 @@ from weall.runtime.apply.treasury import apply_treasury
 from weall.runtime.tx_admission_types import TxEnvelope
 
 
-def test_group_treasury_spend_sign_fails_closed_when_execute_enqueue_breaks(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_group_treasury_spend_sign_fails_closed_when_execute_enqueue_breaks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     state = {
         "height": 7,
         "group_treasury_spends": {
@@ -44,7 +46,9 @@ def test_group_treasury_spend_sign_fails_closed_when_execute_enqueue_breaks(monk
     assert excinfo.value.reason == "group_spend_execute_enqueue_failed"
 
 
-def test_group_treasury_spend_propose_fails_closed_when_expire_enqueue_breaks(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_group_treasury_spend_propose_fails_closed_when_expire_enqueue_breaks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     state = {
         "height": 11,
         "params": {"group_treasury_spend_expiry_blocks": 5},
@@ -99,7 +103,9 @@ def test_group_treasury_spend_propose_fails_closed_when_expire_enqueue_breaks(mo
     assert excinfo.value.reason == "group_spend_expire_enqueue_failed"
 
 
-def test_group_signers_set_fails_closed_when_treasury_sync_breaks(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_group_signers_set_fails_closed_when_treasury_sync_breaks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     state = {
         "roles": {
             "groups_by_id": {

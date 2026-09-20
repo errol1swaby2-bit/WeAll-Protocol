@@ -83,7 +83,11 @@ def test_group_membership_status_reports_member_and_pending_states(monkeypatch) 
 def test_group_membership_status_supports_query_account_fallback(monkeypatch) -> None:
     state = _base_state()
     monkeypatch.setattr(groups_routes, "_snapshot", lambda request: state)
-    monkeypatch.setattr(groups_routes, "require_account_session", lambda request, st: (_ for _ in ()).throw(PermissionError()))
+    monkeypatch.setattr(
+        groups_routes,
+        "require_account_session",
+        lambda request, st: (_ for _ in ()).throw(PermissionError()),
+    )
 
     body = groups_routes.v1_group_membership("g:private", _DummyRequestWithQuery(account="@alice"))
     assert body["account"] == "@alice"

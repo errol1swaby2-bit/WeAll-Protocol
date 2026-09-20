@@ -20,6 +20,9 @@ from typing import Any
 
 from weall.runtime.ballot_policy import ballot_profile_status, strict_civic_governance_enabled
 from weall.runtime.bft_hotstuff import quorum_threshold
+from weall.runtime.commitments import (
+    consensus_active_validator_ids,  # noqa: E402 -- legacy module docstring follows __future__ import
+)
 from weall.runtime.constitutional_clock import policy_from_state
 from weall.runtime.poh.state import effective_poh_tier
 from weall.runtime.reputation_events import append_reputation_event
@@ -689,14 +692,9 @@ def repair_unassigned_dispute_panels(state: Json, *, next_height: int) -> int:
 
 def _active_validator_ids(state: Json) -> list[str]:
     consensus = _as_dict(state.get("consensus"))
-    validator_set = _as_dict(consensus.get("validator_set"))
-    if isinstance(validator_set.get("active_set"), list):
-        return _normalized_str_list(
-            [
-                _resolve_account_identity(state, item)
-                for item in _normalized_str_list(validator_set.get("active_set"))
-            ]
-        )
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return _normalized_str_list([_resolve_account_identity(state, item) for item in explicit])
 
     roles = _as_dict(state.get("roles"))
     validators = _as_dict(roles.get("validators"))

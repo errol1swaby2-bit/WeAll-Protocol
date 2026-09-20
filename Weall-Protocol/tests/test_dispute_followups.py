@@ -21,7 +21,13 @@ def test_dispute_vote_submit_enqueues_resolve_and_final_receipt_chain() -> None:
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
             "bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
         },
         "roles": {},
@@ -129,11 +135,16 @@ def test_dispute_vote_submit_enqueues_resolve_and_final_receipt_chain() -> None:
 
 
 def test_affirmative_content_dispute_resolution_enforces_content_visibility() -> None:
-    idx = _load_index()
     st = {
         "height": 0,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "reputation": 10,
+            },
             "bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "reputation": 10},
         },
         "roles": {},
@@ -213,7 +224,9 @@ def test_affirmative_content_dispute_resolution_enforces_content_visibility() ->
     assert dispute["stage"] == "resolved"
     assert isinstance(dispute.get("resolution"), dict)
     actions = dispute["resolution"].get("actions")
-    assert isinstance(actions, list) and any(a.get("tx_type") == "CONTENT_VISIBILITY_SET" for a in actions)
+    assert isinstance(actions, list) and any(
+        a.get("tx_type") == "CONTENT_VISIBILITY_SET" for a in actions
+    )
 
     post = st["content"]["posts"]["post:alice:1"]
     assert post["visibility"] == "hidden"

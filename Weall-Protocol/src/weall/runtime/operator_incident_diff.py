@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json
 from typing import Any
+
 from weall.runtime.json_tools import canonical_json_str
 
 Json = dict[str, Any]

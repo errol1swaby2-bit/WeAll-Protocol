@@ -99,7 +99,9 @@ def next_halving_issuance_epoch(epoch_index: int) -> int:
     return (current_window + 1) * int(HALVING_INTERVAL_ISSUANCE_EPOCHS)
 
 
-def cap_issuance_by_remaining_supply(issued: int, raw_amount: int, *, max_supply: int = MAX_SUPPLY) -> tuple[int, int]:
+def cap_issuance_by_remaining_supply(
+    issued: int, raw_amount: int, *, max_supply: int = MAX_SUPPLY
+) -> tuple[int, int]:
     """Cap issuance so total issued supply never exceeds max_supply.
 
     Returns ``(capped_amount, remaining_after)``.

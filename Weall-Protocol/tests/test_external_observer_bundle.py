@@ -35,7 +35,9 @@ def _write_manifest(path: Path) -> Path:
     return path
 
 
-def _build_observer_bundle(tmp_path: Path, *, relay_urls: str = "https://relay.example.test") -> tuple[Path, Path]:
+def _build_observer_bundle(
+    tmp_path: Path, *, relay_urls: str = "https://relay.example.test"
+) -> tuple[Path, Path]:
     manifest = _write_manifest(tmp_path / "manifest.json")
     bundle = tmp_path / "observer-bundle.json"
     result = subprocess.run(
@@ -57,8 +59,7 @@ def _build_observer_bundle(tmp_path: Path, *, relay_urls: str = "https://relay.e
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert result.returncode == 0, result.stderr + result.stdout
@@ -80,7 +81,10 @@ def test_external_observer_bundle_builder_outputs_public_observer_bundle(tmp_pat
     assert data["observer"]["bft_enabled"] is False
     assert data["observer"]["helper_authority_enabled"] is False
     assert data["observer"]["block_loop_autostart"] is False
-    assert data["observer"]["relay_urls"] == ["https://relay-a.example.test", "https://relay-b.example.test"]
+    assert data["observer"]["relay_urls"] == [
+        "https://relay-a.example.test",
+        "https://relay-b.example.test",
+    ]
     assert data["observer"]["relay_recipient_pubkeys"] == {"genesis": GENESIS_RECIPIENT_PUBKEY}
     assert data["observer"]["relay_recipients"] == ["genesis"]
     assert "ACCOUNT_REGISTER" in data["observer"]["allowed_onboarding_transactions"]
@@ -89,7 +93,9 @@ def test_external_observer_bundle_builder_outputs_public_observer_bundle(tmp_pat
     dumped = json.dumps(data, sort_keys=True)
     assert "WEALL_NODE_PRIVKEY" in dumped  # listed only as a prohibited variable
     assert "WEALL_AUTHORITY_SIGNER_PRIVKEY" in dumped  # listed only as a prohibited variable
-    assert "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN" in dumped  # listed only as a prohibited variable
+    assert (
+        "WEALL_NAMED_HOSTING_PROVIDER_API_TOKEN" in dumped
+    )  # listed only as a prohibited variable
 
 
 def test_external_observer_bundle_verifies_and_exports_safe_observer_env(tmp_path: Path) -> None:
@@ -107,8 +113,7 @@ def test_external_observer_bundle_verifies_and_exports_safe_observer_env(tmp_pat
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert verified.returncode == 0, verified.stderr + verified.stdout
@@ -129,8 +134,7 @@ def test_external_observer_bundle_verifies_and_exports_safe_observer_env(tmp_pat
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert env_result.returncode == 0, env_result.stderr + env_result.stdout
@@ -149,7 +153,7 @@ def test_external_observer_bundle_verifies_and_exports_safe_observer_env(tmp_pat
 
 def test_external_observer_smoke_consumes_bundle_genesis_api_env() -> None:
     script = SMOKE_SCRIPT.read_text(encoding="utf-8")
-    assert "GENESIS_API_BASE=\"${GENESIS_API_BASE:-${WEALL_GENESIS_API_BASE:-}}\"" in script
+    assert 'GENESIS_API_BASE="${GENESIS_API_BASE:-${WEALL_GENESIS_API_BASE:-}}"' in script
     assert "WEALL_NET_RELAY_URLS" in script
     assert "WEALL_NET_RELAY_RECIPIENT_PUBKEYS" in script
     assert "require_recipient_pubkey" in script
@@ -175,7 +179,11 @@ def test_legacy_bundle_requires_explicit_allow_legacy_bundle_batch_reviewer() ->
     import importlib.util
     from pathlib import Path
 
-    script = Path(__file__).resolve().parents[1] / "scripts" / "verify_node_operator_onboarding_bundle.py"
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "verify_node_operator_onboarding_bundle.py"
+    )
     spec = importlib.util.spec_from_file_location("verify_node_operator_onboarding_bundle", script)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
@@ -203,6 +211,8 @@ def test_legacy_bundle_requires_explicit_allow_legacy_bundle_batch_reviewer() ->
     assert denied["ok"] is False
     assert "legacy_bundle_requires_explicit_allow_legacy_bundle" in denied["issues"]
 
-    allowed = mod._validate(bundle, None, allow_placeholder_authority=False, allow_legacy_bundle=True)
+    allowed = mod._validate(
+        bundle, None, allow_placeholder_authority=False, allow_legacy_bundle=True
+    )
     assert allowed["ok"] is True
     assert "legacy_bundle_observer_posture_not_present" in allowed["warnings"]

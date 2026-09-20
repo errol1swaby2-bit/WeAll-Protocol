@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives import serialization
 
 from weall.crypto.sig import sign_tx_envelope_dict
 from weall.runtime.executor import WeAllExecutor

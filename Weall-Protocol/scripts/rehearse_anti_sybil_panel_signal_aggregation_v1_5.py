@@ -5,7 +5,12 @@ import argparse
 import json
 from typing import Any
 
-from weall.runtime.apply.poh import aggregate_poh_sybil_signals, select_poh_adjudication_panel, record_poh_collusion_adjudication, execute_poh_evidence_deletion
+from weall.runtime.apply.poh import (
+    aggregate_poh_sybil_signals,
+    execute_poh_evidence_deletion,
+    record_poh_collusion_adjudication,
+    select_poh_adjudication_panel,
+)
 
 
 def run_harness() -> dict[str, Any]:
@@ -75,8 +80,15 @@ def run_harness() -> dict[str, Any]:
         decision="confirmed",
         adjudicator_panel_id=panel["panel_id"],
     )
-    deletion = execute_poh_evidence_deletion(state, challenge_id="pohc:subject:1", reason="adjudicated_and_remedy_completed")
-    ok = bool(signals["requires_adjudication_panel"] and panel["selected_count"] == 3 and adjudication["status"] == "adjudicated_confirmed" and deletion["deleted"])
+    deletion = execute_poh_evidence_deletion(
+        state, challenge_id="pohc:subject:1", reason="adjudicated_and_remedy_completed"
+    )
+    ok = bool(
+        signals["requires_adjudication_panel"]
+        and panel["selected_count"] == 3
+        and adjudication["status"] == "adjudicated_confirmed"
+        and deletion["deleted"]
+    )
     return {
         "ok": ok,
         "batch": "575",
@@ -91,7 +103,10 @@ def run_harness() -> dict[str, Any]:
 
 
 def main() -> int:
-    argparse.ArgumentParser().parse_args(); print(json.dumps(run_harness(), sort_keys=True, indent=2)); return 0
+    argparse.ArgumentParser().parse_args()
+    print(json.dumps(run_harness(), sort_keys=True, indent=2))
+    return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

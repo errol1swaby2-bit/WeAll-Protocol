@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
-from weall.runtime.reputation_units import account_reputation_units
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
+from weall.runtime.reputation_units import account_reputation_units
 
 Json = dict[str, Any]
 
@@ -42,14 +43,12 @@ class ProductionPreflightResult:
         return not self.hard_fail_reasons and not self.maintenance_reasons
 
 
-
 def _append_unique(items: list[str], *values: str) -> None:
     seen = set(items)
     for value in values:
         if value and value not in seen:
             items.append(value)
             seen.add(value)
-
 
 
 def _node_key_candidates() -> tuple[str, ...]:
@@ -67,14 +66,12 @@ def _node_key_candidates() -> tuple[str, ...]:
     return tuple(out)
 
 
-
 def _account_record(state: Mapping[str, Any], account: str) -> Mapping[str, Any]:
     accounts = state.get("accounts")
     if not account or not isinstance(accounts, dict):
         return {}
     rec = accounts.get(account)
     return rec if isinstance(rec, dict) else {}
-
 
 
 def _extract_active_pubkeys(acct: Mapping[str, Any]) -> tuple[str, ...]:
@@ -111,8 +108,9 @@ def _extract_active_pubkeys(acct: Mapping[str, Any]) -> tuple[str, ...]:
     return tuple(sorted(out))
 
 
-
-def _extract_active_device_pubkeys(acct: Mapping[str, Any], *, device_type: str = "") -> tuple[str, ...]:
+def _extract_active_device_pubkeys(
+    acct: Mapping[str, Any], *, device_type: str = ""
+) -> tuple[str, ...]:
     out: list[str] = []
     seen: set[str] = set()
     devices = acct.get("devices")
@@ -153,7 +151,6 @@ def _node_key_authorized(account_record: Mapping[str, Any], *, bound_account: st
     return False
 
 
-
 def _bound_account(state: Mapping[str, Any], node_id: str) -> str:
     configured = str(
         os.environ.get("WEALL_BOUND_ACCOUNT") or os.environ.get("WEALL_VALIDATOR_ACCOUNT") or ""
@@ -170,7 +167,6 @@ def _bound_account(state: Mapping[str, Any], node_id: str) -> str:
     return ""
 
 
-
 def _required_poh_tier(requested_roles: tuple[str, ...]) -> int:
     explicit = os.environ.get("WEALL_PRODUCTION_REQUIRED_POH_TIER")
     if explicit is not None:
@@ -178,10 +174,12 @@ def _required_poh_tier(requested_roles: tuple[str, ...]) -> int:
             return max(0, int(str(explicit).strip()))
         except Exception:
             return 0
-    if any(role in requested_roles for role in ("validator", "helper", "node_operator", "storage_operator", "general_service")):
+    if any(
+        role in requested_roles
+        for role in ("validator", "helper", "node_operator", "storage_operator", "general_service")
+    ):
         return 2
     return 0
-
 
 
 def _required_reputation_milli(requested_roles: tuple[str, ...]) -> int:
@@ -205,11 +203,9 @@ def _required_reputation_milli(requested_roles: tuple[str, ...]) -> int:
     return 0
 
 
-
 def _role_bucket(roles: Mapping[str, Any], bucket: str) -> Mapping[str, Any]:
     rec = roles.get(bucket)
     return rec if isinstance(rec, dict) else {}
-
 
 
 def _bucket_has_active(bucket: Mapping[str, Any], account: str) -> bool:
@@ -219,14 +215,12 @@ def _bucket_has_active(bucket: Mapping[str, Any], account: str) -> bool:
     return account in {str(v).strip() for v in active if str(v).strip()}
 
 
-
 def _bucket_has_enrolled(bucket: Mapping[str, Any], account: str) -> bool:
     by_id = bucket.get("by_id")
     if not isinstance(by_id, dict):
         return False
     rec = by_id.get(account)
     return isinstance(rec, dict) and bool(rec.get("enrolled", False))
-
 
 
 def _node_operator_record(roles: Mapping[str, Any], account: str) -> Mapping[str, Any]:
@@ -265,7 +259,9 @@ def _responsibility_requested(op_rec: Mapping[str, Any], name: str) -> bool:
     return bool(rec.get("opted_in", False))
 
 
-def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+def _role_state_lists(
+    state: Mapping[str, Any], bound_account: str
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
     if not bound_account:
         return (), ()
 
@@ -301,7 +297,9 @@ def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tup
         suspended_roles.append("node_operator")
 
     helper_active = bool(isinstance(helper, dict) and helper.get("active"))
-    helper_requested = bool(isinstance(helper, dict) and helper.get("status") not in (None, "", "not_opted_in"))
+    helper_requested = bool(
+        isinstance(helper, dict) and helper.get("status") not in (None, "", "not_opted_in")
+    )
     if baseline_active and helper_active:
         active_roles.append("helper")
     elif helper_requested:
@@ -311,14 +309,22 @@ def _role_state_lists(state: Mapping[str, Any], bound_account: str) -> tuple[tup
     # posture. Legacy validator active_set remains accepted for compatibility,
     # but new operator onboarding should populate responsibilities.validator.
     validator_active = bool(isinstance(validator, dict) and validator.get("active"))
-    validator_requested = bool(isinstance(validator, dict) and validator.get("status") not in (None, "", "not_opted_in"))
-    if baseline_active and (validator_active or _bucket_has_active(validator_bucket, bound_account)):
+    validator_requested = bool(
+        isinstance(validator, dict) and validator.get("status") not in (None, "", "not_opted_in")
+    )
+    if baseline_active and (
+        validator_active or _bucket_has_active(validator_bucket, bound_account)
+    ):
         active_roles.append("validator")
-    elif baseline_active and (validator_requested or _bucket_has_enrolled(validator_bucket, bound_account)):
+    elif baseline_active and (
+        validator_requested or _bucket_has_enrolled(validator_bucket, bound_account)
+    ):
         suspended_roles.append("validator")
 
     storage_active = bool(isinstance(storage, dict) and storage.get("active"))
-    storage_requested = bool(isinstance(storage, dict) and storage.get("status") not in (None, "", "not_opted_in"))
+    storage_requested = bool(
+        isinstance(storage, dict) and storage.get("status") not in (None, "", "not_opted_in")
+    )
     if baseline_active and storage_active:
         active_roles.append("storage_operator")
     elif baseline_active and storage_requested:
@@ -447,10 +453,16 @@ def evaluate_production_preflight(
         effective_roles.append("general_service")
 
     helper_effective = bool(
-        helper_requested and "helper" in effective_roles and not hard_fail_reasons and not maintenance_reasons
+        helper_requested
+        and "helper" in effective_roles
+        and not hard_fail_reasons
+        and not maintenance_reasons
     )
     bft_effective = bool(
-        bft_requested and "validator" in effective_roles and not hard_fail_reasons and not maintenance_reasons
+        bft_requested
+        and "validator" in effective_roles
+        and not hard_fail_reasons
+        and not maintenance_reasons
     )
 
     return ProductionPreflightResult(

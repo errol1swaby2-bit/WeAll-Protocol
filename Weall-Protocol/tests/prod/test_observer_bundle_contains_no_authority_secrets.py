@@ -55,8 +55,7 @@ def test_observer_bundle_contains_no_authority_secrets(tmp_path: Path) -> None:
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert result.returncode == 0, result.stderr + result.stdout
@@ -73,8 +72,7 @@ def test_observer_bundle_contains_no_authority_secrets(tmp_path: Path) -> None:
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert verified.returncode == 0, verified.stderr + verified.stdout

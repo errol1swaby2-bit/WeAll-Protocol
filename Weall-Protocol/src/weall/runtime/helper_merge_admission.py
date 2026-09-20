@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping, Sequence
-from weall.runtime.commitments import receipts_root, value_sha256
+from typing import Any
 
+from weall.runtime.commitments import receipts_root, value_sha256
 from weall.runtime.helper_proposal_orchestrator import HelperLaneResolution
 
-
 Json = dict[str, Any]
-
 
 
 def canonical_receipts_root(receipts: Sequence[Mapping[str, Any]]) -> str:
@@ -51,7 +50,7 @@ class HelperMergeCandidate:
         state_delta: Mapping[str, Any],
         tx_ids: Sequence[str] = (),
         plan_id: str = "",
-    ) -> "HelperMergeCandidate":
+    ) -> HelperMergeCandidate:
         receipts_tuple = tuple(dict(r) for r in receipts)
         delta_dict = dict(state_delta)
         tx_ids_tuple = tuple(str(v) for v in tx_ids)
@@ -156,18 +155,58 @@ def admit_helper_merge(
     for resolution in sorted(resolutions, key=lambda item: item.lane_id):
         lane_id = str(resolution.lane_id or "")
         if not lane_id:
-            return HelperMergeAdmissionDecision(False, "empty_lane_id", "", "", len(candidates), effective_plan_id, "resolution", lane_id, "empty lane id")
+            return HelperMergeAdmissionDecision(
+                False,
+                "empty_lane_id",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "resolution",
+                lane_id,
+                "empty lane id",
+            )
         if lane_id in seen_lane_ids:
-            return HelperMergeAdmissionDecision(False, "duplicate_lane_resolution", "", "", len(candidates), effective_plan_id, "resolution", lane_id, "duplicate lane resolution")
+            return HelperMergeAdmissionDecision(
+                False,
+                "duplicate_lane_resolution",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "resolution",
+                lane_id,
+                "duplicate lane resolution",
+            )
         seen_lane_ids.add(lane_id)
 
         lane_result = lane_results_by_id.get(lane_id)
         if not isinstance(lane_result, dict):
-            return HelperMergeAdmissionDecision(False, "missing_lane_result", "", "", len(candidates), effective_plan_id, "lane_result", lane_id, "missing lane result")
+            return HelperMergeAdmissionDecision(
+                False,
+                "missing_lane_result",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "lane_result",
+                lane_id,
+                "missing lane result",
+            )
         receipts = lane_result.get("receipts")
         state_delta = lane_result.get("state_delta")
         if not isinstance(receipts, (list, tuple)) or not isinstance(state_delta, dict):
-            return HelperMergeAdmissionDecision(False, "malformed_lane_result", "", "", len(candidates), effective_plan_id, "lane_result", lane_id, "malformed lane result")
+            return HelperMergeAdmissionDecision(
+                False,
+                "malformed_lane_result",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "lane_result",
+                lane_id,
+                "malformed lane result",
+            )
 
         plan = None if lane_plan_by_id is None else lane_plan_by_id.get(lane_id)
         expected_tx_ids = tuple(str(v) for v in list(lane_result.get("tx_ids") or ()) if str(v))
@@ -175,25 +214,99 @@ def admit_helper_merge(
             expected_tx_ids = tuple(str(v) for v in getattr(plan, "tx_ids", ()) or ())
         observed_tx_ids = tuple(str(r.get("tx_id") or "") for r in receipts)
         if expected_tx_ids and observed_tx_ids != expected_tx_ids:
-            return HelperMergeAdmissionDecision(False, "lane_tx_ids_mismatch", "", "", len(candidates), effective_plan_id, "lane_result", lane_id, "receipt tx order did not match expected lane tx ids", (), expected_tx_ids or observed_tx_ids)
+            return HelperMergeAdmissionDecision(
+                False,
+                "lane_tx_ids_mismatch",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "lane_result",
+                lane_id,
+                "receipt tx order did not match expected lane tx ids",
+                (),
+                expected_tx_ids or observed_tx_ids,
+            )
         if observed_tx_ids and len(set(observed_tx_ids)) != len(observed_tx_ids):
-            return HelperMergeAdmissionDecision(False, "duplicate_lane_receipt_tx_id", "", "", len(candidates), effective_plan_id, "lane_result", lane_id, "duplicate receipt tx id within lane", (), tuple(sorted(observed_tx_ids)))
+            return HelperMergeAdmissionDecision(
+                False,
+                "duplicate_lane_receipt_tx_id",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "lane_result",
+                lane_id,
+                "duplicate receipt tx id within lane",
+                (),
+                tuple(sorted(observed_tx_ids)),
+            )
         if expected_tx_ids and len(set(expected_tx_ids)) != len(expected_tx_ids):
-            return HelperMergeAdmissionDecision(False, "duplicate_lane_tx_id", "", "", len(candidates), effective_plan_id, "lane_result", lane_id, "duplicate tx id metadata within lane", (), tuple(sorted(expected_tx_ids)))
+            return HelperMergeAdmissionDecision(
+                False,
+                "duplicate_lane_tx_id",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "lane_result",
+                lane_id,
+                "duplicate tx id metadata within lane",
+                (),
+                tuple(sorted(expected_tx_ids)),
+            )
         if expected_tx_ids:
-            overlap = tuple(sorted(tx_id for tx_id in expected_tx_ids if tx_id in seen_candidate_tx_ids))
+            overlap = tuple(
+                sorted(tx_id for tx_id in expected_tx_ids if tx_id in seen_candidate_tx_ids)
+            )
             if overlap:
-                return HelperMergeAdmissionDecision(False, "cross_lane_tx_id_conflict", "", "", len(candidates), effective_plan_id, "lane_result", lane_id, "tx id overlap across helper lanes", (), overlap)
+                return HelperMergeAdmissionDecision(
+                    False,
+                    "cross_lane_tx_id_conflict",
+                    "",
+                    "",
+                    len(candidates),
+                    effective_plan_id,
+                    "lane_result",
+                    lane_id,
+                    "tx id overlap across helper lanes",
+                    (),
+                    overlap,
+                )
             seen_candidate_tx_ids.update(expected_tx_ids)
         if observed_tx_ids:
-            receipt_overlap = tuple(sorted(tx_id for tx_id in observed_tx_ids if tx_id in seen_receipt_tx_ids))
+            receipt_overlap = tuple(
+                sorted(tx_id for tx_id in observed_tx_ids if tx_id in seen_receipt_tx_ids)
+            )
             if receipt_overlap:
-                return HelperMergeAdmissionDecision(False, "cross_lane_receipt_tx_id_conflict", "", "", len(candidates), effective_plan_id, "lane_result", lane_id, "receipt tx id overlap across helper lanes", (), receipt_overlap)
+                return HelperMergeAdmissionDecision(
+                    False,
+                    "cross_lane_receipt_tx_id_conflict",
+                    "",
+                    "",
+                    len(candidates),
+                    effective_plan_id,
+                    "lane_result",
+                    lane_id,
+                    "receipt tx id overlap across helper lanes",
+                    (),
+                    receipt_overlap,
+                )
             seen_receipt_tx_ids.update(observed_tx_ids)
 
         lane_result_plan_id = str(lane_result.get("plan_id") or "")
         if effective_plan_id and lane_result_plan_id and lane_result_plan_id != effective_plan_id:
-            return HelperMergeAdmissionDecision(False, "plan_id_mismatch", "", "", len(candidates), effective_plan_id, "plan_binding", lane_id, "lane result plan id mismatch")
+            return HelperMergeAdmissionDecision(
+                False,
+                "plan_id_mismatch",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "plan_binding",
+                lane_id,
+                "lane result plan id mismatch",
+            )
 
         candidate = HelperMergeCandidate.from_resolution(
             resolution,
@@ -207,16 +320,58 @@ def admit_helper_merge(
         if cert is not None:
             cert_plan_id = str(getattr(cert, "plan_id", "") or "")
             if effective_plan_id and cert_plan_id and cert_plan_id != effective_plan_id:
-                return HelperMergeAdmissionDecision(False, "certificate_plan_id_mismatch", "", "", len(candidates), effective_plan_id, "certificate", lane_id, "certificate plan id mismatch")
+                return HelperMergeAdmissionDecision(
+                    False,
+                    "certificate_plan_id_mismatch",
+                    "",
+                    "",
+                    len(candidates),
+                    effective_plan_id,
+                    "certificate",
+                    lane_id,
+                    "certificate plan id mismatch",
+                )
             cert_receipts_root = str(getattr(cert, "receipts_root", "") or "")
             cert_delta_hash = str(getattr(cert, "lane_delta_hash", "") or "")
             cert_tx_ids = tuple(str(v) for v in getattr(cert, "tx_ids", ()) or ())
             if cert_receipts_root and cert_receipts_root != candidate.receipts_root:
-                return HelperMergeAdmissionDecision(False, "receipts_root_mismatch", "", "", len(candidates), effective_plan_id, "certificate", lane_id, "certificate receipts root mismatch")
+                return HelperMergeAdmissionDecision(
+                    False,
+                    "receipts_root_mismatch",
+                    "",
+                    "",
+                    len(candidates),
+                    effective_plan_id,
+                    "certificate",
+                    lane_id,
+                    "certificate receipts root mismatch",
+                )
             if cert_delta_hash and cert_delta_hash != candidate.state_delta_hash:
-                return HelperMergeAdmissionDecision(False, "state_delta_hash_mismatch", "", "", len(candidates), effective_plan_id, "certificate", lane_id, "certificate state delta hash mismatch")
+                return HelperMergeAdmissionDecision(
+                    False,
+                    "state_delta_hash_mismatch",
+                    "",
+                    "",
+                    len(candidates),
+                    effective_plan_id,
+                    "certificate",
+                    lane_id,
+                    "certificate state delta hash mismatch",
+                )
             if cert_tx_ids and candidate.tx_ids and cert_tx_ids != candidate.tx_ids:
-                return HelperMergeAdmissionDecision(False, "certificate_tx_ids_mismatch", "", "", len(candidates), effective_plan_id, "certificate", lane_id, "certificate tx ids mismatch", (), cert_tx_ids or candidate.tx_ids)
+                return HelperMergeAdmissionDecision(
+                    False,
+                    "certificate_tx_ids_mismatch",
+                    "",
+                    "",
+                    len(candidates),
+                    effective_plan_id,
+                    "certificate",
+                    lane_id,
+                    "certificate tx ids mismatch",
+                    (),
+                    cert_tx_ids or candidate.tx_ids,
+                )
 
         candidates.append(candidate)
 
@@ -224,7 +379,17 @@ def admit_helper_merge(
         expected_lanes = tuple(sorted(str(k) for k in lane_plan_by_id.keys()))
         resolved_lanes = tuple(sorted(seen_lane_ids))
         if require_all_lanes_resolved and expected_lanes != resolved_lanes:
-            return HelperMergeAdmissionDecision(False, "lane_resolution_set_mismatch", "", "", len(candidates), effective_plan_id, "resolution", "", "resolved helper lanes did not match lane plan")
+            return HelperMergeAdmissionDecision(
+                False,
+                "lane_resolution_set_mismatch",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "resolution",
+                "",
+                "resolved helper lanes did not match lane plan",
+            )
 
     try:
         merged_delta = merge_state_deltas(tuple(candidates))
@@ -244,12 +409,24 @@ def admit_helper_merge(
                 (str(payload[1]),),
                 (),
             )
-        return HelperMergeAdmissionDecision(False, str(exc), "", "", len(candidates), effective_plan_id, "merge", "", str(exc))
+        return HelperMergeAdmissionDecision(
+            False, str(exc), "", "", len(candidates), effective_plan_id, "merge", "", str(exc)
+        )
 
     if serial_equivalence_fn is not None:
         ok = bool(serial_equivalence_fn(tuple(candidates)))
         if not ok:
-            return HelperMergeAdmissionDecision(False, "serial_equivalence_failed", "", "", len(candidates), effective_plan_id, "serial_equivalence", "", "serial equivalence function rejected helper merge")
+            return HelperMergeAdmissionDecision(
+                False,
+                "serial_equivalence_failed",
+                "",
+                "",
+                len(candidates),
+                effective_plan_id,
+                "serial_equivalence",
+                "",
+                "serial equivalence function rejected helper merge",
+            )
 
     ordered_receipts = helper_receipts_from_candidates(tuple(candidates))
     return HelperMergeAdmissionDecision(

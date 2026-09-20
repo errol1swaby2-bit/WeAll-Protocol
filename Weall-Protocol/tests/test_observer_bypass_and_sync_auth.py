@@ -88,7 +88,11 @@ def test_prod_state_sync_request_requires_operator_token(monkeypatch) -> None:
 
     monkeypatch.setenv("WEALL_STATE_SYNC_OPERATOR_TOKEN", "sync-secret")
     with _client() as client:
-        bad = client.post("/v1/sync/request", json={"mode": "delta"}, headers={"X-WeAll-State-Sync-Operator-Token": "wrong"})
+        bad = client.post(
+            "/v1/sync/request",
+            json={"mode": "delta"},
+            headers={"X-WeAll-State-Sync-Operator-Token": "wrong"},
+        )
         assert bad.status_code == 403, bad.text
         assert bad.json()["detail"]["code"] == "forbidden"
 
@@ -138,7 +142,11 @@ def test_media_provider_urls_need_token_even_on_loopback_in_prod(monkeypatch) ->
         "chain_id": "batch367",
         "height": 0,
         "content": {"media": {"media:1": {"payload": {"cid": cid}}}},
-        "storage": {"pin_confirms": [{"cid": cid, "ok": True, "provider_url": "https://lan.internal.example/ipfs/{cid}"}]},
+        "storage": {
+            "pin_confirms": [
+                {"cid": cid, "ok": True, "provider_url": "https://lan.internal.example/ipfs/{cid}"}
+            ]
+        },
     }
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_OPERATOR_TOKEN", "media-secret")
@@ -151,7 +159,9 @@ def test_media_provider_urls_need_token_even_on_loopback_in_prod(monkeypatch) ->
         assert public.json()["urls_redacted"] is True
         assert "internal.example" not in json.dumps(public.json())
 
-        operator = client.get(f"/v1/media/providers/{cid}", headers={"X-WeAll-Operator-Token": "media-secret"})
+        operator = client.get(
+            f"/v1/media/providers/{cid}", headers={"X-WeAll-Operator-Token": "media-secret"}
+        )
         assert operator.status_code == 200, operator.text
         assert operator.json()["urls_redacted"] is False
         assert "edge.internal.example" in json.dumps(operator.json())
@@ -162,6 +172,15 @@ def test_onboarding_boot_wrapper_sets_secure_observer_defaults() -> None:
 
     root = Path(__file__).resolve().parents[1]
     script = (root / "scripts" / "boot_onboarding_node.sh").read_text(encoding="utf-8")
-    assert 'WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN="${WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN:-1}"' in script
-    assert 'WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT="${WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT:-0}"' in script
-    assert 'WEALL_MEDIA_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL="${WEALL_MEDIA_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL:-1}"' in script
+    assert (
+        'WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN="${WEALL_STATE_SYNC_REQUEST_REQUIRE_OPERATOR_TOKEN:-1}"'
+        in script
+    )
+    assert (
+        'WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT="${WEALL_MEDIA_GATEWAY_ALLOW_DIRECT_REDIRECT:-0}"'
+        in script
+    )
+    assert (
+        'WEALL_MEDIA_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL="${WEALL_MEDIA_REQUIRE_OPERATOR_TOKEN_FOR_LOCAL:-1}"'
+        in script
+    )

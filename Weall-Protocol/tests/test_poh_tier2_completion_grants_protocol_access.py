@@ -42,7 +42,9 @@ def _reviewer_record(*, live: bool = False, tier2: bool = False) -> dict:
     }
 
 
-def _state_with_tier1_subject(*, live_reviewers: bool = False, tier2_reviewers: bool = False) -> dict:
+def _state_with_tier1_subject(
+    *, live_reviewers: bool = False, tier2_reviewers: bool = False
+) -> dict:
     state = {
         "chain_id": "test",
         "height": 11,
@@ -118,12 +120,21 @@ def test_live_finalize_upgrades_canonical_status_so_tier2_protocol_actions_unloc
     )
 
     for i, juror in enumerate(["j1", "j2", "j3"], start=4):
-        apply_tx(state, _env("POH_LIVE_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": i}, signer=juror, nonce=i))
+        apply_tx(
+            state,
+            _env("POH_LIVE_JUROR_ACCEPT", {"case_id": case_id, "ts_ms": i}, signer=juror, nonce=i),
+        )
         apply_tx(
             state,
             _env(
                 "POH_LIVE_ATTENDANCE_MARK",
-                {"case_id": case_id, "juror_id": juror, "attended": True, "session_commitment": "session:cmt:alice", "ts_ms": i + 10},
+                {
+                    "case_id": case_id,
+                    "juror_id": juror,
+                    "attended": True,
+                    "session_commitment": "session:cmt:alice",
+                    "ts_ms": i + 10,
+                },
                 signer=juror,
                 nonce=i + 10,
             ),
@@ -132,7 +143,12 @@ def test_live_finalize_upgrades_canonical_status_so_tier2_protocol_actions_unloc
             state,
             _env(
                 "POH_LIVE_VERDICT_SUBMIT",
-                {"case_id": case_id, "verdict": "pass", "session_commitment": "session:cmt:alice", "ts_ms": i + 20},
+                {
+                    "case_id": case_id,
+                    "verdict": "pass",
+                    "session_commitment": "session:cmt:alice",
+                    "ts_ms": i + 20,
+                },
                 signer=juror,
                 nonce=i + 20,
             ),
@@ -197,9 +213,24 @@ def test_legacy_tier2_finalize_upgrades_existing_canonical_tier1_status() -> Non
             parent="POH_TIER2_REQUEST_OPEN",
         ),
     )
-    apply_tx(state, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j1", nonce=3))
-    apply_tx(state, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j2", nonce=4))
-    apply_tx(state, _env("POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "fail"}, signer="j3", nonce=5))
+    apply_tx(
+        state,
+        _env(
+            "POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j1", nonce=3
+        ),
+    )
+    apply_tx(
+        state,
+        _env(
+            "POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "pass"}, signer="j2", nonce=4
+        ),
+    )
+    apply_tx(
+        state,
+        _env(
+            "POH_TIER2_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "fail"}, signer="j3", nonce=5
+        ),
+    )
 
     finalized = apply_tx(
         state,
@@ -226,7 +257,14 @@ def test_bootstrap_tier2_grant_also_updates_canonical_status_for_protocol_access
         "chain_id": "test",
         "height": 3,
         "accounts": {
-            "alice": {"nonce": 0, "poh_tier": 1, "pubkey": "alice-pk", "pubkeys": ["alice-pk"], "banned": False, "locked": False},
+            "alice": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "pubkey": "alice-pk",
+                "pubkeys": ["alice-pk"],
+                "banned": False,
+                "locked": False,
+            },
         },
         "params": {
             "system_signer": "SYSTEM",

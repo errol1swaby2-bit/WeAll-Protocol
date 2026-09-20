@@ -12,6 +12,8 @@ from weall.runtime.ballot_policy import (
     strict_civic_governance_enabled,
 )
 from weall.runtime.bft_hotstuff import quorum_threshold
+from weall.runtime.bounded_rollback import materialize_journaled
+from weall.runtime.commitments import consensus_active_validator_ids
 from weall.runtime.econ_phase import is_econ_unlocked, is_economic_system_tx
 from weall.runtime.errors import ApplyError
 from weall.runtime.param_policy import validate_param_blob
@@ -446,9 +448,9 @@ def _configured_active_validator_ids(state: Json) -> list[str]:
 
     consensus_present = isinstance(state.get("consensus"), dict)
     consensus = _d(state.get("consensus"))
-    validator_set = _d(consensus.get("validator_set"))
-    if isinstance(validator_set.get("active_set"), list):
-        return _normalize_identity_list(state, validator_set.get("active_set"))
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return _normalize_identity_list(state, explicit)
 
     roles_present = isinstance(state.get("roles"), dict)
     roles = _d(state.get("roles"))
@@ -523,11 +525,10 @@ def _active_validator_ids(state: Json) -> list[str]:
     roles_validator_config_present = roles_present and "validators" in roles
     validators_active_declared = isinstance(validators.get("active_set"), list)
     consensus = _d(state.get("consensus"))
-    validator_set = _d(consensus.get("validator_set"))
     consensus_validator_config_present = consensus_present and (
         "validator_set" in consensus or "validators" in consensus
     )
-    consensus_active_declared = isinstance(validator_set.get("active_set"), list)
+    consensus_active_declared = consensus_active_validator_ids(state) is not None
 
     explicit_empty_active_set = (roles_validator_config_present and validators_active_declared) or (
         consensus_validator_config_present and consensus_active_declared
@@ -2302,7 +2303,9 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
         tx_type = _s(a.get("tx_type")).strip().upper()
         if not tx_type:
             continue
-        ap = dict(_d(a.get("payload")))
+        ap = materialize_journaled(_d(a.get("payload")))
+        if not isinstance(ap, dict):
+            raise ApplyError("invalid_payload", "governance_action_payload_not_object", {})
         if parent_ref:
             ap.setdefault("_parent_ref", parent_ref)
 
@@ -2341,12 +2344,12 @@ def _apply_gov_execute(state: Json, env: TxEnvelope) -> dict[str, Any]:
 
     execs = pr.get("executions")
     if not isinstance(execs, list):
-        execs = []
-        pr["executions"] = execs
+        pr["executions"] = []
+        execs = pr["executions"]
     execs.append(
         {
             "height": int(h),
-            "actions": actions,
+            "actions": materialize_journaled(actions),
             "execution_hash": execution_hash,
             "emitted_actions": list(emitted_actions),
         }

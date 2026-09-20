@@ -144,7 +144,12 @@ def test_received_helper_execution_rederives_plan_and_reverifies_full_mldsa_cert
     assert reason == "ok"
 
     tampered = cert.to_json()
-    tampered["helper_signature"] = "00" + str(tampered["helper_signature"])[2:]
+    original_signature = str(tampered["helper_signature"])
+    assert len(original_signature) >= 2
+    tampered["helper_signature"] = (
+        f"{int(original_signature[:2], 16) ^ 0x01:02x}" + original_signature[2:]
+    )
+    assert tampered["helper_signature"] != original_signature
     block["helper_execution"]["accepted_certificates"][0]["certificate"] = tampered
     ok, reason = validate_received_helper_execution(
         block=block,

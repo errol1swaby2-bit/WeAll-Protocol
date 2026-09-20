@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from weall.runtime.executor import ExecutorError, WeAllExecutor
-from weall.runtime.state_hash import compute_state_root
 from weall.runtime.node_operator_responsibilities import evaluate_node_operator_responsibilities
+from weall.runtime.state_hash import compute_state_root
 
 ROOT = Path(__file__).resolve().parents[1]
 FOUNDER = "@errol-genesis"
@@ -27,13 +27,19 @@ def _prod_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("WEALL_SIGVERIFY", "1")
     monkeypatch.setenv("WEALL_SYNC_REQUIRE_TRUSTED_ANCHOR", "1")
     monkeypatch.setenv("WEALL_STATE_SYNC_REQUIRE_TRUSTED_ANCHOR", "1")
-    monkeypatch.setenv("WEALL_CHAIN_MANIFEST_PATH", str(ROOT / "configs" / "chains" / "weall-genesis.json"))
-    monkeypatch.setenv("WEALL_GENESIS_LEDGER_PATH", str(ROOT / "configs" / "genesis.ledger.prod.json"))
+    monkeypatch.setenv(
+        "WEALL_CHAIN_MANIFEST_PATH", str(ROOT / "configs" / "chains" / "weall-genesis.json")
+    )
+    monkeypatch.setenv(
+        "WEALL_GENESIS_LEDGER_PATH", str(ROOT / "configs" / "genesis.ledger.prod.json")
+    )
     monkeypatch.setenv("WEALL_PREVENT_REBOOTSTRAP_ON_EXISTING_DB", "1")
 
 
 def test_production_genesis_file_is_complete_for_validator_preflight() -> None:
-    genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
+    genesis = json.loads(
+        (ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8")
+    )
     founder = genesis["accounts"][FOUNDER]
 
     assert founder["poh_tier"] == 2
@@ -72,7 +78,10 @@ def test_prod_first_boot_loads_pinned_genesis_and_validator_is_effective(
     )
 
     assert compute_state_root(ex.state) == manifest["genesis_state_root"]
-    assert ex.state["accounts"][FOUNDER]["devices"]["by_id"]["node:founding"]["pubkey"] == FOUNDER_PUBKEY
+    assert (
+        ex.state["accounts"][FOUNDER]["devices"]["by_id"]["node:founding"]["pubkey"]
+        == FOUNDER_PUBKEY
+    )
     assert status["promotion_preflight_passed"] is True, status
     assert status["bft_enabled_effective"] is True, status
     assert status["promotion_failure_reasons"] == []
@@ -85,7 +94,9 @@ def test_prod_existing_db_without_ledger_refuses_rebootstrap(
     db_path = tmp_path / "prod-genesis.db"
     db_path.write_bytes(b"")
 
-    with pytest.raises(ExecutorError, match="production_rebootstrap_refused_existing_db_without_ledger"):
+    with pytest.raises(
+        ExecutorError, match="production_rebootstrap_refused_existing_db_without_ledger"
+    ):
         WeAllExecutor(
             db_path=str(db_path),
             node_id=FOUNDER,

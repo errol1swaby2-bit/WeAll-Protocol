@@ -41,7 +41,12 @@ def test_node_operator_activation_does_not_opt_in_reviewer_lanes() -> None:
     state = {
         "height": 1,
         "accounts": {"alice": _tier2_account()},
-        "roles": {"node_operators": {"by_id": {"alice": {"account_id": "alice", "enrolled": True}}, "active_set": []}},
+        "roles": {
+            "node_operators": {
+                "by_id": {"alice": {"account_id": "alice", "enrolled": True}},
+                "active_set": [],
+            }
+        },
     }
 
     out = apply_tx(
@@ -121,7 +126,15 @@ def test_dispute_juror_assign_accepts_explicit_juror_reviewer_lane() -> None:
     }
 
     apply_tx(state, _env("ROLE_JUROR_ENROLL", {"account_id": "juror1"}, signer="juror1", nonce=1))
-    apply_tx(state, _env("REVIEWER_LANE_OPT_IN", {"account_id": "juror1", "lane": "dispute_review"}, signer="juror1", nonce=2))
+    apply_tx(
+        state,
+        _env(
+            "REVIEWER_LANE_OPT_IN",
+            {"account_id": "juror1", "lane": "dispute_review"},
+            signer="juror1",
+            nonce=2,
+        ),
+    )
     out = apply_tx(
         state,
         _env(
@@ -141,8 +154,18 @@ def test_poh_tier2_assignment_rejects_tier2_without_juror_opt_in_when_roles_exis
     state = {
         "height": 1,
         "chain_id": "test",
-        "params": {"poh": {"tier2_n_jurors": 1, "tier2_min_total_reviews": 1, "tier2_pass_threshold": 1, "tier2_fail_max": 0}},
-        "accounts": {"alice": {**_tier2_account(), "poh_tier": 1}, "tier2_no_role": _tier2_account()},
+        "params": {
+            "poh": {
+                "tier2_n_jurors": 1,
+                "tier2_min_total_reviews": 1,
+                "tier2_pass_threshold": 1,
+                "tier2_fail_max": 0,
+            }
+        },
+        "accounts": {
+            "alice": {**_tier2_account(), "poh_tier": 1},
+            "tier2_no_role": _tier2_account(),
+        },
         "roles": _roles_with_empty_jurors(),
     }
 
@@ -178,13 +201,28 @@ def test_poh_tier2_assignment_accepts_explicit_juror_reviewer_lane() -> None:
     state = {
         "height": 1,
         "chain_id": "test",
-        "params": {"poh": {"tier2_n_jurors": 1, "tier2_min_total_reviews": 1, "tier2_pass_threshold": 1, "tier2_fail_max": 0}},
+        "params": {
+            "poh": {
+                "tier2_n_jurors": 1,
+                "tier2_min_total_reviews": 1,
+                "tier2_pass_threshold": 1,
+                "tier2_fail_max": 0,
+            }
+        },
         "accounts": {"alice": {**_tier2_account(), "poh_tier": 1}, "juror1": _tier2_account()},
         "roles": _roles_with_empty_jurors(),
     }
 
     apply_tx(state, _env("ROLE_JUROR_ENROLL", {"account_id": "juror1"}, signer="juror1", nonce=1))
-    apply_tx(state, _env("REVIEWER_LANE_OPT_IN", {"account_id": "juror1", "lane": "poh_async_review"}, signer="juror1", nonce=2))
+    apply_tx(
+        state,
+        _env(
+            "REVIEWER_LANE_OPT_IN",
+            {"account_id": "juror1", "lane": "poh_async_review"},
+            signer="juror1",
+            nonce=2,
+        ),
+    )
     opened = apply_tx(
         state,
         _env(

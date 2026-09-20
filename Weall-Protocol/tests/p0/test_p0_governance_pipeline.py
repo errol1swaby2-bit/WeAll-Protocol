@@ -167,8 +167,6 @@ def _proposal_withdraw(proposal_id: str, *, signer: str, nonce: int) -> Json:
     )
 
 
-
-
 def test_gov_proposal_create_sets_creator_and_default_stage(base_state, txf) -> None:
     st = clone_state(base_state)
     pid = "p0-gov-create"
@@ -347,7 +345,6 @@ def test_gov_proposal_withdraw_only_creator_and_not_if_finalized(base_state, txf
     err2 = apply_err(st2, _proposal_withdraw(pid2, signer="alice", nonce=2))
     assert err2.code == "forbidden"
     assert err2.reason == "proposal_already_finalized"
-
 
 
 def _tally_publish(

@@ -61,7 +61,13 @@ from weall.runtime.scheduler_pipeline import (
     run_leader_post_schedulers,
     run_leader_pre_schedulers,
 )
-from weall.runtime.system_tx_engine import build_system_queue_lookup
+from weall.runtime.system_tx_engine import (
+    BLOCK_FINALIZE_TX_TYPE,
+    EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+    bind_new_same_block_single_tx_children,
+    build_system_queue_lookup,
+    validate_same_block_single_tx_lineage,
+)
 
 
 def produce_block(
@@ -151,6 +157,10 @@ def build_block_candidate(
     bft_justify_qc: Json | None = None,
     proposer: str = "",
 ) -> tuple[Json | None, Json | None, list[str], list[str], str]:
+    post_commit_error = str(getattr(self, "_post_commit_housekeeping_error", "") or "")
+    if post_commit_error:
+        return None, None, [], [], f"executor_unhealthy:{post_commit_error}"
+
     runtime_ctx = RuntimeContext.from_executor(self)
     scheduler_set = runtime_ctx.scheduler_set
     apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta
@@ -279,16 +289,46 @@ def build_block_candidate(
         # It must never be converted into an ordinary failed receipt: the emitter
         # has already marked its queue item emitted, so swallowing an apply failure
         # would let candidate construction prune the transition without executing it.
+        tx_type = str(getattr(env, "tx_type", "") or "").strip().upper()
+        j = env.to_json()
+        tx_id2 = compute_tx_id(j, chain_id=self.chain_id)
+
+        if tx_type in EPOCH_FINALITY_SINGLE_TX_CHILDREN:
+            lineage_ok, lineage_reason = validate_same_block_single_tx_lineage(
+                self.tx_index,
+                env,
+                prior_txs=applied_envs,
+                required_child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+            )
+            if not lineage_ok:
+                raise ApplyError(
+                    "invalid_tx",
+                    "single_tx_lineage_invalid",
+                    {"tx_type": tx_type, "reason": lineage_reason},
+                )
+
+        queue_ids_before = set(_queue_lookup()) if tx_type == BLOCK_FINALIZE_TX_TYPE else set()
+        parent_position = len(applied_envs)
         meta = apply_tx_fn(working, env, consume_nonce_on_fail=False)
         if meta is None:
             raise ApplyError(
                 "invalid_tx",
                 "unclaimed_system_tx",
-                {"tx_type": str(getattr(env, "tx_type", "") or "")},
+                {"tx_type": tx_type},
             )
 
-        j = env.to_json()
-        tx_id2 = compute_tx_id(j, chain_id=self.chain_id)
+        if tx_type == BLOCK_FINALIZE_TX_TYPE:
+            bind_new_same_block_single_tx_children(
+                working,
+                self.tx_index,
+                queue_ids_before=queue_ids_before,
+                parent_tx_type=tx_type,
+                parent_tx_id=tx_id2,
+                parent_position=parent_position,
+                child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+            )
+            _invalidate_queue_lookup()
+
         j["tx_id"] = tx_id2
         applied_envs.append(j)
         applied_ids.append(tx_id2)

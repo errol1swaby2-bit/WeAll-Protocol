@@ -104,7 +104,11 @@ _VECTOR_ROUTES: list[Json] = [
         "expected_http_statuses": [403, 404],
         "expected_error_envelope": {"ok": False, "error": {"code": "operator_poh_disabled"}},
         "auth_case": "poh_operator_token_required_env_gated",
-        "error_codes": ["operator_poh_disabled", "operator_token_required", "operator_token_invalid"],
+        "error_codes": [
+            "operator_poh_disabled",
+            "operator_token_required",
+            "operator_token_invalid",
+        ],
         "privacy_boundary": "operator helper route enqueues deterministic system txs only; no public validator authority",
     },
     {
@@ -126,10 +130,14 @@ _VECTOR_ROUTES: list[Json] = [
         "expected_http_statuses": [400, 403, 422],
         "expected_error_envelope": {"ok": False, "error": {"code": "invalid_tx"}},
         "auth_case": "signed_user_tx_required",
-        "error_codes": ["invalid_tx", "signature_required", "signature_invalid", "chain_id_mismatch"],
+        "error_codes": [
+            "invalid_tx",
+            "signature_required",
+            "signature_invalid",
+            "chain_id_mismatch",
+        ],
         "privacy_boundary": "public ingress rejects SYSTEM and receipt-only submissions",
     },
-
     {
         "id": "readyz-public-ok",
         "method": "GET",
@@ -202,7 +210,13 @@ _VECTOR_ROUTES: list[Json] = [
         "path": "/v1/status/testnet-capabilities",
         "route_key": "GET /v1/status/testnet-capabilities",
         "expected_http_statuses": [200],
-        "expected_top_level_keys": ["ok", "schema", "capabilities", "blocked_capabilities", "public_beta_ready_claimed"],
+        "expected_top_level_keys": [
+            "ok",
+            "schema",
+            "capabilities",
+            "blocked_capabilities",
+            "public_beta_ready_claimed",
+        ],
         "auth_case": "public_read_launch_matrix_bound_testnet_capability_surface",
         "error_codes": [],
         "privacy_boundary": "claim-control surface only; it cannot enable validators, economics, helper execution, or upgrades",
@@ -380,7 +394,12 @@ _VECTOR_ROUTES: list[Json] = [
         "expected_http_statuses": [400, 403, 422],
         "expected_error_envelope": {"ok": False, "error": {"code": "validator_authority_required"}},
         "auth_case": "active_validator_bft_key_required",
-        "error_codes": ["validator_authority_required", "signature_required", "signature_invalid", "chain_id_mismatch"],
+        "error_codes": [
+            "validator_authority_required",
+            "signature_required",
+            "signature_invalid",
+            "chain_id_mismatch",
+        ],
         "privacy_boundary": "attestation submission is not available to observers or inactive validators",
     },
     {
@@ -400,7 +419,10 @@ _VECTOR_ROUTES: list[Json] = [
         "path": "/v1/disputes/{dispute_id}/accept",
         "route_key": "POST /v1/disputes/{dispute_id}/accept",
         "expected_http_statuses": [200, 403, 404],
-        "expected_error_envelope": {"ok": False, "error": {"code": "reviewer_responsibility_not_active"}},
+        "expected_error_envelope": {
+            "ok": False,
+            "error": {"code": "reviewer_responsibility_not_active"},
+        },
         "auth_case": "session_and_dispute_review_lane_required",
         "error_codes": ["reviewer_responsibility_not_active", "session_required", "not_found"],
         "privacy_boundary": "accepting dispute work requires exact active lane consent",
@@ -482,7 +504,6 @@ _VECTOR_ROUTES: list[Json] = [
         "error_codes": ["not_found"],
         "privacy_boundary": "wallet reads do not imply live economics or transfer activation",
     },
-
 ]
 
 
@@ -496,8 +517,16 @@ def _load_json(rel: str) -> Json:
 def build() -> Json:
     contract = _load_json("generated/api_contract_map_v1_5.json")
     failure = _load_json("generated/failure_code_registry_v1_5.json")
-    routes = {f"{r.get('method')} {r.get('path')}": r for r in contract.get("routes", []) if isinstance(r, dict)}
-    unique_codes = set(failure.get("unique_codes", [])) if isinstance(failure.get("unique_codes"), list) else set()
+    routes = {
+        f"{r.get('method')} {r.get('path')}": r
+        for r in contract.get("routes", [])
+        if isinstance(r, dict)
+    }
+    unique_codes = (
+        set(failure.get("unique_codes", []))
+        if isinstance(failure.get("unique_codes"), list)
+        else set()
+    )
     vectors: list[Json] = []
     missing_routes: list[str] = []
     missing_codes: list[str] = []

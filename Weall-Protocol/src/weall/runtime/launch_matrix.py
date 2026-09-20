@@ -14,8 +14,9 @@ remain the authority for actual state mutation; this module is an auditable
 policy inventory and helper for fail-closed checks.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 Json = dict[str, Any]
 
@@ -169,12 +170,16 @@ def disabled_features_for_phase(phase: str | None) -> tuple[str, ...]:
 def launch_matrix_from_state(state: Mapping[str, Any] | None) -> Json:
     st = state if isinstance(state, Mapping) else {}
     params = st.get("params") if isinstance(st.get("params"), Mapping) else {}
-    phase = str(params.get("launch_phase") or params.get("network_phase") or st.get("mode") or "").strip()
+    phase = str(
+        params.get("launch_phase") or params.get("network_phase") or st.get("mode") or ""
+    ).strip()
     normalized = normalize_launch_phase(phase)
     return {
         "phase": normalized,
         "disabled_features": list(disabled_features_for_phase(normalized)),
-        "feature_status": {feature: feature_status(normalized, feature).as_dict() for feature in HIGH_RISK_FEATURES},
+        "feature_status": {
+            feature: feature_status(normalized, feature).as_dict() for feature in HIGH_RISK_FEATURES
+        },
     }
 
 

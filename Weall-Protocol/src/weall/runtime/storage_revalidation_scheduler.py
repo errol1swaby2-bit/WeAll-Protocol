@@ -9,9 +9,10 @@ as system transactions. The actual probe material is handled by
 apply domain.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Mapping
+from typing import Any
 
 Json = dict[str, Any]
 
@@ -150,7 +151,9 @@ def _node_operator_records(state: Mapping[str, Any]) -> Mapping[str, Any]:
     return by_id if isinstance(by_id, dict) else {}
 
 
-def _challenge_id(state: Mapping[str, Any], account_id: str, node_pubkey: str, proof_expires: int) -> str:
+def _challenge_id(
+    state: Mapping[str, Any], account_id: str, node_pubkey: str, proof_expires: int
+) -> str:
     current = _height(state)
     seed = f"storage-revalidate:{account_id}:{node_pubkey}:{current}:{proof_expires}"
     return "storage-revalidation:" + sha256(seed.encode("utf-8")).hexdigest()[:32]
@@ -177,7 +180,9 @@ def build_storage_revalidation_plan(state: Mapping[str, Any]) -> list[StorageRev
         node_pubkey = _as_str(storage.get("node_pubkey") or rec.get("node_pubkey"))
         declared = _as_int(storage.get("declared_capacity_bytes"), 0)
         proven = _as_int(storage.get("proven_capacity_bytes"), 0)
-        reserved = max(0, min(declared if declared > 0 else proven, proven if proven > 0 else declared))
+        reserved = max(
+            0, min(declared if declared > 0 else proven, proven if proven > 0 else declared)
+        )
         if reserved <= 0:
             continue
         proof_expires = _as_int(storage.get("proof_expires_height"), 0)

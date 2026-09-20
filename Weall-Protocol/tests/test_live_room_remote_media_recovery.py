@@ -26,7 +26,7 @@ def test_live_room_queues_ice_and_retries_missing_remote_media() -> None:
 
 def test_live_room_targets_hello_and_surfaces_peer_state() -> None:
     src = _read(WEB / "src/pages/LiveVerificationRoom.tsx")
-    assert "sendWebRTCSignal({ type: \"hello\", to_account: peer })" in src
+    assert 'sendWebRTCSignal({ type: "hello", to_account: peer })' in src
     assert "peerStates" in src
     assert "Peer states:" in src
     assert "State: ${peerStates[peer]}" in src
@@ -36,5 +36,5 @@ def test_live_room_signal_handling_is_duplicate_and_glare_tolerant() -> None:
     src = _read(WEB / "src/pages/LiveVerificationRoom.tsx")
     assert "processedSignalsRef" in src
     assert "signalDedupeKey" in src
-    assert "setLocalDescription({ type: \"rollback\" }" in src
-    assert "pc.signalingState === \"have-local-offer\"" in src
+    assert 'setLocalDescription({ type: "rollback" }' in src
+    assert 'pc.signalingState === "have-local-offer"' in src

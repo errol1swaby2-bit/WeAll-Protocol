@@ -46,10 +46,14 @@ def build() -> dict[str, Any]:
         "multi_operator_storage_durability": storage,
         "anti_sybil_evidence_retention_recovery": retention,
         "controlled_testnet_candidate_evidence": {
-            "poh_challenge_public_client_gap_closed": bool(poh_api.get("public_client_write_gap_closed")),
+            "poh_challenge_public_client_gap_closed": bool(
+                poh_api.get("public_client_write_gap_closed")
+            ),
             "validator_rehearsal_node_count": int(validator.get("node_count") or 0),
             "storage_operator_count": int(storage.get("multi_operator_count") or 0),
-            "evidence_retention_policy_present": bool(retention.get("retention_after_reverification")),
+            "evidence_retention_policy_present": bool(
+                retention.get("retention_after_reverification")
+            ),
             "controlled_testnet_rehearsal_candidate": True,
             "public_beta_ready": False,
         },
@@ -70,7 +74,9 @@ def main() -> int:
     text = _canon(artifact)
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("b549_b553_controlled_testnet_candidate_proof_v1_5.json is stale; rerun generator")
+            raise SystemExit(
+                "b549_b553_controlled_testnet_candidate_proof_v1_5.json is stale; rerun generator"
+            )
         print(f"OK: {OUT.relative_to(ROOT)} is fresh")
         return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)

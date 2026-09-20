@@ -32,7 +32,12 @@ def test_fee_pay_user_origin_applies_without_system_context() -> None:
         signer="alice",
         nonce=1,
         system=False,
-        payload={"tx_id": "tx-1", "tx_type": "BALANCE_TRANSFER", "amount": 3, "to_account_id": "@fees"},
+        payload={
+            "tx_id": "tx-1",
+            "tx_type": "BALANCE_TRANSFER",
+            "amount": 3,
+            "to_account_id": "@fees",
+        },
     )
 
     result = apply_economics(state, env)
@@ -55,6 +60,6 @@ def test_fee_pay_rejects_spoofed_from_account() -> None:
 
     try:
         apply_economics(state, env)
-        assert False, "spoofed fee payer must be rejected"
+        raise AssertionError("spoofed fee payer must be rejected")
     except Exception as exc:
         assert getattr(exc, "reason", "") == "fee_pay_signer_mismatch"

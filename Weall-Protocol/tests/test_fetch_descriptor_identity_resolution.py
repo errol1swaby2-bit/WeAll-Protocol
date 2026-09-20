@@ -3,12 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.crypto.sig import sign_mldsa
 from weall.net.net_loop import NetLoopConfig, NetMeshLoop
@@ -249,8 +243,8 @@ def test_net_loop_uses_resolved_fetch_descriptor_identity_before_fetch(
         def bft_resolve_fetch_request_descriptor(self, desc):
             return self._inner.bft_resolve_fetch_request_descriptor(desc)
 
-        def bft_cache_remote_block(self, blk):
-            return self._inner.bft_cache_remote_block(blk)
+        def bft_cache_remote_block(self, blk, *, expected_block_hash: str = ""):
+            return self._inner.bft_cache_remote_block(blk, expected_block_hash=expected_block_hash)
 
         def __getattr__(self, name):
             return getattr(self._inner, name)

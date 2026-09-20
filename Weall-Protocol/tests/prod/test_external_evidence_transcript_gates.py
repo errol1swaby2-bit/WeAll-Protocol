@@ -18,7 +18,11 @@ def test_external_operator_transcript_requirements_are_conservative() -> None:
     assert payload["mainnet_ready"] is False
     assert payload["external_attestation_required_before_public_beta"] is True
     schemas = payload["schemas"]
-    assert {"public_validator_operator_transcript", "storage_ipfs_operator_transcript", "legal_compliance_attestation"}.issubset(schemas)
+    assert {
+        "public_validator_operator_transcript",
+        "storage_ipfs_operator_transcript",
+        "legal_compliance_attestation",
+    }.issubset(schemas)
     boundaries = payload["release_claim_boundaries"]
     for key in (
         "public_validator_enabled",
@@ -33,15 +37,22 @@ def test_external_operator_transcript_requirements_are_conservative() -> None:
 
 def test_generated_external_operator_transcript_requirements_are_fresh() -> None:
     proc = subprocess.run(
-        [sys.executable, "scripts/gen_external_operator_transcript_requirements_v1_5.py", "--check"],
+        [
+            sys.executable,
+            "scripts/gen_external_operator_transcript_requirements_v1_5.py",
+            "--check",
+        ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    payload = json.loads((ROOT / "generated" / "external_operator_transcript_requirements_v1_5.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (ROOT / "generated" / "external_operator_transcript_requirements_v1_5.json").read_text(
+            encoding="utf-8"
+        )
+    )
     assert payload["schema"] == "weall.v1_5.external_operator_transcript_requirements"
 
 
@@ -63,8 +74,7 @@ def test_validator_transcript_validator_accepts_scaffold(tmp_path: Path) -> None
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -90,8 +100,7 @@ def test_storage_transcript_validator_accepts_scaffold(tmp_path: Path) -> None:
         ],
         cwd=str(ROOT),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -109,12 +118,13 @@ def test_api_vectors_and_go_gate_reference_external_evidence() -> None:
             [sys.executable, f"scripts/{script}", "--check"],
             cwd=str(ROOT),
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             check=False,
         )
         assert proc.returncode == 0, proc.stdout + proc.stderr
-    vectors = json.loads((ROOT / "generated" / "api_response_vectors_v1_5.json").read_text(encoding="utf-8"))
+    vectors = json.loads(
+        (ROOT / "generated" / "api_response_vectors_v1_5.json").read_text(encoding="utf-8")
+    )
     assert vectors["vector_count"] >= 40
     route_keys = {row["route_key"] for row in vectors["vectors"]}
     for route in (
@@ -125,7 +135,9 @@ def test_api_vectors_and_go_gate_reference_external_evidence() -> None:
         "GET /v1/treasury/status",
     ):
         assert route in route_keys
-    gate = json.loads((ROOT / "generated" / "controlled_testnet_go_gate_v1_5.json").read_text(encoding="utf-8"))
+    gate = json.loads(
+        (ROOT / "generated" / "controlled_testnet_go_gate_v1_5.json").read_text(encoding="utf-8")
+    )
     summary = gate["external_operator_transcript_requirements_summary"]
     assert summary["ok"] is True
     assert summary["schema_count"] >= 3

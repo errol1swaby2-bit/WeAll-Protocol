@@ -1255,6 +1255,15 @@
     },
     {
       "affected_registers": [
+        "evidence"
+      ],
+      "classification": "generated_compatibility_evidence",
+      "path": "generated/current_verified_claims.json",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
         "evidence",
         "governance_execution"
       ],
@@ -1440,6 +1449,16 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "scripts/check_m2_requirement_traceability.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/check_public_claim_freshness.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
     },
@@ -1870,6 +1889,16 @@
       ],
       "classification": "authoritative_or_launch_critical",
       "path": "scripts/gen_crypto_posture_v1_5.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms",
+        "evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/gen_current_verified_claims.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
     },
@@ -5069,6 +5098,15 @@
       "classification": "authoritative_or_launch_critical",
       "path": "src/weall/runtime/launch_matrix.py",
       "primary_mechanism_id": "M-075",
+      "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "src/weall/runtime/lineage_witness.py",
+      "primary_mechanism_id": "M-012",
       "review_status": "mapped_current_snapshot"
     },
     {

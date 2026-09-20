@@ -324,14 +324,12 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
     resolution = next(
         item
         for item in actions
-        if item["label"] == "dispute_resolution"
-        and item["subject_id"] == journey["dispute_id"]
+        if item["label"] == "dispute_resolution" and item["subject_id"] == journey["dispute_id"]
     )
     resolution_triggers = [
         item
         for item in actions
-        if item["label"] == "original_panel_ballots"
-        and item["subject_id"] == journey["dispute_id"]
+        if item["label"] == "original_panel_ballots" and item["subject_id"] == journey["dispute_id"]
     ]
     trigger = resolution_triggers[-1]
     resolution["evidence_kind"] = contract.INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND
@@ -494,9 +492,7 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
         "nonowner_appeal_rejected",
         "member_reporter_voter",
     )
-    assert (
-        contract.EXPECTED_NEGATIVE_ERROR_CODES["nonowner_appeal_rejected"] == "forbidden"
-    )
+    assert contract.EXPECTED_NEGATIVE_ERROR_CODES["nonowner_appeal_rejected"] == "forbidden"
     assert (
         contract.EXPECTED_NEGATIVE_ERROR_REASONS["nonowner_appeal_rejected"]
         == "appeal_not_target_owner"
@@ -543,8 +539,7 @@ def test_transaction_contract_binds_labels_roles_subjects_and_preconditions() ->
     inline_resolution = next(
         item
         for item in transcript["actions"]
-        if item["label"] == "dispute_resolution"
-        and item["subject_id"] == journey["dispute_id"]
+        if item["label"] == "dispute_resolution" and item["subject_id"] == journey["dispute_id"]
     )
     assert inline_resolution["evidence_kind"] == contract.INLINE_SYSTEM_TRANSITION_EVIDENCE_KIND
     assert inline_resolution["trigger_tx_id"].startswith("tx-main-")
@@ -824,7 +819,11 @@ def test_m3_negative_contract_models_admission_and_apply_rejections_exactly() ->
         "replacement_governance_vote_rejected": ("apply", "conflict", "ballot_already_final"),
         "governance_revoke_rejected": ("apply", "forbidden", "ballot_revocation_forbidden"),
         "duplicate_dispute_ballot_rejected": ("apply", "conflict", "dispute_ballot_already_final"),
-        "replacement_dispute_ballot_rejected": ("apply", "conflict", "dispute_ballot_already_final"),
+        "replacement_dispute_ballot_rejected": (
+            "apply",
+            "conflict",
+            "dispute_ballot_already_final",
+        ),
         "dispute_revoke_rejected": ("admission", "invalid_tx", "noncanonical_tx_type"),
         "nonowner_appeal_rejected": ("apply", "forbidden", "appeal_not_target_owner"),
     }
@@ -840,7 +839,9 @@ def test_m3_negative_contract_models_admission_and_apply_rejections_exactly() ->
     assert not contract.role_allowed_for_negative(
         "nonmember_group_write_rejected", "nonmember_ineligible"
     )
-    assert contract.NEGATIVE_SUBJECT_FIELD["nonowner_appeal_rejected"] == "negative_appeal_dispute_id"
+    assert (
+        contract.NEGATIVE_SUBJECT_FIELD["nonowner_appeal_rejected"] == "negative_appeal_dispute_id"
+    )
 
 
 def test_ineligible_governance_negative_contract_matches_public_tier2_ingress() -> None:

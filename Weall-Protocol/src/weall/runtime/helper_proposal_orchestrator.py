@@ -15,12 +15,14 @@ from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_finge
 Json = dict[str, Any]
 
 
-def _expected_helper_id_for_lane(lane_plans: dict[str, "LanePlan"], lane_id: str) -> str:
+def _expected_helper_id_for_lane(lane_plans: dict[str, LanePlan], lane_id: str) -> str:
     lane = lane_plans.get(str(lane_id or ""))
     return str(getattr(lane, "helper_id", "") or "") if lane is not None else ""
 
 
-def _certificate_matches_context(cert: HelperExecutionCertificate, context: HelperDispatchContext) -> bool:
+def _certificate_matches_context(
+    cert: HelperExecutionCertificate, context: HelperDispatchContext
+) -> bool:
     return (
         str(cert.chain_id or "") == str(context.chain_id or "")
         and int(cert.block_height) == int(context.block_height)
@@ -49,7 +51,9 @@ class HelperProposalOrchestrator:
         journal: HelperLaneJournal | None = None,
         helper_timeout_ms: int = 5000,
     ) -> None:
-        computed_plan_id = str(context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ())))
+        computed_plan_id = str(
+            context.plan_id or canonical_lane_plan_fingerprint(tuple(lane_plans or ()))
+        )
         if computed_plan_id and computed_plan_id != str(context.plan_id or ""):
             context = replace(context, plan_id=computed_plan_id)
         self.context = context
@@ -96,7 +100,10 @@ class HelperProposalOrchestrator:
                     cert = HelperExecutionCertificate(**cert_obj)
                 except Exception:
                     continue
-                if self.plan_id and str(getattr(cert, "plan_id", "") or "") not in {"", self.plan_id}:
+                if self.plan_id and str(getattr(cert, "plan_id", "") or "") not in {
+                    "",
+                    self.plan_id,
+                }:
                     continue
                 if not _certificate_matches_context(cert, self.context):
                     continue
@@ -137,7 +144,9 @@ class HelperProposalOrchestrator:
                 continue
             self.store.start_request(lane_id=lane_id, started_ms=started_ms)
 
-    def ingest_certificate(self, *, cert: HelperExecutionCertificate, peer_id: str) -> HelperDispatchStatus:
+    def ingest_certificate(
+        self, *, cert: HelperExecutionCertificate, peer_id: str
+    ) -> HelperDispatchStatus:
         lane_id = str(cert.lane_id or "")
         helper_id = str(cert.helper_id or "")
 
@@ -196,7 +205,9 @@ class HelperProposalOrchestrator:
         return self._resolutions.get(str(lane_id or ""))
 
     def unresolved_lanes(self) -> tuple[str, ...]:
-        unresolved = [lane_id for lane_id in self.lane_plans.keys() if lane_id not in self._resolutions]
+        unresolved = [
+            lane_id for lane_id in self.lane_plans.keys() if lane_id not in self._resolutions
+        ]
         unresolved.sort()
         return tuple(unresolved)
 

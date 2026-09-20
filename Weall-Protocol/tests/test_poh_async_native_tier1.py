@@ -194,12 +194,24 @@ def test_native_async_rejection_does_not_grant_tier1() -> None:
     ):
         apply_tx(
             st,
-            _env("POH_ASYNC_REVIEW_SUBMIT", {"case_id": case_id, "verdict": verdict}, signer=jid, nonce=nonce),
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": verdict},
+                signer=jid,
+                nonce=nonce,
+            ),
         )
 
     finalized = apply_tx(
         st,
-        _env("POH_ASYNC_FINALIZE", {"case_id": case_id}, signer="SYSTEM", nonce=11, system=True, parent="POH_ASYNC_REVIEW_SUBMIT"),
+        _env(
+            "POH_ASYNC_FINALIZE",
+            {"case_id": case_id},
+            signer="SYSTEM",
+            nonce=11,
+            system=True,
+            parent="POH_ASYNC_REVIEW_SUBMIT",
+        ),
     )
 
     assert finalized and finalized["outcome"] == "rejected"
@@ -214,18 +226,33 @@ def test_native_async_rejects_non_assigned_and_duplicate_reviews() -> None:
     with pytest.raises(ApplyError) as non_assigned:
         apply_tx(
             st,
-            _env("POH_ASYNC_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "approve"}, signer="outside", nonce=8),
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": "approve"},
+                signer="outside",
+                nonce=8,
+            ),
         )
     assert non_assigned.value.reason == "juror_not_assigned"
 
     apply_tx(
         st,
-        _env("POH_ASYNC_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "approve"}, signer="j1", nonce=9),
+        _env(
+            "POH_ASYNC_REVIEW_SUBMIT",
+            {"case_id": case_id, "verdict": "approve"},
+            signer="j1",
+            nonce=9,
+        ),
     )
     with pytest.raises(ApplyError) as duplicate:
         apply_tx(
             st,
-            _env("POH_ASYNC_REVIEW_SUBMIT", {"case_id": case_id, "verdict": "reject"}, signer="j1", nonce=10),
+            _env(
+                "POH_ASYNC_REVIEW_SUBMIT",
+                {"case_id": case_id, "verdict": "reject"},
+                signer="j1",
+                nonce=10,
+            ),
         )
     assert duplicate.value.reason == "duplicate_async_review"
 

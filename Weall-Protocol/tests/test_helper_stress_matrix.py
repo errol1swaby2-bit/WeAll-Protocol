@@ -38,7 +38,14 @@ def _lane_setup():
     return lane_plans, lane_plan
 
 
-def _mk_signed_cert(*, helper_id: str, lane_id: str, tx_ids: tuple[str, ...], seed_byte: int, receipts_root: str = "receipts"):
+def _mk_signed_cert(
+    *,
+    helper_id: str,
+    lane_id: str,
+    tx_ids: tuple[str, ...],
+    seed_byte: int,
+    receipts_root: str = "receipts",
+):
     seed = (bytes([seed_byte]) * 32).hex()
     key = MLDSA65PrivateKey.from_seed_bytes(bytes.fromhex(seed))
     pub = key.public_key().public_bytes_raw().hex()
@@ -79,6 +86,7 @@ def _context():
 def _journal_factory(tmp_path: Path):
     def factory(idx: int):
         return HelperLaneJournal(str(tmp_path / f"helper_lane_{idx}.jsonl"))
+
     return factory
 
 
@@ -180,9 +188,7 @@ def test_helper_stress_matrix_restart_equivalent_journal_reuse(tmp_path) -> None
     )
     case2 = HelperStressCase(
         name="replay_after_restart",
-        events=(
-            HelperEvent(kind="cert", cert=cert, peer_id=lane_plan.helper_id),
-        ),
+        events=(HelperEvent(kind="cert", cert=cert, peer_id=lane_plan.helper_id),),
     )
 
     summary1 = run_helper_stress_cases(

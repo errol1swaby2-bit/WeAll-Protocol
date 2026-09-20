@@ -6,9 +6,10 @@ import json
 import os
 import re
 import shutil
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 Json = dict[str, Any]
 
@@ -85,13 +86,20 @@ def _ensure_within_root(root: Path, path: Path) -> Path:
     return resolved
 
 
-def probe_paths(storage_root: str | os.PathLike[str], challenge_id: str, *, create_root: bool = False) -> ProbePaths:
+def probe_paths(
+    storage_root: str | os.PathLike[str], challenge_id: str, *, create_root: bool = False
+) -> ProbePaths:
     root = _resolve_root(storage_root, create=create_root)
     cid = _require_safe_challenge_id(challenge_id)
     challenge_dir = _ensure_within_root(root, root / "probes" / cid)
     segments_dir = _ensure_within_root(root, challenge_dir / "segments")
     manifest_path = _ensure_within_root(root, challenge_dir / "manifest.json")
-    return ProbePaths(root=root, challenge_dir=challenge_dir, segments_dir=segments_dir, manifest_path=manifest_path)
+    return ProbePaths(
+        root=root,
+        challenge_dir=challenge_dir,
+        segments_dir=segments_dir,
+        manifest_path=manifest_path,
+    )
 
 
 def available_bytes(storage_root: str | os.PathLike[str]) -> int:
@@ -120,13 +128,23 @@ def _probe_offsets(challenge: Mapping[str, Any]) -> list[int]:
 def normalize_capacity_probe_challenge(challenge: Mapping[str, Any]) -> Json:
     src = _as_dict(challenge)
     challenge_id = _require_safe_challenge_id(_as_str(src.get("challenge_id") or src.get("id")))
-    reserved = _as_int(src.get("reserved_capacity_bytes") or src.get("challenged_capacity_bytes") or src.get("capacity_bytes"), 0)
+    reserved = _as_int(
+        src.get("reserved_capacity_bytes")
+        or src.get("challenged_capacity_bytes")
+        or src.get("capacity_bytes"),
+        0,
+    )
     declared = _as_int(src.get("declared_capacity_bytes"), reserved)
     sample_size = _as_int(src.get("sample_size_bytes") or src.get("sample_bytes"), 0)
     offsets = _probe_offsets(src)
     sample_count = _as_int(src.get("sample_count") or src.get("challenge_count"), len(offsets))
     expires_height = _as_int(src.get("expires_height") or src.get("expiry_height"), 0)
-    seed = _as_str(src.get("challenge_seed") or src.get("challenge_seed_commitment") or src.get("seed") or challenge_id)
+    seed = _as_str(
+        src.get("challenge_seed")
+        or src.get("challenge_seed_commitment")
+        or src.get("seed")
+        or challenge_id
+    )
     if declared <= 0:
         raise StorageProbeRunnerError("declared_capacity_required")
     if reserved <= 0:
@@ -148,7 +166,9 @@ def normalize_capacity_probe_challenge(challenge: Mapping[str, Any]) -> Json:
     return {
         "proof_scope": "capacity_probe",
         "challenge_id": challenge_id,
-        "account_id": _as_str(src.get("account_id") or src.get("operator_id") or src.get("operator")),
+        "account_id": _as_str(
+            src.get("account_id") or src.get("operator_id") or src.get("operator")
+        ),
         "node_pubkey": _as_str(src.get("node_pubkey") or src.get("node_public_key")),
         "declared_capacity_bytes": int(declared),
         "reserved_capacity_bytes": int(reserved),
@@ -167,7 +187,9 @@ def _segment_name(offset: int, sample_size: int) -> str:
 def _segment_bytes(challenge: Mapping[str, Any], offset: int, sample_size: int) -> bytes:
     seed = _as_str(challenge.get("challenge_seed") or challenge.get("challenge_id"))
     challenge_id = _as_str(challenge.get("challenge_id"))
-    header = f"weall-storage-probe-v1|{challenge_id}|{seed}|{int(offset)}|{int(sample_size)}|".encode("utf-8")
+    header = (
+        f"weall-storage-probe-v1|{challenge_id}|{seed}|{int(offset)}|{int(sample_size)}|".encode()
+    )
     out = bytearray()
     counter = 0
     while len(out) < sample_size:
@@ -209,16 +231,29 @@ def prepare_capacity_probe(
     total_probe_bytes = int(sample_size) * len(offsets)
     if max_probe_bytes > 0 and total_probe_bytes > int(max_probe_bytes):
         raise StorageProbeRunnerError("probe_material_exceeds_local_limit")
-    available = int(available_capacity_bytes) if available_capacity_bytes is not None else available_bytes(paths.root)
+    available = (
+        int(available_capacity_bytes)
+        if available_capacity_bytes is not None
+        else available_bytes(paths.root)
+    )
     if available < reserved:
         raise StorageProbeRunnerError("insufficient_available_disk_for_declared_capacity")
     paths.segments_dir.mkdir(parents=True, exist_ok=True)
     segment_records: list[Json] = []
     for offset in offsets:
-        segment_path = _ensure_within_root(paths.root, paths.segments_dir / _segment_name(offset, sample_size))
+        segment_path = _ensure_within_root(
+            paths.root, paths.segments_dir / _segment_name(offset, sample_size)
+        )
         data = _segment_bytes(normalized, offset, sample_size)
         _write_atomic(segment_path, data)
-        segment_records.append({"offset": int(offset), "size": int(sample_size), "path": str(segment_path.relative_to(paths.root)), "response_hash": "sha256:" + _sha256_hex(data)})
+        segment_records.append(
+            {
+                "offset": int(offset),
+                "size": int(sample_size),
+                "path": str(segment_path.relative_to(paths.root)),
+                "response_hash": "sha256:" + _sha256_hex(data),
+            }
+        )
     manifest: Json = {
         "version": 1,
         "kind": "weall.storage.capacity_probe.local_manifest",
@@ -231,7 +266,9 @@ def prepare_capacity_probe(
         "available_capacity_bytes_at_prepare": int(available),
         "manifest_hash": "",
     }
-    manifest["manifest_hash"] = _hash_json({k: v for k, v in manifest.items() if k != "manifest_hash"})
+    manifest["manifest_hash"] = _hash_json(
+        {k: v for k, v in manifest.items() if k != "manifest_hash"}
+    )
     paths.challenge_dir.mkdir(parents=True, exist_ok=True)
     _write_json_atomic(paths.manifest_path, manifest)
     return manifest
@@ -254,15 +291,28 @@ def generate_probe_response(storage_root: str | os.PathLike[str], challenge_id: 
     sample_size = int(challenge["sample_size_bytes"])
     responses: list[Json] = []
     for offset in [int(v) for v in challenge["probe_offsets"]]:
-        segment_path = _ensure_within_root(paths.root, paths.segments_dir / _segment_name(offset, sample_size))
+        segment_path = _ensure_within_root(
+            paths.root, paths.segments_dir / _segment_name(offset, sample_size)
+        )
         if not segment_path.exists():
             raise StorageProbeRunnerError("probe_segment_missing")
         data = segment_path.read_bytes()
         expected = _segment_bytes(challenge, offset, sample_size)
         if data != expected:
             raise StorageProbeRunnerError("probe_segment_corrupt")
-        responses.append({"offset": int(offset), "size": int(sample_size), "response_hash": "sha256:" + _sha256_hex(data)})
-    response: Json = {"challenge_id": challenge["challenge_id"], "node_pubkey": challenge.get("node_pubkey") or None, "probe_responses": responses, "response_commitment": ""}
+        responses.append(
+            {
+                "offset": int(offset),
+                "size": int(sample_size),
+                "response_hash": "sha256:" + _sha256_hex(data),
+            }
+        )
+    response: Json = {
+        "challenge_id": challenge["challenge_id"],
+        "node_pubkey": challenge.get("node_pubkey") or None,
+        "probe_responses": responses,
+        "response_commitment": "",
+    }
     response["response_commitment"] = _hash_json(responses)
     return response
 
@@ -295,12 +345,23 @@ def verify_probe_response(challenge: Mapping[str, Any], response: Mapping[str, A
         expected_hash = _segment_hash(normalized, offset, sample_size)
         if _as_str(rec.get("response_hash")) != expected_hash:
             raise StorageProbeRunnerError("probe_response_hash_mismatch")
-        verified.append({"offset": int(offset), "size": int(sample_size), "response_hash": expected_hash})
+        verified.append(
+            {"offset": int(offset), "size": int(sample_size), "response_hash": expected_hash}
+        )
     expected_commitment = _hash_json(verified)
     supplied_commitment = _as_str(resp.get("response_commitment"))
     if supplied_commitment and supplied_commitment != expected_commitment:
         raise StorageProbeRunnerError("response_commitment_mismatch")
-    return {"challenge_id": normalized["challenge_id"], "verification_status": "verified", "verified_capacity_bytes": int(normalized["reserved_capacity_bytes"]), "probed_capacity_bytes": int(normalized["reserved_capacity_bytes"]), "sample_count": len(verified), "sample_size_bytes": int(sample_size), "response_commitment": expected_commitment, "verification_receipt_hash": _hash_json({"challenge": normalized, "responses": verified})}
+    return {
+        "challenge_id": normalized["challenge_id"],
+        "verification_status": "verified",
+        "verified_capacity_bytes": int(normalized["reserved_capacity_bytes"]),
+        "probed_capacity_bytes": int(normalized["reserved_capacity_bytes"]),
+        "sample_count": len(verified),
+        "sample_size_bytes": int(sample_size),
+        "response_commitment": expected_commitment,
+        "verification_receipt_hash": _hash_json({"challenge": normalized, "responses": verified}),
+    }
 
 
 def cleanup_expired_probes(storage_root: str | os.PathLike[str], *, current_height: int) -> Json:
@@ -345,7 +406,11 @@ def probe_metrics(storage_root: str | os.PathLike[str]) -> Json:
             for file in child.rglob("*"):
                 if file.is_file():
                     total_bytes += int(file.stat().st_size)
-    return {"active_probe_count": int(active), "probe_bytes_on_disk": int(total_bytes), "storage_root": str(root)}
+    return {
+        "active_probe_count": int(active),
+        "probe_bytes_on_disk": int(total_bytes),
+        "storage_root": str(root),
+    }
 
 
 def _load_json_arg(value: str) -> Json:
@@ -376,11 +441,18 @@ def main(argv: Iterable[str] | None = None) -> int:
     p_metrics.add_argument("--storage-root", required=True)
     args = parser.parse_args(list(argv) if argv is not None else None)
     if args.command == "prepare":
-        result = prepare_capacity_probe(args.storage_root, _load_json_arg(args.challenge), available_capacity_bytes=args.available_capacity_bytes, max_probe_bytes=args.max_probe_bytes)
+        result = prepare_capacity_probe(
+            args.storage_root,
+            _load_json_arg(args.challenge),
+            available_capacity_bytes=args.available_capacity_bytes,
+            max_probe_bytes=args.max_probe_bytes,
+        )
     elif args.command == "respond":
         result = generate_probe_response(args.storage_root, args.challenge_id)
     elif args.command == "verify":
-        result = verify_probe_response(_load_json_arg(args.challenge), _load_json_arg(args.response))
+        result = verify_probe_response(
+            _load_json_arg(args.challenge), _load_json_arg(args.response)
+        )
     elif args.command == "cleanup":
         result = cleanup_expired_probes(args.storage_root, current_height=args.current_height)
     elif args.command == "metrics":

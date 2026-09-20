@@ -9,6 +9,7 @@ It intentionally refuses to run when external identity-provider or authority-sig
 present in the current environment, unless explicitly overridden for test/admin
 contexts. It never writes node private key material.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -54,7 +55,11 @@ def _check_secret_boundary(*, allow_external_identity_secrets_present: bool) -> 
 
 def _run_verify(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "verify_node_operator_onboarding_bundle.py"), *args],
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "verify_node_operator_onboarding_bundle.py"),
+            *args,
+        ],
         cwd=ROOT,
         text=True,
         capture_output=True,
@@ -68,24 +73,28 @@ def _shell_quote_path(path: Path) -> str:
 
 
 def _build_env_content(*, bundle: Path, manifest: Path) -> str:
-    check = _run_verify([
-        "--bundle",
-        str(bundle),
-        "--manifest",
-        str(manifest),
-        "--json",
-    ])
+    check = _run_verify(
+        [
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(manifest),
+            "--json",
+        ]
+    )
     if check.returncode != 0:
         detail = (check.stdout or check.stderr or "bundle verification failed").strip()
         _fail("bundle_verification_failed:" + detail)
 
-    emit = _run_verify([
-        "--bundle",
-        str(bundle),
-        "--manifest",
-        str(manifest),
-        "--emit-shell-env",
-    ])
+    emit = _run_verify(
+        [
+            "--bundle",
+            str(bundle),
+            "--manifest",
+            str(manifest),
+            "--emit-shell-env",
+        ]
+    )
     if emit.returncode != 0:
         detail = (emit.stdout or emit.stderr or "bundle env export failed").strip()
         _fail("bundle_env_export_failed:" + detail)
@@ -115,7 +124,9 @@ def _install(args: argparse.Namespace) -> Path:
         _fail(f"bundle_not_found:{bundle}")
     if not manifest.is_file():
         _fail(f"manifest_not_found:{manifest}")
-    _check_secret_boundary(allow_external_identity_secrets_present=bool(args.allow_external_identity_secrets_present))
+    _check_secret_boundary(
+        allow_external_identity_secrets_present=bool(args.allow_external_identity_secrets_present)
+    )
 
     content = _build_env_content(bundle=bundle, manifest=manifest)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -127,8 +138,12 @@ def _install(args: argparse.Namespace) -> Path:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Install a public WeAll node-operator onboarding bundle.")
-    parser.add_argument("--bundle", required=True, help="Path to node-operator onboarding bundle JSON")
+    parser = argparse.ArgumentParser(
+        description="Install a public WeAll node-operator onboarding bundle."
+    )
+    parser.add_argument(
+        "--bundle", required=True, help="Path to node-operator onboarding bundle JSON"
+    )
     parser.add_argument(
         "--manifest",
         default=str(ROOT / "configs" / "chains" / "weall-genesis.json"),

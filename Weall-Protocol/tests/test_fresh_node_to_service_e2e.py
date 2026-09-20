@@ -1,5 +1,5 @@
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "fresh_node_to_service_e2e.sh"
@@ -55,4 +55,3 @@ def test_fresh_node_to_service_dry_run_wires_local_probe_and_readiness_tools() -
     assert "validator-readiness-verify.json" in text
     assert "production-service.example.env" in text
     assert "operator-status reports active responsibilities" in text
-

@@ -35,7 +35,16 @@ def _db(tmp_path, *, include_index: bool, apply_ok: bool = False):
         )
         con.execute(
             "INSERT INTO tx_index(tx_id,height,block_id,tx_type,signer,nonce,ok,included_ts_ms) VALUES(?,?,?,?,?,?,?,?);",
-            ("tx:apply-rejected", 12, "block:12", "GOV_VOTE_CAST", "@member", 7, 1 if apply_ok else 0, 240000),
+            (
+                "tx:apply-rejected",
+                12,
+                "block:12",
+                "GOV_VOTE_CAST",
+                "@member",
+                7,
+                1 if apply_ok else 0,
+                240000,
+            ),
         )
     receipt = {
         "tx_id": "tx:apply-rejected",
@@ -78,12 +87,22 @@ def _db(tmp_path, *, include_index: bool, apply_ok: bool = False):
 def _wire(monkeypatch, db) -> None:
     from weall.api.routes_public_parts import tx as tx_routes
 
-    monkeypatch.setattr(tx_routes, "_safe_mempool", lambda _request: SimpleNamespace(db=db, contains=lambda _tx_id: False))
-    monkeypatch.setattr(tx_routes, "_safe_executor", lambda _request: SimpleNamespace(chain_id="weall-controlled-devnet"))
+    monkeypatch.setattr(
+        tx_routes,
+        "_safe_mempool",
+        lambda _request: SimpleNamespace(db=db, contains=lambda _tx_id: False),
+    )
+    monkeypatch.setattr(
+        tx_routes,
+        "_safe_executor",
+        lambda _request: SimpleNamespace(chain_id="weall-controlled-devnet"),
+    )
     monkeypatch.setattr(tx_routes, "_tx_queue_summary_for_tx", lambda _tx_id: None)
 
 
-def test_tx_status_reports_indexed_apply_rejection_with_exact_receipt_truth(tmp_path, monkeypatch) -> None:
+def test_tx_status_reports_indexed_apply_rejection_with_exact_receipt_truth(
+    tmp_path, monkeypatch
+) -> None:
     from weall.api.routes_public_parts import tx as tx_routes
 
     _wire(monkeypatch, _db(tmp_path, include_index=True, apply_ok=False))
@@ -101,7 +120,9 @@ def test_tx_status_reports_indexed_apply_rejection_with_exact_receipt_truth(tmp_
     assert status["local_state_synced"] is True
 
 
-def test_tx_status_block_fallback_preserves_apply_rejection_truth_without_index(tmp_path, monkeypatch) -> None:
+def test_tx_status_block_fallback_preserves_apply_rejection_truth_without_index(
+    tmp_path, monkeypatch
+) -> None:
     from weall.api.routes_public_parts import tx as tx_routes
 
     _wire(monkeypatch, _db(tmp_path, include_index=False, apply_ok=False))
@@ -114,8 +135,9 @@ def test_tx_status_block_fallback_preserves_apply_rejection_truth_without_index(
     assert status["block_id"] == "block:12"
 
 
-
-def test_tx_status_indexed_rejection_recovers_exact_receipt_beyond_recent_scan_window(tmp_path, monkeypatch) -> None:
+def test_tx_status_indexed_rejection_recovers_exact_receipt_beyond_recent_scan_window(
+    tmp_path, monkeypatch
+) -> None:
     from weall.api.routes_public_parts import tx as tx_routes
 
     db = _db(tmp_path, include_index=True, apply_ok=False)
@@ -146,6 +168,7 @@ def test_tx_status_indexed_rejection_recovers_exact_receipt_beyond_recent_scan_w
     assert status["details"] == {"proposal_id": "proposal:negative", "signer": "@member"}
     assert status["height"] == 12
     assert status["block_id"] == "block:12"
+
 
 def test_tx_status_successful_receipt_remains_confirmed(tmp_path, monkeypatch) -> None:
     from weall.api.routes_public_parts import tx as tx_routes

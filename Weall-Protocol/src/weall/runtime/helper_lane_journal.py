@@ -64,34 +64,50 @@ class HelperLaneJournal:
             os.fsync(fh.fileno())
 
     def append_plan(self, *, plan_id: str, lanes: list[Json] | tuple[Json, ...]) -> None:
-        self.append({"kind": "helper_plan", "plan_id": str(plan_id or ""), "lanes": [dict(item) for item in list(lanes or [])]})
+        self.append(
+            {
+                "kind": "helper_plan",
+                "plan_id": str(plan_id or ""),
+                "lanes": [dict(item) for item in list(lanes or [])],
+            }
+        )
 
-    def append_receipt_accept(self, *, plan_id: str, lane_id: str, helper_id: str, receipt_fingerprint: str) -> None:
-        self.append({
-            "kind": "helper_receipt_accepted",
-            "plan_id": str(plan_id or ""),
-            "lane_id": str(lane_id or ""),
-            "helper_id": str(helper_id or ""),
-            "receipt_fingerprint": str(receipt_fingerprint or ""),
-        })
+    def append_receipt_accept(
+        self, *, plan_id: str, lane_id: str, helper_id: str, receipt_fingerprint: str
+    ) -> None:
+        self.append(
+            {
+                "kind": "helper_receipt_accepted",
+                "plan_id": str(plan_id or ""),
+                "lane_id": str(lane_id or ""),
+                "helper_id": str(helper_id or ""),
+                "receipt_fingerprint": str(receipt_fingerprint or ""),
+            }
+        )
 
-    def append_receipt_reject(self, *, plan_id: str, lane_id: str, helper_id: str, receipt_fingerprint: str, reason: str) -> None:
-        self.append({
-            "kind": "helper_receipt_rejected",
-            "plan_id": str(plan_id or ""),
-            "lane_id": str(lane_id or ""),
-            "helper_id": str(helper_id or ""),
-            "receipt_fingerprint": str(receipt_fingerprint or ""),
-            "reason": str(reason or ""),
-        })
+    def append_receipt_reject(
+        self, *, plan_id: str, lane_id: str, helper_id: str, receipt_fingerprint: str, reason: str
+    ) -> None:
+        self.append(
+            {
+                "kind": "helper_receipt_rejected",
+                "plan_id": str(plan_id or ""),
+                "lane_id": str(lane_id or ""),
+                "helper_id": str(helper_id or ""),
+                "receipt_fingerprint": str(receipt_fingerprint or ""),
+                "reason": str(reason or ""),
+            }
+        )
 
     def append_fallback(self, *, plan_id: str, lane_id: str, helper_id: str) -> None:
-        self.append({
-            "kind": "fallback_finalized",
-            "plan_id": str(plan_id or ""),
-            "lane_id": str(lane_id or ""),
-            "helper_id": str(helper_id or ""),
-        })
+        self.append(
+            {
+                "kind": "fallback_finalized",
+                "plan_id": str(plan_id or ""),
+                "lane_id": str(lane_id or ""),
+                "helper_id": str(helper_id or ""),
+            }
+        )
 
     def load(self) -> list[Json]:
         p = Path(self.path)

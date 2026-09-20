@@ -157,3 +157,25 @@ def test_system_queue_lookup_validation_is_read_only_and_fail_closed() -> None:
 
     with pytest.raises(SystemQueueCorruptionError, match="system_queue_not_list"):
         build_system_queue_lookup({"system_queue": {"queue_id": "not-a-list"}})
+
+    corrupt_root = {"height": 0, "system_queue": {"queue_id": "not-a-list"}}
+    corrupt_root_before = copy.deepcopy(corrupt_root)
+    with pytest.raises(SystemQueueCorruptionError, match="system_queue_not_list"):
+        enqueue_system_tx(
+            corrupt_root,
+            tx_type="GOV_STAGE_SET",
+            payload={"proposal_id": "p-corrupt-root"},
+            due_height=1,
+        )
+    assert corrupt_root == corrupt_root_before
+
+    corrupt_item = {"height": 0, "system_queue": ["not-an-object"]}
+    corrupt_item_before = copy.deepcopy(corrupt_item)
+    with pytest.raises(SystemQueueCorruptionError, match="system_queue_item_not_object:0"):
+        enqueue_system_tx(
+            corrupt_item,
+            tx_type="GOV_STAGE_SET",
+            payload={"proposal_id": "p-corrupt-item"},
+            due_height=1,
+        )
+    assert corrupt_item == corrupt_item_before

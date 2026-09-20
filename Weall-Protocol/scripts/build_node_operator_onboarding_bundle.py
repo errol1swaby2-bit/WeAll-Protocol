@@ -6,6 +6,7 @@ chain identity, public authority anchors, and operator preflight requirements.
 It must not contain node private keys, authority signer keys, transport secrets,
 or external identity-provider credentials.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -156,8 +157,12 @@ def _build(args: argparse.Namespace) -> Json:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a public WeAll node-operator onboarding bundle.")
-    parser.add_argument("--manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json"))
+    parser = argparse.ArgumentParser(
+        description="Build a public WeAll node-operator onboarding bundle."
+    )
+    parser.add_argument(
+        "--manifest", default=str(ROOT / "configs" / "chains" / "weall-genesis.json")
+    )
     parser.add_argument("--out", required=True)
     parser.add_argument("--profile", default="production")
     parser.add_argument("--authority-profile", default="")
@@ -165,8 +170,16 @@ def main() -> int:
     parser.add_argument("--authority-pubkeys", default="")
     parser.add_argument("--oracle-profile", default="", help=argparse.SUPPRESS)
     parser.add_argument("--oracle-url", default="", help=argparse.SUPPRESS)
-    parser.add_argument("--min-authority-height", type=int, default=int(os.environ.get("WEALL_MIN_AUTHORITY_HEIGHT") or "0"))
-    parser.add_argument("--authority-snapshot-max-age-ms", type=int, default=int(os.environ.get("WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS") or "120000"))
+    parser.add_argument(
+        "--min-authority-height",
+        type=int,
+        default=int(os.environ.get("WEALL_MIN_AUTHORITY_HEIGHT") or "0"),
+    )
+    parser.add_argument(
+        "--authority-snapshot-max-age-ms",
+        type=int,
+        default=int(os.environ.get("WEALL_AUTHORITY_SNAPSHOT_MAX_AGE_MS") or "120000"),
+    )
     parser.add_argument("--generated-at-ms", type=int, default=0)
     args = parser.parse_args()
 

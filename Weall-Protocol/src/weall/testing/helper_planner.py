@@ -8,20 +8,22 @@ misidentified as production authority.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
+from typing import Any
+
 from weall.runtime.commitments import (
     normalize_validator_ids,
+)
+from weall.runtime.commitments import (
     validator_set_hash as canonical_validator_set_hash,
 )
 from weall.runtime.json_tools import canonical_json_str as _canon_json
-from weall.runtime.tx_id import compute_tx_id_from_dict
-
 from weall.runtime.lane_identity import lane_base_id as planned_lane_base_id
 from weall.runtime.read_write_sets import build_tx_access_set
 from weall.runtime.tx_conflicts import build_conflict_descriptor
-
+from weall.runtime.tx_id import compute_tx_id_from_dict
 
 
 def _sha256_hex(value: Any) -> str:
@@ -30,7 +32,7 @@ def _sha256_hex(value: Any) -> str:
     return sha256(value.encode("utf-8")).hexdigest()
 
 
-def normalize_validators(validators: Iterable[str]) -> List[str]:
+def normalize_validators(validators: Iterable[str]) -> list[str]:
     return normalize_validator_ids(validators)
 
 
@@ -45,22 +47,27 @@ def stable_tx_id(tx: Mapping[str, Any], *, chain_id: str = "") -> str:
     return _sha256_hex(tx)
 
 
-def canonical_tx_order_key(tx: Mapping[str, Any], *, chain_id: str = "") -> Tuple[str]:
+def canonical_tx_order_key(tx: Mapping[str, Any], *, chain_id: str = "") -> tuple[str]:
     return (stable_tx_id(tx, chain_id=chain_id),)
 
 
 def canonicalize_txs(
     txs: Sequence[Mapping[str, Any]], *, chain_id: str = ""
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     return sorted(
         (dict(tx) for tx in txs),
         key=lambda tx: canonical_tx_order_key(tx, chain_id=chain_id),
     )
 
 
-def tx_conflict_keys(tx: Mapping[str, Any]) -> List[str]:
+def tx_conflict_keys(tx: Mapping[str, Any]) -> list[str]:
     descriptor = build_conflict_descriptor(tx)
-    keys = list(descriptor.subject_keys) + list(descriptor.read_keys) + list(descriptor.write_keys) + list(descriptor.authority_keys)
+    keys = (
+        list(descriptor.subject_keys)
+        + list(descriptor.read_keys)
+        + list(descriptor.write_keys)
+        + list(descriptor.authority_keys)
+    )
     if keys:
         return sorted(set(keys))
     raw = tx.get("conflict_keys")
@@ -96,7 +103,7 @@ def lane_base_id(tx: Mapping[str, Any]) -> str:
 class LaneAssignment:
     lane_id: str
     helper_id: str
-    tx_ids: Tuple[str, ...]
+    tx_ids: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -106,9 +113,9 @@ class HelperPlan:
     parent_block_id: str
     validator_epoch: int
     validator_set_hash: str
-    lanes: Tuple[LaneAssignment, ...]
+    lanes: tuple[LaneAssignment, ...]
 
-    def to_canonical_dict(self) -> Dict[str, Any]:
+    def to_canonical_dict(self) -> dict[str, Any]:
         return {
             "chain_id": self.chain_id,
             "height": self.height,
@@ -163,10 +170,10 @@ def partition_conflict_lanes(
     txs: Sequence[Mapping[str, Any]],
     *,
     chain_id: str = "",
-) -> List[Tuple[str, List[Dict[str, Any]]]]:
+) -> list[tuple[str, list[dict[str, Any]]]]:
     ordered = canonicalize_txs(txs, chain_id=chain_id)
-    lanes: Dict[str, List[Dict[str, Any]]] = {}
-    order: List[str] = []
+    lanes: dict[str, list[dict[str, Any]]] = {}
+    order: list[str] = []
     for tx in ordered:
         lane_id = lane_base_id(tx)
         if lane_id not in lanes:
@@ -192,7 +199,7 @@ def build_helper_plan(
     vset_hash = validator_set_hash(normalized)
     lane_tuples = partition_conflict_lanes(txs, chain_id=chain_id)
 
-    assignments: List[LaneAssignment] = []
+    assignments: list[LaneAssignment] = []
     for lane_id, lane_txs in lane_tuples:
         helper_id = choose_helper_for_lane(
             validators=normalized,

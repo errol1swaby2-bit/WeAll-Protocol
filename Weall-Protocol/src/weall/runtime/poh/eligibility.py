@@ -11,9 +11,10 @@ example ``CONTENT_COMMENT_CREATE`` is Tier0+ because the public lobby is Tier0,
 while non-lobby comments are additionally constrained by the content applier.
 """
 
+from collections.abc import Mapping
 from functools import lru_cache
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any
 
 from weall.runtime.errors import ApplyError
 from weall.runtime.poh.state import effective_poh_tier
@@ -60,7 +61,11 @@ ACTION_REQUIRED_POH_TIER: Mapping[str, int] = MappingProxyType(_build_canonical_
 def get_required_poh_tier(action_name: str) -> int:
     if is_removed_legacy_poh_tier_action(action_name):
         return UNKNOWN_ACTION_REQUIRED_POH_TIER
-    return int(ACTION_REQUIRED_POH_TIER.get(normalize_action_name(action_name), UNKNOWN_ACTION_REQUIRED_POH_TIER))
+    return int(
+        ACTION_REQUIRED_POH_TIER.get(
+            normalize_action_name(action_name), UNKNOWN_ACTION_REQUIRED_POH_TIER
+        )
+    )
 
 
 def can_account_perform_action(state: Json, account_id: str, action_name: str) -> bool:

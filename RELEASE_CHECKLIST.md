@@ -1,14 +1,15 @@
 # WeAll Release / Reviewer Checklist
 
-This checklist is for reviewer-facing documentation and bounded rehearsal preparation after Passes 10–27. It does not escalate readiness claims.
+This checklist is for reviewer-facing documentation and bounded rehearsal preparation against the current generated readiness artifacts. It does not escalate readiness claims.
 
-Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates.**
+Current allowed claim: **WeAll is a pre-public-testnet protocol implementation under active hardening, with local/devnet/public-observer-oriented evidence present and public beta readiness still blocked by explicit external observer, replay, validator/operator, storage, legal, upgrade-execution, and helper-topology gates. Independent cryptographic review remains a separate launch gate.**
 
 ## Current status
 
 | Claim area | Status | Required boundary |
 |---|---:|---|
-| Controlled internal/public-observer rehearsal candidate | GO | May be used only with the blocker caveat above. |
+| Bounded local/devnet/public-observer-oriented rehearsal | GO for local review only | May be used only as local/reviewer evidence; it is not a controlled-testnet mechanism-complete claim. |
+| Controlled-testnet mechanism completion | NO-GO | Production helper state-root/restart equivalence remains incomplete in the current generated go-gate. |
 | Public beta readiness | NO-GO | `public_beta_ready=false` must remain visible. |
 | Public observer launch claim | NO-GO | External open-download observer transcript is still required. |
 | Public mainnet readiness | NO-GO | Mainnet hardening remains future work. |
@@ -16,6 +17,7 @@ Current allowed claim: **WeAll is a pre-public-testnet protocol implementation u
 | Live economics | NO-GO | Economics remain locked; no live fees/transfers/rewards/slashing claim. |
 | Automatic upgrades | NO-GO | Upgrade execution, migration execution, and rollback execution are disabled. |
 | Production helper execution | NO-GO | Helper topology remains a hardening gate. |
+| Production cryptographic audit / post-quantum security | NO-GO | Fresh profile-aware post-transition evidence and external cryptographic review remain required. |
 | Legal/compliance approval | NO-GO | Counsel/control review remains open. |
 | Public storage-market readiness | NO-GO | Real operator storage/IPFS evidence remains required. |
 
@@ -82,25 +84,25 @@ Frontend checks prove rendering/source-contract behavior only. They do not overr
 |---|---|---|
 | Current readiness statement | `Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md` | The allowed claim is bounded and public beta remains blocked. |
 | Evidence index | `Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md` | Implemented evidence, generated artifacts, local gates, external evidence, and future hardening are separated. |
-| Public beta blocker status | `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md` | 14 blockers visible; 7 closed in repo; 7 open. |
+| Public beta blocker status | `Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md` | 15 blockers visible; 7 closed in repo; 8 open. |
 | Final go-gate doc | `Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md` | NO-GO for controlled-testnet mechanism completion until production helper state-root/restart proof is complete; local observer/reviewer rehearsal remains available. |
 | Public observer quickstart | `Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md` | Boot steps are transcript collection steps, not public-readiness authority. |
 | Testnet launch checklist | `Weall-Protocol/docs/testnet/TESTNET_LAUNCH_CHECKLIST.md` | Launch wording remains conservative. |
 | Production posture | `Weall-Protocol/docs/PRODUCTION_POSTURE.md` | Fail-closed and disabled surfaces remain explicit. |
 | Versioning strategy | `Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md` | Tx canon and upgrade record-only boundaries remain current. |
-| Generated blocker report | `Weall-Protocol/generated/public_beta_blocker_report_v1_5.json` | `public_beta_ready=false`; `blocker_catalog_count=14`; `closed_in_repository_count=7`; `remaining_blocker_count=7`. |
+| Generated blocker report | `Weall-Protocol/generated/public_beta_blocker_report_v1_5.json` | `public_beta_ready=false`; `blocker_catalog_count=15`; `closed_in_repository_count=7`; `remaining_blocker_count=8`; `p0_open_count=4`; `p1_open_count=4`. |
 | Release evidence manifest | `Weall-Protocol/generated/release_evidence_manifest_v1_5.json` | Claim boundaries remain false for public beta, mainnet, live economics, public validator, automatic upgrades, production helpers, and storage-market readiness. |
 | Proof templates | `Weall-Protocol/docs/proofs/` | External transcript templates remain available and unfilled unless real evidence is attached. |
 
 ## Blocker truth that must not be hidden
 
 - Public beta readiness remains false.
-- The blocker catalog remains 14 entries.
+- The blocker catalog remains 15 entries.
 - 7 entries are closed in repository.
-- 7 entries remain open as external evidence or mainnet-hardening gates.
-- P0 open count remains 3.
+- 8 entries remain open as external evidence or mainnet-hardening gates.
+- P0 open count remains 4.
 - P1 open count remains 4.
-- Local scripts and generated artifacts can prove repository consistency, but they cannot self-certify missing external operator, counsel, storage, replay, helper, observer, or upgrade-execution evidence.
+- Local scripts and generated artifacts can prove repository consistency, but they cannot self-certify missing external operator, counsel, storage, replay, helper, observer, upgrade-execution, or cryptographic-review evidence.
 
 ## External evidence still required
 
@@ -109,6 +111,7 @@ Frontend checks prove rendering/source-contract behavior only. They do not overr
 | `AUD-618-P0-001` | Independent controlled validator/operator transcript. |
 | `AUD-618-P0-002` | Real counsel or controlled legal/compliance attestation. |
 | `AUD-618-P0-003` | Future executable upgrade staging/rollback proof. |
+| `AUD-633-P0-004` | Fresh profile-aware post-transition rehearsal evidence, browser/local signing-boundary review, helper/evidence-signing production gate, and external cryptographic review. |
 | `AUD-618-P1-003` | External/two-machine replay transcript. |
 | `AUD-618-P1-004` | Real storage/IPFS daemon/operator transcript. |
 | `AUD-618-P1-005` | Future production helper topology proof. |
@@ -128,7 +131,7 @@ Frontend checks prove rendering/source-contract behavior only. They do not overr
 
 ## Intentionally disabled surfaces
 
-The current release package must continue to say that live economics, fees/transfers/rewards/slashing, public validator/BFT readiness, automatic upgrades, executable migrations/rollbacks, production helper execution, legal approval, and public storage-market readiness are not enabled or not claimed.
+The current release package must continue to say that live economics, fees/transfers/rewards/slashing, public validator/BFT readiness, automatic upgrades, executable migrations/rollbacks, production helper execution, completed production cryptographic audit, production post-quantum security, legal approval, and public storage-market readiness are not enabled or not claimed.
 
 ## Commit hygiene before publishing a patch
 

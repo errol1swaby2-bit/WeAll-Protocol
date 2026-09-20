@@ -44,9 +44,7 @@ def test_existing_media_upload_cap_is_unchanged(monkeypatch):
 
     middleware = _middleware()
 
-    assert middleware._effective_max_bytes("/v1/media/upload") == (
-        3 * 1024 * 1024 + 64 * 1024
-    )
+    assert middleware._effective_max_bytes("/v1/media/upload") == (3 * 1024 * 1024 + 64 * 1024)
 
 
 def test_local_rehearsal_exports_async_video_cap():

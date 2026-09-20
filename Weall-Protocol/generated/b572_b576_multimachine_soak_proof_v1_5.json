@@ -140,6 +140,7 @@
       "v-d": 6
     },
     "leader_rotation_exercised": true,
+    "multiprocessing_start_method": "spawn",
     "node_count": 4,
     "ok": true,
     "process_ids_unique": true,

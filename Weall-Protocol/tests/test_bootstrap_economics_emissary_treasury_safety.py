@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import importlib.util
 import json
 from pathlib import Path
@@ -9,7 +8,7 @@ import pytest
 
 from weall.runtime.apply.governance import apply_governance
 from weall.runtime.apply.groups import apply_groups
-from weall.runtime.apply.rewards import RewardsApplyError, apply_rewards
+from weall.runtime.apply.rewards import apply_rewards
 from weall.runtime.apply.roles import apply_roles
 from weall.runtime.chain_config import production_chain_param_safety_issues
 from weall.runtime.domain_dispatch import apply_tx
@@ -36,7 +35,9 @@ def _env(
             "payload": payload or {},
             "sig": "sig",
             "system": bool(system),
-            "parent": parent if parent is not None else (f"p:{tx_type}:{nonce}" if system else None),
+            "parent": parent
+            if parent is not None
+            else (f"p:{tx_type}:{nonce}" if system else None),
         }
     )
 
@@ -71,11 +72,15 @@ def test_production_chain_params_reject_open_bootstrap_roleless_juror_and_demo_f
     assert "params.seeded_demo_review_fallback=true" in joined
 
 
-def test_production_genesis_verifier_rejects_open_bootstrap_and_roleless_juror_flags(tmp_path: Path) -> None:
+def test_production_genesis_verifier_rejects_open_bootstrap_and_roleless_juror_flags(
+    tmp_path: Path,
+) -> None:
     verifier = _load_genesis_verifier()
     manifest_path = ROOT / "configs" / "chains" / "weall-genesis.json"
     tx_index_path = ROOT / "generated" / "tx_index.json"
-    genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
+    genesis = json.loads(
+        (ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8")
+    )
     genesis.setdefault("params", {})["poh_bootstrap_mode"] = "open"
     genesis["params"]["allow_case_scoped_juror_without_role"] = True
     genesis["params"]["seeded_demo_review_fallback"] = True
@@ -96,7 +101,9 @@ def test_production_genesis_verifier_rejects_open_bootstrap_and_roleless_juror_f
 
 
 def test_production_founder_bootstrap_grant_is_auditable_receipt_backed_and_transitional() -> None:
-    genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
+    genesis = json.loads(
+        (ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8")
+    )
     params = genesis["params"]
     founder = params["bootstrap_founder_account"]
     grants_root = genesis["poh"]["bootstrap_grants"]
@@ -136,8 +143,22 @@ def _native_poh_state() -> dict:
             }
         },
         "accounts": {
-            "@founder": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False, "balance": 0, "reputation_milli": 10_000},
-            "@alice": {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "balance": 0, "reputation_milli": 10_000},
+            "@founder": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "banned": False,
+                "locked": False,
+                "balance": 0,
+                "reputation_milli": 10_000,
+            },
+            "@alice": {
+                "nonce": 0,
+                "poh_tier": 0,
+                "banned": False,
+                "locked": False,
+                "balance": 0,
+                "reputation_milli": 10_000,
+            },
             "SYSTEM": {"nonce": 0, "poh_tier": 0, "banned": False, "locked": False, "balance": 0},
         },
         "roles": {
@@ -158,7 +179,11 @@ def test_native_async_live_path_grows_juror_pool_from_founder_bootstrap() -> Non
             "POH_ASYNC_REQUEST_OPEN",
             "@alice",
             1,
-            {"account_id": "@alice", "case_id": "async-alice", "response_commitment": "sha256:response"},
+            {
+                "account_id": "@alice",
+                "case_id": "async-alice",
+                "response_commitment": "sha256:response",
+            },
         ),
     )
     apply_tx(
@@ -167,15 +192,33 @@ def test_native_async_live_path_grows_juror_pool_from_founder_bootstrap() -> Non
             "POH_ASYNC_EVIDENCE_DECLARE",
             "@alice",
             2,
-            {"case_id": "async-alice", "evidence_id": "ev1", "evidence_commitment": "sha256:evidence"},
+            {
+                "case_id": "async-alice",
+                "evidence_id": "ev1",
+                "evidence_commitment": "sha256:evidence",
+            },
         ),
     )
     apply_tx(
         st,
-        _env("POH_ASYNC_JUROR_ASSIGN", "SYSTEM", 3, {"case_id": "async-alice", "jurors": ["@founder"]}, system=True),
+        _env(
+            "POH_ASYNC_JUROR_ASSIGN",
+            "SYSTEM",
+            3,
+            {"case_id": "async-alice", "jurors": ["@founder"]},
+            system=True,
+        ),
     )
     apply_tx(st, _env("POH_ASYNC_JUROR_ACCEPT", "@founder", 4, {"case_id": "async-alice"}))
-    apply_tx(st, _env("POH_ASYNC_REVIEW_SUBMIT", "@founder", 5, {"case_id": "async-alice", "verdict": "approve"}))
+    apply_tx(
+        st,
+        _env(
+            "POH_ASYNC_REVIEW_SUBMIT",
+            "@founder",
+            5,
+            {"case_id": "async-alice", "verdict": "approve"},
+        ),
+    )
     apply_tx(st, _env("POH_ASYNC_FINALIZE", "SYSTEM", 6, {"case_id": "async-alice"}, system=True))
     assert st["accounts"]["@alice"]["poh_tier"] == 1
 
@@ -195,15 +238,37 @@ def test_native_async_live_path_grows_juror_pool_from_founder_bootstrap() -> Non
         ),
     )
     live_case_id = out["case_id"]
-    apply_tx(st, _env("POH_LIVE_JUROR_ASSIGN", "SYSTEM", 8, {"case_id": live_case_id, "jurors": ["@founder"]}, system=True))
-    apply_tx(st, _env("POH_LIVE_JUROR_ACCEPT", "@founder", 9, {"case_id": live_case_id, "session_commitment": session_commitment}))
+    apply_tx(
+        st,
+        _env(
+            "POH_LIVE_JUROR_ASSIGN",
+            "SYSTEM",
+            8,
+            {"case_id": live_case_id, "jurors": ["@founder"]},
+            system=True,
+        ),
+    )
+    apply_tx(
+        st,
+        _env(
+            "POH_LIVE_JUROR_ACCEPT",
+            "@founder",
+            9,
+            {"case_id": live_case_id, "session_commitment": session_commitment},
+        ),
+    )
     apply_tx(
         st,
         _env(
             "POH_LIVE_ATTENDANCE_MARK",
             "@founder",
             10,
-            {"case_id": live_case_id, "juror_id": "@founder", "attended": True, "session_commitment": session_commitment},
+            {
+                "case_id": live_case_id,
+                "juror_id": "@founder",
+                "attended": True,
+                "session_commitment": session_commitment,
+            },
         ),
     )
     apply_tx(
@@ -259,7 +324,9 @@ def test_governance_treasury_spend_actions_remain_blocked_by_genesis_econ_lock()
                     "proposal_id": "p-treasury-before-unlock",
                     "title": "execute treasury spend",
                     "rules": {"start_stage": "voting"},
-                    "actions": [{"tx_type": "TREASURY_SPEND_EXECUTE", "payload": {"spend_id": "spend-1"}}],
+                    "actions": [
+                        {"tx_type": "TREASURY_SPEND_EXECUTE", "payload": {"spend_id": "spend-1"}}
+                    ],
                 },
             ),
         )
@@ -280,24 +347,41 @@ def test_governance_allowlists_proposal_voted_treasury_spend_execute_after_unloc
                 "proposal_id": "p-treasury-after-unlock",
                 "title": "execute treasury spend",
                 "rules": {"start_stage": "voting"},
-                "actions": [{"tx_type": "TREASURY_SPEND_EXECUTE", "payload": {"spend_id": "spend-1"}}],
+                "actions": [
+                    {"tx_type": "TREASURY_SPEND_EXECUTE", "payload": {"spend_id": "spend-1"}}
+                ],
             },
         ),
     )
 
     proposal = st["gov_proposals_by_id"]["p-treasury-after-unlock"]
-    assert proposal["actions"] == [{"tx_type": "TREASURY_SPEND_EXECUTE", "payload": {"spend_id": "spend-1"}}]
+    assert proposal["actions"] == [
+        {"tx_type": "TREASURY_SPEND_EXECUTE", "payload": {"spend_id": "spend-1"}}
+    ]
     assert proposal["eligible_validator_ids"] == ["@val1"]
 
     proposal["stage"] = "tallied"
-    proposal["tallies"] = [{"height": 21, "payload": {"proposal_id": "p-treasury-after-unlock", "passed": True}}]
+    proposal["tallies"] = [
+        {"height": 21, "payload": {"proposal_id": "p-treasury-after-unlock", "passed": True}}
+    ]
     apply_governance(
         st,
-        _env("GOV_EXECUTE", "SYSTEM", 2, {"proposal_id": "p-treasury-after-unlock"}, system=True, parent="gov:p-treasury-after-unlock"),
+        _env(
+            "GOV_EXECUTE",
+            "SYSTEM",
+            2,
+            {"proposal_id": "p-treasury-after-unlock"},
+            system=True,
+            parent="gov:p-treasury-after-unlock",
+        ),
     )
 
     queued = st.get("system_queue", [])
-    assert any(item.get("tx_type") == "TREASURY_SPEND_EXECUTE" and item.get("payload", {}).get("spend_id") == "spend-1" for item in queued)
+    assert any(
+        item.get("tx_type") == "TREASURY_SPEND_EXECUTE"
+        and item.get("payload", {}).get("spend_id") == "spend-1"
+        for item in queued
+    )
 
 
 def test_rewards_remain_disabled_before_economics_activation() -> None:
@@ -353,18 +437,33 @@ def test_global_emissary_nominate_vote_seat_remove_syncs_protocol_treasury_signe
     assert treasury_policy["signers"] == ["@e1", "@e2"]
     assert treasury_policy["threshold"] == 2
 
-    apply_roles(st, _env("ROLE_EMISSARY_REMOVE", "SYSTEM", 6, {"account_id": "@e1", "reason": "term_end"}, system=True))
+    apply_roles(
+        st,
+        _env(
+            "ROLE_EMISSARY_REMOVE",
+            "SYSTEM",
+            6,
+            {"account_id": "@e1", "reason": "term_end"},
+            system=True,
+        ),
+    )
     treasury_policy = st["roles"]["treasuries_by_id"]["TREASURY_PROTOCOL"]
     assert treasury_policy["signers"] == []
     assert treasury_policy["threshold"] == 2
-    assert treasury_policy["synced_from_emissaries_reason"] == "emissary_removed:inert_until_two_emissaries"
+    assert (
+        treasury_policy["synced_from_emissaries_reason"]
+        == "emissary_removed:inert_until_two_emissaries"
+    )
 
 
 def test_group_emissary_election_finalize_syncs_group_and_treasury_signers() -> None:
     candidates = ["@a", "@b", "@c", "@d", "@e"]
     st = {
         "height": 10,
-        "accounts": {account: {"poh_tier": 2, "banned": False, "locked": False} for account in ["@owner", *candidates]},
+        "accounts": {
+            account: {"poh_tier": 2, "banned": False, "locked": False}
+            for account in ["@owner", *candidates]
+        },
         "roles": {
             "groups_by_id": {
                 "g1": {
@@ -373,7 +472,9 @@ def test_group_emissary_election_finalize_syncs_group_and_treasury_signers() -> 
                     "treasury_id": "TREASURY_GROUP::g1",
                     "signers": ["@owner"],
                     "threshold": 1,
-                    "members": {account: {"account": account} for account in ["@owner", *candidates]},
+                    "members": {
+                        account: {"account": account} for account in ["@owner", *candidates]
+                    },
                 }
             },
             "treasuries_by_id": {
@@ -384,7 +485,7 @@ def test_group_emissary_election_finalize_syncs_group_and_treasury_signers() -> 
                     "signers": ["@owner"],
                     "threshold": 1,
                 }
-            }
+            },
         },
     }
 
@@ -394,13 +495,22 @@ def test_group_emissary_election_finalize_syncs_group_and_treasury_signers() -> 
             "GROUP_EMISSARY_ELECTION_CREATE",
             "@owner",
             1,
-            {"group_id": "g1", "election_id": "ge1", "seats": 5, "candidates": candidates, "start_height": 11, "end_height": 12},
+            {
+                "group_id": "g1",
+                "election_id": "ge1",
+                "seats": 5,
+                "candidates": candidates,
+                "start_height": 11,
+                "end_height": 12,
+            },
         ),
     )
     assert out["n_candidates"] == 5
 
     st["height"] = 12
-    final = apply_groups(st, _env("GROUP_EMISSARY_ELECTION_FINALIZE", "@owner", 2, {"election_id": "ge1"}))
+    final = apply_groups(
+        st, _env("GROUP_EMISSARY_ELECTION_FINALIZE", "@owner", 2, {"election_id": "ge1"})
+    )
     winners = final["winners"]
     assert winners == sorted(candidates)
     assert st["groups_by_id"]["g1"]["emissaries"] == winners

@@ -1,6 +1,6 @@
-from weall.testing.helper_planner import partition_conflict_lanes
 from weall.runtime.read_write_sets import build_tx_access_set
 from weall.runtime.tx_conflicts import BarrierClass, TxFamily, build_conflict_descriptor
+from weall.testing.helper_planner import partition_conflict_lanes
 
 
 def test_balance_transfer_builds_scoped_parallel_descriptor() -> None:

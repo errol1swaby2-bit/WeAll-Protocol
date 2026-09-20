@@ -23,9 +23,7 @@ def test_genesis_testnet_launch_readiness_generator_static_verdict():
     assert payload["registry"]["signature_status"]["verified"] is False
     assert payload["registry"]["signature_status"]["trust"] == "rotation_required"
     assert payload["static_readiness_verdict"] == "blocked"
-    assert payload["registry"]["errors"] == [
-        "public_testnet_seed_registry_rotation_required"
-    ]
+    assert payload["registry"]["errors"] == ["public_testnet_seed_registry_rotation_required"]
     assert payload["observer_boot_script_checks"]["enables_direct_p2p_mesh_loop"] is True
     assert payload["observer_boot_script_checks"]["refuses_observer_validator_signing"] is True
     assert payload["named_provider_dependency"] is False

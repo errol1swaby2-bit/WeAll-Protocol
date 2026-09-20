@@ -6,7 +6,13 @@ from weall.runtime.parallel_execution import LanePlan, canonical_lane_plan_finge
 
 def test_helper_audit_binds_to_plan_id() -> None:
     lane_plans = (
-        LanePlan(lane_id="L1", helper_id="h1", txs=tuple(), tx_ids=("t1",), namespace_prefixes=("content:",)),
+        LanePlan(
+            lane_id="L1",
+            helper_id="h1",
+            txs=tuple(),
+            tx_ids=("t1",),
+            namespace_prefixes=("content:",),
+        ),
     )
     plan_id = canonical_lane_plan_fingerprint(lane_plans)
     audit_plan = build_lane_audit_plan(

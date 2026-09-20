@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import time
 from collections.abc import Callable
@@ -9,8 +8,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.net.messages import MsgType, StateSyncRequestMsg, StateSyncResponseMsg, WireHeader
-from weall.runtime.block_hash import compute_block_hash
+from weall.runtime.block_commitment_validation import (
+    validate_complete_block_commitments,
+)
+from weall.runtime.block_hash import (
+    BlockHashBindingError,
+    ensure_canonical_block_hash,
+)
 from weall.runtime.commitments import normalize_validator_ids, validator_set_hash
+from weall.runtime.json_tools import canonical_json_str
 from weall.runtime.state_hash import compute_state_root, consensus_state_root_view
 from weall.runtime.system_tx_engine import (
     SystemQueueCorruptionError,
@@ -93,7 +99,7 @@ def _now_ms() -> int:
 
 
 def _canon_json(obj: Any) -> str:
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return canonical_json_str(obj)
 
 
 def sha256_hex_of(obj: Any) -> str:
@@ -113,6 +119,29 @@ def _as_str(v: Any) -> str:
     return str(v or "").strip()
 
 
+def _is_test_only_minimal_snapshot_checkpoint(checkpoint: Json) -> bool:
+    """Return True only for the historical lightweight transport test fixture.
+
+    Real checkpoint blocks are complete consensus objects and must be rebound
+    through ``validate_complete_block_commitments``.  A few transport-level tests
+    intentionally model only the snapshot/checkpoint pinning relation using the
+    exact ``{height, block_id, header:{height,state_root}}`` shape.  Preserve that
+    fixture only in explicit ``WEALL_MODE=test``; never infer compatibility from a
+    malformed full block.
+    """
+
+    if _mode() != "test":
+        return False
+    if set(checkpoint) - {"height", "block_id", "header"}:
+        return False
+    header = checkpoint.get("header")
+    if not isinstance(header, dict):
+        return False
+    if set(header) - {"height", "state_root"}:
+        return False
+    return bool(_as_str(checkpoint.get("block_id")))
+
+
 def _block_hash_for_sync_chain(block: Json) -> str:
     """Return the block hash used by prev_block_hash ancestry checks.
 
@@ -125,15 +154,16 @@ def _block_hash_for_sync_chain(block: Json) -> str:
 
     if not isinstance(block, dict):
         return ""
-    existing = block.get("block_hash")
-    if isinstance(existing, str) and existing.strip():
-        return existing.strip()
     header = block.get("header")
     if isinstance(header, dict) and header:
         try:
-            return str(compute_block_hash(header=header) or "").strip()
+            _bound, canonical_hash = ensure_canonical_block_hash(dict(block))
+            return str(canonical_hash or "").strip()
         except Exception:
             return ""
+    existing = block.get("block_hash")
+    if isinstance(existing, str) and existing.strip():
+        return existing.strip()
     legacy = block.get("hash")
     if isinstance(legacy, str) and legacy.strip():
         return legacy.strip()
@@ -186,12 +216,22 @@ def _validate_snapshot_validator_authority(snapshot: Json) -> None:
         return
 
     consensus = snapshot.get("consensus") if isinstance(snapshot.get("consensus"), dict) else {}
+    if "validator_set" in consensus and not isinstance(consensus.get("validator_set"), dict):
+        raise StateSyncVerifyError("snapshot_validator_authority_invalid:validator_set_not_object")
     validator_set = (
         consensus.get("validator_set") if isinstance(consensus.get("validator_set"), dict) else {}
     )
+    if "epoch" in validator_set:
+        raw_epoch = validator_set.get("epoch")
+        if isinstance(raw_epoch, bool) or not isinstance(raw_epoch, int) or raw_epoch < 0:
+            raise StateSyncVerifyError(
+                "snapshot_validator_authority_invalid:validator_epoch_invalid"
+            )
+    if "active_set" not in validator_set:
+        return
     active_raw = validator_set.get("active_set")
     if not isinstance(active_raw, list):
-        return
+        raise StateSyncVerifyError("snapshot_validator_authority_invalid:active_set_not_list")
 
     active = normalize_validator_ids(active_raw)
     stored_set_hash = _as_str(validator_set.get("set_hash") or "")
@@ -239,6 +279,11 @@ def _validate_snapshot_validator_authority(snapshot: Json) -> None:
 
 
 def _validate_snapshot_semantics(snapshot: Json) -> None:
+    try:
+        canonical_json_str(snapshot)
+    except (TypeError, ValueError) as exc:
+        raise StateSyncVerifyError("snapshot_not_strict_json") from exc
+
     try:
         validate_system_queue_recovery_state(snapshot)
     except SystemQueueCorruptionError as exc:
@@ -628,12 +673,35 @@ class StateSyncService:
                 checkpoint_height = _as_int(checkpoint.get("height"), 0)
                 if checkpoint_height != snapshot_height:
                     raise StateSyncVerifyError("snapshot_checkpoint_height_mismatch")
-                checkpoint_hash = _block_hash_for_sync_chain(checkpoint)
-                if not checkpoint_hash or checkpoint_hash != _as_str(
-                    computed_anchor.get("tip_hash")
-                ):
+                ok_binding, binding_reason, checkpoint_binding = (
+                    validate_complete_block_commitments(
+                        block=checkpoint,
+                        chain_id=self.chain_id,
+                    )
+                )
+                if not ok_binding or checkpoint_binding is None:
+                    if not _is_test_only_minimal_snapshot_checkpoint(checkpoint):
+                        if binding_reason == "block_hash_mismatch":
+                            raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch")
+                        raise StateSyncVerifyError(
+                            f"snapshot_checkpoint_commitment_invalid:{binding_reason}"
+                        )
+                    try:
+                        _checkpoint_bound, checkpoint_hash = ensure_canonical_block_hash(checkpoint)
+                    except BlockHashBindingError as exc:
+                        raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch") from exc
+                    checkpoint_id = _as_str(checkpoint.get("block_id"))
+                else:
+                    if (
+                        checkpoint_binding.advertised_block_hash
+                        and checkpoint_binding.advertised_block_hash
+                        != checkpoint_binding.block_hash
+                    ):
+                        raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch")
+                    checkpoint_hash = checkpoint_binding.block_hash
+                    checkpoint_id = checkpoint_binding.block_id
+                if checkpoint_hash != _as_str(computed_anchor.get("tip_hash")):
                     raise StateSyncVerifyError("snapshot_checkpoint_hash_mismatch")
-                checkpoint_id = _block_id_for_sync_chain(checkpoint)
                 snapshot_tip = _as_str(resp.snapshot.get("tip") or "")
                 if snapshot_tip and checkpoint_id != snapshot_tip:
                     raise StateSyncVerifyError("snapshot_checkpoint_block_id_mismatch")

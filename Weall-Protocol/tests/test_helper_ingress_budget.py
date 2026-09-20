@@ -5,7 +5,9 @@ from weall.runtime.helper_replay_guard import HelperRateBudget, HelperReplayGuar
 
 
 def test_replay_guard_budget_duplicate_and_conflict_paths() -> None:
-    guard = HelperReplayGuard(budget=HelperRateBudget(per_helper_per_window=3, per_plan_total=10, window_ms=5_000))
+    guard = HelperReplayGuard(
+        budget=HelperRateBudget(per_helper_per_window=3, per_plan_total=10, window_ms=5_000)
+    )
 
     first = {
         "receipt_id": "r1",
@@ -32,11 +34,16 @@ def test_replay_guard_budget_duplicate_and_conflict_paths() -> None:
     assert guard.observe_artifact(first, now_ms=1000).reason == "accepted"
     assert guard.observe_artifact({**first}, now_ms=1001).reason == "duplicate_artifact"
     assert guard.observe_artifact(second, now_ms=1002).reason == "accepted"
-    assert guard.observe_artifact(conflict, now_ms=1003).reason == "conflicting_artifact_for_same_helper_lane"
+    assert (
+        guard.observe_artifact(conflict, now_ms=1003).reason
+        == "conflicting_artifact_for_same_helper_lane"
+    )
 
 
 def test_replay_guard_budget_rate_limit_then_window_recovery() -> None:
-    guard = HelperReplayGuard(budget=HelperRateBudget(per_helper_per_window=2, per_plan_total=10, window_ms=100))
+    guard = HelperReplayGuard(
+        budget=HelperRateBudget(per_helper_per_window=2, per_plan_total=10, window_ms=100)
+    )
 
     def artifact(i: int) -> dict[str, str]:
         return {
@@ -74,29 +81,65 @@ def test_certificate_store_budget_window_and_plan_total_fail_closed() -> None:
     )
 
     not_started = store.accept_certificate(
-        {"receipt_id": "r1", "helper_id": "h1", "plan_id": "plan-1", "lane_id": "L1", "descriptor_hash": "d1"},
+        {
+            "receipt_id": "r1",
+            "helper_id": "h1",
+            "plan_id": "plan-1",
+            "lane_id": "L1",
+            "descriptor_hash": "d1",
+        },
         now_ms=1000,
     )
     assert not_started.reason == "plan_window_not_started"
 
     store.open_plan_window(plan_id="plan-1", now_ms=1000)
-    assert store.accept_certificate(
-        {"receipt_id": "r1", "helper_id": "h1", "plan_id": "plan-1", "lane_id": "L1", "descriptor_hash": "d1"},
-        now_ms=1001,
-    ).reason == "accepted"
-    assert store.accept_certificate(
-        {"receipt_id": "r2", "helper_id": "h2", "plan_id": "plan-1", "lane_id": "L2", "descriptor_hash": "d2"},
-        now_ms=1002,
-    ).reason == "accepted"
+    assert (
+        store.accept_certificate(
+            {
+                "receipt_id": "r1",
+                "helper_id": "h1",
+                "plan_id": "plan-1",
+                "lane_id": "L1",
+                "descriptor_hash": "d1",
+            },
+            now_ms=1001,
+        ).reason
+        == "accepted"
+    )
+    assert (
+        store.accept_certificate(
+            {
+                "receipt_id": "r2",
+                "helper_id": "h2",
+                "plan_id": "plan-1",
+                "lane_id": "L2",
+                "descriptor_hash": "d2",
+            },
+            now_ms=1002,
+        ).reason
+        == "accepted"
+    )
 
     capped = store.accept_certificate(
-        {"receipt_id": "r3", "helper_id": "h3", "plan_id": "plan-1", "lane_id": "L3", "descriptor_hash": "d3"},
+        {
+            "receipt_id": "r3",
+            "helper_id": "h3",
+            "plan_id": "plan-1",
+            "lane_id": "L3",
+            "descriptor_hash": "d3",
+        },
         now_ms=1003,
     )
     assert capped.reason == "plan_total_budget_exceeded"
 
     closed = store.accept_certificate(
-        {"receipt_id": "r4", "helper_id": "h4", "plan_id": "plan-1", "lane_id": "L4", "descriptor_hash": "d4"},
+        {
+            "receipt_id": "r4",
+            "helper_id": "h4",
+            "plan_id": "plan-1",
+            "lane_id": "L4",
+            "descriptor_hash": "d4",
+        },
         now_ms=1050,
     )
     assert closed.reason == "plan_window_closed"

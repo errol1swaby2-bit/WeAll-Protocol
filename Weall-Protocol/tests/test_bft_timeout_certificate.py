@@ -176,6 +176,8 @@ def test_timeout_certificate_persists_across_restart(tmp_path: Path) -> None:
     assert tc.view == 0
     assert tc.high_qc_id == "qc-block-7"
     assert list(tc.signers) == ["v1", "v2", "v3"]
+    assert len(tc.timeouts) == 3
+    assert all(str(item.get("sig") or "") for item in tc.timeouts)
 
     ex2 = WeAllExecutor(
         db_path=db_path, node_id="@v4", chain_id="bft-live", tx_index_path=tx_index_path
@@ -185,6 +187,7 @@ def test_timeout_certificate_persists_across_restart(tmp_path: Path) -> None:
     assert tc2 is not None
     assert tc2.high_qc_id == "qc-block-7"
     assert list(tc2.signers) == ["v1", "v2", "v3"]
+    assert len(tc2.timeouts) == 3
 
 
 def test_leader_proposal_can_use_cached_qc_from_timeout_certificate(
@@ -232,6 +235,7 @@ def test_leader_proposal_can_use_cached_qc_from_timeout_certificate(
         validator_epoch=3,
         validator_set_hash=set_hash,
     )
+    ex._bft._last_timeout_certificate_verified = True
     ex._bft.high_qc = None
     ex._bft.view = 1  # deterministic leader is v2 for sorted [v1,v2,v3,v4]
 

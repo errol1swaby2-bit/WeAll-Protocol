@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from weall.runtime.domain_apply import apply_tx
 from weall.runtime.tx_admission_types import TxEnvelope
 from weall.tx.canon import load_tx_index_json
-from pathlib import Path
 
 
 def _load_index():
@@ -11,8 +12,24 @@ def _load_index():
     return load_tx_index_json(repo_root / "generated" / "tx_index.json")
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        payload=payload,
+        sig="",
+        system=system,
+        parent=parent,
+    )
 
 
 def _base_state() -> dict:
@@ -32,7 +49,15 @@ def _base_state() -> dict:
 def test_governance_vote_auto_progresses_from_active_validator_threshold() -> None:
     st = _base_state()
 
-    apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p1", "title": "t", "rules": {"start_stage": "voting"}}))
+    apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            "alice",
+            1,
+            {"proposal_id": "p1", "title": "t", "rules": {"start_stage": "voting"}},
+        ),
+    )
     apply_tx(st, _env("GOV_VOTE_CAST", "alice", 2, {"proposal_id": "p1", "vote": "yes"}))
 
     pr = st["gov_proposals_by_id"]["p1"]
@@ -47,10 +72,36 @@ def test_governance_vote_auto_progresses_from_active_validator_threshold() -> No
 def test_dispute_vote_auto_resolves_from_active_validator_threshold() -> None:
     st = _base_state()
 
-    apply_tx(st, _env("DISPUTE_OPEN", "alice", 1, {"dispute_id": "d1", "target_type": "content", "target_id": "c1", "reason": "test"}))
-    apply_tx(st, _env("DISPUTE_JUROR_ASSIGN", "SYSTEM", 1, {"dispute_id": "d1", "juror": "alice"}, system=True, parent="tx:alice:1"))
+    apply_tx(
+        st,
+        _env(
+            "DISPUTE_OPEN",
+            "alice",
+            1,
+            {"dispute_id": "d1", "target_type": "content", "target_id": "c1", "reason": "test"},
+        ),
+    )
+    apply_tx(
+        st,
+        _env(
+            "DISPUTE_JUROR_ASSIGN",
+            "SYSTEM",
+            1,
+            {"dispute_id": "d1", "juror": "alice"},
+            system=True,
+            parent="tx:alice:1",
+        ),
+    )
     apply_tx(st, _env("DISPUTE_JUROR_ACCEPT", "alice", 2, {"dispute_id": "d1"}))
-    apply_tx(st, _env("DISPUTE_VOTE_SUBMIT", "alice", 3, {"dispute_id": "d1", "vote": "yes", "resolution": {"summary": "remove content"}}))
+    apply_tx(
+        st,
+        _env(
+            "DISPUTE_VOTE_SUBMIT",
+            "alice",
+            3,
+            {"dispute_id": "d1", "vote": "yes", "resolution": {"summary": "remove content"}},
+        ),
+    )
 
     dispute = st["disputes_by_id"]["d1"]
     assert dispute["stage"] == "resolved"
@@ -64,7 +115,15 @@ def test_dispute_vote_auto_resolves_from_active_validator_threshold() -> None:
 def test_governance_poll_vote_auto_progresses_immediately() -> None:
     st = _base_state()
 
-    apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p2", "title": "t", "rules": {"start_stage": "poll"}}))
+    apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            "alice",
+            1,
+            {"proposal_id": "p2", "title": "t", "rules": {"start_stage": "poll"}},
+        ),
+    )
     apply_tx(st, _env("GOV_VOTE_CAST", "alice", 2, {"proposal_id": "p2", "vote": "yes"}))
 
     pr = st["gov_proposals_by_id"]["p2"]
@@ -76,7 +135,10 @@ def test_governance_poll_vote_auto_progresses_immediately() -> None:
 
 def test_content_flag_escalation_assigns_opted_in_jurors_immediately() -> None:
     st = _base_state()
-    st["roles"] = {"validators": {"active_set": ["validator"]}, "jurors": {"active_set": ["bob"], "by_id": {"bob": {"active": True, "enrolled": True}}}}
+    st["roles"] = {
+        "validators": {"active_set": ["validator"]},
+        "jurors": {"active_set": ["bob"], "by_id": {"bob": {"active": True, "enrolled": True}}},
+    }
     st["content"] = {
         "posts": {"post:alice:1": {"id": "post:alice:1", "author": "carol", "body": "x"}},
         "comments": {},
@@ -87,7 +149,22 @@ def test_content_flag_escalation_assigns_opted_in_jurors_immediately() -> None:
         "moderation": {"receipts": [], "targets": {}},
     }
 
-    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:alice:1", "reason": "test", "reported_by": "alice"}, system=True, parent="tx:alice:5"))
+    apply_tx(
+        st,
+        _env(
+            "CONTENT_ESCALATE_TO_DISPUTE",
+            "SYSTEM",
+            5,
+            {
+                "target_type": "content",
+                "target_id": "post:alice:1",
+                "reason": "test",
+                "reported_by": "alice",
+            },
+            system=True,
+            parent="tx:alice:5",
+        ),
+    )
 
     disputes = st["disputes_by_id"]
     dispute = disputes[sorted(disputes.keys())[0]]
@@ -101,7 +178,15 @@ def test_governance_vote_progresses_when_validator_id_uses_account_alias() -> No
     st["accounts"] = {"@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False}}
     st["roles"] = {"validators": {"active_set": ["alice"]}}
 
-    apply_tx(st, _env("GOV_PROPOSAL_CREATE", "@alice", 1, {"proposal_id": "p3", "title": "t", "rules": {"start_stage": "poll"}}))
+    apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            "@alice",
+            1,
+            {"proposal_id": "p3", "title": "t", "rules": {"start_stage": "poll"}},
+        ),
+    )
     apply_tx(st, _env("GOV_VOTE_CAST", "@alice", 2, {"proposal_id": "p3", "vote": "yes"}))
 
     pr = st["gov_proposals_by_id"]["p3"]
@@ -115,7 +200,9 @@ def test_content_escalation_assigns_canonical_account_identity() -> None:
         "@alice": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
         "@bob": {"nonce": 0, "poh_tier": 2, "banned": False, "locked": False},
     }
-    st["roles"] = {"jurors": {"active_set": ["alice"], "by_id": {"alice": {"active": True, "enrolled": True}}}}
+    st["roles"] = {
+        "jurors": {"active_set": ["alice"], "by_id": {"alice": {"active": True, "enrolled": True}}}
+    }
     st["content"] = {
         "posts": {"post:@bob:1": {"id": "post:@bob:1", "author": "@bob", "body": "x"}},
         "comments": {},
@@ -126,7 +213,17 @@ def test_content_escalation_assigns_canonical_account_identity() -> None:
         "moderation": {"receipts": [], "targets": {}},
     }
 
-    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:@bob:1", "reason": "test"}, system=True, parent="tx:@bob:5"))
+    apply_tx(
+        st,
+        _env(
+            "CONTENT_ESCALATE_TO_DISPUTE",
+            "SYSTEM",
+            5,
+            {"target_type": "content", "target_id": "post:@bob:1", "reason": "test"},
+            system=True,
+            parent="tx:@bob:5",
+        ),
+    )
 
     disputes = st["disputes_by_id"]
     dispute = disputes[sorted(disputes.keys())[0]]
@@ -139,7 +236,15 @@ def test_governance_live_created_proposal_falls_back_to_creator_threshold() -> N
     st = _base_state()
     st["roles"] = {"validators": {"active_set": []}}
 
-    apply_tx(st, _env("GOV_PROPOSAL_CREATE", "alice", 1, {"proposal_id": "p4", "title": "t", "rules": {"start_stage": "poll"}}))
+    apply_tx(
+        st,
+        _env(
+            "GOV_PROPOSAL_CREATE",
+            "alice",
+            1,
+            {"proposal_id": "p4", "title": "t", "rules": {"start_stage": "poll"}},
+        ),
+    )
     apply_tx(st, _env("GOV_VOTE_CAST", "alice", 2, {"proposal_id": "p4", "vote": "yes"}))
 
     pr = st["gov_proposals_by_id"]["p4"]
@@ -161,7 +266,22 @@ def test_content_escalation_waits_for_reviewer_opt_in_without_implicit_reporter_
         "moderation": {"receipts": [], "targets": {}},
     }
 
-    apply_tx(st, _env("CONTENT_ESCALATE_TO_DISPUTE", "SYSTEM", 5, {"target_type": "content", "target_id": "post:alice:1", "reason": "test", "reported_by": "alice"}, system=True, parent="tx:alice:5"))
+    apply_tx(
+        st,
+        _env(
+            "CONTENT_ESCALATE_TO_DISPUTE",
+            "SYSTEM",
+            5,
+            {
+                "target_type": "content",
+                "target_id": "post:alice:1",
+                "reason": "test",
+                "reported_by": "alice",
+            },
+            system=True,
+            parent="tx:alice:5",
+        ),
+    )
 
     disputes = st["disputes_by_id"]
     dispute = disputes[sorted(disputes.keys())[0]]

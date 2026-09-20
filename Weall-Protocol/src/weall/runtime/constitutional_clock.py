@@ -7,8 +7,9 @@ producer to wake up, but it must never decide proposal/dispute eligibility.
 """
 
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 Json = dict[str, Any]
 
@@ -57,7 +58,7 @@ def _int(value: Any, default: int = 0) -> int:
 def _clock_obj_from_manifest(manifest: Any) -> Mapping[str, Any]:
     raw: Any = manifest
     if hasattr(manifest, "raw"):
-        raw = getattr(manifest, "raw")
+        raw = manifest.raw
     if not isinstance(raw, Mapping):
         return {}
     obj = raw.get("constitutional_clock")
@@ -67,10 +68,12 @@ def _clock_obj_from_manifest(manifest: Any) -> Mapping[str, Any]:
 def policy_from_manifest(manifest: Any) -> ConstitutionalClockPolicy:
     raw: Any = manifest
     if hasattr(manifest, "raw"):
-        raw = getattr(manifest, "raw")
+        raw = manifest.raw
     raw_map = raw if isinstance(raw, Mapping) else {}
     obj = _clock_obj_from_manifest(manifest)
-    genesis_time_ms = _int(obj.get("genesis_time_ms", raw_map.get("genesis_time_ms")), DEFAULT_GENESIS_TIME_MS)
+    genesis_time_ms = _int(
+        obj.get("genesis_time_ms", raw_map.get("genesis_time_ms")), DEFAULT_GENESIS_TIME_MS
+    )
     target = _int(obj.get("target_block_interval_ms"), DEFAULT_TARGET_BLOCK_INTERVAL_MS)
     if target <= 0:
         target = DEFAULT_TARGET_BLOCK_INTERVAL_MS
@@ -79,10 +82,14 @@ def policy_from_manifest(manifest: Any) -> ConstitutionalClockPolicy:
         target_block_interval_ms=int(target),
         empty_blocks_enabled=_bool(obj.get("empty_blocks_enabled"), False),
         procedure_time_source=str(obj.get("procedure_time_source") or "finalized_block_height"),
-        block_time_derivation=str(obj.get("block_time_derivation") or "genesis_time_plus_height_times_interval"),
+        block_time_derivation=str(
+            obj.get("block_time_derivation") or "genesis_time_plus_height_times_interval"
+        ),
         no_fast_forward=_bool(obj.get("no_fast_forward"), True),
         no_height_skip=_bool(obj.get("no_height_skip"), True),
-        allowed_clock_skew_ms=max(0, _int(obj.get("allowed_clock_skew_ms"), DEFAULT_ALLOWED_CLOCK_SKEW_MS)),
+        allowed_clock_skew_ms=max(
+            0, _int(obj.get("allowed_clock_skew_ms"), DEFAULT_ALLOWED_CLOCK_SKEW_MS)
+        ),
         genesis_time_ms=int(genesis_time_ms),
     )
 
@@ -94,7 +101,9 @@ def policy_from_state(state: Mapping[str, Any] | None) -> ConstitutionalClockPol
     if isinstance(meta, Mapping):
         obj = meta.get("constitutional_clock")
         if isinstance(obj, Mapping):
-            return policy_from_manifest({"constitutional_clock": obj, "genesis_time_ms": obj.get("genesis_time_ms", 0)})
+            return policy_from_manifest(
+                {"constitutional_clock": obj, "genesis_time_ms": obj.get("genesis_time_ms", 0)}
+            )
     return ConstitutionalClockPolicy()
 
 
@@ -145,7 +154,9 @@ def not_before_ms(policy: ConstitutionalClockPolicy, *, height: int) -> int:
     return expected_block_time_ms(policy, height=int(height)) - int(policy.allowed_clock_skew_ms)
 
 
-def is_too_early(policy: ConstitutionalClockPolicy, *, height: int, now_ms: int | None = None) -> bool:
+def is_too_early(
+    policy: ConstitutionalClockPolicy, *, height: int, now_ms: int | None = None
+) -> bool:
     if not policy.enabled:
         return False
     # genesis_time_ms=0 is a deterministic legacy/dev fixture value, not a real

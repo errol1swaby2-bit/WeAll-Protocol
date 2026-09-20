@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
 Json = dict[str, Any]
 
@@ -48,7 +49,9 @@ def normalize_helper_capability_map(raw: Mapping[str, Any] | None) -> dict[str, 
             continue
         if isinstance(value, Mapping):
             payload = dict(value)
-            allow_all = bool(payload.get("allow_all") or payload.get("all") or payload.get("wildcard"))
+            allow_all = bool(
+                payload.get("allow_all") or payload.get("all") or payload.get("wildcard")
+            )
             lane_classes = _clean_strs(payload.get("lane_classes") or payload.get("lanes"))
             tx_types = tuple(v.upper() for v in _clean_strs(payload.get("tx_types")))
             normalized[hid] = {
@@ -95,10 +98,16 @@ def helper_supports_lane(
         max_complexity = int(capability.get("max_complexity") or 0)
         return max_complexity <= 0 or int(lane_cost_units) <= max_complexity
 
-    lane_classes = {str(v).lower() for v in list(capability.get("lane_classes") or ()) if str(v).strip()}
-    tx_type_caps = {str(v).upper() for v in list(capability.get("tx_types") or ()) if str(v).strip()}
+    lane_classes = {
+        str(v).lower() for v in list(capability.get("lane_classes") or ()) if str(v).strip()
+    }
+    tx_type_caps = {
+        str(v).upper() for v in list(capability.get("tx_types") or ()) if str(v).strip()
+    }
     lane_class_ok = not lane_classes or str(lane_class or "").lower() in lane_classes
-    tx_type_list = [str(v or "").strip().upper() for v in list(tx_types or []) if str(v or "").strip()]
+    tx_type_list = [
+        str(v or "").strip().upper() for v in list(tx_types or []) if str(v or "").strip()
+    ]
     tx_types_ok = not tx_type_caps or all(tx in tx_type_caps for tx in tx_type_list)
     max_complexity = int(capability.get("max_complexity") or 0)
     complexity_ok = max_complexity <= 0 or int(lane_cost_units) <= max_complexity
@@ -145,7 +154,9 @@ def summarize_helper_capabilities(helper_capability_by_helper: Mapping[str, Any]
         )
     return {
         "helper_count": len(rows),
-        "restricted_helper_count": sum(1 for row in rows if (not row["allow_all"]) or row["max_complexity"] > 0),
+        "restricted_helper_count": sum(
+            1 for row in rows if (not row["allow_all"]) or row["max_complexity"] > 0
+        ),
         "helpers": rows,
     }
 

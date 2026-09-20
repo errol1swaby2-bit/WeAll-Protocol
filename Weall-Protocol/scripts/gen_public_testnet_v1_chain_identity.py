@@ -277,9 +277,7 @@ def _build_testnet_genesis(
             "helper_execution_profile_hash": _sha256(_canon(helper_execution_profile)),
             "genesis_bootstrap_profile": genesis_bootstrap_profile,
             "genesis_bootstrap_profile_hash": _sha256(_canon(genesis_bootstrap_profile)),
-            "recent_block_anchor_activation_height": int(
-                RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT
-            ),
+            "recent_block_anchor_activation_height": int(RECENT_BLOCK_ANCHOR_ACTIVATION_HEIGHT),
         },
         "params": {
             "economics_enabled": False,

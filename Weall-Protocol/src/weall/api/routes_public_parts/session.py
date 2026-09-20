@@ -12,7 +12,11 @@ from weall.api.errors import ApiError
 from weall.api.mode_isolation import direct_session_mutation_issue
 from weall.api.routes_public_parts import common
 from weall.crypto.sig import _decode_bytes, verify_signature_for_profile
-from weall.crypto.signature_profiles import PQ_MLDSA_V1, normalize_signature_profile_id, profile_allowed_for_context
+from weall.crypto.signature_profiles import (
+    PQ_MLDSA_V1,
+    normalize_signature_profile_id,
+    profile_allowed_for_context,
+)
 from weall.runtime.session_keys import session_record_for, store_session_record
 
 router = APIRouter()
@@ -131,7 +135,9 @@ def _active_account_pubkeys(arec: Json, *, sig_profile: str = "") -> set[str]:
         pubkeys = rec.get("pubkeys") if isinstance(rec.get("pubkeys"), dict) else {}
         pk = ""
         if effective_profile == PQ_MLDSA_V1:
-            pk = str(pubkeys.get("mldsa") or rec.get("mldsa_pubkey") or rec.get("pubkey") or "").strip()
+            pk = str(
+                pubkeys.get("mldsa") or rec.get("mldsa_pubkey") or rec.get("pubkey") or ""
+            ).strip()
         else:
             pk = ""
         if pk:
@@ -183,8 +189,10 @@ def _reject_direct_session_mutation_after_genesis(st: Json) -> None:
         )
 
 
-def _session_device_record(*, account: str, pubkey: str, sig_profile: str, issued_at_ts: int, device_id: str) -> Json:
-    fp = hashlib.sha256(f"{account}|{sig_profile}|{pubkey}|{device_id}".encode("utf-8")).hexdigest()[:16]
+def _session_device_record(
+    *, account: str, pubkey: str, sig_profile: str, issued_at_ts: int, device_id: str
+) -> Json:
+    fp = hashlib.sha256(f"{account}|{sig_profile}|{pubkey}|{device_id}".encode()).hexdigest()[:16]
     return {
         "device_id": device_id,
         "device_type": "browser",
@@ -292,7 +300,9 @@ async def v1_session_login(request: Request):
         raise ApiError.internal("state_invalid", "accounts subtree missing", {})
     arec = accounts.get(account)
     if not isinstance(arec, dict):
-        raise ApiError.not_found("account_not_found", "account does not exist", {"account": account})
+        raise ApiError.not_found(
+            "account_not_found", "account does not exist", {"account": account}
+        )
 
     active_pubkeys = _active_account_pubkeys(arec, sig_profile=sig_profile)
     if not _pubkey_is_authorized(pubkey, active_pubkeys):
@@ -312,7 +322,9 @@ async def v1_session_login(request: Request):
         chain_id=_state_chain_context(st)[0],
         network_id=_state_chain_context(st)[1],
     )
-    if not verify_signature_for_profile(sig_profile=sig_profile, message=msg, sig=sig, pubkey=pubkey):
+    if not verify_signature_for_profile(
+        sig_profile=sig_profile, message=msg, sig=sig, pubkey=pubkey
+    ):
         raise ApiError.forbidden(
             "bad_sig",
             "session login signature verification failed",
@@ -333,7 +345,9 @@ async def v1_session_login(request: Request):
 
         acct = accounts2.get(account)
         if not isinstance(acct, dict):
-            raise ApiError.not_found("account_not_found", "account does not exist", {"account": account})
+            raise ApiError.not_found(
+                "account_not_found", "account does not exist", {"account": account}
+            )
 
         sessions = acct.get("session_keys")
         if not isinstance(sessions, dict):

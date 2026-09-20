@@ -89,8 +89,6 @@ def _ensure_root_dict(state: Json, key: str) -> Json:
     return cur
 
 
-
-
 def _account_record(state: Json, account_id: str) -> Json:
     accounts = state.get("accounts")
     if not isinstance(accounts, dict):
@@ -129,7 +127,9 @@ def _allowed_peer_ids_for_node(account_id: str, device_id: str, node_pubkey: str
     }
 
 
-def _require_node_advertisement_binding(state: Json, env: TxEnvelope, payload: Json, peer_id: str) -> tuple[str, str]:
+def _require_node_advertisement_binding(
+    state: Json, env: TxEnvelope, payload: Json, peer_id: str
+) -> tuple[str, str]:
     """Require PEER_ADVERTISE to be bound to an active account node device.
 
     Peer advertisements are consensus-visible discovery records.  They do not
@@ -198,6 +198,7 @@ def _require_node_advertisement_binding(state: Json, env: TxEnvelope, payload: J
         )
     return device_id, node_pubkey
 
+
 def _ensure_peers(state: Json) -> Json:
     p = _ensure_root_dict(state, "peers")
     if not isinstance(p.get("ads"), dict):
@@ -232,7 +233,13 @@ def _require_connect_request_node_binding(state: Json, env: TxEnvelope) -> tuple
             "peer_request_connect_requires_registered_node_device",
             {"tx_type": env.tx_type, "account_id": signer},
         )
-    return tuple(sorted(_as_str(rec.get("pubkey")).strip() for rec in devices.values() if _as_str(rec.get("pubkey")).strip()))
+    return tuple(
+        sorted(
+            _as_str(rec.get("pubkey")).strip()
+            for rec in devices.values()
+            if _as_str(rec.get("pubkey")).strip()
+        )
+    )
 
 
 def _endpoint_is_plausible(endpoint: str) -> bool:
@@ -397,14 +404,23 @@ def _apply_peer_request_connect(state: Json, env: TxEnvelope) -> Json:
 
     if ticket_id:
         ticket = _as_dict(_as_dict(peers.get("tickets")).get(ticket_id))
-        if not ticket or bool(ticket.get("revoked", False)) or _as_str(ticket.get("status")).lower() != "active":
+        if (
+            not ticket
+            or bool(ticket.get("revoked", False))
+            or _as_str(ticket.get("status")).lower() != "active"
+        ):
             raise NetworkingApplyError(
                 "forbidden",
                 "peer_request_connect_requires_active_rendezvous_ticket",
                 {"tx_type": env.tx_type, "ticket_id": ticket_id},
             )
 
-    if to_peer_id and not endpoint and not ticket_id and not _has_advertised_peer(peers, to_peer_id):
+    if (
+        to_peer_id
+        and not endpoint
+        and not ticket_id
+        and not _has_advertised_peer(peers, to_peer_id)
+    ):
         raise NetworkingApplyError(
             "forbidden",
             "peer_request_connect_target_not_advertised",

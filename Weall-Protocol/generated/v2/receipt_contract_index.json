@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c1f4f3aad1bc7f5400192f0cbb3f7084f3bf7c3b72ffd13bb8df5a5a6d312614"
+    "source_tree_digest": "c826728b8d1cc0f948f2305789c1dff0a559a8b38e6ae4e6aa913867499a5a1b"
   },
   "rows": [
     {
@@ -815,6 +815,7 @@
       ]
     },
     {
+      "binding": "deterministic_system_queue_multi_causal_context",
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
@@ -822,10 +823,14 @@
         "dispute_id",
         "juror"
       ],
-      "kind": "receipt_only_parent_bound",
+      "kind": "receipt_only_multi_causal_scheduler_bound",
       "parent": "DISPUTE_OPEN",
+      "parents": [
+        "DISPUTE_OPEN",
+        "CONTENT_ESCALATE_TO_DISPUTE"
+      ],
       "primary_mechanism_id": "M-054",
-      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "replay_binding": "block_only_system_queue_bound_multi_causal_deterministic_replay",
       "stable_id": "RCP-2E900F7570707387",
       "status": "current_partial",
       "transaction_id": "TX-0204",
@@ -4035,13 +4040,18 @@
       ]
     },
     {
+      "binding": "deterministic_system_queue_multi_causal_context",
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [],
-      "kind": "receipt_only_parent_bound",
+      "kind": "receipt_only_multi_causal_scheduler_bound",
       "parent": "ACCOUNT_RECOVERY_FINALIZE",
+      "parents": [
+        "ACCOUNT_RECOVERY_FINALIZE",
+        "ACCOUNT_RECOVERY_REQUEST"
+      ],
       "primary_mechanism_id": "M-028",
-      "replay_binding": "block_only_parent_and_context_bound_deterministic_replay",
+      "replay_binding": "block_only_system_queue_bound_multi_causal_deterministic_replay",
       "stable_id": "RCP-09BBA370F7319EDB",
       "status": "current_partial",
       "transaction_id": "TX-2107",

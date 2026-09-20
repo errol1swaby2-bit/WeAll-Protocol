@@ -5,8 +5,8 @@ import argparse
 import json
 from pathlib import Path
 
-from rehearse_real_validator_network_v1_5 import run_harness as run_validator_network
 from rehearse_fresh_node_replay_sync_v1_5 import run_harness as run_replay_sync
+from rehearse_real_validator_network_v1_5 import run_harness as run_validator_network
 from rehearse_v15_full_lifecycle import run_harness as run_lifecycle
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,8 +17,29 @@ def build() -> dict:
     validator = run_validator_network()
     replay = run_replay_sync()
     lifecycle = run_lifecycle()
-    feed_review = {"current_default": "created_at_nonce_desc", "complete_ranking": False, "new_optional_modes": ["recency", "engagement", "balanced"], "personalized_ranking": False, "notes": "Default feed remains deterministic recency for compatibility; optional ranking is deterministic and state-derived but not a full personalized/reputation feed."}
-    return {"version": 1, "batch": "517-521", "ok": bool(validator.get("ok") and replay.get("ok") and lifecycle.get("ok")), "public_claim_allowed": "private_rehearsal_only", "validator_network": validator, "fresh_node_replay_sync": replay, "full_lifecycle": lifecycle, "feed_ranking_review": feed_review, "locked_boundaries_preserved": {"public_validators_disabled": True, "live_economics_disabled": True, "automatic_protocol_upgrades_disabled": True, "production_helpers_disabled": True}}
+    feed_review = {
+        "current_default": "created_at_nonce_desc",
+        "complete_ranking": False,
+        "new_optional_modes": ["recency", "engagement", "balanced"],
+        "personalized_ranking": False,
+        "notes": "Default feed remains deterministic recency for compatibility; optional ranking is deterministic and state-derived but not a full personalized/reputation feed.",
+    }
+    return {
+        "version": 1,
+        "batch": "517-521",
+        "ok": bool(validator.get("ok") and replay.get("ok") and lifecycle.get("ok")),
+        "public_claim_allowed": "private_rehearsal_only",
+        "validator_network": validator,
+        "fresh_node_replay_sync": replay,
+        "full_lifecycle": lifecycle,
+        "feed_ranking_review": feed_review,
+        "locked_boundaries_preserved": {
+            "public_validators_disabled": True,
+            "live_economics_disabled": True,
+            "automatic_protocol_upgrades_disabled": True,
+            "production_helpers_disabled": True,
+        },
+    }
 
 
 def main() -> int:

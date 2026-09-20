@@ -12,9 +12,27 @@ from weall.tx.canon import TxIndex
 
 def _canon() -> TxIndex:
     rows = [
-        {"id": 1, "name": "GROUP_CREATE", "context": "mempool", "origin": "USER", "subject_gate": "Tier2+"},
-        {"id": 2, "name": "GROUP_MEMBERSHIP_REQUEST", "context": "mempool", "origin": "USER", "subject_gate": "Tier1+"},
-        {"id": 3, "name": "GROUP_MEMBERSHIP_DECIDE", "context": "mempool", "origin": "USER", "subject_gate": "GroupModerator"},
+        {
+            "id": 1,
+            "name": "GROUP_CREATE",
+            "context": "mempool",
+            "origin": "USER",
+            "subject_gate": "Tier2+",
+        },
+        {
+            "id": 2,
+            "name": "GROUP_MEMBERSHIP_REQUEST",
+            "context": "mempool",
+            "origin": "USER",
+            "subject_gate": "Tier1+",
+        },
+        {
+            "id": 3,
+            "name": "GROUP_MEMBERSHIP_DECIDE",
+            "context": "mempool",
+            "origin": "USER",
+            "subject_gate": "GroupModerator",
+        },
     ]
     return TxIndex(
         tx_types=rows,
@@ -39,9 +57,27 @@ def _state() -> dict[str, Any]:
         "tip": "a" * 64,
         "params": {},
         "accounts": {
-            "@owner": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10000, "banned": False, "locked": False},
-            "@member": {"nonce": 0, "poh_tier": 1, "reputation_milli": 10000, "banned": False, "locked": False},
-            "@outsider": {"nonce": 0, "poh_tier": 2, "reputation_milli": 10000, "banned": False, "locked": False},
+            "@owner": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10000,
+                "banned": False,
+                "locked": False,
+            },
+            "@member": {
+                "nonce": 0,
+                "poh_tier": 1,
+                "reputation_milli": 10000,
+                "banned": False,
+                "locked": False,
+            },
+            "@outsider": {
+                "nonce": 0,
+                "poh_tier": 2,
+                "reputation_milli": 10000,
+                "banned": False,
+                "locked": False,
+            },
         },
         "roles": {"groups_by_id": {}, "treasuries_by_id": {}},
     }
@@ -62,7 +98,11 @@ def test_canonical_approval_required_journey_admission_apply_and_replay() -> Non
         "GROUP_CREATE",
         "@owner",
         1,
-        {"group_id": "g:approval", "charter": "Public charter", "membership_mode": "approval_required"},
+        {
+            "group_id": "g:approval",
+            "charter": "Public charter",
+            "membership_mode": "approval_required",
+        },
     )
     verdict = _admit(state, create)
     assert verdict.ok is True

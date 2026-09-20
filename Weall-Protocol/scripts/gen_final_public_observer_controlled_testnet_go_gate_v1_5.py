@@ -99,11 +99,16 @@ def _blocker_counts() -> Json:
         "blocker_catalog_count": blocker.get("blocker_catalog_count"),
         "closed_in_repository_count": blocker.get("closed_in_repository_count"),
         "remaining_blocker_count": blocker.get("remaining_blocker_count"),
-        "remaining_external_evidence_required_count": blocker.get("remaining_external_evidence_required_count"),
+        "remaining_external_evidence_required_count": blocker.get(
+            "remaining_external_evidence_required_count"
+        ),
         "remaining_mainnet_hardening_count": blocker.get("remaining_mainnet_hardening_count"),
         "p0_open_count": blocker.get("p0_open_count"),
         "p1_open_count": blocker.get("p1_open_count"),
-        "remaining_external_evidence_required_ids": blocker.get("remaining_external_evidence_required_ids") or [],
+        "remaining_external_evidence_required_ids": blocker.get(
+            "remaining_external_evidence_required_ids"
+        )
+        or [],
         "remaining_mainnet_hardening_ids": blocker.get("remaining_mainnet_hardening_ids") or [],
     }
 
@@ -131,8 +136,16 @@ def build() -> Json:
     real_mldsa_ready = bool(quantum.get("real_mldsa_implemented_in_this_environment"))
     mechanism_gate_ready = bool(controlled_gate.get("controlled_testnet_go_gate_ready_to_run"))
     external_blockers_still_open = set(remaining_ids) == expected_remaining
-    repo_package_ready = all(docs_present.values()) and all(generated_present.values()) and all(flow_docs_present.values())
-    artifact_consistent = repo_package_ready and external_blockers_still_open and blocker_counts.get("public_beta_ready") is False
+    repo_package_ready = (
+        all(docs_present.values())
+        and all(generated_present.values())
+        and all(flow_docs_present.values())
+    )
+    artifact_consistent = (
+        repo_package_ready
+        and external_blockers_still_open
+        and blocker_counts.get("public_beta_ready") is False
+    )
     bounded_rehearsal_candidate = artifact_consistent and real_mldsa_ready and mechanism_gate_ready
     if bounded_rehearsal_candidate:
         controlled_verdict = "GO"
@@ -188,7 +201,9 @@ def build() -> Json:
             "path": "generated/quantum_resistance_readiness_v1_5.json",
             "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
             "remaining_crypto_blockers": quantum.get("remaining_crypto_blockers") or [],
-            "production_crypto_audit_complete": bool(quantum.get("production_crypto_audit_complete")),
+            "production_crypto_audit_complete": bool(
+                quantum.get("production_crypto_audit_complete")
+            ),
         },
         "required_external_evidence_before_public_beta_or_public_observer_claim": {
             "AUD-628-P1-001": "external clean-clone/open-download/state-sync/frontend rendered journey transcript",
@@ -229,7 +244,9 @@ def build() -> Json:
             "legal_compliance_ready": False,
         },
     }
-    payload["artifact_digest"] = _digest({k: v for k, v in payload.items() if k != "artifact_digest"})
+    payload["artifact_digest"] = _digest(
+        {k: v for k, v in payload.items() if k != "artifact_digest"}
+    )
     return payload
 
 
@@ -238,7 +255,9 @@ def _pretty(obj: Any) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate/check final bounded public observer / controlled-testnet go-gate package.")
+    parser = argparse.ArgumentParser(
+        description="Generate/check final bounded public observer / controlled-testnet go-gate package."
+    )
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -249,12 +268,18 @@ def main() -> int:
         return 0 if payload.get("ok") else 1
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
-            raise SystemExit("final_public_observer_controlled_testnet_go_gate_v1_5.json is stale; rerun generator")
-        print("OK: generated/final_public_observer_controlled_testnet_go_gate_v1_5.json is current (bounded controlled verdict; NO-GO public beta)")
+            raise SystemExit(
+                "final_public_observer_controlled_testnet_go_gate_v1_5.json is stale; rerun generator"
+            )
+        print(
+            "OK: generated/final_public_observer_controlled_testnet_go_gate_v1_5.json is current (bounded controlled verdict; NO-GO public beta)"
+        )
         return 0 if payload.get("ok") else 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
-    print("wrote generated/final_public_observer_controlled_testnet_go_gate_v1_5.json (bounded controlled verdict; NO-GO public beta)")
+    print(
+        "wrote generated/final_public_observer_controlled_testnet_go_gate_v1_5.json (bounded controlled verdict; NO-GO public beta)"
+    )
     return 0 if payload.get("ok") else 1
 
 

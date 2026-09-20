@@ -161,7 +161,8 @@ def build_hello(cfg: HandshakeConfig) -> PeerHello:
         validator_epoch=int(cfg.validator_epoch) if int(cfg.validator_epoch) > 0 else None,
         validator_set_hash=str(cfg.validator_set_hash or "").strip() or None,
         bft_enabled=bool(cfg.bft_enabled),
-        genesis_bootstrap_profile_hash=str(cfg.genesis_bootstrap_profile_hash or "").strip() or None,
+        genesis_bootstrap_profile_hash=str(cfg.genesis_bootstrap_profile_hash or "").strip()
+        or None,
         genesis_bootstrap_enabled=bool(cfg.genesis_bootstrap_enabled),
         genesis_bootstrap_mode=str(cfg.genesis_bootstrap_mode or "").strip() or None,
     )
@@ -201,7 +202,8 @@ def build_hello_ack(
         validator_epoch=int(cfg.validator_epoch) if int(cfg.validator_epoch) > 0 else None,
         validator_set_hash=str(cfg.validator_set_hash or "").strip() or None,
         bft_enabled=bool(cfg.bft_enabled),
-        genesis_bootstrap_profile_hash=str(cfg.genesis_bootstrap_profile_hash or "").strip() or None,
+        genesis_bootstrap_profile_hash=str(cfg.genesis_bootstrap_profile_hash or "").strip()
+        or None,
         genesis_bootstrap_enabled=bool(cfg.genesis_bootstrap_enabled),
         genesis_bootstrap_mode=str(cfg.genesis_bootstrap_mode or "").strip() or None,
     )
@@ -224,8 +226,6 @@ def _check_protocol_profile(
         raise HandshakeRejected("protocol_version_mismatch")
     if local_hash and remote_hash and local_hash != remote_hash:
         raise HandshakeRejected("protocol_profile_hash_mismatch")
-
-
 
 
 def _normalize_opt_bool(v: Any) -> bool:

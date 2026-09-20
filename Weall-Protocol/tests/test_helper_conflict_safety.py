@@ -35,7 +35,9 @@ def test_inferred_parallel_path_splits_conflicting_same_subject_content_updates(
     assert [plan.tx_ids for plan in plans] == [("t1",), ("t2",)]
 
 
-def test_parallel_lane_assignment_fails_closed_when_access_scope_disagrees_with_declared_scope() -> None:
+def test_parallel_lane_assignment_fails_closed_when_access_scope_disagrees_with_declared_scope() -> (
+    None
+):
     tx = {
         "tx_id": "t1",
         "tx_type": "CONTENT_POST_CREATE",

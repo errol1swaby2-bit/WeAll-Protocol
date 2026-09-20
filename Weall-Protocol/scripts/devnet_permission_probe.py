@@ -10,6 +10,7 @@ The default probe account is expected to be a fresh Tier-0 account. The probe
 then verifies that Tier-1/Tier-2/Live/Juror-gated actions are rejected when
 submitted directly through the public API.
 """
+
 import argparse
 import json
 import os
@@ -140,12 +141,13 @@ def selected_probes(names: list[str] | None) -> list[PermissionProbe]:
     by_name = {p.name: p for p in PROBES}
     unknown = [n for n in wanted if n not in by_name]
     if unknown:
-        raise SystemExit(f"unknown probe(s): {', '.join(unknown)}; available={', '.join(probe_names())}")
+        raise SystemExit(
+            f"unknown probe(s): {', '.join(unknown)}; available={', '.join(probe_names())}"
+        )
     return [by_name[n] for n in wanted]
 
 
 def probe_payload(tx_type: str, *, account: str, suffix: str) -> Json:
-    acct = str(account or "").strip() or "@permission_probe"
     tx = str(tx_type or "").strip().upper()
     s = str(suffix or "probe")
     if tx == "PROFILE_UPDATE":
@@ -203,14 +205,19 @@ def parse_json_from_stdout(stdout: str) -> Json:
         return {}
 
 
-def run_command(cmd: list[str], *, cwd: Path = REPO_ROOT, env: dict[str, str] | None = None, timeout: float = 45.0) -> subprocess.CompletedProcess[str]:
+def run_command(
+    cmd: list[str],
+    *,
+    cwd: Path = REPO_ROOT,
+    env: dict[str, str] | None = None,
+    timeout: float = 45.0,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         cwd=str(cwd),
         env=env,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         timeout=float(timeout),
         check=False,
     )
@@ -225,7 +232,9 @@ def result_status(data: Json) -> str:
     return str(tx_status.get("status") or data.get("status") or "").strip().lower()
 
 
-def classify_probe_result(probe: PermissionProbe, proc: subprocess.CompletedProcess[str]) -> tuple[bool, Json]:
+def classify_probe_result(
+    probe: PermissionProbe, proc: subprocess.CompletedProcess[str]
+) -> tuple[bool, Json]:
     data = parse_json_from_stdout(proc.stdout)
     status = result_status(data)
     combined = "\n".join([str(proc.stdout or ""), str(proc.stderr or "")])
@@ -285,17 +294,23 @@ def register_probe_account(api: str, *, account: str, keyfile: Path, timeout: fl
         timeout=timeout + 10,
     )
     if proc.returncode != 0:
-        raise SystemExit(f"failed to create probe account\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
+        raise SystemExit(
+            f"failed to create probe account\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
+        )
     data = parse_json_from_stdout(proc.stdout)
     if not data.get("ok"):
         raise SystemExit(f"probe account creation did not return ok\n{_json_dumps(data)}")
     status = result_status(data)
     if status and status not in CONFIRMED_STATUSES:
-        raise SystemExit(f"probe account creation was not confirmed: status={status}\n{_json_dumps(data)}")
+        raise SystemExit(
+            f"probe account creation was not confirmed: status={status}\n{_json_dumps(data)}"
+        )
     return data
 
 
-def run_probe(api: str, *, probe: PermissionProbe, account: str, keyfile: Path, suffix: str, timeout: float) -> Json:
+def run_probe(
+    api: str, *, probe: PermissionProbe, account: str, keyfile: Path, suffix: str, timeout: float
+) -> Json:
     payload = probe_payload(probe.tx_type, account=account, suffix=f"{suffix}-{probe.name}")
     proc = run_command(
         devnet_tx_cmd(
@@ -323,15 +338,39 @@ def run_probe(api: str, *, probe: PermissionProbe, account: str, keyfile: Path, 
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Probe backend/execution PoH permission gates through normal devnet tx submission")
-    p.add_argument("--api", default=os.environ.get("WEALL_API", "http://127.0.0.1:8001"), help="Node API base URL")
-    p.add_argument("--account", default=os.environ.get("WEALL_PERMISSION_PROBE_ACCOUNT", ""), help="Probe account id; defaults to fresh timestamped account")
-    p.add_argument("--keyfile", default=os.environ.get("WEALL_PERMISSION_PROBE_KEYFILE", ""), help="Probe account keyfile path")
-    p.add_argument("--probe", action="append", default=[], help="Run only a named probe; may be repeated")
+    p = argparse.ArgumentParser(
+        description="Probe backend/execution PoH permission gates through normal devnet tx submission"
+    )
+    p.add_argument(
+        "--api",
+        default=os.environ.get("WEALL_API", "http://127.0.0.1:8001"),
+        help="Node API base URL",
+    )
+    p.add_argument(
+        "--account",
+        default=os.environ.get("WEALL_PERMISSION_PROBE_ACCOUNT", ""),
+        help="Probe account id; defaults to fresh timestamped account",
+    )
+    p.add_argument(
+        "--keyfile",
+        default=os.environ.get("WEALL_PERMISSION_PROBE_KEYFILE", ""),
+        help="Probe account keyfile path",
+    )
+    p.add_argument(
+        "--probe", action="append", default=[], help="Run only a named probe; may be repeated"
+    )
     p.add_argument("--list-probes", action="store_true", help="Print available probes and exit")
-    p.add_argument("--no-register", action="store_true", help="Do not create/register the probe account before probing")
-    p.add_argument("--dry-run", action="store_true", help="Print probe plan without submitting transactions")
-    p.add_argument("--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30")))
+    p.add_argument(
+        "--no-register",
+        action="store_true",
+        help="Do not create/register the probe account before probing",
+    )
+    p.add_argument(
+        "--dry-run", action="store_true", help="Print probe plan without submitting transactions"
+    )
+    p.add_argument(
+        "--timeout", type=float, default=float(os.environ.get("WEALL_TX_WAIT_TIMEOUT", "30"))
+    )
     return p
 
 
@@ -344,7 +383,9 @@ def main(argv: list[str] | None = None) -> int:
 
     suffix = _now_suffix()
     account = str(args.account or "").strip() or f"@permission_probe_{suffix}"
-    keyfile = Path(str(args.keyfile or "").strip() or DEFAULT_ACCOUNT_ROOT / f"permission-probe-{suffix}.json").expanduser()
+    keyfile = Path(
+        str(args.keyfile or "").strip() or DEFAULT_ACCOUNT_ROOT / f"permission-probe-{suffix}.json"
+    ).expanduser()
 
     plan: Json = {
         "ok": True,
@@ -371,11 +412,20 @@ def main(argv: list[str] | None = None) -> int:
     results: list[Json] = []
     registration: Json | None = None
     if not args.no_register:
-        registration = register_probe_account(args.api, account=account, keyfile=keyfile, timeout=args.timeout)
+        registration = register_probe_account(
+            args.api, account=account, keyfile=keyfile, timeout=args.timeout
+        )
 
     all_ok = True
     for probe in probes:
-        result = run_probe(args.api, probe=probe, account=account, keyfile=keyfile, suffix=suffix, timeout=args.timeout)
+        result = run_probe(
+            args.api,
+            probe=probe,
+            account=account,
+            keyfile=keyfile,
+            suffix=suffix,
+            timeout=args.timeout,
+        )
         results.append(result)
         all_ok = all_ok and bool(result.get("ok"))
 

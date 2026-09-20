@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from weall.runtime.executor import (
     CLOCK_SKEW_WARN_MS,
-    Json,
     MAX_BLOCK_FUTURE_DRIFT_MS,
     MAX_BLOCK_TIME_ADVANCE_MS,
     PRODUCTION_CONSENSUS_PROFILE,
     REPUTATION_SCALE,
     STARTUP_CLOCK_HARD_FAIL_MS,
+    Json,
     _block_hash_from_any,
     _helper_execution_profile_hash,
     _mode,
@@ -17,6 +17,7 @@ from weall.runtime.executor import (
     _safe_int,
     _sanitize_helper_execution_profile,
 )
+
 
 def bft_diagnostics(self) -> Json:
     pending_pruned = self._prune_pending_bft_artifacts()
@@ -53,9 +54,7 @@ def bft_diagnostics(self) -> Json:
         for d in pending_fetch_request_descriptors
         if isinstance(d, dict) and str(d.get("block_hash") or "").strip()
     ]
-    pending_candidates = [
-        bid for bid in pending_remote_blocks if bid in self._pending_candidates
-    ]
+    pending_candidates = [bid for bid in pending_remote_blocks if bid in self._pending_candidates]
     pending_candidate_block_hashes = [
         _block_hash_from_any(self._bft_pending_block_json(bid) or {})
         for bid in pending_candidates
@@ -164,25 +163,19 @@ def bft_diagnostics(self) -> Json:
         "clock_skew_warning": bool(clock_skew_warning),
         "protocol_profile_hash": str(
             (
-                (self.state.get("meta") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
+                (self.state.get("meta") or {}) if isinstance(self.state.get("meta"), dict) else {}
             ).get("production_consensus_profile_hash")
             or ""
         ),
         "schema_version": str(
             (
-                (self.state.get("meta") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
+                (self.state.get("meta") or {}) if isinstance(self.state.get("meta"), dict) else {}
             ).get("schema_version")
             or ""
         ),
         "tx_index_hash": str(
             (
-                (self.state.get("meta") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
+                (self.state.get("meta") or {}) if isinstance(self.state.get("meta"), dict) else {}
             ).get("tx_index_hash")
             or ""
         ),
@@ -225,9 +218,7 @@ def bft_diagnostics(self) -> Json:
         ),
         "startup_clock_sanity_required": bool(
             (
-                (self.state.get("meta") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
+                (self.state.get("meta") or {}) if isinstance(self.state.get("meta"), dict) else {}
             ).get(
                 "startup_clock_sanity_required",
                 PRODUCTION_CONSENSUS_PROFILE.startup_clock_sanity_required,
@@ -247,9 +238,7 @@ def bft_diagnostics(self) -> Json:
         ),
         "clock_warning": (
             (
-                (self.state.get("meta") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
+                (self.state.get("meta") or {}) if isinstance(self.state.get("meta"), dict) else {}
             ).get("clock_warning")
             if isinstance(
                 (
@@ -265,17 +254,13 @@ def bft_diagnostics(self) -> Json:
         ),
         "helper_execution_profile": _sanitize_helper_execution_profile(
             (
-                (self.state.get("meta") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
+                (self.state.get("meta") or {}) if isinstance(self.state.get("meta"), dict) else {}
             ).get("helper_execution_profile")
             or self._requested_helper_execution_profile()
         ),
         "helper_execution_profile_hash": str(
             (
-                (self.state.get("meta") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
+                (self.state.get("meta") or {}) if isinstance(self.state.get("meta"), dict) else {}
             ).get("helper_execution_profile_hash")
             or _helper_execution_profile_hash(self._requested_helper_execution_profile())
         ),
@@ -284,14 +269,13 @@ def bft_diagnostics(self) -> Json:
         "signing_block_reason": str(self._effective_signing_block_reason() or ""),
         "last_shutdown_clean": bool(
             (
-                (self.state.get("meta") or {})
-                if isinstance(self.state.get("meta"), dict)
-                else {}
+                (self.state.get("meta") or {}) if isinstance(self.state.get("meta"), dict) else {}
             ).get("last_shutdown_clean", True)
         ),
         "recent_rejection_summary": self.bft_recent_rejection_summary(limit=25),
         "journal_tail": self._bft_journal.read_tail(limit=25),
     }
+
 
 def bft_recent_rejection_summary(self, *, limit: int = 25) -> Json:
     tail = list(self._bft_journal.read_tail(limit=max(1, int(limit) * 4)) or [])
@@ -336,12 +320,14 @@ def bft_recent_rejection_summary(self, *, limit: int = 25) -> Json:
         "latest": latest or {},
     }
 
+
 def bft_current_view(self) -> int:
     return int(self._bft.view)
+
 
 def bft_current_validator_epoch(self) -> int:
     return int(self._current_validator_epoch())
 
+
 def bft_current_validator_set_hash(self) -> str:
     return str(self._current_validator_set_hash() or "").strip()
-

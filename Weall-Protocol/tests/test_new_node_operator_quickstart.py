@@ -69,7 +69,9 @@ def test_operator_onboarding_smoke_script_checks_boot_split_and_ui_contract() ->
 
 
 def test_operator_onboarding_smoke_script_passes() -> None:
-    subprocess.run(["sh", str(SMOKE)], cwd=str(ROOT), check=True, timeout=15, capture_output=True, text=True)
+    subprocess.run(
+        ["sh", str(SMOKE)], cwd=str(ROOT), check=True, timeout=15, capture_output=True, text=True
+    )
 
 
 def test_boot_scripts_match_quickstart_contract() -> None:
@@ -78,12 +80,17 @@ def test_boot_scripts_match_quickstart_contract() -> None:
     service = read(SERVICE)
     node_keys = read(NODE_KEYS)
 
-    assert "WEALL_NODE_LIFECYCLE_STATE=\"${WEALL_NODE_LIFECYCLE_STATE:-observer_onboarding}\"" in onboarding
-    assert "WEALL_OBSERVER_MODE=\"${WEALL_OBSERVER_MODE:-1}\"" in onboarding
-    assert "WEALL_VALIDATOR_SIGNING_ENABLED=\"${WEALL_VALIDATOR_SIGNING_ENABLED:-0}\"" in onboarding
-    assert "WEALL_HELPER_MODE_ENABLED=\"${WEALL_HELPER_MODE_ENABLED:-0}\"" in onboarding
-    assert "WEALL_NODE_LIFECYCLE_STATE=\"${WEALL_NODE_LIFECYCLE_STATE:-production_service}\"" in service
-    assert "WEALL_SERVICE_ROLES=\"${WEALL_SERVICE_ROLES:-node_operator}\"" in service
+    assert (
+        'WEALL_NODE_LIFECYCLE_STATE="${WEALL_NODE_LIFECYCLE_STATE:-observer_onboarding}"'
+        in onboarding
+    )
+    assert 'WEALL_OBSERVER_MODE="${WEALL_OBSERVER_MODE:-1}"' in onboarding
+    assert 'WEALL_VALIDATOR_SIGNING_ENABLED="${WEALL_VALIDATOR_SIGNING_ENABLED:-0}"' in onboarding
+    assert 'WEALL_HELPER_MODE_ENABLED="${WEALL_HELPER_MODE_ENABLED:-0}"' in onboarding
+    assert (
+        'WEALL_NODE_LIFECYCLE_STATE="${WEALL_NODE_LIFECYCLE_STATE:-production_service}"' in service
+    )
+    assert 'WEALL_SERVICE_ROLES="${WEALL_SERVICE_ROLES:-node_operator}"' in service
     assert "WEALL_BOUND_ACCOUNT" in service
     assert "WEALL_NODE_PRIVKEY_FILE" in service
     assert "weall_node_key" in node_keys

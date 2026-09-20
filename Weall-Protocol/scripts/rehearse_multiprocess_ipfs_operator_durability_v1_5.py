@@ -15,8 +15,25 @@ from weall.runtime.apply.storage import apply_storage
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any], *, system: bool = False, parent: str | None = None) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, chain_id="batch569-ipfs-multiprocess", payload=payload, sig="sig", system=system, parent=parent)
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict[str, Any],
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type,
+        signer=signer,
+        nonce=nonce,
+        chain_id="batch569-ipfs-multiprocess",
+        payload=payload,
+        sig="sig",
+        system=system,
+        parent=parent,
+    )
 
 
 def _worker(operator_id: str, root: str, input_queue: mp.Queue, tx_queue: mp.Queue) -> None:
@@ -32,14 +49,39 @@ def _worker(operator_id: str, root: str, input_queue: mp.Queue, tx_queue: mp.Que
         elif op == "add_pin":
             data = bytes.fromhex(str(cmd.get("data_hex") or ""))
             (base / cid).write_bytes(data)
-            tx_queue.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": True, "sha256": hashlib.sha256(data).hexdigest()})
+            tx_queue.put(
+                {
+                    "operator_id": operator_id,
+                    "op": op,
+                    "cid": cid,
+                    "ok": True,
+                    "sha256": hashlib.sha256(data).hexdigest(),
+                }
+            )
         elif op == "cat":
             p = base / cid
             if p.exists():
                 data = p.read_bytes()
-                tx_queue.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": True, "data_hex": data.hex(), "sha256": hashlib.sha256(data).hexdigest()})
+                tx_queue.put(
+                    {
+                        "operator_id": operator_id,
+                        "op": op,
+                        "cid": cid,
+                        "ok": True,
+                        "data_hex": data.hex(),
+                        "sha256": hashlib.sha256(data).hexdigest(),
+                    }
+                )
             else:
-                tx_queue.put({"operator_id": operator_id, "op": op, "cid": cid, "ok": False, "reason": "missing"})
+                tx_queue.put(
+                    {
+                        "operator_id": operator_id,
+                        "op": op,
+                        "cid": cid,
+                        "ok": False,
+                        "reason": "missing",
+                    }
+                )
 
 
 def _seed_state(state: dict[str, Any], operators: list[str]) -> None:
@@ -51,7 +93,23 @@ def _seed_state(state: dict[str, Any], operators: list[str]) -> None:
     storage.setdefault("operators", {})
     for op in operators:
         state["accounts"][op] = {"poh_tier": 2, "storage_operator_eligible": True}
-        by_id[op] = {"account_id": op, "enrolled": True, "active": True, "responsibilities": {"storage": {"opted_in": True, "active": True, "declared_capacity_bytes": 1000000, "proven_capacity_bytes": 1000000, "allocated_capacity_bytes": 0, "used_capacity_bytes": 0, "proof_status": "verified", "proof_expires_height": 99999}}}
+        by_id[op] = {
+            "account_id": op,
+            "enrolled": True,
+            "active": True,
+            "responsibilities": {
+                "storage": {
+                    "opted_in": True,
+                    "active": True,
+                    "declared_capacity_bytes": 1000000,
+                    "proven_capacity_bytes": 1000000,
+                    "allocated_capacity_bytes": 0,
+                    "used_capacity_bytes": 0,
+                    "proof_status": "verified",
+                    "proof_expires_height": 99999,
+                }
+            },
+        }
         storage["operators"][op] = {"enabled": True, "capacity_bytes": 1000000, "used_bytes": 0}
 
 
@@ -72,28 +130,90 @@ def run_harness() -> dict[str, Any]:
         tx_queue: mp.Queue = mp.Queue()
         procs: dict[str, mp.Process] = {}
         for op in operators:
-            p = mp.Process(target=_worker, args=(op, str(root), input_queuees[op], tx_queue), daemon=True)
-            p.start(); procs[op] = p
+            p = mp.Process(
+                target=_worker, args=(op, str(root), input_queuees[op], tx_queue), daemon=True
+            )
+            p.start()
+            procs[op] = p
         try:
-            state: dict[str, Any] = {"height": 88, "params": {"ipfs_replication_factor": 2}, "accounts": {"SYSTEM": {"poh_tier": 0}}, "roles": {}, "storage": {}}
+            state: dict[str, Any] = {
+                "height": 88,
+                "params": {"ipfs_replication_factor": 2},
+                "accounts": {"SYSTEM": {"poh_tier": 0}},
+                "roles": {},
+                "storage": {},
+            }
             _seed_state(state, operators)
-            request = apply_storage(state, _env("IPFS_PIN_REQUEST", "SYSTEM", 1, {"pin_id": "pin-b569", "cid": cid, "replication_factor": 2, "size_bytes": len(data)}, system=True, parent="storage"))
+            request = apply_storage(
+                state,
+                _env(
+                    "IPFS_PIN_REQUEST",
+                    "SYSTEM",
+                    1,
+                    {
+                        "pin_id": "pin-b569",
+                        "cid": cid,
+                        "replication_factor": 2,
+                        "size_bytes": len(data),
+                    },
+                    system=True,
+                    parent="storage",
+                ),
+            )
             pin_id = str(request.get("pin_id") or "pin-b569")
             targets = list(state["storage"]["pins"][pin_id].get("targets") or [])
             failed = targets[0]
             # First target process dies before pin confirmation.
-            procs[failed].terminate(); procs[failed].join(timeout=1.0)
-            fail_receipt = apply_storage(state, _env("IPFS_PIN_CONFIRM", "SYSTEM", 2, {"pin_id": pin_id, "cid": cid, "operator_id": failed, "ok": False, "reason": "operator_process_failed"}, system=True, parent="storage"))
+            procs[failed].terminate()
+            procs[failed].join(timeout=1.0)
+            fail_receipt = apply_storage(
+                state,
+                _env(
+                    "IPFS_PIN_CONFIRM",
+                    "SYSTEM",
+                    2,
+                    {
+                        "pin_id": pin_id,
+                        "cid": cid,
+                        "operator_id": failed,
+                        "ok": False,
+                        "reason": "operator_process_failed",
+                    },
+                    system=True,
+                    parent="storage",
+                ),
+            )
             reassigned = list(state["storage"]["pins"][pin_id].get("targets") or [])
             replacement = next(op for op in reassigned if op not in targets)
             input_queuees[replacement].put({"op": "add_pin", "cid": cid, "data_hex": data.hex()})
             add_res = _recv(tx_queue)
             input_queuees[replacement].put({"op": "cat", "cid": cid})
             cat_res = _recv(tx_queue)
-            confirm = apply_storage(state, _env("IPFS_PIN_CONFIRM", "SYSTEM", 3, {"pin_id": pin_id, "cid": cid, "operator_id": replacement, "ok": True, "retrieval_ok": cat_res.get("data_hex") == data.hex(), "proof_hash": cat_res.get("sha256")}, system=True, parent="storage"))
+            confirm = apply_storage(
+                state,
+                _env(
+                    "IPFS_PIN_CONFIRM",
+                    "SYSTEM",
+                    3,
+                    {
+                        "pin_id": pin_id,
+                        "cid": cid,
+                        "operator_id": replacement,
+                        "ok": True,
+                        "retrieval_ok": cat_res.get("data_hex") == data.hex(),
+                        "proof_hash": cat_res.get("sha256"),
+                    },
+                    system=True,
+                    parent="storage",
+                ),
+            )
             final_pin = state["storage"]["pins"][pin_id]
             return {
-                "ok": bool(add_res.get("ok") and cat_res.get("data_hex") == data.hex() and final_pin.get("availability_status") == "available"),
+                "ok": bool(
+                    add_res.get("ok")
+                    and cat_res.get("data_hex") == data.hex()
+                    and final_pin.get("availability_status") == "available"
+                ),
                 "batch": "569",
                 "worker_model": "multiprocess_ipfs_compatible_operator_workers",
                 "operator_count": len(operators),
@@ -117,11 +237,14 @@ def run_harness() -> dict[str, Any]:
             time.sleep(0.05)
             for p in procs.values():
                 if p.is_alive():
-                    p.terminate(); p.join(timeout=1.0)
+                    p.terminate()
+                    p.join(timeout=1.0)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--json", action="store_true"); args = ap.parse_args()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
     return 0 if out.get("ok") else 1

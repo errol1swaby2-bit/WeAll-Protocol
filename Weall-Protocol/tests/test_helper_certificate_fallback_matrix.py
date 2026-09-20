@@ -1,9 +1,15 @@
 from __future__ import annotations
 
-from helper_audit_testkit import dispatch_context, first_helper_lane, lane_setup, signed_lane_certificate
+from helper_audit_testkit import (
+    dispatch_context,
+    first_helper_lane,
+    lane_setup,
+    signed_lane_certificate,
+)
+
 from weall.runtime.helper_dispatch import HelperCertificateStore
-from weall.runtime.helper_replay_guard import HelperReplayGuard
 from weall.runtime.helper_proposal_orchestrator import HelperProposalOrchestrator
+from weall.runtime.helper_replay_guard import HelperReplayGuard
 
 
 def _basic_lane_setup():
@@ -67,7 +73,9 @@ def test_helper_store_rejects_closed_request_window() -> None:
 
 def test_helper_store_rejects_manifest_hash_mismatch() -> None:
     lane_plans, lane_plan, plan_id = _basic_lane_setup()
-    cert, pub = signed_lane_certificate(lane_plan=lane_plan, seed_byte=15, plan_id=plan_id, manifest_hash="manifest-a")
+    cert, pub = signed_lane_certificate(
+        lane_plan=lane_plan, seed_byte=15, plan_id=plan_id, manifest_hash="manifest-a"
+    )
     store = HelperCertificateStore(
         context=dispatch_context(plan_id=plan_id, manifest_hash="manifest-b"),
         lane_plans=lane_plans,

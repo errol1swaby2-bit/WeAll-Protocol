@@ -5,7 +5,6 @@ from pathlib import Path
 
 from weall.runtime.tx_schema import validate_tx_envelope
 
-
 ROOT = Path(__file__).resolve().parents[2]
 NESTED = ROOT / "Weall-Protocol"
 WEB = ROOT / "web" / "src"
@@ -34,13 +33,15 @@ def test_ipfs_pin_request_payload_rejects_file_hash_commitment() -> None:
     envelope, payload = validate_tx_envelope(env)
 
     assert envelope.tx_type == "IPFS_PIN_REQUEST"
-    assert getattr(payload, "cid") == env["payload"]["cid"]
-    assert getattr(payload, "size_bytes") == 1234
+    assert payload.cid == env["payload"]["cid"]
+    assert payload.size_bytes == 1234
 
 
 def test_media_upload_suggested_pin_envelope_does_not_put_sha256_in_pin_payload() -> None:
     media = _read(NESTED / "src" / "weall" / "api" / "routes_public_parts" / "media.py")
-    suggested = re.search(r"suggested_env\s*=\s*\{(?P<body>.*?)\n\s*\}\n\s*pin_request\[\"envelope\"\]", media, re.S)
+    suggested = re.search(
+        r"suggested_env\s*=\s*\{(?P<body>.*?)\n\s*\}\n\s*pin_request\[\"envelope\"\]", media, re.S
+    )
     assert suggested, "media upload should build a suggested pin envelope"
     body = suggested.group("body")
     payload = re.search(r'"payload"\s*:\s*\{(?P<payload>.*?)\n\s*\}', body, re.S)
@@ -71,5 +72,10 @@ def test_async_verification_waits_for_case_visibility_between_tx_steps() -> None
     assert 'tx_type: "POH_ASYNC_REQUEST_OPEN"' in page
     assert 'tx_type: "POH_ASYNC_EVIDENCE_DECLARE"' in page
     assert 'tx_type: "POH_ASYNC_EVIDENCE_BIND"' in page
-    assert "const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers" in page
-    assert "Async verification evidence was submitted, but the reviewable case is not visible yet" in page
+    assert (
+        "const boundCaseVisible = await waitForAsyncCaseVisible(acct, caseId, base, headers" in page
+    )
+    assert (
+        "Async verification evidence was submitted, but the reviewable case is not visible yet"
+        in page
+    )

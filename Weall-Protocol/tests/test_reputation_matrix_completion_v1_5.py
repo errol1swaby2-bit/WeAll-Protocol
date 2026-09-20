@@ -79,12 +79,21 @@ def _base_state(*, height: int = 10) -> dict[str, Any]:
     }
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict[str, Any], *, system: bool = False) -> TxEnvelope:
-    return TxEnvelope(tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system)
+def _env(
+    tx_type: str, signer: str, nonce: int, payload: dict[str, Any], *, system: bool = False
+) -> TxEnvelope:
+    return TxEnvelope(
+        tx_type=tx_type, signer=signer, nonce=nonce, payload=payload, sig="", system=system
+    )
 
 
 def _accept(state: dict[str, Any], *, nonce: int = 2) -> dict[str, Any]:
-    return apply_dispute(state, _env("DISPUTE_JUROR_ACCEPT", "@juror", nonce, {"dispute_id": "disp-1"})) or {}
+    return (
+        apply_dispute(
+            state, _env("DISPUTE_JUROR_ACCEPT", "@juror", nonce, {"dispute_id": "disp-1"})
+        )
+        or {}
+    )
 
 
 def _canonical_codes(state: dict[str, Any]) -> list[str]:
@@ -149,7 +158,9 @@ def test_append_only_reputation_events_are_deduped_and_replayable() -> None:
     reduced_a = reduce_reputation_events(events)
     reduced_b = reduce_reputation_events(list(reversed(events)))
     assert reduced_a == reduced_b
-    assert reputation_event_history_root(events) == reputation_event_history_root(list(reversed(events)))
+    assert reputation_event_history_root(events) == reputation_event_history_root(
+        list(reversed(events))
+    )
     dims = reduced_a["actors"]["@juror"]["dimensions"]
     assert dims["juror_reputation"]["score_milli"] < 0
     assert dims["poh_reputation"]["score_milli"] == 0
@@ -177,7 +188,10 @@ def test_appeal_reversal_adds_event_without_deleting_original() -> None:
         actor_id="@appeal-reviewer",
     )
     events = state["reputation"]["events"]
-    assert [ev["event_code"] for ev in events] == ["CONTENT_CONFIRMED_VIOLATION", "REPUTATION_EVENT_REVERSED"]
+    assert [ev["event_code"] for ev in events] == [
+        "CONTENT_CONFIRMED_VIOLATION",
+        "REPUTATION_EVENT_REVERSED",
+    ]
     assert reversal["reversal_of_optional"] == bad["event_id"]
     reduced = reduce_reputation_events(events)
     dims = reduced["actors"]["@creator"]["dimensions"]
@@ -200,7 +214,10 @@ def test_dispute_withdrawal_and_timeout_classifications_are_backend_canonical() 
     early = _base_state(height=10)
     _accept(early)
     early["height"] = 20
-    early_out = apply_dispute(early, _env("DISPUTE_JUROR_WITHDRAW", "@juror", 3, {"dispute_id": "disp-1"})) or {}
+    early_out = (
+        apply_dispute(early, _env("DISPUTE_JUROR_WITHDRAW", "@juror", 3, {"dispute_id": "disp-1"}))
+        or {}
+    )
     assert early_out["safe"] is True
     assert early_out["delta_milli"] == 0
     assert "DISPUTE_JUROR_WITHDREW_EARLY" in _canonical_codes(early)
@@ -208,7 +225,10 @@ def test_dispute_withdrawal_and_timeout_classifications_are_backend_canonical() 
     late = _base_state(height=10)
     _accept(late)
     late["height"] = 70
-    late_out = apply_dispute(late, _env("DISPUTE_JUROR_WITHDRAW", "@juror", 3, {"dispute_id": "disp-1"})) or {}
+    late_out = (
+        apply_dispute(late, _env("DISPUTE_JUROR_WITHDRAW", "@juror", 3, {"dispute_id": "disp-1"}))
+        or {}
+    )
     assert late_out["safe"] is False
     assert late_out["delta_milli"] == -500
     assert "DISPUTE_JUROR_WITHDREW_LATE" in _canonical_codes(late)
@@ -216,7 +236,19 @@ def test_dispute_withdrawal_and_timeout_classifications_are_backend_canonical() 
     timed = _base_state(height=10)
     _accept(timed)
     timed["height"] = 191
-    timeout_out = apply_dispute(timed, _env("DISPUTE_JUROR_TIMEOUT", "SYSTEM", 191, {"dispute_id": "disp-1", "juror": "@juror"}, system=True)) or {}
+    timeout_out = (
+        apply_dispute(
+            timed,
+            _env(
+                "DISPUTE_JUROR_TIMEOUT",
+                "SYSTEM",
+                191,
+                {"dispute_id": "disp-1", "juror": "@juror"},
+                system=True,
+            ),
+        )
+        or {}
+    )
     assert timeout_out["delta_milli"] == -1500
     assert timed["disputes_by_id"]["disp-1"]["jurors"]["@juror"]["status"] == "timed_out"
     assert "DISPUTE_JUROR_TIMED_OUT" in _canonical_codes(timed)
@@ -226,7 +258,12 @@ def test_dispute_vote_before_deadline_completes_assignment_without_majority_pena
     state = _base_state(height=10)
     _accept(state)
     state["height"] = 20
-    out = apply_dispute(state, _env("DISPUTE_VOTE_SUBMIT", "@juror", 4, {"dispute_id": "disp-1", "vote": "no"})) or {}
+    out = (
+        apply_dispute(
+            state, _env("DISPUTE_VOTE_SUBMIT", "@juror", 4, {"dispute_id": "disp-1", "vote": "no"})
+        )
+        or {}
+    )
     assert out["applied"] == "DISPUTE_VOTE_SUBMIT"
     assert state["disputes_by_id"]["disp-1"]["jurors"]["@juror"]["status"] == "completed"
     assert "DISPUTE_JUROR_VOTED_ON_TIME" in _canonical_codes(state)
@@ -234,7 +271,9 @@ def test_dispute_vote_before_deadline_completes_assignment_without_majority_pena
     assert matrix["visibility"]["restricted_dimensions"] == []
     assert matrix["visibility"]["restricted_revealed"] is False
     assert matrix["canonical_dimensions"]["juror_reputation"]["score_milli"] == 250
-    assert not any("majority" in str(ev.get("reason_code", "")).lower() for ev in state["reputation"]["events"])
+    assert not any(
+        "majority" in str(ev.get("reason_code", "")).lower() for ev in state["reputation"]["events"]
+    )
 
 
 def test_role_eligibility_is_dimension_specific() -> None:
@@ -286,11 +325,18 @@ def test_reputation_and_dispute_api_contracts_expose_backend_read_models(monkeyp
     assert current["items"][0]["canonical_deadlines"]["vote_deadline_height"] == 190
     assert "1-hour review obligation" in current["items"][0]["reputation_warning"]["text"]
 
-    r = client.get("/v1/disputes/eligible", headers={"x-weall-account": "@reporter", "x-weall-session-key": "reporter-session"})
+    r = client.get(
+        "/v1/disputes/eligible",
+        headers={"x-weall-account": "@reporter", "x-weall-session-key": "reporter-session"},
+    )
     assert r.status_code == 200
     assert r.json()["count"] == 0
 
-    r = client.post("/v1/disputes/disp-1/vote", headers=headers, json={"vote": "yes", "reason": "policy matched"})
+    r = client.post(
+        "/v1/disputes/disp-1/vote",
+        headers=headers,
+        json={"vote": "yes", "reason": "policy matched"},
+    )
     assert r.status_code == 200
     vote = r.json()
     assert vote["tx_template"]["tx_type"] == "DISPUTE_VOTE_SUBMIT"

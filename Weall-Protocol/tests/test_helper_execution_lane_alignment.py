@@ -21,7 +21,10 @@ def test_concrete_identity_instances_promote_to_parallel() -> None:
 
 def test_concrete_economy_instances_promote_to_parallel() -> None:
     for tx in (
-        {"tx_type": "BALANCE_TRANSFER", "payload": {"from_account_id": "@alice", "to_account_id": "@bob"}},
+        {
+            "tx_type": "BALANCE_TRANSFER",
+            "payload": {"from_account_id": "@alice", "to_account_id": "@bob"},
+        },
         {"tx_type": "FEE_PAY", "payload": {"from_account_id": "@alice", "to_account_id": "@fees"}},
     ):
         contract = helper_contract_for_tx(tx)

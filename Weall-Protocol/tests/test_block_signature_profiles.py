@@ -2,11 +2,21 @@ from weall.crypto.signature_profiles import PQ_MLDSA_V1
 
 REMOVED_CLASSICAL_PROFILE = "classical-signature-profile-removed"
 from weall.runtime.block_admission import admit_bft_block
-from weall.runtime.block_signature_profiles import canonical_block_signature_payload, validate_block_signature_profile
+from weall.runtime.block_signature_profiles import (
+    canonical_block_signature_payload,
+    validate_block_signature_profile,
+)
 
 
 def _block(profile=""):
-    out = {"chain_id": "weall-testnet-v1", "height": 1, "block_id": "b1", "prev_block_id": "b0", "node_id": "@v", "signature": {"alg": "ML-DSA", "sig": "00", "pubkey": "aa"}}
+    out = {
+        "chain_id": "weall-testnet-v1",
+        "height": 1,
+        "block_id": "b1",
+        "prev_block_id": "b0",
+        "node_id": "@v",
+        "signature": {"alg": "ML-DSA", "sig": "00", "pubkey": "aa"},
+    }
     if profile:
         out["sig_profile"] = profile
     return out
@@ -35,4 +45,7 @@ def test_strict_block_admission_rejects_legacy_profile(monkeypatch):
 
 def test_block_profile_pq_shape_ok_without_requiring_verifier(monkeypatch):
     monkeypatch.setenv("WEALL_CRYPTO_MODE", "closed-testnet")
-    assert validate_block_signature_profile(_block(PQ_MLDSA_V1), require_verifier=False) == (True, "ok")
+    assert validate_block_signature_profile(_block(PQ_MLDSA_V1), require_verifier=False) == (
+        True,
+        "ok",
+    )

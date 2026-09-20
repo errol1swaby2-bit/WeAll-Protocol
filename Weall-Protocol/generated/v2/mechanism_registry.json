@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c1f4f3aad1bc7f5400192f0cbb3f7084f3bf7c3b72ffd13bb8df5a5a6d312614"
+    "source_tree_digest": "c826728b8d1cc0f948f2305789c1dff0a559a8b38e6ae4e6aa913867499a5a1b"
   },
   "rows": [
     {
@@ -3604,6 +3604,7 @@
         }
       ],
       "repository_evidence_paths": [
+        "generated/current_verified_claims.json",
         "generated/governance_execution_vectors_v1_5.json",
         "generated/launch_disabled_matrix_v1_5.json",
         "generated/public_beta_blocker_report_v1_5.json",
@@ -3621,6 +3622,7 @@
         "scripts/check_backend_test_dependencies.py",
         "scripts/check_generated.py",
         "scripts/check_m2_requirement_traceability.py",
+        "scripts/check_public_claim_freshness.py",
         "scripts/check_public_testnet_seed_registry_rotation.py",
         "scripts/check_reviewer_truth_boundaries.py",
         "scripts/check_ruff_regressions.py",
@@ -3660,6 +3662,7 @@
         "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py",
         "scripts/gen_controlled_devnet_chain_manifest.py",
         "scripts/gen_crypto_posture_v1_5.py",
+        "scripts/gen_current_verified_claims.py",
         "scripts/gen_failure_code_registry_v1_5.py",
         "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py",
         "scripts/gen_genesis_testnet_launch_readiness_v1_5.py",

@@ -14,7 +14,6 @@ def _write_min_tx_index(path: Path) -> None:
 def test_runtime_open_tracks_previous_shutdown_cleanliness(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)
-    monkeypatch.delenv("WEALL_ALLOW_DIRTY_SIGNING", raising=False)
     monkeypatch.delenv("WEALL_VALIDATOR_SIGNING_ENABLED", raising=False)
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@v1")
 

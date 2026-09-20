@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 
 from weall.api.routes_public_parts.reviewer_artifacts import router
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -16,7 +15,9 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_reviewer_artifact_routes_expose_only_public_bundle_and_manifest(tmp_path: Path, monkeypatch) -> None:
+def test_reviewer_artifact_routes_expose_only_public_bundle_and_manifest(
+    tmp_path: Path, monkeypatch
+) -> None:
     public_dir = tmp_path / "public"
     public_dir.mkdir()
 

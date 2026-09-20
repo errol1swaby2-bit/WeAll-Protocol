@@ -355,7 +355,6 @@ def cmd_submit_tx(args: argparse.Namespace) -> int:
     return 0
 
 
-
 def _live_case(api: str, case_id: str) -> Json:
     return _http_json("GET", api, f"/v1/poh/live/case/{urllib.parse.quote(case_id, safe='')}")
 
@@ -401,8 +400,7 @@ def _wait_live_juror_state(
             return last
         if time.time() >= deadline:
             raise SystemExit(
-                "live_juror_state_timeout:"
-                f"{case_id}:{juror}:{field}:{expected}:{_json_dumps(last)}"
+                f"live_juror_state_timeout:{case_id}:{juror}:{field}:{expected}:{_json_dumps(last)}"
             )
         time.sleep(max(0.05, float(poll_s)))
 
@@ -443,8 +441,6 @@ def _devnet_video_commitment(*, chain_id: str, account: str) -> str:
         ]
     ).encode("utf-8")
     return f"sha256:{_sha256_hex(material)}"
-
-
 
 
 def _sign_and_submit_skeleton_tx(
@@ -495,6 +491,7 @@ def _sign_and_submit_skeleton_tx(
     if tx_id:
         out["tx_status"] = _wait_tx(api, tx_id, timeout_s=timeout, poll_s=poll)
     return out
+
 
 def cmd_live_request(args: argparse.Namespace) -> int:
     keyfile = Path(args.keyfile).expanduser()
@@ -553,7 +550,6 @@ def cmd_live_request(args: argparse.Namespace) -> int:
     keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
     print(_json_dumps(result))
     return 0
-
 
 
 def cmd_live_review(args: argparse.Namespace) -> int:
@@ -748,7 +744,6 @@ def cmd_bootstrap_live(args: argparse.Namespace) -> int:
     keyfile.write_text(_json_dumps(keydata) + "\n", encoding="utf-8")
     print(_json_dumps(result))
     return 0
-
 
 
 def cmd_tick(args: argparse.Namespace) -> int:

@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 
 from weall.net.net_loop import NetStateSnapshotError
-from weall.runtime.block_hash import compute_receipts_root
 from weall.runtime.bft_hotstuff import validator_set_hash as bft_validator_set_hash
+from weall.runtime.block_hash import compute_receipts_root
 from weall.runtime.commitments import receipts_root, validator_set_hash
 from weall.runtime.executor import WeAllExecutor
 from weall.runtime.helper_certificates import hash_receipts

@@ -127,7 +127,7 @@ def test_proposal_sender_budget_drops_third_distinct_proposal(monkeypatch) -> No
     assert ex._recent_bft_sender_budgets["alice"][1] == 2
 
 
-def test_qc_sender_budget_drops_third_distinct_qc() -> None:
+def test_qc_relay_does_not_charge_embedded_validator_sender_budget() -> None:
     ex = _make_executor()
     calls = {"verify": 0}
 
@@ -156,7 +156,7 @@ def test_qc_sender_budget_drops_third_distinct_qc() -> None:
         assert ex.bft_on_qc(qcj) is None
 
     assert calls == {"verify": 3}
-    assert ex._recent_bft_sender_budgets["alice"][1] == 2
+    assert ex._recent_bft_sender_budgets == {}
 
 
 def test_vote_sender_budget_is_fair_across_senders() -> None:

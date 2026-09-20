@@ -55,7 +55,13 @@ from weall.runtime.scheduler_pipeline import (
     run_replay_post_schedulers,
     run_replay_pre_schedulers,
 )
-from weall.runtime.system_tx_engine import build_system_queue_lookup
+from weall.runtime.system_tx_engine import (
+    BLOCK_FINALIZE_TX_TYPE,
+    EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+    bind_new_same_block_single_tx_children,
+    build_system_queue_lookup,
+    validate_same_block_single_tx_lineage,
+)
 
 
 def _vrf_validator_authority_reason(
@@ -104,6 +110,15 @@ def apply_block(self, block: Json) -> ExecutorMeta:
         subtrees exist, enqueue system queue items, confirm emitted queue items).
       - We verify receipts_root and state_root (if present) against a fresh replay.
     """
+    post_commit_error = str(getattr(self, "_post_commit_housekeeping_error", "") or "")
+    if post_commit_error:
+        return ExecutorMeta(
+            ok=False,
+            error=f"executor_unhealthy:{post_commit_error}",
+            height=int(self.state.get("height") or 0),
+            block_id=str(self.state.get("tip") or ""),
+        )
+
     runtime_ctx = RuntimeContext.from_executor(self)
     scheduler_set = runtime_ctx.scheduler_set
     apply_tx_fn = runtime_ctx.tx_execution_set.apply_tx_atomic_meta
@@ -189,7 +204,11 @@ def apply_block(self, block: Json) -> ExecutorMeta:
     block2["block_hash"] = binding.block_hash
     bh = binding.block_hash
 
-    if self._block_identity_conflicts(block2):
+    # Reject identities already under durable quarantine immediately. Generic
+    # replay is not itself trusted to create new durable equivocation truth.
+    if self._is_conflicted_block_id(binding.block_id) or self._is_conflicted_block_hash(
+        binding.block_hash
+    ):
         return ExecutorMeta(
             ok=False, error="bad_block:block_id_hash_conflict", height=0, block_id=""
         )
@@ -222,6 +241,15 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                     height=0,
                     block_id=str(block2.get("block_id") or ""),
                 )
+
+    # Generic replay/state-sync does not authenticate the current proposer.
+    # It may reject a block against known identity truth, but only the
+    # authenticated proposal/QC ingress paths are allowed to create durable
+    # equivocation quarantine.
+    if self._block_identity_conflicts(block2, record_conflicts=False):
+        return ExecutorMeta(
+            ok=False, error="bad_block:block_id_hash_conflict", height=0, block_id=""
+        )
 
     txs = block2.get("txs")
     if not isinstance(txs, list):
@@ -615,7 +643,25 @@ def apply_block(self, block: Json) -> ExecutorMeta:
                     height=0,
                     block_id="",
                 )
+            lineage_ok, lineage_reason = validate_same_block_single_tx_lineage(
+                self.tx_index,
+                env_obj,
+                prior_txs=txs[:tx_pos],
+                required_child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+            )
+            if not lineage_ok:
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:single_tx_lineage:{lineage_reason}",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
 
+        queue_ids_before_apply = (
+            set(_queue_lookup())
+            if str(getattr(env_obj, "tx_type", "") or "").strip().upper() == BLOCK_FINALIZE_TX_TYPE
+            else set()
+        )
         applied_ok = False
         err_code = ""
         err_reason = ""
@@ -673,6 +719,27 @@ def apply_block(self, block: Json) -> ExecutorMeta:
 
         if (not applied_ok) and (not is_system) and signer:
             blocked_signers_after_apply_reject.add(signer)
+
+        tx_type = str(getattr(env_obj, "tx_type", "") or "").strip().upper()
+        if applied_ok and tx_type == BLOCK_FINALIZE_TX_TYPE:
+            try:
+                bind_new_same_block_single_tx_children(
+                    working,
+                    self.tx_index,
+                    queue_ids_before=queue_ids_before_apply,
+                    parent_tx_type=tx_type,
+                    parent_tx_id=str(tx_id),
+                    parent_position=tx_pos,
+                    child_tx_types=EPOCH_FINALITY_SINGLE_TX_CHILDREN,
+                )
+                _invalidate_queue_lookup()
+            except Exception as exc:
+                return ExecutorMeta(
+                    ok=False,
+                    error=f"bad_block:single_tx_lineage_bind_failed:{type(exc).__name__}",
+                    height=0,
+                    block_id=str(block2.get("block_id") or ""),
+                )
 
         applied_ids.append(tx_id)
 

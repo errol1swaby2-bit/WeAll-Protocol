@@ -138,7 +138,11 @@ def test_gov_execute_enqueues_validator_candidate_approve() -> None:
             tx_type="GOV_EXECUTE",
             signer="SYSTEM",
             nonce=1,
-            payload={"proposal_id": "p-approve", "_due_height": 1, "_system_queue_id": "qid-approve"},
+            payload={
+                "proposal_id": "p-approve",
+                "_due_height": 1,
+                "_system_queue_id": "qid-approve",
+            },
             sig="",
             parent="tx:alice:1",
             system=True,
@@ -147,7 +151,9 @@ def test_gov_execute_enqueues_validator_candidate_approve() -> None:
 
     q = st.get("system_queue")
     assert isinstance(q, list)
-    items = [x for x in q if isinstance(x, dict) and x.get("tx_type") == "VALIDATOR_CANDIDATE_APPROVE"]
+    items = [
+        x for x in q if isinstance(x, dict) and x.get("tx_type") == "VALIDATOR_CANDIDATE_APPROVE"
+    ]
     assert len(items) == 1
     assert int(items[0].get("due_height")) == 2
     assert str(items[0].get("phase")) == "post"

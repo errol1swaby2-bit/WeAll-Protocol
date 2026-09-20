@@ -3,12 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.mldsa import MLDSA65PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 
 from weall.crypto.sig import sign_mldsa
 from weall.runtime.bft_hotstuff import BftVote, canonical_vote_message
@@ -166,7 +160,10 @@ def test_hash_indexed_pending_qc_can_drive_replay_and_surfaces_in_diagnostics(
     block1["validator_epoch"] = 3
     block1["validator_set_hash"] = follower._current_validator_set_hash()
 
-    assert follower.bft_cache_remote_block(block1) is True
+    assert (
+        follower.bft_cache_remote_block(block1, expected_block_hash=str(block1["block_hash"]))
+        is True
+    )
     assert int(follower.state.get("height") or 0) == 0
 
     follower._pending_missing_qcs.clear()

@@ -90,7 +90,6 @@ class _FakeExecutor:
             "poh": {},
         }
 
-
     def tx_index_hash(self) -> str:
         return "txindexhash-obs"
 
@@ -118,7 +117,12 @@ class _FakeExecutor:
                 "attempted": True,
                 "receipt_equivalent": True,
                 "lane_decisions": [
-                    {"lane_id": "l1", "used_helper": True, "fallback_reason": "", "tx_ids": ["tx:1"]},
+                    {
+                        "lane_id": "l1",
+                        "used_helper": True,
+                        "fallback_reason": "",
+                        "tx_ids": ["tx:1"],
+                    },
                     {
                         "lane_id": "l2",
                         "used_helper": False,
@@ -153,8 +157,20 @@ class _FakeExecutor:
                 "TREASURY_SIGNERS_SET": {"treasury_spend_open": 1},
             },
             "recent_events": [
-                {"tx_id": "tx:g1", "tx_type": "GROUP_SIGNERS_SET", "signer": "@alice", "reason": "group_treasury_spend_open", "code": "forbidden"},
-                {"tx_id": "tx:t1", "tx_type": "TREASURY_SIGNERS_SET", "signer": "alice", "reason": "treasury_spend_open", "code": "forbidden"},
+                {
+                    "tx_id": "tx:g1",
+                    "tx_type": "GROUP_SIGNERS_SET",
+                    "signer": "@alice",
+                    "reason": "group_treasury_spend_open",
+                    "code": "forbidden",
+                },
+                {
+                    "tx_id": "tx:t1",
+                    "tx_type": "TREASURY_SIGNERS_SET",
+                    "signer": "alice",
+                    "reason": "treasury_spend_open",
+                    "code": "forbidden",
+                },
             ],
         }
 
@@ -267,7 +283,12 @@ def test_status_operator_exposes_runtime_and_peer_diagnostics(monkeypatch, tmp_p
     assert len(body["net"]["peers"]) == 2
     assert body["consensus"]["bft_enabled"] is True
     assert body["consensus"]["validator_account"] == "@validator-2"
-    assert body["operator"]["helper_execution"]["summary"]["fallback_reason_counts"]["plan_id_mismatch"] == 1
+    assert (
+        body["operator"]["helper_execution"]["summary"]["fallback_reason_counts"][
+            "plan_id_mismatch"
+        ]
+        == 1
+    )
     assert body["operator"]["helper_reputation"]["@helper-1"]["accepted"] == 4
     assert body["operator"]["mempool_selection_last"]["policy"] == "canonical"
     assert body["operator"]["mempool_selection_last"]["invalid_count"] == 1

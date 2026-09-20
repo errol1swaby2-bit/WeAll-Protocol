@@ -14,7 +14,15 @@ from weall.runtime.validator_readiness_runner import build_validator_readiness_r
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _env(tx_type: str, signer: str, nonce: int, payload: dict | None = None, *, system: bool = False, parent: str | None = None) -> TxEnvelope:
+def _env(
+    tx_type: str,
+    signer: str,
+    nonce: int,
+    payload: dict | None = None,
+    *,
+    system: bool = False,
+    parent: str | None = None,
+) -> TxEnvelope:
     return TxEnvelope.from_json(
         {
             "tx_type": tx_type,
@@ -23,7 +31,9 @@ def _env(tx_type: str, signer: str, nonce: int, payload: dict | None = None, *, 
             "payload": payload or {},
             "sig": "sig",
             "system": bool(system),
-            "parent": parent if parent is not None else (f"p:{tx_type}:{nonce}" if system else None),
+            "parent": parent
+            if parent is not None
+            else (f"p:{tx_type}:{nonce}" if system else None),
         }
     )
 
@@ -118,7 +128,11 @@ def test_validator_candidate_register_requires_active_validator_responsibility()
                 "VALIDATOR_CANDIDATE_REGISTER",
                 "@op",
                 1,
-                {"node_id": "node-pub-1", "pubkey": "bft-pub-1", "endpoints": ["https://node.example"]},
+                {
+                    "node_id": "node-pub-1",
+                    "pubkey": "bft-pub-1",
+                    "endpoints": ["https://node.example"],
+                },
             ),
         )
 
@@ -135,14 +149,20 @@ def test_validator_candidate_register_requires_readiness_bft_pubkey_binding() ->
                 "VALIDATOR_CANDIDATE_REGISTER",
                 "@op",
                 1,
-                {"node_id": "node-pub-1", "pubkey": "wrong-bft-pub", "endpoints": ["https://node.example"]},
+                {
+                    "node_id": "node-pub-1",
+                    "pubkey": "wrong-bft-pub",
+                    "endpoints": ["https://node.example"],
+                },
             ),
         )
 
     assert exc.value.reason == "validator_candidate_pubkey_must_match_readiness_bft_pubkey"
 
 
-def test_validator_candidate_register_passes_after_operator_opt_in_readiness_and_node_binding() -> None:
+def test_validator_candidate_register_passes_after_operator_opt_in_readiness_and_node_binding() -> (
+    None
+):
     st = _validator_state()
     # Use a real readiness payload shape and hash to prove the record can be produced by the runner.
     readiness = _make_readiness_payload()
@@ -168,7 +188,9 @@ def test_validator_candidate_register_passes_after_operator_opt_in_readiness_and
 
 
 def test_production_genesis_pins_candidate_and_bft_public_beta_gates() -> None:
-    genesis = json.loads((ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8"))
+    genesis = json.loads(
+        (ROOT / "configs" / "genesis.ledger.prod.json").read_text(encoding="utf-8")
+    )
     params = genesis["params"]
     assert params["validator_candidate_lifecycle_gate_enabled"] is True
     assert params["validator_candidate_node_id_must_match_node_pubkey"] is True
@@ -201,7 +223,11 @@ def test_wecoin_transfer_requires_unlock_and_governance_activation() -> None:
     st = _econ_state()
     with pytest.raises(ApplyError) as before_unlock:
         apply_tx(st, _env("BALANCE_TRANSFER", "alice", 1, {"to": "bob", "amount": 5}))
-    assert before_unlock.value.reason in {"economics_time_locked", "economics are time-locked", "economics are disabled"}
+    assert before_unlock.value.reason in {
+        "economics_time_locked",
+        "economics are time-locked",
+        "economics are disabled",
+    }
 
     st["time"] = st["params"]["economic_unlock_time"]
     with pytest.raises(ApplyError) as before_activation:
@@ -212,7 +238,17 @@ def test_wecoin_transfer_requires_unlock_and_governance_activation() -> None:
         apply_tx(st, _env("ECONOMICS_ACTIVATION", "alice", 2, {"enable": True}))
     assert user_activation.value.reason in {"system_tx_required", "system_only"}
 
-    apply_tx(st, _env("ECONOMICS_ACTIVATION", "SYSTEM", 3, {"enable": True}, system=True, parent="gov:activation"))
+    apply_tx(
+        st,
+        _env(
+            "ECONOMICS_ACTIVATION",
+            "SYSTEM",
+            3,
+            {"enable": True},
+            system=True,
+            parent="gov:activation",
+        ),
+    )
     out = apply_tx(st, _env("BALANCE_TRANSFER", "alice", 4, {"to": "bob", "amount": 5}))
     assert out == {"applied": "BALANCE_TRANSFER", "from": "alice", "to": "bob", "amount": 5}
     assert st["accounts"]["alice"]["balance"] == 95
@@ -222,12 +258,37 @@ def test_wecoin_transfer_requires_unlock_and_governance_activation() -> None:
 def test_wecoin_fee_policy_cannot_fee_gate_civic_social_governance_actions() -> None:
     st = _econ_state()
     st["time"] = st["params"]["economic_unlock_time"]
-    apply_tx(st, _env("ECONOMICS_ACTIVATION", "SYSTEM", 1, {"enable": True}, system=True, parent="gov:activation"))
+    apply_tx(
+        st,
+        _env(
+            "ECONOMICS_ACTIVATION",
+            "SYSTEM",
+            1,
+            {"enable": True},
+            system=True,
+            parent="gov:activation",
+        ),
+    )
 
-    for field in ("post_fee_int", "governance_vote_fee_int", "account_register_fee_int", "peer_advertise_fee_int"):
+    for field in (
+        "post_fee_int",
+        "governance_vote_fee_int",
+        "account_register_fee_int",
+        "peer_advertise_fee_int",
+    ):
         local = copy.deepcopy(st)
         with pytest.raises(ApplyError) as exc:
-            apply_tx(local, _env("FEE_POLICY_SET", "SYSTEM", 2, {field: 1}, system=True, parent=f"gov:fee:{field}"))
+            apply_tx(
+                local,
+                _env(
+                    "FEE_POLICY_SET",
+                    "SYSTEM",
+                    2,
+                    {field: 1},
+                    system=True,
+                    parent=f"gov:fee:{field}",
+                ),
+            )
         assert exc.value.reason == "civic_social_governance_actions_must_remain_fee_free"
 
 
@@ -235,7 +296,9 @@ def _write_min_tx_index(path: Path) -> None:
     path.write_text(json.dumps({"by_name": {}, "by_id": {}, "tx_types": []}), encoding="utf-8")
 
 
-def test_prod_bft_signing_requires_local_identity_active_set_bft_phase_and_min_validators(tmp_path: Path, monkeypatch) -> None:
+def test_prod_bft_signing_requires_local_identity_active_set_bft_phase_and_min_validators(
+    tmp_path: Path, monkeypatch
+) -> None:
     monkeypatch.setenv("WEALL_MODE", "prod")
     monkeypatch.setenv("WEALL_VALIDATOR_SIGNING_ENABLED", "1")
     monkeypatch.delenv("WEALL_OBSERVER_MODE", raising=False)
@@ -245,8 +308,18 @@ def test_prod_bft_signing_requires_local_identity_active_set_bft_phase_and_min_v
 
     tx_index = tmp_path / "tx_index.json"
     _write_min_tx_index(tx_index)
-    ex = WeAllExecutor(db_path=str(tmp_path / "weall.db"), node_id="observer-node", chain_id="weall-prod", tx_index_path=str(tx_index))
-    ex.state.setdefault("roles", {}).setdefault("validators", {})["active_set"] = ["@v1", "@v2", "@v3", "@v4"]
+    ex = WeAllExecutor(
+        db_path=str(tmp_path / "weall.db"),
+        node_id="observer-node",
+        chain_id="weall-prod",
+        tx_index_path=str(tx_index),
+    )
+    ex.state.setdefault("roles", {}).setdefault("validators", {})["active_set"] = [
+        "@v1",
+        "@v2",
+        "@v3",
+        "@v4",
+    ]
     ex.state.setdefault("consensus", {}).setdefault("phase", {})["current"] = "bft_active"
 
     assert ex.validator_signing_enabled() is False
@@ -254,5 +327,7 @@ def test_prod_bft_signing_requires_local_identity_active_set_bft_phase_and_min_v
 
     monkeypatch.setenv("WEALL_VALIDATOR_ACCOUNT", "@v1")
     monkeypatch.setenv("WEALL_NODE_PUBKEY", "pub-v1")
-    ex.state.setdefault("consensus", {}).setdefault("validators", {})["registry"] = {"@v1": {"pubkey": "pub-v1"}}
+    ex.state.setdefault("consensus", {}).setdefault("validators", {})["registry"] = {
+        "@v1": {"pubkey": "pub-v1"}
+    }
     assert ex.validator_signing_enabled() is True

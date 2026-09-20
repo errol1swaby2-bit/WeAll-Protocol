@@ -46,7 +46,8 @@ def test_state_persists_across_blocks_and_restart(
         "nonce": 1,
         "payload": payload,
         "chain_id": "persist",
-        "sig": deterministic_mldsa_keypair(label="@alice")[1].sign(
+        "sig": deterministic_mldsa_keypair(label="@alice")[1]
+        .sign(
             canonical_tx_message(
                 chain_id="persist",
                 tx_type="ACCOUNT_REGISTER",
@@ -55,7 +56,8 @@ def test_state_persists_across_blocks_and_restart(
                 payload=payload,
                 parent=None,
             )
-        ).hex(),
+        )
+        .hex(),
     }
     assert ex.submit_tx(reg)["ok"] is True
     assert ex.produce_block(max_txs=1).ok is True

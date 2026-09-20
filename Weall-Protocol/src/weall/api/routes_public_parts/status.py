@@ -16,6 +16,7 @@ from weall.net.state_sync import build_snapshot_anchor
 from weall.runtime.apply.poh import poh_bootstrap_policy_summary
 from weall.runtime.chain_config import load_chain_config, production_bootstrap_report
 from weall.runtime.chain_manifest import chain_manifest_status, load_chain_manifest
+from weall.runtime.commitments import consensus_active_validator_ids, consensus_validator_generation
 from weall.runtime.constitution import active_constitution_commitment
 from weall.runtime.constitutional_clock import (
     policy_from_manifest,
@@ -380,11 +381,9 @@ def _active_validators(state: Mapping[str, Any]) -> list[str]:
     fallback to state["roles"]["validators"]["active_set"] only when the
     consensus validator-set object is absent.
     """
-    consensus = state.get("consensus")
-    if isinstance(consensus, dict):
-        validator_set = consensus.get("validator_set")
-        if isinstance(validator_set, dict) and isinstance(validator_set.get("active_set"), list):
-            return _canonical_account_list(validator_set.get("active_set"))
+    explicit = consensus_active_validator_ids(state)
+    if explicit is not None:
+        return _canonical_account_list(explicit)
 
     roles = state.get("roles")
     if isinstance(roles, dict):
@@ -745,7 +744,10 @@ def _local_validator_lifecycle(state: Mapping[str, Any], validator_account: str)
     pending = validator_set.get("pending")
     pending = pending if isinstance(pending, dict) else {}
 
-    current_epoch = _safe_int(validator_set.get("epoch"), _safe_int(epochs.get("current"), 0))
+    generation = consensus_validator_generation(state)
+    current_epoch = (
+        int(generation) if generation is not None else _safe_int(epochs.get("current"), 0)
+    )
     current_set_hash = _safe_str(validator_set.get("set_hash"), "")
     active_validators = _active_validators(state)
     pending_active_set = (
@@ -1574,8 +1576,10 @@ def _chain_identity_payload(request: Request) -> dict[str, Any]:
             "profile_hash": _safe_str(genesis_bootstrap.get("profile_hash"), ""),
         },
         "testnet_readiness": _testnet_readiness_payload(state if isinstance(state, dict) else {}),
-        "validator_epoch": _safe_int(
-            validator_set.get("epoch"), _safe_int(epochs.get("current"), 0)
+        "validator_epoch": (
+            int(generation)
+            if (generation := consensus_validator_generation(state)) is not None
+            else _safe_int(epochs.get("current"), 0)
         ),
         "validator_set_hash": _safe_str(validator_set.get("set_hash"), ""),
     }

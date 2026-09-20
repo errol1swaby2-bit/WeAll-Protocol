@@ -93,7 +93,9 @@ def _check_launch_matrix() -> list[str]:
     artifact = _load_json(Path("generated/launch_disabled_matrix_v1_5.json"))
     runtime = launch_matrix_payload()
     if artifact != runtime:
-        errors.append("launch_disabled_matrix_v1_5.json is stale; regenerate from weall.runtime.launch_matrix.launch_matrix_payload()")
+        errors.append(
+            "launch_disabled_matrix_v1_5.json is stale; regenerate from weall.runtime.launch_matrix.launch_matrix_payload()"
+        )
     return errors
 
 
@@ -111,7 +113,10 @@ def _run_check(script: str) -> list[str]:
     with tempfile.TemporaryDirectory(prefix="weall_v15_check_") as tmp:
         stdout_path = Path(tmp) / "stdout.txt"
         stderr_path = Path(tmp) / "stderr.txt"
-        with stdout_path.open("w", encoding="utf-8") as stdout, stderr_path.open("w", encoding="utf-8") as stderr:
+        with (
+            stdout_path.open("w", encoding="utf-8") as stdout,
+            stderr_path.open("w", encoding="utf-8") as stderr,
+        ):
             result = subprocess.run(
                 [sys.executable, f"scripts/{script}", "--check"],
                 cwd=ROOT,
@@ -122,7 +127,10 @@ def _run_check(script: str) -> list[str]:
                 timeout=180,
             )
         if result.returncode != 0:
-            return [(_read_tail(stdout_path) + _read_tail(stderr_path)).strip() or f"{script} check failed"]
+            return [
+                (_read_tail(stdout_path) + _read_tail(stderr_path)).strip()
+                or f"{script} check failed"
+            ]
     return []
 
 
@@ -135,8 +143,6 @@ def _check_gap_register() -> list[str]:
         if not isinstance(payload.get(key), list) or not payload.get(key):
             errors.append(f"v15 gap register missing non-empty {key}")
     return errors
-
-
 
 
 def _check_state_root_vectors() -> list[str]:
@@ -163,10 +169,14 @@ def _check_tokenomics_simulation() -> list[str]:
         errors.append("tokenomics_simulation_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.tokenomics_simulation":
         errors.append("tokenomics simulation schema mismatch")
-    boundaries = payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    boundaries = (
+        payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    )
     if boundaries.get("live_economics_enabled") is not False:
         errors.append("tokenomics simulation must preserve live_economics_enabled=false")
-    if not isinstance(payload.get("activation_blockade_checklist"), list) or not payload.get("activation_blockade_checklist"):
+    if not isinstance(payload.get("activation_blockade_checklist"), list) or not payload.get(
+        "activation_blockade_checklist"
+    ):
         errors.append("tokenomics simulation missing activation blockade checklist")
     return errors
 
@@ -185,7 +195,6 @@ def _check_failure_code_registry() -> list[str]:
     return errors
 
 
-
 def _check_api_response_vectors() -> list[str]:
     errors: list[str] = []
     from gen_api_response_vectors_v1_5 import build as build_api_response_vectors
@@ -197,7 +206,9 @@ def _check_api_response_vectors() -> list[str]:
         errors.append("api response vector schema mismatch")
     if int(payload.get("vector_count") or 0) < 8:
         errors.append("api response vector pack unexpectedly small")
-    boundaries = payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    boundaries = (
+        payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    )
     if boundaries.get("public_beta_ready") is not False:
         errors.append("api response vectors must not claim public beta readiness")
     return errors
@@ -217,13 +228,29 @@ def _check_b587_b594_mechanisms() -> list[str]:
         errors.append("B587-B594 controlled_testnet_mechanisms_complete must match aggregate ok")
     if bool(payload.get("controlled_testnet_ready_candidate")) != mechanism_ok:
         errors.append("B587-B594 controlled_testnet_ready_candidate must match aggregate ok")
-    helper = payload.get("helper_block_path_adversarial") if isinstance(payload.get("helper_block_path_adversarial"), dict) else {}
-    if helper.get("production_block_path_state_root_equivalence_proven") is not True and mechanism_ok:
-        errors.append("B587-B594 must not claim mechanism completion without production helper state-root equivalence proof")
+    helper = (
+        payload.get("helper_block_path_adversarial")
+        if isinstance(payload.get("helper_block_path_adversarial"), dict)
+        else {}
+    )
+    if (
+        helper.get("production_block_path_state_root_equivalence_proven") is not True
+        and mechanism_ok
+    ):
+        errors.append(
+            "B587-B594 must not claim mechanism completion without production helper state-root equivalence proof"
+        )
     if payload.get("public_beta_ready") is not False:
         errors.append("B587-B594 artifact must not claim public beta readiness")
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
-    for key in ("live_economics", "public_validator_readiness", "production_helper_execution", "automatic_protocol_upgrades"):
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
+    for key in (
+        "live_economics",
+        "public_validator_readiness",
+        "production_helper_execution",
+        "automatic_protocol_upgrades",
+    ):
         if boundaries.get(key) is not False:
             errors.append(f"B587-B594 boundary must keep {key}=false")
     return errors
@@ -235,15 +262,27 @@ def _check_controlled_testnet_go_gate() -> list[str]:
     if payload.get("schema") != "weall.v1_5.controlled_testnet_go_gate":
         errors.append("controlled testnet go-gate schema mismatch")
     if payload.get("controlled_testnet_go_gate_ready_to_run") is not True:
-        q = payload.get("quantum_resistance_readiness_summary") if isinstance(payload.get("quantum_resistance_readiness_summary"), dict) else {}
-        b587 = payload.get("b587_b594_mechanism_completion_summary") if isinstance(payload.get("b587_b594_mechanism_completion_summary"), dict) else {}
+        q = (
+            payload.get("quantum_resistance_readiness_summary")
+            if isinstance(payload.get("quantum_resistance_readiness_summary"), dict)
+            else {}
+        )
+        b587 = (
+            payload.get("b587_b594_mechanism_completion_summary")
+            if isinstance(payload.get("b587_b594_mechanism_completion_summary"), dict)
+            else {}
+        )
         pq_blocked = q.get("real_mldsa_implemented_in_this_environment") is False
         mechanism_blocked = b587.get("controlled_testnet_mechanisms_complete") is False
         if not (pq_blocked or mechanism_blocked):
-            errors.append("controlled testnet go-gate is false without a declared PQ or mechanism-completion blocker")
+            errors.append(
+                "controlled testnet go-gate is false without a declared PQ or mechanism-completion blocker"
+            )
     if payload.get("public_beta_ready") is not False:
         errors.append("controlled testnet go-gate must not claim public beta readiness")
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
     for key in (
         "live_economics",
         "public_validator_readiness",
@@ -254,6 +293,7 @@ def _check_controlled_testnet_go_gate() -> list[str]:
         if boundaries.get(key) is not False:
             errors.append(f"controlled testnet go-gate boundary must keep {key}=false")
     return errors
+
 
 def _check_public_beta_blocker_report() -> list[str]:
     errors = _run_check("gen_public_beta_blocker_report_v1_5.py")
@@ -266,7 +306,11 @@ def _check_public_beta_blocker_report() -> list[str]:
         errors.append("public beta blocker report must keep mainnet_ready=false")
     if int(payload.get("blocker_count") or 0) < 12:
         errors.append("public beta blocker report missing expected blocker inventory")
-    boundaries = payload.get("release_claim_boundaries") if isinstance(payload.get("release_claim_boundaries"), dict) else {}
+    boundaries = (
+        payload.get("release_claim_boundaries")
+        if isinstance(payload.get("release_claim_boundaries"), dict)
+        else {}
+    )
     for key in (
         "public_validator_enabled",
         "production_helper_execution",
@@ -279,10 +323,11 @@ def _check_public_beta_blocker_report() -> list[str]:
     return errors
 
 
-
 def _check_public_only_protocol_audit() -> list[str]:
     errors: list[str] = []
-    from gen_public_only_protocol_audit_v1_5 import build_payload as build_public_only_protocol_audit
+    from gen_public_only_protocol_audit_v1_5 import (
+        build_payload as build_public_only_protocol_audit,
+    )
 
     payload = _load_json(Path("generated/public_only_protocol_audit_v1_5.json"))
     if payload != build_public_only_protocol_audit():
@@ -298,7 +343,9 @@ def _check_public_only_protocol_audit() -> list[str]:
 
 def _check_public_discovery_provider_independence() -> list[str]:
     errors: list[str] = []
-    from gen_public_discovery_provider_independence_v1_5 import build as build_public_discovery_provider_independence
+    from gen_public_discovery_provider_independence_v1_5 import (
+        build as build_public_discovery_provider_independence,
+    )
 
     payload = _load_json(Path("generated/public_discovery_provider_independence_v1_5.json"))
     if payload != build_public_discovery_provider_independence():
@@ -308,17 +355,24 @@ def _check_public_discovery_provider_independence() -> list[str]:
     if payload.get("provider_authority") is not False:
         errors.append("public discovery provider independence must keep provider_authority=false")
     if payload.get("checked_in_registry_fallback") is not True:
-        errors.append("public discovery provider independence must keep checked_in_registry_fallback=true")
+        errors.append(
+            "public discovery provider independence must keep checked_in_registry_fallback=true"
+        )
     return errors
+
 
 def _check_external_operator_transcript_requirements() -> list[str]:
     errors: list[str] = []
-    from gen_external_operator_transcript_requirements_v1_5 import build as build_external_operator_transcript_requirements
+    from gen_external_operator_transcript_requirements_v1_5 import (
+        build as build_external_operator_transcript_requirements,
+    )
 
     payload = _load_json(Path("generated/external_operator_transcript_requirements_v1_5.json"))
     expected = build_external_operator_transcript_requirements()
     if payload != expected:
-        errors.append("external_operator_transcript_requirements_v1_5.json is stale; rerun generator")
+        errors.append(
+            "external_operator_transcript_requirements_v1_5.json is stale; rerun generator"
+        )
     if payload.get("schema") != "weall.v1_5.external_operator_transcript_requirements":
         errors.append("external operator transcript requirements schema mismatch")
     if payload.get("public_beta_ready") is not False:
@@ -326,27 +380,43 @@ def _check_external_operator_transcript_requirements() -> list[str]:
     if payload.get("mainnet_ready") is not False:
         errors.append("external operator transcript requirements must keep mainnet_ready=false")
     schemas = payload.get("schemas") if isinstance(payload.get("schemas"), dict) else {}
-    for key in ("public_validator_operator_transcript", "storage_ipfs_operator_transcript", "legal_compliance_attestation"):
+    for key in (
+        "public_validator_operator_transcript",
+        "storage_ipfs_operator_transcript",
+        "legal_compliance_attestation",
+    ):
         if key not in schemas:
             errors.append(f"external operator transcript requirements missing {key}")
-    boundaries = payload.get("release_claim_boundaries") if isinstance(payload.get("release_claim_boundaries"), dict) else {}
-    for key in ("public_validator_enabled", "public_storage_provider_market", "production_helper_execution", "automatic_protocol_upgrades", "live_economics", "legal_compliance_ready"):
+    boundaries = (
+        payload.get("release_claim_boundaries")
+        if isinstance(payload.get("release_claim_boundaries"), dict)
+        else {}
+    )
+    for key in (
+        "public_validator_enabled",
+        "public_storage_provider_market",
+        "production_helper_execution",
+        "automatic_protocol_upgrades",
+        "live_economics",
+        "legal_compliance_ready",
+    ):
         if boundaries.get(key) is not False:
             errors.append(f"external operator transcript requirements must keep {key}=false")
     return errors
 
 
-
-
-
 def _check_public_observer_launch_evidence_requirements() -> list[str]:
     errors: list[str] = []
-    from gen_public_observer_launch_evidence_requirements_v1_5 import build as build_public_observer_launch_evidence_requirements
+    from gen_public_observer_launch_evidence_requirements_v1_5 import (
+        build as build_public_observer_launch_evidence_requirements,
+    )
 
     payload = _load_json(Path("generated/public_observer_launch_evidence_requirements_v1_5.json"))
     expected = build_public_observer_launch_evidence_requirements()
     if payload != expected:
-        errors.append("public_observer_launch_evidence_requirements_v1_5.json is stale; rerun generator")
+        errors.append(
+            "public_observer_launch_evidence_requirements_v1_5.json is stale; rerun generator"
+        )
     if payload.get("schema") != "weall.v1_5.public_observer_launch_evidence_requirements":
         errors.append("public observer launch evidence requirements schema mismatch")
     if payload.get("public_observer_launch_ready") is not False:
@@ -356,46 +426,74 @@ def _check_public_observer_launch_evidence_requirements() -> list[str]:
     gates = payload.get("gates") if isinstance(payload.get("gates"), list) else []
     if len(gates) < 5:
         errors.append("public observer launch requirements missing expected gates")
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
-    for key in ("public_validator_enabled", "production_helper_execution", "live_economics", "legal_compliance_ready"):
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
+    for key in (
+        "public_validator_enabled",
+        "production_helper_execution",
+        "live_economics",
+        "legal_compliance_ready",
+    ):
         if boundaries.get(key) is not False:
             errors.append(f"public observer launch requirements must keep {key}=false")
     return errors
 
 
-
 def _check_public_observer_launch_transcripts() -> list[str]:
     errors: list[str] = []
-    from gen_public_observer_launch_transcript_v1_5 import _default_contracts as build_public_observer_launch_transcript_contracts
+    from gen_public_observer_launch_transcript_v1_5 import (
+        _default_contracts as build_public_observer_launch_transcript_contracts,
+    )
 
     contracts = build_public_observer_launch_transcript_contracts()
     expected_text = {
-        Path("generated/public_seed_registry_signature_verification_v1_5.json"): contracts["registry"],
-        Path("generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json"): contracts["clean_clone"],
-        Path("generated/public_observer_auto_discovery_proof_v1_5.json"): contracts["auto_discovery"],
-        Path("generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"): contracts["state_sync"],
+        Path("generated/public_seed_registry_signature_verification_v1_5.json"): contracts[
+            "registry"
+        ],
+        Path("generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json"): contracts[
+            "clean_clone"
+        ],
+        Path("generated/public_observer_auto_discovery_proof_v1_5.json"): contracts[
+            "auto_discovery"
+        ],
+        Path("generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"): contracts[
+            "state_sync"
+        ],
     }
     for rel, expected_payload in expected_text.items():
         if _load_json(rel) != expected_payload:
             errors.append(f"{rel.as_posix()} is stale; rerun generator")
     expected = {
-        Path("generated/public_seed_registry_signature_verification_v1_5.json"): "weall.v1_5.public_seed_registry_signature_verification",
-        Path("generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json"): "weall.v1_5.public_observer_clean_clone_bootstrap_transcript",
-        Path("generated/public_observer_auto_discovery_proof_v1_5.json"): "weall.v1_5.public_observer_auto_discovery_proof",
-        Path("generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"): "weall.v1_5.public_observer_state_sync_trusted_anchor_proof",
+        Path(
+            "generated/public_seed_registry_signature_verification_v1_5.json"
+        ): "weall.v1_5.public_seed_registry_signature_verification",
+        Path(
+            "generated/public_observer_clean_clone_bootstrap_transcript_v1_5.json"
+        ): "weall.v1_5.public_observer_clean_clone_bootstrap_transcript",
+        Path(
+            "generated/public_observer_auto_discovery_proof_v1_5.json"
+        ): "weall.v1_5.public_observer_auto_discovery_proof",
+        Path(
+            "generated/public_observer_state_sync_trusted_anchor_proof_v1_5.json"
+        ): "weall.v1_5.public_observer_state_sync_trusted_anchor_proof",
     }
     for rel, schema in expected.items():
         payload = _load_json(rel)
         if payload.get("schema") != schema:
             errors.append(f"{rel.as_posix()} schema mismatch")
         if payload.get("public_observer_launch_ready") is not False:
-            errors.append(f"{rel.as_posix()} must keep public_observer_launch_ready=false until runtime transcript is attached")
+            errors.append(
+                f"{rel.as_posix()} must keep public_observer_launch_ready=false until runtime transcript is attached"
+            )
     return errors
 
 
 def _check_public_validator_endpoint_churn_proof() -> list[str]:
     errors: list[str] = []
-    from gen_public_validator_endpoint_churn_proof_v1_5 import build as build_public_validator_endpoint_churn_proof
+    from gen_public_validator_endpoint_churn_proof_v1_5 import (
+        build as build_public_validator_endpoint_churn_proof,
+    )
 
     payload = _load_json(Path("generated/public_validator_endpoint_churn_proof_v1_5.json"))
     expected = build_public_validator_endpoint_churn_proof()
@@ -404,7 +502,9 @@ def _check_public_validator_endpoint_churn_proof() -> list[str]:
     if payload.get("schema") != "weall.v1_5.public_validator_endpoint_churn_proof":
         errors.append("public validator endpoint churn proof schema mismatch")
     if payload.get("public_observer_launch_ready") is not False:
-        errors.append("public validator endpoint churn proof must keep launch readiness false until runtime transcript")
+        errors.append(
+            "public validator endpoint churn proof must keep launch readiness false until runtime transcript"
+        )
     checks = payload.get("source_checks") if isinstance(payload.get("source_checks"), dict) else {}
     if not checks or not all(bool(v) for v in checks.values()):
         errors.append("public validator endpoint churn proof source checks are not all satisfied")
@@ -413,7 +513,9 @@ def _check_public_validator_endpoint_churn_proof() -> list[str]:
 
 def _check_public_frontend_operator_journey() -> list[str]:
     errors: list[str] = []
-    from gen_public_frontend_operator_journey_v1_5 import build as build_public_frontend_operator_journey
+    from gen_public_frontend_operator_journey_v1_5 import (
+        build as build_public_frontend_operator_journey,
+    )
 
     payload = _load_json(Path("generated/public_frontend_operator_journey_v1_5.json"))
     expected = build_public_frontend_operator_journey()
@@ -422,7 +524,9 @@ def _check_public_frontend_operator_journey() -> list[str]:
     if payload.get("schema") != "weall.v1_5.public_frontend_operator_journey":
         errors.append("public frontend operator journey schema mismatch")
     if payload.get("public_observer_launch_ready") is not False:
-        errors.append("public frontend operator journey must keep launch readiness false until rendered run")
+        errors.append(
+            "public frontend operator journey must keep launch readiness false until rendered run"
+        )
     if payload.get("rendered_e2e_available") is not True:
         errors.append("public frontend operator journey must include a rendered e2e spec")
     return errors
@@ -430,7 +534,9 @@ def _check_public_frontend_operator_journey() -> list[str]:
 
 def _check_public_registry_signer_operations() -> list[str]:
     errors: list[str] = []
-    from gen_public_registry_signer_operations_v1_5 import build as build_public_registry_signer_operations
+    from gen_public_registry_signer_operations_v1_5 import (
+        build as build_public_registry_signer_operations,
+    )
 
     payload = _load_json(Path("generated/public_registry_signer_operations_v1_5.json"))
     expected = build_public_registry_signer_operations()
@@ -443,14 +549,19 @@ def _check_public_registry_signer_operations() -> list[str]:
         errors.append("public registry signer operations source checks are not all satisfied")
     return errors
 
+
 def _check_protocol_upgrade_execution_hardening_plan() -> list[str]:
     errors: list[str] = []
-    from gen_protocol_upgrade_execution_hardening_plan_v1_5 import build as build_upgrade_hardening_plan
+    from gen_protocol_upgrade_execution_hardening_plan_v1_5 import (
+        build as build_upgrade_hardening_plan,
+    )
 
     payload = _load_json(Path("generated/protocol_upgrade_execution_hardening_plan_v1_5.json"))
     expected = build_upgrade_hardening_plan()
     if payload != expected:
-        errors.append("protocol_upgrade_execution_hardening_plan_v1_5.json is stale; rerun generator")
+        errors.append(
+            "protocol_upgrade_execution_hardening_plan_v1_5.json is stale; rerun generator"
+        )
     if payload.get("schema") != "weall.v1_5.protocol_upgrade_execution_hardening_plan":
         errors.append("protocol upgrade execution hardening plan schema mismatch")
     if payload.get("blocker") != "AUD-618-P0-003":
@@ -458,9 +569,20 @@ def _check_protocol_upgrade_execution_hardening_plan() -> list[str]:
     if payload.get("execution_enabled") is not False:
         errors.append("protocol upgrade execution hardening plan must keep execution_enabled=false")
     if payload.get("automatic_protocol_upgrades_ready") is not False:
-        errors.append("protocol upgrade execution hardening plan must keep automatic_protocol_upgrades_ready=false")
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
-    for key in ("public_beta_ready", "mainnet_ready", "automatic_protocol_upgrades", "protocol_migrations", "protocol_rollbacks", "live_economics"):
+        errors.append(
+            "protocol upgrade execution hardening plan must keep automatic_protocol_upgrades_ready=false"
+        )
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
+    for key in (
+        "public_beta_ready",
+        "mainnet_ready",
+        "automatic_protocol_upgrades",
+        "protocol_migrations",
+        "protocol_rollbacks",
+        "live_economics",
+    ):
         if boundaries.get(key) is not False:
             errors.append(f"protocol upgrade execution hardening plan must keep {key}=false")
     return errors
@@ -468,27 +590,49 @@ def _check_protocol_upgrade_execution_hardening_plan() -> list[str]:
 
 def _check_production_helper_topology_hardening_plan() -> list[str]:
     errors: list[str] = []
-    from gen_production_helper_topology_hardening_plan_v1_5 import build as build_helper_topology_plan
+    from gen_production_helper_topology_hardening_plan_v1_5 import (
+        build as build_helper_topology_plan,
+    )
 
     payload = _load_json(Path("generated/production_helper_topology_hardening_plan_v1_5.json"))
     expected = build_helper_topology_plan()
     if payload != expected:
-        errors.append("production_helper_topology_hardening_plan_v1_5.json is stale; rerun generator")
+        errors.append(
+            "production_helper_topology_hardening_plan_v1_5.json is stale; rerun generator"
+        )
     if payload.get("schema") != "weall.v1_5.production_helper_topology_hardening_plan":
         errors.append("production helper topology hardening plan schema mismatch")
     if payload.get("blocker") != "AUD-618-P1-005":
         errors.append("production helper topology hardening plan must bind AUD-618-P1-005")
     if payload.get("production_helper_execution_enabled") is not False:
-        errors.append("production helper topology hardening plan must keep production_helper_execution_enabled=false")
+        errors.append(
+            "production helper topology hardening plan must keep production_helper_execution_enabled=false"
+        )
     if payload.get("production_helper_execution_ready") is not False:
-        errors.append("production helper topology hardening plan must keep production_helper_execution_ready=false")
-    boundary = payload.get("current_boundary") if isinstance(payload.get("current_boundary"), dict) else {}
+        errors.append(
+            "production helper topology hardening plan must keep production_helper_execution_ready=false"
+        )
+    boundary = (
+        payload.get("current_boundary") if isinstance(payload.get("current_boundary"), dict) else {}
+    )
     if boundary.get("launch_matrix_blocks_all_current_phases") is not True:
-        errors.append("production helper topology hardening plan must show launch matrix blocks all current phases")
+        errors.append(
+            "production helper topology hardening plan must show launch matrix blocks all current phases"
+        )
     if boundary.get("missing_helpers_can_halt_block_production") is not False:
-        errors.append("production helper topology hardening plan must keep missing helpers non-halting")
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
-    for key in ("public_beta_ready", "mainnet_ready", "production_helper_execution", "helper_mode_authority", "live_economics"):
+        errors.append(
+            "production helper topology hardening plan must keep missing helpers non-halting"
+        )
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
+    for key in (
+        "public_beta_ready",
+        "mainnet_ready",
+        "production_helper_execution",
+        "helper_mode_authority",
+        "live_economics",
+    ):
         if boundaries.get(key) is not False:
             errors.append(f"production helper topology hardening plan must keep {key}=false")
     return errors
@@ -496,16 +640,26 @@ def _check_production_helper_topology_hardening_plan() -> list[str]:
 
 def _check_final_public_observer_controlled_testnet_go_gate() -> list[str]:
     errors: list[str] = []
-    from gen_final_public_observer_controlled_testnet_go_gate_v1_5 import build as build_final_go_gate
+    from gen_final_public_observer_controlled_testnet_go_gate_v1_5 import (
+        build as build_final_go_gate,
+    )
 
-    payload = _load_json(Path("generated/final_public_observer_controlled_testnet_go_gate_v1_5.json"))
+    payload = _load_json(
+        Path("generated/final_public_observer_controlled_testnet_go_gate_v1_5.json")
+    )
     expected = build_final_go_gate()
     if payload != expected:
-        errors.append("final_public_observer_controlled_testnet_go_gate_v1_5.json is stale; rerun generator")
+        errors.append(
+            "final_public_observer_controlled_testnet_go_gate_v1_5.json is stale; rerun generator"
+        )
     if payload.get("schema") != "weall.v1_5.final_public_observer_controlled_testnet_go_gate":
         errors.append("final public observer controlled testnet go-gate schema mismatch")
-    verdict = payload.get("go_no_go_verdict") if isinstance(payload.get("go_no_go_verdict"), dict) else {}
-    controlled_verdict = str(verdict.get("controlled_internal_public_observer_rehearsal_candidate", ""))
+    verdict = (
+        payload.get("go_no_go_verdict") if isinstance(payload.get("go_no_go_verdict"), dict) else {}
+    )
+    controlled_verdict = str(
+        verdict.get("controlled_internal_public_observer_rehearsal_candidate", "")
+    )
     if controlled_verdict not in {
         "GO",
         "NO_GO_MECHANISM_COMPLETION_INCOMPLETE",
@@ -514,20 +668,44 @@ def _check_final_public_observer_controlled_testnet_go_gate() -> list[str]:
         errors.append("final go-gate must give a bounded controlled-rehearsal verdict")
     if payload.get("controlled_testnet_mechanism_gate_ready") is False:
         if payload.get("controlled_rehearsal_candidate_ready") is not False:
-            errors.append("final go-gate must not authorize controlled rehearsal candidate when mechanism completion is NO-GO")
+            errors.append(
+                "final go-gate must not authorize controlled rehearsal candidate when mechanism completion is NO-GO"
+            )
         if controlled_verdict != "NO_GO_MECHANISM_COMPLETION_INCOMPLETE":
-            errors.append("final go-gate must report mechanism-completion NO_GO when the mechanism gate is false")
-    for key in ("bounded_public_observer_launch_claim", "public_beta_claim", "public_mainnet_claim", "public_validator_bft_claim"):
+            errors.append(
+                "final go-gate must report mechanism-completion NO_GO when the mechanism gate is false"
+            )
+    for key in (
+        "bounded_public_observer_launch_claim",
+        "public_beta_claim",
+        "public_mainnet_claim",
+        "public_validator_bft_claim",
+    ):
         if not str(verdict.get(key, "")).startswith("NO_GO"):
             errors.append(f"final go-gate must keep {key} as NO_GO")
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
-    for key in ("public_beta_ready", "mainnet_ready", "public_multi_validator_bft", "production_helper_execution", "automatic_protocol_upgrades", "live_economics", "legal_compliance_ready"):
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
+    for key in (
+        "public_beta_ready",
+        "mainnet_ready",
+        "public_multi_validator_bft",
+        "production_helper_execution",
+        "automatic_protocol_upgrades",
+        "live_economics",
+        "legal_compliance_ready",
+    ):
         if boundaries.get(key) is not False:
             errors.append(f"final go-gate must keep {key}=false")
-    counts = payload.get("blocker_counts") if isinstance(payload.get("blocker_counts"), dict) else {}
+    counts = (
+        payload.get("blocker_counts") if isinstance(payload.get("blocker_counts"), dict) else {}
+    )
     if counts.get("remaining_blocker_count") != 8:
-        errors.append("final go-gate must preserve eight open blocker count after PQ signing blocker")
+        errors.append(
+            "final go-gate must preserve eight open blocker count after PQ signing blocker"
+        )
     return errors
+
 
 def _check_release_evidence_manifest() -> list[str]:
     errors: list[str] = []
@@ -546,37 +724,67 @@ def _check_release_evidence_manifest() -> list[str]:
     if payload.get("runtime_commit_binding_required") is not True:
         errors.append("release evidence manifest must require runtime commit binding")
     if payload.get("controlled_testnet_candidate") is not False:
-        errors.append("release evidence manifest must keep controlled_testnet_candidate=false while mechanism completion is NO-GO")
-    gates = payload.get("release_evidence_gates") if isinstance(payload.get("release_evidence_gates"), dict) else {}
-    final_gate = gates.get("final_public_observer_controlled_testnet_go_gate") if isinstance(gates.get("final_public_observer_controlled_testnet_go_gate"), dict) else {}
+        errors.append(
+            "release evidence manifest must keep controlled_testnet_candidate=false while mechanism completion is NO-GO"
+        )
+    gates = (
+        payload.get("release_evidence_gates")
+        if isinstance(payload.get("release_evidence_gates"), dict)
+        else {}
+    )
+    final_gate = (
+        gates.get("final_public_observer_controlled_testnet_go_gate")
+        if isinstance(gates.get("final_public_observer_controlled_testnet_go_gate"), dict)
+        else {}
+    )
     if final_gate.get("controlled_rehearsal_candidate_allowed") is not False:
-        errors.append("release evidence manifest must keep controlled_rehearsal_candidate_allowed=false while mechanism completion is NO-GO")
-    for key in ("clean_clone_go_gate", "external_validator_operator_transcript", "storage_ipfs_operator_transcript", "legal_compliance_attestation", "rendered_operator_journey", "production_helper_topology_hardening_plan"):
+        errors.append(
+            "release evidence manifest must keep controlled_rehearsal_candidate_allowed=false while mechanism completion is NO-GO"
+        )
+    for key in (
+        "clean_clone_go_gate",
+        "external_validator_operator_transcript",
+        "storage_ipfs_operator_transcript",
+        "legal_compliance_attestation",
+        "rendered_operator_journey",
+        "production_helper_topology_hardening_plan",
+    ):
         if key not in gates:
             errors.append(f"release evidence manifest missing gate: {key}")
-    boundaries = payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
-    for key in ("public_validator_enabled", "production_helper_execution", "automatic_protocol_upgrades", "live_economics", "legal_compliance_ready"):
+    boundaries = (
+        payload.get("claim_boundaries") if isinstance(payload.get("claim_boundaries"), dict) else {}
+    )
+    for key in (
+        "public_validator_enabled",
+        "production_helper_execution",
+        "automatic_protocol_upgrades",
+        "live_economics",
+        "legal_compliance_ready",
+    ):
         if boundaries.get(key) is not False:
             errors.append(f"release evidence manifest must keep {key}=false")
     return errors
 
+
 def _check_public_validator_preflight() -> list[str]:
     errors: list[str] = []
-    from gen_public_validator_bft_preflight_matrix_v1_5 import build_payload as build_public_validator_preflight
+    from gen_public_validator_bft_preflight_matrix_v1_5 import (
+        build_payload as build_public_validator_preflight,
+    )
 
     payload = _load_json(Path("generated/public_validator_bft_preflight_matrix_v1_5.json"))
     if payload != build_public_validator_preflight():
         errors.append("public_validator_bft_preflight_matrix_v1_5.json is stale; rerun generator")
     if payload.get("schema") != "weall.v1_5.public_validator_bft_preflight_matrix":
         errors.append("public validator preflight matrix schema mismatch")
-    boundaries = payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    boundaries = (
+        payload.get("truth_boundaries") if isinstance(payload.get("truth_boundaries"), dict) else {}
+    )
     if boundaries.get("public_validator_enabled") is not False:
         errors.append("public validator preflight must preserve public_validator_enabled=false")
     if boundaries.get("artifact_is_readiness_plan_not_proof") is not True:
         errors.append("public validator preflight must remain plan-not-proof")
     return errors
-
-
 
 
 def _check_reputation_artifacts() -> list[str]:
@@ -603,6 +811,7 @@ def _check_reputation_artifacts() -> list[str]:
             errors.append(f"{rel.as_posix()} is stale; rerun generator")
     return errors
 
+
 def _check_git_tracked() -> list[str]:
     errors: list[str] = []
     if not (ROOT / ".git").exists() and not (ROOT.parent / ".git").exists():
@@ -611,8 +820,7 @@ def _check_git_tracked() -> list[str]:
         result = subprocess.run(
             ["git", "ls-files", "--error-unmatch", rel.as_posix()],
             cwd=ROOT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=False,
         )
@@ -622,8 +830,14 @@ def _check_git_tracked() -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Check v1.5 public-readiness generated artifacts are release-safe and fresh.")
-    parser.add_argument("--require-git-tracked", action="store_true", help="also require generated artifacts to already be tracked/staged in git")
+    parser = argparse.ArgumentParser(
+        description="Check v1.5 public-readiness generated artifacts are release-safe and fresh."
+    )
+    parser.add_argument(
+        "--require-git-tracked",
+        action="store_true",
+        help="also require generated artifacts to already be tracked/staged in git",
+    )
     args = parser.parse_args(argv)
 
     errors: list[str] = []
@@ -662,7 +876,9 @@ def main(argv: list[str] | None = None) -> int:
         for err in errors:
             print(f"[v15-artifacts] FAIL: {err}", file=sys.stderr)
         return 1
-    print("[v15-artifacts] OK: v1.5 public-readiness artifacts are present, fresh, and release-safe")
+    print(
+        "[v15-artifacts] OK: v1.5 public-readiness artifacts are present, fresh, and release-safe"
+    )
     return 0
 
 
