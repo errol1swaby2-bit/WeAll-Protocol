@@ -1,0 +1,55 @@
+name: V2 Source-Sensitive Refresh Once
+
+on:
+  push:
+    branches:
+      - claim-surface-registry-hardening
+    paths:
+      - .github/workflows/v2-source-sensitive-refresh-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: claim-surface-registry-hardening
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Delete helper, regenerate derivatives, validate, and commit
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm .github/workflows/v2-source-sensitive-refresh-once.yml
+          cd Weall-Protocol
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          pytest -q tests/test_direct_message_transaction_quarantine.py tests/test_current_document_registry.py
+          cd ..
+          git status --short
+          git add -A
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Refresh V2 derivatives after test wording update'
+          git push origin HEAD:claim-surface-registry-hardening
