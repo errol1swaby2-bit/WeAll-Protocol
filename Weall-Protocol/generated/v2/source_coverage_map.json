@@ -13226,7 +13226,7 @@
       ],
       "path": "tests/prod/test_readme_to_implementation_traceability.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "12eefd19a1e3b977a1dbeb80f2011e82943eb9f6d3a955bc0cfb1982f5db2218",
+      "sha256": "022e6a8145b4a74d4dcf56b61fc8ffe8812e4997f2d93a004977e7a06442ccd2",
       "source_id": "SRC-1D2D25AD7103E61E"
     },
     {
