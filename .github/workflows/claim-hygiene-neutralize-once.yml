@@ -28,5 +28,70 @@ jobs:
           python -m pip install -r requirements-dev.lock
           python -m pip install -e .
 
-      - name: Run bounded claim-hygiene repair
+      - name: Run bounded claim-hygiene repair phase one
+        continue-on-error: true
         run: bash scripts/claim_hygiene_neutralize_once.sh
+
+      - name: Refresh dependent public-readiness artifacts and finish verification
+        run: |
+          set -Eeuo pipefail
+
+          test ! -e .github/workflows/claim-hygiene-neutralize-once.yml
+          test ! -e scripts/claim_hygiene_neutralize_once.sh
+          test -f Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md
+          test ! -e Weall-Protocol/docs/reviewer/NLNET_CURRENT_STATE_UPDATE_2026_08.md
+          test -f Weall-Protocol/docs/audits/late_stage_public_testnet_gap_inventory_v1_5.md
+          test ! -e Weall-Protocol/docs/audits/late_stage_nlnet_public_testnet_gap_inventory_v1_5.md
+
+          cd Weall-Protocol
+
+          PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py
+          python scripts/gen_release_evidence_manifest_v1_5.py
+          python scripts/gen_current_verified_claims.py
+          python scripts/compile_v2_spec.py
+
+          PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py --check
+          python scripts/gen_release_evidence_manifest_v1_5.py --check
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/compile_v2_spec.py --check
+          python scripts/check_public_claim_freshness.py
+          python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_reviewer_truth_boundaries.py
+          python -m ruff check scripts/check_public_claim_freshness.py
+          python -m ruff format --check scripts/check_public_claim_freshness.py
+          python -m pytest -q tests/test_release_docs_truth_sync.py tests/test_reviewer_language_cleanup.py tests/test_public_readiness_artifacts_v15.py
+
+          cd ..
+
+          if git grep -n -i -E 'NLnet|first[- ]round|grant[- ]funded|grant update|funded (work|hardening|mainnet-readiness)|reviewer-facing|reviewer-visible|reviewer confidence|reviewer conclusion|reviewer setup|reviewer verification|reviewer evidence' -- \
+              README.md \
+              Weall-Protocol/README.md \
+              Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md \
+              Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md \
+              Weall-Protocol/docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md \
+              Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md \
+              Weall-Protocol/docs/reviewer/README_TO_IMPLEMENTATION_TRACEABILITY.md \
+              Weall-Protocol/docs/REVIEWER_EVIDENCE_INDEX.md \
+              Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md \
+              Weall-Protocol/docs/legal/PUBLIC_CLAIMS_CHECKLIST.md \
+              Weall-Protocol/docs/audits/controlled_testnet_go_gate_closure_v1_5.md \
+              Weall-Protocol/docs/audits/late_stage_public_testnet_gap_inventory_v1_5.md \
+              Weall-Protocol/docs/audits/public_beta_blocker_reframe_after_step3_step4_v1_5.md; then
+            echo 'Forbidden funding/repository-review framing remains on presentation surfaces.' >&2
+            exit 1
+          fi
+
+          if git grep -n -i -E 'local sustained-load testing reached approximately 2350 TPS|globally ready for 2350 TPS' -- \
+              README.md Weall-Protocol/README.md Weall-Protocol/docs/reviewer Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md; then
+            echo 'Stale current-facing TPS wording remains.' >&2
+            exit 1
+          fi
+
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git status --short
+          git commit -m 'Neutralize claim language and remove stale readiness wording'
+          git push origin HEAD:claim-hygiene-neutral-language
