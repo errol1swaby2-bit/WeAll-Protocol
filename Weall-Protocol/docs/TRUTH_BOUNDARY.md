@@ -136,9 +136,9 @@ Avoid these phrases unless they are directly negated or marked future work:
 - fully decentralized moderation complete;
 - complete HotStuff deployment.
 
-## reviewer framing
+## Current repository posture
 
-The correct reviewer framing is:
+The current repository posture is:
 
 > WeAll has crossed from specification into a serious, reviewable implementation with reproducible local/reviewer gates and private/external-observer rehearsal evidence. Funding will move it into a documented public testnet with external observers, Proof-of-Humanity verification, content/groups, dispute/review, governance, locked testnet tokenomics, deterministic block progression, validator promotion, and eventually adversarial multi-validator BFT readiness.
 

@@ -2,7 +2,7 @@
 
 Status: **public-testnet claim excludes direct/private messaging**.
 
-WeAll is a pre-public-testnet protocol implementation under active hardening. The NLnet/public-testnet reviewer claim is public-only civic protocol infrastructure, not private messaging, encrypted messaging, inbox/outbox chat, or private group read visibility.
+WeAll is a pre-public-testnet protocol implementation under active hardening. The current protocol-scope claim is public-only civic protocol infrastructure, not private messaging, encrypted messaging, inbox/outbox chat, or private group read visibility.
 
 ## Current canon result
 

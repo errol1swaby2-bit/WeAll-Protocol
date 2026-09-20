@@ -526,7 +526,7 @@
       ],
       "path": "docs/CURRENT_VERIFIED_CLAIMS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "4d54d71743e5bfc1315b572d33dc51266b356fcab6983658ed9857ef977b1179",
+      "sha256": "50e10403823ac5b320d743c9c9e52e1ed9ac95b92662c4d1f6a95497efdc873a",
       "source_id": "SRC-251A50F3DB56A30F"
     },
     {
@@ -1286,7 +1286,7 @@
       ],
       "path": "docs/TRUTH_BOUNDARY.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "40f04811597ca0d2d6aecc96efcfb9256c8548245488868b62560e3a152ebb9b",
+      "sha256": "54f983151510450d39b8e4f0fc22a8276c45ff6561118cbe956d034a02a02ebc",
       "source_id": "SRC-24DBEBF4D7B3CF0C"
     },
     {
@@ -2388,7 +2388,7 @@
       ],
       "path": "docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "4b90a3fa3a2535c450a11695e9d6a30802ff29335c9b63cabb4db5df3cb150bc",
+      "sha256": "5f72d593976884d73505f82aae8a082ad6fc6448dd642576c905bb57bd1624cc",
       "source_id": "SRC-7B13E2E238EB52C9"
     },
     {
@@ -3184,7 +3184,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "d10dfddc18c06eca49905771ad0455eb4f0158a459146265d63ea2836e3934b1",
+      "sha256": "38903bdded65e87a90be05afee6bc89532c73f8c30b96952db6216fc79817c95",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3310,7 +3310,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "0745e2a61f9374d1d39bc4d7dbf40243d0d147115790476d582a3cbab602ac6c",
+      "sha256": "607493c9ed566d1e5d0d078821a65373e8c3fbd30a65e9092364c1a3a4ddc604",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -4595,7 +4595,7 @@
       ],
       "path": "scripts/gen_current_verified_claims.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8c00845a271c58fdc153b8f70bbec4283c8d5ddc6e3158fcb946115bd557fb9a",
+      "sha256": "a7242cc059c344f5ddb3cadf6942b3b42537719659f6d147dda9fd8eaac70de1",
       "source_id": "SRC-93B86585553DBDA5"
     },
     {
@@ -4735,7 +4735,7 @@
       ],
       "path": "scripts/gen_public_beta_blocker_report_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "d3d34d195619e3aceedffc65f72fa6ad707f543dd2c00be62ba00d20d64bbdc8",
+      "sha256": "7de418f5d606a4394bfcc1ea45e183d5679fb3eec2f9302edc1eac3c6ef24fb4",
       "source_id": "SRC-DC86EF35EF9EB00E"
     },
     {
@@ -13080,7 +13080,7 @@
       ],
       "path": "tests/prod/test_public_observer_open_download_transcript_capture.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "e9c689060a94d629f5bcfd0f05c23f56e36fc9f16f80000a87720d95a5e210f0",
+      "sha256": "701573b472959eba7e22627c1be2373063cb52f38754a3346cc75848eac6facf",
       "source_id": "SRC-1ED9E70C2B26C4EE"
     },
     {
