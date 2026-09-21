@@ -1,5 +1,9 @@
 # WeAll Protocol Runtime Consensus Profile Snapshot - 2026.03-prod.4
 
+Status: **HISTORICAL SNAPSHOT**.
+
+This file records repository/runtime state as of 2026-03-17 for protocol `2026.03-prod.4`. It is not a current transaction-canon or release-readiness authority. For current transaction-canon facts, read `generated/tx_index.json`; for current readiness, read the generated release/readiness artifacts.
+
 Repository snapshot date: 2026-03-17
 Protocol version: `2026.03-prod.4`
 Protocol profile hash: `a24247787464e1e7dc062615fd8bc3b5f3a30433d415efcfdb9ae77730ecfc37`
