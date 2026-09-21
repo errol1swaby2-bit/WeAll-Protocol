@@ -7,186 +7,118 @@
     "AUDIT_EVIDENCE",
     "SUPERSEDED"
   ],
-  "description": "Repository document classification and claim-scan registry. CURRENT entries with claim_scan=true are enforced by scripts/check_public_claim_freshness.py. coverage_globs define current-facing surfaces that must not contain unclassified files.",
+  "description": "Repository document classification and claim-scan registry. CURRENT entries with claim_scan=true are enforced by scripts/check_public_claim_freshness.py. coverage_globs define current-facing surfaces that must not contain unclassified files. release_dependency_sources bind active go-gate document dependencies to explicit CURRENT classification.",
   "coverage_globs": [
     "*.md",
     "Weall-Protocol/*.md",
     "Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md",
     "Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md",
+    "Weall-Protocol/docs/CHOOSE_YOUR_NODE_MODE_QUICKSTART.md",
+    "Weall-Protocol/docs/CONTROLLED_TESTNET_GENESIS_TO_VALIDATOR_REHEARSAL.md",
+    "Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md",
+    "Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md",
+    "Weall-Protocol/docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md",
+    "Weall-Protocol/docs/legal/*.md",
+    "Weall-Protocol/docs/public_validator/*.md",
     "Weall-Protocol/docs/reviewer/CURRENT*.md",
     "Weall-Protocol/docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md",
-    "Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md"
+    "Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md",
+    "Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md",
+    "Weall-Protocol/docs/testnet/*.md"
   ],
   "documents": [
-    {
-      "claim_scan": false,
-      "classification": "CURRENT",
-      "path": "CODE_OF_CONDUCT.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "CURRENT",
-      "path": "CONTRIBUTING.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "README.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "RELEASE_CHECKLIST.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "SECURITY.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/FRESH_MACHINE_BOOTSTRAP_REHEARSAL.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/README.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/RELEASE_CHECKLIST.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/SECURITY.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "GENERATED_CURRENT",
-      "path": "Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/PRODUCTION_POSTURE.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/TRUTH_BOUNDARY.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/operator_runbook_prod.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/production_readiness/final_truth_sync.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "HISTORICAL",
-      "path": "Weall-Protocol/docs/testnet/M2_ACCOUNT_RECOVERY_RUNBOOK.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "HISTORICAL",
-      "path": "Weall-Protocol/docs/testnet/M2_ASYNC_REVIEWER_RUNBOOK.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "HISTORICAL",
-      "path": "Weall-Protocol/docs/testnet/M2_LIVE_REVIEWER_RUNBOOK.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "HISTORICAL",
-      "path": "Weall-Protocol/docs/testnet/M2_MEDIA_INTERRUPTION_REPLACEMENT_REHEARSAL.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_TESTNET_QUICKSTART.md"
-    },
-    {
-      "claim_scan": true,
-      "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/testnet/TESTNET_LAUNCH_CHECKLIST.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "GENERATED_CURRENT",
-      "path": "Weall-Protocol/generated/current_verified_claims.json"
-    },
-    {
-      "claim_scan": false,
-      "classification": "GENERATED_CURRENT",
-      "path": "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json"
-    },
-    {
-      "claim_scan": false,
-      "classification": "GENERATED_CURRENT",
-      "path": "Weall-Protocol/generated/release_evidence_manifest_v1_5.json"
-    }
+    {"claim_scan": false, "classification": "CURRENT", "path": "CODE_OF_CONDUCT.md"},
+    {"claim_scan": false, "classification": "CURRENT", "path": "CONTRIBUTING.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "README.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "RELEASE_CHECKLIST.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "SECURITY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/FRESH_MACHINE_BOOTSTRAP_REHEARSAL.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/README.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/RELEASE_CHECKLIST.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/SECURITY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/CHOOSE_YOUR_NODE_MODE_QUICKSTART.md"},
+    {"claim_scan": false, "classification": "GENERATED_CURRENT", "path": "Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/CONTROLLED_TESTNET_GENESIS_TO_VALIDATOR_REHEARSAL.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/PRODUCTION_POSTURE.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/PROFESSIONALIZATION_BACKLOG.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/TRUTH_BOUNDARY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/AML_MONEY_TRANSMISSION_BOUNDARY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/LEGAL_TRUTH_BOUNDARY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/MINORS_AND_AGE_POLICY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/PRIVACY_DATA_PROTECTION_POSTURE.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/PUBLIC_CLAIMS_CHECKLIST.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/SANCTIONS_AND_BLOCKED_PARTY_POLICY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/SEVERE_HARM_AND_NCIM_POLICY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/legal/TOKEN_MARKETING_GUARDRAILS.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/operator_runbook_prod.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/production_readiness/final_truth_sync.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/reviewer/DIRECT_MESSAGE_TRANSACTION_QUARANTINE.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/ACCOUNT_PROFILE_READINESS.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/DISPUTE_REVIEW_RENDERED_JOURNEY.md"},
+    {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/EXTERNAL_CROSS_MACHINE_REPLAY_TRANSCRIPT.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/FIRST_15_MINUTES.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/GOVERNANCE_RENDERED_JOURNEY.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/GROUP_FLOW_READINESS.md"},
+    {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/INDEPENDENT_CONTROLLED_VALIDATOR_OPERATOR_TRANSCRIPT.md"},
+    {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md"},
+    {"claim_scan": false, "classification": "HISTORICAL", "path": "Weall-Protocol/docs/testnet/M2_ACCOUNT_RECOVERY_RUNBOOK.md"},
+    {"claim_scan": false, "classification": "HISTORICAL", "path": "Weall-Protocol/docs/testnet/M2_ASYNC_REVIEWER_RUNBOOK.md"},
+    {"claim_scan": false, "classification": "HISTORICAL", "path": "Weall-Protocol/docs/testnet/M2_LIVE_REVIEWER_RUNBOOK.md"},
+    {"claim_scan": false, "classification": "HISTORICAL", "path": "Weall-Protocol/docs/testnet/M2_MEDIA_INTERRUPTION_REPLACEMENT_REHEARSAL.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/NODE_OPERATOR_JOURNEY_AND_INCIDENT_RESPONSE.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md"},
+    {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/PRODUCTION_HELPER_TOPOLOGY_HARDENING_PLAN.md"},
+    {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_OPEN_DOWNLOAD_TRANSCRIPT.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_TESTNET_QUICKSTART.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/PUBLIC_SOCIAL_FLOW_READINESS.md"},
+    {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/REAL_STORAGE_IPFS_OPERATOR_TRANSCRIPT.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/TESTNET_LAUNCH_CHECKLIST.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/TRANSACTION_LIFECYCLE_RENDERED_EVIDENCE.md"},
+    {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/UPGRADE_EXECUTION_HARDENING_PLAN.md"},
+    {"claim_scan": false, "classification": "GENERATED_CURRENT", "path": "Weall-Protocol/generated/current_verified_claims.json"},
+    {"claim_scan": false, "classification": "GENERATED_CURRENT", "path": "Weall-Protocol/generated/public_beta_blocker_report_v1_5.json"},
+    {"claim_scan": false, "classification": "GENERATED_CURRENT", "path": "Weall-Protocol/generated/release_evidence_manifest_v1_5.json"}
   ],
   "prefix_classifications": [
+    {"classification": "AUDIT_EVIDENCE", "path_prefix": "audit-metadata/"},
+    {"classification": "AUDIT_EVIDENCE", "path_prefix": "Weall-Protocol/docs/audits/"},
+    {"classification": "GENERATED_CURRENT", "path_prefix": "Weall-Protocol/generated/v2/"}
+  ],
+  "release_dependency_sources": [
     {
-      "classification": "AUDIT_EVIDENCE",
-      "path_prefix": "audit-metadata/"
-    },
-    {
-      "classification": "AUDIT_EVIDENCE",
-      "path_prefix": "Weall-Protocol/docs/audits/"
-    },
-    {
-      "classification": "GENERATED_CURRENT",
-      "path_prefix": "Weall-Protocol/generated/v2/"
+      "path": "Weall-Protocol/scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py",
+      "constant_names": ["REQUIRED_DOCS", "FLOW_DOCS"]
     }
+  ],
+  "required_current_paths": [
+    "Weall-Protocol/docs/CHOOSE_YOUR_NODE_MODE_QUICKSTART.md",
+    "Weall-Protocol/docs/CONTROLLED_TESTNET_GENESIS_TO_VALIDATOR_REHEARSAL.md",
+    "Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md",
+    "Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md",
+    "Weall-Protocol/docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md",
+    "Weall-Protocol/docs/legal/LEGAL_TRUTH_BOUNDARY.md",
+    "Weall-Protocol/docs/legal/TOKEN_MARKETING_GUARDRAILS.md",
+    "Weall-Protocol/docs/legal/AML_MONEY_TRANSMISSION_BOUNDARY.md",
+    "Weall-Protocol/docs/legal/SANCTIONS_AND_BLOCKED_PARTY_POLICY.md",
+    "Weall-Protocol/docs/legal/PRIVACY_DATA_PROTECTION_POSTURE.md",
+    "Weall-Protocol/docs/legal/MINORS_AND_AGE_POLICY.md",
+    "Weall-Protocol/docs/legal/SEVERE_HARM_AND_NCIM_POLICY.md",
+    "Weall-Protocol/docs/legal/PUBLIC_CLAIMS_CHECKLIST.md",
+    "Weall-Protocol/docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md",
+    "Weall-Protocol/docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md"
   ],
   "schema_version": 1
 }
