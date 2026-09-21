@@ -29,12 +29,15 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Apply bounded exact-boolean sweep
-        run: python scripts/Apply-Release-Bool-Contract-Sweep-20260921.py
+      - name: Apply bounded exact-boolean and CI-semantics sweep
+        run: |
+          python scripts/Apply-Release-Bool-Contract-Sweep-20260921.py
+          python scripts/Apply-Release-CI-Semantics-Hardening-20260921.py
 
-      - name: Remove temporary helper and workflow before source-sensitive generation
+      - name: Remove temporary helpers and workflow before source-sensitive generation
         run: |
           rm scripts/Apply-Release-Bool-Contract-Sweep-20260921.py
+          rm scripts/Apply-Release-CI-Semantics-Hardening-20260921.py
           rm .github/workflows/release-bool-contract-sweep-finalize.yml
 
       - name: Format and lint touched Python
@@ -62,8 +65,27 @@ jobs:
       - name: Regenerate release evidence to fixed point
         working-directory: Weall-Protocol
         run: |
-          PYTHONPATH=src:scripts python scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py
-          PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py
+          generate_b582() {
+            PYTHONPATH=src:scripts python - <<'PY'
+          from gen_b582_b586_readiness_truth_and_proof_v1_5 import OUT, _canon, build
+          payload = build()
+          if not isinstance(payload.get("ok"), bool):
+              raise SystemExit("B582-B586 artifact emitted non-boolean ok")
+          OUT.write_text(_canon(payload), encoding="utf-8")
+          PY
+          }
+
+          generate_b587() {
+            PYTHONPATH=src:scripts python - <<'PY'
+          from gen_b587_b594_testnet_mechanism_completion_v1_5 import OUT, _canon, build
+          payload = build()
+          if not isinstance(payload.get("ok"), bool):
+              raise SystemExit("B587-B594 artifact emitted non-boolean ok")
+          if payload.get("public_beta_ready") is not False:
+              raise SystemExit("B587-B594 artifact relaxed public beta readiness")
+          OUT.write_text(_canon(payload), encoding="utf-8")
+          PY
+          }
 
           generate_blocker() {
             PYTHONPATH=src:scripts python - <<'PY'
@@ -97,6 +119,9 @@ jobs:
           PY
           }
 
+          generate_b582
+          generate_b587
+
           for pass in 1 2; do
             echo "release convergence pass ${pass}"
             PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
@@ -104,6 +129,15 @@ jobs:
             generate_controlled
             generate_final
           done
+
+          PYTHONPATH=src:scripts python - <<'PY'
+          from gen_release_evidence_manifest_v1_5 import build
+          payload = build()
+          if payload.get("ok") is not True:
+              raise SystemExit("release evidence manifest is not contract-valid/admissible")
+          if payload.get("public_beta_ready") is not False or payload.get("mainnet_ready") is not False:
+              raise SystemExit("release evidence manifest relaxed forbidden readiness claims")
+          PY
 
           PYTHONPATH=src python scripts/gen_current_verified_claims.py
           PYTHONPATH=src:scripts python scripts/compile_v2_spec.py
