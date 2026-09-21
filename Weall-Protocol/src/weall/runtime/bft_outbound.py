@@ -140,28 +140,39 @@ def _restore_bft_restart_hints(self) -> None:
     try:
         info = self._bft_journal.bootstrap_state()
     except Exception:
+        # The bounded journal is diagnostic/recovery-hint state. Durable
+        # send obligations below remain authoritative.
         info = {}
     try:
         self._bft.view = max(int(self._bft.view), int(info.get("last_view") or 0))
     except Exception:
         pass
 
-    # The authoritative outbox may contain a timeout that was durably enqueued
-    # just before a crash but whose BFT cursor had not yet been persisted.  Treat
-    # that exact pending signed artifact as evidence that the same view must not
-    # be signed again; the outbox will replay it verbatim.
+    # The authoritative outbox may contain a timeout that was durably
+    # enqueued just before a crash but whose BFT cursor had not yet been
+    # persisted. Startup must prove this recovery state before the node can
+    # sign again; unreadable or semantically invalid timeout obligations are
+    # therefore fatal rather than best-effort hints.
     try:
         pending_timeout_view = int(getattr(self._bft, "last_timeout_view", -1))
-        for item in self._bft_outbox_store.pending():
-            if str(getattr(item, "kind", "") or "").strip().lower() != "timeout":
-                continue
-            payload = getattr(item, "payload", None)
-            if not isinstance(payload, dict):
-                continue
-            try:
-                pending_timeout_view = max(pending_timeout_view, int(payload.get("view")))
-            except Exception:
-                continue
-        self._bft.last_timeout_view = pending_timeout_view
-    except Exception:
-        pass
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("bft_restart_timeout_cursor_invalid") from exc
+
+    try:
+        pending_items = self._bft_outbox_store.pending()
+    except Exception as exc:
+        raise RuntimeError("bft_restart_outbox_read_failed") from exc
+
+    for item in pending_items:
+        if str(getattr(item, "kind", "") or "").strip().lower() != "timeout":
+            continue
+        payload = getattr(item, "payload", None)
+        if not isinstance(payload, dict):
+            raise RuntimeError("bft_restart_outbox_timeout_invalid")
+        try:
+            timeout_view = int(payload.get("view"))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("bft_restart_outbox_timeout_invalid") from exc
+        pending_timeout_view = max(pending_timeout_view, timeout_view)
+
+    self._bft.last_timeout_view = pending_timeout_view

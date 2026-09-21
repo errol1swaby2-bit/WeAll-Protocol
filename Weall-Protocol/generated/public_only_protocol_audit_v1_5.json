@@ -490,6 +490,12 @@
       "category": "tests",
       "match_class": "retired_private_or_opaque_protocol_guardrail",
       "match_count": 1,
+      "path": "tests/test_runtime_authority_retry_elimination.py"
+    },
+    {
+      "category": "tests",
+      "match_class": "retired_private_or_opaque_protocol_guardrail",
+      "match_count": 1,
       "path": "tests/test_state_sync_bft_branch_reset.py"
     }
   ],
@@ -510,7 +516,7 @@
       "/v1/activity/notices is public-event-derived"
     ]
   },
-  "inventory_hit_count": 75,
+  "inventory_hit_count": 76,
   "public_activity_contract": {
     "allowed_notice_types": [
       "mention",

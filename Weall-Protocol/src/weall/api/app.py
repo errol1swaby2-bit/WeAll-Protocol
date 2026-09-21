@@ -239,50 +239,26 @@ def _runtime_dependencies_missing_for_block_loop(executor: Any) -> bool:
 
 
 def _construct_block_loop(executor: Any):
-    attempts = (
-        lambda: BlockProducerLoop(),
-        lambda: BlockProducerLoop(
-            executor=executor,
-            mempool=getattr(executor, "mempool", None),
-            attestation_pool=getattr(executor, "attestation_pool", None),
-        ),
-        lambda: BlockProducerLoop(executor),
+    """Construct the canonical block loop exactly once.
+
+    Startup must not infer API shape by calling a constructor and catching
+    ``TypeError``: an internal constructor defect is authoritative and must
+    propagate rather than being mistaken for a legacy signature.
+    """
+    return BlockProducerLoop(
+        executor=executor,
+        mempool=getattr(executor, "mempool", None),
+        attestation_pool=getattr(executor, "attestation_pool", None),
     )
-    last_exc: Exception | None = None
-    for attempt in attempts:
-        try:
-            return attempt()
-        except TypeError as exc:
-            last_exc = exc
-    if last_exc is not None:
-        raise last_exc
-    raise ApiRuntimeLifecycleError("api_block_loop_start_failed:constructor_unavailable")
 
 
 def _start_block_loop(loop: Any, executor: Any) -> bool:
+    """Start the canonical block loop exactly once."""
     start = getattr(loop, "start", None)
     if not callable(start):
         raise ApiRuntimeLifecycleError("api_block_loop_start_failed:missing_start_method")
-
-    attempts = (
-        lambda: start(),
-        lambda: start(executor),
-        lambda: start(
-            executor=executor,
-            mempool=getattr(executor, "mempool", None),
-            attestation_pool=getattr(executor, "attestation_pool", None),
-        ),
-    )
-    last_exc: Exception | None = None
-    for attempt in attempts:
-        try:
-            result = attempt()
-            return False if result is False else True
-        except TypeError as exc:
-            last_exc = exc
-    if last_exc is not None:
-        raise last_exc
-    raise ApiRuntimeLifecycleError("api_block_loop_start_failed:invalid_start_signature")
+    result = start()
+    return False if result is False else True
 
 
 def _stop_block_loop(loop: Any) -> None:
@@ -292,70 +268,25 @@ def _stop_block_loop(loop: Any) -> None:
 
 
 def _construct_net_loop(net: Any, executor: Any):
-    """
-    Tolerate multiple constructor shapes used by production code and tests.
+    """Construct the canonical mesh loop exactly once.
 
-    The failing fake loop in tests requires keyword-only:
-      __init__(*, executor, mempool)
-
-    Production code may accept:
-      (net=..., executor=...)
-      (executor)
-      ()
+    ``net`` remains in this private helper signature only to avoid widening
+    this patch into lifecycle-state plumbing. ``NetMeshLoop`` owns creation
+    of its active ``NetNode`` when ``start()`` runs.
     """
-    attempts = (
-        lambda: NetMeshLoop(
-            executor=executor,
-            mempool=getattr(executor, "mempool", None),
-        ),
-        lambda: NetMeshLoop(
-            executor=executor,
-            mempool=getattr(executor, "mempool", None),
-            net=net,
-        ),
-        lambda: NetMeshLoop(net=net, executor=executor),
-        lambda: NetMeshLoop(net, executor),
-        lambda: NetMeshLoop(executor),
-        lambda: NetMeshLoop(),
+    return NetMeshLoop(
+        executor=executor,
+        mempool=getattr(executor, "mempool", None),
     )
-    last_exc: Exception | None = None
-    for attempt in attempts:
-        try:
-            return attempt()
-        except TypeError as exc:
-            last_exc = exc
-    if last_exc is not None:
-        raise last_exc
-    raise ApiRuntimeLifecycleError("api_net_loop_start_failed:constructor_unavailable")
 
 
 def _start_net_loop(loop: Any, net: Any, executor: Any) -> bool:
+    """Start the canonical mesh loop exactly once."""
     start = getattr(loop, "start", None)
     if not callable(start):
         raise ApiRuntimeLifecycleError("api_net_loop_start_failed:missing_start_method")
-
-    attempts = (
-        lambda: start(net=net, executor=executor),
-        lambda: start(
-            executor=executor,
-            mempool=getattr(executor, "mempool", None),
-            net=net,
-        ),
-        lambda: start(executor=executor, mempool=getattr(executor, "mempool", None)),
-        lambda: start(net, executor),
-        lambda: start(executor),
-        lambda: start(),
-    )
-    last_exc: Exception | None = None
-    for attempt in attempts:
-        try:
-            result = attempt()
-            return False if result is False else True
-        except TypeError as exc:
-            last_exc = exc
-    if last_exc is not None:
-        raise last_exc
-    raise ApiRuntimeLifecycleError("api_net_loop_start_failed:invalid_start_signature")
+    result = start()
+    return False if result is False else True
 
 
 def _stop_net_loop(loop: Any) -> None:
