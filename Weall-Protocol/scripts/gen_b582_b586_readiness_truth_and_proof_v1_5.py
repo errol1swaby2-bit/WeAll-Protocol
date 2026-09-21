@@ -105,7 +105,7 @@ def build() -> Json:
         "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof",
         "batch_range": "582-586",
         "ok": all(
-            bool(x.get("ok")) for x in (gap_truth, operator_metadata, storage, anti_sybil, helper)
+            x.get("ok") is True for x in (gap_truth, operator_metadata, storage, anti_sybil, helper)
         ),
         "gap_register_truth_refresh": gap_truth,
         "poh_operator_route_metadata": operator_metadata,
@@ -147,7 +147,7 @@ def main() -> int:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print(str(OUT))
-    return 0 if artifact.get("ok") else 1
+    return 0 if artifact.get("ok") is True else 1
 
 
 if __name__ == "__main__":

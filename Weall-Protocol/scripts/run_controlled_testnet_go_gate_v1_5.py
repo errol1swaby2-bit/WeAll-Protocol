@@ -116,14 +116,14 @@ def _summarize_b587(payload: Json) -> Json:
     )
     return {
         "present": bool(payload),
-        "ok": bool(payload.get("ok")),
-        "controlled_testnet_mechanisms_complete": bool(
-            payload.get("controlled_testnet_mechanisms_complete")
-        ),
-        "controlled_testnet_ready_candidate": bool(
-            payload.get("controlled_testnet_ready_candidate")
-        ),
-        "public_beta_ready": bool(payload.get("public_beta_ready")),
+        "ok": payload.get("ok") is True,
+        "controlled_testnet_mechanisms_complete": payload.get(
+            "controlled_testnet_mechanisms_complete"
+        )
+        is True,
+        "controlled_testnet_ready_candidate": payload.get("controlled_testnet_ready_candidate")
+        is True,
+        "public_beta_ready": payload.get("public_beta_ready") is True,
         "unsafe_claims_false": all(
             boundaries.get(k, False) is False
             for k in (
@@ -172,15 +172,15 @@ def build() -> Json:
     )
     deterministic_go_gate_ready = all(
         [
-            bool(api_vectors.get("ok")),
-            bool(public_beta_blockers.get("ok")),
-            bool(external_transcripts.get("ok")),
-            bool(release_evidence.get("ok")),
+            api_vectors.get("ok") is True,
+            public_beta_blockers.get("ok") is True,
+            external_transcripts.get("ok") is True,
+            release_evidence.get("ok") is True,
             real_mldsa_ready,
-            bool(b587.get("ok")),
-            bool(capabilities.get("controlled_testnet_mechanisms_complete")),
-            bool(validator.get("ok")),
-            bool(storage.get("ok")),
+            b587.get("ok") is True,
+            capabilities.get("controlled_testnet_mechanisms_complete") is True,
+            validator.get("ok") is True,
+            storage.get("ok") is True,
             high_risk_blocked,
         ]
     )
@@ -198,14 +198,14 @@ def build() -> Json:
         "artifact_inputs": artifact_summaries,
         "b587_b594_mechanism_completion_summary": _summarize_b587(b587),
         "api_response_vector_summary": {
-            "ok": bool(api_vectors.get("ok")),
+            "ok": api_vectors.get("ok") is True,
             "vector_count": int(api_vectors.get("vector_count") or 0),
             "truth_boundaries": api_vectors.get("truth_boundaries", {}),
         },
         "public_beta_blocker_report_summary": {
-            "ok": bool(public_beta_blockers.get("ok")),
-            "public_beta_ready": bool(public_beta_blockers.get("public_beta_ready")),
-            "mainnet_ready": bool(public_beta_blockers.get("mainnet_ready")),
+            "ok": public_beta_blockers.get("ok") is True,
+            "public_beta_ready": public_beta_blockers.get("public_beta_ready") is True,
+            "mainnet_ready": public_beta_blockers.get("mainnet_ready") is True,
             "blocker_count": int(public_beta_blockers.get("blocker_count") or 0),
             "blocker_catalog_count": int(
                 public_beta_blockers.get("blocker_catalog_count")
@@ -233,25 +233,28 @@ def build() -> Json:
             "next_allowed_claim": public_beta_blockers.get("next_allowed_claim"),
         },
         "external_operator_transcript_requirements_summary": {
-            "ok": bool(external_transcripts.get("ok")),
+            "ok": external_transcripts.get("ok") is True,
             "schema_count": len(external_transcripts.get("schemas") or {}),
-            "public_beta_ready": bool(external_transcripts.get("public_beta_ready")),
-            "mainnet_ready": bool(external_transcripts.get("mainnet_ready")),
-            "external_attestation_required_before_public_beta": bool(
-                external_transcripts.get("external_attestation_required_before_public_beta")
-            ),
+            "public_beta_ready": external_transcripts.get("public_beta_ready") is True,
+            "mainnet_ready": external_transcripts.get("mainnet_ready") is True,
+            "external_attestation_required_before_public_beta": external_transcripts.get(
+                "external_attestation_required_before_public_beta"
+            )
+            is True,
         },
         "release_evidence_manifest_summary": {
-            "ok": bool(release_evidence.get("ok")),
+            "ok": release_evidence.get("ok") is True,
             "schema": release_evidence.get("schema"),
-            "public_beta_ready": bool(release_evidence.get("public_beta_ready")),
-            "mainnet_ready": bool(release_evidence.get("mainnet_ready")),
-            "runtime_commit_binding_required": bool(
-                release_evidence.get("runtime_commit_binding_required")
-            ),
-            "tracked_manifest_is_commit_agnostic": bool(
-                release_evidence.get("tracked_manifest_is_commit_agnostic")
-            ),
+            "public_beta_ready": release_evidence.get("public_beta_ready") is True,
+            "mainnet_ready": release_evidence.get("mainnet_ready") is True,
+            "runtime_commit_binding_required": release_evidence.get(
+                "runtime_commit_binding_required"
+            )
+            is True,
+            "tracked_manifest_is_commit_agnostic": release_evidence.get(
+                "tracked_manifest_is_commit_agnostic"
+            )
+            is True,
         },
         "quantum_resistance_readiness_summary": {
             "ok": real_mldsa_ready,
@@ -261,9 +264,10 @@ def build() -> Json:
             ),
             "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
             "remaining_crypto_blockers": quantum_readiness.get("remaining_crypto_blockers") or [],
-            "production_crypto_audit_complete": bool(
-                quantum_readiness.get("production_crypto_audit_complete")
-            ),
+            "production_crypto_audit_complete": quantum_readiness.get(
+                "production_crypto_audit_complete"
+            )
+            is True,
         },
         "launch_matrix_capability_snapshot": {
             "phase": capabilities.get("phase"),
@@ -272,7 +276,7 @@ def build() -> Json:
             "truth_boundaries": capabilities.get("truth_boundaries", {}),
         },
         "validator_go_gate_snapshot": {
-            "ok": bool(validator.get("ok")),
+            "ok": validator.get("ok") is True,
             "node_count": validator.get("node_count"),
             "machine_count": validator.get("machine_count"),
             "threshold": validator.get("threshold"),
@@ -291,7 +295,7 @@ def build() -> Json:
             ),
         },
         "storage_go_gate_snapshot": {
-            "ok": bool(storage.get("ok")),
+            "ok": storage.get("ok") is True,
             "machine_count": storage.get("machine_count"),
             "origin_failure_exercised": storage.get("origin_failure_exercised"),
             "replication_factor_after_reassignment": storage.get(

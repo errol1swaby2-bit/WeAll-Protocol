@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1943,
+  "file_count": 1944,
   "files": [
     {
       "affected_registers": [
@@ -4538,7 +4538,7 @@
       ],
       "path": "scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8434da939f0a145aa543e3be4d97a9787eeb8a151f6d4dd3ab82ee159da2dc56",
+      "sha256": "768e32bdb69720e3f488c6a9d88077bef295d65c352cdfacfca499c4ba05dc0c",
       "source_id": "SRC-69CAF9C6B7A3E972"
     },
     {
@@ -4552,7 +4552,7 @@
       ],
       "path": "scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "8c06e638203849ca35fb875b5c3261fe318f62b261c17cd4d2133fda62c274d4",
+      "sha256": "f2418ed408146dea236b4c726f335f6af6d73c84a5c00de5c2a73db2e5bfb3f4",
       "source_id": "SRC-6CCDCD9921989520"
     },
     {
@@ -4650,7 +4650,7 @@
       ],
       "path": "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "849d6a7560b1a4dac4573108462b8cea933e5cb539c0a280279cc82cfa70e112",
+      "sha256": "4ec02fdd1c96224648eab33e11d0ff0977ad95e686a4750c1b07f9be61f9f48e",
       "source_id": "SRC-BB019FD52578F3FF"
     },
     {
@@ -4748,7 +4748,7 @@
       ],
       "path": "scripts/gen_public_beta_blocker_report_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "894ac46b95358e8f2586cb441781bf8bd2991d610148a33b3f1f8aed7de8ba93",
+      "sha256": "23871e3aa975e62ba3269aad8b7db4f524f0e76afb2fbbac1bc33e6236f56db7",
       "source_id": "SRC-DC86EF35EF9EB00E"
     },
     {
@@ -4902,7 +4902,7 @@
       ],
       "path": "scripts/gen_release_evidence_manifest_v1_5.py",
       "primary_mechanism_id": "M-075",
-      "sha256": "7d74d39cadaf4ce5a6dcfa0a70f8f37b3a46fd5e913b82cf53e5d3c9f7f4a252",
+      "sha256": "b2992e0a2ef68aedc837134df1dd9ff880d054a67d392506f2a7b072116ccf5e",
       "source_id": "SRC-86E1133DA6CADB5E"
     },
     {
@@ -6008,7 +6008,7 @@
       ],
       "path": "scripts/rehearse_public_api_write_lifecycle_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ad1efcffffa9ef140002017910683e262608a1bdf49fa786527ad16bf2d2ce51",
+      "sha256": "8474d4976308b83dae3c58fa1c74dea9d782bc875f87cf4a43992e35a0bd595f",
       "source_id": "SRC-9BB50D54C8F1E592"
     },
     {
@@ -6273,7 +6273,7 @@
       ],
       "path": "scripts/run_controlled_testnet_go_gate_v1_5.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "0e0f8715ecda9ddad2894b421d9f6d0ea7526268751533aca00615e187f4baa7",
+      "sha256": "b374a8148f74da747eac50f4cef106482c9b928bf4698564a489070f7541c037",
       "source_id": "SRC-6DDF2D6F9B0EB0C1"
     },
     {
@@ -25679,6 +25679,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "972c3896d57f494d06de75584b76be10ca827459117319a5ad544c7c5db3cea5",
       "source_id": "SRC-55EA80D54999828D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_release_boolean_contract_sweep.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "7b3b6fec405d7768de34e3047fc02a8327c89e94424b9bef427c032e601241f3",
+      "source_id": "SRC-201441995F18C563"
     },
     {
       "affected_registers": [

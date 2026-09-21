@@ -57,7 +57,9 @@ def build() -> Json:
         )
     )
     pieces = [api_vectors, upgrade, validator, storage, reviewer, helper, economics]
-    piece_ok = bool(high_risk_capability_wiring_ok and all(bool(item.get("ok")) for item in pieces))
+    piece_ok = bool(
+        high_risk_capability_wiring_ok and all(item.get("ok") is True for item in pieces)
+    )
     helper_state_root_proof_complete = bool(
         helper.get("production_block_path_state_root_equivalence_proven") is True
         and helper.get("mechanism_complete") is True
@@ -102,8 +104,8 @@ def build() -> Json:
     # self-referential and generate->check stability depends on generation order.
     public_beta_advisory = dict(capabilities.get("public_beta_blocker_report") or {})
     capabilities["public_beta_blocker_report"] = {
-        "present": bool(public_beta_advisory.get("present")),
-        "ok": bool(public_beta_advisory.get("ok")),
+        "present": public_beta_advisory.get("present") is True,
+        "ok": public_beta_advisory.get("ok") is True,
         "public_beta_ready": False,
         "mainnet_ready": False,
         "advisory_to_mechanism_completion": True,
@@ -182,7 +184,7 @@ def main() -> int:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print(str(OUT))
-    return 0 if payload.get("ok") else 1
+    return 0 if payload.get("ok") is True else 1
 
 
 if __name__ == "__main__":

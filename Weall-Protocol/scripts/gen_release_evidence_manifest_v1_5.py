@@ -149,8 +149,8 @@ def build() -> Json:
     final_gate_payload = _load_json(
         "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json"
     )
-    controlled_rehearsal_candidate_allowed = bool(
-        final_gate_payload.get("controlled_rehearsal_candidate_ready")
+    controlled_rehearsal_candidate_allowed = (
+        final_gate_payload.get("controlled_rehearsal_candidate_ready") is True
     )
     return {
         "schema": "weall.v1_5.release_evidence_manifest",
@@ -357,7 +357,11 @@ def main() -> int:
         print(
             f"OK: {OUT.relative_to(ROOT)} is current ({len(payload['tracked_artifacts'])} artifacts)"
         )
-        return 0 if payload.get("ok") else 1
+        # --check proves deterministic freshness. Callers that require the
+        # release package itself to be admissible must inspect payload["ok"]
+        # explicitly rather than conflating readiness/package state with stale
+        # generated evidence.
+        return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print(f"wrote {OUT.relative_to(ROOT)} ({len(payload['tracked_artifacts'])} artifacts)")

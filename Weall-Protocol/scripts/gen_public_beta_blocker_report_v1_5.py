@@ -751,17 +751,17 @@ def build() -> Json:
         if b["can_be_closed_by_code_only"] and b["gate_status"].startswith("closed")
     ]
     evidence_inventory_ok = bool(
-        validator.get("ok")
-        and storage.get("ok")
-        and protocol_upgrade.get("ok")
-        and protocol_upgrade_hardening.get("ok")
-        and helper_topology_hardening.get("ok")
-        and helper.get("ok")
-        and api_vectors.get("ok")
+        validator.get("ok") is True
+        and storage.get("ok") is True
+        and protocol_upgrade.get("ok") is True
+        and protocol_upgrade_hardening.get("ok") is True
+        and helper_topology_hardening.get("ok") is True
+        and helper.get("ok") is True
+        and api_vectors.get("ok") is True
         and api_vector_count >= 24
-        and state_roots.get("ok")
-        and clean_clone.get("ok")
-        and external_requirements.get("ok")
+        and state_roots.get("ok") is True
+        and clean_clone.get("ok") is True
+        and external_requirements.get("ok") is True
         and high_risk_disabled
         and legal.get("legal_compliance_ready") is False
         and frontend_p2_ux.get("ok") is True
@@ -836,19 +836,20 @@ def build() -> Json:
         "blockers": blockers,
         "transcript_schemas": transcript_schemas,
         "external_operator_transcript_requirements": {
-            "ok": bool(external_requirements.get("ok")),
+            "ok": external_requirements.get("ok") is True,
             "schema_count": len(external_requirements.get("schemas") or {}),
             "artifact_digest": external_requirements.get("artifact_digest"),
-            "external_attestation_required_before_public_beta": bool(
-                external_requirements.get("external_attestation_required_before_public_beta")
-            ),
+            "external_attestation_required_before_public_beta": external_requirements.get(
+                "external_attestation_required_before_public_beta"
+            )
+            is True,
         },
         "evidence_gate_summaries": {
             "public_validator": validator,
             "storage_ipfs": storage,
             "protocol_upgrade_staging": protocol_upgrade,
             "protocol_upgrade_execution_hardening_plan": {
-                "ok": bool(protocol_upgrade_hardening.get("ok")),
+                "ok": protocol_upgrade_hardening.get("ok") is True,
                 "schema": protocol_upgrade_hardening.get("schema"),
                 "blocker": protocol_upgrade_hardening.get("blocker"),
                 "blocker_status": protocol_upgrade_hardening.get("blocker_status"),
@@ -860,7 +861,7 @@ def build() -> Json:
             },
             "helper_production_topology": helper,
             "production_helper_topology_hardening_plan": {
-                "ok": bool(helper_topology_hardening.get("ok")),
+                "ok": helper_topology_hardening.get("ok") is True,
                 "schema": helper_topology_hardening.get("schema"),
                 "blocker": helper_topology_hardening.get("blocker"),
                 "blocker_status": helper_topology_hardening.get("blocker_status"),
@@ -878,7 +879,7 @@ def build() -> Json:
             "clean_clone_gate": clean_clone,
             "public_observer_launch_evidence_requirements": public_observer_launch,
             "release_evidence_manifest": {
-                "ok": bool(release_evidence.get("ok")),
+                "ok": release_evidence.get("ok") is True,
                 "schema": release_evidence.get("schema"),
                 "tracked_manifest_is_commit_agnostic": release_evidence.get(
                     "tracked_manifest_is_commit_agnostic"
