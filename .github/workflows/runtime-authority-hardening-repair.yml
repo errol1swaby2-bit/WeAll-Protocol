@@ -1,0 +1,299 @@
+name: Runtime Authority Hardening Repair
+
+on:
+  push:
+    branches:
+      - runtime-authority-hardening-20260921
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked development environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Apply runtime authority hardening
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          app_path = Path('src/weall/api/app.py')
+          app = app_path.read_text(encoding='utf-8')
+
+          block_start = app.index('def _construct_block_loop(executor: Any):')
+          block_end = app.index('def _stop_block_loop(loop: Any) -> None:', block_start)
+          block_replacement = '''def _construct_block_loop(executor: Any):
+              """Construct the canonical block loop exactly once.
+
+              Startup must not infer API shape by calling a constructor and catching
+              ``TypeError``: an internal constructor defect is authoritative and must
+              propagate rather than being mistaken for a legacy signature.
+              """
+              return BlockProducerLoop(
+                  executor=executor,
+                  mempool=getattr(executor, "mempool", None),
+                  attestation_pool=getattr(executor, "attestation_pool", None),
+              )
+
+
+          def _start_block_loop(loop: Any, executor: Any) -> bool:
+              """Start the canonical block loop exactly once."""
+              start = getattr(loop, "start", None)
+              if not callable(start):
+                  raise ApiRuntimeLifecycleError("api_block_loop_start_failed:missing_start_method")
+              result = start()
+              return False if result is False else True
+
+
+          '''
+          app = app[:block_start] + block_replacement + app[block_end:]
+
+          net_start = app.index('def _construct_net_loop(net: Any, executor: Any):')
+          net_end = app.index('def _stop_net_loop(loop: Any) -> None:', net_start)
+          net_replacement = '''def _construct_net_loop(net: Any, executor: Any):
+              """Construct the canonical mesh loop exactly once.
+
+              ``net`` remains in this private helper signature only to avoid widening
+              this patch into lifecycle-state plumbing. ``NetMeshLoop`` owns creation
+              of its active ``NetNode`` when ``start()`` runs.
+              """
+              return NetMeshLoop(
+                  executor=executor,
+                  mempool=getattr(executor, "mempool", None),
+              )
+
+
+          def _start_net_loop(loop: Any, net: Any, executor: Any) -> bool:
+              """Start the canonical mesh loop exactly once."""
+              start = getattr(loop, "start", None)
+              if not callable(start):
+                  raise ApiRuntimeLifecycleError("api_net_loop_start_failed:missing_start_method")
+              result = start()
+              return False if result is False else True
+
+
+          '''
+          app = app[:net_start] + net_replacement + app[net_end:]
+          app_path.write_text(app, encoding='utf-8')
+
+          bft_path = Path('src/weall/runtime/bft_outbound.py')
+          bft = bft_path.read_text(encoding='utf-8')
+          restore_start = bft.index('def _restore_bft_restart_hints(self) -> None:')
+          restore_replacement = '''def _restore_bft_restart_hints(self) -> None:
+              try:
+                  info = self._bft_journal.bootstrap_state()
+              except Exception:
+                  # The bounded journal is diagnostic/recovery-hint state. Durable
+                  # send obligations below remain authoritative.
+                  info = {}
+              try:
+                  self._bft.view = max(int(self._bft.view), int(info.get("last_view") or 0))
+              except Exception:
+                  pass
+
+              # The authoritative outbox may contain a timeout that was durably
+              # enqueued just before a crash but whose BFT cursor had not yet been
+              # persisted. Startup must prove this recovery state before the node can
+              # sign again; unreadable or semantically invalid timeout obligations are
+              # therefore fatal rather than best-effort hints.
+              try:
+                  pending_timeout_view = int(getattr(self._bft, "last_timeout_view", -1))
+              except (TypeError, ValueError) as exc:
+                  raise RuntimeError("bft_restart_timeout_cursor_invalid") from exc
+
+              try:
+                  pending_items = self._bft_outbox_store.pending()
+              except Exception as exc:
+                  raise RuntimeError("bft_restart_outbox_read_failed") from exc
+
+              for item in pending_items:
+                  if str(getattr(item, "kind", "") or "").strip().lower() != "timeout":
+                      continue
+                  payload = getattr(item, "payload", None)
+                  if not isinstance(payload, dict):
+                      raise RuntimeError("bft_restart_outbox_timeout_invalid")
+                  try:
+                      timeout_view = int(payload.get("view"))
+                  except (TypeError, ValueError) as exc:
+                      raise RuntimeError("bft_restart_outbox_timeout_invalid") from exc
+                  pending_timeout_view = max(pending_timeout_view, timeout_view)
+
+              self._bft.last_timeout_view = pending_timeout_view
+          '''
+          bft = bft[:restore_start] + restore_replacement
+          bft_path.write_text(bft, encoding='utf-8')
+
+          test_path = Path('tests/test_runtime_authority_retry_elimination.py')
+          test_path.write_text('''from __future__ import annotations
+
+          from types import SimpleNamespace
+
+          import pytest
+
+          from weall.runtime import bft_outbound
+
+
+          def _executor() -> SimpleNamespace:
+              return SimpleNamespace(mempool=object(), attestation_pool=object())
+
+
+          def test_block_loop_constructor_internal_typeerror_is_not_retried(monkeypatch) -> None:
+              from weall.api import app as api_app
+
+              calls = 0
+
+              class FailingBlockLoop:
+                  def __init__(self, *, executor, mempool, attestation_pool) -> None:
+                      nonlocal calls
+                      calls += 1
+                      raise TypeError("internal_block_constructor_typeerror")
+
+              monkeypatch.setattr(api_app, "BlockProducerLoop", FailingBlockLoop)
+              with pytest.raises(TypeError, match="internal_block_constructor_typeerror"):
+                  api_app._construct_block_loop(_executor())
+              assert calls == 1
+
+
+          def test_block_loop_start_internal_typeerror_is_not_retried() -> None:
+              class FailingLoop:
+                  def __init__(self) -> None:
+                      self.calls = 0
+
+                  def start(self) -> bool:
+                      self.calls += 1
+                      raise TypeError("internal_block_start_typeerror")
+
+              from weall.api import app as api_app
+
+              loop = FailingLoop()
+              with pytest.raises(TypeError, match="internal_block_start_typeerror"):
+                  api_app._start_block_loop(loop, _executor())
+              assert loop.calls == 1
+
+
+          def test_net_loop_constructor_internal_typeerror_is_not_retried(monkeypatch) -> None:
+              from weall.api import app as api_app
+
+              calls = 0
+
+              class FailingNetLoop:
+                  def __init__(self, *, executor, mempool) -> None:
+                      nonlocal calls
+                      calls += 1
+                      raise TypeError("internal_net_constructor_typeerror")
+
+              monkeypatch.setattr(api_app, "NetMeshLoop", FailingNetLoop)
+              with pytest.raises(TypeError, match="internal_net_constructor_typeerror"):
+                  api_app._construct_net_loop(object(), _executor())
+              assert calls == 1
+
+
+          def test_net_loop_start_internal_typeerror_is_not_retried() -> None:
+              class FailingLoop:
+                  def __init__(self) -> None:
+                      self.calls = 0
+
+                  def start(self) -> bool:
+                      self.calls += 1
+                      raise TypeError("internal_net_start_typeerror")
+
+              from weall.api import app as api_app
+
+              loop = FailingLoop()
+              with pytest.raises(TypeError, match="internal_net_start_typeerror"):
+                  api_app._start_net_loop(loop, object(), _executor())
+              assert loop.calls == 1
+
+
+          def test_bft_restart_fails_closed_when_authoritative_outbox_read_fails() -> None:
+              class Journal:
+                  def bootstrap_state(self):
+                      return {"last_view": 3}
+
+              class FailingOutbox:
+                  def pending(self):
+                      raise RuntimeError("simulated_outbox_read_failure")
+
+              ex = SimpleNamespace(
+                  _bft_journal=Journal(),
+                  _bft=SimpleNamespace(view=1, last_timeout_view=-1),
+                  _bft_outbox_store=FailingOutbox(),
+              )
+
+              with pytest.raises(RuntimeError, match="bft_restart_outbox_read_failed") as excinfo:
+                  bft_outbound._restore_bft_restart_hints(ex)
+              assert isinstance(excinfo.value.__cause__, RuntimeError)
+              assert str(excinfo.value.__cause__) == "simulated_outbox_read_failure"
+
+
+          def test_bft_restart_fails_closed_on_malformed_pending_timeout_view() -> None:
+              class Journal:
+                  def bootstrap_state(self):
+                      return {"last_view": 3}
+
+              class Outbox:
+                  def pending(self):
+                      return [SimpleNamespace(kind="timeout", payload={"view": "not-an-int"})]
+
+              ex = SimpleNamespace(
+                  _bft_journal=Journal(),
+                  _bft=SimpleNamespace(view=1, last_timeout_view=-1),
+                  _bft_outbox_store=Outbox(),
+              )
+
+              with pytest.raises(RuntimeError, match="bft_restart_outbox_timeout_invalid"):
+                  bft_outbound._restore_bft_restart_hints(ex)
+          ''', encoding='utf-8')
+          PY
+
+      - name: Format and lint changed Python
+        working-directory: Weall-Protocol
+        run: |
+          ruff format src/weall/api/app.py src/weall/runtime/bft_outbound.py tests/test_runtime_authority_retry_elimination.py
+          ruff check src/weall/api/app.py src/weall/runtime/bft_outbound.py tests/test_runtime_authority_retry_elimination.py
+
+      - name: Focused regression proof
+        working-directory: Weall-Protocol
+        run: |
+          pytest -q \
+            tests/test_runtime_authority_retry_elimination.py \
+            tests/test_api_app_fail_closed.py \
+            tests/test_pb001by_pacemaker_timeout_emission.py \
+            tests/test_bft_journal_restart.py
+
+      - name: Refresh source-bound specification derivatives
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Commit repair and remove harness
+        run: |
+          rm -f .github/workflows/runtime-authority-hardening-repair.yml
+          git config user.name "weall-audit-bot"
+          git config user.email "weall-audit-bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Harden runtime authority recovery boundaries"
+          git push origin HEAD:runtime-authority-hardening-20260921
