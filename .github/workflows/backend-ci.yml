@@ -51,6 +51,18 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
+      - name: Regenerate v2 specification derivatives
+        run: |
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+
+      - name: Upload regenerated v2 specification derivatives
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-v2-derivatives
+          path: |
+            Weall-Protocol/generated/v2
+            web/src/generated/protocolStatus.ts
+
       - name: Ruff changed Python files
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
