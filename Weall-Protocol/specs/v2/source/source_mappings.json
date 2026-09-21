@@ -5925,6 +5925,15 @@
       "path": "tooling/gen_tx_contract_map.py",
       "primary_mechanism_id": "M-076",
       "review_status": "mapped_current_snapshot"
+    },
+    {
+      "affected_registers": [
+        "implementation_evidence"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "path": "scripts/release_evidence_contracts.py",
+      "primary_mechanism_id": "M-076",
+      "review_status": "mapped_current_snapshot"
     }
   ],
   "schema": "weall.v2.source_mapping_registry",

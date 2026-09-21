@@ -14,6 +14,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+from release_evidence_contracts import (
+    artifact_contract_valid,
+    artifact_reported_ok,
+    explicit_true,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "final_public_observer_controlled_testnet_go_gate_v1_5.json"
 Json = dict[str, Any]
@@ -88,7 +94,8 @@ def _artifact_summary(rel: str) -> Json:
         "path": rel,
         "present": bool(payload),
         "schema": str(payload.get("schema") or "") if payload else "",
-        "ok": bool(payload.get("ok", True)) if payload else False,
+        "ok": artifact_reported_ok(payload),
+        "contract_valid": artifact_contract_valid(rel, payload),
     }
 
 
@@ -133,13 +140,17 @@ def build() -> Json:
     }
     quantum = _read_json("generated/quantum_resistance_readiness_v1_5.json")
     controlled_gate = _read_json("generated/controlled_testnet_go_gate_v1_5.json")
-    real_mldsa_ready = bool(quantum.get("real_mldsa_implemented_in_this_environment"))
-    mechanism_gate_ready = bool(controlled_gate.get("controlled_testnet_go_gate_ready_to_run"))
+    real_mldsa_ready = explicit_true(quantum, "real_mldsa_implemented_in_this_environment")
+    mechanism_gate_ready = controlled_gate.get("controlled_testnet_go_gate_ready_to_run") is True
     external_blockers_still_open = set(remaining_ids) == expected_remaining
     repo_package_ready = (
         all(docs_present.values())
         and all(generated_present.values())
         and all(flow_docs_present.values())
+        and all(
+            item.get("present") is True and item.get("contract_valid") is True
+            for item in generated_artifacts.values()
+        )
     )
     artifact_consistent = (
         repo_package_ready
@@ -201,9 +212,8 @@ def build() -> Json:
             "path": "generated/quantum_resistance_readiness_v1_5.json",
             "real_mldsa_implemented_in_this_environment": real_mldsa_ready,
             "remaining_crypto_blockers": quantum.get("remaining_crypto_blockers") or [],
-            "production_crypto_audit_complete": bool(
-                quantum.get("production_crypto_audit_complete")
-            ),
+            "production_crypto_audit_complete": quantum.get("production_crypto_audit_complete")
+            is True,
         },
         "required_external_evidence_before_public_beta_or_public_observer_claim": {
             "AUD-628-P1-001": "external clean-clone/open-download/state-sync/frontend rendered journey transcript",
@@ -265,7 +275,7 @@ def main() -> int:
     text = _pretty(payload)
     if args.json:
         print(text, end="")
-        return 0 if payload.get("ok") else 1
+        return 0 if payload.get("ok") is True else 1
     if args.check:
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != text:
             raise SystemExit(
@@ -274,13 +284,15 @@ def main() -> int:
         print(
             "OK: generated/final_public_observer_controlled_testnet_go_gate_v1_5.json is current (bounded controlled verdict; NO-GO public beta)"
         )
-        return 0 if payload.get("ok") else 1
+        # --check proves freshness/integrity, not launch readiness. The tracked
+        # payload carries the bounded NO-GO/GO verdict explicitly.
+        return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print(
         "wrote generated/final_public_observer_controlled_testnet_go_gate_v1_5.json (bounded controlled verdict; NO-GO public beta)"
     )
-    return 0 if payload.get("ok") else 1
+    return 0 if payload.get("ok") is True else 1
 
 
 if __name__ == "__main__":

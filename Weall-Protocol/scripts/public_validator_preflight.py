@@ -159,7 +159,7 @@ def main() -> int:
     if isinstance(incident_lane_summary, dict):
         authority_contract = dict(incident_lane_summary.get("authority_contract") or {})
     authority_contract_source = str(authority_contract.get("contract_source") or "runtime")
-    signing_ready = bool(not deduped_issues and compatibility_contract.get("ok", True))
+    signing_ready = not deduped_issues and compatibility_contract.get("ok") is True
     local_genesis_bootstrap = (
         dict(compatibility_contract.get("local", {}).get("genesis_bootstrap_profile") or {})
         if isinstance(compatibility_contract, dict)
@@ -176,13 +176,9 @@ def main() -> int:
         else {}
     )
     genesis_bootstrap_contract = {
-        "ok": bool(
-            field_status.get("genesis_bootstrap_profile_payload", {}).get(
-                "ok", compatibility_contract.get("ok", True)
-            )
-        )
+        "ok": field_status.get("genesis_bootstrap_profile_payload", {}).get("ok") is True
         if isinstance(field_status.get("genesis_bootstrap_profile_payload"), dict)
-        else bool(compatibility_contract.get("ok", True)),
+        else compatibility_contract.get("ok") is True,
         "local_profile_hash": str(
             (compatibility_contract.get("local") or {}).get("genesis_bootstrap_profile_hash") or ""
         )
@@ -194,15 +190,15 @@ def main() -> int:
         )
         if isinstance(compatibility_contract, dict)
         else "",
-        "local_enabled": bool(local_genesis_bootstrap.get("enabled", False)),
-        "bundle_enabled": bool(manifest_genesis_bootstrap.get("enabled", False)),
+        "local_enabled": local_genesis_bootstrap.get("enabled") is True,
+        "bundle_enabled": manifest_genesis_bootstrap.get("enabled") is True,
         "local_mode": str(
             local_genesis_bootstrap.get("mode")
-            or ("disabled" if not local_genesis_bootstrap.get("enabled", False) else "")
+            or ("disabled" if local_genesis_bootstrap.get("enabled") is not True else "")
         ),
         "bundle_mode": str(
             manifest_genesis_bootstrap.get("mode")
-            or ("disabled" if not manifest_genesis_bootstrap.get("enabled", False) else "")
+            or ("disabled" if manifest_genesis_bootstrap.get("enabled") is not True else "")
         ),
     }
 

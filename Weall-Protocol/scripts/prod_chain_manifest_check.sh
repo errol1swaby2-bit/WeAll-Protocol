@@ -22,7 +22,7 @@ status = chain_manifest_status(
     strict=True,
 )
 print(json.dumps(status, sort_keys=True, indent=2))
-if not status.get("ok"):
+if status.get("ok") is not True:
     raise SystemExit(2)
 print("ok: chain manifest is pinned and matches local tx index")
 PY

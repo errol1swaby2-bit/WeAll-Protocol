@@ -55,17 +55,25 @@ def test_controlled_testnet_go_gate_manifest_is_fresh_and_bounded() -> None:
 def test_go_gate_captures_required_artifact_and_runtime_evidence() -> None:
     proof = _proof()
     artifacts = proof["artifact_inputs"]
+    descriptive_artifacts = {
+        "generated/api_contract_map_v1_5.json",
+        "generated/failure_code_registry_v1_5.json",
+    }
     for rel in (
         "generated/api_contract_map_v1_5.json",
         "generated/failure_code_registry_v1_5.json",
         "generated/api_response_vectors_v1_5.json",
         "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
     ):
-        assert artifacts[rel]["present"] is True
-        if rel == "generated/b587_b594_testnet_mechanism_completion_v1_5.json":
-            assert artifacts[rel]["ok"] is False
+        summary = artifacts[rel]
+        assert summary["present"] is True
+        assert summary["contract_valid"] is True
+        if rel in descriptive_artifacts:
+            assert summary["ok"] is None
+        elif rel == "generated/b587_b594_testnet_mechanism_completion_v1_5.json":
+            assert summary["ok"] is False
         else:
-            assert artifacts[rel]["ok"] is True
+            assert summary["ok"] is True
 
     assert proof["api_response_vector_summary"]["vector_count"] >= 10
     assert (

@@ -369,8 +369,8 @@ def run_harness() -> dict[str, Any]:
             )
 
             return {
-                "ok": bool(feed.get("ok"))
-                and bool(dispute.get("ok", True))
+                "ok": feed.get("ok") is True
+                and dispute.get("ok") is True
                 and dispute_remedy_applied
                 and committed_unchanged,
                 "batch": "541",
@@ -388,7 +388,7 @@ def run_harness() -> dict[str, Any]:
                 "poh_challenge_status": challenge_status,
                 "feed_rank_mode": feed.get("ranking", {}).get("mode"),
                 "feed_items": len(feed.get("items") or []),
-                "session_route_ok": bool(session.get("ok")),
+                "session_route_ok": session.get("ok") is True,
                 "dispute_remedy_applied": dispute_remedy_applied,
                 "storage_retrieval_confirmed": storage_retrieval_confirmed,
                 "protocol_upgrade_record_only": protocol_upgrade_record_only,
@@ -406,7 +406,7 @@ def main() -> int:
     args = ap.parse_args()
     out = run_harness()
     print(json.dumps(out, sort_keys=True, indent=2 if args.json else None))
-    return 0 if out.get("ok") else 1
+    return 0 if out.get("ok") is True else 1
 
 
 if __name__ == "__main__":

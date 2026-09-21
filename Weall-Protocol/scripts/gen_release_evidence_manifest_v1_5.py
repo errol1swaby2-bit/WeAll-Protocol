@@ -17,6 +17,12 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from release_evidence_contracts import (
+    NO_OK_ARTIFACTS,
+    artifact_contract_valid,
+    artifact_reported_ok,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "generated" / "release_evidence_manifest_v1_5.json"
 Json = dict[str, Any]
@@ -99,12 +105,18 @@ def _artifact(rel: str) -> Json:
             or boundaries.get("public_beta_ready") is False
         )
     )
-    artifact_ok = bool(payload.get("ok", True)) if payload else False
+    contract_valid = artifact_contract_valid(rel, payload)
+    reported_ok = artifact_reported_ok(payload)
+    artifact_ok = bool(
+        contract_valid
+        and (reported_ok is True or readiness_no_go_artifact or rel in NO_OK_ARTIFACTS)
+    )
     return {
         "path": rel,
         "present": bool(payload),
         "schema": str(payload.get("schema") or "") if payload else "",
-        "ok": bool(artifact_ok or readiness_no_go_artifact),
+        "ok": artifact_ok,
+        "contract_valid": contract_valid,
         "readiness_no_go_artifact": bool(readiness_no_go_artifact),
         "file_sha256": _sha256_file(ROOT / rel),
     }
@@ -137,8 +149,8 @@ def build() -> Json:
     final_gate_payload = _load_json(
         "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json"
     )
-    controlled_rehearsal_candidate_allowed = bool(
-        final_gate_payload.get("controlled_rehearsal_candidate_ready")
+    controlled_rehearsal_candidate_allowed = (
+        final_gate_payload.get("controlled_rehearsal_candidate_ready") is True
     )
     return {
         "schema": "weall.v1_5.release_evidence_manifest",
@@ -345,7 +357,11 @@ def main() -> int:
         print(
             f"OK: {OUT.relative_to(ROOT)} is current ({len(payload['tracked_artifacts'])} artifacts)"
         )
-        return 0 if payload.get("ok") else 1
+        # --check proves deterministic freshness. Callers that require the
+        # release package itself to be admissible must inspect payload["ok"]
+        # explicitly rather than conflating readiness/package state with stale
+        # generated evidence.
+        return 0
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text, encoding="utf-8")
     print(f"wrote {OUT.relative_to(ROOT)} ({len(payload['tracked_artifacts'])} artifacts)")

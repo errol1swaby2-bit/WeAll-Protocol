@@ -1,6 +1,6 @@
 {
   "allowed_claim": "Pre-public-testnet implementation under active hardening. The controlled-testnet signing profile has transitioned to profile-aware pq-mldsa-v1 ML-DSA signing for protocol authority surfaces covered by this pass. Fresh post-transition observer/testnet evidence and external cryptographic review remain required before any long-lived public network or mainnet claim.",
-  "artifact_digest": "d678e94940dbe4a017d75dde1aafaf1cdf1a802eec81322e32f7474dda325c79",
+  "artifact_digest": "02fb78ce7af9c97c80a1eca32dfd95159621e58f4b4b6bb89e1b61bca0e12df4",
   "blocker_counts": {
     "blocker_catalog_count": 15,
     "closed_in_repository_count": 7,
@@ -84,67 +84,78 @@
   ],
   "generated_artifacts": {
     "b587_b594_mechanism_completion": {
+      "contract_valid": true,
       "ok": false,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "controlled_testnet_go_gate": {
+      "contract_valid": true,
       "ok": false,
       "path": "generated/controlled_testnet_go_gate_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.controlled_testnet_go_gate"
     },
     "crypto_inventory": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/crypto_inventory_v1_5.json",
       "present": true,
       "schema": "weall.crypto_inventory.v1_5"
     },
     "external_operator_transcript_requirements": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "production_helper_topology_hardening_plan": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/production_helper_topology_hardening_plan_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.production_helper_topology_hardening_plan"
     },
     "protocol_upgrade_hardening_plan": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/protocol_upgrade_execution_hardening_plan_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.protocol_upgrade_execution_hardening_plan"
     },
     "public_beta_blocker_report": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_beta_blocker_report"
     },
     "public_observer_launch_requirements": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/public_observer_launch_evidence_requirements_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_observer_launch_evidence_requirements"
     },
     "quantum_resistance_readiness": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/quantum_resistance_readiness_v1_5.json",
       "present": true,
       "schema": "weall.quantum_resistance_readiness.v1_5"
     },
     "release_evidence_manifest": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/release_evidence_manifest_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.release_evidence_manifest"
     },
     "signature_profile_registry": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/signature_profile_registry_v1_5.json",
       "present": true,
       "schema": "weall.signature_profile_registry.v1_5"

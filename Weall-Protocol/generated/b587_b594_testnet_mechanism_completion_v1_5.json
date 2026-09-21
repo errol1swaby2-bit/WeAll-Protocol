@@ -1048,7 +1048,13 @@
       "public_beta_blocker_report"
     ],
     "artifact_blockers": [
-      "b587_b594_mechanism_completion"
+      "api_contract",
+      "b587_b594_mechanism_completion",
+      "failure_code_registry",
+      "launch_disabled_matrix",
+      "public_validator_preflight",
+      "state_root_vectors",
+      "tokenomics_simulation"
     ],
     "blocked_capabilities": [
       "live_transfers",
@@ -1127,7 +1133,13 @@
       }
     },
     "controlled_mechanism_artifact_blockers": [
-      "b587_b594_mechanism_completion"
+      "api_contract",
+      "b587_b594_mechanism_completion",
+      "failure_code_registry",
+      "launch_disabled_matrix",
+      "public_validator_preflight",
+      "state_root_vectors",
+      "tokenomics_simulation"
     ],
     "controlled_testnet_mechanisms_complete": false,
     "dispute_lifecycle": {
@@ -1285,7 +1297,7 @@
     "public_beta_ready_claimed": false,
     "required_artifacts": {
       "api_contract": {
-        "ok": true,
+        "ok": false,
         "path": "generated/api_contract_map_v1_5.json",
         "present": true,
         "schema": "weall.api_contract_map.v1_5"
@@ -1315,13 +1327,13 @@
         "schema": "weall.v1_5.external_operator_transcript_requirements"
       },
       "failure_code_registry": {
-        "ok": true,
+        "ok": false,
         "path": "generated/failure_code_registry_v1_5.json",
         "present": true,
         "schema": "weall.v1_5.failure_code_registry"
       },
       "launch_disabled_matrix": {
-        "ok": true,
+        "ok": false,
         "path": "generated/launch_disabled_matrix_v1_5.json",
         "present": true,
         "schema": "weall.launch_disabled_matrix.v1_5"
@@ -1339,19 +1351,19 @@
         "schema": "weall.v1_5.public_beta_blocker_report"
       },
       "public_validator_preflight": {
-        "ok": true,
+        "ok": false,
         "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
         "present": true,
         "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
       },
       "state_root_vectors": {
-        "ok": true,
+        "ok": false,
         "path": "generated/state_root_vectors_v1_5.json",
         "present": true,
         "schema": "weall.v1_5.state_root_vectors"
       },
       "tokenomics_simulation": {
-        "ok": true,
+        "ok": false,
         "path": "generated/tokenomics_simulation_v1_5.json",
         "present": true,
         "schema": "weall.v1_5.tokenomics_simulation"

@@ -45,7 +45,7 @@ def classify_local_severity(*, bootstrap_report: Json, manifest_report: Json | N
     if isinstance(manifest_issues, list) and manifest_issues:
         return "critical"
     compatibility_contract = _coerce_json_object(manifest.get("compatibility_contract"))
-    if compatibility_contract and not bool(compatibility_contract.get("ok", True)):
+    if compatibility_contract and compatibility_contract.get("ok") is not True:
         return "critical"
     return "ok"
 
@@ -53,9 +53,9 @@ def classify_local_severity(*, bootstrap_report: Json, manifest_report: Json | N
 def classify_remote_severity(*, remote_forensics: Json) -> str:
     if not remote_forensics:
         return "ok"
-    if not bool(remote_forensics.get("ok", True)):
+    if remote_forensics.get("ok") is not True:
         return "critical"
-    stalled = bool(remote_forensics.get("stalled", False))
+    stalled = remote_forensics.get("stalled") is True
     pending_fetch = int(remote_forensics.get("pending_fetch_requests_count") or 0)
     recent = _coerce_json_object(remote_forensics.get("recent_rejection_summary"))
     rejection_count = int(recent.get("count") or 0)
@@ -136,9 +136,9 @@ def build_operator_incident_report(
         "severity": overall,
         "local_severity": local_severity,
         "remote_severity": remote_severity,
-        "bootstrap_ok": bool(bootstrap.get("ok", False)),
-        "remote_ok": bool(remote.get("ok", True)) if remote else True,
-        "remote_stalled": bool(remote.get("stalled", False)) if remote else False,
+        "bootstrap_ok": bootstrap.get("ok") is True,
+        "remote_ok": remote.get("ok") is True if remote else True,
+        "remote_stalled": remote.get("stalled") is True if remote else False,
         "pending_fetch_requests_count": int(remote.get("pending_fetch_requests_count") or 0)
         if remote
         else 0,
@@ -147,13 +147,12 @@ def build_operator_incident_report(
         )
         if remote
         else 0,
-        "compatibility_contract_ok": bool(compatibility_contract.get("ok", True)),
+        "compatibility_contract_ok": compatibility_contract.get("ok") is True,
         "compatibility_contract_mismatches": list(compatibility_contract.get("mismatches") or []),
-        "strict_runtime_authority_mode": bool(
-            authority_contract.get("strict_runtime_authority_mode", False)
-        ),
-        "validator_effective": bool(authority_contract.get("validator_effective", False)),
-        "helper_effective": bool(authority_contract.get("helper_effective", False)),
+        "strict_runtime_authority_mode": authority_contract.get("strict_runtime_authority_mode")
+        is True,
+        "validator_effective": authority_contract.get("validator_effective") is True,
+        "helper_effective": authority_contract.get("helper_effective") is True,
     }
 
     return {
