@@ -104,6 +104,21 @@ jobs:
         run: |
           bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
 
+      - name: Regenerate stale deterministic proof artifacts
+        run: |
+          python scripts/gen_b528_b532_completion_proof_v1_5.py
+          python scripts/gen_b534_b538_completion_proof_v1_5.py
+          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+
+      - name: Upload regenerated deterministic proof artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerated-deterministic-proofs
+          path: |
+            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json
+            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json
+            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
+
       - name: Pytest
         run: |
           pytest -q
