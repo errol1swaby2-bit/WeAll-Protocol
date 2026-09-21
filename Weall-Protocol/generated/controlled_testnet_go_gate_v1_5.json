@@ -26,91 +26,106 @@
   ],
   "artifact_inputs": {
     "generated/api_contract_map_v1_5.json": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/api_contract_map_v1_5.json",
       "present": true,
       "schema": "weall.api_contract_map.v1_5"
     },
     "generated/api_response_vectors_v1_5.json": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/api_response_vectors_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.api_response_vectors"
     },
     "generated/b582_b586_readiness_truth_and_proof_v1_5.json": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/b582_b586_readiness_truth_and_proof_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.batch582_586.readiness_truth_and_proof"
     },
     "generated/b587_b594_testnet_mechanism_completion_v1_5.json": {
+      "contract_valid": true,
       "ok": false,
       "path": "generated/b587_b594_testnet_mechanism_completion_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.batch587_594.testnet_mechanism_completion"
     },
     "generated/external_operator_transcript_requirements_v1_5.json": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.external_operator_transcript_requirements"
     },
     "generated/failure_code_registry_v1_5.json": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/failure_code_registry_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.failure_code_registry"
     },
     "generated/launch_disabled_matrix_v1_5.json": {
-      "ok": true,
+      "contract_valid": false,
+      "ok": null,
       "path": "generated/launch_disabled_matrix_v1_5.json",
       "present": true,
       "schema": "weall.launch_disabled_matrix.v1_5"
     },
     "generated/public_beta_blocker_report_v1_5.json": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_beta_blocker_report"
     },
     "generated/public_discovery_provider_independence_v1_5.json": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/public_discovery_provider_independence_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_discovery_provider_independence"
     },
     "generated/public_only_protocol_audit_v1_5.json": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/public_only_protocol_audit_v1_5.json",
       "present": true,
       "schema": "weall.public_only_protocol_audit.v1_5"
     },
     "generated/public_validator_bft_preflight_matrix_v1_5.json": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
     },
     "generated/release_evidence_manifest_v1_5.json": {
+      "contract_valid": true,
       "ok": true,
       "path": "generated/release_evidence_manifest_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.release_evidence_manifest"
     },
     "generated/state_root_vectors_v1_5.json": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/state_root_vectors_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.state_root_vectors"
     },
     "generated/tokenomics_simulation_v1_5.json": {
-      "ok": true,
+      "contract_valid": true,
+      "ok": null,
       "path": "generated/tokenomics_simulation_v1_5.json",
       "present": true,
       "schema": "weall.v1_5.tokenomics_simulation"
     },
     "generated/v15_implementation_gap_register.json": {
-      "ok": true,
+      "contract_valid": false,
+      "ok": null,
       "path": "generated/v15_implementation_gap_register.json",
       "present": true,
       "schema": "weall.v15_implementation_gap_register"
@@ -166,6 +181,12 @@
   },
   "launch_matrix_capability_snapshot": {
     "artifact_blockers": [
+      "api_contract",
+      "failure_code_registry",
+      "launch_disabled_matrix",
+      "state_root_vectors",
+      "tokenomics_simulation",
+      "public_validator_preflight",
       "b587_b594_mechanism_completion"
     ],
     "blocked_capabilities": [

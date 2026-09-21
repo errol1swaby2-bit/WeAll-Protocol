@@ -44,7 +44,7 @@ def main() -> int:
         print(json.dumps(summary, sort_keys=True, separators=(",", ":")))
     else:
         print(json.dumps(summary, indent=2, sort_keys=True))
-    return 0 if bool(summary.get("ok")) else 1
+    return 0 if summary.get("ok") is True else 1
 
 
 if __name__ == "__main__":

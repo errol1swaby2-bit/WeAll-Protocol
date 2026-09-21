@@ -112,9 +112,7 @@ def main() -> int:
             client = TestClient(app)
 
             health = _assert_ok_json(client, "/v1/health")
-            assert bool(health.get("ok")) is True, (
-                f"/v1/health returned unexpected payload: {health}"
-            )
+            assert health.get("ok") is True, f"/v1/health returned unexpected payload: {health}"
 
             ready = _assert_ok_json(client, "/v1/readyz")
             assert "chain_id" in ready, f"/v1/readyz missing chain_id: {ready}"

@@ -100,7 +100,7 @@ def build_testnet_capability_surface(
         artifacts[name] = {
             "path": rel,
             "present": bool(payload),
-            "ok": bool(payload.get("ok", True)) if payload else False,
+            "ok": payload.get("ok") is True if payload else False,
             "schema": payload.get("schema", "") if payload else "",
         }
 
@@ -142,10 +142,10 @@ def build_testnet_capability_surface(
         "public_beta_blocker_report": {
             "present": bool(blocker_report),
             "ok": public_beta_blocker_inventory_ok,
-            "public_beta_ready": bool(blocker_report.get("public_beta_ready", False))
+            "public_beta_ready": blocker_report.get("public_beta_ready") is True
             if blocker_report
             else False,
-            "mainnet_ready": bool(blocker_report.get("mainnet_ready", False))
+            "mainnet_ready": blocker_report.get("mainnet_ready") is True
             if blocker_report
             else False,
             "blocker_count": int(blocker_report.get("blocker_count") or 0) if blocker_report else 0,

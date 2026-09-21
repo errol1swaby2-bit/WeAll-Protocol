@@ -9,6 +9,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from release_evidence_contracts import (
+    artifact_contract_valid,
+    artifact_reported_ok,
+    explicit_true,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -99,7 +105,8 @@ def _artifact_summary(rel: str) -> Json:
         "path": rel,
         "present": bool(payload),
         "schema": str(payload.get("schema") or "") if payload else "",
-        "ok": bool(payload.get("ok", True)) if payload else False,
+        "ok": artifact_reported_ok(payload),
+        "contract_valid": artifact_contract_valid(rel, payload),
     }
 
 
@@ -136,7 +143,9 @@ def build() -> Json:
     external_transcripts = build_external_operator_transcript_requirements()
     release_evidence = build_release_evidence_manifest()
     quantum_readiness = _load_json("generated/quantum_resistance_readiness_v1_5.json")
-    real_mldsa_ready = bool(quantum_readiness.get("real_mldsa_implemented_in_this_environment"))
+    real_mldsa_ready = explicit_true(
+        quantum_readiness, "real_mldsa_implemented_in_this_environment"
+    )
     capabilities = build_testnet_capability_surface(
         {"params": {"launch_phase": "public_beta_candidate"}}
     )

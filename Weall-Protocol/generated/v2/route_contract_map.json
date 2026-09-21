@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "c9f74af975f39de9930a4892705ef18035ef464aa98bc62161dceb5c88711094"
+    "source_tree_digest": "19e3fac1a525884122be4c3bf3ff5b074d690cf588a9a15b974555d4f0afa943"
   },
   "required_fields": [
     "stable_id",
@@ -7217,6 +7217,7 @@
         "tests/test_external_observer_runbook.py",
         "tests/test_external_observer_two_machine_live_e2e.py",
         "tests/test_external_testnet_p0_p2_safety.py",
+        "tests/test_fail_closed_boolean_boundaries.py",
         "tests/test_fail_closed_group_treasury.py",
         "tests/test_fault_injection_soak.py",
         "tests/test_feed_persists_order_after_restart_api.py",
@@ -7755,6 +7756,7 @@
         "tests/test_rehearsal_content_review_followup.py",
         "tests/test_relay_production_binding_safety.py",
         "tests/test_release_docs_truth_sync.py",
+        "tests/test_release_evidence_contract_fail_closed.py",
         "tests/test_release_hygiene.py",
         "tests/test_remaining_ai_closure_batch.py",
         "tests/test_reputation_accrual_policy.py",
@@ -8439,6 +8441,7 @@
         "tests/test_rehearsal_review_visibility_and_viewer_vote.py",
         "tests/test_relay_production_binding_safety.py",
         "tests/test_release_docs_truth_sync.py",
+        "tests/test_release_evidence_contract_fail_closed.py",
         "tests/test_reputation_accrual_policy.py",
         "tests/test_reputation_matrix_completion_v1_5.py",
         "tests/test_reputation_matrix_read_model.py",

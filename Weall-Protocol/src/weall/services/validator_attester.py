@@ -101,12 +101,12 @@ def _read_head_status(producer_url: str) -> Json:
     narrow status route and fails closed if it cannot read it.
     """
     status = _http_json("GET", f"{producer_url}/v1/status")
-    if status.get("ok"):
+    if status.get("ok") is True:
         return status
     if _mode() == "prod":
         raise ValidatorAttesterError(f"attester_status_failed:{status.get('error') or 'unknown'}")
     snap = _http_json("GET", f"{producer_url}/v1/state/snapshot")
-    if not snap.get("ok"):
+    if snap.get("ok") is not True:
         raise ValidatorAttesterError(
             f"attester_snapshot_failed:{snap.get('error') or status.get('error') or 'unknown'}"
         )
@@ -169,7 +169,7 @@ def run_attester_loop(
 
         # Fetch current nonce so we can produce next nonce.
         nonce_doc = _http_json("GET", f"{producer_url}/v1/accounts/{signer}/nonce")
-        if not nonce_doc.get("ok"):
+        if nonce_doc.get("ok") is not True:
             if _mode() == "prod":
                 raise ValidatorAttesterError(
                     f"attester_nonce_lookup_failed:{nonce_doc.get('error') or 'unknown'}"

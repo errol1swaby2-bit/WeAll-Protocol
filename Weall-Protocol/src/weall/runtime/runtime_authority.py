@@ -49,10 +49,20 @@ def authority_contract_from_lifecycle(
     reasons_raw = lifecycle.get("promotion_failure_reasons")
     reasons = [str(x) for x in reasons_raw] if isinstance(reasons_raw, (list, tuple)) else []
 
-    helper_requested = bool(lifecycle.get("helper_enabled_requested", cfg.helper_enabled_requested))
-    helper_effective = bool(lifecycle.get("helper_enabled_effective", False))
-    bft_requested = bool(lifecycle.get("bft_enabled_requested", cfg.bft_enabled_requested))
-    bft_effective = bool(lifecycle.get("bft_enabled_effective", False))
+    helper_requested_raw = lifecycle.get("helper_enabled_requested", cfg.helper_enabled_requested)
+    bft_requested_raw = lifecycle.get("bft_enabled_requested", cfg.bft_enabled_requested)
+    helper_requested = (
+        helper_requested_raw
+        if isinstance(helper_requested_raw, bool)
+        else bool(cfg.helper_enabled_requested)
+    )
+    helper_effective = lifecycle.get("helper_enabled_effective") is True
+    bft_requested = (
+        bft_requested_raw
+        if isinstance(bft_requested_raw, bool)
+        else bool(cfg.bft_enabled_requested)
+    )
+    bft_effective = lifecycle.get("bft_enabled_effective") is True
 
     return {
         "contract_source": str(source or "runtime"),
@@ -85,7 +95,7 @@ def startup_authority_contract_from_app_state(app_state: Any) -> dict[str, Any]:
 def effective_bft_enabled(*, executor: Any | None = None, default: bool = False) -> bool:
     if executor is not None:
         try:
-            return bool(executor._bft_enabled_effective)
+            return executor._bft_enabled_effective is True
         except Exception:
             pass
         try:
@@ -94,9 +104,11 @@ def effective_bft_enabled(*, executor: Any | None = None, default: bool = False)
                 status = status_fn()
                 if isinstance(status, dict):
                     if strict_runtime_authority_mode():
-                        return bool(status.get("bft_enabled_effective", False))
-                    requested = bool(status.get("bft_enabled_requested", default))
-                    return bool(status.get("bft_enabled_effective", requested) or requested)
+                        return status.get("bft_enabled_effective") is True
+                    requested_raw = status.get("bft_enabled_requested", default)
+                    requested = requested_raw if isinstance(requested_raw, bool) else bool(default)
+                    effective = status.get("bft_enabled_effective") is True
+                    return effective or requested
         except Exception:
             pass
     cfg = resolve_node_runtime_config_from_env()

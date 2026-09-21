@@ -165,7 +165,7 @@ def require_account_session(
     if not isinstance(srec, dict):
         raise PermissionError("session_invalid")
 
-    if not bool(srec.get("active", False)):
+    if srec.get("active") is not True:
         raise PermissionError("session_revoked")
 
     ttl_s = int(srec.get("ttl_s", 0) or 0)

@@ -50,7 +50,7 @@ for _ in range(60):
             payload = json.loads(resp.read().decode("utf-8"))
         if not isinstance(payload, dict):
             raise RuntimeError("readiness payload is not an object")
-        if not payload.get("ok"):
+        if payload.get("ok") is not True:
             raise RuntimeError("readiness payload ok=false: " + json.dumps(payload, sort_keys=True))
         stage = str(payload.get("stage") or payload.get("readiness_stage") or "")
         if stage and stage != "first_trusted_external_observer_rehearsal":

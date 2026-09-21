@@ -485,7 +485,7 @@
       "transcript_digest": "dd49d74c1115e49821040afa13cd19928581b0f02bbed36492faf018c8158cda"
     },
     "release_evidence_manifest": {
-      "artifact_digest": "b87ab5bb6116ab3e73bb1413247ce653a1f604f6a31138e874a782d731570e3b",
+      "artifact_digest": "a8f15765ce1b05ae93821770b6b4ee2f96eaf2533c3948006051c797eca3e6b7",
       "ok": true,
       "runtime_commit_binding_required": true,
       "schema": "weall.v1_5.release_evidence_manifest",
@@ -539,6 +539,12 @@
         "public_beta_blocker_report"
       ],
       "artifact_blockers": [
+        "api_contract",
+        "failure_code_registry",
+        "launch_disabled_matrix",
+        "state_root_vectors",
+        "tokenomics_simulation",
+        "public_validator_preflight",
         "b587_b594_mechanism_completion"
       ],
       "blocked_capabilities": [
@@ -618,6 +624,12 @@
         }
       },
       "controlled_mechanism_artifact_blockers": [
+        "api_contract",
+        "failure_code_registry",
+        "launch_disabled_matrix",
+        "state_root_vectors",
+        "tokenomics_simulation",
+        "public_validator_preflight",
         "b587_b594_mechanism_completion"
       ],
       "controlled_testnet_mechanisms_complete": false,
@@ -786,7 +798,7 @@
       "public_beta_ready_claimed": false,
       "required_artifacts": {
         "api_contract": {
-          "ok": true,
+          "ok": false,
           "path": "generated/api_contract_map_v1_5.json",
           "present": true,
           "schema": "weall.api_contract_map.v1_5"
@@ -816,13 +828,13 @@
           "schema": "weall.v1_5.external_operator_transcript_requirements"
         },
         "failure_code_registry": {
-          "ok": true,
+          "ok": false,
           "path": "generated/failure_code_registry_v1_5.json",
           "present": true,
           "schema": "weall.v1_5.failure_code_registry"
         },
         "launch_disabled_matrix": {
-          "ok": true,
+          "ok": false,
           "path": "generated/launch_disabled_matrix_v1_5.json",
           "present": true,
           "schema": "weall.launch_disabled_matrix.v1_5"
@@ -840,19 +852,19 @@
           "schema": "weall.v1_5.public_beta_blocker_report"
         },
         "public_validator_preflight": {
-          "ok": true,
+          "ok": false,
           "path": "generated/public_validator_bft_preflight_matrix_v1_5.json",
           "present": true,
           "schema": "weall.v1_5.public_validator_bft_preflight_matrix"
         },
         "state_root_vectors": {
-          "ok": true,
+          "ok": false,
           "path": "generated/state_root_vectors_v1_5.json",
           "present": true,
           "schema": "weall.v1_5.state_root_vectors"
         },
         "tokenomics_simulation": {
-          "ok": true,
+          "ok": false,
           "path": "generated/tokenomics_simulation_v1_5.json",
           "present": true,
           "schema": "weall.v1_5.tokenomics_simulation"
