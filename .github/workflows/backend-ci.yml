@@ -93,8 +93,8 @@ jobs:
             tests/prod/test_public_beta_evidence_gates.py::test_testnet_capabilities_surface_includes_public_beta_blocker_summary \
             tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py::test_claim_boundaries_and_artifact_freshness \
             tests/test_controlled_testnet_go_gate.py::test_go_gate_captures_required_artifact_and_runtime_evidence \
-            tests/test_full_node_db_api_dispute_storage_coverage.py::test_b534_b538_completion_proof_is_fresh_and_green \
-            tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py::test_b528_b532_completion_proof_is_fresh_and_green
+            tests/test_full_node_db_api_dispute_storage_coverage.py::test_b534_freshness_check_is_deterministic_and_live_verification_is_explicit \
+            tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py::test_b528_freshness_check_is_deterministic_and_live_verification_is_explicit
 
       - name: Push repaired final tree
         working-directory: .
