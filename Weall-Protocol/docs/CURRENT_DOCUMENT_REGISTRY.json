@@ -124,6 +124,36 @@
       "path": "Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md"
     },
     {
+      "claim_scan": false,
+      "classification": "HISTORICAL",
+      "path": "Weall-Protocol/docs/testnet/M2_ACCOUNT_RECOVERY_RUNBOOK.md"
+    },
+    {
+      "claim_scan": false,
+      "classification": "HISTORICAL",
+      "path": "Weall-Protocol/docs/testnet/M2_ASYNC_REVIEWER_RUNBOOK.md"
+    },
+    {
+      "claim_scan": false,
+      "classification": "HISTORICAL",
+      "path": "Weall-Protocol/docs/testnet/M2_LIVE_REVIEWER_RUNBOOK.md"
+    },
+    {
+      "claim_scan": false,
+      "classification": "HISTORICAL",
+      "path": "Weall-Protocol/docs/testnet/M2_MEDIA_INTERRUPTION_REPLACEMENT_REHEARSAL.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/testnet/OBSERVER_PROOF_POSTURE_AND_CAPTURE.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_TESTNET_QUICKSTART.md"
+    },
+    {
       "claim_scan": true,
       "classification": "CURRENT",
       "path": "Weall-Protocol/docs/testnet/TESTNET_LAUNCH_CHECKLIST.md"
