@@ -15,7 +15,7 @@ This document defines versioning and activation boundaries. It does not claim pu
 | Executable migrations/rollbacks | NO-GO | Migration and rollback execution are disabled. |
 | Live economics | NO-GO | Economics activation is not enabled by upgrade records. |
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+Current tx canon checkpoint: read `generated/tx_index.json`; this document intentionally does not duplicate mutable canon totals or version values.
 
 ## Principles
 1. Consensus validity must never depend on undocumented local environment flags.
@@ -54,7 +54,6 @@ A validator must fail closed if:
 - chain ID mismatches
 - validator epoch/hash mismatch is detected in live consensus
 
-
 ## Current production profile snapshot
 
 Current audited production profile:
@@ -62,7 +61,7 @@ Current audited production profile:
 - protocol version: `2026.03-prod.6`
 - state-root commitment version: `weall.state-root.v2`
 - protocol profile hash: `0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25`
-- transaction canon: `236 tx types, version 1.25.0`
+- transaction canon: read the current count/version and tx-index hash from `generated/tx_index.json`
 
 The production profile includes tx payload limits. Public validators must not
 change these through local environment drift; mismatched values are startup or
@@ -78,7 +77,7 @@ hash compatibility before signing.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
+- Current transaction canon checkpoint: read `generated/tx_index.json`; do not duplicate mutable totals or version values here.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
 - No required email, no required SMTP, no required DNS, and no required named hosting provider are part of PoH authority.
@@ -88,4 +87,4 @@ hash compatibility before signing.
 - Release safety requires tx canon artifact verification, secret guard, and release tree verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
-Current tx canon checkpoint: 236 tx types, version 1.25.0.
+Current tx canon checkpoint: read `generated/tx_index.json`.
