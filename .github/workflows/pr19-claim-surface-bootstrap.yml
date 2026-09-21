@@ -1,0 +1,280 @@
+name: PR19 Claim Surface Bootstrap
+
+on:
+  push:
+    branches:
+      - claim-surface-completeness-hardening-20260921
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claim-surface-completeness-hardening-20260921
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Apply claim-surface completeness hardening
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+          import ast
+          import json
+          from pathlib import Path
+
+          repo = Path.cwd()
+          backend = repo / 'Weall-Protocol'
+
+          def read(rel: str) -> str:
+              return (repo / rel).read_text(encoding='utf-8')
+
+          def write(rel: str, text: str) -> None:
+              (repo / rel).write_text(text, encoding='utf-8')
+
+          def replace_once(rel: str, old: str, new: str) -> None:
+              text = read(rel)
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{rel}: expected one match, found {count}: {old!r}')
+              write(rel, text.replace(old, new, 1))
+
+          # Expand registry from the actual final go-gate dependency graph.
+          registry_path = backend / 'docs/CURRENT_DOCUMENT_REGISTRY.json'
+          registry = json.loads(registry_path.read_text(encoding='utf-8'))
+          gen_path = backend / 'scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py'
+          tree = ast.parse(gen_path.read_text(encoding='utf-8'))
+          dep_paths: set[str] = set()
+          for node in tree.body:
+              target = None
+              value = None
+              if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                  target, value = node.targets[0].id, node.value
+              elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                  target, value = node.target.id, node.value
+              if target not in {'REQUIRED_DOCS', 'FLOW_DOCS'} or not isinstance(value, ast.Dict):
+                  continue
+              for item in value.values:
+                  if not isinstance(item, ast.Constant) or not isinstance(item.value, str):
+                      raise SystemExit(f'non-literal release doc path in {target}')
+                  dep_paths.add('Weall-Protocol/' + item.value)
+
+          extras = {
+              'Weall-Protocol/docs/CHOOSE_YOUR_NODE_MODE_QUICKSTART.md',
+              'Weall-Protocol/docs/CONTROLLED_TESTNET_GENESIS_TO_VALIDATOR_REHEARSAL.md',
+              'Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md',
+              'Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md',
+              'Weall-Protocol/docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md',
+              'Weall-Protocol/docs/legal/LEGAL_TRUTH_BOUNDARY.md',
+              'Weall-Protocol/docs/legal/TOKEN_MARKETING_GUARDRAILS.md',
+              'Weall-Protocol/docs/legal/AML_MONEY_TRANSMISSION_BOUNDARY.md',
+              'Weall-Protocol/docs/legal/SANCTIONS_AND_BLOCKED_PARTY_POLICY.md',
+              'Weall-Protocol/docs/legal/PRIVACY_DATA_PROTECTION_POSTURE.md',
+              'Weall-Protocol/docs/legal/MINORS_AND_AGE_POLICY.md',
+              'Weall-Protocol/docs/legal/SEVERE_HARM_AND_NCIM_POLICY.md',
+              'Weall-Protocol/docs/legal/PUBLIC_CLAIMS_CHECKLIST.md',
+              'Weall-Protocol/docs/legal/COUNSEL_REVIEW_EVIDENCE_PACK.md',
+              'Weall-Protocol/docs/public_validator/PUBLIC_VALIDATOR_BFT_PROOF_PLAN.md',
+          }
+          for rel in dep_paths | extras:
+              if not (repo / rel).is_file():
+                  raise SystemExit(f'missing current-surface doc: {rel}')
+
+          markers = ('Current allowed claim', '## Current status', 'Current repository posture', 'Current release posture')
+          docs = {entry['path']: dict(entry) for entry in registry['documents']}
+          for rel in sorted(dep_paths | extras):
+              entry = docs.get(rel, {'path': rel})
+              entry['classification'] = 'CURRENT'
+              text = read(rel)
+              entry['claim_scan'] = bool(entry.get('claim_scan', False) or any(marker in text for marker in markers))
+              docs[rel] = entry
+          registry['documents'] = [docs[path] for path in sorted(docs)]
+          registry['release_dependency_sources'] = [{
+              'path': 'Weall-Protocol/scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py',
+              'constant_names': ['REQUIRED_DOCS', 'FLOW_DOCS'],
+          }]
+          registry['required_current_paths'] = sorted(extras)
+          coverage = list(registry.get('coverage_globs', []))
+          for pattern in [
+              'Weall-Protocol/docs/CHOOSE_YOUR_NODE_MODE_QUICKSTART.md',
+              'Weall-Protocol/docs/CONTROLLED_TESTNET_GENESIS_TO_VALIDATOR_REHEARSAL.md',
+              'Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md',
+              'Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md',
+              'Weall-Protocol/docs/V15_IMPLEMENTATION_EVIDENCE_MAP.md',
+              'Weall-Protocol/docs/legal/*.md',
+              'Weall-Protocol/docs/public_validator/*.md',
+              'Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md',
+              'Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md',
+              'Weall-Protocol/docs/testnet/*.md',
+          ]:
+              if pattern not in coverage:
+                  coverage.append(pattern)
+          registry['coverage_globs'] = coverage
+          registry['description'] = (
+              'Repository document classification and claim-scan registry. CURRENT entries with claim_scan=true are enforced by '
+              'scripts/check_public_claim_freshness.py. coverage_globs define current-facing surfaces that must not contain '
+              'unclassified files. release_dependency_sources bind active go-gate document dependencies to explicit classification.'
+          )
+          registry_path.write_text(json.dumps(registry, indent=2) + '\n', encoding='utf-8')
+
+          # Guard markdown blocker-count tables, not only key=value prose.
+          checker_rel = 'Weall-Protocol/scripts/check_public_claim_freshness.py'
+          checker = read(checker_rel)
+          needle = '''BLOCKER_COUNT_ASSIGNMENT = re.compile(\n    r"\\b(?:blocker_catalog_count|closed_in_repository_count|remaining_blocker_count|p[0-3]_open_count)\\s*=\\s*\\d+\\b",\n    re.IGNORECASE,\n)\n'''
+          insert = needle + '''BLOCKER_COUNT_TABLE = re.compile(\n    r"\\|\\s*`?(?:blocker_catalog_count|closed_in_repository_count|remaining_blocker_count|remaining_external_evidence_required_count|p[0-3]_open_count)`?\\s*\\|\\s*`?\\d+`?\\s*\\|",\n    re.IGNORECASE,\n)\n'''
+          if checker.count(needle) != 1:
+              raise SystemExit('checker blocker regex anchor mismatch')
+          checker = checker.replace(needle, insert, 1)
+          scan = '''            if BLOCKER_COUNT_ASSIGNMENT.search(line):\n                findings.append(\n                    f"{path}:{lineno}: duplicated mutable blocker count: {line.strip()}"\n                )\n'''
+          scan2 = scan + '''            if BLOCKER_COUNT_TABLE.search(line):\n                findings.append(\n                    f"{path}:{lineno}: duplicated mutable blocker-count table value: {line.strip()}"\n                )\n'''
+          if checker.count(scan) != 1:
+              raise SystemExit('checker scan anchor mismatch')
+          checker = checker.replace(scan, scan2, 1)
+          write(checker_rel, checker)
+
+          # Remove mutable current totals from newly protected docs.
+          replace_once(
+              'Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md',
+              'Current tx canon checkpoint: **236 tx types, version 1.25.0**.',
+              'Current tx canon checkpoint: read `generated/tx_index.json`; this index intentionally does not duplicate mutable canon totals or version values.',
+          )
+          replace_once(
+              'Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md',
+              'Confirms the current 236 tx type canon and contract coverage.',
+              'Confirms the current transaction canon and contract coverage; read the generated index for mutable totals and version values.',
+          )
+          replace_once(
+              'Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md',
+              '15 blockers cataloged; 7 closed in repository; 8 open; `public_beta_ready=false`.',
+              'Canonical blocker catalog/open/closed counts are read directly from this artifact; `public_beta_ready=false` remains authoritative.',
+          )
+          replace_once(
+              'Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md',
+              '''| Field | Current value |\n|---|---:|\n| `public_beta_ready` | `false` |\n| `blocker_catalog_count` | 15 |\n| `closed_in_repository_count` | 7 |\n| `remaining_blocker_count` | 8 |\n| `remaining_external_evidence_required_count` | 8 |\n| `p0_open_count` | 4 |\n| `p1_open_count` | 4 |\n| Current tx canon checkpoint | 236 tx types, version 1.25.0 |\n''',
+              '''| Field | Current value |\n|---|---|\n| `public_beta_ready` | `false` |\n| Mutable blocker counts | Read directly from `generated/public_beta_blocker_report_v1_5.json`; this document intentionally does not duplicate them. |\n| Current tx canon checkpoint | Read directly from `generated/tx_index.json`; this document intentionally does not duplicate mutable canon totals or version values. |\n''',
+          )
+          replace_once(
+              'Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md',
+              'The 7 closed entries are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.',
+              'Entries marked closed in the canonical blocker report are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.',
+          )
+          replace_once(
+              'Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md',
+              '''| Count | Meaning |\n|---:|---|\n| 7 | Closed in repository by generated artifacts, release manifest gates, frontend/source gates, or docs gates. |\n''',
+              'Read the canonical blocker report for the current closed-entry count and IDs.\n',
+          )
+          replace_once(
+              'Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md',
+              'Current tx canon checkpoint: **236 tx types, version 1.25.0**.',
+              'Current tx canon checkpoint: read `generated/tx_index.json`; this quickstart intentionally does not duplicate mutable canon totals or version values.',
+          )
+          v = 'Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md'
+          replace_once(v, 'Current tx canon checkpoint: **236 tx types, version 1.25.0**.', 'Current tx canon checkpoint: read `generated/tx_index.json`; this document intentionally does not duplicate mutable canon totals or version values.')
+          replace_once(v, '- transaction canon: `236 tx types, version 1.25.0`', '- transaction canon: read the current count/version and tx-index hash from `generated/tx_index.json`')
+          replace_once(v, '- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.', '- Current transaction canon checkpoint: read `generated/tx_index.json`; do not duplicate mutable totals or version values here.')
+          replace_once(v, 'Current tx canon checkpoint: 236 tx types, version 1.25.0.', 'Current tx canon checkpoint: read `generated/tx_index.json`.')
+          replace_once(
+              'Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md',
+              '''The canonical blocker report currently has 15 catalog entries, 7 closed in the\nrepository, and 8 still open. This runbook does not reduce those eight blockers\nto the three transcript schemas below. In addition to validator, storage/IPFS,\nand legal evidence, the current open set includes:\n''',
+              '''Read the current blocker catalog, closed/open counts, and complete open set directly\nfrom `generated/public_beta_blocker_report_v1_5.json`. This runbook does not reduce\nthat authoritative open set to the three transcript schemas below. In addition to\nvalidator, storage/IPFS, and legal evidence, currently relevant blocker classes include:\n''',
+          )
+          replace_once(
+              'Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md',
+              '- Completed production cryptographic audit, production post-quantum security, or quantum-proof security.',
+              '- Do not claim a completed production cryptographic audit, production post-quantum security, or quantum-proof security.',
+          )
+
+          # Disambiguate the legacy local rehearsal field from release authority.
+          replace_once(
+              'Weall-Protocol/scripts/rehearse_release_blocker_closure_v1_5.py',
+              '"controlled_multi_node_testnet_candidate": True,',
+              '"local_multi_process_rehearsal_candidate": True,',
+          )
+          replace_once(
+              'Weall-Protocol/tests/prod/test_release_blocker_closure.py',
+              'assert report["claims"]["controlled_multi_node_testnet_candidate"] is True',
+              'assert report["claims"]["local_multi_process_rehearsal_candidate"] is True',
+          )
+
+          # Registry regression: go-gate doc dependencies must stay explicitly classified.
+          test_rel = 'Weall-Protocol/tests/test_current_document_registry.py'
+          t = read(test_rel)
+          if 'import ast\n' not in t:
+              t = t.replace('from __future__ import annotations\n\n', 'from __future__ import annotations\n\nimport ast\n', 1)
+          extra = r'''
+
+          def test_final_go_gate_document_dependencies_are_classified() -> None:
+              registry = json.loads(
+                  (ROOT / "docs/CURRENT_DOCUMENT_REGISTRY.json").read_text(encoding="utf-8")
+              )
+              exact = {entry["path"]: entry for entry in registry["documents"]}
+              source = ROOT / "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py"
+              tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+              paths: set[str] = set()
+              for node in tree.body:
+                  target = None
+                  value = None
+                  if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                      target, value = node.targets[0].id, node.value
+                  elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                      target, value = node.target.id, node.value
+                  if target not in {"REQUIRED_DOCS", "FLOW_DOCS"} or not isinstance(value, ast.Dict):
+                      continue
+                  for item in value.values:
+                      assert isinstance(item, ast.Constant) and isinstance(item.value, str)
+                      paths.add("Weall-Protocol/" + item.value)
+              assert paths
+              for raw_path in paths:
+                  assert raw_path in exact, raw_path
+                  assert exact[raw_path]["classification"] == "CURRENT", raw_path
+
+
+          def test_blocker_count_markdown_table_is_guarded() -> None:
+              checker = _load_checker_module()
+              assert checker.BLOCKER_COUNT_TABLE.search("| `p0_open_count` | 4 |")
+          '''
+          if 'test_final_go_gate_document_dependencies_are_classified' in t:
+              raise SystemExit('registry tests already patched')
+          t = t.rstrip() + '\n' + extra.lstrip()
+          write(test_rel, t)
+          PY
+      - name: Format and regenerate source-bound evidence
+        working-directory: Weall-Protocol
+        run: |
+          ruff format scripts/check_public_claim_freshness.py scripts/rehearse_release_blocker_closure_v1_5.py tests/test_current_document_registry.py tests/prod/test_release_blocker_closure.py
+          ruff check scripts/check_public_claim_freshness.py scripts/rehearse_release_blocker_closure_v1_5.py tests/test_current_document_registry.py tests/prod/test_release_blocker_closure.py
+          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "$GITHUB_WORKSPACE"
+          PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_b534_b538_completion_proof_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_current_verified_claims.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+      - name: Validate hardening
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src python scripts/check_public_claim_freshness.py
+          PYTHONPATH=src:scripts python scripts/gen_current_verified_claims.py --check
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+          PYTHONPATH=src pytest -q tests/test_current_document_registry.py tests/prod/test_release_blocker_closure.py tests/test_release_docs_truth_sync.py tests/test_reviewer_language_cleanup.py tests/prod/test_final_public_observer_controlled_testnet_go_gate.py tests/prod/test_public_beta_evidence_gates.py tests/prod/test_public_observer_testnet_readiness_docs.py tests/test_public_readiness_artifacts_v15.py
+          PYTHONPATH=src pytest -q
+      - name: Commit finalized PR tree and remove bootstrap workflow
+        run: |
+          git config user.name "weall-claims-hardening-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/pr19-claim-surface-bootstrap.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Close current claim-surface coverage gaps"
+          git push origin HEAD:claim-surface-completeness-hardening-20260921
