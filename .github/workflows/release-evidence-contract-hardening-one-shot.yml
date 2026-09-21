@@ -37,7 +37,7 @@ jobs:
           rm scripts/Apply-Release-Evidence-Contract-Hardening-20260920.py
           rm .github/workflows/release-evidence-contract-hardening-one-shot.yml
 
-      - name: Format, regenerate, and validate
+      - name: Format, regenerate, diagnose, and validate
         working-directory: Weall-Protocol
         run: |
           ruff format \
@@ -62,16 +62,42 @@ jobs:
               raise SystemExit("controlled gate unexpectedly claims public beta readiness")
           OUT.parent.mkdir(parents=True, exist_ok=True)
           OUT.write_text(_canon(payload), encoding="utf-8")
-          print(OUT)
+          print(f"wrote {OUT}")
+          PY
+          }
+
+          generate_final_gate() {
+            PYTHONPATH=src:scripts python - <<'PY'
+          from gen_final_public_observer_controlled_testnet_go_gate_v1_5 import OUT, _pretty, build
+
+          payload = build()
+          invalid = {
+              key: value
+              for key, value in payload.get("generated_artifacts", {}).items()
+              if value.get("present") is not True or value.get("contract_valid") is not True
+          }
+          print("repo_package_ready:", payload.get("repo_package_ready"))
+          print("external_blockers_still_open:", payload.get("external_blockers_still_open"))
+          print("public_beta_ready:", payload.get("blocker_counts", {}).get("public_beta_ready"))
+          print("invalid_generated_artifacts:", invalid)
+          OUT.parent.mkdir(parents=True, exist_ok=True)
+          OUT.write_text(_pretty(payload), encoding="utf-8")
+          if payload.get("repo_package_ready") is not True:
+              raise SystemExit("final gate package contract validation failed")
+          if payload.get("external_blockers_still_open") is not True:
+              raise SystemExit("expected external blockers are not preserved")
+          if payload.get("blocker_counts", {}).get("public_beta_ready") is not False:
+              raise SystemExit("final gate unexpectedly claims public beta readiness")
+          print(f"wrote {OUT}")
           PY
           }
 
           PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
           generate_controlled_gate
-          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py
+          generate_final_gate
           PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
           generate_controlled_gate
-          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py
+          generate_final_gate
           PYTHONPATH=src python scripts/gen_current_verified_claims.py
           PYTHONPATH=src:scripts python scripts/compile_v2_spec.py
 
