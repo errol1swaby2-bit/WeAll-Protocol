@@ -148,7 +148,15 @@ def test_testnet_capabilities_surface_includes_public_beta_blocker_summary() -> 
     assert summary["p1_open_count"] == 4
     assert "public_validator_join" in surface["blocked_capabilities"]
     assert "production_helper_execution" in surface["blocked_capabilities"]
-    assert surface["controlled_mechanism_artifact_blockers"] == ["b587_b594_mechanism_completion"]
+    assert surface["controlled_mechanism_artifact_blockers"] == [
+        "api_contract",
+        "failure_code_registry",
+        "launch_disabled_matrix",
+        "state_root_vectors",
+        "tokenomics_simulation",
+        "public_validator_preflight",
+        "b587_b594_mechanism_completion",
+    ]
     assert surface["controlled_testnet_mechanisms_complete"] is False
     upgrade = surface["protocol_upgrade_lifecycle"]
     assert upgrade["activation_clock"] == "block_height"
