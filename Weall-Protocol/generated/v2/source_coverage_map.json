@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1946,
+  "file_count": 1945,
   "files": [
     {
       "affected_registers": [
@@ -84,19 +84,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "02b8b65a3b88e84940e1218a9a8ab280d12a819bbe41bfcb6e2e99d3275e8714",
       "source_id": "SRC-EFC50317C3E5E615"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/source-truth-closure-temp.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "1ee7ae12c3dc546105364177442252cbf89120553cb0a2d443f94cf2879644db",
-      "source_id": "SRC-07474D1DF283AE23"
     },
     {
       "affected_registers": [
