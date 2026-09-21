@@ -53,11 +53,24 @@ jobs:
             scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py \
             tests/test_release_evidence_contract_fail_closed.py
 
+          generate_controlled_gate() {
+            PYTHONPATH=src:scripts python - <<'PY'
+          from run_controlled_testnet_go_gate_v1_5 import OUT, _canon, build
+
+          payload = build()
+          if payload.get("public_beta_ready") is not False:
+              raise SystemExit("controlled gate unexpectedly claims public beta readiness")
+          OUT.parent.mkdir(parents=True, exist_ok=True)
+          OUT.write_text(_canon(payload), encoding="utf-8")
+          print(OUT)
+          PY
+          }
+
           PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
-          PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py
+          generate_controlled_gate
           PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py
           PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
-          PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py
+          generate_controlled_gate
           PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py
           PYTHONPATH=src python scripts/gen_current_verified_claims.py
           PYTHONPATH=src:scripts python scripts/compile_v2_spec.py
