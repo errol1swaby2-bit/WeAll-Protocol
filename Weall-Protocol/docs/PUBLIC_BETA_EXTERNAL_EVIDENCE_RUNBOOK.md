@@ -10,10 +10,10 @@ The current repository may claim only:
 
 ## Required evidence before any public-beta claim
 
-The canonical blocker report currently has 15 catalog entries, 7 closed in the
-repository, and 8 still open. This runbook does not reduce those eight blockers
-to the three transcript schemas below. In addition to validator, storage/IPFS,
-and legal evidence, the current open set includes:
+Read the current blocker catalog, closed/open counts, and complete open set directly
+from `generated/public_beta_blocker_report_v1_5.json`. This runbook does not reduce
+that authoritative open set to the three transcript schemas below. In addition to
+validator, storage/IPFS, and legal evidence, currently relevant blocker classes include:
 
 - `AUD-618-P0-003` — future executable protocol-upgrade staging/rollback proof;
 - `AUD-633-P0-004` — fresh profile-aware post-transition rehearsal evidence, browser/local signing-boundary review, helper/evidence-signing production gate, and external cryptographic review;
@@ -123,5 +123,5 @@ scripts/run_clean_clone_go_gate_v1_5.sh
 - Public decentralized media durability ready.
 - Live economics or transfer readiness.
 - Production helper execution ready.
-- Completed production cryptographic audit, production post-quantum security, or quantum-proof security.
+- Do not claim a completed production cryptographic audit, production post-quantum security, or quantum-proof security.
 - Legal/compliance ready.
