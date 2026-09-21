@@ -215,8 +215,10 @@ def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
         if not source_raw:
             findings.append("release dependency source has empty path")
             continue
-        if not isinstance(names_raw, list) or not names_raw or not all(
-            isinstance(name, str) and name.strip() for name in names_raw
+        if (
+            not isinstance(names_raw, list)
+            or not names_raw
+            or not all(isinstance(name, str) and name.strip() for name in names_raw)
         ):
             findings.append(f"release dependency source has invalid constant_names: {source_raw}")
             continue
