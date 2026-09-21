@@ -69,7 +69,7 @@ After a crash:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **230 transaction types**, canon version **1.25.0**.
+- Current transaction-canon count/version: read `generated/tx_index.json`; do not duplicate mutable canon totals in durable prose.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - There is no required user-facing Tier 3.
 - No required email, no required SMTP, no required DNS, and no required named hosting provider are part of PoH authority.
@@ -78,8 +78,6 @@ After a crash:
 - Public API redaction is required for public snapshots and unauthenticated account reads.
 - Release safety requires tx canon artifact verification, secret guard, and release tree verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
-
-
 
 ## Validator live readiness check
 

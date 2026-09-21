@@ -1,5 +1,9 @@
 # WeAll Protocol Runtime Consensus Profile Snapshot - 2026.03-prod.6
 
+Status: **HISTORICAL SNAPSHOT**.
+
+This file records repository/runtime state as of 2026-05-02 for protocol `2026.03-prod.6`. It is not a current transaction-canon or release-readiness authority. For current transaction-canon facts, read `generated/tx_index.json`; for current readiness, read the generated release/readiness artifacts.
+
 Repository snapshot date: 2026-05-02
 Protocol version: `2026.03-prod.6`
 Protocol profile hash: `0932c0ad1161d39c152e2e24d3dda3a0455567d49a386263cb1d5c6ca1f9ed25`
@@ -29,8 +33,7 @@ Transaction canon count: `233`
 
 ## Pinned tx payload limits
 
-These limits are production consensus-profile values. Public validators must not
-change them through local environment drift.
+These limits are production consensus-profile values from this historical snapshot. They are retained as evidence of that profile and must not be treated as the current runtime profile without a fresh current-authority check.
 
 | Field | Value |
 |---|---:|
@@ -43,41 +46,26 @@ change them through local environment drift.
 
 ## Production safety deltas reflected in this snapshot
 
-- Native two-tier PoH is the required identity path: Tier 1 async, Tier 2 live.
+- Native two-tier PoH was the required identity path: Tier 1 async, Tier 2 live.
 - Email, SMTP, DNS, named hosting providers, CAPTCHA, phone, OAuth, KYC, app-store identity,
-  and third-party AI scoring are not required PoH authorities.
-- Public validator service/signing posture requires BFT enabled.
-- Validator signing and observer mode cannot be mixed.
-- Production tx payload limits are profile-pinned.
-- Public snapshots and unauthenticated account reads redact sensitive session/device/evidence internals.
-- Release-tree verification rejects local runtime DBs, devnet state, helper lanes,
+  and third-party AI scoring were not required PoH authorities.
+- Public validator service/signing posture required BFT enabled.
+- Validator signing and observer mode could not be mixed.
+- Production tx payload limits were profile-pinned.
+- Public snapshots and unauthenticated account reads redacted sensitive session/device/evidence internals.
+- Release-tree verification rejected local runtime DBs, devnet state, helper lanes,
   demo bootstrap secret/result artifacts, and generated JSON secret artifacts.
 
-## Operator check
+## Historical operator check
 
-Before enabling signing, validators should verify:
+For this snapshot, validators were expected to verify:
 
-- chain_id matches the intended network
-- tx_index_hash matches peers
-- schema_version matches peers
-- protocol_version matches peers
-- protocol_profile_hash matches peers
-- state_root_commitment_version is `weall.state-root.v2`
-- validator_epoch matches peers when BFT is enabled
-- validator_set_hash matches peers when BFT is enabled
-- `WEALL_BFT_ENABLED=1` before validator service/signing is enabled
-
-<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
-## Release truth checkpoint
-
-- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
-- Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
-- There is no required user-facing Tier 3.
-- No required email, SMTP, DNS, or named hosting provider is part of PoH authority.
-- Production validator posture must **fail closed** unless BFT is enabled and effective for validator/service signing.
-- Production tx payload limits are **profile-pinned** and local payload env overrides must not change consensus validity.
-- Public API redaction is required for public snapshots and unauthenticated account reads.
-- Release safety requires tx canon artifact verification, secret guard, and release tree verification.
-<!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
-
-Current tx canon checkpoint: 236 tx types, version 1.25.0.
+- chain_id matched the intended network
+- tx_index_hash matched peers
+- schema_version matched peers
+- protocol_version matched peers
+- protocol_profile_hash matched peers
+- state_root_commitment_version was `weall.state-root.v2`
+- validator_epoch matched peers when BFT was enabled
+- validator_set_hash matched peers when BFT was enabled
+- `WEALL_BFT_ENABLED=1` before validator service/signing was enabled

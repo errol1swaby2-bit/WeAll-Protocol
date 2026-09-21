@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1944,
+  "file_count": 1945,
   "files": [
     {
       "affected_registers": [
@@ -526,7 +526,7 @@
       ],
       "path": "docs/CURRENT_DOCUMENT_REGISTRY.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "03ab762818ab80e8b659b97a0deef0d927c902284b3a94c5ae9640c99437dd5b",
+      "sha256": "a2373a1240ce9ec67fc3db4e38ff4f2cb2fbfd526aa04fb59b15de9a0070ee7c",
       "source_id": "SRC-A51AC0876553B0DD"
     },
     {
@@ -877,7 +877,7 @@
       ],
       "path": "docs/NODE_OPERATOR_ONBOARDING.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "214b9d00bc35fad4bd049709ab17fb37ab11fd5b1b7466341dfb0aef0bd6c803",
+      "sha256": "98d41b3b74fc3d0fc287d5c9de06b7e55c313adec66cdc2ff791b72796c0ca5b",
       "source_id": "SRC-BFF3443994DDD677"
     },
     {
@@ -943,7 +943,7 @@
       ],
       "path": "docs/PRODUCTION_RUNBOOK_VALIDATORS.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "118f12cf4da2c6e3a0b41c498c5beee5d973c2f46d01c7b2817f385a70a9a057",
+      "sha256": "753b5f02310e8913a5088f05a0a42e357e76f18c9ae6ba766035364fa80c50ea",
       "source_id": "SRC-DD51E32489057055"
     },
     {
@@ -2480,7 +2480,7 @@
       ],
       "path": "docs/runtime_consensus_profile_snapshot_2026-03-prod.4.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "dd6ce3cc7e87f182bf5283ff2bb98b72b555805cd9c752a05b35f9b6af90e49d",
+      "sha256": "d4a83bd2d1f30f9f1584b68c74276724a2865fb8a01b772073f2f561379b28a3",
       "source_id": "SRC-F4C226D37BB410F8"
     },
     {
@@ -2493,7 +2493,7 @@
       ],
       "path": "docs/runtime_consensus_profile_snapshot_2026-03-prod.6.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "1a13accb3114da7e44cb1162e04f3c2c03aa563f3a380b1bb039c7ef3ba17786",
+      "sha256": "22d0e89390ddee77cd9337b2666b2cc7055807dbe3150324f7b0d0fa5c203ac2",
       "source_id": "SRC-FC9439EA0839A651"
     },
     {
@@ -27227,6 +27227,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "d3fb05215d24e069ef7d57759680169aa57377c41c870dd7cf94dc879ab8ae2b",
       "source_id": "SRC-305ACADBCCB57FA0"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "test",
+      "mappings": [
+        "M-076",
+        "ROUTE-150316944D629C32"
+      ],
+      "path": "tests/test_top_level_document_truth_classification.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "c7dbf99e7481a1a2e6962b401c82e2f82de5328edd03b0248d32a4cb75c21b17",
+      "source_id": "SRC-F03C1C72DAF94B6F"
     },
     {
       "affected_registers": [
