@@ -10,7 +10,7 @@ Reviewer current-state boundary after Passes 10–27:
 
 This document is a production posture specification and truth boundary. It is not a claim that the repository is public beta ready, public mainnet ready, public validator safe, public multi-validator BFT ready, live-economics ready, automatic-upgrade ready, production-helper ready, legal approval granted, or public storage-market ready.
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**. Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
+Current tx-canon count/version are authoritative only in `generated/tx_index.json`; this document does not duplicate mutable canon totals. Proof-of-Humanity checkpoint: **Tier 0 = account only**, **Tier 1 = native async verified human**, and **Tier 2 = native live verified human**. There is no required user-facing Tier 3. There is no required email, no required SMTP, no required DNS, and no required named hosting provider as PoH authority.
 
 ## 0. Current Reviewer Go / No-Go Boundary
 
@@ -27,7 +27,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**. Proof-of-Humanity
 | Legal/compliance approval | NO-GO | Counsel/control attestation remains required. |
 | Public storage-market readiness | NO-GO | Storage/IPFS evidence is not yet a public storage-provider market claim. |
 
-Reviewer verification path for this posture:
+Verification path for this posture:
 
 ```bash
 cd ~/WeAll-Protocol/Weall-Protocol
@@ -289,8 +289,8 @@ Violations of this production posture MUST result in:
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_START -->
 ## Release truth checkpoint
 
-- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.
-- Latest full backend test checkpoint: **3636 passed, 3 warnings**.
+- Current transaction-canon count/version: read `generated/tx_index.json`; do not duplicate mutable canon totals in durable prose.
+- Full backend test totals: read the exact CI/run transcript for the commit under review; historical pass totals are not current repository truth.
 - Proof-of-Humanity model: **Tier 0 = account only**, **Tier 1 = native async verified human**, **Tier 2 = native live verified human**.
 - Live PoH uses adaptive integer quorum with up to **10 jurors**, up to **3 active reviewers**, and up to **7 watchers**.
 - There is no required user-facing Tier 3.
@@ -303,4 +303,4 @@ Violations of this production posture MUST result in:
 - Release safety requires tx canon artifact verification, secret guard, release tree verification, and dependency-lock verification.
 <!-- WEALL_RELEASE_TRUTH_CHECKPOINT_END -->
 
-Current tx canon checkpoint: 236 tx types, version 1.25.0.
+Current tx-canon count/version remain authoritative only in `generated/tx_index.json`.

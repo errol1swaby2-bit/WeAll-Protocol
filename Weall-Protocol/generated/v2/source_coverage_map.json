@@ -526,7 +526,7 @@
       ],
       "path": "docs/CURRENT_DOCUMENT_REGISTRY.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a3b442468fb15ca6aca8eef1d1fb4c7d0bead42c4fc33b98da9a8117b2e1c83d",
+      "sha256": "18ca2f9d8002b91a0d4feed863d71053164af875f6c346dd9ab5ad6e667935c5",
       "source_id": "SRC-A51AC0876553B0DD"
     },
     {
@@ -917,7 +917,7 @@
       ],
       "path": "docs/PRODUCTION_POSTURE.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "0188916666e287729b76ce8e7cff60edd8f327451701c95a53137c1a06a6abe4",
+      "sha256": "a55d5f852971e53a8faf4d53bfa997611d6e0b7a9d345517e2adb6f04dcbf013",
       "source_id": "SRC-66758EFA33475B8B"
     },
     {
@@ -1299,7 +1299,7 @@
       ],
       "path": "docs/TRUTH_BOUNDARY.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "54f983151510450d39b8e4f0fc22a8276c45ff6561118cbe956d034a02a02ebc",
+      "sha256": "b30f39c9c94a13b86ec269e04e320908e9c3e6c6d5b9554140ddf7abbbf1a698",
       "source_id": "SRC-24DBEBF4D7B3CF0C"
     },
     {
@@ -1800,7 +1800,7 @@
       ],
       "path": "docs/operator_runbook_prod.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "ea7fd170ca88b11a23dc7243b2a17029f8dfcd373a17294e2fe7645e59ba0720",
+      "sha256": "6b5c8547d585170ada75bd33b2ef385f0c61ab5df71d29315a64aa9551f0b9a9",
       "source_id": "SRC-86052028B4A6FA7A"
     },
     {
@@ -2047,7 +2047,7 @@
       ],
       "path": "docs/production_readiness/final_truth_sync.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "ba70c9fcf9e7fe751e6e0e057527ae60e4c74ac0064e2b8428a31b01e1d7dcd4",
+      "sha256": "a22c30fa6775957eb196521a350e604c7e7a5a6b62f50f75546fc97be65b4129",
       "source_id": "SRC-24280DD55C71190A"
     },
     {
@@ -2824,7 +2824,7 @@
       ],
       "path": "docs/testnet/TESTNET_LAUNCH_CHECKLIST.md",
       "primary_mechanism_id": "M-076",
-      "sha256": "ee20128d47fa73547a4a96720d2b4283faa05caf3c6e3d10dac32ab27528439c",
+      "sha256": "521a9129eaa1fcb2de2e4c852b7bf4da26dcc4c1fabc78f77f0eec7f4dad0958",
       "source_id": "SRC-063B291C8CB574C9"
     },
     {
@@ -3197,7 +3197,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "9325e62fbf3d55551a28bcaf3b22211781164dbf74cc0b0bdf4d585819d2719a",
+      "sha256": "3f3afcb88a8dc63c15d6b1b2e4dcc40b811522d16da91eeff8c147bc7e681c53",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3211,7 +3211,7 @@
       ],
       "path": "generated/external_operator_transcript_requirements_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "51934d08da5ad61eddd1373537e7ce3fcdb72aa7ef04c3b36daf288f7762efb5",
+      "sha256": "fb83744d3ea27e170946f2eab1e5225537fe07593e2f160011ea6fd860dcd524",
       "source_id": "SRC-595995DEFD5B7D6A"
     },
     {
@@ -3323,7 +3323,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "abf35d0838a6bf71c3bc57e55330b6775c46d47abcbfe00f6c3c6897ff10f4c3",
+      "sha256": "8879122a3c9423f64c564925d426d1609dfdef743b8db21462b1ff5130b80b46",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3505,7 +3505,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "f5f9eb63657d5538558eeb4014d4b356dbefcda061d5a044a4c9877caeb515ed",
+      "sha256": "ba038cc3e436d32b834bd4f1d69596718f67cad50139ca2311796b5f87539f96",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -3991,7 +3991,7 @@
       ],
       "path": "scripts/check_public_claim_freshness.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "001a03c8f0dfc8862277540e61dd0b88723544a2b43ea3ebd05057f8b98a00e2",
+      "sha256": "0eae0bb4164badc082f3e36992fd473f7a3a68d3288fed065a3781439e1585ed",
       "source_id": "SRC-927BB0F44ECD50DF"
     },
     {
@@ -4075,7 +4075,7 @@
       ],
       "path": "scripts/check_v15_public_readiness_artifacts.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "17d530d04096857b0a756c5b177540cc82591ddf54ad410a115e376c59a5870b",
+      "sha256": "36b5fcb6d3764ec746a4cf531c876d250a518c39a5fd0d303ac07f2788bc125e",
       "source_id": "SRC-1881A050E2C2C884"
     },
     {
@@ -4622,7 +4622,7 @@
       ],
       "path": "scripts/gen_external_operator_transcript_requirements_v1_5.py",
       "primary_mechanism_id": "M-075",
-      "sha256": "c082e780b746dd07fc688ab8c6e9ae67c530bcaa631be4e13e180d42145f1277",
+      "sha256": "0c8785f0144e9a254705fed7e71bf5eef26b75f2b0aaec9b09b52fe5101d96cd",
       "source_id": "SRC-842B0D49D405700C"
     },
     {

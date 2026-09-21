@@ -4,10 +4,10 @@
 
 Batch 315 synchronizes public-facing documentation with the current post-hardening repository state after Batches 309 through 314. This file has also been truth-synced after the later executor/runtime refactor evidence pass.
 
-## Current checkpoint
+## Current truth-source policy
 
-- Transaction canon: 233 tx types, version 1.25.0
-- Latest full backend test checkpoint: 3636 passed, 3 warnings
+- Transaction-canon count/version are read from `generated/tx_index.json`; this historical Batch 315 note does not assert a mutable current total.
+- Full backend test totals belong to the exact CI/run transcript for the commit under review; the historical Batch 315 pass total is not a current claim.
 - Backend release locks: `requirements.lock`, `requirements-dev.lock`
 - Frontend release lock: `web/package-lock.json`
 - Frontend checks verified: `npm ci`, contract check against local backend, typecheck, production build

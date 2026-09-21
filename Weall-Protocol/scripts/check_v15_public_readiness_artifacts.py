@@ -392,6 +392,14 @@ def _check_external_operator_transcript_requirements() -> list[str]:
         if isinstance(payload.get("release_claim_boundaries"), dict)
         else {}
     )
+    if boundaries.get("controlled_testnet_candidate") is not False:
+        errors.append(
+            "external operator transcript requirements must keep controlled_testnet_candidate=false until the current deterministic go-gate allows it"
+        )
+    if not str(payload.get("release_claim_boundary_semantics") or "").startswith(
+        "current repository claim permissions"
+    ):
+        errors.append("external operator transcript requirements missing current-boundary semantics")
     for key in (
         "public_validator_enabled",
         "public_storage_provider_market",

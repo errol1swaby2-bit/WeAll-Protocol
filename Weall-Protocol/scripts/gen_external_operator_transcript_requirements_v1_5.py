@@ -301,8 +301,9 @@ def build() -> Json:
         "validation_commands": validation_commands,
         "strict_release_validation_commands": strict_release_validation_commands,
         "strict_release_rejects_scaffold_samples": True,
+        "release_claim_boundary_semantics": "current repository claim permissions; future evidence collection does not make a claim current until the deterministic go-gate says so",
         "release_claim_boundaries": {
-            "controlled_testnet_candidate": True,
+            "controlled_testnet_candidate": False,
             "public_beta_ready": False,
             "mainnet_ready": False,
             "public_validator_enabled": False,
