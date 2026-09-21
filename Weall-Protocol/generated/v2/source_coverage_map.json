@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1947,
+  "file_count": 1946,
   "files": [
     {
       "affected_registers": [
@@ -71,19 +71,6 @@
       "primary_mechanism_id": "M-075",
       "sha256": "858ddaf56037b66dbeec458616282759ad83a853558a7de61ec84ef611737141",
       "source_id": "SRC-FBC747FE8EED79D7"
-    },
-    {
-      "affected_registers": [
-        "non_protocol_utility"
-      ],
-      "classification": "ci_release_control",
-      "mappings": [
-        "M-075"
-      ],
-      "path": "../.github/workflows/runtime-authority-hardening-repair.yml",
-      "primary_mechanism_id": "M-075",
-      "sha256": "ca3b83fd78219552f1027b3b706ff41b25f77d92fa4806588c5e1b1fe876fbef",
-      "source_id": "SRC-CCDD677BC32ECE33"
     },
     {
       "affected_registers": [
