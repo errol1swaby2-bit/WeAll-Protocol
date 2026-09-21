@@ -283,17 +283,28 @@ jobs:
           python scripts/check_generated.py
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
-          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
-          python scripts/check_public_claim_freshness.py
-          python scripts/gen_current_verified_claims.py --check
 
-      - name: Commit repair and remove harness
+      - name: Commit repaired source and derivatives
         run: |
-          rm -f .github/workflows/runtime-authority-hardening-repair.yml
           git config user.name "weall-audit-bot"
           git config user.email "weall-audit-bot@users.noreply.github.com"
           git add -A
           git diff --cached --check
           git commit -m "Harden runtime authority recovery boundaries"
+
+      - name: Validate exact committed repair
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+
+      - name: Remove repair harness and push
+        run: |
+          rm -f .github/workflows/runtime-authority-hardening-repair.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Remove temporary runtime hardening harness"
           git push origin HEAD:runtime-authority-hardening-20260921
