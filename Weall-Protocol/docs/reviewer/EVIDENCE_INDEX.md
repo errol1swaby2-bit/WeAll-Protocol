@@ -17,7 +17,7 @@ This index separates implemented repository evidence, generated artifacts, local
 | Production cryptographic audit / post-quantum security | NO-GO | `AUD-633-P0-004` remains open; fresh post-transition evidence and external cryptographic review are required |
 | Legal/compliance approval | NO-GO | Attestation remains required |
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+Current tx canon checkpoint: read `generated/tx_index.json`; this index intentionally does not duplicate mutable canon totals or version values.
 
 ## Evidence status legend
 
@@ -33,7 +33,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 
 | Evidence | Path | Reviewer use |
 |---|---|---|
-| Tx canon checkpoint | `generated/tx_index.json`, `generated/tx_contract_map.json` | Confirms the current 236 tx type canon and contract coverage. |
+| Tx canon checkpoint | `generated/tx_index.json`, `generated/tx_contract_map.json` | Confirms the current transaction canon and contract coverage; read the generated index for mutable totals and version values. |
 | API contract map | `generated/api_contract_map_v1_5.json` | Maps implemented API routes to reviewer surfaces. |
 | API response vectors | `generated/api_response_vectors_v1_5.json` | Provides route response evidence for current status/capability surfaces. |
 | Failure code registry | `generated/failure_code_registry_v1_5.json` | Documents expected failure modes and gate language. |
@@ -48,7 +48,7 @@ Current tx canon checkpoint: **236 tx types, version 1.25.0**.
 
 | Artifact | Path | Current meaning |
 |---|---|---|
-| Public beta blocker report | `generated/public_beta_blocker_report_v1_5.json` | 15 blockers cataloged; 7 closed in repository; 8 open; `public_beta_ready=false`. |
+| Public beta blocker report | `generated/public_beta_blocker_report_v1_5.json` | Canonical blocker catalog/open/closed counts are read directly from this artifact; `public_beta_ready=false` remains authoritative. |
 | Release evidence manifest | `generated/release_evidence_manifest_v1_5.json` | Tracks release artifacts and disabled claim boundaries. |
 | Final public-observer go-gate | `generated/final_public_observer_controlled_testnet_go_gate_v1_5.json` | Records controlled-testnet mechanism completion as NO-GO while preserving the bounded pre-public-testnet hardening claim. |
 | Public observer launch requirements | `generated/public_observer_launch_evidence_requirements_v1_5.json` | Defines external observer transcript requirements. |
@@ -151,7 +151,6 @@ PYTHONPATH=src python -m pytest -q \
   tests/prod/test_public_observer_testnet_readiness_docs.py \
   tests/test_public_readiness_artifacts_v15.py
 ```
-
 
 ### Pass 33 post-quantum signing blocker
 

@@ -92,7 +92,7 @@ def run_harness() -> dict[str, Any]:
         and bool(external_observer.get("ok")),
         "batch": "616",
         "claims": {
-            "controlled_multi_node_testnet_candidate": True,
+            "local_multi_process_rehearsal_candidate": True,
             "public_validator_ready": False,
             "public_beta_ready": False,
             "mainnet_ready": False,

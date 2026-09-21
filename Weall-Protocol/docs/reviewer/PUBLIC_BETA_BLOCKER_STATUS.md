@@ -7,17 +7,12 @@ This document preserves blocker truth for reviewer use. It must not be used to i
 ## Current status
 
 | Field | Current value |
-|---|---:|
+|---|---|
 | `public_beta_ready` | `false` |
-| `blocker_catalog_count` | 15 |
-| `closed_in_repository_count` | 7 |
-| `remaining_blocker_count` | 8 |
-| `remaining_external_evidence_required_count` | 8 |
-| `p0_open_count` | 4 |
-| `p1_open_count` | 4 |
-| Current tx canon checkpoint | 236 tx types, version 1.25.0 |
+| Mutable blocker counts | Read directly from `generated/public_beta_blocker_report_v1_5.json`; this document intentionally does not duplicate them. |
+| Current tx canon checkpoint | Read directly from `generated/tx_index.json`; this document intentionally does not duplicate mutable canon totals or version values. |
 
-Do not hide or soften these values. The closed entries show repository progress; the open entries remain real readiness blockers.
+Do not hide or soften the authoritative generated values. Entries closed in the repository show repository progress; open entries remain real readiness blockers.
 
 ## Canonical sources
 
@@ -31,11 +26,9 @@ Do not hide or soften these values. The closed entries show repository progress;
 
 ## Closed in repository
 
-The 7 closed entries are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.
+Entries marked closed in the canonical blocker report are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.
 
-| Count | Meaning |
-|---:|---|
-| 7 | Closed in repository by generated artifacts, release manifest gates, frontend/source gates, or docs gates. |
+Read the canonical blocker report for the current closed-entry count and IDs.
 
 ## Remaining open blockers
 

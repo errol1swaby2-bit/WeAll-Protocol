@@ -12,7 +12,7 @@ NO-GO: controlled-testnet mechanism completion until production helper state-roo
 
 NO-GO: public beta readiness, public mainnet readiness, public validator safety, public multi-validator BFT readiness, live economics readiness, automatic protocol upgrade readiness, executable migration/rollback readiness, production helper execution readiness, legal/compliance approval, and public storage-market readiness.
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+Current tx canon checkpoint: read `generated/tx_index.json`; this quickstart intentionally does not duplicate mutable canon totals or version values.
 
 ## 1. Clone and enter backend
 
