@@ -16,7 +16,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "fcc16ef40e2eed3b0dcc946ea8aba08bb49eea842ed384941e85c3e828f7f7e8"
+    "source_tree_digest": "605a36a6ca4a835914b7a689c38bd222f7d75955e40f2d799b072e0d564560ae"
   },
   "rows": [
     {
@@ -17562,7 +17562,7 @@
       "implementation_source": {
         "function": "_apply_index_anchor_set",
         "handler": "indexing",
-        "line": 169,
+        "line": 172,
         "path": "src/weall/runtime/apply/indexing.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17667,7 +17667,7 @@
       "implementation_source": {
         "function": "_apply_state_snapshot_declare",
         "handler": "indexing",
-        "line": 191,
+        "line": 194,
         "path": "src/weall/runtime/apply/indexing.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17776,7 +17776,7 @@
       "implementation_source": {
         "function": "_apply_state_snapshot_accept",
         "handler": "indexing",
-        "line": 215,
+        "line": 218,
         "path": "src/weall/runtime/apply/indexing.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17888,7 +17888,7 @@
       "implementation_source": {
         "function": "_apply_cold_sync_request",
         "handler": "indexing",
-        "line": 260,
+        "line": 263,
         "path": "src/weall/runtime/apply/indexing.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -17998,7 +17998,7 @@
       "implementation_source": {
         "function": "_apply_cold_sync_complete",
         "handler": "indexing",
-        "line": 294,
+        "line": 297,
         "path": "src/weall/runtime/apply/indexing.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24242,7 +24242,7 @@
       "implementation_source": {
         "function": "_apply_index_topic_register",
         "handler": "indexing",
-        "line": 325,
+        "line": 328,
         "path": "src/weall/runtime/apply/indexing.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24355,7 +24355,7 @@
       "implementation_source": {
         "function": "_apply_index_topic_anchor_set",
         "handler": "indexing",
-        "line": 351,
+        "line": 354,
         "path": "src/weall/runtime/apply/indexing.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -24462,7 +24462,7 @@
       "implementation_source": {
         "function": "_apply_tx_receipt_emit",
         "handler": "indexing",
-        "line": 392,
+        "line": 395,
         "path": "src/weall/runtime/apply/indexing.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27009,7 +27009,7 @@
       "implementation_source": {
         "function": "_apply_notification_subscribe",
         "handler": "notifications",
-        "line": 88,
+        "line": 91,
         "path": "src/weall/runtime/apply/notifications.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27101,7 +27101,7 @@
       "implementation_source": {
         "function": "_apply_notification_unsubscribe",
         "handler": "notifications",
-        "line": 115,
+        "line": 118,
         "path": "src/weall/runtime/apply/notifications.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -27188,7 +27188,7 @@
       "implementation_source": {
         "function": "_apply_notification_emit_receipt",
         "handler": "notifications",
-        "line": 140,
+        "line": 143,
         "path": "src/weall/runtime/apply/notifications.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",

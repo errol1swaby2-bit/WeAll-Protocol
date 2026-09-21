@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 """
-Indexing domain apply semantics (production-ready; canon-correct).
+Indexing domain apply semantics for the listed transaction family.
 
-Canon Indexing txs (v1.22.1) = 8:
+Transaction authority is generated/tx_index.json, derived from the normative
+transaction canon; this module makes no independent release-readiness claim.
+
+Canonical indexing transactions handled here:
 - INDEX_ANCHOR_SET (SYSTEM, block, receipt_only, parent=BLOCK_FINALIZE, gate Validator, system_only)
 - STATE_SNAPSHOT_DECLARE (SYSTEM, block, receipt_only, parent=BLOCK_FINALIZE, gate Validator, system_only)
 - STATE_SNAPSHOT_ACCEPT (SYSTEM, block, receipt_only, parent=STATE_SNAPSHOT_DECLARE, gate Validator, system_only)

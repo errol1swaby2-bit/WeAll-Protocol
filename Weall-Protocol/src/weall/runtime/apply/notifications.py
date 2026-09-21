@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 """
-Notifications domain apply semantics (production-ready; canon-correct).
+Notifications domain apply semantics for the listed transaction family.
 
-Canon txs (v1.22.1):
+Transaction authority is generated/tx_index.json, derived from the normative
+transaction canon; this module makes no independent release-readiness claim.
+
+Canonical transactions handled here:
 - NOTIFICATION_SUBSCRIBE (USER, mempool)
 - NOTIFICATION_UNSUBSCRIBE (USER, mempool)
 - NOTIFICATION_EMIT_RECEIPT (SYSTEM, block, receipt_only, parent=BLOCK_FINALIZE)
