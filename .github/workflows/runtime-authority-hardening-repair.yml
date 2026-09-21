@@ -277,10 +277,14 @@ jobs:
             tests/test_pb001by_pacemaker_timeout_emission.py \
             tests/test_bft_journal_restart.py
 
-      - name: Refresh source-bound specification derivatives
+      - name: Refresh source-bound v1.5 proofs then v2 derivatives
         working-directory: Weall-Protocol
         run: |
           python scripts/check_generated.py
+          PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
 
@@ -297,7 +301,7 @@ jobs:
         run: |
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
-          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
 
