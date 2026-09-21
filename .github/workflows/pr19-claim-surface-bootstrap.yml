@@ -163,36 +163,36 @@ jobs:
               t = t.replace('from __future__ import annotations\n\n', 'from __future__ import annotations\n\nimport ast\n', 1)
           extra = r'''
 
-def test_final_go_gate_document_dependencies_are_classified() -> None:
-    registry = json.loads(
-        (ROOT / "docs/CURRENT_DOCUMENT_REGISTRY.json").read_text(encoding="utf-8")
-    )
-    exact = {entry["path"]: entry for entry in registry["documents"]}
-    source = ROOT / "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py"
-    tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
-    paths: set[str] = set()
-    for node in tree.body:
-        target = None
-        value = None
-        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-            target, value = node.targets[0].id, node.value
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            target, value = node.target.id, node.value
-        if target not in {"REQUIRED_DOCS", "FLOW_DOCS"} or not isinstance(value, ast.Dict):
-            continue
-        for item in value.values:
-            assert isinstance(item, ast.Constant) and isinstance(item.value, str)
-            paths.add("Weall-Protocol/" + item.value)
-    assert paths
-    for raw_path in paths:
-        assert raw_path in exact, raw_path
-        assert exact[raw_path]["classification"] == "CURRENT", raw_path
+          def test_final_go_gate_document_dependencies_are_classified() -> None:
+              registry = json.loads(
+                  (ROOT / "docs/CURRENT_DOCUMENT_REGISTRY.json").read_text(encoding="utf-8")
+              )
+              exact = {entry["path"]: entry for entry in registry["documents"]}
+              source = ROOT / "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py"
+              tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+              paths: set[str] = set()
+              for node in tree.body:
+                  target = None
+                  value = None
+                  if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                      target, value = node.targets[0].id, node.value
+                  elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                      target, value = node.target.id, node.value
+                  if target not in {"REQUIRED_DOCS", "FLOW_DOCS"} or not isinstance(value, ast.Dict):
+                      continue
+                  for item in value.values:
+                      assert isinstance(item, ast.Constant) and isinstance(item.value, str)
+                      paths.add("Weall-Protocol/" + item.value)
+              assert paths
+              for raw_path in paths:
+                  assert raw_path in exact, raw_path
+                  assert exact[raw_path]["classification"] == "CURRENT", raw_path
 
 
-def test_blocker_count_markdown_table_is_guarded() -> None:
-    checker = _load_checker_module()
-    assert checker.BLOCKER_COUNT_TABLE.search("| `p0_open_count` | 4 |")
-'''
+          def test_blocker_count_markdown_table_is_guarded() -> None:
+              checker = _load_checker_module()
+              assert checker.BLOCKER_COUNT_TABLE.search("| `p0_open_count` | 4 |")
+          '''
           if 'test_final_go_gate_document_dependencies_are_classified' in t:
               raise SystemExit('registry tests already patched')
           t = t.rstrip() + '\n' + extra.lstrip()
