@@ -29,8 +29,26 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Apply bounded hardening
-        run: python scripts/Apply-Release-Evidence-Contract-Hardening-20260920.py
+      - name: Apply bounded hardening and recursive release contracts
+        run: |
+          python scripts/Apply-Release-Evidence-Contract-Hardening-20260920.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("Weall-Protocol/scripts/release_evidence_contracts.py")
+          text = path.read_text(encoding="utf-8")
+          marker = "NO_OK_ARTIFACTS = "
+          if text.count(marker) != 1:
+              raise SystemExit("unexpected release_evidence_contracts.py structure")
+          recursive = {
+              "generated/public_beta_blocker_report_v1_5.json": "weall.v1_5.public_beta_blocker_report",
+              "generated/controlled_testnet_go_gate_v1_5.json": "weall.v1_5.controlled_testnet_go_gate",
+              "generated/release_evidence_manifest_v1_5.json": "weall.v1_5.release_evidence_manifest",
+          }
+          injection = f"EXPECTED_SCHEMAS.update({recursive!r})\n\n"
+          text = text.replace(marker, injection + marker, 1)
+          path.write_text(text, encoding="utf-8")
+          PY
 
       - name: Remove temporary helpers before source-sensitive generation
         run: |
