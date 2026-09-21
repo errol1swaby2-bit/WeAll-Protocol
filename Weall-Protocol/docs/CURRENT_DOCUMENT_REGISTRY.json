@@ -72,7 +72,7 @@
     {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/GOVERNANCE_RENDERED_JOURNEY.md"},
     {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/GROUP_FLOW_READINESS.md"},
     {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/INDEPENDENT_CONTROLLED_VALIDATOR_OPERATOR_TRANSCRIPT.md"},
-    {"claim_scan": false, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md"},
+    {"claim_scan": true, "classification": "CURRENT", "path": "Weall-Protocol/docs/testnet/LEGAL_COMPLIANCE_EVIDENCE_PACK.md"},
     {"claim_scan": false, "classification": "HISTORICAL", "path": "Weall-Protocol/docs/testnet/M2_ACCOUNT_RECOVERY_RUNBOOK.md"},
     {"claim_scan": false, "classification": "HISTORICAL", "path": "Weall-Protocol/docs/testnet/M2_ASYNC_REVIEWER_RUNBOOK.md"},
     {"claim_scan": false, "classification": "HISTORICAL", "path": "Weall-Protocol/docs/testnet/M2_LIVE_REVIEWER_RUNBOOK.md"},
