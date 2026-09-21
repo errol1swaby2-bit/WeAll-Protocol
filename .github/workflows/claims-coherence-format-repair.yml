@@ -1,0 +1,67 @@
+name: Claims coherence format repair
+
+on:
+  push:
+    branches:
+      - claims-coherence-hardening-20260921
+    paths:
+      - .github/workflows/claims-coherence-format-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: claims-coherence-hardening-20260921
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+      - name: Format changed Python guards
+        working-directory: Weall-Protocol
+        run: |
+          ruff format scripts/check_public_claim_freshness.py scripts/check_v15_public_readiness_artifacts.py
+          ruff check scripts/check_public_claim_freshness.py scripts/check_v15_public_readiness_artifacts.py scripts/gen_external_operator_transcript_requirements_v1_5.py
+      - name: Remove temporary workflow and refresh v2 last
+        run: |
+          rm -f .github/workflows/claims-coherence-format-repair.yml
+          cd Weall-Protocol
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+      - name: Validate formatted final tree
+        working-directory: Weall-Protocol
+        run: |
+          ruff format --check scripts/check_public_claim_freshness.py scripts/check_v15_public_readiness_artifacts.py scripts/gen_external_operator_transcript_requirements_v1_5.py
+          ruff check scripts/check_public_claim_freshness.py scripts/check_v15_public_readiness_artifacts.py scripts/gen_external_operator_transcript_requirements_v1_5.py
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          git diff --check
+      - name: Commit exact formatted tree locally
+        run: |
+          git config user.name 'weall-claims-repair-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          if git ls-files --cached | grep '^.github/workflows/claims-coherence-format-repair.yml$'; then
+            echo 'temporary formatting workflow remains tracked' >&2
+            exit 1
+          fi
+          git commit -m 'Format claims truth guards'
+      - name: Verify committed tree and push
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_v2_spec_clean_checkout.py
+          ruff format --check scripts/check_public_claim_freshness.py scripts/check_v15_public_readiness_artifacts.py scripts/gen_external_operator_transcript_requirements_v1_5.py
+          test -z "$(git status --porcelain)"
+          git push origin HEAD:claims-coherence-hardening-20260921
