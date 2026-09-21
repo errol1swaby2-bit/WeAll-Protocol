@@ -66,7 +66,7 @@ Expected behavior:
 - Tier-2 human status is eligibility, not consent to every reviewer duty;
 - assigned content/dispute reports route to the focused review workspace;
 - PoH evidence is not loaded before reviewer acceptance;
-- reviewer evidence controls clearly state the backend source and consent boundary.
+- evidence-access controls clearly state the backend source and consent boundary.
 
 ## Report review action route
 
