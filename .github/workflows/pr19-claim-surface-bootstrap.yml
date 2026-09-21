@@ -49,7 +49,6 @@ jobs:
                   raise SystemExit(f'{rel}: expected one match, found {count}: {old!r}')
               write(rel, text.replace(old, new, 1))
 
-          # Expand registry from the actual final go-gate dependency graph.
           registry_path = backend / 'docs/CURRENT_DOCUMENT_REGISTRY.json'
           registry = json.loads(registry_path.read_text(encoding='utf-8'))
           gen_path = backend / 'scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py'
@@ -127,7 +126,6 @@ jobs:
           )
           registry_path.write_text(json.dumps(registry, indent=2) + '\n', encoding='utf-8')
 
-          # Guard markdown blocker-count tables, not only key=value prose.
           checker_rel = 'Weall-Protocol/scripts/check_public_claim_freshness.py'
           checker = read(checker_rel)
           needle = '''BLOCKER_COUNT_ASSIGNMENT = re.compile(\n    r"\\b(?:blocker_catalog_count|closed_in_repository_count|remaining_blocker_count|p[0-3]_open_count)\\s*=\\s*\\d+\\b",\n    re.IGNORECASE,\n)\n'''
@@ -142,107 +140,59 @@ jobs:
           checker = checker.replace(scan, scan2, 1)
           write(checker_rel, checker)
 
-          # Remove mutable current totals from newly protected docs.
-          replace_once(
-              'Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md',
-              'Current tx canon checkpoint: **236 tx types, version 1.25.0**.',
-              'Current tx canon checkpoint: read `generated/tx_index.json`; this index intentionally does not duplicate mutable canon totals or version values.',
-          )
-          replace_once(
-              'Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md',
-              'Confirms the current 236 tx type canon and contract coverage.',
-              'Confirms the current transaction canon and contract coverage; read the generated index for mutable totals and version values.',
-          )
-          replace_once(
-              'Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md',
-              '15 blockers cataloged; 7 closed in repository; 8 open; `public_beta_ready=false`.',
-              'Canonical blocker catalog/open/closed counts are read directly from this artifact; `public_beta_ready=false` remains authoritative.',
-          )
-          replace_once(
-              'Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md',
-              '''| Field | Current value |\n|---|---:|\n| `public_beta_ready` | `false` |\n| `blocker_catalog_count` | 15 |\n| `closed_in_repository_count` | 7 |\n| `remaining_blocker_count` | 8 |\n| `remaining_external_evidence_required_count` | 8 |\n| `p0_open_count` | 4 |\n| `p1_open_count` | 4 |\n| Current tx canon checkpoint | 236 tx types, version 1.25.0 |\n''',
-              '''| Field | Current value |\n|---|---|\n| `public_beta_ready` | `false` |\n| Mutable blocker counts | Read directly from `generated/public_beta_blocker_report_v1_5.json`; this document intentionally does not duplicate them. |\n| Current tx canon checkpoint | Read directly from `generated/tx_index.json`; this document intentionally does not duplicate mutable canon totals or version values. |\n''',
-          )
-          replace_once(
-              'Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md',
-              'The 7 closed entries are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.',
-              'Entries marked closed in the canonical blocker report are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.',
-          )
-          replace_once(
-              'Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md',
-              '''| Count | Meaning |\n|---:|---|\n| 7 | Closed in repository by generated artifacts, release manifest gates, frontend/source gates, or docs gates. |\n''',
-              'Read the canonical blocker report for the current closed-entry count and IDs.\n',
-          )
-          replace_once(
-              'Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md',
-              'Current tx canon checkpoint: **236 tx types, version 1.25.0**.',
-              'Current tx canon checkpoint: read `generated/tx_index.json`; this quickstart intentionally does not duplicate mutable canon totals or version values.',
-          )
+          replace_once('Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md', 'Current tx canon checkpoint: **236 tx types, version 1.25.0**.', 'Current tx canon checkpoint: read `generated/tx_index.json`; this index intentionally does not duplicate mutable canon totals or version values.')
+          replace_once('Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md', 'Confirms the current 236 tx type canon and contract coverage.', 'Confirms the current transaction canon and contract coverage; read the generated index for mutable totals and version values.')
+          replace_once('Weall-Protocol/docs/reviewer/EVIDENCE_INDEX.md', '15 blockers cataloged; 7 closed in repository; 8 open; `public_beta_ready=false`.', 'Canonical blocker catalog/open/closed counts are read directly from this artifact; `public_beta_ready=false` remains authoritative.')
+          replace_once('Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md', '''| Field | Current value |\n|---|---:|\n| `public_beta_ready` | `false` |\n| `blocker_catalog_count` | 15 |\n| `closed_in_repository_count` | 7 |\n| `remaining_blocker_count` | 8 |\n| `remaining_external_evidence_required_count` | 8 |\n| `p0_open_count` | 4 |\n| `p1_open_count` | 4 |\n| Current tx canon checkpoint | 236 tx types, version 1.25.0 |\n''', '''| Field | Current value |\n|---|---|\n| `public_beta_ready` | `false` |\n| Mutable blocker counts | Read directly from `generated/public_beta_blocker_report_v1_5.json`; this document intentionally does not duplicate them. |\n| Current tx canon checkpoint | Read directly from `generated/tx_index.json`; this document intentionally does not duplicate mutable canon totals or version values. |\n''')
+          replace_once('Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md', 'The 7 closed entries are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.', 'Entries marked closed in the canonical blocker report are closed only by repository artifacts, tests, docs, or source gates. They do not close missing external evidence gates.')
+          replace_once('Weall-Protocol/docs/reviewer/PUBLIC_BETA_BLOCKER_STATUS.md', '''| Count | Meaning |\n|---:|---|\n| 7 | Closed in repository by generated artifacts, release manifest gates, frontend/source gates, or docs gates. |\n''', 'Read the canonical blocker report for the current closed-entry count and IDs.\n')
+          replace_once('Weall-Protocol/docs/testnet/PUBLIC_OBSERVER_QUICKSTART.md', 'Current tx canon checkpoint: **236 tx types, version 1.25.0**.', 'Current tx canon checkpoint: read `generated/tx_index.json`; this quickstart intentionally does not duplicate mutable canon totals or version values.')
           v = 'Weall-Protocol/docs/PROTOCOL_VERSIONING_STRATEGY.md'
           replace_once(v, 'Current tx canon checkpoint: **236 tx types, version 1.25.0**.', 'Current tx canon checkpoint: read `generated/tx_index.json`; this document intentionally does not duplicate mutable canon totals or version values.')
           replace_once(v, '- transaction canon: `236 tx types, version 1.25.0`', '- transaction canon: read the current count/version and tx-index hash from `generated/tx_index.json`')
           replace_once(v, '- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.', '- Current transaction canon checkpoint: read `generated/tx_index.json`; do not duplicate mutable totals or version values here.')
           replace_once(v, 'Current tx canon checkpoint: 236 tx types, version 1.25.0.', 'Current tx canon checkpoint: read `generated/tx_index.json`.')
-          replace_once(
-              'Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md',
-              '''The canonical blocker report currently has 15 catalog entries, 7 closed in the\nrepository, and 8 still open. This runbook does not reduce those eight blockers\nto the three transcript schemas below. In addition to validator, storage/IPFS,\nand legal evidence, the current open set includes:\n''',
-              '''Read the current blocker catalog, closed/open counts, and complete open set directly\nfrom `generated/public_beta_blocker_report_v1_5.json`. This runbook does not reduce\nthat authoritative open set to the three transcript schemas below. In addition to\nvalidator, storage/IPFS, and legal evidence, currently relevant blocker classes include:\n''',
-          )
-          replace_once(
-              'Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md',
-              '- Completed production cryptographic audit, production post-quantum security, or quantum-proof security.',
-              '- Do not claim a completed production cryptographic audit, production post-quantum security, or quantum-proof security.',
-          )
+          replace_once('Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md', '''The canonical blocker report currently has 15 catalog entries, 7 closed in the\nrepository, and 8 still open. This runbook does not reduce those eight blockers\nto the three transcript schemas below. In addition to validator, storage/IPFS,\nand legal evidence, the current open set includes:\n''', '''Read the current blocker catalog, closed/open counts, and complete open set directly\nfrom `generated/public_beta_blocker_report_v1_5.json`. This runbook does not reduce\nthat authoritative open set to the three transcript schemas below. In addition to\nvalidator, storage/IPFS, and legal evidence, currently relevant blocker classes include:\n''')
+          replace_once('Weall-Protocol/docs/PUBLIC_BETA_EXTERNAL_EVIDENCE_RUNBOOK.md', '- Completed production cryptographic audit, production post-quantum security, or quantum-proof security.', '- Do not claim a completed production cryptographic audit, production post-quantum security, or quantum-proof security.')
+          replace_once('Weall-Protocol/scripts/rehearse_release_blocker_closure_v1_5.py', '"controlled_multi_node_testnet_candidate": True,', '"local_multi_process_rehearsal_candidate": True,')
+          replace_once('Weall-Protocol/tests/prod/test_release_blocker_closure.py', 'assert report["claims"]["controlled_multi_node_testnet_candidate"] is True', 'assert report["claims"]["local_multi_process_rehearsal_candidate"] is True')
 
-          # Disambiguate the legacy local rehearsal field from release authority.
-          replace_once(
-              'Weall-Protocol/scripts/rehearse_release_blocker_closure_v1_5.py',
-              '"controlled_multi_node_testnet_candidate": True,',
-              '"local_multi_process_rehearsal_candidate": True,',
-          )
-          replace_once(
-              'Weall-Protocol/tests/prod/test_release_blocker_closure.py',
-              'assert report["claims"]["controlled_multi_node_testnet_candidate"] is True',
-              'assert report["claims"]["local_multi_process_rehearsal_candidate"] is True',
-          )
-
-          # Registry regression: go-gate doc dependencies must stay explicitly classified.
           test_rel = 'Weall-Protocol/tests/test_current_document_registry.py'
           t = read(test_rel)
           if 'import ast\n' not in t:
               t = t.replace('from __future__ import annotations\n\n', 'from __future__ import annotations\n\nimport ast\n', 1)
           extra = r'''
 
-          def test_final_go_gate_document_dependencies_are_classified() -> None:
-              registry = json.loads(
-                  (ROOT / "docs/CURRENT_DOCUMENT_REGISTRY.json").read_text(encoding="utf-8")
-              )
-              exact = {entry["path"]: entry for entry in registry["documents"]}
-              source = ROOT / "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py"
-              tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
-              paths: set[str] = set()
-              for node in tree.body:
-                  target = None
-                  value = None
-                  if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-                      target, value = node.targets[0].id, node.value
-                  elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-                      target, value = node.target.id, node.value
-                  if target not in {"REQUIRED_DOCS", "FLOW_DOCS"} or not isinstance(value, ast.Dict):
-                      continue
-                  for item in value.values:
-                      assert isinstance(item, ast.Constant) and isinstance(item.value, str)
-                      paths.add("Weall-Protocol/" + item.value)
-              assert paths
-              for raw_path in paths:
-                  assert raw_path in exact, raw_path
-                  assert exact[raw_path]["classification"] == "CURRENT", raw_path
+def test_final_go_gate_document_dependencies_are_classified() -> None:
+    registry = json.loads(
+        (ROOT / "docs/CURRENT_DOCUMENT_REGISTRY.json").read_text(encoding="utf-8")
+    )
+    exact = {entry["path"]: entry for entry in registry["documents"]}
+    source = ROOT / "scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+    paths: set[str] = set()
+    for node in tree.body:
+        target = None
+        value = None
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            target, value = node.targets[0].id, node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            target, value = node.target.id, node.value
+        if target not in {"REQUIRED_DOCS", "FLOW_DOCS"} or not isinstance(value, ast.Dict):
+            continue
+        for item in value.values:
+            assert isinstance(item, ast.Constant) and isinstance(item.value, str)
+            paths.add("Weall-Protocol/" + item.value)
+    assert paths
+    for raw_path in paths:
+        assert raw_path in exact, raw_path
+        assert exact[raw_path]["classification"] == "CURRENT", raw_path
 
 
-          def test_blocker_count_markdown_table_is_guarded() -> None:
-              checker = _load_checker_module()
-              assert checker.BLOCKER_COUNT_TABLE.search("| `p0_open_count` | 4 |")
-          '''
+def test_blocker_count_markdown_table_is_guarded() -> None:
+    checker = _load_checker_module()
+    assert checker.BLOCKER_COUNT_TABLE.search("| `p0_open_count` | 4 |")
+'''
           if 'test_final_go_gate_document_dependencies_are_classified' in t:
               raise SystemExit('registry tests already patched')
           t = t.rstrip() + '\n' + extra.lstrip()
@@ -253,7 +203,7 @@ jobs:
         run: |
           ruff format scripts/check_public_claim_freshness.py scripts/rehearse_release_blocker_closure_v1_5.py tests/test_current_document_registry.py tests/prod/test_release_blocker_closure.py
           ruff check scripts/check_public_claim_freshness.py scripts/rehearse_release_blocker_closure_v1_5.py tests/test_current_document_registry.py tests/prod/test_release_blocker_closure.py
-          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "$GITHUB_WORKSPACE"
+          bash ../scripts/restore_m2_m3_evidence_from_git.sh --destination "$GITHUB_WORKSPACE"
           PYTHONPATH=src:scripts python scripts/gen_b528_b532_completion_proof_v1_5.py
           PYTHONPATH=src:scripts python scripts/gen_b534_b538_completion_proof_v1_5.py
           PYTHONPATH=src:scripts python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
