@@ -1,0 +1,87 @@
+name: Release evidence contract hardening one-shot
+
+on:
+  push:
+    branches: ["release-evidence-contract-hardening"]
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: release-evidence-contract-hardening
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Apply bounded hardening
+        run: python scripts/Apply-Release-Evidence-Contract-Hardening-20260920.py
+
+      - name: Remove temporary helpers before source-sensitive generation
+        run: |
+          rm scripts/Apply-Release-Evidence-Contract-Hardening-20260920.py
+          rm .github/workflows/release-evidence-contract-hardening-one-shot.yml
+
+      - name: Format, regenerate, and validate
+        working-directory: Weall-Protocol
+        run: |
+          ruff format \
+            scripts/release_evidence_contracts.py \
+            scripts/gen_release_evidence_manifest_v1_5.py \
+            scripts/run_controlled_testnet_go_gate_v1_5.py \
+            scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py \
+            tests/test_release_evidence_contract_fail_closed.py
+          ruff check \
+            scripts/release_evidence_contracts.py \
+            scripts/gen_release_evidence_manifest_v1_5.py \
+            scripts/run_controlled_testnet_go_gate_v1_5.py \
+            scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py \
+            tests/test_release_evidence_contract_fail_closed.py
+
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py
+          PYTHONPATH=src:scripts python scripts/compile_v2_spec.py
+
+          PYTHONPATH=src:scripts pytest -q \
+            tests/test_release_evidence_contract_fail_closed.py \
+            tests/test_current_verified_claims_fail_closed.py \
+            tests/test_public_beta_blocker_report_fail_closed.py
+
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py --check
+          PYTHONPATH=src python scripts/check_public_claim_freshness.py
+          PYTHONPATH=src:scripts python scripts/compile_v2_spec.py --check
+          git diff --check
+
+      - name: Commit validated final tree
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status --short
+          git diff --cached --check
+          git commit -m "Harden release evidence aggregation contracts"
+          git push origin HEAD:release-evidence-contract-hardening
