@@ -165,9 +165,13 @@ def main() -> int:
             if MUTABLE_COUNT.search(line):
                 findings.append(f"{path}:{lineno}: duplicated mutable count: {line.strip()}")
             if PYTEST_RESULT.search(line):
-                findings.append(f"{path}:{lineno}: duplicated volatile pytest total: {line.strip()}")
+                findings.append(
+                    f"{path}:{lineno}: duplicated volatile pytest total: {line.strip()}"
+                )
             if BLOCKER_COUNT_ASSIGNMENT.search(line):
-                findings.append(f"{path}:{lineno}: duplicated mutable blocker count: {line.strip()}")
+                findings.append(
+                    f"{path}:{lineno}: duplicated mutable blocker count: {line.strip()}"
+                )
             if ABSOLUTE_SECURITY.search(line) and not SAFE_NEGATION.search(line):
                 findings.append(
                     f"{path}:{lineno}: unqualified absolute-security claim: {line.strip()}"

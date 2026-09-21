@@ -3991,7 +3991,7 @@
       ],
       "path": "scripts/check_public_claim_freshness.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "0eae0bb4164badc082f3e36992fd473f7a3a68d3288fed065a3781439e1585ed",
+      "sha256": "f27b7412e393892288f6ac3aea25b50fbe3d44162565cc7e9fcbb16291c9318d",
       "source_id": "SRC-927BB0F44ECD50DF"
     },
     {
@@ -4075,7 +4075,7 @@
       ],
       "path": "scripts/check_v15_public_readiness_artifacts.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "36b5fcb6d3764ec746a4cf531c876d250a518c39a5fd0d303ac07f2788bc125e",
+      "sha256": "9e2cbdf0a777ef9e47b59d45bb256e0ad4b68e3d56e5236218a8d115c2ff37b7",
       "source_id": "SRC-1881A050E2C2C884"
     },
     {

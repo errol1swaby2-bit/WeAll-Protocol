@@ -399,7 +399,9 @@ def _check_external_operator_transcript_requirements() -> list[str]:
     if not str(payload.get("release_claim_boundary_semantics") or "").startswith(
         "current repository claim permissions"
     ):
-        errors.append("external operator transcript requirements missing current-boundary semantics")
+        errors.append(
+            "external operator transcript requirements missing current-boundary semantics"
+        )
     for key in (
         "public_validator_enabled",
         "public_storage_provider_market",
