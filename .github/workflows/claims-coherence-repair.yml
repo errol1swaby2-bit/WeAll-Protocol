@@ -1,0 +1,158 @@
+name: Claims coherence repair
+
+on:
+  push:
+    branches:
+      - claims-coherence-hardening-20260921
+    paths:
+      - .github/workflows/claims-coherence-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: claims-coherence-hardening-20260921
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked backend environment
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Apply claims/coherence repair
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+
+          repo = Path.cwd()
+          backend = repo / "Weall-Protocol"
+
+          def replace_exact(path: Path, old: str, new: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one match in {path}: {old!r}; found {count}")
+              path.write_text(text.replace(old, new), encoding="utf-8")
+
+          posture = backend / "docs/PRODUCTION_POSTURE.md"
+          replace_exact(posture,"Current tx canon checkpoint: **236 tx types, version 1.25.0**. Proof-of-Humanity checkpoint:","Current tx-canon count/version are authoritative only in `generated/tx_index.json`; this document does not duplicate mutable canon totals. Proof-of-Humanity checkpoint:")
+          replace_exact(posture,"- Current transaction canon checkpoint: **236 transaction types**, canon version **1.25.0**.\n- Latest full backend test checkpoint: **3636 passed, 3 warnings**.","- Current transaction-canon count/version: read `generated/tx_index.json`; do not duplicate mutable canon totals in durable prose.\n- Full backend test totals: read the exact CI/run transcript for the commit under review; historical pass totals are not current repository truth.")
+          replace_exact(posture,"\nCurrent tx canon checkpoint: 236 tx types, version 1.25.0.\n","\nCurrent tx-canon count/version remain authoritative only in `generated/tx_index.json`.\n")
+
+          operator = backend / "docs/operator_runbook_prod.md"
+          replace_exact(operator,"Expected current checkpoint:\n\n```text\ntx canon: 233 tx types, version 1.25.0\nlatest full backend suite: 3636 passed, 3 warnings\nbackend locks: requirements.lock, requirements-dev.lock\nfrontend lock: ../web/package-lock.json\n```","Current mutable checkpoints are intentionally not duplicated in this runbook. Before relying on a checkout, verify:\n\n- transaction-canon count/version from `generated/tx_index.json`;\n- the full backend result from the exact CI/run transcript for the commit under review;\n- backend locks `requirements.lock` and `requirements-dev.lock`;\n- frontend lock `../web/package-lock.json`.\n\nA historical pass total or copied canon count is not a substitute for those current sources.")
+
+          truth_sync = backend / "docs/production_readiness/final_truth_sync.md"
+          replace_exact(truth_sync,"## Current checkpoint\n\n- Transaction canon: 233 tx types, version 1.25.0\n- Latest full backend test checkpoint: 3636 passed, 3 warnings","## Current truth-source policy\n\n- Transaction-canon count/version are read from `generated/tx_index.json`; this historical Batch 315 note does not assert a mutable current total.\n- Full backend test totals belong to the exact CI/run transcript for the commit under review; the historical Batch 315 pass total is not a current claim.")
+
+          launch = backend / "docs/testnet/TESTNET_LAUNCH_CHECKLIST.md"
+          replace_exact(launch,"Current tx canon checkpoint: **236 tx types, version 1.25.0**.","Current tx-canon count/version must be read from `generated/tx_index.json`; this checklist intentionally does not duplicate mutable canon totals.")
+          replace_exact(launch,"Expected blocker boundary: `public_beta_ready=false`; `controlled_testnet_candidate=false`; `blocker_catalog_count=15`; `closed_in_repository_count=7`; `remaining_blocker_count=8`; `p0_open_count=4`; `p1_open_count=4`.","Expected blocker boundary: `public_beta_ready=false` and `controlled_testnet_candidate=false`. Read all blocker catalog/open/closed counts directly from `generated/public_beta_blocker_report_v1_5.json`; do not copy mutable blocker totals into this checklist.")
+
+          truth_boundary = backend / "docs/TRUTH_BOUNDARY.md"
+          replace_exact(truth_boundary,"Last reviewed: 2026-05-29.","Last reviewed: 2026-09-21.")
+
+          registry_path = backend / "docs/CURRENT_DOCUMENT_REGISTRY.json"
+          registry = json.loads(registry_path.read_text(encoding="utf-8"))
+          required_current = ["Weall-Protocol/docs/PRODUCTION_POSTURE.md","Weall-Protocol/docs/TRUTH_BOUNDARY.md","Weall-Protocol/docs/operator_runbook_prod.md","Weall-Protocol/docs/production_readiness/final_truth_sync.md","Weall-Protocol/docs/testnet/TESTNET_LAUNCH_CHECKLIST.md"]
+          docs = registry["documents"]
+          by_path = {entry["path"]: entry for entry in docs}
+          for path in required_current:
+              entry = by_path.get(path)
+              if entry is None:
+                  docs.append({"claim_scan": True, "classification": "CURRENT", "path": path})
+              else:
+                  entry["classification"] = "CURRENT"
+                  entry["claim_scan"] = True
+          docs.sort(key=lambda entry: entry["path"])
+          registry_path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
+
+          checker = backend / "scripts/check_public_claim_freshness.py"
+          checker_text = checker.read_text(encoding="utf-8")
+          anchor = '''MUTABLE_COUNT = re.compile(\n    r"\\b\\d[\\d,]*\\s+(?:tx types?|transactions?|requirements?|routes?|runtime states?|vectors?|source files?|blockers?)\\b",\n    re.IGNORECASE,\n)\n'''
+          insertion = anchor + '''PYTEST_RESULT = re.compile(\n    r"\\b\\d[\\d,]*\\s+passed\\b(?:,\\s*\\d[\\d,]*\\s+(?:skipped|warnings?))?",\n    re.IGNORECASE,\n)\nBLOCKER_COUNT_ASSIGNMENT = re.compile(\n    r"\\b(?:blocker_catalog_count|closed_in_repository_count|remaining_blocker_count|p[0-3]_open_count)\\s*=\\s*\\d+\\b",\n    re.IGNORECASE,\n)\n'''
+          if checker_text.count(anchor) != 1: raise SystemExit("unable to locate mutable-count regex anchor")
+          checker_text = checker_text.replace(anchor, insertion)
+          loop_anchor = '''            if MUTABLE_COUNT.search(line):\n                findings.append(f"{path}:{lineno}: duplicated mutable count: {line.strip()}")\n'''
+          loop_insert = loop_anchor + '''            if PYTEST_RESULT.search(line):\n                findings.append(f"{path}:{lineno}: duplicated volatile pytest total: {line.strip()}")\n            if BLOCKER_COUNT_ASSIGNMENT.search(line):\n                findings.append(f"{path}:{lineno}: duplicated mutable blocker count: {line.strip()}")\n'''
+          if checker_text.count(loop_anchor) != 1: raise SystemExit("unable to locate claim-scan loop anchor")
+          checker.write_text(checker_text.replace(loop_anchor, loop_insert), encoding="utf-8")
+
+          external_gen = backend / "scripts/gen_external_operator_transcript_requirements_v1_5.py"
+          external_text = external_gen.read_text(encoding="utf-8")
+          old_boundary = '''        "strict_release_rejects_scaffold_samples": True,\n        "release_claim_boundaries": {\n            "controlled_testnet_candidate": True,\n'''
+          new_boundary = '''        "strict_release_rejects_scaffold_samples": True,\n        "release_claim_boundary_semantics": "current repository claim permissions; future evidence collection does not make a claim current until the deterministic go-gate says so",\n        "release_claim_boundaries": {\n            "controlled_testnet_candidate": False,\n'''
+          if external_text.count(old_boundary) != 1: raise SystemExit("unable to locate external transcript claim boundary")
+          external_gen.write_text(external_text.replace(old_boundary, new_boundary), encoding="utf-8")
+
+          v15 = backend / "scripts/check_v15_public_readiness_artifacts.py"
+          v15_text = v15.read_text(encoding="utf-8")
+          boundary_anchor = '''    boundaries = (\n        payload.get("release_claim_boundaries")\n        if isinstance(payload.get("release_claim_boundaries"), dict)\n        else {}\n    )\n    for key in (\n        "public_validator_enabled",\n'''
+          boundary_insert = '''    boundaries = (\n        payload.get("release_claim_boundaries")\n        if isinstance(payload.get("release_claim_boundaries"), dict)\n        else {}\n    )\n    if boundaries.get("controlled_testnet_candidate") is not False:\n        errors.append(\n            "external operator transcript requirements must keep controlled_testnet_candidate=false until the current deterministic go-gate allows it"\n        )\n    if not str(payload.get("release_claim_boundary_semantics") or "").startswith(\n        "current repository claim permissions"\n    ):\n        errors.append("external operator transcript requirements missing current-boundary semantics")\n    for key in (\n        "public_validator_enabled",\n'''
+          if v15_text.count(boundary_anchor) != 1: raise SystemExit("unable to locate external transcript v15 checker boundary")
+          v15.write_text(v15_text.replace(boundary_anchor, boundary_insert), encoding="utf-8")
+          print("Applied claims/coherence source and documentation repair")
+          PY
+
+      - name: Regenerate v1.5 truth artifacts
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src:scripts python scripts/gen_external_operator_transcript_requirements_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
+          PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py
+
+      - name: Remove temporary repair workflow before final v2 compilation
+        run: |
+          rm -f .github/workflows/claims-coherence-repair.yml
+
+      - name: Compile v2 derivatives last
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+
+      - name: Validate repaired tree
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          PYTHONPATH=src python scripts/check_reviewer_truth_boundaries.py
+          PYTHONPATH=src python -m pytest -q \
+            tests/test_release_docs_truth_sync.py \
+            tests/test_reviewer_language_cleanup.py \
+            tests/test_public_readiness_artifacts_v15.py \
+            tests/prod/test_public_beta_evidence_gates.py \
+            tests/prod/test_final_public_observer_controlled_testnet_go_gate.py
+          git diff --check
+          if git status --short | grep -E '_claims_coherence_repair_tmp|claims-coherence-repair.yml'; then echo 'temporary repair files remain' >&2; exit 1; fi
+
+      - name: Commit repaired final tree
+        run: |
+          git config user.name 'weall-claims-repair-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git status --short
+          git commit -m 'Harden current claims truth boundaries'
+          git push origin HEAD:claims-coherence-hardening-20260921
