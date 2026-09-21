@@ -1,0 +1,158 @@
+name: Source Truth Closure Temporary
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.event.pull_request.head.ref == 'active-source-truth-hardening-20260921'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install locked development dependencies
+        working-directory: Weall-Protocol
+        run: python -m pip install -r requirements-dev.lock
+
+      - name: Apply source truth closure
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('Weall-Protocol')
+
+          def replace_once(rel: str, old: str, new: str) -> None:
+              path = root / rel
+              text = path.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{rel}: expected one replacement anchor, found {count}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'src/weall/runtime/apply/notifications.py',
+              'Notifications domain apply semantics (production-ready; canon-correct).\n\nCanon txs (v1.22.1):\n',
+              'Notifications domain apply semantics for the listed transaction family.\n\n'
+              'Transaction authority is generated/tx_index.json, derived from the normative\n'
+              'transaction canon; this module makes no independent release-readiness claim.\n\n'
+              'Canonical transactions handled here:\n',
+          )
+          replace_once(
+              'src/weall/runtime/apply/indexing.py',
+              'Indexing domain apply semantics (production-ready; canon-correct).\n\nCanon Indexing txs (v1.22.1) = 8:\n',
+              'Indexing domain apply semantics for the listed transaction family.\n\n'
+              'Transaction authority is generated/tx_index.json, derived from the normative\n'
+              'transaction canon; this module makes no independent release-readiness claim.\n\n'
+              'Canonical indexing transactions handled here:\n',
+          )
+
+          checker = root / 'scripts/check_public_claim_freshness.py'
+          text = checker.read_text(encoding='utf-8')
+          old = '''The document set is data-driven through docs/CURRENT_DOCUMENT_REGISTRY.json rather\nthan a hard-coded path list. The registry also declares coverage_globs and release\ndependency sources. Current release/go-gate document dependencies must be explicitly\nclassified, and current-facing release dependencies must opt into claim scanning.\nThis remains a conservative wording/freshness guard; it does not prove repository\ntruth or replace generated readiness authorities.\n'''
+          new = '''The document set is data-driven through docs/CURRENT_DOCUMENT_REGISTRY.json rather\nthan a hard-coded path list. The registry also declares coverage_globs and release\ndependency sources. Current release/go-gate document dependencies must be explicitly\nclassified, and current-facing release dependencies must opt into claim scanning.\nActive Python source is also scanned for affirmative release-readiness overclaims and\nmutable embedded canon-version labels. This remains a conservative wording/freshness\nguard; it does not prove repository truth or replace generated readiness authorities.\n'''
+          if text.count(old) != 1:
+              raise SystemExit('checker docstring anchor mismatch')
+          text = text.replace(old, new, 1)
+
+          anchor = '''CURRENT_CLAIM_MARKERS = (\n    "Current allowed claim",\n    "## Current status",\n    "Current repository posture",\n    "Current release posture",\n)\n\n\ndef load_generated_truth() -> None:\n'''
+          replacement = '''CURRENT_CLAIM_MARKERS = (\n    "Current allowed claim",\n    "## Current status",\n    "Current repository posture",\n    "Current release posture",\n)\nSOURCE_ROOT = ROOT / "src/weall"\nSOURCE_OVERCLAIM = re.compile(\n    r"\\b(?:production[- ]ready|mainnet[- ]ready|canon[- ]correct)\\b",\n    re.IGNORECASE,\n)\nSOURCE_CANON_VERSION = re.compile(\n    r"\\bCanon(?:\\s+[A-Za-z0-9_-]+){0,3}\\s+txs?\\b[^\\n]{0,80}\\bv\\d+\\.\\d+(?:\\.\\d+)?\\b",\n    re.IGNORECASE,\n)\n\n\ndef load_generated_truth() -> None:\n'''
+          if text.count(anchor) != 1:
+              raise SystemExit('checker constants anchor mismatch')
+          text = text.replace(anchor, replacement, 1)
+
+          anchor = '''def main() -> int:\n    load_generated_truth()\n'''
+          insertion = '''def source_claim_findings(\n    source_root: pathlib.Path | None = None,\n) -> list[str]:\n    root = SOURCE_ROOT if source_root is None else source_root\n    if not root.is_dir():\n        return [f"missing active source root: {root}"]\n\n    findings: list[str] = []\n    for path in sorted(root.rglob("*.py")):\n        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()\n        for index, line in enumerate(lines):\n            context = " ".join(lines[max(0, index - 1) : index + 1])\n            if SOURCE_OVERCLAIM.search(line) and not SAFE_NEGATION.search(context):\n                findings.append(\n                    f"{path}:{index + 1}: affirmative source release-readiness overclaim: "\n                    f"{line.strip()}"\n                )\n            if SOURCE_CANON_VERSION.search(line):\n                findings.append(\n                    f"{path}:{index + 1}: embedded mutable canon-version label: {line.strip()}"\n                )\n    return findings\n\n\ndef main() -> int:\n    load_generated_truth()\n'''
+          if text.count(anchor) != 1:
+              raise SystemExit('checker main anchor mismatch')
+          text = text.replace(anchor, insertion, 1)
+
+          anchor = '''    if findings:\n        print("[claim-freshness] FAIL")\n'''
+          replacement = '''    findings.extend(source_claim_findings())\n\n    if findings:\n        print("[claim-freshness] FAIL")\n'''
+          if text.count(anchor) != 1:
+              raise SystemExit('checker findings anchor mismatch')
+          text = text.replace(anchor, replacement, 1)
+
+          old = '''        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns; coverage globs and release dependencies are fully classified"\n'''
+          new = '''        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns; coverage globs and release dependencies are fully classified; active source claim scan passed"\n'''
+          if text.count(old) != 1:
+              raise SystemExit('checker success anchor mismatch')
+          text = text.replace(old, new, 1)
+          checker.write_text(text, encoding='utf-8')
+
+          tests = root / 'tests/test_current_document_registry.py'
+          text = tests.read_text(encoding='utf-8')
+          addition = '''\n\ndef test_active_source_claim_scan_is_clean() -> None:\n    checker = _load_checker_module()\n    assert checker.source_claim_findings() == []\n\n\ndef test_source_claim_guard_rejects_affirmative_overclaim(tmp_path: Path) -> None:\n    checker = _load_checker_module()\n    source_root = tmp_path / "src"\n    source_root.mkdir()\n    (source_root / "overclaim.py").write_text(\n        '"""Module is production-ready; canon-correct."""\\n', encoding="utf-8"\n    )\n    findings = checker.source_claim_findings(source_root)\n    assert len(findings) == 1\n    assert "affirmative source release-readiness overclaim" in findings[0]\n\n\ndef test_source_claim_guard_allows_explicit_negation(tmp_path: Path) -> None:\n    checker = _load_checker_module()\n    source_root = tmp_path / "src"\n    source_root.mkdir()\n    (source_root / "bounded.py").write_text(\n        "# This is not a claim that the mechanism\\n# is production ready.\\n",\n        encoding="utf-8",\n    )\n    assert checker.source_claim_findings(source_root) == []\n\n\ndef test_source_claim_guard_rejects_embedded_canon_version(tmp_path: Path) -> None:\n    checker = _load_checker_module()\n    source_root = tmp_path / "src"\n    source_root.mkdir()\n    (source_root / "stale.py").write_text(\n        '"""Canon Indexing txs (v1.22.1) = 8:"""\\n', encoding="utf-8"\n    )\n    findings = checker.source_claim_findings(source_root)\n    assert len(findings) == 1\n    assert "embedded mutable canon-version label" in findings[0]\n'''
+          if 'def test_active_source_claim_scan_is_clean()' in text:
+              raise SystemExit('source claim tests already present')
+          tests.write_text(text.rstrip() + addition + '\n', encoding='utf-8')
+
+          canon = root / 'src/weall/tx/canon.py'
+          text = canon.read_text(encoding='utf-8')
+          removals = [
+              '''@dataclass(frozen=True)\nclass CanonRule:\n    """\n    Lightweight representation of tx canon rules.\n\n    Note: In the current generated tx_index.json, many tx records are minimal.\n    Some admission rules are MVP-hardcoded in runtime admission until schema is\n    fully encoded in the index.\n    """\n\n    tx_type: str\n    payload_required: tuple[str, ...] = ()\n    payload_account_id_fields: tuple[str, ...] = ()\n    requires_parent: bool = False\n    receipt_only: bool = False\n    meta: Json = field(default_factory=dict)\n\n\n''',
+              '''def _as_tuple_str(xs: Any) -> tuple[str, ...]:\n    if not xs:\n        return ()\n    if isinstance(xs, (list, tuple)):\n        return tuple(_s(x) for x in xs if _s(x))\n    return ()\n\n\n''',
+              '''def _tx_rules_dict(canon: Any) -> Json:\n    if isinstance(canon, TxIndex):\n        return canon.by_name\n\n    if not isinstance(canon, dict):\n        raw = getattr(canon, "raw", None)\n        if isinstance(raw, dict):\n            canon = raw\n        else:\n            return {}\n\n    tx = canon.get("tx")\n    if isinstance(tx, dict):\n        return tx\n\n    by_name = canon.get("by_name")\n    if not isinstance(by_name, dict):\n        return {}\n    by_id = canon.get("by_id")\n    by_id = by_id if isinstance(by_id, dict) else {}\n    tx_types = canon.get("tx_types")\n    tx_types = tx_types if isinstance(tx_types, list) else []\n\n    out: Json = {}\n    for name, ident in by_name.items():\n        if not isinstance(name, str):\n            continue\n\n        if isinstance(ident, int):\n            rec = (\n                tx_types[ident]\n                if 0 <= ident < len(tx_types) and isinstance(tx_types[ident], dict)\n                else {}\n            )\n            out[name] = rec\n            continue\n\n        if isinstance(ident, str):\n            rec = by_id.get(ident)\n            out[name] = rec if isinstance(rec, dict) else {}\n            continue\n\n    return out\n\n\ndef _canon_rule_from_json(tx_type: str, j: Json) -> CanonRule:\n    j = _d(j)\n    return CanonRule(\n        tx_type=tx_type,\n        payload_required=_as_tuple_str(j.get("payload_required")),\n        payload_account_id_fields=_as_tuple_str(j.get("payload_account_id_fields")),\n        requires_parent=bool(j.get("requires_parent") or False),\n        receipt_only=bool(j.get("receipt_only") or False),\n        meta=_d(j.get("meta")),\n    )\n\n\n''',
+              '''def get_canon_rule(canon: Json, tx_type: str) -> CanonRule:\n    tx = _tx_rules_dict(canon)\n    rule = _d(tx.get(tx_type))\n    base = _canon_rule_from_json(tx_type, rule)\n    if "receipt_only" in rule:\n        return CanonRule(\n            tx_type=base.tx_type,\n            payload_required=base.payload_required,\n            payload_account_id_fields=base.payload_account_id_fields,\n            requires_parent=base.requires_parent,\n            receipt_only=bool(rule.get("receipt_only")),\n            meta=base.meta,\n        )\n    return base\n\n\n''',
+          ]
+          for block in removals:
+              count = text.count(block)
+              if count != 1:
+                  raise SystemExit(f'canon dead-surface anchor mismatch: {count}')
+              text = text.replace(block, '', 1)
+          for line in ('    "CanonRule",\n', '    "get_canon_rule",\n'):
+              if text.count(line) != 1:
+                  raise SystemExit(f'canon export anchor mismatch for {line!r}')
+              text = text.replace(line, '', 1)
+          canon.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Format, validate focused closure, and regenerate v2 last
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m ruff format \
+            src/weall/runtime/apply/notifications.py \
+            src/weall/runtime/apply/indexing.py \
+            src/weall/tx/canon.py \
+            scripts/check_public_claim_freshness.py \
+            tests/test_current_document_registry.py
+          python -m ruff check \
+            src/weall/runtime/apply/notifications.py \
+            src/weall/runtime/apply/indexing.py \
+            src/weall/tx/canon.py \
+            scripts/check_public_claim_freshness.py \
+            tests/test_current_document_registry.py
+          PYTHONPATH=src pytest -q tests/test_current_document_registry.py
+          PYTHONPATH=src python scripts/check_public_claim_freshness.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Commit closure and remove temporary workflow
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm .github/workflows/source-truth-closure-temp.yml
+          git config user.name "weall-source-truth-closure"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git status --short
+          git diff --cached --check
+          git commit -m "Harden active source truth boundaries"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
