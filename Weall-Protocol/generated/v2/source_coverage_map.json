@@ -3002,7 +3002,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "fd0548224669db1dbaa683f423766be3f173ef577a2a50bee3f55fa4ed4997db",
+      "sha256": "8ebd45f285599ede3669f50994918259d09ecb5f89b9a4b650537995f2c1e38d",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3016,7 +3016,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a2db9a30eed63f1db53692be9de0c95aeccdb3ae34f034447d266d3a80ebde02",
+      "sha256": "60d68ec023a0ea90171cb8583b75be9ff74f5e01f4d94997221d0cc32f0e0983",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3100,7 +3100,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "62a51185d8bc23bb2eef35153458039ee852d42559ff240613473ac9e84d563c",
+      "sha256": "a7f238e61dadfffa1f46c6b00af3513f8cf64d4aee6927222d49b6e2c981faf0",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
