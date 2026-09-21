@@ -6,7 +6,7 @@
   "public_beta_ready": false,
   "release_claim_boundaries": {
     "automatic_protocol_upgrades": false,
-    "controlled_testnet_candidate": true,
+    "controlled_testnet_candidate": false,
     "legal_compliance_ready": false,
     "live_economics": false,
     "mainnet_ready": false,
@@ -16,6 +16,7 @@
     "public_storage_provider_market": false,
     "public_validator_enabled": false
   },
+  "release_claim_boundary_semantics": "current repository claim permissions; future evidence collection does not make a claim current until the deterministic go-gate says so",
   "schema": "weall.v1_5.external_operator_transcript_requirements",
   "schemas": {
     "external_cross_machine_replay_transcript": {

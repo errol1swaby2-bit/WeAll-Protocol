@@ -40,14 +40,14 @@ bash scripts/verify_release_tree.sh
 bash scripts/verify_release_dependencies.sh
 ```
 
-Expected current checkpoint:
+Current mutable checkpoints are intentionally not duplicated in this runbook. Before relying on a checkout, verify:
 
-```text
-tx canon: 233 tx types, version 1.25.0
-latest full backend suite: 3636 passed, 3 warnings
-backend locks: requirements.lock, requirements-dev.lock
-frontend lock: ../web/package-lock.json
-```
+- transaction-canon count/version from `generated/tx_index.json`;
+- the full backend result from the exact CI/run transcript for the commit under review;
+- backend locks `requirements.lock` and `requirements-dev.lock`;
+- frontend lock `../web/package-lock.json`.
+
+A historical pass total or copied canon count is not a substitute for those current sources.
 
 ## 3. Dependency and frontend verification
 

@@ -33,6 +33,14 @@ MUTABLE_COUNT = re.compile(
     r"\b\d[\d,]*\s+(?:tx types?|transactions?|requirements?|routes?|runtime states?|vectors?|source files?|blockers?)\b",
     re.IGNORECASE,
 )
+PYTEST_RESULT = re.compile(
+    r"\b\d[\d,]*\s+passed\b(?:,\s*\d[\d,]*\s+(?:skipped|warnings?))?",
+    re.IGNORECASE,
+)
+BLOCKER_COUNT_ASSIGNMENT = re.compile(
+    r"\b(?:blocker_catalog_count|closed_in_repository_count|remaining_blocker_count|p[0-3]_open_count)\s*=\s*\d+\b",
+    re.IGNORECASE,
+)
 ABSOLUTE_SECURITY = re.compile(
     r"\b(?:quantum[- ]safe|quantum[- ]proof|fully secure|security audited|independently audited)\b",
     re.IGNORECASE,
@@ -156,6 +164,14 @@ def main() -> int:
                 findings.append(f"{path}:{lineno}: unbound TPS scalar: {line.strip()}")
             if MUTABLE_COUNT.search(line):
                 findings.append(f"{path}:{lineno}: duplicated mutable count: {line.strip()}")
+            if PYTEST_RESULT.search(line):
+                findings.append(
+                    f"{path}:{lineno}: duplicated volatile pytest total: {line.strip()}"
+                )
+            if BLOCKER_COUNT_ASSIGNMENT.search(line):
+                findings.append(
+                    f"{path}:{lineno}: duplicated mutable blocker count: {line.strip()}"
+                )
             if ABSOLUTE_SECURITY.search(line) and not SAFE_NEGATION.search(line):
                 findings.append(
                     f"{path}:{lineno}: unqualified absolute-security claim: {line.strip()}"

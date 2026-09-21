@@ -19,6 +19,16 @@
   ],
   "documents": [
     {
+      "claim_scan": false,
+      "classification": "CURRENT",
+      "path": "CODE_OF_CONDUCT.md"
+    },
+    {
+      "claim_scan": false,
+      "classification": "CURRENT",
+      "path": "CONTRIBUTING.md"
+    },
+    {
       "claim_scan": true,
       "classification": "CURRENT",
       "path": "README.md"
@@ -32,16 +42,6 @@
       "claim_scan": true,
       "classification": "CURRENT",
       "path": "SECURITY.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "CURRENT",
-      "path": "CONTRIBUTING.md"
-    },
-    {
-      "claim_scan": false,
-      "classification": "CURRENT",
-      "path": "CODE_OF_CONDUCT.md"
     },
     {
       "claim_scan": true,
@@ -64,9 +64,14 @@
       "path": "Weall-Protocol/SECURITY.md"
     },
     {
+      "claim_scan": false,
+      "classification": "GENERATED_CURRENT",
+      "path": "Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md"
+    },
+    {
       "claim_scan": true,
       "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md"
+      "path": "Weall-Protocol/docs/PRODUCTION_POSTURE.md"
     },
     {
       "claim_scan": true,
@@ -76,17 +81,37 @@
     {
       "claim_scan": true,
       "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/PUBLIC_BETA_BLOCKERS.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/TRUTH_BOUNDARY.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/operator_runbook_prod.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/production_readiness/final_truth_sync.md"
+    },
+    {
+      "claim_scan": true,
+      "classification": "CURRENT",
       "path": "Weall-Protocol/docs/reviewer/CURRENT_READINESS_STATEMENT.md"
     },
     {
       "claim_scan": true,
       "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md"
+      "path": "Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md"
     },
     {
       "claim_scan": true,
       "classification": "CURRENT",
-      "path": "Weall-Protocol/docs/reviewer/CURRENT_STATE_UPDATE_2026_08.md"
+      "path": "Weall-Protocol/docs/reviewer/CURRENT_TESTNET_READINESS_STATEMENT.md"
     },
     {
       "claim_scan": true,
@@ -99,9 +124,9 @@
       "path": "Weall-Protocol/docs/testnet/FINAL_PUBLIC_OBSERVER_CONTROLLED_TESTNET_GO_GATE.md"
     },
     {
-      "claim_scan": false,
-      "classification": "GENERATED_CURRENT",
-      "path": "Weall-Protocol/docs/CURRENT_VERIFIED_CLAIMS.md"
+      "claim_scan": true,
+      "classification": "CURRENT",
+      "path": "Weall-Protocol/docs/testnet/TESTNET_LAUNCH_CHECKLIST.md"
     },
     {
       "claim_scan": false,

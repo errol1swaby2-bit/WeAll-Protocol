@@ -12,7 +12,7 @@ NO-GO: controlled-testnet mechanism completion until production helper state-roo
 
 NO-GO: public beta readiness, public observer launch claim while `AUD-628-P1-001` remains open, public mainnet readiness, public validator safety, public multi-validator BFT readiness, live economics readiness, automatic protocol upgrade readiness, executable migration/rollback readiness, production helper execution readiness, legal/compliance approval, and public storage-market readiness.
 
-Current tx canon checkpoint: **236 tx types, version 1.25.0**.
+Current tx-canon count/version must be read from `generated/tx_index.json`; this checklist intentionally does not duplicate mutable canon totals.
 
 ## Repository-side checks
 
@@ -31,7 +31,7 @@ PYTHONPATH=src python scripts/check_release_hygiene_v1_5.py
 PYTHONPATH=src python -m pytest -q tests/prod/test_final_public_observer_controlled_testnet_go_gate.py
 ```
 
-Expected blocker boundary: `public_beta_ready=false`; `controlled_testnet_candidate=false`; `blocker_catalog_count=15`; `closed_in_repository_count=7`; `remaining_blocker_count=8`; `p0_open_count=4`; `p1_open_count=4`.
+Expected blocker boundary: `public_beta_ready=false` and `controlled_testnet_candidate=false`. Read all blocker catalog/open/closed counts directly from `generated/public_beta_blocker_report_v1_5.json`; do not copy mutable blocker totals into this checklist.
 
 ## Documentation truth checks
 

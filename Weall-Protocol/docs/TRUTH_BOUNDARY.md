@@ -2,7 +2,7 @@
 
 Status: reviewer submission and external-review truth boundary.
 
-Last reviewed: 2026-05-29.
+Last reviewed: 2026-09-21.
 
 This document defines what the current repository may claim, what it must not claim, and what remains milestone work. It is intended to prevent accidental overclaiming during reviewer review, external observer onboarding, public testnet preparation, and future production-readiness work.
 
