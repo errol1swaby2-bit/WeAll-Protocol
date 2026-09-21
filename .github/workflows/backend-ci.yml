@@ -64,6 +64,18 @@ jobs:
         run: |
           PYTHONPATH=src python scripts/compile_v2_spec.py
 
+      - name: Commit v2 derivatives locally for clean-checkout validation
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/backend-ci.yml \
+            Weall-Protocol/generated/v2 \
+            web/src/generated/protocolStatus.ts
+          git status --short
+          git commit -m "Refresh v2 derivatives for release hardening"
+
       - name: Upload regenerated v2 specification derivatives
         uses: actions/upload-artifact@v4
         with:
@@ -140,24 +152,17 @@ jobs:
             Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json
             Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
 
-      - name: Commit regenerated source-bound evidence and restore Backend CI
+      - name: Commit proof refresh and push final repaired tree
         working-directory: .
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
-            .github/workflows/backend-ci.yml \
-            Weall-Protocol/generated/v2 \
             Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
             Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json \
-            web/src/generated/protocolStatus.ts
-          if git diff --cached --quiet; then
-            echo "No regenerated evidence changes to commit."
-            exit 0
+            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
+          if ! git diff --cached --quiet; then
+            git status --short
+            git commit -m "Refresh deterministic completion proofs"
           fi
-          git status --short
-          git commit -m "Refresh source-bound evidence for release hardening"
           BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
           git push origin "HEAD:${BRANCH}"
 
