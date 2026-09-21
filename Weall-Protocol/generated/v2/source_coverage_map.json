@@ -3002,7 +3002,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "817df5275db853e370163822a3dfc0b9deba5d183c341fb6eeb2050606b934da",
+      "sha256": "fd0548224669db1dbaa683f423766be3f173ef577a2a50bee3f55fa4ed4997db",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3016,7 +3016,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "215f0e39e7b3783d2b9e63b5b2936e297041e709bb2f693ee7c3ce0f2ca7c019",
+      "sha256": "a2db9a30eed63f1db53692be9de0c95aeccdb3ae34f034447d266d3a80ebde02",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3100,7 +3100,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "7b16d1bbee187981f62feeaa1722d0d08dcc61cc1f543b25301e6df85042b3df",
+      "sha256": "62a51185d8bc23bb2eef35153458039ee852d42559ff240613473ac9e84d563c",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
@@ -3197,7 +3197,7 @@
       ],
       "path": "generated/current_verified_claims.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "3f3afcb88a8dc63c15d6b1b2e4dcc40b811522d16da91eeff8c147bc7e681c53",
+      "sha256": "86fcf760ed56231a45765c22300186c29df39fd19f55eaea9b47f514faeb5947",
       "source_id": "SRC-4C6AE599847D7B4D"
     },
     {
@@ -3225,7 +3225,7 @@
       ],
       "path": "generated/failure_code_registry_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "85eb01cabf5a73b0c96feee7bbfebcfb8f45c91043c735020fd071465940c143",
+      "sha256": "9ee7977f52a4a88b01796d46f66a4c1ab63fe319f6349c4a868e51c5b0f6ae63",
       "source_id": "SRC-F47E2373CB956305"
     },
     {
@@ -3323,7 +3323,7 @@
       ],
       "path": "generated/public_beta_blocker_report_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8879122a3c9423f64c564925d426d1609dfdef743b8db21462b1ff5130b80b46",
+      "sha256": "bdac1c17891550d7ff16a8bea36064b525f042e9fb98b02426ae31b263e11e5a",
       "source_id": "SRC-224E96B1E6D9984E"
     },
     {
@@ -3505,7 +3505,7 @@
       ],
       "path": "generated/release_evidence_manifest_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "ba038cc3e436d32b834bd4f1d69596718f67cad50139ca2311796b5f87539f96",
+      "sha256": "acd8f7fa8e64323d92d72e190b67cd163884da4265a1783914b37b743a7c850a",
       "source_id": "SRC-4F9C5188B5C90E01"
     },
     {
@@ -3991,7 +3991,7 @@
       ],
       "path": "scripts/check_public_claim_freshness.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "fa17f1dfecf2a97602c9592c785e7268175fc008a447241f57aa5f14bd6c7365",
+      "sha256": "c1cbd250b4292a1642b71e87524c0e792c882efbb04d98cb96ba4e8833ad6b86",
       "source_id": "SRC-927BB0F44ECD50DF"
     },
     {
@@ -9075,7 +9075,7 @@
       ],
       "path": "src/weall/runtime/apply/indexing.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "1c2761a2ae29e85f0986cd844cbc91dcc34fe4d0659f8d4f15eb287fc97999d0",
+      "sha256": "e95f45067fd615966a3502b78fc2a6e55e9fa2d06a06d4b82e316de876ffc6ab",
       "source_id": "SRC-3287A12438EFC53A"
     },
     {
@@ -9148,7 +9148,7 @@
       ],
       "path": "src/weall/runtime/apply/notifications.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "7e503af5deb2cce8aa12e427ef5dc419fb9f14059e31b0a11612a7d9caed16bb",
+      "sha256": "c341c3d7a1a7c945f5067ee9724cfcafd76686011defe8e058f13e84ef4b0e9a",
       "source_id": "SRC-28C34C9C8E06FD13"
     },
     {
@@ -12356,7 +12356,7 @@
       ],
       "path": "src/weall/tx/canon.py",
       "primary_mechanism_id": "M-012",
-      "sha256": "e9f6af9aa866acfeefeeafde4e9ed428ecc7fe239c2d9c8e1ce03d00feb1e01d",
+      "sha256": "3e9b8156dd2eb77f35959e3b42e29531e72523c6a134327333fc715a5c4cbca2",
       "source_id": "SRC-3722CBD9E9FDCD71"
     },
     {
@@ -15576,7 +15576,7 @@
       ],
       "path": "tests/test_current_document_registry.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "6aa0bf6118c8e1296d983d8ca710774f52b0c77abe19f48dd7580749011172d1",
+      "sha256": "749d391874e176a024e4f17e9652a59674f31617a68832bfa443877c6834b3f7",
       "source_id": "SRC-2BE6E660EA281E38"
     },
     {

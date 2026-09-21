@@ -18,24 +18,6 @@ class CanonError(Exception):
 
 
 @dataclass(frozen=True)
-class CanonRule:
-    """
-    Lightweight representation of tx canon rules.
-
-    Note: In the current generated tx_index.json, many tx records are minimal.
-    Some admission rules are MVP-hardcoded in runtime admission until schema is
-    fully encoded in the index.
-    """
-
-    tx_type: str
-    payload_required: tuple[str, ...] = ()
-    payload_account_id_fields: tuple[str, ...] = ()
-    requires_parent: bool = False
-    receipt_only: bool = False
-    meta: Json = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
 class TxCanonPaths:
     repo_root: Path
     spec_path: Path
@@ -73,14 +55,6 @@ def _d(x: Any) -> Json:
 
 def _s(x: Any) -> str:
     return "" if x is None else str(x)
-
-
-def _as_tuple_str(xs: Any) -> tuple[str, ...]:
-    if not xs:
-        return ()
-    if isinstance(xs, (list, tuple)):
-        return tuple(_s(x) for x in xs if _s(x))
-    return ()
 
 
 def _repo_root() -> Path:
@@ -502,63 +476,6 @@ def load_tx_index_json(path: str | Path) -> TxIndex:
     return TxIndex.load_from_file(path)
 
 
-def _tx_rules_dict(canon: Any) -> Json:
-    if isinstance(canon, TxIndex):
-        return canon.by_name
-
-    if not isinstance(canon, dict):
-        raw = getattr(canon, "raw", None)
-        if isinstance(raw, dict):
-            canon = raw
-        else:
-            return {}
-
-    tx = canon.get("tx")
-    if isinstance(tx, dict):
-        return tx
-
-    by_name = canon.get("by_name")
-    if not isinstance(by_name, dict):
-        return {}
-    by_id = canon.get("by_id")
-    by_id = by_id if isinstance(by_id, dict) else {}
-    tx_types = canon.get("tx_types")
-    tx_types = tx_types if isinstance(tx_types, list) else []
-
-    out: Json = {}
-    for name, ident in by_name.items():
-        if not isinstance(name, str):
-            continue
-
-        if isinstance(ident, int):
-            rec = (
-                tx_types[ident]
-                if 0 <= ident < len(tx_types) and isinstance(tx_types[ident], dict)
-                else {}
-            )
-            out[name] = rec
-            continue
-
-        if isinstance(ident, str):
-            rec = by_id.get(ident)
-            out[name] = rec if isinstance(rec, dict) else {}
-            continue
-
-    return out
-
-
-def _canon_rule_from_json(tx_type: str, j: Json) -> CanonRule:
-    j = _d(j)
-    return CanonRule(
-        tx_type=tx_type,
-        payload_required=_as_tuple_str(j.get("payload_required")),
-        payload_account_id_fields=_as_tuple_str(j.get("payload_account_id_fields")),
-        requires_parent=bool(j.get("requires_parent") or False),
-        receipt_only=bool(j.get("receipt_only") or False),
-        meta=_d(j.get("meta")),
-    )
-
-
 @dataclass(slots=True)
 class TxIndex:
     """
@@ -680,32 +597,14 @@ class TxIndex:
         return sorted(self.by_name.keys())
 
 
-def get_canon_rule(canon: Json, tx_type: str) -> CanonRule:
-    tx = _tx_rules_dict(canon)
-    rule = _d(tx.get(tx_type))
-    base = _canon_rule_from_json(tx_type, rule)
-    if "receipt_only" in rule:
-        return CanonRule(
-            tx_type=base.tx_type,
-            payload_required=base.payload_required,
-            payload_account_id_fields=base.payload_account_id_fields,
-            requires_parent=base.requires_parent,
-            receipt_only=bool(rule.get("receipt_only")),
-            meta=base.meta,
-        )
-    return base
-
-
 __all__ = [
     "CanonError",
-    "CanonRule",
     "GeneratedTxIndex",
     "TxCanonPaths",
     "TxIndex",
     "default_tx_canon_paths",
     "ensure_tx_index_json",
     "generate_tx_index_json",
-    "get_canon_rule",
     "load_tx_index_json",
     "load_tx_index_json_raw",
 ]

@@ -159,3 +159,43 @@ def test_release_dependency_current_claim_marker_requires_scan(
 def test_blocker_count_markdown_table_is_guarded() -> None:
     checker = _load_checker_module()
     assert checker.BLOCKER_COUNT_TABLE.search("| `p0_open_count` | 4 |")
+
+
+def test_active_source_claim_scan_is_clean() -> None:
+    checker = _load_checker_module()
+    assert checker.source_claim_findings() == []
+
+
+def test_source_claim_guard_rejects_affirmative_overclaim(tmp_path: Path) -> None:
+    checker = _load_checker_module()
+    source_root = tmp_path / "src"
+    source_root.mkdir()
+    (source_root / "overclaim.py").write_text(
+        '"""Module is production-ready; canon-correct."""\n', encoding="utf-8"
+    )
+    findings = checker.source_claim_findings(source_root)
+    assert len(findings) == 1
+    assert "affirmative source release-readiness overclaim" in findings[0]
+
+
+def test_source_claim_guard_allows_explicit_negation(tmp_path: Path) -> None:
+    checker = _load_checker_module()
+    source_root = tmp_path / "src"
+    source_root.mkdir()
+    (source_root / "bounded.py").write_text(
+        "# This is not a claim that the mechanism\n# is production ready.\n",
+        encoding="utf-8",
+    )
+    assert checker.source_claim_findings(source_root) == []
+
+
+def test_source_claim_guard_rejects_embedded_canon_version(tmp_path: Path) -> None:
+    checker = _load_checker_module()
+    source_root = tmp_path / "src"
+    source_root.mkdir()
+    (source_root / "stale.py").write_text(
+        '"""Canon Indexing txs (v1.22.1) = 8:"""\n', encoding="utf-8"
+    )
+    findings = checker.source_claim_findings(source_root)
+    assert len(findings) == 1
+    assert "embedded mutable canon-version label" in findings[0]

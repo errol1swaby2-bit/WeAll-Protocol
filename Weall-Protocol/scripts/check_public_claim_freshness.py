@@ -5,8 +5,9 @@ The document set is data-driven through docs/CURRENT_DOCUMENT_REGISTRY.json rath
 than a hard-coded path list. The registry also declares coverage_globs and release
 dependency sources. Current release/go-gate document dependencies must be explicitly
 classified, and current-facing release dependencies must opt into claim scanning.
-This remains a conservative wording/freshness guard; it does not prove repository
-truth or replace generated readiness authorities.
+Active Python source is also scanned for affirmative release-readiness overclaims and
+mutable embedded canon-version labels. This remains a conservative wording/freshness
+guard; it does not prove repository truth or replace generated readiness authorities.
 """
 
 from __future__ import annotations
@@ -64,6 +65,15 @@ CURRENT_CLAIM_MARKERS = (
     "## Current status",
     "Current repository posture",
     "Current release posture",
+)
+SOURCE_ROOT = ROOT / "src/weall"
+SOURCE_OVERCLAIM = re.compile(
+    r"\b(?:production[- ]ready|mainnet[- ]ready|canon[- ]correct)\b",
+    re.IGNORECASE,
+)
+SOURCE_CANON_VERSION = re.compile(
+    r"\bCanon(?:\s+[A-Za-z0-9_-]+){0,3}\s+txs?\b[^\n]{0,80}\bv\d+\.\d+(?:\.\d+)?\b",
+    re.IGNORECASE,
 )
 
 
@@ -288,6 +298,30 @@ def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
     return paths
 
 
+def source_claim_findings(
+    source_root: pathlib.Path | None = None,
+) -> list[str]:
+    root = SOURCE_ROOT if source_root is None else source_root
+    if not root.is_dir():
+        return [f"missing active source root: {root}"]
+
+    findings: list[str] = []
+    for path in sorted(root.rglob("*.py")):
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        for index, line in enumerate(lines):
+            context = " ".join(lines[max(0, index - 1) : index + 1])
+            if SOURCE_OVERCLAIM.search(line) and not SAFE_NEGATION.search(context):
+                findings.append(
+                    f"{path}:{index + 1}: affirmative source release-readiness overclaim: "
+                    f"{line.strip()}"
+                )
+            if SOURCE_CANON_VERSION.search(line):
+                findings.append(
+                    f"{path}:{index + 1}: embedded mutable canon-version label: {line.strip()}"
+                )
+    return findings
+
+
 def main() -> int:
     load_generated_truth()
     registry = load_registry()
@@ -321,6 +355,8 @@ def main() -> int:
                     f"{path}:{lineno}: funding/repository-review framing in current-facing prose: {line.strip()}"
                 )
 
+    findings.extend(source_claim_findings())
+
     if findings:
         print("[claim-freshness] FAIL")
         for finding in findings:
@@ -328,7 +364,7 @@ def main() -> int:
         return 1
 
     print(
-        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns; coverage globs and release dependencies are fully classified"
+        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns; coverage globs and release dependencies are fully classified; active source claim scan passed"
     )
     return 0
 
