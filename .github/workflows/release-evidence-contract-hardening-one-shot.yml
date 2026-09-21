@@ -29,14 +29,15 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Apply bounded hardening and recursive release contracts
+      - name: Apply bounded hardening, recursive contracts, and V2 mapping
         run: |
           python scripts/Apply-Release-Evidence-Contract-Hardening-20260920.py
           python - <<'PY'
           from pathlib import Path
+          import json
 
-          path = Path("Weall-Protocol/scripts/release_evidence_contracts.py")
-          text = path.read_text(encoding="utf-8")
+          contracts_path = Path("Weall-Protocol/scripts/release_evidence_contracts.py")
+          text = contracts_path.read_text(encoding="utf-8")
           marker = "NO_OK_ARTIFACTS = "
           if text.count(marker) != 1:
               raise SystemExit("unexpected release_evidence_contracts.py structure")
@@ -47,7 +48,46 @@ jobs:
           }
           injection = f"EXPECTED_SCHEMAS.update({recursive!r})\n\n"
           text = text.replace(marker, injection + marker, 1)
-          path.write_text(text, encoding="utf-8")
+          contracts_path.write_text(text, encoding="utf-8")
+
+          mapping_path = Path("Weall-Protocol/specs/v2/source/source_mappings.json")
+          mapping_doc = json.loads(mapping_path.read_text(encoding="utf-8"))
+          mappings = mapping_doc.get("mappings")
+          if not isinstance(mappings, list):
+              raise SystemExit("source_mappings.json missing mappings list")
+          mapping = {
+              "id": "map-release-evidence-contracts",
+              "path": "scripts/release_evidence_contracts.py",
+              "source_class": "protocol_relevant",
+              "source_type": "tooling",
+              "protocol_relevant": True,
+              "implementation_evidence": True,
+              "ledger_semantics": False,
+              "drives": {
+                  "primary_mechanism_id": "M-076",
+                  "secondary_mechanism_ids": [],
+                  "requirement_ids": [],
+                  "algorithm_ids": [],
+                  "target_contract_ids": [],
+                  "message_contract_ids": [],
+                  "state_contract_ids": [],
+                  "scheduler_contract_ids": [],
+                  "affected_registers": ["implementation_evidence"],
+              },
+              "requires_transactions": False,
+              "owner_phase": "v2-compilation",
+              "notes": "Fail-closed release evidence contract validation for tracked readiness artifacts and recursive release evidence inputs.",
+          }
+          duplicate = [
+              item
+              for item in mappings
+              if isinstance(item, dict)
+              and (item.get("id") == mapping["id"] or item.get("path") == mapping["path"])
+          ]
+          if duplicate:
+              raise SystemExit("release evidence contract source mapping already exists")
+          mappings.append(mapping)
+          mapping_path.write_text(json.dumps(mapping_doc, indent=2) + "\n", encoding="utf-8")
           PY
 
       - name: Remove temporary helpers before source-sensitive generation
