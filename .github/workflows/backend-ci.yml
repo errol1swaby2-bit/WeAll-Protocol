@@ -5,9 +5,6 @@ on:
     branches: ["main", "master"]
   pull_request:
 
-permissions:
-  contents: write
-
 concurrency:
   group: backend-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -21,16 +18,32 @@ jobs:
         working-directory: Weall-Protocol
 
     steps:
-      - name: Checkout PR head branch
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Verify locked backend install path
+        run: |
+          python -m pip install --upgrade pip
+          python -m venv .venv-lock-check
+          . .venv-lock-check/bin/activate
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+          python - <<'PY'
+          import fastapi  # noqa: F401
+          import httpx2  # noqa: F401
+          import pytest  # noqa: F401
+          import weall  # noqa: F401
+          PY
+          deactivate
+          rm -rf .venv-lock-check
 
       - name: Install backend
         run: |
@@ -38,66 +51,71 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Restore final Backend CI definition
-        working-directory: .
+      - name: Ruff changed Python files
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
-          git show 682ddaf246d49d2227ea51a0c9f2288b7ad7cae8:.github/workflows/backend-ci.yml > .github/workflows/backend-ci.yml
-
-      - name: Restore historical M2/M3 closure evidence
-        working-directory: .
-        run: |
-          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
-
-      - name: Regenerate source-bound completion proofs first
-        run: |
-          python scripts/gen_b528_b532_completion_proof_v1_5.py
-          python scripts/gen_b534_b538_completion_proof_v1_5.py
-          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
-
-      - name: Regenerate v2 derivatives after proof refresh
-        run: |
-          PYTHONPATH=src python scripts/compile_v2_spec.py
-
-      - name: Commit final regenerated tree locally
-        working-directory: .
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            .github/workflows/backend-ci.yml \
-            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json \
-            Weall-Protocol/generated/v2 \
-            web/src/generated/protocolStatus.ts
-          git status --short
-          if ! git diff --cached --quiet; then
-            git commit -m "Refresh proofs before v2 source-bound derivatives"
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            RANGE="${PR_BASE_SHA}...HEAD"
+          elif [[ -n "${PUSH_BEFORE_SHA:-}" && "${PUSH_BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]]; then
+            RANGE="${PUSH_BEFORE_SHA}..HEAD"
+          else
+            RANGE="HEAD^..HEAD"
           fi
 
-      - name: Validate final generated tree
+          PY_FILES=()
+          mapfile -t PY_FILES < <(
+            git -C .. diff --name-only --diff-filter=ACMR "${RANGE}" \
+              | awk '/^Weall-Protocol\/.*\.py$/ {sub(/^Weall-Protocol\//, ""); print}'
+          )
+
+          if (( ${#PY_FILES[@]} == 0 )); then
+            echo "No changed Python files to check."
+            exit 0
+          fi
+
+          printf 'Checking %s\n' "${PY_FILES[@]}"
+          ruff format --check "${PY_FILES[@]}"
+          ruff check "${PY_FILES[@]}"
+
+      - name: Dependency audit
+        run: |
+          # Audit the reproducible dependency graphs rather than the mutable
+          # runner environment or the local editable package.
+          pip-audit -r requirements.lock
+          pip-audit -r requirements-dev.lock
+
+      - name: Canon lint
+        run: |
+          python -m tooling.canon_lint
+
+      - name: Check generated artifacts
         run: |
           python scripts/check_generated.py
-          python scripts/gen_b528_b532_completion_proof_v1_5.py --check
-          python scripts/gen_b534_b538_completion_proof_v1_5.py --check
-          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py --check
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
 
-      - name: Re-run formerly failing tests
-        run: |
-          pytest -q \
-            tests/prod/test_public_beta_evidence_gates.py::test_testnet_capabilities_surface_includes_public_beta_blocker_summary \
-            tests/test_autonomous_validator_ipfs_anti_sybil_economics_read_models.py::test_claim_boundaries_and_artifact_freshness \
-            tests/test_controlled_testnet_go_gate.py::test_go_gate_captures_required_artifact_and_runtime_evidence \
-            tests/test_full_node_db_api_dispute_storage_coverage.py::test_b534_freshness_check_is_deterministic_and_live_verification_is_explicit \
-            tests/test_validator_db_lifecycle_reviewer_accountability_storage_coverage.py::test_b528_freshness_check_is_deterministic_and_live_verification_is_explicit
-
-      - name: Push repaired final tree
+      - name: Restore historical M2/M3 closure evidence
         working-directory: .
         run: |
-          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          git push origin "HEAD:${BRANCH}"
+          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
+
+      - name: Pytest
+        run: |
+          pytest -q
+
+      - name: Generate Tx coverage report
+        if: always()
+        run: |
+          python scripts/generate_tx_coverage_report.py
+
+      - name: Upload Tx coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tx-coverage-report
+          path: Weall-Protocol/generated/tx_coverage_report.md
