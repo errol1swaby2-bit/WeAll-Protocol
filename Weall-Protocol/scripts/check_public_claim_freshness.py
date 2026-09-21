@@ -2,14 +2,16 @@
 """Fail on high-risk claim patterns in registered current-facing documents.
 
 The document set is data-driven through docs/CURRENT_DOCUMENT_REGISTRY.json rather
-than a hard-coded path list. The registry also declares coverage_globs: any file on
-those current-facing surfaces must have an exact document classification or match an
-explicit classified prefix. This remains a conservative wording/freshness guard; it
-does not prove repository truth or replace generated readiness authorities.
+than a hard-coded path list. The registry also declares coverage_globs and release
+dependency sources. Current release/go-gate document dependencies must be explicitly
+classified, and current-facing release dependencies must opt into claim scanning.
+This remains a conservative wording/freshness guard; it does not prove repository
+truth or replace generated readiness authorities.
 """
 
 from __future__ import annotations
 
+import ast
 import json
 import pathlib
 import re
@@ -41,6 +43,10 @@ BLOCKER_COUNT_ASSIGNMENT = re.compile(
     r"\b(?:blocker_catalog_count|closed_in_repository_count|remaining_blocker_count|p[0-3]_open_count)\s*=\s*\d+\b",
     re.IGNORECASE,
 )
+BLOCKER_COUNT_TABLE = re.compile(
+    r"\|\s*`?(?:blocker_catalog_count|closed_in_repository_count|remaining_blocker_count|remaining_external_evidence_required_count|p[0-3]_open_count)`?\s*\|\s*`?\d+`?\s*\|",
+    re.IGNORECASE,
+)
 ABSOLUTE_SECURITY = re.compile(
     r"\b(?:quantum[- ]safe|quantum[- ]proof|fully secure|security audited|independently audited)\b",
     re.IGNORECASE,
@@ -52,6 +58,12 @@ SAFE_NEGATION = re.compile(
 FUNDING_REVIEW_FRAMING = re.compile(
     r"\b(?:nlnet|first[- ]round|grant[- ]funded|grant update|funded (?:work|hardening|mainnet-readiness)|reviewer-facing|reviewer-visible|reviewer confidence|reviewer conclusion|reviewer setup|reviewer verification|reviewer evidence)\b",
     re.IGNORECASE,
+)
+CURRENT_CLAIM_MARKERS = (
+    "Current allowed claim",
+    "## Current status",
+    "Current repository posture",
+    "Current release posture",
 )
 
 
@@ -81,11 +93,72 @@ def load_registry() -> dict[str, Any]:
     return obj
 
 
+def _extract_release_dependency_paths(
+    source_path: pathlib.Path, constant_names: set[str]
+) -> set[str]:
+    try:
+        tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+    except (OSError, SyntaxError) as exc:
+        raise SystemExit(f"cannot parse release dependency source {source_path}: {exc}") from exc
+
+    found: dict[str, set[str]] = {}
+    for node in tree.body:
+        target_name: str | None = None
+        value: ast.expr | None = None
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        ):
+            target_name = node.targets[0].id
+            value = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            target_name = node.target.id
+            value = node.value
+
+        if target_name not in constant_names or not isinstance(value, ast.Dict):
+            continue
+
+        values: set[str] = set()
+        for item in value.values:
+            if not isinstance(item, ast.Constant) or not isinstance(item.value, str):
+                raise SystemExit(
+                    f"release dependency source {source_path} has non-literal path in {target_name}"
+                )
+            values.add(item.value)
+        found[target_name] = values
+
+    missing = constant_names.difference(found)
+    if missing:
+        raise SystemExit(
+            f"release dependency source {source_path} is missing constants: {sorted(missing)}"
+        )
+
+    paths: set[str] = set()
+    for values in found.values():
+        for raw in values:
+            normalized = raw.strip().replace("\\", "/")
+            if normalized.startswith("docs/"):
+                normalized = f"Weall-Protocol/{normalized}"
+            if not normalized.startswith("Weall-Protocol/docs/"):
+                raise SystemExit(
+                    f"release dependency path is outside backend docs: {raw!r} in {source_path}"
+                )
+            paths.add(normalized)
+    return paths
+
+
+def _has_current_claim_marker(path: pathlib.Path) -> bool:
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return any(marker in text for marker in CURRENT_CLAIM_MARKERS)
+
+
 def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
     findings: list[str] = []
     paths: list[pathlib.Path] = []
     seen: set[str] = set()
     exact_classifications: dict[str, str] = {}
+    exact_entries: dict[str, dict[str, Any]] = {}
 
     for entry in registry["documents"]:
         if not isinstance(entry, dict):
@@ -105,6 +178,7 @@ def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
             findings.append(f"invalid classification for {raw_path}: {classification}")
             continue
         exact_classifications[raw_path] = classification
+        exact_entries[raw_path] = entry
         path = REPO_ROOT / raw_path
         if not path.is_file():
             findings.append(f"missing registered document: {raw_path}")
@@ -131,6 +205,66 @@ def registered_scan_paths(registry: dict[str, Any]) -> list[pathlib.Path]:
             findings.append(f"invalid prefix classification for {prefix}: {classification}")
             continue
         prefix_entries.append((prefix, classification))
+
+    for source in registry.get("release_dependency_sources", []):
+        if not isinstance(source, dict):
+            findings.append("release dependency source entry is not an object")
+            continue
+        source_raw = str(source.get("path") or "").strip()
+        names_raw = source.get("constant_names")
+        if not source_raw:
+            findings.append("release dependency source has empty path")
+            continue
+        if not isinstance(names_raw, list) or not names_raw or not all(
+            isinstance(name, str) and name.strip() for name in names_raw
+        ):
+            findings.append(f"release dependency source has invalid constant_names: {source_raw}")
+            continue
+
+        source_path = REPO_ROOT / source_raw
+        if not source_path.is_file():
+            findings.append(f"missing release dependency source: {source_raw}")
+            continue
+
+        try:
+            dependency_paths = _extract_release_dependency_paths(
+                source_path, {name.strip() for name in names_raw}
+            )
+        except SystemExit as exc:
+            findings.append(str(exc))
+            continue
+
+        for raw_path in sorted(dependency_paths):
+            entry = exact_entries.get(raw_path)
+            if entry is None:
+                findings.append(f"unclassified release dependency document: {raw_path}")
+                continue
+            if entry.get("classification") != "CURRENT":
+                findings.append(
+                    f"release dependency document must be CURRENT: {raw_path} "
+                    f"({entry.get('classification')})"
+                )
+                continue
+            path = REPO_ROOT / raw_path
+            if _has_current_claim_marker(path) and not bool(entry.get("claim_scan", False)):
+                findings.append(
+                    f"release dependency current-claim document must set claim_scan=true: {raw_path}"
+                )
+
+    for raw_path in registry.get("required_current_paths", []):
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            findings.append("required_current_paths entries must be non-empty strings")
+            continue
+        raw_path = raw_path.strip()
+        entry = exact_entries.get(raw_path)
+        if entry is None:
+            findings.append(f"unclassified required current document: {raw_path}")
+            continue
+        if entry.get("classification") != "CURRENT":
+            findings.append(
+                f"required current document must be CURRENT: {raw_path} "
+                f"({entry.get('classification')})"
+            )
 
     coverage_globs = registry.get("coverage_globs", [])
     for pattern in coverage_globs:
@@ -172,6 +306,10 @@ def main() -> int:
                 findings.append(
                     f"{path}:{lineno}: duplicated mutable blocker count: {line.strip()}"
                 )
+            if BLOCKER_COUNT_TABLE.search(line):
+                findings.append(
+                    f"{path}:{lineno}: duplicated mutable blocker-count table value: {line.strip()}"
+                )
             if ABSOLUTE_SECURITY.search(line) and not SAFE_NEGATION.search(line):
                 findings.append(
                     f"{path}:{lineno}: unqualified absolute-security claim: {line.strip()}"
@@ -188,7 +326,7 @@ def main() -> int:
         return 1
 
     print(
-        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns; coverage globs contain no unclassified files"
+        f"[claim-freshness] OK: {len(current_docs)} registered CURRENT documents contain no guarded stale-claim patterns; coverage globs and release dependencies are fully classified"
     )
     return 0
 
