@@ -4608,7 +4608,7 @@
       ],
       "path": "scripts/gen_current_verified_claims.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "ab85c8d8c60cfc3a59d86c8ff4014a23c20d4ed065449786756bffd32f1715fa",
+      "sha256": "e19c7e56169289c7bf02d11edf3c0939005e27cb237d3efe4737c58b1054f227",
       "source_id": "SRC-93B86585553DBDA5"
     },
     {
@@ -15577,7 +15577,7 @@
       ],
       "path": "tests/test_current_verified_claims_fail_closed.py",
       "primary_mechanism_id": "M-076",
-      "sha256": "4693c8c641b0d21b445029595e3367f4f82548c6761715d60c9a2a0e0fb1607f",
+      "sha256": "42c95533b335e946b76b549b4d8d7e4f78d048356dfbb6b4fca4af69dbb82df8",
       "source_id": "SRC-4F8D540C5E48D778"
     },
     {

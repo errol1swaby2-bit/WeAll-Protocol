@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -41,12 +43,19 @@ PERFORMANCE_REQUIRED_BENCHMARK_FIELDS = (
 )
 
 
+def _reject_nonfinite_json_constant(value: str) -> None:
+    raise ValueError(f"non-finite JSON number is not allowed: {value}")
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise SystemExit(f"missing required JSON evidence: {path}")
     try:
-        obj = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
+        obj = json.loads(
+            path.read_text(encoding="utf-8"),
+            parse_constant=_reject_nonfinite_json_constant,
+        )
+    except (json.JSONDecodeError, ValueError) as exc:
         raise SystemExit(f"invalid JSON evidence {path}: {exc}") from exc
     if not isinstance(obj, dict):
         raise SystemExit(f"expected JSON object: {path}")
@@ -71,6 +80,44 @@ def _require_string_list(obj: dict[str, Any], key: str, *, source: str) -> list[
     if not all(isinstance(item, str) and item.strip() for item in value):
         raise SystemExit(f"{source} field {key} must contain only non-empty strings")
     return value
+
+
+def _require_non_empty_description(
+    obj: dict[str, Any], key: str, *, source: str
+) -> str | dict[str, Any]:
+    if key not in obj:
+        raise SystemExit(f"{source} missing required field: {key}")
+    value = obj[key]
+    if isinstance(value, str) and value.strip():
+        return value
+    if isinstance(value, dict) and value:
+        return value
+    raise SystemExit(f"{source} field {key} must be a non-empty string or non-empty object")
+
+
+def _require_non_empty_object(obj: dict[str, Any], key: str, *, source: str) -> dict[str, Any]:
+    value = obj.get(key)
+    if not isinstance(value, dict) or not value:
+        raise SystemExit(f"{source} field {key} must be a non-empty object")
+    return value
+
+
+def _require_finite_json(value: Any, *, source: str) -> None:
+    if isinstance(value, bool) or value is None or isinstance(value, str):
+        return
+    if isinstance(value, (int, float)):
+        if not math.isfinite(float(value)):
+            raise SystemExit(f"{source} contains a non-finite number")
+        return
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _require_finite_json(item, source=f"{source}[{index}]")
+        return
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _require_finite_json(item, source=f"{source}.{key}")
+        return
+    raise SystemExit(f"{source} contains unsupported JSON value type: {type(value).__name__}")
 
 
 def _validate_performance_registry(obj: dict[str, Any]) -> dict[str, Any]:
@@ -99,6 +146,8 @@ def _validate_performance_registry(obj: dict[str, Any]) -> dict[str, Any]:
         ]
         if missing:
             raise SystemExit(f"{source} qualifying_benchmarks[{index}] missing fields: {missing}")
+        benchmark_source = f"{source} qualifying_benchmarks[{index}]"
+        _require_finite_json(benchmark, source=benchmark_source)
         benchmark_id = benchmark["benchmark_id"]
         if not isinstance(benchmark_id, str) or not benchmark_id.strip() or benchmark_id in seen:
             raise SystemExit(
@@ -115,15 +164,62 @@ def _validate_performance_registry(obj: dict[str, Any]) -> dict[str, Any]:
                 raise SystemExit(
                     f"{source} qualifying_benchmarks[{index}].{field} must be a 40-character Git SHA"
                 )
+        measured_at = benchmark["measured_at_utc"]
+        if (
+            not isinstance(measured_at, str)
+            or not measured_at.strip()
+            or not measured_at.endswith("Z")
+        ):
+            raise SystemExit(
+                f"{benchmark_source}.measured_at_utc must be a non-empty UTC timestamp ending in Z"
+            )
+        try:
+            measured_dt = datetime.fromisoformat(measured_at[:-1] + "+00:00")
+        except ValueError as exc:
+            raise SystemExit(
+                f"{benchmark_source}.measured_at_utc must be valid ISO-8601 UTC"
+            ) from exc
+        if measured_dt.utcoffset() != timedelta(0):
+            raise SystemExit(f"{benchmark_source}.measured_at_utc must be UTC")
+
+        for field in (
+            "workload",
+            "crypto_signature_behavior",
+            "persistence_behavior",
+            "network_consensus_scope",
+            "topology",
+            "hardware",
+            "os_runtime",
+        ):
+            _require_non_empty_description(benchmark, field, source=benchmark_source)
+
+        for field in (
+            "latency_distribution",
+            "throughput_distribution",
+            "resource_utilization",
+        ):
+            _require_non_empty_object(benchmark, field, source=benchmark_source)
+
         duration = benchmark["duration_seconds"]
         repetitions = benchmark["repetitions"]
-        if isinstance(duration, bool) or not isinstance(duration, (int, float)) or duration <= 0:
-            raise SystemExit(
-                f"{source} qualifying_benchmarks[{index}].duration_seconds must be > 0"
-            )
+        error_rate = benchmark["error_rate"]
+        if (
+            isinstance(duration, bool)
+            or not isinstance(duration, (int, float))
+            or not math.isfinite(float(duration))
+            or duration <= 0
+        ):
+            raise SystemExit(f"{benchmark_source}.duration_seconds must be a finite number > 0")
         if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions <= 0:
+            raise SystemExit(f"{benchmark_source}.repetitions must be a positive integer")
+        if (
+            isinstance(error_rate, bool)
+            or not isinstance(error_rate, (int, float))
+            or not math.isfinite(float(error_rate))
+            or not 0 <= error_rate <= 1
+        ):
             raise SystemExit(
-                f"{source} qualifying_benchmarks[{index}].repetitions must be a positive integer"
+                f"{benchmark_source}.error_rate must be a finite number from 0 through 1"
             )
     if allowed and not benchmarks:
         raise SystemExit(
