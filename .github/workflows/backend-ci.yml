@@ -46,7 +46,7 @@ jobs:
       - name: Restore historical M2/M3 closure evidence
         working-directory: .
         run: |
-          bash Weall-Protocol/scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
+          bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
 
       - name: Regenerate source-bound completion proofs first
         run: |
