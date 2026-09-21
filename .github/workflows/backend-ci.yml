@@ -5,9 +5,6 @@ on:
     branches: ["main", "master"]
   pull_request:
 
-permissions:
-  contents: write
-
 concurrency:
   group: backend-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -25,7 +22,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -54,35 +50,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
-
-      - name: Restore final Backend CI definition before evidence regeneration
-        working-directory: .
-        run: |
-          git show cd0ad3d75bf7cf93664d6c9c8ec280550dd81f2f:.github/workflows/backend-ci.yml > .github/workflows/backend-ci.yml
-
-      - name: Regenerate v2 specification derivatives
-        run: |
-          PYTHONPATH=src python scripts/compile_v2_spec.py
-
-      - name: Commit v2 derivatives locally for clean-checkout validation
-        working-directory: .
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            .github/workflows/backend-ci.yml \
-            Weall-Protocol/generated/v2 \
-            web/src/generated/protocolStatus.ts
-          git status --short
-          git commit -m "Refresh v2 derivatives for release hardening"
-
-      - name: Upload regenerated v2 specification derivatives
-        uses: actions/upload-artifact@v4
-        with:
-          name: regenerated-v2-derivatives
-          path: |
-            Weall-Protocol/generated/v2
-            web/src/generated/protocolStatus.ts
 
       - name: Ruff changed Python files
         env:
@@ -136,35 +103,6 @@ jobs:
         working-directory: .
         run: |
           bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
-
-      - name: Regenerate stale deterministic proof artifacts
-        run: |
-          python scripts/gen_b528_b532_completion_proof_v1_5.py
-          python scripts/gen_b534_b538_completion_proof_v1_5.py
-          python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
-
-      - name: Upload regenerated deterministic proof artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: regenerated-deterministic-proofs
-          path: |
-            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json
-            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json
-            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
-
-      - name: Commit proof refresh and push final repaired tree
-        working-directory: .
-        run: |
-          git add \
-            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
-            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
-          if ! git diff --cached --quiet; then
-            git status --short
-            git commit -m "Refresh deterministic completion proofs"
-          fi
-          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          git push origin "HEAD:${BRANCH}"
 
       - name: Pytest
         run: |
