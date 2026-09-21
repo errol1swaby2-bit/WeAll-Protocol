@@ -5,6 +5,9 @@ on:
     branches: ["main", "master"]
   pull_request:
 
+permissions:
+  contents: write
+
 concurrency:
   group: backend-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -22,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -50,6 +54,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
+
+      - name: Restore final Backend CI definition before evidence regeneration
+        working-directory: .
+        run: |
+          git show cd0ad3d75bf7cf93664d6c9c8ec280550dd81f2f:.github/workflows/backend-ci.yml > .github/workflows/backend-ci.yml
 
       - name: Regenerate v2 specification derivatives
         run: |
@@ -130,6 +139,27 @@ jobs:
             Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json
             Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json
             Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json
+
+      - name: Commit regenerated source-bound evidence and restore Backend CI
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/backend-ci.yml \
+            Weall-Protocol/generated/v2 \
+            Weall-Protocol/generated/b528_b532_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b534_b538_completion_proof_v1_5.json \
+            Weall-Protocol/generated/b567_b571_autonomous_mechanics_proof_v1_5.json \
+            web/src/generated/protocolStatus.ts
+          if git diff --cached --quiet; then
+            echo "No regenerated evidence changes to commit."
+            exit 0
+          fi
+          git status --short
+          git commit -m "Refresh source-bound evidence for release hardening"
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git push origin "HEAD:${BRANCH}"
 
       - name: Pytest
         run: |
