@@ -1,0 +1,172 @@
+name: Finalize release evidence fail-closed hardening
+
+on:
+  push:
+    branches: ["release-evidence-contract-hardening"]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: release-evidence-contract-hardening
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Apply bounded hardening
+        run: |
+          python scripts/Apply-Release-Evidence-Contract-Hardening-20260920.py
+          python scripts/Apply-Boolean-Trust-Boundary-Hardening-20260921.py
+
+      - name: Remove temporary helpers and workflow before source-sensitive generation
+        run: |
+          rm scripts/Apply-Release-Evidence-Contract-Hardening-20260920.py
+          rm scripts/Apply-Boolean-Trust-Boundary-Hardening-20260921.py
+          rm .github/workflows/release-evidence-contract-hardening-finalize.yml
+
+      - name: Format and lint touched Python
+        working-directory: Weall-Protocol
+        run: |
+          ruff format \
+            scripts/release_evidence_contracts.py \
+            scripts/gen_release_evidence_manifest_v1_5.py \
+            scripts/run_controlled_testnet_go_gate_v1_5.py \
+            scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py \
+            scripts/prod_smoke.py \
+            scripts/replay_consistency_audit.py \
+            scripts/public_validator_preflight.py \
+            src/weall/api/security.py \
+            src/weall/runtime/testnet_capabilities.py \
+            src/weall/runtime/operator_incident_report.py \
+            src/weall/runtime/runtime_authority.py \
+            src/weall/services/validator_attester.py \
+            tests/test_release_evidence_contract_fail_closed.py \
+            tests/test_fail_closed_boolean_boundaries.py
+          ruff check \
+            scripts/release_evidence_contracts.py \
+            scripts/gen_release_evidence_manifest_v1_5.py \
+            scripts/run_controlled_testnet_go_gate_v1_5.py \
+            scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py \
+            scripts/prod_smoke.py \
+            scripts/replay_consistency_audit.py \
+            scripts/public_validator_preflight.py \
+            src/weall/api/security.py \
+            src/weall/runtime/testnet_capabilities.py \
+            src/weall/runtime/operator_incident_report.py \
+            src/weall/runtime/runtime_authority.py \
+            src/weall/services/validator_attester.py \
+            tests/test_release_evidence_contract_fail_closed.py \
+            tests/test_fail_closed_boolean_boundaries.py
+
+      - name: Regenerate dependency-ordered release evidence
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src:scripts python - <<'PY'
+          from gen_b587_b594_testnet_mechanism_completion_v1_5 import OUT, _canon, build
+
+          payload = build()
+          if payload.get("public_beta_ready") is not False:
+              raise SystemExit("B587-B594 unexpectedly claims public beta readiness")
+          OUT.parent.mkdir(parents=True, exist_ok=True)
+          OUT.write_text(_canon(payload), encoding="utf-8")
+          print(f"wrote {OUT.relative_to(OUT.parents[1])}")
+          PY
+
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py
+
+          PYTHONPATH=src:scripts python - <<'PY'
+          from gen_public_beta_blocker_report_v1_5 import OUT, _pretty, build
+
+          payload = build()
+          if payload.get("public_beta_ready") is not False:
+              raise SystemExit("blocker report unexpectedly claims public beta readiness")
+          if payload.get("mainnet_ready") is not False:
+              raise SystemExit("blocker report unexpectedly claims mainnet readiness")
+          OUT.parent.mkdir(parents=True, exist_ok=True)
+          OUT.write_text(_pretty(payload), encoding="utf-8")
+          print(f"wrote {OUT.relative_to(OUT.parents[1])}")
+          PY
+
+          PYTHONPATH=src:scripts python - <<'PY'
+          from run_controlled_testnet_go_gate_v1_5 import OUT, _canon, build
+
+          payload = build()
+          if payload.get("public_beta_ready") is not False:
+              raise SystemExit("controlled gate unexpectedly claims public beta readiness")
+          OUT.parent.mkdir(parents=True, exist_ok=True)
+          OUT.write_text(_canon(payload), encoding="utf-8")
+          print(f"wrote {OUT.relative_to(OUT.parents[1])}")
+          PY
+
+          PYTHONPATH=src:scripts python - <<'PY'
+          from gen_final_public_observer_controlled_testnet_go_gate_v1_5 import OUT, _pretty, build
+
+          payload = build()
+          invalid = {
+              key: value
+              for key, value in payload.get("generated_artifacts", {}).items()
+              if value.get("present") is not True or value.get("contract_valid") is not True
+          }
+          print("repo_package_ready:", payload.get("repo_package_ready"))
+          print("external_blockers_still_open:", payload.get("external_blockers_still_open"))
+          print("public_beta_ready:", payload.get("blocker_counts", {}).get("public_beta_ready"))
+          print("invalid_generated_artifacts:", invalid)
+          if payload.get("repo_package_ready") is not True:
+              raise SystemExit("final gate package contract validation failed")
+          if payload.get("external_blockers_still_open") is not True:
+              raise SystemExit("expected external blockers are not preserved")
+          if payload.get("blocker_counts", {}).get("public_beta_ready") is not False:
+              raise SystemExit("final gate unexpectedly claims public beta readiness")
+          OUT.parent.mkdir(parents=True, exist_ok=True)
+          OUT.write_text(_pretty(payload), encoding="utf-8")
+          print(f"wrote {OUT.relative_to(OUT.parents[1])}")
+          PY
+
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py
+          PYTHONPATH=src:scripts python scripts/compile_v2_spec.py
+
+      - name: Validate focused fail-closed boundaries and freshness
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src:scripts pytest -q \
+            tests/test_release_evidence_contract_fail_closed.py \
+            tests/test_fail_closed_boolean_boundaries.py \
+            tests/test_current_verified_claims_fail_closed.py \
+            tests/test_public_beta_blocker_report_fail_closed.py
+
+          PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/run_controlled_testnet_go_gate_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py --require-git-tracked
+          PYTHONPATH=src python scripts/gen_current_verified_claims.py --check
+          PYTHONPATH=src python scripts/check_public_claim_freshness.py
+          PYTHONPATH=src:scripts python scripts/compile_v2_spec.py --check
+          git diff --check
+
+      - name: Commit validated final tree
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status --short
+          git diff --cached --check
+          git commit -m "Harden release evidence and boolean trust boundaries"
+          git push origin HEAD:release-evidence-contract-hardening
