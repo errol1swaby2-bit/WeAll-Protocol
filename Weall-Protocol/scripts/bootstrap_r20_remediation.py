@@ -11,6 +11,7 @@ CORRECTED_B_SHA256 = 'beef02e2ef6c1096050d58a64aa8a7bc29a6d4e5c02ab8731bcecf1355
 EXTRA_FAILURE_IDS = {
     'forbidden:pin_cid_mismatch': 'FAIL-EA9FB9C08DFE7F23',
     'forbidden:storage_offer_operator_must_match_signer': 'FAIL-2A1CB3AF55A41A07',
+    'invalid_payload:missing_pin_or_operator': 'FAIL-3B49DB21C4ED0B7C',
 }
 
 _HELPER = '''
