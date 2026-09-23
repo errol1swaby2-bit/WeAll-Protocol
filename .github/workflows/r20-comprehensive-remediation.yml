@@ -1,0 +1,111 @@
+name: R20 Comprehensive Remediation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["audit-r20-comprehensive-remediation"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: r20-comprehensive-remediation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  remediate-and-validate:
+    if: ${{ !contains(github.event.head_commit.message || '', '[r20-remediation-applied]') }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact remediation branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify audited ancestry
+        run: |
+          test "$(git -C .. merge-base HEAD 69cce170829ded30ebb030669f05c387df6a3ddb)" = "69cce170829ded30ebb030669f05c387df6a3ddb"
+
+      - name: Materialize verified r20 remediation drivers
+        run: |
+          python scripts/bootstrap_r20_remediation.py
+
+      - name: Apply r20 remediation drivers
+        run: |
+          python scripts/apply_r20_comprehensive_remediation.py
+          python scripts/apply_r20_remaining_remediation.py
+
+      - name: Install locked backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Format transformed Python
+        run: |
+          ruff format .
+
+      - name: Whole-tree Ruff
+        run: |
+          ruff format --check .
+          ruff check .
+
+      - name: Canon lint and generated-artifact checks
+        run: |
+          python -m tooling.canon_lint
+          python scripts/check_generated.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+
+      - name: Full backend pytest
+        run: pytest -q
+
+      - name: Verify 44-of-44 remediation coverage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('generated/r20_remediation_driver_result.json').read_text())
+          b=json.loads(Path('generated/r20_remaining_remediation_result.json').read_text())
+          found=set(a['patched_findings']) | set(b['patched_findings'])
+          if len(found) != 44:
+              raise SystemExit(f'expected 44 unique r20 findings, got {len(found)}: {sorted(found)}')
+          Path('generated/r20_comprehensive_remediation_coverage.json').write_text(
+              json.dumps({'audited_base':'69cce170829ded30ebb030669f05c387df6a3ddb','count':44,'findings':sorted(found),'ok':True}, indent=2) + '\n'
+          )
+          print('r20 coverage: 44/44')
+          PY
+
+      - name: Commit validated repaired tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git -C .. config user.name "github-actions[bot]"
+          git -C .. config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C .. add -A
+          if git -C .. diff --cached --quiet; then
+            echo "No remediation changes to commit."
+            exit 0
+          fi
+          git -C .. commit -m "fix: close r20 multi-run audit findings [r20-remediation-applied]"
+          git -C .. push origin HEAD:audit-r20-comprehensive-remediation
+
+      - name: Upload remediation manifests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r20-remediation-manifests
+          path: |
+            Weall-Protocol/generated/r20_remediation_driver_result.json
+            Weall-Protocol/generated/r20_remaining_remediation_result.json
+            Weall-Protocol/generated/r20_comprehensive_remediation_coverage.json
+            Weall-Protocol/generated/r20_repository_description_action.txt
