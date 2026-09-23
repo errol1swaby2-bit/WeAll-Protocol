@@ -1,0 +1,91 @@
+name: R20 Log Diagnostic
+
+on:
+  push:
+    branches:
+      - r20-log-diagnostic-20260923
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download completed R20 job log
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          JOB_ID: "107352111774"
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --location \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/actions/jobs/${JOB_ID}/logs" \
+            --output "${RUNNER_TEMP}/r20-job-${JOB_ID}.log"
+          test -s "${RUNNER_TEMP}/r20-job-${JOB_ID}.log"
+
+      - name: Extract pytest summary and residual failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"])
+          source = root / "r20-job-107352111774.log"
+          text = source.read_text(encoding="utf-8", errors="replace")
+          lines = text.splitlines()
+
+          needles = (
+              "short test summary info",
+              " failed,",
+              " passed,",
+              " error",
+              "FAILED ",
+              "ERROR ",
+              "SqliteDB._sqlite_synchronous_pragma",
+          )
+          hit_indexes = [
+              index
+              for index, line in enumerate(lines)
+              if any(needle in line for needle in needles)
+          ]
+          start = max(0, (hit_indexes[-1] - 500) if hit_indexes else len(lines) - 800)
+          tail = "\n".join(lines[start:]) + "\n"
+          (root / "r20-pytest-tail.log").write_text(tail, encoding="utf-8")
+
+          summary_lines = []
+          for line in lines:
+              if (
+                  "short test summary info" in line
+                  or line.lstrip().startswith("FAILED ")
+                  or line.lstrip().startswith("ERROR ")
+                  or ("failed" in line.lower() and "passed" in line.lower())
+              ):
+                  summary_lines.append(line)
+          (root / "r20-pytest-summary.log").write_text(
+              "\n".join(summary_lines[-1200:]) + "\n",
+              encoding="utf-8",
+          )
+          print(f"source_lines={len(lines)} summary_lines={len(summary_lines)}")
+          PY
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r20-job-107352111774-logs
+          path: |
+            ${{ runner.temp }}/r20-job-107352111774.log
+            ${{ runner.temp }}/r20-pytest-tail.log
+            ${{ runner.temp }}/r20-pytest-summary.log
+          if-no-files-found: warn
+          retention-days: 3
