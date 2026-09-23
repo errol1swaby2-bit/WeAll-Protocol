@@ -190,10 +190,20 @@ def _repair_sqlite_staticmethod(here: Path) -> None:
         print('sqlite synchronous pragma staticmethod contract already intact')
         return
     if correct_count != 0 or broken_count != 1:
-        raise SystemExit(
+        marker = '_sqlite_synchronous_pragma'
+        lines = text.splitlines()
+        matches = [i for i, line in enumerate(lines) if marker in line]
+        print(
             'unexpected sqlite synchronous pragma shape: '
-            f'correct={correct_count} broken={broken_count}'
+            f'correct={correct_count} broken={broken_count} matches={len(matches)}'
         )
+        for i in matches:
+            start = max(0, i - 8)
+            end = min(len(lines), i + 13)
+            print(f'--- sqlite diagnostic lines {start + 1}-{end} ---')
+            for n in range(start, end):
+                print(f'{n + 1:04d}: {lines[n]}')
+        raise SystemExit('sqlite synchronous pragma shape diagnostic captured; refusing to patch')
     repaired = text.replace(broken, correct, 1)
     compile(repaired, str(path), 'exec')
     path.write_text(repaired, encoding='utf-8')
