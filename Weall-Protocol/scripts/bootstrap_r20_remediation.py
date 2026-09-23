@@ -52,15 +52,15 @@ def replace_once_in_def(rel: str, name: str, old: str, new: str, fid: str) -> No
 
 _OLD_ROLE = '''    replace_once(
         "Weall-Protocol/src/weall/runtime/apply/roles.py",
-        '    rec["active"] = False\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
-        '    rec["active"] = False\\n    rec["suspended"] = True\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
+        '    rec["active"] = False\n    rec["status"] = "paused"\n    rec["suspended_at_nonce"] = int(env.nonce)\n',
+        '    rec["active"] = False\n    rec["suspended"] = True\n    rec["status"] = "paused"\n    rec["suspended_at_nonce"] = int(env.nonce)\n',
         "P1-ROLE-001")'''
 
 _NEW_ROLE = '''    replace_once_in_def(
         "Weall-Protocol/src/weall/runtime/apply/roles.py",
         "_apply_role_node_operator_suspend",
-        '    rec["active"] = False\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
-        '    rec["active"] = False\\n    rec["suspended"] = True\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
+        '    rec["active"] = False\n    rec["status"] = "paused"\n    rec["suspended_at_nonce"] = int(env.nonce)\n',
+        '    rec["active"] = False\n    rec["suspended"] = True\n    rec["status"] = "paused"\n    rec["suspended_at_nonce"] = int(env.nonce)\n',
         "P1-ROLE-001")'''
 
 def _correct_phase_b(raw: bytes) -> bytes:
@@ -182,8 +182,8 @@ def _register_r20_source_coverage(here: Path) -> None:
 def _repair_sqlite_staticmethod(here: Path) -> None:
     path = here.parent / 'src' / 'weall' / 'runtime' / 'sqlite_db.py'
     text = path.read_text(encoding='utf-8')
-    broken = '    def _sqlite_synchronous_pragma() -> str:\\n'
-    correct = '    @staticmethod\\n    def _sqlite_synchronous_pragma() -> str:\\n'
+    broken = '    def _sqlite_synchronous_pragma() -> str:\n'
+    correct = '    @staticmethod\n    def _sqlite_synchronous_pragma() -> str:\n'
     correct_count = text.count(correct)
     broken_count = text.count(broken)
     if correct_count == 1:
