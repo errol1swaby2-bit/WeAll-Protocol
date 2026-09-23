@@ -27,7 +27,6 @@ R20_TRANSIENT_GENERATED = {
 R20_TOOLING_MAPPINGS = {
     'scripts/bootstrap_r20_remediation.py',
     'scripts/patch_r20_materialized_drivers.py',
-    'scripts/repair_r20_candidate_regressions.py',
 }
 
 _HELPER = '''
@@ -179,6 +178,26 @@ def _register_r20_source_coverage(here: Path) -> None:
 
     if changed:
         path.write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
+
+def _repair_sqlite_staticmethod(here: Path) -> None:
+    path = here.parent / 'src' / 'weall' / 'runtime' / 'sqlite_db.py'
+    text = path.read_text(encoding='utf-8')
+    broken = '    def _sqlite_synchronous_pragma() -> str:\\n'
+    correct = '    @staticmethod\\n    def _sqlite_synchronous_pragma() -> str:\\n'
+    correct_count = text.count(correct)
+    broken_count = text.count(broken)
+    if correct_count == 1:
+        print('sqlite synchronous pragma staticmethod contract already intact')
+        return
+    if correct_count != 0 or broken_count != 1:
+        raise SystemExit(
+            'unexpected sqlite synchronous pragma shape: '
+            f'correct={correct_count} broken={broken_count}'
+        )
+    repaired = text.replace(broken, correct, 1)
+    compile(repaired, str(path), 'exec')
+    path.write_text(repaired, encoding='utf-8')
+    print('restored SqliteDB._sqlite_synchronous_pragma staticmethod contract')
 
 def main() -> int:
     here=Path(__file__).resolve().parent
