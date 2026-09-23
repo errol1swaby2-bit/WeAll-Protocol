@@ -32,7 +32,10 @@ def main() -> int:
 
     changed = False
     for canonical_key, stable_id in R20_ADDITIONAL_STATE_IDS.items():
-        expected_id = "STATE-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+        expected_id = (
+            "STATE-"
+            + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+        )
         if stable_id != expected_id:
             raise SystemExit(
                 f"r20 state stable-id derivation mismatch: {canonical_key}: "
@@ -43,7 +46,7 @@ def main() -> int:
         if existing is not None:
             if str(existing.get("stable_id") or "") != stable_id:
                 raise SystemExit(
-                    f"r20 state key already registered to unexpected ID: "
+                    "r20 state key already registered to unexpected ID: "
                     f"{canonical_key}: {existing.get('stable_id')}"
                 )
             print(f"stable ID already registered: {canonical_key} -> {stable_id}")
@@ -71,7 +74,12 @@ def main() -> int:
         print(f"registered stable ID: {canonical_key} -> {stable_id}")
 
     if changed:
-        STABLE_IDS_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        STABLE_IDS_PATH.write_text(
+            json.dumps(payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+    Path(__file__).unlink()
     return 0
 
 
