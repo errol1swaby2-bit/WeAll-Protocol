@@ -10,6 +10,7 @@ PAYLOADS = {
 CORRECTED_B_SHA256 = 'beef02e2ef6c1096050d58a64aa8a7bc29a6d4e5c02ab8731bcecf135522246d'
 EXTRA_FAILURE_IDS = {
     'forbidden:pin_cid_mismatch': 'FAIL-EA9FB9C08DFE7F23',
+    'forbidden:storage_offer_operator_must_match_signer': 'FAIL-2A1CB3AF55A41A07',
 }
 
 _HELPER = '''
