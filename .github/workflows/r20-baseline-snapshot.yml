@@ -1,0 +1,37 @@
+name: R20 Baseline Snapshot
+
+on:
+  push:
+    branches:
+      - r20-log-diagnostic-20260923
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout audited baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 69cce170829ded30ebb030669f05c387df6a3ddb
+          fetch-depth: 0
+
+      - name: Package audited baseline source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' \
+            -czf "${RUNNER_TEMP}/r20-audited-baseline.tar.gz" Weall-Protocol
+          sha256sum "${RUNNER_TEMP}/r20-audited-baseline.tar.gz" > "${RUNNER_TEMP}/r20-audited-baseline.sha256"
+
+      - name: Upload audited baseline snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: r20-audited-baseline-69cce170
+          path: |
+            ${{ runner.temp }}/r20-audited-baseline.tar.gz
+            ${{ runner.temp }}/r20-audited-baseline.sha256
+          if-no-files-found: error
+          retention-days: 3
