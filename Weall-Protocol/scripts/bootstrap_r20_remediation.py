@@ -5,7 +5,7 @@ from pathlib import Path
 
 PAYLOADS = {
     'apply_r20_comprehensive_remediation.py': ('r20_driver_a.py.gz.b64', 'c56accf266f627c128dc2a94574d2cdb17fc7029e1d16636cd034a7ea8d61bad'),
-    'apply_r20_remaining_remediation.py': ('r20_driver_b.py.gz.b64', '8bfd5a19b854e0503ff59e9316a7ad068b7ac5843d337135c35f5e42095d40bd'),
+    'apply_r20_remaining_remediation.py': ('r20_driver_b.py.gz.b64', 'f6d96f36f337481379e435231fae0770e6851fdcb7e79cfc8f0963cf70a2ea6e'),
 }
 
 def main() -> int:
