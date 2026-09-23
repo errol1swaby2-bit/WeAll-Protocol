@@ -63,6 +63,10 @@ jobs:
           ruff format --check .
           ruff check .
 
+      - name: Refresh canon-derived transaction index
+        run: |
+          python scripts/gen_tx_index.py
+
       - name: Canon lint and generated-artifact checks
         run: |
           python -m tooling.canon_lint
