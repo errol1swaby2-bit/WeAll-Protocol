@@ -3,12 +3,11 @@ from __future__ import annotations
 import base64,gzip,hashlib
 from pathlib import Path
 
-# Restore verified phase-B payload, then apply a SHA-bound scoped correction.
 PAYLOADS = {
     'apply_r20_comprehensive_remediation.py': ('r20_driver_a.py.gz.b64', 'c56accf266f627c128dc2a94574d2cdb17fc7029e1d16636cd034a7ea8d61bad'),
     'apply_r20_remaining_remediation.py': ('r20_driver_b.py.gz.b64', '8bfd5a19b854e0503ff59e9316a7ad068b7ac5843d337135c35f5e42095d40bd'),
 }
-CORRECTED_B_SHA256 = 'f6d96f36f337481379e435231fae0770e6851fdcb7e79cfc8f0963cf70a2ea6e'
+CORRECTED_B_SHA256 = 'beef02e2ef6c1096050d58a64aa8a7bc29a6d4e5c02ab8731bcecf135522246d'
 
 _HELPER = '''
 
@@ -18,12 +17,16 @@ def replace_once_in_def(rel: str, name: str, old: str, new: str, fid: str) -> No
     matches = base._matching_defs(tree, name)
     if len(matches) != 1:
         raise RuntimeError(f"{fid}: expected exactly one function {name}, found {len(matches)}")
-    start, end, block = base._node_span(text, matches[0])
+    start, end, _indent = base._node_span(text, matches[0])
+    lines = text.splitlines(keepends=True)
+    block = "".join(lines[start - 1 : end])
     count = block.count(old)
     if count != 1:
         raise RuntimeError(f"{fid}: {name} expected 1 scoped match, found {count}")
-    block = block.replace(old, new, 1)
-    base.write(rel, text[:start] + block + text[end:])
+    lines[start - 1 : end] = [block.replace(old, new, 1)]
+    out = "".join(lines)
+    ast.parse(out, filename=rel)
+    base.write(rel, out)
     mark(fid)
 '''
 
