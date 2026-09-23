@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import base64,gzip,hashlib
+import base64,gzip,hashlib,json
 from pathlib import Path
 
 PAYLOADS = {
@@ -8,6 +8,9 @@ PAYLOADS = {
     'apply_r20_remaining_remediation.py': ('r20_driver_b.py.gz.b64', '8bfd5a19b854e0503ff59e9316a7ad068b7ac5843d337135c35f5e42095d40bd'),
 }
 CORRECTED_B_SHA256 = 'beef02e2ef6c1096050d58a64aa8a7bc29a6d4e5c02ab8731bcecf135522246d'
+EXTRA_FAILURE_IDS = {
+    'forbidden:pin_cid_mismatch': 'FAIL-EA9FB9C08DFE7F23',
+}
 
 _HELPER = '''
 
@@ -58,6 +61,50 @@ def _correct_phase_b(raw: bytes) -> bytes:
         raise SystemExit(f'corrected phase-B digest mismatch: {actual} != {CORRECTED_B_SHA256}')
     return corrected
 
+def _register_extra_failure_ids(here: Path) -> None:
+    path = here.parent / 'specs' / 'v2' / 'source' / 'stable_ids.json'
+    payload = json.loads(path.read_text(encoding='utf-8'))
+    entries = payload.get('entries')
+    if not isinstance(entries, list):
+        raise SystemExit('stable_ids.json entries must be a list')
+    by_key = {
+        (str(row.get('kind') or ''), str(row.get('canonical_key') or '')): row
+        for row in entries
+        if isinstance(row, dict)
+    }
+    by_id = {
+        str(row.get('stable_id') or ''): row
+        for row in entries
+        if isinstance(row, dict) and str(row.get('stable_id') or '')
+    }
+    changed = False
+    for canonical_key, stable_id in EXTRA_FAILURE_IDS.items():
+        expected = 'FAIL-' + hashlib.sha256(canonical_key.encode('utf-8')).hexdigest()[:16].upper()
+        if stable_id != expected:
+            raise SystemExit(f'extra failure stable-id derivation mismatch: {canonical_key}: {stable_id} != {expected}')
+        existing = by_key.get(('failure', canonical_key))
+        if existing is not None:
+            if str(existing.get('stable_id') or '') != stable_id:
+                raise SystemExit(f'extra failure key already registered to unexpected ID: {canonical_key}: {existing.get("stable_id")}')
+            continue
+        collision = by_id.get(stable_id)
+        if collision is not None:
+            raise SystemExit(f'extra failure ID collision: {stable_id} already belongs to {collision.get("kind")}:{collision.get("canonical_key")}')
+        row = {
+            'aliases': [],
+            'canonical_key': canonical_key,
+            'kind': 'failure',
+            'stable_id': stable_id,
+            'status': 'active',
+        }
+        entries.append(row)
+        by_key[('failure', canonical_key)] = row
+        by_id[stable_id] = row
+        changed = True
+        print(f'registered extra stable ID: {canonical_key} -> {stable_id}')
+    if changed:
+        path.write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
+
 def main() -> int:
     here=Path(__file__).resolve().parent
     for name,(payload_file,expected) in PAYLOADS.items():
@@ -71,6 +118,7 @@ def main() -> int:
             actual = hashlib.sha256(raw).hexdigest()
         (here/name).write_bytes(raw)
         print(f"materialized {name} sha256={actual}")
+    _register_extra_failure_ids(here)
     return 0
 
 if __name__ == '__main__':
