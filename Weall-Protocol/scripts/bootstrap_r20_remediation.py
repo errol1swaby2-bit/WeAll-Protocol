@@ -13,6 +13,7 @@ EXTRA_FAILURE_IDS = {
     'forbidden:storage_offer_operator_must_match_signer': 'FAIL-2A1CB3AF55A41A07',
     'invalid_payload:missing_pin_or_operator': 'FAIL-3B49DB21C4ED0B7C',
     'invalid_payload:self_transfer_forbidden': 'FAIL-5B5956453E3B2F2E',
+    'invalid_tx:missing_key_id': 'FAIL-B57D98F1582AA8F4',
 }
 
 _HELPER = '''
