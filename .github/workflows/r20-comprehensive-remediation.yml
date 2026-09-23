@@ -354,15 +354,26 @@ jobs:
           fi
           git -C .. commit -m "fix: close r20 multi-run audit findings [r20-remediation-applied]"
 
-      - name: Validate exact local candidate commit
-        run: |
-          python scripts/check_v2_spec_clean_checkout.py
-          python -m tooling.canon_lint
-          python scripts/check_generated.py
-          PYTHONPATH=src python scripts/compile_v2_spec.py --check
-          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
-          pytest -q
-          test -z "$(git -C .. status --porcelain --untracked-files=all)"
+      - name: Validate exact candidate clean-checkout reproducibility
+        run: python scripts/check_v2_spec_clean_checkout.py
+
+      - name: Validate exact candidate canon
+        run: python -m tooling.canon_lint
+
+      - name: Validate exact candidate generated artifacts
+        run: python scripts/check_generated.py
+
+      - name: Validate exact candidate v2 derivatives
+        run: PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Validate exact candidate v1.5 readiness artifacts
+        run: PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+
+      - name: Validate exact candidate full backend suite
+        run: pytest -q
+
+      - name: Validate exact candidate clean worktree
+        run: test -z "$(git -C .. status --porcelain --untracked-files=all)"
 
       - name: Push exact validated candidate
         run: git -C .. push origin HEAD:audit-r20-comprehensive-remediation
