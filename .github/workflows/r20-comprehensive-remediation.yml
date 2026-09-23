@@ -61,8 +61,10 @@ jobs:
           ruff format --check .
           ruff check .
 
-      - name: Refresh canon-derived transaction index
-        run: python scripts/gen_tx_index.py
+      - name: Refresh canon-derived transaction index and failure-code registry
+        run: |
+          python scripts/gen_tx_index.py
+          python scripts/gen_failure_code_registry_v1_5.py
 
       - name: Audit stale semantic-review bindings
         run: |
