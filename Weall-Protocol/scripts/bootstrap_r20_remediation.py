@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import base64,gzip,hashlib
+
+import base64
+import gzip
+import hashlib
+import subprocess
+import sys
 from pathlib import Path
 
 PAYLOADS = {
-    'apply_r20_comprehensive_remediation.py': ('r20_driver_a.py.gz.b64', 'c56accf266f627c128dc2a94574d2cdb17fc7029e1d16636cd034a7ea8d61bad'),
-    'apply_r20_remaining_remediation.py': ('r20_driver_b.py.gz.b64', '8bfd5a19b854e0503ff59e9316a7ad068b7ac5843d337135c35f5e42095d40bd'),
+    "apply_r20_comprehensive_remediation.py": (
+        "r20_driver_a.py.gz.b64",
+        "c56accf266f627c128dc2a94574d2cdb17fc7029e1d16636cd034a7ea8d61bad",
+    ),
+    "apply_r20_remaining_remediation.py": (
+        "r20_driver_b.py.gz.b64",
+        "8bfd5a19b854e0503ff59e9316a7ad068b7ac5843d337135c35f5e42095d40bd",
+    ),
 }
-CORRECTED_B_SHA256 = 'beef02e2ef6c1096050d58a64aa8a7bc29a6d4e5c02ab8731bcecf135522246d'
+CORRECTED_B_SHA256 = "beef02e2ef6c1096050d58a64aa8a7bc29a6d4e5c02ab8731bcecf135522246d"
 
 _HELPER = '''
 
@@ -43,35 +54,45 @@ _NEW_ROLE = '''    replace_once_in_def(
         '    rec["active"] = False\\n    rec["suspended"] = True\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
         "P1-ROLE-001")'''
 
+
 def _correct_phase_b(raw: bytes) -> bytes:
-    text = raw.decode('utf-8')
-    anchor = '\n\ndef insert_start(rel: str, name: str, source: str, fid: str) -> None:'
+    text = raw.decode("utf-8")
+    anchor = "\n\ndef insert_start(rel: str, name: str, source: str, fid: str) -> None:"
     if text.count(anchor) != 1:
-        raise SystemExit(f'phase-B helper anchor mismatch: {text.count(anchor)}')
+        raise SystemExit(f"phase-B helper anchor mismatch: {text.count(anchor)}")
     if text.count(_OLD_ROLE) != 1:
-        raise SystemExit(f'phase-B role anchor mismatch: {text.count(_OLD_ROLE)}')
+        raise SystemExit(f"phase-B role anchor mismatch: {text.count(_OLD_ROLE)}")
     text = text.replace(anchor, _HELPER + anchor, 1)
     text = text.replace(_OLD_ROLE, _NEW_ROLE, 1)
-    corrected = text.encode('utf-8')
+    corrected = text.encode("utf-8")
     actual = hashlib.sha256(corrected).hexdigest()
     if actual != CORRECTED_B_SHA256:
-        raise SystemExit(f'corrected phase-B digest mismatch: {actual} != {CORRECTED_B_SHA256}')
+        raise SystemExit(
+            f"corrected phase-B digest mismatch: {actual} != {CORRECTED_B_SHA256}"
+        )
     return corrected
 
+
 def main() -> int:
-    here=Path(__file__).resolve().parent
-    for name,(payload_file,expected) in PAYLOADS.items():
-        encoded=(here/payload_file).read_text(encoding='ascii').strip()
-        raw=gzip.decompress(base64.b64decode(encoded))
-        actual=hashlib.sha256(raw).hexdigest()
+    here = Path(__file__).resolve().parent
+    for name, (payload_file, expected) in PAYLOADS.items():
+        encoded = (here / payload_file).read_text(encoding="ascii").strip()
+        raw = gzip.decompress(base64.b64decode(encoded))
+        actual = hashlib.sha256(raw).hexdigest()
         if actual != expected:
             raise SystemExit(f"payload digest mismatch for {name}: {actual} != {expected}")
-        if name == 'apply_r20_remaining_remediation.py':
+        if name == "apply_r20_remaining_remediation.py":
             raw = _correct_phase_b(raw)
             actual = hashlib.sha256(raw).hexdigest()
-        (here/name).write_bytes(raw)
+        (here / name).write_bytes(raw)
         print(f"materialized {name} sha256={actual}")
+
+    subprocess.run(
+        [sys.executable, str(here / "register_r20_additional_state_ids.py")],
+        check=True,
+    )
     return 0
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     raise SystemExit(main())
