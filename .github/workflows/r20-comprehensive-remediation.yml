@@ -67,6 +67,71 @@ jobs:
         run: |
           python scripts/gen_tx_index.py
 
+      - name: Audit stale semantic-review bindings
+        run: |
+          PYTHONPATH=src:scripts python - <<'PY'
+          import json
+          import runpy
+          import sys
+          from pathlib import Path
+
+          import v2_spec_validation as validation
+
+          original = validation.apply_semantic_reviews
+
+          def audit_semantic_reviews(tx_rows, route_rows, reviews):
+              tx_reviews = {
+                  str(row.get("stable_id") or ""): row
+                  for row in reviews.get("transactions") or []
+                  if isinstance(row, dict)
+              }
+              route_reviews = {
+                  str(row.get("stable_id") or ""): row
+                  for row in reviews.get("routes") or []
+                  if isinstance(row, dict)
+              }
+              stale_txs = []
+              stale_routes = []
+              for row in tx_rows:
+                  review = tx_reviews.get(str(row.get("stable_id") or "")) or {}
+                  actual = validation.compact_digest(validation.tx_review_material(row))
+                  expected = str(review.get("review_digest") or "")
+                  if actual != expected:
+                      stale_txs.append({
+                          "stable_id": str(row.get("stable_id") or ""),
+                          "tx_type": str(row.get("tx_type") or ""),
+                          "expected_review_digest": expected,
+                          "actual_review_digest": actual,
+                      })
+              for row in route_rows:
+                  review = route_reviews.get(str(row.get("stable_id") or "")) or {}
+                  actual = validation.compact_digest(validation.route_review_material(row))
+                  expected = str(review.get("review_digest") or "")
+                  if actual != expected:
+                      stale_routes.append({
+                          "stable_id": str(row.get("stable_id") or ""),
+                          "route_key": str(row.get("route_key") or ""),
+                          "expected_review_digest": expected,
+                          "actual_review_digest": actual,
+                      })
+              payload = {
+                  "stale_transaction_count": len(stale_txs),
+                  "stale_route_count": len(stale_routes),
+                  "transactions": stale_txs,
+                  "routes": stale_routes,
+              }
+              Path("generated/r20_stale_semantic_reviews.json").write_text(
+                  json.dumps(payload, indent=2, sort_keys=True) + "\n",
+                  encoding="utf-8",
+              )
+              print(json.dumps(payload, indent=2, sort_keys=True))
+              raise SystemExit(0)
+
+          validation.apply_semantic_reviews = audit_semantic_reviews
+          sys.argv = ["scripts/compile_v2_spec.py", "--check"]
+          runpy.run_path("scripts/compile_v2_spec.py", run_name="__main__")
+          PY
+
       - name: Canon lint and generated-artifact checks
         run: |
           python -m tooling.canon_lint
@@ -122,5 +187,6 @@ jobs:
             Weall-Protocol/generated/r20_remaining_remediation_result.json
             Weall-Protocol/generated/r20_comprehensive_remediation_coverage.json
             Weall-Protocol/generated/r20_repository_description_action.txt
+            Weall-Protocol/generated/r20_stale_semantic_reviews.json
             Weall-Protocol/generated/r20_driver_a.log
             Weall-Protocol/generated/r20_driver_b.log
