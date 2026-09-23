@@ -17,6 +17,17 @@ EXTRA_FAILURE_IDS = {
     'invalid_tx:session_ttl_s_must_be_positive': 'FAIL-D40A4DAB3F037D44',
     'not_found:pin_not_found': 'FAIL-8DC2F2AAA82257FB',
 }
+R20_TRANSIENT_GENERATED = {
+    'generated/r20_remaining_remediation_result.json': 'workflow-local remediation result uploaded as CI artifact; not a normative v2 source or declared release evidence',
+    'generated/r20_remediation_driver_result.json': 'workflow-local remediation result uploaded as CI artifact; not a normative v2 source or declared release evidence',
+    'generated/r20_repository_description_action.txt': 'workflow-local repository-description action note; not a normative v2 source or declared release evidence',
+    'generated/r20_semantic_review_rebind.json': 'workflow-local semantic-review rebind diagnostic uploaded as CI artifact; not a normative v2 source or declared release evidence',
+    'generated/r20_stale_semantic_reviews.json': 'workflow-local semantic-review diagnostic uploaded as CI artifact; not a normative v2 source or declared release evidence',
+}
+R20_TOOLING_MAPPINGS = {
+    'scripts/bootstrap_r20_remediation.py',
+    'scripts/patch_r20_materialized_drivers.py',
+}
 
 _HELPER = '''
 
@@ -111,6 +122,63 @@ def _register_extra_failure_ids(here: Path) -> None:
     if changed:
         path.write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
 
+def _register_r20_source_coverage(here: Path) -> None:
+    path = here.parent / 'specs' / 'v2' / 'source' / 'source_mappings.json'
+    payload = json.loads(path.read_text(encoding='utf-8'))
+    excluded = payload.get('excluded_local_artifacts')
+    mappings = payload.get('mappings')
+    if not isinstance(excluded, list) or not isinstance(mappings, list):
+        raise SystemExit('source_mappings.json must contain list exclusions and mappings')
+
+    excluded_by_path = {
+        str(row.get('path') or ''): row
+        for row in excluded
+        if isinstance(row, dict) and str(row.get('path') or '')
+    }
+    mapping_by_path = {
+        str(row.get('path') or ''): row
+        for row in mappings
+        if isinstance(row, dict) and str(row.get('path') or '')
+    }
+    changed = False
+
+    for rel, reason in sorted(R20_TRANSIENT_GENERATED.items()):
+        existing = excluded_by_path.get(rel)
+        expected = {
+            'classification': 'ignored_local_generated_r20_workflow_artifact',
+            'path': rel,
+            'reason': reason,
+        }
+        if existing is not None:
+            if existing != expected:
+                raise SystemExit(f'r20 generated exclusion drift for {rel}: {existing!r}')
+            continue
+        excluded.append(expected)
+        excluded_by_path[rel] = expected
+        changed = True
+        print(f'registered exact generated exclusion: {rel}')
+
+    for rel in sorted(R20_TOOLING_MAPPINGS):
+        existing = mapping_by_path.get(rel)
+        expected = {
+            'affected_registers': ['mechanisms', 'evidence'],
+            'classification': 'authoritative_or_launch_critical',
+            'path': rel,
+            'primary_mechanism_id': 'M-076',
+            'review_status': 'mapped_current_snapshot',
+        }
+        if existing is not None:
+            if existing != expected:
+                raise SystemExit(f'r20 tooling source mapping drift for {rel}: {existing!r}')
+            continue
+        mappings.append(expected)
+        mapping_by_path[rel] = expected
+        changed = True
+        print(f'registered exact tooling mapping: {rel} -> M-076')
+
+    if changed:
+        path.write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
+
 def main() -> int:
     here=Path(__file__).resolve().parent
     for name,(payload_file,expected) in PAYLOADS.items():
@@ -125,6 +193,7 @@ def main() -> int:
         (here/name).write_bytes(raw)
         print(f"materialized {name} sha256={actual}")
     _register_extra_failure_ids(here)
+    _register_r20_source_coverage(here)
     return 0
 
 if __name__ == '__main__':
