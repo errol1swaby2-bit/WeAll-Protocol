@@ -1,0 +1,58 @@
+name: R20 Candidate Snapshot
+
+on:
+  push:
+    branches:
+      - r20-log-diagnostic-20260923
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact R20 remediation head
+        uses: actions/checkout@v4
+        with:
+          ref: bd4f210864ecc4317be22150446fd54b3c09f665
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Materialize and apply R20 candidate transformation
+        working-directory: Weall-Protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/bootstrap_r20_remediation.py
+          python scripts/patch_r20_materialized_drivers.py
+          python scripts/apply_r20_comprehensive_remediation.py
+          python scripts/apply_r20_remaining_remediation.py
+          python scripts/repair_r20_candidate_regressions.py
+          rm -f scripts/apply_r20_comprehensive_remediation.py scripts/apply_r20_remaining_remediation.py
+
+      - name: Package transformed candidate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            -czf "${RUNNER_TEMP}/r20-transformed-candidate.tar.gz" \
+            Weall-Protocol
+          sha256sum "${RUNNER_TEMP}/r20-transformed-candidate.tar.gz" | tee "${RUNNER_TEMP}/r20-transformed-candidate.sha256"
+
+      - name: Upload transformed candidate snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: r20-transformed-candidate-bd4f2108
+          path: |
+            ${{ runner.temp }}/r20-transformed-candidate.tar.gz
+            ${{ runner.temp }}/r20-transformed-candidate.sha256
+          if-no-files-found: error
+          retention-days: 3
