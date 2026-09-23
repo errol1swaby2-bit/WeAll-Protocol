@@ -14,6 +14,7 @@ EXTRA_FAILURE_IDS = {
     'invalid_payload:missing_pin_or_operator': 'FAIL-3B49DB21C4ED0B7C',
     'invalid_payload:self_transfer_forbidden': 'FAIL-5B5956453E3B2F2E',
     'invalid_tx:missing_key_id': 'FAIL-B57D98F1582AA8F4',
+    'invalid_tx:session_ttl_s_must_be_positive': 'FAIL-D40A4DAB3F037D44',
 }
 
 _HELPER = '''
