@@ -32,7 +32,19 @@ jobs:
           python scripts/patch_r20_materialized_drivers.py
           python scripts/apply_r20_comprehensive_remediation.py
           python scripts/apply_r20_remaining_remediation.py
-          python scripts/repair_r20_candidate_regressions.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("src/weall/runtime/sqlite_db.py")
+          text = path.read_text(encoding="utf-8")
+          broken = "    def _sqlite_synchronous_pragma() -> str:\n"
+          correct = "    @staticmethod\n    def _sqlite_synchronous_pragma() -> str:\n"
+          if text.count(correct) == 0 and text.count(broken) == 1:
+              text = text.replace(broken, correct, 1)
+              compile(text, str(path), "exec")
+              path.write_text(text, encoding="utf-8")
+          elif text.count(correct) != 1:
+              raise SystemExit("unexpected sqlite synchronous pragma shape")
+          PY
           rm -f scripts/apply_r20_comprehensive_remediation.py scripts/apply_r20_remaining_remediation.py
 
       - name: Package transformed candidate source
