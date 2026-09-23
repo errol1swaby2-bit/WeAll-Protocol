@@ -37,12 +37,14 @@ jobs:
       - name: Materialize verified r20 remediation drivers
         run: |
           python scripts/bootstrap_r20_remediation.py
+          python scripts/patch_r20_materialized_drivers.py
 
       - name: Apply r20 remediation drivers
         run: |
           set -o pipefail
           python scripts/apply_r20_comprehensive_remediation.py 2>&1 | tee generated/r20_driver_a.log
           python scripts/apply_r20_remaining_remediation.py 2>&1 | tee generated/r20_driver_b.log
+          rm -f scripts/apply_r20_comprehensive_remediation.py scripts/apply_r20_remaining_remediation.py
 
       - name: Install locked backend
         run: |
@@ -50,8 +52,10 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Format transformed Python
+      - name: Format and autofix transformed Python
         run: |
+          ruff format .
+          ruff check . --fix
           ruff format .
 
       - name: Whole-tree Ruff
@@ -90,6 +94,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Remove remediation-only machinery from the final reviewed tree.
+          rm -f scripts/bootstrap_r20_remediation.py scripts/patch_r20_materialized_drivers.py
+          rm -f scripts/r20_driver_a.py.gz.b64 scripts/r20_driver_b.py.gz.b64
+          rm -f ../.github/workflows/r20-comprehensive-remediation.yml
           git -C .. config user.name "github-actions[bot]"
           git -C .. config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C .. add -A
