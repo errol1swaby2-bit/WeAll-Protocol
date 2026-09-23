@@ -65,6 +65,8 @@ jobs:
         run: |
           python scripts/gen_tx_index.py
           python scripts/gen_failure_code_registry_v1_5.py
+          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
 
       - name: Audit stale semantic-review bindings
         run: |
