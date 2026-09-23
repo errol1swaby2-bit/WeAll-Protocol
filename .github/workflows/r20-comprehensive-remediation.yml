@@ -45,7 +45,18 @@ jobs:
           set -o pipefail
           python scripts/apply_r20_comprehensive_remediation.py 2>&1 | tee generated/r20_driver_a.log
           python scripts/apply_r20_remaining_remediation.py 2>&1 | tee generated/r20_driver_b.log
-          python -c "import bootstrap_r20_remediation as b; from pathlib import Path; b._repair_sqlite_staticmethod(Path('scripts').resolve())"
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          path = Path("scripts/bootstrap_r20_remediation.py").resolve()
+          spec = importlib.util.spec_from_file_location("bootstrap_r20_remediation", path)
+          if spec is None or spec.loader is None:
+              raise SystemExit(f"unable to load {path}")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module._repair_sqlite_staticmethod(path.parent)
+          PY
           rm -f scripts/apply_r20_comprehensive_remediation.py scripts/apply_r20_remaining_remediation.py
 
       - name: Install locked backend
