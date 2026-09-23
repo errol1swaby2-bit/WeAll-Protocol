@@ -40,8 +40,9 @@ jobs:
 
       - name: Apply r20 remediation drivers
         run: |
-          python scripts/apply_r20_comprehensive_remediation.py
-          python scripts/apply_r20_remaining_remediation.py
+          set -o pipefail
+          python scripts/apply_r20_comprehensive_remediation.py 2>&1 | tee generated/r20_driver_a.log
+          python scripts/apply_r20_remaining_remediation.py 2>&1 | tee generated/r20_driver_b.log
 
       - name: Install locked backend
         run: |
@@ -109,3 +110,5 @@ jobs:
             Weall-Protocol/generated/r20_remaining_remediation_result.json
             Weall-Protocol/generated/r20_comprehensive_remediation_coverage.json
             Weall-Protocol/generated/r20_repository_description_action.txt
+            Weall-Protocol/generated/r20_driver_a.log
+            Weall-Protocol/generated/r20_driver_b.log
