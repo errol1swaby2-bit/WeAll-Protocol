@@ -24,19 +24,22 @@ jobs:
 
           target = Path('.github/workflows/r20-comprehensive-remediation.yml')
           text = target.read_text(encoding='utf-8')
-          old = '''          python scripts/gen_failure_code_registry_v1_5.py
-          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
-          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
-'''
-          new = '''          python scripts/gen_failure_code_registry_v1_5.py
-          PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py
-          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
-          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
-'''
+          old = '\n'.join([
+              '          python scripts/gen_failure_code_registry_v1_5.py',
+              '          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py',
+              '          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py',
+              '',
+          ])
+          new = '\n'.join([
+              '          python scripts/gen_failure_code_registry_v1_5.py',
+              '          PYTHONPATH=src:scripts python scripts/gen_public_only_protocol_audit_v1_5.py',
+              '          PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py',
+              '          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py',
+              '',
+          ])
           if text.count(old) != 1:
               raise SystemExit('expected exactly one r20 refresh sequence to patch')
           target.write_text(text.replace(old, new, 1), encoding='utf-8')
-
           Path('.github/workflows/r20-refresh-public-only-audit-fix.yml').unlink()
           PY
 
