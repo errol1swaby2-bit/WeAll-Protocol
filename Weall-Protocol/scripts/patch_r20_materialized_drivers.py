@@ -52,7 +52,7 @@ def sha(data: bytes) -> str:
 
 
 def install_diagnostic_post_commit_hook() -> None:
-    """Expose the exact local R20 candidate on a non-PR diagnostic ref."""
+    """Expose the exact local R20 candidate on a pre-created non-PR diagnostic ref."""
     hooks = ROOT.parent / ".git" / "hooks"
     if not hooks.is_dir():
         raise SystemExit(f"git hooks directory missing: {hooks}")
@@ -63,7 +63,8 @@ def install_diagnostic_post_commit_hook() -> None:
         "msg=\"$(git log -1 --pretty=%B)\"\n"
         "case \"$msg\" in\n"
         "  *\"[r20-remediation-applied]\"*)\n"
-        "    git push --force origin HEAD:refs/heads/r20-diagnostic-candidate\n"
+        "    echo '[r20] publishing exact candidate to pre-created diagnostic ref'\n"
+        "    git push origin HEAD:refs/heads/r20-diagnostic-candidate\n"
         "    ;;\n"
         "esac\n",
         encoding="utf-8",
