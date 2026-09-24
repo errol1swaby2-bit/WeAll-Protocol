@@ -9,7 +9,7 @@ PATH = Path(__file__).resolve().parent / "apply_r20_comprehensive_remediation.py
 ROOT = Path(__file__).resolve().parents[1]
 STABLE_IDS_PATH = ROOT / "specs" / "v2" / "source" / "stable_ids.json"
 EXPECTED_OLD = "c56accf266f627c128dc2a94574d2cdb17fc7029e1d16636cd034a7ea8d61bad"
-EXPECTED_NEW = "da8b00a0ec85c56eae78bf28041ca9109df4be87b6b67479b9f973bd5e17562e"
+EXPECTED_NEW = "d30ef7ea4845f9e37d750126bc90e1961bc8e64371afdde02b868a3be17b264a"
 R20_STATE_IDS = {
     "Content:account_id": "STATE-47E618BD7C1C1376",
     "Content:declared_by": "STATE-3C85D4A9A7E940B0",
@@ -43,6 +43,7 @@ ALLOW_OLD = '    "Weall-Protocol/scripts/bootstrap_r20_remediation.py",\n'
 ALLOW_NEW = (
     ALLOW_OLD
     + '    "Weall-Protocol/scripts/patch_r20_materialized_drivers.py",\n'
+    + '    "Weall-Protocol/scripts/r20_post_transform_repair.patch.gz.b64",\n'
 )
 
 
