@@ -38,3 +38,4 @@ jobs:
           if-no-files-found: error
 
 # Diagnostic-only workflow; does not mutate protocol/runtime/test behavior.
+# Second push intentionally activates the newly registered workflow.
