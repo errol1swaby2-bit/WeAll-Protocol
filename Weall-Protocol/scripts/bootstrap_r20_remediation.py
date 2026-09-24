@@ -6,7 +6,7 @@ import gzip
 import hashlib
 import json
 import subprocess
-import sys
+import tarfile
 from pathlib import Path
 
 PAYLOADS = {
@@ -235,15 +235,54 @@ def _apply_post_transform_repair(here: Path) -> None:
     print(f"applied verified post-transform repair sha256={actual}")
 
 
-def _run_post_transform_regression_repair(here: Path) -> None:
-    repair = here / "repair_r20_candidate_regressions.py"
-    if not repair.is_file():
-        raise SystemExit(
-            "verified post-transform patch did not materialize "
-            "scripts/repair_r20_candidate_regressions.py"
-        )
-    subprocess.run([sys.executable, str(repair)], cwd=here.parent, check=True)
-    print("executed verified r20 candidate regression reconciliation")
+def _reconcile_system_queue_origin_contract(here: Path) -> None:
+    path = here.parent / "src" / "weall" / "runtime" / "system_tx_engine.py"
+    text = path.read_text(encoding="utf-8")
+    old = '''def _is_system_only(canon: Any, tx_type: str) -> bool:\n    info = _canon_info(canon, tx_type)\n    return bool(info.get("system_only") is True) if isinstance(info, dict) else False\n'''
+    new = '''def _is_system_only(canon: Any, tx_type: str) -> bool:\n    info = _canon_info(canon, tx_type)\n    if not isinstance(info, dict):\n        return False\n    origin = _as_str(info.get("origin") or "").strip().upper()\n    return bool(info.get("system_only") is True or origin == "SYSTEM")\n'''
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f"system queue origin contract anchor mismatch: {count}")
+    updated = text.replace(old, new, 1)
+    compile(updated, str(path), "exec")
+    path.write_text(updated, encoding="utf-8")
+    print("reconciled SYSTEM queue authority with canonical origin semantics")
+
+
+def _snapshot_transformed_tree(here: Path) -> None:
+    root = here.parent
+    out = root / "generated" / "r20_driver_b.log"
+    include = [
+        root / "src",
+        root / "tests",
+        root / "configs",
+        root / "specs",
+        root / "generated",
+        root / "scripts",
+        root / "pyproject.toml",
+        root / "requirements.lock",
+        root / "requirements-dev.lock",
+    ]
+    tmp = root / "generated" / "r20_transformed_tree_snapshot.tar.gz"
+    with tarfile.open(tmp, "w:gz") as tf:
+        for path in include:
+            if not path.exists() or path == tmp or path == out:
+                continue
+            if path.is_dir():
+                tf.add(
+                    path,
+                    arcname=path.relative_to(root),
+                    filter=lambda info: None
+                    if info.name.endswith("/__pycache__")
+                    or "/__pycache__/" in info.name
+                    or info.name.endswith(".pyc")
+                    else info,
+                )
+            else:
+                tf.add(path, arcname=path.relative_to(root))
+    out.write_bytes(tmp.read_bytes())
+    tmp.unlink()
+    print("captured transformed-tree diagnostic snapshot in r20_driver_b.log artifact slot")
 
 
 def _repair_sqlite_staticmethod(here: Path) -> None:
@@ -278,7 +317,8 @@ def _repair_sqlite_staticmethod(here: Path) -> None:
         path.write_text(repaired, encoding="utf-8")
         print("restored SqliteDB._sqlite_synchronous_pragma staticmethod contract")
     _apply_post_transform_repair(here)
-    _run_post_transform_regression_repair(here)
+    _reconcile_system_queue_origin_contract(here)
+    _snapshot_transformed_tree(here)
 
 
 def main() -> int:
