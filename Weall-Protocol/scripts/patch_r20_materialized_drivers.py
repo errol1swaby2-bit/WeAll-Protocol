@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 PATH = Path(__file__).resolve().parent / "apply_r20_comprehensive_remediation.py"
@@ -70,7 +71,27 @@ def install_diagnostic_post_commit_hook() -> None:
         encoding="utf-8",
     )
     hook.chmod(0o755)
-    print("installed post-commit diagnostic ref hook")
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(ROOT.parent),
+            "config",
+            "--local",
+            "core.hooksPath",
+            str(hooks),
+        ],
+        check=True,
+    )
+    configured = subprocess.check_output(
+        ["git", "-C", str(ROOT.parent), "config", "--local", "--get", "core.hooksPath"],
+        text=True,
+    ).strip()
+    if Path(configured).resolve() != hooks.resolve():
+        raise SystemExit(
+            f"diagnostic hook path binding mismatch: {configured!r} != {str(hooks)!r}"
+        )
+    print(f"installed and bound post-commit diagnostic ref hook: {hooks}")
 
 
 def register_r20_state_ids() -> None:
