@@ -1,0 +1,134 @@
+name: R20 Residual Artifact Regeneration
+
+on:
+  push:
+    branches: ["r20-log-diagnostic-20260923"]
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Weall-Protocol
+    steps:
+      - name: Checkout exact repaired remediation head
+        uses: actions/checkout@v4
+        with:
+          ref: d2faa2e101dbd00aa10ba47b63737cbccdb2441d
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Materialize and apply exact R20 repair
+        run: |
+          set -Eeuo pipefail
+          python scripts/bootstrap_r20_remediation.py
+          python scripts/patch_r20_materialized_drivers.py
+          python scripts/apply_r20_comprehensive_remediation.py
+          python scripts/apply_r20_remaining_remediation.py
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          path = Path("scripts/bootstrap_r20_remediation.py").resolve()
+          spec = importlib.util.spec_from_file_location("bootstrap_r20_remediation", path)
+          if spec is None or spec.loader is None:
+              raise SystemExit(f"unable to load {path}")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          module._repair_sqlite_staticmethod(path.parent)
+          PY
+          rm -f scripts/apply_r20_comprehensive_remediation.py scripts/apply_r20_remaining_remediation.py
+
+      - name: Install locked backend
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+          python - <<'PY'
+          import cryptography
+          from cryptography.hazmat.primitives.asymmetric import mldsa
+          key = mldsa.MLDSA65PrivateKey.generate()
+          sig = key.sign(b"r20-regeneration-probe", b"weall-r20")
+          print("cryptography", cryptography.__version__, "mldsa65_signature_bytes", len(sig))
+          if len(sig) != 3309:
+              raise SystemExit("unexpected ML-DSA-65 signature length")
+          PY
+
+      - name: Normalize repaired source
+        run: |
+          set -Eeuo pipefail
+          ruff format .
+          ruff check . --fix
+          ruff format .
+          ruff format --check .
+          ruff check .
+
+      - name: Regenerate deterministic chain and evidence artifacts
+        run: |
+          set -uo pipefail
+          : > /tmp/r20-regen-status.txt
+          run() {
+            echo "===== $*" | tee -a /tmp/r20-regen-status.txt
+            "$@" 2>&1 | tee -a /tmp/r20-regen-status.txt
+            rc=${PIPESTATUS[0]}
+            echo "RC=$rc" | tee -a /tmp/r20-regen-status.txt
+            return 0
+          }
+
+          run python scripts/gen_tx_index.py
+          run python scripts/gen_failure_code_registry_v1_5.py
+          run python scripts/gen_controlled_devnet_chain_manifest.py
+          run python scripts/gen_public_testnet_v1_chain_identity.py
+          run python scripts/build_production_genesis_manifest.py \
+            --chain-id weall-prod \
+            --founding-account @errol-genesis \
+            --founding-pubkey c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be \
+            --authority-pubkey c195d59d38ecf84b9baa227aff88960759afb72d2150f6e27a3187d0a3ae08be \
+            --genesis-time 1778368894 \
+            --econ-unlock-days 90 \
+            --bootstrap-expires-height 1008
+          run python scripts/gen_governance_execution_vectors_v1_5.py
+
+          run python scripts/gen_b499_b503_mechanics_proof_v1_5.py
+          run python scripts/gen_b505_b509_mechanics_proof_v1_5.py
+          run python scripts/gen_b510_b515_completion_proof_v1_5.py --write
+          run python scripts/gen_b517_b521_completion_proof_v1_5.py
+          run python scripts/gen_b523_b527_completion_proof_v1_5.py
+          run python scripts/gen_b528_b532_completion_proof_v1_5.py
+          run python scripts/gen_b534_b538_completion_proof_v1_5.py
+          run python scripts/gen_b539_b543_production_path_proof_v1_5.py
+          run python scripts/gen_b544_b548_live_network_final_proof_v1_5.py
+          run python scripts/gen_b549_b553_controlled_testnet_candidate_proof_v1_5.py
+          run python scripts/gen_b556_b561_final_missing_mechanics_proof_v1_5.py
+          run python scripts/gen_b562_b566_mechanics_hardening_proof_v1_5.py
+          run python scripts/gen_b567_b571_autonomous_mechanics_proof_v1_5.py
+          run python scripts/gen_b572_b576_multimachine_soak_proof_v1_5.py
+          run python scripts/gen_b577_b581_containerized_adversarial_proof_v1_5.py
+          run python scripts/gen_b582_b586_readiness_truth_and_proof_v1_5.py
+          run python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py
+
+          run python scripts/gen_public_only_protocol_audit_v1_5.py
+          run env PYTHONPATH=src python scripts/gen_release_evidence_manifest_v1_5.py
+          run env PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py
+          run env PYTHONPATH=src python scripts/compile_v2_spec.py
+          run python scripts/check_v15_public_readiness_artifacts.py
+          cp /tmp/r20-regen-status.txt generated/r20_residual_regeneration_status.txt
+
+      - name: Upload regenerated candidate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r20-residual-regenerated-artifacts-d2faa2e
+          path: |
+            Weall-Protocol/configs
+            Weall-Protocol/generated
+            Weall-Protocol/specs/v2/source
+            web/src/generated/protocolStatus.ts
+          if-no-files-found: error
