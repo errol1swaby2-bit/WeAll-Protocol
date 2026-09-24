@@ -27,6 +27,7 @@ R20_TRANSIENT_GENERATED = {
 R20_TOOLING_MAPPINGS = {
     'scripts/bootstrap_r20_remediation.py',
     'scripts/patch_r20_materialized_drivers.py',
+    'scripts/r20_post_transform_repair.patch.gz.b64',
 }
 
 _HELPER = '''
