@@ -51,6 +51,27 @@ def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def install_diagnostic_post_commit_hook() -> None:
+    """Expose the exact local R20 candidate on a non-PR diagnostic ref."""
+    hooks = ROOT.parent / ".git" / "hooks"
+    if not hooks.is_dir():
+        raise SystemExit(f"git hooks directory missing: {hooks}")
+    hook = hooks / "post-commit"
+    hook.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "msg=\"$(git log -1 --pretty=%B)\"\n"
+        "case \"$msg\" in\n"
+        "  *\"[r20-remediation-applied]\"*)\n"
+        "    git push --force origin HEAD:refs/heads/r20-diagnostic-candidate\n"
+        "    ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    hook.chmod(0o755)
+    print("installed post-commit diagnostic ref hook")
+
+
 def register_r20_state_ids() -> None:
     payload = json.loads(STABLE_IDS_PATH.read_text(encoding="utf-8"))
     entries = payload.get("entries")
@@ -174,6 +195,7 @@ def main() -> int:
     if actual_new != EXPECTED_NEW:
         raise SystemExit(f"phase-A corrected digest mismatch: {actual_new} != {EXPECTED_NEW}")
     PATH.write_bytes(out)
+    install_diagnostic_post_commit_hook()
     register_r20_state_ids()
     print(f"corrected apply_r20_comprehensive_remediation.py sha256={actual_new}")
     return 0
