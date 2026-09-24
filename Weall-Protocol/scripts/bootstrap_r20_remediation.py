@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import base64,gzip,hashlib,json
+import base64,gzip,hashlib,json,subprocess
 from pathlib import Path
 
 PAYLOADS = {
@@ -29,6 +29,8 @@ R20_TOOLING_MAPPINGS = {
     'scripts/patch_r20_materialized_drivers.py',
     'scripts/r20_post_transform_repair.patch.gz.b64',
 }
+POST_TRANSFORM_REPAIR_SHA256 = '6879e30bea57e36af92adb6e0eaf7f4017af035adea5e57e0a431cad82c189fb'
+
 
 _HELPER = '''
 
@@ -180,6 +182,34 @@ def _register_r20_source_coverage(here: Path) -> None:
     if changed:
         path.write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
 
+def _apply_post_transform_repair(here: Path) -> None:
+    payload_path = here / 'r20_post_transform_repair.patch.gz.b64'
+    encoded = payload_path.read_text(encoding='ascii').strip()
+    raw = gzip.decompress(base64.b64decode(encoded))
+    actual = hashlib.sha256(raw).hexdigest()
+    if actual != POST_TRANSFORM_REPAIR_SHA256:
+        raise SystemExit(
+            f'post-transform repair digest mismatch: {actual} != {POST_TRANSFORM_REPAIR_SHA256}'
+        )
+    patch_path = here.parent / 'generated' / 'r20_post_transform_repair.patch'
+    patch_path.parent.mkdir(parents=True, exist_ok=True)
+    patch_path.write_bytes(raw)
+    try:
+        subprocess.run(
+            ['git', 'apply', '--check', str(patch_path)],
+            cwd=here.parent,
+            check=True,
+        )
+        subprocess.run(
+            ['git', 'apply', str(patch_path)],
+            cwd=here.parent,
+            check=True,
+        )
+    finally:
+        patch_path.unlink(missing_ok=True)
+    print(f'applied verified post-transform repair sha256={actual}')
+
+
 def _repair_sqlite_staticmethod(here: Path) -> None:
     path = here.parent / 'src' / 'weall' / 'runtime' / 'sqlite_db.py'
     text = path.read_text(encoding='utf-8')
@@ -189,8 +219,7 @@ def _repair_sqlite_staticmethod(here: Path) -> None:
     broken_count = text.count(broken)
     if correct_count == 1:
         print('sqlite synchronous pragma staticmethod contract already intact')
-        return
-    if correct_count != 0 or broken_count != 1:
+    elif correct_count != 0 or broken_count != 1:
         marker = '_sqlite_synchronous_pragma'
         lines = text.splitlines()
         matches = [i for i, line in enumerate(lines) if marker in line]
@@ -205,10 +234,12 @@ def _repair_sqlite_staticmethod(here: Path) -> None:
             for n in range(start, end):
                 print(f'{n + 1:04d}: {lines[n]}')
         raise SystemExit('sqlite synchronous pragma shape diagnostic captured; refusing to patch')
-    repaired = text.replace(broken, correct, 1)
-    compile(repaired, str(path), 'exec')
-    path.write_text(repaired, encoding='utf-8')
-    print('restored SqliteDB._sqlite_synchronous_pragma staticmethod contract')
+    else:
+        repaired = text.replace(broken, correct, 1)
+        compile(repaired, str(path), 'exec')
+        path.write_text(repaired, encoding='utf-8')
+        print('restored SqliteDB._sqlite_synchronous_pragma staticmethod contract')
+    _apply_post_transform_repair(here)
 
 def main() -> int:
     here=Path(__file__).resolve().parent
