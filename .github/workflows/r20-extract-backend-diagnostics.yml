@@ -1,0 +1,40 @@
+name: R20 Extract Latest Failure Log
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["audit-r20-comprehensive-remediation"]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  extract-r20-failure-log:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download failing R20 backend job log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p diagnostics
+          curl --fail --location --retry 3 \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/jobs/107878778534/logs" \
+            --output diagnostics/r20-job.log
+          grep -a '^.*FAILED ' diagnostics/r20-job.log > diagnostics/r20-failures.txt || true
+          tail -n 250 diagnostics/r20-job.log > diagnostics/r20-tail.txt || true
+          wc -c diagnostics/r20-job.log
+          wc -l diagnostics/r20-failures.txt || true
+
+      - name: Upload exact R20 backend diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: r20-exact-backend-diagnostics
+          path: diagnostics/
+          if-no-files-found: error
+
+# Diagnostic-only workflow; does not mutate protocol/runtime/test behavior.
