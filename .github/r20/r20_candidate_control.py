@@ -127,6 +127,70 @@ def _repair_storage_lifecycle_regressions() -> None:
 
     compile(tests, str(test_path), "exec")
     test_path.write_text(tests, encoding="utf-8")
+    stable_ids_path = PROJECT_ROOT / "specs" / "v2" / "source" / "stable_ids.json"
+    stable_ids = __import__("json").loads(stable_ids_path.read_text(encoding="utf-8"))
+    entries = stable_ids.get("entries")
+    if not isinstance(entries, list):
+        raise SystemExit("stable_ids.json entries must be a list")
+
+    canonical_key = "Storage:pin_accounting_markers"
+    stable_id = "STATE-D726415CAADC0B5D"
+    derived = (
+        "STATE-"
+        + __import__("hashlib")
+        .sha256(canonical_key.encode("utf-8"))
+        .hexdigest()[:16]
+        .upper()
+    )
+    if derived != stable_id:
+        raise SystemExit(
+            f"pin_accounting_markers stable-id derivation mismatch: {derived} != {stable_id}"
+        )
+
+    matching = [
+        row
+        for row in entries
+        if isinstance(row, dict)
+        and str(row.get("kind") or "") == "state"
+        and str(row.get("canonical_key") or "") == canonical_key
+    ]
+    if len(matching) > 1:
+        raise SystemExit(f"duplicate stable-id rows for state:{canonical_key}")
+    if matching:
+        if str(matching[0].get("stable_id") or "") != stable_id:
+            raise SystemExit(
+                f"state:{canonical_key} registered to unexpected ID: "
+                f"{matching[0].get('stable_id')}"
+            )
+    else:
+        collision = [
+            row
+            for row in entries
+            if isinstance(row, dict)
+            and str(row.get("stable_id") or "") == stable_id
+        ]
+        if collision:
+            raise SystemExit(
+                f"stable ID collision for {stable_id}: {collision!r}"
+            )
+        entries.append(
+            {
+                "aliases": [],
+                "canonical_key": canonical_key,
+                "kind": "state",
+                "stable_id": stable_id,
+                "status": "active",
+            }
+        )
+        stable_ids_path.write_text(
+            __import__("json").dumps(stable_ids, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(
+            f"registered storage accounting marker state ID: "
+            f"{canonical_key} -> {stable_id}"
+        )
+
     print("repaired storage lifecycle idempotence without reintroducing pin_id state")
 
 
