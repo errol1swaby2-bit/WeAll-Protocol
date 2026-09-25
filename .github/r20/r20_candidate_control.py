@@ -3,15 +3,16 @@ from __future__ import annotations
 
 import runpy
 import subprocess
+import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
 PROJECT_ROOT = REPO_ROOT / "Weall-Protocol"
-PREVIOUS_COMMIT = "f62030327a179410920e235fd68a79b006804913"
+PREVIOUS_COMMIT = "1a490893f20dd41f6bf17e4aafb857e723c33f34"
 PREVIOUS_REL = ".github/r20/r20_candidate_control.py"
-PREVIOUS_BLOB = "27414653715ff4764ba00b60e858e59a2d79b7cd"
-TEMP_PREVIOUS = HERE / ".r20_candidate_control_rf2_v1.py"
+PREVIOUS_BLOB = "a2bc91bfed0e63c9cec53386d468121ddfdd5ce4"
+TEMP_PREVIOUS = HERE / ".r20_candidate_control_rf2_b528.py"
 
 
 def _load_previous_main():
@@ -21,74 +22,66 @@ def _load_previous_main():
         text=True,
     ).strip()
     if actual_blob != PREVIOUS_BLOB:
-        raise SystemExit(f"known RF2 controller blob drift: {actual_blob} != {PREVIOUS_BLOB}")
+        raise SystemExit(
+            f"known B528 RF2 controller blob drift: {actual_blob} != {PREVIOUS_BLOB}"
+        )
     source = subprocess.check_output(
         ["git", "show", f"{PREVIOUS_COMMIT}:{PREVIOUS_REL}"],
         cwd=REPO_ROOT,
     )
     TEMP_PREVIOUS.write_bytes(source)
-    namespace = runpy.run_path(str(TEMP_PREVIOUS), run_name="r20_candidate_control_rf2_v1")
+    namespace = runpy.run_path(str(TEMP_PREVIOUS), run_name="r20_candidate_control_rf2_b528")
     previous_main = namespace.get("main")
     if not callable(previous_main):
-        raise SystemExit("known RF2 controller has no callable main()")
+        raise SystemExit("known B528 RF2 controller has no callable main()")
     return previous_main
 
 
-def _replace_once(text: str, old: str, new: str, *, label: str) -> str:
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f"{label}: expected exactly one source match, found {count}")
-    return text.replace(old, new, 1)
-
-
-def _repair_b528_storage_rehearsal_format_tolerant() -> None:
-    path = PROJECT_ROOT / "scripts" / "rehearse_api_driven_full_lifecycle_v1_5.py"
+def _repair_b564_storage_retry_rehearsal() -> None:
+    path = PROJECT_ROOT / "scripts" / "rehearse_storage_worker_failure_retry_loop_v1_5.py"
     text = path.read_text(encoding="utf-8")
 
-    text = _replace_once(
-        text,
-        '    _enable_storage_responsibility(state, "opA", capacity=1000)\n    _enable_storage_responsibility(state, "opB", capacity=1000)\n',
-        '    _enable_storage_responsibility(state, "opA", capacity=1000)\n    _enable_storage_responsibility(state, "opB", capacity=1000)\n    _enable_storage_responsibility(state, "opC", capacity=1000)\n',
-        label="b528-add-third-storage-operator",
-    )
+    start = "        replacement_attempts: list[bool] = []\n"
+    end = '        final_pin = state["storage"]["pins"][pin_id]\n'
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise SystemExit(
+            "b564-current-target-proof-span-not-unique:"
+            f"start={text.count(start)} end={text.count(end)}"
+        )
+    start_at = text.index(start)
+    end_at = text.index(end, start_at)
+    if end_at <= start_at:
+        raise SystemExit("b564-current-target-proof-span-invalid")
 
-    pin_marker = 'state["storage"].setdefault("pins", {})["pin-api"]'
-    marker_at = text.find(pin_marker)
-    if marker_at < 0 or text.find(pin_marker, marker_at + 1) >= 0:
-        raise SystemExit("b528-pin-record-anchor-not-unique")
-    line_at = text.rfind("\n", 0, marker_at) + 1
-    op_c_mirror = '''    state["storage"]["operators"]["opC"] = {\n        "enabled": True,\n        "capacity_bytes": 1000,\n        "used_bytes": 0,\n        "allocated_bytes": 0,\n    }\n'''
-    text = text[:line_at] + op_c_mirror + text[line_at:]
+    replacement = '''        current_target_results: dict[str, dict[str, Any]] = {}\n        confirm_receipts: dict[str, dict[str, Any]] = {}\n        confirm_nonce = 3\n        for current_target in reassigned_targets:\n            attempts: list[bool] = []\n            while True:\n                ok = workers[current_target].pin(cid, data)\n                attempts.append(ok)\n                if ok or len(attempts) >= 3:\n                    break\n            read_back = workers[current_target].cat(cid)\n            read_ok = read_back == data\n            receipt = apply_storage(\n                state,\n                _env(\n                    "IPFS_PIN_CONFIRM",\n                    "SYSTEM",\n                    confirm_nonce,\n                    {\n                        "pin_id": pin_id,\n                        "cid": cid,\n                        "operator_id": current_target,\n                        "ok": read_ok,\n                        "retrieval_ok": read_ok,\n                        "proof_hash": hashlib.sha256(read_back or b"").hexdigest(),\n                    },\n                    system=True,\n                    parent="storage",\n                ),\n            )\n            current_target_results[current_target] = {\n                "attempts": attempts,\n                "read_ok": read_ok,\n            }\n            confirm_receipts[current_target] = receipt\n            confirm_nonce += 1\n\n        replacement_attempts = current_target_results[replacement]["attempts"]\n        replacement_read_ok = bool(current_target_results[replacement]["read_ok"])\n        replacement_confirm = confirm_receipts[replacement]\n'''
+    text = text[:start_at] + replacement + text[end_at:]
 
-    text = _replace_once(
-        text,
-        '"targets": ["opA"],',
-        '"targets": ["opA", "opB"],',
-        label="b528-establish-two-original-rf2-targets",
-    )
+    old_ok = '''                and any(replacement_attempts)\n                and replacement_read == data\n                and final_pin.get("availability_status") == "available"\n'''
+    new_ok = '''                and any(replacement_attempts)\n                and replacement_read_ok\n                and all(result["read_ok"] for result in current_target_results.values())\n                and len(current_target_results) == len(reassigned_targets) == 2\n                and final_pin.get("confirmed_target_count") == 2\n                and final_pin.get("availability_status") == "available"\n'''
+    if text.count(old_ok) != 1:
+        raise SystemExit(f"b564-ok-contract-anchor-count:{text.count(old_ok)}")
+    text = text.replace(old_ok, new_ok, 1)
 
-    failed_at = text.find("    failed_pin = apply_storage(")
-    if failed_at < 0:
-        raise SystemExit("b528-failed-pin-anchor-missing")
-    success_at = text.find("    apply_storage(", failed_at + 1)
-    econ_at = text.find("    econ_rejected = False", success_at)
-    if success_at < 0 or econ_at < 0 or econ_at <= success_at:
-        raise SystemExit("b528-success-span-anchors-invalid")
+    old_result = '''            "replacement_confirm_receipt": replacement_confirm,\n            "reassignment_recorded": replacement in reassigned_targets,\n'''
+    new_result = '''            "replacement_confirm_receipt": replacement_confirm,\n            "current_target_results": current_target_results,\n            "current_target_confirm_receipts": confirm_receipts,\n            "all_current_targets_retrieval_confirmed": all(\n                result["read_ok"] for result in current_target_results.values()\n            ),\n            "reassignment_recorded": replacement in reassigned_targets,\n'''
+    if text.count(old_result) != 1:
+        raise SystemExit(f"b564-result-anchor-count:{text.count(old_result)}")
+    text = text.replace(old_result, new_result, 1)
 
-    success_block = '''    replacement = (\n        failed_pin.get("reassignment", {}).get("replacement_operator_id")\n        if isinstance(failed_pin, dict)\n        else None\n    )\n    if replacement != "opC":\n        raise RuntimeError(f"storage_rehearsal_expected_opC_replacement:{replacement}")\n    for storage_nonce, operator_id in ((9, "opB"), (10, replacement)):\n        apply_storage(\n            state,\n            _env(\n                "IPFS_PIN_CONFIRM",\n                "SYSTEM",\n                storage_nonce,\n                {\n                    "pin_id": "pin-api",\n                    "cid": CID_A,\n                    "operator_id": operator_id,\n                    "ok": True,\n                    "retrieval_ok": True,\n                },\n                system=True,\n                parent="storage:pin-api",\n            ),\n        )\n'''
-    text = text[:success_at] + success_block + text[econ_at:]
     path.write_text(text, encoding="utf-8")
-    print("repaired B528 RF2 rehearsal using format-tolerant structural anchors")
+    print("repaired batch 564 retry rehearsal to prove every current RF2 target")
 
 
 def main() -> int:
+    command = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
         previous_main = _load_previous_main()
-        previous_main.__globals__["_repair_b528_storage_rehearsal"] = (
-            _repair_b528_storage_rehearsal_format_tolerant
-        )
         rc = previous_main()
-        return int(rc or 0)
+        if rc not in (None, 0):
+            raise SystemExit(f"known B528 RF2 controller failed: {rc}")
+        if command == "post-apply":
+            _repair_b564_storage_retry_rehearsal()
+        return 0
     finally:
         TEMP_PREVIOUS.unlink(missing_ok=True)
 
