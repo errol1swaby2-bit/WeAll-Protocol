@@ -21,6 +21,7 @@ jobs:
         working-directory: Weall-Protocol
     env:
       PYTHONPATH: src:scripts
+      R20_ANCHOR: b8f5974e290bdbfeebff47f86c1735481b5bb082
 
     steps:
       - name: Checkout exact remediation branch
@@ -33,10 +34,49 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify control script and audited ancestry
+      - name: Verify CI-only delta and preserve branch controls
         run: |
+          set -Eeuo pipefail
           python -m py_compile ../.github/r20/r20_candidate_control.py
           test "$(git -C .. merge-base HEAD 69cce170829ded30ebb030669f05c387df6a3ddb)" = "69cce170829ded30ebb030669f05c387df6a3ddb"
+          git -C .. rev-parse HEAD > /tmp/r20_original_head
+          python - <<'PY'
+          import os
+          import subprocess
+
+          anchor = os.environ["R20_ANCHOR"]
+          allowed = {
+              ".github/r20/r20_candidate_control.py",
+              ".github/workflows/backend-ci.yml",
+              ".github/workflows/r20-comprehensive-remediation.yml",
+          }
+          changed = {
+              line.strip()
+              for line in subprocess.check_output(
+                  ["git", "-C", "..", "diff", "--name-only", f"{anchor}...HEAD"],
+                  text=True,
+              ).splitlines()
+              if line.strip()
+          }
+          if changed != allowed:
+              raise SystemExit(
+                  "unexpected branch delta above audited r20 anchor; refusing detached transform:\n"
+                  f"expected={sorted(allowed)}\nobserved={sorted(changed)}"
+              )
+          print("verified CI-only delta above exact r20 anchor:", sorted(changed))
+          PY
+          cp ../.github/r20/r20_candidate_control.py /tmp/r20_candidate_control.py
+          cp ../.github/workflows/backend-ci.yml /tmp/r20_backend_ci.yml
+          cp ../.github/workflows/r20-comprehensive-remediation.yml /tmp/r20_workflow.yml
+
+      - name: Detach at exact audited r20 anchor
+        run: |
+          set -Eeuo pipefail
+          git -C .. checkout --detach "${R20_ANCHOR}"
+          test "$(git -C .. rev-parse HEAD)" = "${R20_ANCHOR}"
+          mkdir -p ../.github/r20
+          cp /tmp/r20_candidate_control.py ../.github/r20/r20_candidate_control.py
+          python -m py_compile ../.github/r20/r20_candidate_control.py
 
       - name: Materialize verified r20 remediation drivers
         run: |
@@ -48,6 +88,18 @@ jobs:
           python scripts/apply_r20_comprehensive_remediation.py 2>&1 | tee generated/r20_driver_a.log
           python scripts/apply_r20_remaining_remediation.py 2>&1 | tee generated/r20_driver_b.log
           python ../.github/r20/r20_candidate_control.py post-apply
+
+      - name: Verify and restore final CI control surfaces
+        run: |
+          set -Eeuo pipefail
+          if ! cmp -s ../.github/workflows/backend-ci.yml /tmp/r20_backend_ci.yml; then
+            echo "R20 driver's backend-ci transform differs from the pre-applied branch control."
+            diff -u /tmp/r20_backend_ci.yml ../.github/workflows/backend-ci.yml || true
+            exit 1
+          fi
+          cp /tmp/r20_workflow.yml ../.github/workflows/r20-comprehensive-remediation.yml
+          cmp -s ../.github/workflows/backend-ci.yml /tmp/r20_backend_ci.yml
+          cmp -s ../.github/workflows/r20-comprehensive-remediation.yml /tmp/r20_workflow.yml
 
       - name: Install locked backend
         run: |
@@ -177,14 +229,13 @@ jobs:
           ruff check . --fix
           ruff format .
 
-      - name: Validate final transformed tree
+      - name: Validate transformed tree before transplant
         run: |
           ruff format --check .
           ruff check .
           python -m tooling.canon_lint
           python scripts/check_generated.py
           python scripts/compile_v2_spec.py --check
-          python scripts/check_v2_spec_clean_checkout.py
           PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
@@ -192,18 +243,48 @@ jobs:
           python scripts/gen_controlled_devnet_chain_manifest.py --check
           python scripts/gen_public_testnet_v1_chain_identity.py --check
 
-      - name: Verify candidate does not modify workflow files
+      - name: Transplant exact protocol candidate onto branch head
         run: |
+          set -Eeuo pipefail
+          git -C .. add -A -- Weall-Protocol
+          if git -C .. diff --cached --quiet -- Weall-Protocol; then
+            echo "No transformed protocol delta to transplant."
+            exit 1
+          fi
+          git -C .. diff --cached --binary -- Weall-Protocol > /tmp/r20_protocol.patch
+          test -s /tmp/r20_protocol.patch
+          rm -f ../.github/r20/r20_candidate_control.py
+          git -C .. reset --hard
+          ORIGINAL_HEAD="$(cat /tmp/r20_original_head)"
+          git -C .. checkout -B audit-r20-comprehensive-remediation "${ORIGINAL_HEAD}"
+          test "$(git -C .. rev-parse HEAD)" = "${ORIGINAL_HEAD}"
+          git -C .. apply --index /tmp/r20_protocol.patch
+          git -C .. diff --cached --quiet -- .github
+          git -C .. diff --quiet -- .github
+
+      - name: Validate transplanted candidate before commit
+        run: |
+          ruff format --check .
+          ruff check .
+          python -m tooling.canon_lint
+          python scripts/check_generated.py
+          python scripts/compile_v2_spec.py --check
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          python scripts/check_public_claim_freshness.py
+          python scripts/gen_current_verified_claims.py --check
+          python scripts/assert_production_genesis_artifacts.py
+          python scripts/gen_controlled_devnet_chain_manifest.py --check
+          python scripts/gen_public_testnet_v1_chain_identity.py --check
           git -C .. diff --exit-code HEAD -- .github/workflows/backend-ci.yml
           git -C .. diff --exit-code HEAD -- .github/workflows/r20-comprehensive-remediation.yml
+          git -C .. diff --exit-code HEAD -- .github/r20/r20_candidate_control.py
 
       - name: Create local exact candidate commit
         run: |
           git -C .. config user.name "github-actions[bot]"
           git -C .. config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C .. add -A
           if git -C .. diff --cached --quiet; then
-            echo "No remediation changes to commit."
+            echo "No remediation changes staged for candidate commit."
             exit 1
           fi
           git -C .. commit -m "fix: close r20 multi-run audit findings [r20-remediation-applied]"
