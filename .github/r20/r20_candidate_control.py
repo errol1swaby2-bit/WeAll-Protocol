@@ -35,38 +35,39 @@ def _load_previous_main():
     return previous_main
 
 
-def _instrument_b562_generator() -> None:
-    path = PROJECT_ROOT / "scripts" / "gen_b562_b566_mechanics_hardening_proof_v1_5.py"
+def _repair_b558_multi_operator_storage_rehearsal() -> None:
+    path = PROJECT_ROOT / "scripts" / "rehearse_multi_operator_storage_workers_v1_5.py"
     text = path.read_text(encoding="utf-8")
-    if "def _run_component(" in text:
-        raise SystemExit("B562 diagnostic helper unexpectedly already present")
 
-    old_import = "import json\nfrom pathlib import Path\n"
-    new_import = "import json\nimport sys\nfrom pathlib import Path\n"
-    if text.count(old_import) != 1:
-        raise SystemExit(f"B562 import anchor count: {text.count(old_import)}")
-    text = text.replace(old_import, new_import, 1)
+    start = "        replacement_written = workers[replacement].pin(cid, data)\n"
+    end = '        final_pin = state["storage"]["pins"][pin_id]\n'
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise SystemExit(
+            "b558-current-target-proof-span-not-unique:"
+            f"start={text.count(start)} end={text.count(end)}"
+        )
+    start_at = text.index(start)
+    end_at = text.index(end, start_at)
+    if end_at <= start_at:
+        raise SystemExit("b558-current-target-proof-span-invalid")
 
-    build_anchor = "\ndef build() -> dict[str, Any]:\n"
-    helper = '''\ndef _run_component(name: str, fn):\n    print(f"B562 component start: {name}", file=sys.stderr, flush=True)\n    try:\n        result = fn()\n    except BaseException as exc:\n        print(\n            f"B562 component raised: {name}: {type(exc).__name__}: {exc}",\n            file=sys.stderr,\n            flush=True,\n        )\n        raise\n    if not isinstance(result, dict):\n        print(\n            f"B562 component returned non-dict: {name}: {type(result).__name__}",\n            file=sys.stderr,\n            flush=True,\n        )\n    else:\n        print(\n            f"B562 component result: {name}: ok={bool(result.get('ok'))}",\n            file=sys.stderr,\n            flush=True,\n        )\n        if not bool(result.get("ok")):\n            print(\n                json.dumps({"component": name, "result": result}, sort_keys=True, indent=2),\n                file=sys.stderr,\n                flush=True,\n            )\n    return result\n\n\ndef build() -> dict[str, Any]:\n'''
-    if text.count(build_anchor) != 1:
-        raise SystemExit(f"B562 build anchor count: {text.count(build_anchor)}")
-    text = text.replace(build_anchor, helper, 1)
+    replacement_block = '''        current_target_results: dict[str, dict[str, Any]] = {}\n        confirm_receipts: dict[str, dict[str, Any]] = {}\n        confirm_nonce = 3\n        for current_target in reassigned_targets:\n            written = workers[current_target].pin(cid, data)\n            read_back = workers[current_target].cat(cid)\n            read_ok = read_back == data\n            receipt = apply_storage(\n                state,\n                _env(\n                    "IPFS_PIN_CONFIRM",\n                    "SYSTEM",\n                    confirm_nonce,\n                    {\n                        "pin_id": pin_id,\n                        "cid": cid,\n                        "operator_id": current_target,\n                        "ok": written and read_ok,\n                        "retrieval_ok": read_ok,\n                        "proof_hash": hashlib.sha256(read_back or b"").hexdigest(),\n                    },\n                    system=True,\n                    parent="storage",\n                ),\n            )\n            current_target_results[current_target] = {\n                "written": written,\n                "read_ok": read_ok,\n            }\n            confirm_receipts[current_target] = receipt\n            confirm_nonce += 1\n\n        replacement_written = bool(current_target_results[replacement]["written"])\n        replacement_read_ok = bool(current_target_results[replacement]["read_ok"])\n        replacement_confirm = confirm_receipts[replacement]\n'''
+    text = text[:start_at] + replacement_block + text[end_at:]
 
-    replacements = {
-        "    validator = run_validator_apply()\n": "    validator = _run_component(\"validator_follower_apply_hardening\", run_validator_apply)\n",
-        "    follower_sync = run_follower_sync()\n": "    follower_sync = _run_component(\"live_peer_catchup_from_follower_state\", run_follower_sync)\n",
-        "    storage_retry = run_storage_retry()\n": "    storage_retry = _run_component(\"storage_worker_failure_retry_loop\", run_storage_retry)\n",
-        "    anti_sybil = run_anti_sybil_windows()\n": "    anti_sybil = _run_component(\"anti_sybil_escalation_recovery_windows\", run_anti_sybil_windows)\n",
-        "    economics = run_economics_farming()\n": "    economics = _run_component(\"economics_farming_simulation_locked\", run_economics_farming)\n",
-    }
-    for old, new in replacements.items():
-        if text.count(old) != 1:
-            raise SystemExit(f"B562 component anchor count for {old.strip()!r}: {text.count(old)}")
-        text = text.replace(old, new, 1)
+    old_ok = '''                and replacement_written\n                and replacement_read == data\n                and final_pin.get("availability_status") == "available"\n                and final_pin.get("durability_status") == "retrieval_confirmed"\n'''
+    new_ok = '''                and replacement_written\n                and replacement_read_ok\n                and all(result["written"] for result in current_target_results.values())\n                and all(result["read_ok"] for result in current_target_results.values())\n                and len(current_target_results) == len(reassigned_targets) == 2\n                and final_pin.get("confirmed_target_count") == 2\n                and final_pin.get("availability_status") == "available"\n                and final_pin.get("durability_status") == "retrieval_confirmed"\n'''
+    if text.count(old_ok) != 1:
+        raise SystemExit(f"b558-ok-contract-anchor-count:{text.count(old_ok)}")
+    text = text.replace(old_ok, new_ok, 1)
+
+    old_result = '''            "replacement_confirm_receipt": ok_confirm,\n            "retrieval_confirmed": final_pin.get("durability_status") == "retrieval_confirmed",\n'''
+    new_result = '''            "replacement_confirm_receipt": replacement_confirm,\n            "current_target_results": current_target_results,\n            "current_target_confirm_receipts": confirm_receipts,\n            "all_current_targets_retrieval_confirmed": all(\n                result["read_ok"] for result in current_target_results.values()\n            ),\n            "confirmed_target_count": final_pin.get("confirmed_target_count"),\n            "retrieval_confirmed": final_pin.get("durability_status") == "retrieval_confirmed",\n'''
+    if text.count(old_result) != 1:
+        raise SystemExit(f"b558-result-anchor-count:{text.count(old_result)}")
+    text = text.replace(old_result, new_result, 1)
 
     path.write_text(text, encoding="utf-8")
-    print("instrumented B562 component diagnostics without changing acceptance criteria")
+    print("repaired batch 558 storage rehearsal to prove every current RF2 target")
 
 
 def main() -> int:
@@ -77,7 +78,7 @@ def main() -> int:
         if rc not in (None, 0):
             raise SystemExit(f"known B564 controller failed: {rc}")
         if command == "post-apply":
-            _instrument_b562_generator()
+            _repair_b558_multi_operator_storage_rehearsal()
         return 0
     finally:
         TEMP_PREVIOUS.unlink(missing_ok=True)
