@@ -211,6 +211,14 @@ def _diagnose_runtime_state_delta() -> None:
         f"baseline_count={baseline.get('count')} current_count={current.get('count')} "
         f"added={sorted(added)!r} removed={sorted(removed)!r}"
     )
+    pin_id_rows = [
+        row
+        for row in current.get("rows") or []
+        if isinstance(row, dict)
+        and str(row.get("domain") or "") == "Storage"
+        and str(row.get("state_key_or_namespace") or "") == "pin_id"
+    ]
+    print("runtime-state Storage:pin_id provenance:", pin_id_rows)
 
 
 def main() -> int:
