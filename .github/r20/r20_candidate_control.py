@@ -70,6 +70,72 @@ def _repair_b569_multiprocess_storage_rehearsal() -> None:
     print("repaired batch 569 multiprocess storage rehearsal to prove every live RF2 target")
 
 
+
+def _repair_storage_lifecycle_regressions() -> None:
+    storage_path = PROJECT_ROOT / "src" / "weall" / "runtime" / "apply" / "storage.py"
+    storage = storage_path.read_text(encoding="utf-8")
+
+    old_guard = '''    targets = sorted({str(x).strip() for x in rec.get("targets", []) if str(x).strip()})
+    if operator_id not in targets:
+        raise StorageApplyError(
+            "forbidden",
+            "operator_not_current_pin_target",
+            {"pin_id": pin_id, "operator_id": operator_id, "targets": targets},
+        )
+'''
+    new_guard = '''    targets = sorted({str(x).strip() for x in rec.get("targets", []) if str(x).strip()})
+    request_ok = payload.get("ok")
+    request_ok_bool = bool(request_ok) if isinstance(request_ok, (bool, int)) else False
+    if "ok" not in payload:
+        request_ok_bool = True
+
+    if operator_id not in targets:
+        prior_non_success = any(
+            isinstance(item, dict)
+            and str(item.get("pin_id") or "").strip() == pin_id
+            and str(item.get("operator_id") or "").strip() == operator_id
+            and not bool(item.get("ok"))
+            for item in s.get("pin_confirms", [])
+        )
+        if request_ok_bool or not prior_non_success:
+            raise StorageApplyError(
+                "forbidden",
+                "operator_not_current_pin_target",
+                {"pin_id": pin_id, "operator_id": operator_id, "targets": targets},
+            )
+'''
+    if storage.count(old_guard) != 1:
+        raise SystemExit(f"storage current-target guard shape mismatch: {storage.count(old_guard)}")
+    storage = storage.replace(old_guard, new_guard, 1)
+    compile(storage, str(storage_path), "exec")
+    storage_path.write_text(storage, encoding="utf-8")
+
+    test_path = PROJECT_ROOT / "tests" / "test_storage_pin_lifecycle_adversarial.py"
+    tests = test_path.read_text(encoding="utf-8")
+    old_expect = 'pytest.raises(StorageApplyError, match="operator_not_current_pin_target")'
+    if tests.count(old_expect) != 3:
+        raise SystemExit(f"storage adversarial exception expectation count mismatch: {tests.count(old_expect)}")
+    tests = tests.replace(
+        old_expect,
+        'pytest.raises(ApplyError, match="operator_not_current_pin_target")',
+    )
+    if "from weall.runtime.errors import ApplyError\n" not in tests:
+        anchor = "import pytest\n"
+        if tests.count(anchor) != 1:
+            raise SystemExit(f"storage adversarial pytest import anchor mismatch: {tests.count(anchor)}")
+        tests = tests.replace(anchor, anchor + "\nfrom weall.runtime.errors import ApplyError\n", 1)
+
+    standalone = "from weall.runtime.apply.storage import StorageApplyError\n"
+    if standalone in tests:
+        tests = tests.replace(standalone, "", 1)
+    mixed = "from weall.runtime.apply.storage import StorageApplyError, "
+    if mixed in tests:
+        tests = tests.replace(mixed, "from weall.runtime.apply.storage import ", 1)
+
+    compile(tests, str(test_path), "exec")
+    test_path.write_text(tests, encoding="utf-8")
+    print("repaired storage lifecycle idempotence and public exception boundary")
+
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
@@ -79,6 +145,7 @@ def main() -> int:
             raise SystemExit(f"known B558 controller failed: {rc}")
         if command == "post-apply":
             _repair_b569_multiprocess_storage_rehearsal()
+            _repair_storage_lifecycle_regressions()
         return 0
     finally:
         TEMP_PREVIOUS.unlink(missing_ok=True)
