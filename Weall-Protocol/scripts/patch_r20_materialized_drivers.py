@@ -83,6 +83,56 @@ NEW_REPAIR_FUNCTION = '''def _apply_post_transform_repair(here: Path) -> None:
     )
 '''
 
+NEW_RECONCILE_FUNCTION = '''def _reconcile_system_queue_origin_contract(here: Path) -> None:
+    path = here.parent / "src" / "weall" / "runtime" / "system_tx_engine.py"
+    text = path.read_text(encoding="utf-8")
+    old = """def _is_system_only(canon: Any, tx_type: str) -> bool:
+    info = _canon_info(canon, tx_type)
+    return bool(info.get(\"system_only\") is True) if isinstance(info, dict) else False
+"""
+    repaired = """def _is_system_only(canon: Any, tx_type: str) -> bool:
+    info = _canon_info(canon, tx_type)
+    if not isinstance(info, dict):
+        return False
+    # Canon marks receipt/system-envelope transactions with origin=SYSTEM.
+    # Some generated projections do not materialize a separate system_only flag,
+    # so treating absence of that projection-only field as non-system corrupts
+    # valid governance/system queue entries. Preserve an explicit system_only
+    # marker when present, otherwise use the authoritative origin classification.
+    if info.get(\"system_only\") is True:
+        return True
+    return str(info.get(\"origin\") or \"\").strip().upper() == \"SYSTEM\"
+"""
+    reconciled = """def _is_system_only(canon: Any, tx_type: str) -> bool:
+    info = _canon_info(canon, tx_type)
+    if not isinstance(info, dict):
+        return False
+    origin = _as_str(info.get(\"origin\") or \"\").strip().upper()
+    return bool(info.get(\"system_only\") is True or origin == \"SYSTEM\")
+"""
+
+    old_count = text.count(old)
+    repaired_count = text.count(repaired)
+    reconciled_count = text.count(reconciled)
+    known_count = old_count + repaired_count + reconciled_count
+    if known_count != 1:
+        raise SystemExit(
+            "system queue origin contract shape mismatch: "
+            f"old={old_count} repaired={repaired_count} reconciled={reconciled_count}"
+        )
+    if repaired_count == 1:
+        print("system queue origin contract already reconciled by verified post-transform repair")
+        return
+    if reconciled_count == 1:
+        print("system queue origin contract already reconciled")
+        return
+
+    updated = text.replace(old, reconciled, 1)
+    compile(updated, str(path), "exec")
+    path.write_text(updated, encoding="utf-8")
+    print("reconciled SYSTEM queue authority with canonical origin semantics")
+'''
+
 
 def _run_original_patcher() -> None:
     blob = subprocess.check_output(
@@ -111,28 +161,33 @@ def _run_original_patcher() -> None:
         TEMP_IMPL.unlink(missing_ok=True)
 
 
-def _bind_repair_scope() -> None:
+def _replace_bootstrap_function(name: str, replacement: str) -> None:
     text = BOOTSTRAP.read_text(encoding="utf-8")
     tree = ast.parse(text, filename=str(BOOTSTRAP))
     matches = [
         node
         for node in tree.body
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and node.name == "_apply_post_transform_repair"
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name
     ]
     if len(matches) != 1:
-        raise SystemExit(
-            f"post-transform repair function count mismatch: expected 1, got {len(matches)}"
-        )
+        raise SystemExit(f"{name} function count mismatch: expected 1, got {len(matches)}")
     node = matches[0]
     if node.end_lineno is None:
-        raise SystemExit("post-transform repair function has no end line")
+        raise SystemExit(f"{name} function has no end line")
     lines = text.splitlines(keepends=True)
-    lines[node.lineno - 1 : node.end_lineno] = [NEW_REPAIR_FUNCTION + "\n"]
+    lines[node.lineno - 1 : node.end_lineno] = [replacement + "\n"]
     updated = "".join(lines)
     ast.parse(updated, filename=str(BOOTSTRAP))
     BOOTSTRAP.write_text(updated, encoding="utf-8")
-    print("bound post-transform repair to explicit nested project after audited bootstrap materialization")
+
+
+def _bind_repair_scope() -> None:
+    _replace_bootstrap_function("_apply_post_transform_repair", NEW_REPAIR_FUNCTION)
+    _replace_bootstrap_function("_reconcile_system_queue_origin_contract", NEW_RECONCILE_FUNCTION)
+    print(
+        "bound post-transform repair to explicit nested project and made "
+        "system queue reconciliation fail-closed/idempotent"
+    )
 
 
 def main() -> int:
