@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1946,
+  "file_count": 1952,
   "files": [
     {
       "affected_registers": [
@@ -54,10 +54,36 @@
       "mappings": [
         "M-075"
       ],
+      "path": "../.github/r20/r20_candidate_control.py",
+      "primary_mechanism_id": "M-075",
+      "sha256": "b3970614d70a5fc8d4e43583ef24ebd32e4c8e955a4aebb8f2044d301a9a270d",
+      "source_id": "SRC-2C8FD015197BF708"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
       "path": "../.github/workflows/backend-ci.yml",
       "primary_mechanism_id": "M-075",
-      "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
+      "sha256": "a607e38ca7773180353f28e6dfc2f2b9e28cd6a7bf62bab5919d1613f41f1397",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/r20-comprehensive-remediation.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "4e2233115bbfbe2f6f7edf6f74d2c19fdf3707ec5c68c62602e20ed52647b79f",
+      "source_id": "SRC-B11BDDC29B0EA2AF"
     },
     {
       "affected_registers": [
@@ -84,6 +110,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "02b8b65a3b88e84940e1218a9a8ab280d12a819bbe41bfcb6e2e99d3275e8714",
       "source_id": "SRC-EFC50317C3E5E615"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/temporary-v2-sync-repair.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "485c81f46df17b8886df0b61b15577d6449f6e7adc6ecd816af3fc8f2fe6aefe",
+      "source_id": "SRC-CF39307A97656CFC"
     },
     {
       "affected_registers": [
@@ -1458,6 +1497,19 @@
       "primary_mechanism_id": "M-076",
       "sha256": "022f54020aa5e15b65f26ea2d2df78be62d27b768727bd7e948f5bf9674eeeba",
       "source_id": "SRC-5D8E4DAD1BF436FB"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "documentation",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "docs/audits/R20_COMPREHENSIVE_REMEDIATION.md",
+      "primary_mechanism_id": "M-076",
+      "sha256": "dae77eefe43cebd8d2e6cf43669b0caddb06085c3ba5dce87d3eae97581f0736",
+      "source_id": "SRC-EBD803CB942B82DA"
     },
     {
       "affected_registers": [
@@ -3835,6 +3887,20 @@
       "mappings": [
         "M-076"
       ],
+      "path": "scripts/bootstrap_r20_remediation.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "4b7ab4240a51506134eafd714265046e27e159e319eed748ecfa22482ffe0226",
+      "source_id": "SRC-8EA755EE7134870E"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
       "path": "scripts/build_external_observer_bundle.py",
       "primary_mechanism_id": "M-076",
       "sha256": "05d205cf0c56a9cbc1b63270da3a54bfdb02abfcb20b874d041af1b4b53006d1",
@@ -5156,6 +5222,20 @@
       "primary_mechanism_id": "M-076",
       "sha256": "0cd20035701494d116a68dc7625c8d32043d39b8ef032995cb37bfe9c6cc0928",
       "source_id": "SRC-8CDC7F4930E5AA86"
+    },
+    {
+      "affected_registers": [
+        "evidence",
+        "mechanisms"
+      ],
+      "classification": "authoritative_or_launch_critical",
+      "mappings": [
+        "M-076"
+      ],
+      "path": "scripts/patch_r20_materialized_drivers.py",
+      "primary_mechanism_id": "M-076",
+      "sha256": "181f6e14a0fcd5d0aea7a6ce4a929794be2836d24cb9c3532099a8b75e26d946",
+      "source_id": "SRC-45B3349D6F6E97E1"
     },
     {
       "affected_registers": [
@@ -6703,7 +6783,7 @@
       ],
       "path": "specs/v2/source/source_mappings.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "12a0482e04a9a0ccdea663ae988b403757297aed63a413b8ac61afbfed497333",
+      "sha256": "dd3bdeef8d3ee7fbdf42f12ce6b00b26c9cd2d581e0dde9e42f26b1dd0baef94",
       "source_id": "SRC-30E6AF3F42F0704F"
     },
     {
