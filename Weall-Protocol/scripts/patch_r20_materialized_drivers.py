@@ -127,7 +127,7 @@ NEW_REPAIR_FUNCTION = '''def _apply_post_transform_repair(here: Path) -> None:
             }
         )
         stable_ids_path.write_text(
-            json.dumps(stable_ids, indent=2) + "\n",
+            json.dumps(stable_ids, indent=2) + chr(10),
             encoding="utf-8",
         )
         print(f"registered repair-introduced stable ID: {canonical_key} -> {stable_id}")
