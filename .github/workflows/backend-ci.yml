@@ -79,6 +79,11 @@ jobs:
           ruff format --check "${PY_FILES[@]}"
           ruff check "${PY_FILES[@]}"
 
+      - name: Ruff whole tree
+        run: |
+          ruff format --check .
+          ruff check .
+
       - name: Dependency audit
         run: |
           # Audit the reproducible dependency graphs rather than the mutable
