@@ -138,7 +138,11 @@ def _enqueue_accrual(
         tx_type="REPUTATION_DELTA_APPLY",
         payload={
             "account_id": account_id,
-            "delta": float(delta_milli) / 1000.0,
+            # Consensus payloads use canonical integer milli-units. Emitting a
+            # float here made leader-side scheduler application succeed while
+            # follower block admission rejected the same block's non-canonical
+            # value domain.
+            "delta_milli": int(delta_milli),
             "delta_id": delta_id,
             "reason": str(reason),
         },
