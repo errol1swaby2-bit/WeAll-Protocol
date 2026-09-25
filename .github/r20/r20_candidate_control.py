@@ -133,10 +133,56 @@ def _repair_storage_lifecycle_regressions() -> None:
     print("repaired storage lifecycle idempotence and public exception boundary")
 
 
+
+TX0801_PREVIOUS_REBIND_HASH = "d3dd66310a6210918c9eb3ec9e106a6a517e2bd5ce08d2efd787c8a0c91ff821"
+TX0801_CURRENT_REBIND_HASH = "cd2229977648e23eca379ea7656cbc3f58d65155e9d852cbb5564689505b4e14"
+
+
+def _prepare_tx0801_semantic_rebind(previous_main):
+    parents = []
+    node = previous_main
+    for _ in range(16):
+        globals_dict = node.__globals__
+        if "TX0801_NEW_IMPLEMENTATION_HASH" in globals_dict:
+            current = globals_dict.get("TX0801_NEW_IMPLEMENTATION_HASH")
+            if current != TX0801_PREVIOUS_REBIND_HASH:
+                raise SystemExit(
+                    f"unexpected existing TX-0801 semantic rebind hash: {current!r}"
+                )
+            globals_dict["TX0801_NEW_IMPLEMENTATION_HASH"] = TX0801_CURRENT_REBIND_HASH
+
+            child = node
+            for parent_main, parent_globals in reversed(parents):
+                parent_globals["_load_previous_main"] = (
+                    lambda child=child: child
+                )
+                child = parent_main
+            print(
+                "advanced exact TX-0801 semantic-review rebind "
+                "to storage lifecycle repair hash"
+            )
+            return
+
+        loader = globals_dict.get("_load_previous_main")
+        if not callable(loader):
+            raise SystemExit(
+                "TX-0801 semantic rebind layer not found before loader chain terminated"
+            )
+        child = loader()
+        parents.append((node, globals_dict))
+        node = child
+
+    raise SystemExit(
+        "TX-0801 semantic rebind layer not found within bounded controller chain"
+    )
+
+
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
         previous_main = _load_previous_main()
+        if command == "audit-rebind":
+            _prepare_tx0801_semantic_rebind(previous_main)
         rc = previous_main()
         if rc not in (None, 0):
             raise SystemExit(f"known B558 controller failed: {rc}")
