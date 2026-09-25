@@ -1,21 +1,34 @@
 from __future__ import annotations
 
-"""Deterministic reputation accrual for verified public contributions.
+"""Legacy content-maturity reputation metadata.
 
 Reputation is responsibility history, not a prerequisite for becoming human.
-This scheduler only rewards Tier2 public contribution records after a maturity
-window and emits SYSTEM-only REPUTATION_DELTA_APPLY transactions.
+
+Historical builds attached a pending reputation accrual record to public posts
+and media and later emitted ``REPUTATION_DELTA_APPLY`` when the record matured.
+That emission path is not canonical: Tx Canon defines
+``REPUTATION_DELTA_APPLY`` as a SYSTEM receipt whose parent is
+``DISPUTE_RESOLVE``. Ordinary content maturity cannot satisfy that provenance
+contract.
+
+The helpers in this module remain temporarily so persisted state and callers
+that still construct the legacy metadata can be handled deterministically. New
+metadata is born retired, and the scheduler deterministically retires any
+pre-existing pending records. It MUST NOT emit a reputation transaction.
+Positive creator reputation belongs to the event-sourced Reputation Matrix and
+must originate from a canonically supported evaluated contribution/outcome.
 """
 
 from typing import Any
-
-from weall.runtime.system_tx_engine import enqueue_system_tx
 
 Json = dict[str, Any]
 
 DEFAULT_CONTENT_REPUTATION_MATURITY_BLOCKS = 8
 DEFAULT_POST_REPUTATION_DELTA_MILLI = 10
 DEFAULT_MEDIA_REPUTATION_DELTA_MILLI = 25
+
+RETIRED_CONTENT_ACCRUAL_STATUS = "retired_noncanonical"
+RETIRED_CONTENT_ACCRUAL_REASON = "reputation_delta_requires_dispute_resolve_parent"
 
 
 def _as_dict(value: Any) -> Json:
@@ -38,6 +51,8 @@ def _params(state: Json) -> Json:
 
 
 def content_reputation_maturity_blocks(state: Json) -> int:
+    """Return the legacy maturity parameter for state compatibility only."""
+
     params = _params(state)
     raw = params.get("content_reputation_maturity_blocks")
     if raw is None:
@@ -46,6 +61,8 @@ def content_reputation_maturity_blocks(state: Json) -> int:
 
 
 def post_reputation_delta_milli(state: Json) -> int:
+    """Return the legacy post delta parameter for state compatibility only."""
+
     params = _params(state)
     raw = params.get("post_reputation_delta_milli")
     if raw is None:
@@ -54,6 +71,8 @@ def post_reputation_delta_milli(state: Json) -> int:
 
 
 def media_reputation_delta_milli(state: Json) -> int:
+    """Return the legacy media delta parameter for state compatibility only."""
+
     params = _params(state)
     raw = params.get("media_reputation_delta_milli")
     if raw is None:
@@ -70,6 +89,12 @@ def pending_content_accrual(
     delta_milli: int,
     maturity_blocks: int,
 ) -> Json:
+    """Construct deterministic retired metadata instead of actionable work.
+
+    The historical field shape is retained so state consumers do not need an
+    unrelated migration merely to remove an invalid issuance path.
+    """
+
     return {
         "kind": str(kind),
         "source_id": str(source_id),
@@ -77,149 +102,56 @@ def pending_content_accrual(
         "created_height": int(created_height),
         "matures_at_height": int(created_height) + int(maturity_blocks),
         "delta_milli": int(delta_milli),
-        "status": "pending",
+        "status": RETIRED_CONTENT_ACCRUAL_STATUS,
+        "retired_reason": RETIRED_CONTENT_ACCRUAL_REASON,
     }
 
 
-def _flag_targets(content: Json) -> set[str]:
-    flags = content.get("flags")
-    if not isinstance(flags, dict):
-        return set()
-    out: set[str] = set()
-    for rec_any in flags.values():
-        rec = _as_dict(rec_any)
-        target = _as_str(rec.get("target_id") or rec.get("post_id") or rec.get("media_id")).strip()
-        if target:
-            out.add(target)
-    return out
-
-
-def _post_clean(rec: Json, source_id: str, flagged: set[str]) -> bool:
-    if bool(rec.get("deleted", False)):
+def _retire_pending_record(rec: Json) -> bool:
+    accrual = _as_dict(rec.get("reputation_accrual"))
+    if not accrual:
         return False
-    visibility = _as_str(rec.get("visibility") or "public").strip().lower() or "public"
-    if visibility != "public":
-        return False
-    if source_id in flagged:
-        return False
-    embedded_flags = rec.get("flags")
-    if isinstance(embedded_flags, list) and embedded_flags:
-        return False
-    return True
-
-
-def _media_clean(rec: Json, source_id: str, flagged: set[str]) -> bool:
-    if source_id in flagged:
-        return False
-    if bool(rec.get("deleted", False)):
-        return False
-    cid = _as_str(rec.get("cid") or rec.get("ipfs_cid") or rec.get("content_cid")).strip()
-    return bool(cid)
-
-
-def _enqueue_accrual(
-    state: Json,
-    *,
-    accrual: Json,
-    next_height: int,
-    reason: str,
-) -> bool:
-    account_id = _as_str(accrual.get("account_id")).strip()
-    source_id = _as_str(accrual.get("source_id")).strip()
-    kind = _as_str(accrual.get("kind")).strip()
-    delta_milli = _as_int(accrual.get("delta_milli"), 0)
-    if not account_id or not source_id or delta_milli <= 0:
-        accrual["status"] = "ineligible"
+    if _as_str(accrual.get("status")).strip().lower() != "pending":
         return False
 
-    delta_id = f"repaccrual:{kind}:{source_id}"
-    enqueue_system_tx(
-        state,
-        tx_type="REPUTATION_DELTA_APPLY",
-        payload={
-            "account_id": account_id,
-            # Consensus payloads use canonical integer milli-units. Emitting a
-            # float here made leader-side scheduler application succeed while
-            # follower block admission rejected the same block's non-canonical
-            # value domain.
-            "delta_milli": int(delta_milli),
-            "delta_id": delta_id,
-            "reason": str(reason),
-        },
-        due_height=int(next_height),
-        signer="SYSTEM",
-        once=True,
-        parent=delta_id,
-        phase="post",
-    )
-    accrual["status"] = "queued"
-    accrual["queued_height"] = int(next_height)
-    accrual["delta_id"] = delta_id
+    accrual["status"] = RETIRED_CONTENT_ACCRUAL_STATUS
+    accrual["retired_reason"] = RETIRED_CONTENT_ACCRUAL_REASON
+    rec["reputation_accrual"] = accrual
     return True
 
 
 def schedule_reputation_accrual_system_txs(state: Json, *, next_height: int) -> int:
+    """Retire legacy pending content accruals without emitting SYSTEM txs.
+
+    ``next_height`` remains part of the scheduler signature because the
+    canonical scheduler pipeline invokes all schedulers uniformly. It is not
+    used to create reputation work: content age alone is not valid provenance
+    for ``REPUTATION_DELTA_APPLY``.
+    """
+
+    del next_height
+
     content = _as_dict(state.get("content"))
     if not content:
         return 0
 
-    current_height = max(_as_int(state.get("height"), 0), int(next_height) - 1)
-    flagged = _flag_targets(content)
-    enqueued = 0
-
-    posts = content.get("posts")
-    if isinstance(posts, dict):
-        for post_id, rec_any in sorted(posts.items()):
+    for lane_name in ("posts", "media"):
+        lane = content.get(lane_name)
+        if not isinstance(lane, dict):
+            continue
+        for _source_id, rec_any in sorted(lane.items()):
             rec = _as_dict(rec_any)
-            accrual = _as_dict(rec.get("reputation_accrual"))
-            if not accrual or _as_str(accrual.get("status")).strip().lower() != "pending":
-                continue
-            if current_height < _as_int(accrual.get("matures_at_height"), 0):
-                continue
-            sid = _as_str(accrual.get("source_id") or post_id).strip()
-            if not _post_clean(rec, sid, flagged):
-                accrual["status"] = "blocked"
-                rec["reputation_accrual"] = accrual
-                continue
-            if _enqueue_accrual(
-                state,
-                accrual=accrual,
-                next_height=next_height,
-                reason="content_post_matured",
-            ):
-                enqueued += 1
-            rec["reputation_accrual"] = accrual
+            _retire_pending_record(rec)
 
-    media = content.get("media")
-    if isinstance(media, dict):
-        for media_id, rec_any in sorted(media.items()):
-            rec = _as_dict(rec_any)
-            accrual = _as_dict(rec.get("reputation_accrual"))
-            if not accrual or _as_str(accrual.get("status")).strip().lower() != "pending":
-                continue
-            if current_height < _as_int(accrual.get("matures_at_height"), 0):
-                continue
-            sid = _as_str(accrual.get("source_id") or media_id).strip()
-            if not _media_clean(rec, sid, flagged):
-                accrual["status"] = "blocked"
-                rec["reputation_accrual"] = accrual
-                continue
-            if _enqueue_accrual(
-                state,
-                accrual=accrual,
-                next_height=next_height,
-                reason="content_media_matured",
-            ):
-                enqueued += 1
-            rec["reputation_accrual"] = accrual
-
-    return int(enqueued)
+    return 0
 
 
 __all__ = [
     "DEFAULT_CONTENT_REPUTATION_MATURITY_BLOCKS",
     "DEFAULT_MEDIA_REPUTATION_DELTA_MILLI",
     "DEFAULT_POST_REPUTATION_DELTA_MILLI",
+    "RETIRED_CONTENT_ACCRUAL_REASON",
+    "RETIRED_CONTENT_ACCRUAL_STATUS",
     "content_reputation_maturity_blocks",
     "media_reputation_delta_milli",
     "pending_content_accrual",
