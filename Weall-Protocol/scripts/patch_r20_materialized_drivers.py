@@ -77,6 +77,61 @@ NEW_REPAIR_FUNCTION = '''def _apply_post_transform_repair(here: Path) -> None:
                 f"required={required!r} forbidden={forbidden!r}"
             )
 
+    stable_ids_path = project_root / "specs" / "v2" / "source" / "stable_ids.json"
+    stable_ids = json.loads(stable_ids_path.read_text(encoding="utf-8"))
+    entries = stable_ids.get("entries")
+    if not isinstance(entries, list):
+        raise SystemExit("stable_ids.json entries must be a list")
+
+    canonical_key = "Storage:reassigned"
+    stable_id = "STATE-878383D78A5EBBC1"
+    derived = "STATE-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+    if derived != stable_id:
+        raise SystemExit(
+            f"Storage:reassigned stable-id derivation mismatch: {derived} != {stable_id}"
+        )
+
+    matching_key = [
+        row
+        for row in entries
+        if isinstance(row, dict)
+        and str(row.get("kind") or "") == "state"
+        and str(row.get("canonical_key") or "") == canonical_key
+    ]
+    if len(matching_key) > 1:
+        raise SystemExit(f"duplicate stable-id rows for state:{canonical_key}")
+    if matching_key:
+        row = matching_key[0]
+        if str(row.get("stable_id") or "") != stable_id:
+            raise SystemExit(
+                f"state:{canonical_key} registered to unexpected ID: {row.get('stable_id')}"
+            )
+    else:
+        collision = [
+            row
+            for row in entries
+            if isinstance(row, dict) and str(row.get("stable_id") or "") == stable_id
+        ]
+        if collision:
+            raise SystemExit(
+                f"stable ID collision for {stable_id}: "
+                + json.dumps(collision, sort_keys=True)
+            )
+        entries.append(
+            {
+                "aliases": [],
+                "canonical_key": canonical_key,
+                "kind": "state",
+                "stable_id": stable_id,
+                "status": "active",
+            }
+        )
+        stable_ids_path.write_text(
+            json.dumps(stable_ids, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"registered repair-introduced stable ID: {canonical_key} -> {stable_id}")
+
     print(
         "applied verified post-transform repair to explicit nested project "
         f"{project_rel} sha256={actual}"
@@ -150,7 +205,10 @@ def _run_original_patcher() -> None:
     )
     TEMP_IMPL.write_bytes(source)
     try:
-        namespace = runpy.run_path(str(TEMP_IMPL), run_name="r20_original_materialized_driver_patcher")
+        namespace = runpy.run_path(
+            str(TEMP_IMPL),
+            run_name="r20_original_materialized_driver_patcher",
+        )
         original_main = namespace.get("main")
         if not callable(original_main):
             raise SystemExit("known-good materialized-driver patcher has no callable main()")
@@ -183,7 +241,10 @@ def _replace_bootstrap_function(name: str, replacement: str) -> None:
 
 def _bind_repair_scope() -> None:
     _replace_bootstrap_function("_apply_post_transform_repair", NEW_REPAIR_FUNCTION)
-    _replace_bootstrap_function("_reconcile_system_queue_origin_contract", NEW_RECONCILE_FUNCTION)
+    _replace_bootstrap_function(
+        "_reconcile_system_queue_origin_contract",
+        NEW_RECONCILE_FUNCTION,
+    )
     print(
         "bound post-transform repair to explicit nested project and made "
         "system queue reconciliation fail-closed/idempotent"
