@@ -177,12 +177,50 @@ def _prepare_tx0801_semantic_rebind(previous_main):
     )
 
 
+
+def _diagnose_runtime_state_delta() -> None:
+    import json
+
+    current_path = PROJECT_ROOT / "generated" / "v2" / "runtime_state_inventory.json"
+    current = json.loads(current_path.read_text(encoding="utf-8"))
+    baseline_raw = subprocess.check_output(
+        [
+            "git",
+            "show",
+            "b8f5974e290bdbfeebff47f86c1735481b5bb082:"
+            "Weall-Protocol/generated/v2/runtime_state_inventory.json",
+        ],
+        cwd=REPO_ROOT,
+    )
+    baseline = json.loads(baseline_raw.decode("utf-8"))
+
+    def keys(payload):
+        return {
+            (
+                str(row.get("domain") or ""),
+                str(row.get("state_key_or_namespace") or ""),
+            )
+            for row in payload.get("rows") or []
+            if isinstance(row, dict)
+        }
+
+    added = keys(current) - keys(baseline)
+    removed = keys(baseline) - keys(current)
+    print(
+        "runtime-state diagnostic: "
+        f"baseline_count={baseline.get('count')} current_count={current.get('count')} "
+        f"added={sorted(added)!r} removed={sorted(removed)!r}"
+    )
+
+
 def main() -> int:
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
         previous_main = _load_previous_main()
         if command == "audit-rebind":
             _prepare_tx0801_semantic_rebind(previous_main)
+        if command == "verify-state":
+            _diagnose_runtime_state_delta()
         rc = previous_main()
         if rc not in (None, 0):
             raise SystemExit(f"known B558 controller failed: {rc}")
