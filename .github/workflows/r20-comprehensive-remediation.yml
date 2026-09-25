@@ -246,12 +246,12 @@ jobs:
       - name: Transplant exact protocol candidate onto branch head
         run: |
           set -Eeuo pipefail
-          git -C .. add -A -- Weall-Protocol
-          if git -C .. diff --cached --quiet -- Weall-Protocol; then
+          git -C .. add -A -- Weall-Protocol web/src/generated/protocolStatus.ts
+          if git -C .. diff --cached --quiet -- Weall-Protocol web/src/generated/protocolStatus.ts; then
             echo "No transformed protocol delta to transplant."
             exit 1
           fi
-          git -C .. diff --cached --binary -- Weall-Protocol > /tmp/r20_protocol.patch
+          git -C .. diff --cached --binary -- Weall-Protocol web/src/generated/protocolStatus.ts > /tmp/r20_protocol.patch
           test -s /tmp/r20_protocol.patch
           rm -f ../.github/r20/r20_candidate_control.py
           git -C .. reset --hard
