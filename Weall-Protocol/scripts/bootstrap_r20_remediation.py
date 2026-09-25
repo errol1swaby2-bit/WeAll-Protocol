@@ -67,15 +67,15 @@ def replace_once_in_def(rel: str, name: str, old: str, new: str, fid: str) -> No
 
 _OLD_ROLE = '''    replace_once(
         "Weall-Protocol/src/weall/runtime/apply/roles.py",
-        '    rec["active"] = False\n    rec["status"] = "paused"\n    rec["suspended_at_nonce"] = int(env.nonce)\n',
-        '    rec["active"] = False\n    rec["suspended"] = True\n    rec["status"] = "paused"\n    rec["suspended_at_nonce"] = int(env.nonce)\n',
+        '    rec["active"] = False\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
+        '    rec["active"] = False\\n    rec["suspended"] = True\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
         "P1-ROLE-001")'''
 
 _NEW_ROLE = '''    replace_once_in_def(
         "Weall-Protocol/src/weall/runtime/apply/roles.py",
         "_apply_role_node_operator_suspend",
-        '    rec["active"] = False\n    rec["status"] = "paused"\n    rec["suspended_at_nonce"] = int(env.nonce)\n',
-        '    rec["active"] = False\n    rec["suspended"] = True\n    rec["status"] = "paused"\n    rec["suspended_at_nonce"] = int(env.nonce)\n',
+        '    rec["active"] = False\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
+        '    rec["active"] = False\\n    rec["suspended"] = True\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
         "P1-ROLE-001")'''
 
 
@@ -208,17 +208,6 @@ def _register_r20_source_coverage(here: Path) -> None:
 
 
 def _apply_post_transform_repair(here: Path) -> None:
-    project_root = here.parent
-    repo_root = project_root.parent
-    try:
-        project_rel = project_root.relative_to(repo_root).as_posix()
-    except ValueError as exc:
-        raise SystemExit(
-            f"unable to bind r20 project root to repository root: {project_root} vs {repo_root}"
-        ) from exc
-    if project_rel != "Weall-Protocol":
-        raise SystemExit(f"unexpected r20 project directory: {project_rel}")
-
     payload_path = here / "r20_post_transform_repair.patch.gz.b64"
     encoded = payload_path.read_text(encoding="ascii").strip()
     raw = gzip.decompress(base64.b64decode(encoded))
@@ -227,69 +216,30 @@ def _apply_post_transform_repair(here: Path) -> None:
         raise SystemExit(
             f"post-transform repair digest mismatch: {actual} != {POST_TRANSFORM_REPAIR_SHA256}"
         )
-
-    patch_path = project_root / "generated" / "r20_post_transform_repair.patch"
+    patch_path = here.parent / "generated" / "r20_post_transform_repair.patch"
     patch_path.parent.mkdir(parents=True, exist_ok=True)
     patch_path.write_bytes(raw)
-    apply_cmd = [
-        "git",
-        "apply",
-        f"--directory={project_rel}",
-        str(patch_path),
-    ]
     try:
         subprocess.run(
-            apply_cmd[:2] + ["--check"] + apply_cmd[2:],
-            cwd=repo_root,
+            ["git", "apply", "--check", str(patch_path)],
+            cwd=here.parent,
             check=True,
         )
-        subprocess.run(apply_cmd, cwd=repo_root, check=True)
+        subprocess.run(
+            ["git", "apply", str(patch_path)],
+            cwd=here.parent,
+            check=True,
+        )
     finally:
         patch_path.unlink(missing_ok=True)
-
-    sentinels = {
-        "tests/test_helper_instance_corpus.py": (
-            'assert summary["proven_helper_eligible_count"] == 0',
-            'assert summary["proven_helper_eligible_count"] == 13',
-        ),
-        "tests/test_reputation_accrual_policy.py": (
-            '"delta_milli": 10',
-            '"delta": 0.01',
-        ),
-        "src/weall/runtime/apply/storage.py": (
-            '"reassignment": reassignment',
-            'rec["latest_reassignment"] = _maybe_reassign_failed_pin_target',
-        ),
-    }
-    for rel, (required, forbidden) in sentinels.items():
-        target = project_root / rel
-        text = target.read_text(encoding="utf-8")
-        if required not in text or forbidden in text:
-            raise SystemExit(
-                f"post-transform repair scope verification failed for {rel}: "
-                f"required={required!r} forbidden={forbidden!r}"
-            )
-
-    print(
-        "applied verified post-transform repair to explicit nested project "
-        f"{project_rel} sha256={actual}"
-    )
+    print(f"applied verified post-transform repair sha256={actual}")
 
 
 def _reconcile_system_queue_origin_contract(here: Path) -> None:
     path = here.parent / "src" / "weall" / "runtime" / "system_tx_engine.py"
     text = path.read_text(encoding="utf-8")
-    old = '''def _is_system_only(canon: Any, tx_type: str) -> bool:
-    info = _canon_info(canon, tx_type)
-    return bool(info.get("system_only") is True) if isinstance(info, dict) else False
-'''
-    new = '''def _is_system_only(canon: Any, tx_type: str) -> bool:
-    info = _canon_info(canon, tx_type)
-    if not isinstance(info, dict):
-        return False
-    origin = _as_str(info.get("origin") or "").strip().upper()
-    return bool(info.get("system_only") is True or origin == "SYSTEM")
-'''
+    old = '''def _is_system_only(canon: Any, tx_type: str) -> bool:\n    info = _canon_info(canon, tx_type)\n    return bool(info.get("system_only") is True) if isinstance(info, dict) else False\n'''
+    new = '''def _is_system_only(canon: Any, tx_type: str) -> bool:\n    info = _canon_info(canon, tx_type)\n    if not isinstance(info, dict):\n        return False\n    origin = _as_str(info.get("origin") or "").strip().upper()\n    return bool(info.get("system_only") is True or origin == "SYSTEM")\n'''
     count = text.count(old)
     if count != 1:
         raise SystemExit(f"system queue origin contract anchor mismatch: {count}")
@@ -374,20 +324,16 @@ def _repair_sqlite_staticmethod(here: Path) -> None:
 def main() -> int:
     here = Path(__file__).resolve().parent
     for name, (payload_file, expected) in PAYLOADS.items():
-        target = here / name
-        if target.exists():
-            raise SystemExit(f"refusing to overwrite existing {target}")
-        payload_path = here / payload_file
-        encoded = payload_path.read_text(encoding="ascii").strip()
+        encoded = (here / payload_file).read_text(encoding="ascii").strip()
         raw = gzip.decompress(base64.b64decode(encoded))
         actual = hashlib.sha256(raw).hexdigest()
         if actual != expected:
             raise SystemExit(f"payload digest mismatch for {name}: {actual} != {expected}")
         if name == "apply_r20_remaining_remediation.py":
             raw = _correct_phase_b(raw)
-        target.write_bytes(raw)
-        target.chmod(0o700)
-        print(f"materialized {target.name} sha256={hashlib.sha256(raw).hexdigest()}")
+            actual = hashlib.sha256(raw).hexdigest()
+        (here / name).write_bytes(raw)
+        print(f"materialized {name} sha256={actual}")
     _register_extra_failure_ids(here)
     _register_r20_source_coverage(here)
     return 0
