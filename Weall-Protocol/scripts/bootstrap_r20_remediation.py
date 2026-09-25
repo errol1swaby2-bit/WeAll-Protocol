@@ -44,7 +44,7 @@ R20_TOOLING_MAPPINGS = {
 POST_TRANSFORM_REPAIR_SHA256 = "6879e30bea57e36af92adb6e0eaf7f4017af035adea5e57e0a431cad82c189fb"
 
 
-_HELPER = """
+_HELPER = '''
 
 def replace_once_in_def(rel: str, name: str, old: str, new: str, fid: str) -> None:
     text = base.read(rel)
@@ -63,20 +63,20 @@ def replace_once_in_def(rel: str, name: str, old: str, new: str, fid: str) -> No
     ast.parse(out, filename=rel)
     base.write(rel, out)
     mark(fid)
-"""
+'''
 
-_OLD_ROLE = """    replace_once(
+_OLD_ROLE = '''    replace_once(
         "Weall-Protocol/src/weall/runtime/apply/roles.py",
         '    rec["active"] = False\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
         '    rec["active"] = False\\n    rec["suspended"] = True\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
-        "P1-ROLE-001")"""
+        "P1-ROLE-001")'''
 
-_NEW_ROLE = """    replace_once_in_def(
+_NEW_ROLE = '''    replace_once_in_def(
         "Weall-Protocol/src/weall/runtime/apply/roles.py",
         "_apply_role_node_operator_suspend",
         '    rec["active"] = False\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
         '    rec["active"] = False\\n    rec["suspended"] = True\\n    rec["status"] = "paused"\\n    rec["suspended_at_nonce"] = int(env.nonce)\\n',
-        "P1-ROLE-001")"""
+        "P1-ROLE-001")'''
 
 
 def _correct_phase_b(raw: bytes) -> bytes:
@@ -113,7 +113,10 @@ def _register_extra_failure_ids(here: Path) -> None:
     }
     changed = False
     for canonical_key, stable_id in EXTRA_FAILURE_IDS.items():
-        expected = "FAIL-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+        expected = (
+            "FAIL-"
+            + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+        )
         if stable_id != expected:
             raise SystemExit(
                 f"extra failure stable-id derivation mismatch: {canonical_key}: {stable_id} != {expected}"
@@ -235,8 +238,8 @@ def _apply_post_transform_repair(here: Path) -> None:
 def _reconcile_system_queue_origin_contract(here: Path) -> None:
     path = here.parent / "src" / "weall" / "runtime" / "system_tx_engine.py"
     text = path.read_text(encoding="utf-8")
-    old = """def _is_system_only(canon: Any, tx_type: str) -> bool:\n    info = _canon_info(canon, tx_type)\n    return bool(info.get("system_only") is True) if isinstance(info, dict) else False\n"""
-    new = """def _is_system_only(canon: Any, tx_type: str) -> bool:\n    info = _canon_info(canon, tx_type)\n    if not isinstance(info, dict):\n        return False\n    origin = _as_str(info.get("origin") or "").strip().upper()\n    return bool(info.get("system_only") is True or origin == "SYSTEM")\n"""
+    old = '''def _is_system_only(canon: Any, tx_type: str) -> bool:\n    info = _canon_info(canon, tx_type)\n    return bool(info.get("system_only") is True) if isinstance(info, dict) else False\n'''
+    new = '''def _is_system_only(canon: Any, tx_type: str) -> bool:\n    info = _canon_info(canon, tx_type)\n    if not isinstance(info, dict):\n        return False\n    origin = _as_str(info.get("origin") or "").strip().upper()\n    return bool(info.get("system_only") is True or origin == "SYSTEM")\n'''
     count = text.count(old)
     if count != 1:
         raise SystemExit(f"system queue origin contract anchor mismatch: {count}")
@@ -269,13 +272,11 @@ def _snapshot_transformed_tree(here: Path) -> None:
                 tf.add(
                     path,
                     arcname=path.relative_to(root),
-                    filter=lambda info: (
-                        None
-                        if info.name.endswith("/__pycache__")
-                        or "/__pycache__/" in info.name
-                        or info.name.endswith(".pyc")
-                        else info
-                    ),
+                    filter=lambda info: None
+                    if info.name.endswith("/__pycache__")
+                    or "/__pycache__/" in info.name
+                    or info.name.endswith(".pyc")
+                    else info,
                 )
             else:
                 tf.add(path, arcname=path.relative_to(root))
@@ -307,7 +308,9 @@ def _repair_sqlite_staticmethod(here: Path) -> None:
             print(f"--- sqlite diagnostic lines {start + 1}-{end} ---")
             for n in range(start, end):
                 print(f"{n + 1:04d}: {lines[n]}")
-        raise SystemExit("sqlite synchronous pragma shape diagnostic captured; refusing to patch")
+        raise SystemExit(
+            "sqlite synchronous pragma shape diagnostic captured; refusing to patch"
+        )
     else:
         repaired = text.replace(broken, correct, 1)
         compile(repaired, str(path), "exec")

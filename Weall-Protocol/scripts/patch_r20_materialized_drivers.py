@@ -15,7 +15,7 @@ ORIGINAL_REL = "Weall-Protocol/scripts/patch_r20_materialized_drivers.py"
 ORIGINAL_BLOB = "a897e403daf480adcf708c1f4e3696bdf27409fe"
 TEMP_IMPL = HERE / ".r20_materialized_driver_patcher_original.py"
 
-NEW_REPAIR_FUNCTION = """def _apply_post_transform_repair(here: Path) -> None:
+NEW_REPAIR_FUNCTION = '''def _apply_post_transform_repair(here: Path) -> None:
     project_root = here.parent
     repo_root = project_root.parent
     try:
@@ -136,7 +136,7 @@ NEW_REPAIR_FUNCTION = """def _apply_post_transform_repair(here: Path) -> None:
         "applied verified post-transform repair to explicit nested project "
         f"{project_rel} sha256={actual}"
     )
-"""
+'''
 
 NEW_RECONCILE_FUNCTION = '''def _reconcile_system_queue_origin_contract(here: Path) -> None:
     path = here.parent / "src" / "weall" / "runtime" / "system_tx_engine.py"
