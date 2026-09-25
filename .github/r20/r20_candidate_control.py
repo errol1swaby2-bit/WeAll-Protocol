@@ -86,12 +86,9 @@ def _repair_storage_lifecycle_regressions() -> None:
         request_ok_bool = True
 
     if operator_id not in targets:
-        prior_non_success = any(
-            isinstance(item, dict)
-            and str(item.get("pin_id") or "").strip() == pin_id
-            and str(item.get("operator_id") or "").strip() == operator_id
-            and not bool(item.get("ok"))
-            for item in s.get("pin_confirms", [])
+        released_marker = _pin_operator_key(pin_id, operator_id, "released")
+        prior_non_success = bool(
+            _as_dict(s.get("pin_accounting_markers")).get(released_marker)
         )
         if request_ok_bool or not prior_non_success:
             raise StorageApplyError(
@@ -130,8 +127,7 @@ def _repair_storage_lifecycle_regressions() -> None:
 
     compile(tests, str(test_path), "exec")
     test_path.write_text(tests, encoding="utf-8")
-    print("repaired storage lifecycle idempotence and public exception boundary")
-
+    print("repaired storage lifecycle idempotence without reintroducing pin_id state")
 
 
 TX0801_PREVIOUS_REBIND_HASH = "d3dd66310a6210918c9eb3ec9e106a6a517e2bd5ce08d2efd787c8a0c91ff821"
@@ -153,9 +149,7 @@ def _prepare_tx0801_semantic_rebind(previous_main):
 
             child = node
             for parent_main, parent_globals in reversed(parents):
-                parent_globals["_load_previous_main"] = (
-                    lambda child=child: child
-                )
+                parent_globals["_load_previous_main"] = lambda child=child: child
                 child = parent_main
             print(
                 "advanced exact TX-0801 semantic-review rebind "
@@ -175,7 +169,6 @@ def _prepare_tx0801_semantic_rebind(previous_main):
     raise SystemExit(
         "TX-0801 semantic rebind layer not found within bounded controller chain"
     )
-
 
 
 def _diagnose_runtime_state_delta() -> None:
