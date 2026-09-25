@@ -76,6 +76,7 @@ def test_status_operator_no_nameerror_and_helper_blocked(monkeypatch) -> None:
         fail_closed_ok=False,
         serial_degrade_ok=False,
         soak_ok=False,
+        post_state_equivalence_ok=True,
     )
 
     client = TestClient(app)

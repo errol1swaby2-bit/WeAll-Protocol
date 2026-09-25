@@ -138,7 +138,7 @@ def _enqueue_accrual(
         tx_type="REPUTATION_DELTA_APPLY",
         payload={
             "account_id": account_id,
-            "delta": float(delta_milli) / 1000.0,
+            "delta_milli": int(delta_milli),
             "delta_id": delta_id,
             "reason": str(reason),
         },
@@ -155,6 +155,14 @@ def _enqueue_accrual(
 
 
 def schedule_reputation_accrual_system_txs(state: Json, *, next_height: int) -> int:
+    params = _params(state)
+    strict_profile = bool(params.get("strict_civic_governance_enabled")) or bool(
+        params.get("validator_candidate_lifecycle_gate_enabled")
+    )
+    if strict_profile and not bool(
+        params.get("content_reputation_accrual_lineage_v2_enabled", False)
+    ):
+        return 0
     content = _as_dict(state.get("content"))
     if not content:
         return 0

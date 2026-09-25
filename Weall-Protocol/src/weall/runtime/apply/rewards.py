@@ -439,8 +439,8 @@ def _apply_block_reward_distribute(state: Json, env: TxEnvelope) -> Json:
                 {"account": src, "balance": bal, "amount": amt},
             )
 
-    # Optional but safer: explicit funding must cover explicit distributions.
-    if normalized_debits and debited_total < distributed_total:
+    # Conservation is unconditional for positive distributions.
+    if distributed_total > 0 and (not normalized_debits or debited_total < distributed_total):
         raise RewardsApplyError(
             "forbidden",
             "distribution_exceeds_debits",
@@ -663,43 +663,50 @@ def _apply_forfeiture_apply(state: Json, env: TxEnvelope) -> Json:
     _wrap_econ_gate(state, env.tx_type)
     r = _ensure_rewards(state)
     payload = _as_dict(env.payload)
-
     account_id = _pick(payload, "account_id", "target", "account", "user")
     if not account_id:
         raise RewardsApplyError("invalid_payload", "missing_account_id", {"tx_type": env.tx_type})
-
-    amount = _as_int(payload.get("amount"), 0)
-    if amount < 0:
-        amount = 0
-
+    requested_amount = _as_int(payload.get("amount"), 0)
+    if requested_amount < 0:
+        raise RewardsApplyError("invalid_payload", "bad_amount", {"amount": payload.get("amount")})
     forfeit_id = _mk_id("forfeit", env, payload.get("forfeit_id") or payload.get("id"))
     forfeits = r["forfeitures_by_id"]
     existing = forfeits.get(forfeit_id)
     already = isinstance(existing, dict)
-
+    actual_forfeited = 0
     if not already:
         acct = _require_account(state, account_id, field="account")
         bal = _as_int(acct.get("balance"), 0)
-        new_bal = bal - int(amount)
-        if new_bal < 0:
-            new_bal = 0
-        acct["balance"] = int(new_bal)
-
+        if requested_amount > bal:
+            raise RewardsApplyError(
+                "forbidden",
+                "forfeiture_exceeds_balance",
+                {"account_id": account_id, "balance": bal, "requested_amount": requested_amount},
+            )
+        actual_forfeited = int(requested_amount)
+        acct["balance"] = int(bal - actual_forfeited)
         forfeits[forfeit_id] = {
             "forfeit_id": forfeit_id,
             "account_id": account_id,
-            "amount": int(amount),
+            "requested_amount": int(requested_amount),
+            "actual_forfeited": int(actual_forfeited),
+            "amount": int(actual_forfeited),
             "at_nonce": int(env.nonce),
             "payload": payload,
         }
-        r["stats"]["forfeited_total"] = _as_int(r["stats"].get("forfeited_total"), 0) + int(amount)
-
+        r["stats"]["forfeited_total"] = _as_int(r["stats"].get("forfeited_total"), 0) + int(
+            actual_forfeited
+        )
+    else:
+        actual_forfeited = _as_int(existing.get("actual_forfeited", existing.get("amount")), 0)
     r["stats"]["last_nonce"] = max(_as_int(r["stats"].get("last_nonce"), 0), int(env.nonce))
     return {
         "applied": "FORFEITURE_APPLY",
         "forfeit_id": forfeit_id,
         "account_id": account_id,
-        "amount": int(amount),
+        "requested_amount": int(requested_amount),
+        "actual_forfeited": int(actual_forfeited),
+        "amount": int(actual_forfeited),
         "deduped": already,
     }
 

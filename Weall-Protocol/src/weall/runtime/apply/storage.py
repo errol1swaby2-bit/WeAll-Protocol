@@ -561,6 +561,19 @@ def _maybe_reassign_failed_pin_target(
 
 
 def _apply_storage_offer_create(state: Json, env: TxEnvelope) -> Json:
+    payload0 = _as_dict(env.payload)
+    requested_operator = _as_str(
+        _pick(payload0, "operator_id", "operator", "account_id") or env.signer
+    ).strip()
+    if (
+        not bool(getattr(env, "system", False))
+        and requested_operator != _as_str(env.signer).strip()
+    ):
+        raise StorageApplyError(
+            "forbidden",
+            "storage_offer_operator_must_match_signer",
+            {"operator_id": requested_operator, "signer": env.signer},
+        )
     s = _ensure_storage(state)
     payload = _as_dict(env.payload)
 
@@ -1494,61 +1507,75 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
 
     pin_id = _as_str(_pick(payload, "pin_id", "id") or "").strip()
-    if not pin_id:
-        raise StorageApplyError("invalid_payload", "missing_pin_id", {"tx_type": env.tx_type})
-
-    ok = payload.get("ok")
-    ok_bool = bool(ok) if isinstance(ok, (bool, int)) else False
-    if "ok" not in payload:
-        ok_bool = True
-
-    cid = _as_str(_pick(payload, "cid", "ipfs_cid", "content_cid") or "").strip()
     operator_id = _as_str(_pick(payload, "operator_id", "operator") or "").strip()
+    if not pin_id or not operator_id:
+        raise StorageApplyError("invalid_payload", "missing_pin_or_operator", {"pin_id": pin_id})
 
     pins = s["pins"]
-    rec_any = pins.get(pin_id)
-    rec = rec_any if isinstance(rec_any, dict) else {"pin_id": pin_id}
+    rec = pins.get(pin_id)
+    if not isinstance(rec, dict):
+        raise StorageApplyError("not_found", "pin_not_found", {"pin_id": pin_id})
 
-    if cid and not _as_str(rec.get("cid")).strip():
-        rec["cid"] = cid
-    if not cid:
-        cid = _as_str(rec.get("cid")).strip()
+    stored_cid = _as_str(rec.get("cid")).strip()
+    supplied_cid = _as_str(_pick(payload, "cid", "ipfs_cid", "content_cid") or stored_cid).strip()
+    if not stored_cid or supplied_cid != stored_cid:
+        raise StorageApplyError(
+            "forbidden",
+            "pin_cid_mismatch",
+            {"pin_id": pin_id, "cid": supplied_cid, "expected": stored_cid},
+        )
 
-    if cid:
-        v = validate_ipfs_cid(cid)
-        if not v.ok:
-            raise StorageApplyError("invalid_payload", v.reason, {"cid": v.cid})
+    targets = sorted({str(x).strip() for x in rec.get("targets", []) if str(x).strip()})
+    if operator_id not in targets:
+        raise StorageApplyError(
+            "forbidden",
+            "operator_not_current_pin_target",
+            {"pin_id": pin_id, "operator_id": operator_id, "targets": targets},
+        )
 
-    release_requested = bool(payload.get("release")) or _as_str(payload.get("status")).lower() in (
+    ok_bool = bool(payload.get("ok", True))
+    confirmations = rec.get("confirmations") if isinstance(rec.get("confirmations"), dict) else {}
+    reassignment: Json = {"reassigned": False}
+
+    release_requested = bool(payload.get("release")) or _as_str(payload.get("status")).lower() in {
         "released",
         "unpin",
         "unpinned",
-    )
+    }
     if release_requested:
-        rec["status"] = "released"
-        rec["released_at_nonce"] = int(env.nonce)
-        rec["released_at_height"] = int(_height(state))
-        if operator_id:
-            size_bytes = _as_int(rec.get("size_bytes"), 0)
-            if size_bytes > 0:
-                _release_pin_accounting(state, pin_id, operator_id, int(size_bytes))
+        confirmations.pop(operator_id, None)
+        size_bytes = _as_int(rec.get("size_bytes"), 0)
+        if size_bytes > 0:
+            _release_pin_accounting(state, pin_id, operator_id, int(size_bytes))
+        rec["status"] = "degraded" if confirmations else "released"
     elif ok_bool:
-        rec["status"] = "confirmed"
-        rec["confirmed_at_nonce"] = int(env.nonce)
-        rec["confirmed_at_height"] = int(_height(state))
+        retrieval_ok = bool(payload.get("retrieval_ok") or payload.get("availability_ok"))
+        confirmations[operator_id] = {
+            "cid": stored_cid,
+            "at_nonce": int(env.nonce),
+            "at_height": int(_height(state)),
+            "retrieval_ok": retrieval_ok,
+        }
+        size_bytes = _as_int(rec.get("size_bytes"), 0)
+        if size_bytes > 0 and _pin_accounting_marker_set(
+            state, _pin_operator_key(pin_id, operator_id, "used")
+        ):
+            _adjust_storage_accounting(state, operator_id, used_delta=int(size_bytes))
 
-        retrieval_flag = payload.get("retrieval_ok")
-        if retrieval_flag is None:
-            retrieval_flag = payload.get("availability_ok")
-        if bool(retrieval_flag):
-            proofs = rec.get("retrieval_proofs")
-            if not isinstance(proofs, list):
-                proofs = []
+        required = max(1, _as_int(rec.get("replication_factor"), _replication_factor(state)))
+        valid = [op for op in targets if op in confirmations]
+        rec["status"] = "confirmed" if len(valid) >= required else "confirming"
+        rec["confirmed_target_count"] = len(valid)
+
+        if retrieval_ok:
+            proofs = (
+                rec.get("retrieval_proofs") if isinstance(rec.get("retrieval_proofs"), list) else []
+            )
             proof = {
-                "operator_id": operator_id or None,
+                "operator_id": operator_id,
                 "at_nonce": int(env.nonce),
                 "at_height": int(_height(state)),
-                "cid": cid,
+                "cid": stored_cid,
                 "status": "retrievable",
             }
             if proof not in proofs:
@@ -1556,66 +1583,46 @@ def _apply_ipfs_pin_confirm(state: Json, env: TxEnvelope) -> Json:
             rec["retrieval_proofs"] = proofs
             rec["durability_status"] = "retrieval_confirmed"
             rec["availability_status"] = "available"
-
-        if operator_id:
-            size_bytes = _as_int(rec.get("size_bytes"), 0)
-            if size_bytes > 0:
-                already_ok = False
-                for item_any in s.get("pin_confirms", []):
-                    if not isinstance(item_any, dict):
-                        continue
-                    if str(item_any.get("pin_id") or "").strip() != pin_id:
-                        continue
-                    if str(item_any.get("operator_id") or "").strip() != operator_id:
-                        continue
-                    if bool(item_any.get("ok")):
-                        already_ok = True
-                        break
-                if not already_ok and _pin_accounting_marker_set(
-                    state, _pin_operator_key(pin_id, operator_id, "used")
-                ):
-                    _adjust_storage_accounting(state, operator_id, used_delta=int(size_bytes))
-    else:
-        rec["status"] = "confirm_failed"
-        rec["failed_at_nonce"] = int(env.nonce)
-        rec["failed_at_height"] = int(_height(state))
-        reassignment: Json = {"reassigned": False}
-        if operator_id:
-            size_bytes = _as_int(rec.get("size_bytes"), 0)
-            if size_bytes > 0:
-                _release_pin_accounting(state, pin_id, operator_id, int(size_bytes))
-            reassignment = _maybe_reassign_failed_pin_target(
-                state,
-                pin_id=pin_id,
-                rec=rec,
-                failed_operator_id=operator_id,
-                nonce=int(env.nonce),
+        else:
+            rec["durability_status"] = (
+                "replication_satisfied" if len(valid) >= required else "under_replicated"
             )
+    else:
+        confirmations.pop(operator_id, None)
+        size_bytes = _as_int(rec.get("size_bytes"), 0)
+        if size_bytes > 0:
+            _release_pin_accounting(state, pin_id, operator_id, int(size_bytes))
+        reassignment = _maybe_reassign_failed_pin_target(
+            state,
+            pin_id=pin_id,
+            rec=rec,
+            failed_operator_id=operator_id,
+            nonce=int(env.nonce),
+        )
         rec["latest_reassignment"] = reassignment
+        if not bool(reassignment.get("reassigned")) and rec.get("status") != "degraded":
+            rec["status"] = "degraded"
 
-    rec["confirm_payload"] = payload
+    rec["confirmations"] = confirmations
     pins[pin_id] = rec
-
     s["pin_confirms"].append(
         {
             "pin_id": pin_id,
-            "cid": cid,
-            "operator_id": operator_id or None,
-            "ok": bool(ok_bool),
+            "cid": stored_cid,
+            "operator_id": operator_id,
+            "ok": ok_bool,
             "at_nonce": int(env.nonce),
             "at_height": int(_height(state)),
-            "payload": payload,
         }
     )
-
     return {
         "applied": "IPFS_PIN_CONFIRM",
         "pin_id": pin_id,
-        "ok": bool(ok_bool),
-        "receipt": True,
-        "reassignment": rec.get("latest_reassignment")
-        if isinstance(rec.get("latest_reassignment"), dict)
-        else {"reassigned": False},
+        "operator_id": operator_id,
+        "ok": ok_bool,
+        "status": rec.get("status"),
+        "confirmed_target_count": _as_int(rec.get("confirmed_target_count"), 0),
+        "reassignment": reassignment,
     }
 
 

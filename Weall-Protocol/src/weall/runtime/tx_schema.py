@@ -754,14 +754,9 @@ class StorageOfferWithdrawPayload(_StrictModel):
 
 class StorageLeaseCreatePayload(_StrictModel):
     offer_id: str = Field(..., min_length=1)
-    lease_id: str | None = Field(
-        default=None,
-        min_length=1,
-    )
-    duration_blocks: int | None = Field(
-        default=None,
-        ge=0,
-    )
+    lease_id: str | None = Field(default=None, min_length=1)
+    duration_blocks: int | None = Field(default=None, ge=1)
+    size_bytes: int | None = Field(default=None, ge=1)
 
 
 class StorageLeaseRenewPayload(_StrictModel):
@@ -961,19 +956,14 @@ class IpfsPinRequestPayload(_OptionalCidPayload):
 
 
 class IpfsPinConfirmPayload(_OptionalCidPayload):
-    pin_id: str = Field(
-        ...,
-        min_length=1,
-    )
-    cid: str | None = Field(
-        default=None,
-        min_length=1,
-    )
-    operator_id: str | None = Field(
-        default=None,
-        min_length=1,
-    )
-    ok: bool | int | None = None
+    pin_id: str = Field(..., min_length=1)
+    cid: str | None = Field(default=None, min_length=1)
+    operator_id: str = Field(..., min_length=1)
+    ok: bool | int = True
+    retrieval_ok: bool | None = None
+    availability_ok: bool | None = None
+    release: bool | None = None
+    status: str | None = None
 
     @model_validator(mode="after")
     def _validate_optional_cid(self) -> IpfsPinConfirmPayload:
@@ -1593,16 +1583,19 @@ class AccountReinstatePayload(_StrictModel):
 
 
 class BalanceTransferPayload(_StrictModel):
-    to_account_id: str = Field(
-        ...,
-        min_length=1,
-    )
+    to_account_id: str = Field(..., min_length=1)
     amount: int = Field(..., ge=1)
-    from_account_id: str | None = Field(
-        default=None,
-        min_length=1,
-    )
-    memo: str | None = None
+    from_account_id: str | None = Field(default=None, min_length=1)
+    transfer_id: str | None = Field(default=None, min_length=1)
+    purpose: str | None = Field(default=None, min_length=1, max_length=64)
+    content_id: str | None = Field(default=None, min_length=1)
+    memo: str | None = Field(default=None, max_length=280)
+
+    @model_validator(mode="after")
+    def _validate_tip_relationship(self) -> BalanceTransferPayload:
+        if self.purpose == "content_tip" and not self.content_id:
+            raise ValueError("content_id is required when purpose=content_tip")
+        return self
 
 
 class FeePayPayload(_StrictModel):

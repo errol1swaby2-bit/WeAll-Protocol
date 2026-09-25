@@ -14,12 +14,13 @@ class HelperReleaseGateReport:
     fail_closed_ok: bool
     serial_degrade_ok: bool
     soak_ok: bool
+    post_state_equivalence_ok: bool
     total_gates: int
     passed_gates: int
     readiness_score: int
 
     def all_required_passed(self) -> bool:
-        return self.passed_gates == self.total_gates
+        return self.post_state_equivalence_ok and self.passed_gates == self.total_gates
 
 
 def _score(flags: Iterable[bool]) -> tuple[int, int, int]:
@@ -40,6 +41,7 @@ def build_helper_release_gate_report(
     fail_closed_ok: bool,
     serial_degrade_ok: bool,
     soak_ok: bool,
+    post_state_equivalence_ok: bool = False,
 ) -> HelperReleaseGateReport:
     total, passed, score = _score(
         (
@@ -51,6 +53,7 @@ def build_helper_release_gate_report(
             fail_closed_ok,
             serial_degrade_ok,
             soak_ok,
+            post_state_equivalence_ok,
         )
     )
     return HelperReleaseGateReport(
@@ -62,6 +65,7 @@ def build_helper_release_gate_report(
         fail_closed_ok=bool(fail_closed_ok),
         serial_degrade_ok=bool(serial_degrade_ok),
         soak_ok=bool(soak_ok),
+        post_state_equivalence_ok=bool(post_state_equivalence_ok),
         total_gates=total,
         passed_gates=passed,
         readiness_score=score,

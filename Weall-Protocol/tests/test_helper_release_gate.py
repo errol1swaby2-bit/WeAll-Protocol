@@ -337,9 +337,10 @@ def test_helper_release_gate_bundle(tmp_path) -> None:
         fail_closed_ok=fail_closed_ok,
         serial_degrade_ok=serial_degrade_ok,
         soak_ok=soak_ok,
+        post_state_equivalence_ok=True,
     )
 
     assert report.all_required_passed() is True
-    assert report.total_gates == 8
-    assert report.passed_gates == 8
+    assert report.total_gates == 9
+    assert report.passed_gates == 9
     assert report.readiness_score == 100

@@ -149,18 +149,14 @@
     ],
     "replacement_confirm_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 1,
       "ok": true,
+      "operator_id": "op-d",
       "pin_id": "pin-b564",
       "reassignment": {
-        "failed_operator_id": "op-b",
-        "reassigned": true,
-        "replacement_operator_id": "op-d",
-        "targets": [
-          "op-c",
-          "op-d"
-        ]
+        "reassigned": false
       },
-      "receipt": true
+      "status": "confirming"
     },
     "replacement_operator": "op-d",
     "retrieval_confirmed": true,

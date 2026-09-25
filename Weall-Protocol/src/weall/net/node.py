@@ -387,18 +387,14 @@ class NetNode:
         self._last_peer_security_prune_ms = now
 
     def _bind_authenticated_peer_security(self, rec: _PeerRec) -> None:
-        key = self._peer_security_identity_key(rec.identity_account)
+        # R20/P1-NET-001: PeerHello identity proofs are signed but are not yet
+        # verifier/session-challenge-bound. Replayed hellos therefore must not
+        # acquire another account's durable strike namespace. Keep durable
+        # abuse state transport-scoped until a one-time receiver-issued
+        # challenge is part of the signed proof.
+        key = self._peer_security_transport_key(rec.peer_id)
         if not key:
             return
-        store = self._peer_security_store
-        if store is not None:
-            saved = store.load(key)
-            if saved is not None:
-                rec.strikes = max(int(rec.strikes), max(0, int(saved.strikes)))
-                rec.banned_until_ms = max(
-                    int(rec.banned_until_ms), max(0, int(saved.banned_until_ms))
-                )
-                rec.security_score = min(float(rec.security_score), float(saved.score))
         rec.security_key = key
         self._persist_peer_security(rec)
 

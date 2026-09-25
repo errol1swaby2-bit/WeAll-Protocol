@@ -1793,7 +1793,23 @@ def apply_groups(state: Json, env: TxEnvelope) -> Json | None:
 
     if t == "GROUP_TREASURY_AUDIT_ANCHOR_SET":
         _require_system(env)
-        return {"applied": "GROUP_TREASURY_AUDIT_ANCHOR_SET"}
+        payload = _as_dict(env.payload)
+        group_id = _as_str(payload.get("group_id") or payload.get("id")).strip()
+        if not group_id:
+            raise GroupsApplyError("invalid_payload", "missing_group_id", {"tx_type": t})
+        groups = _ensure_groups_root(state)
+        group = groups.get(group_id)
+        if not isinstance(group, dict):
+            raise GroupsApplyError("not_found", "group_not_found", {"group_id": group_id})
+        anchors = group.get("treasury_audit_anchors")
+        if not isinstance(anchors, list):
+            anchors = []
+        anchor = {"at_nonce": int(env.nonce), "payload": payload}
+        if anchor not in anchors:
+            anchors.append(anchor)
+        group["treasury_audit_anchors"] = anchors
+        groups[group_id] = group
+        return {"applied": "GROUP_TREASURY_AUDIT_ANCHOR_SET", "group_id": group_id}
 
     if t == "GROUP_EMISSARY_ELECTION_CREATE":
         return _apply_group_emissary_election_create(state, env)

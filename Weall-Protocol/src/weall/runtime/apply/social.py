@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 """
-Social domain apply semantics (staged-only).
+Canonical Social-domain apply semantics.
 
 Covers common Tier-2 social/account surface:
 - PROFILE_UPDATE
@@ -12,9 +12,8 @@ Covers common Tier-2 social/account surface:
 - CONTENT_SHARE_CREATE (share/repost primitive)
 
 IMPORTANT:
-- This file is staged only.
-- domain dispatch remains the stable apply boundary.
-- Final router hookup happens after all apply/* modules exist.
+- domain dispatch is the stable canonical apply boundary.
+- historical staged/cutover notes are not runtime semantics.
 
 Design notes:
 - This module intentionally uses simple, deterministic state shapes.

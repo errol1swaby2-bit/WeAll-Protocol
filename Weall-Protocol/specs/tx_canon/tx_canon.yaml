@@ -1,6 +1,6 @@
 version: 1.25.0
 law: append-only
-source: WeAll Transaction Canon v1.22.2 — Full Enforceable Production Canon
+source: WeAll Transaction Canon v1.25.0 — Full Enforceable Production Canon
 notes:
 - IDs are never reused; exactly one canonical name per TxType.
 - All state-changing protocol interactions are TxTypes.

@@ -23,6 +23,7 @@ def _all_green_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -36,6 +37,7 @@ def _not_ready_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -121,4 +123,4 @@ def test_helper_readiness_report_blocked() -> None:
     assert report["preflight"]["accepted"] is False
     assert report["startup"]["startup_allowed"] is False
     assert report["operator"]["severity"] == "error"
-    assert report["release_gate"]["passed_gates"] == 7
+    assert report["release_gate"]["passed_gates"] == 8

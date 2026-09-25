@@ -1253,6 +1253,32 @@ def append_reputation_event(
     )
     rep = ensure_reputation_event_ledger(state)
     events = rep["events"]
+    delta_value = int(spec.default_delta if delta is None else delta)
+    if delta_value > 0 and (
+        spec.farming_policy != "none" or spec.decay_policy == "positive_cap_per_epoch"
+    ):
+        params = _as_dict(state.get("params"))
+        rep_params = _as_dict(params.get("reputation"))
+        cap = max(1, _as_int(rep_params.get("positive_event_cap_per_epoch"), 100))
+        consensus = _as_dict(state.get("consensus"))
+        epoch = _as_int(
+            _as_dict(consensus.get("epochs")).get("current"), _as_int(state.get("epoch"), 0)
+        )
+        prior = 0
+        for prior_event in events:
+            if not isinstance(prior_event, dict):
+                continue
+            if (
+                _matches_actor(prior_event.get("actor_id"), actor)
+                and _as_str(prior_event.get("event_code")) == code
+            ):
+                if (
+                    _as_int(_as_dict(prior_event.get("details")).get("epoch"), epoch) == epoch
+                    and _as_int(prior_event.get("delta"), 0) > 0
+                ):
+                    prior += 1
+        if prior >= cap:
+            raise ValueError("reputation_positive_event_epoch_cap_reached")
     source_index = rep["event_source_index"]
     event_ids = rep["event_ids"]
     existing_id = source_index.get(source_key)
@@ -1290,7 +1316,15 @@ def append_reputation_event(
         "explanation": spec.explanation,
         "eligibility_impact": spec.eligibility_impact,
         "deduped": False,
-        "details": dict(details or {}),
+        "details": {
+            **dict(details or {}),
+            "epoch": int(
+                _as_int(
+                    _as_dict(_as_dict(state.get("consensus")).get("epochs")).get("current"),
+                    _as_int(state.get("epoch"), 0),
+                )
+            ),
+        },
     }
     events.append(event)
     event_ids[event_id] = True
@@ -1475,8 +1509,16 @@ def derive_role_eligibility_from_dimensions(
     dimensions: Mapping[str, Any], events: Iterable[Mapping[str, Any]] = ()
 ) -> Json:
     out: Json = {}
+    materialized_events = [raw for raw in events if isinstance(raw, Mapping)]
+    reversed_ids = {
+        _as_str(raw.get("reversal_of_optional"))
+        for raw in materialized_events
+        if _as_str(raw.get("reversal_of_optional"))
+    }
     disqualifying: dict[str, list[str]] = {role: [] for role in ELIGIBILITY_ROLES}
-    for raw in events:
+    for raw in materialized_events:
+        if _as_str(raw.get("event_id")) in reversed_ids:
+            continue
         if not isinstance(raw, Mapping):
             continue
         dimension = _as_str(raw.get("dimension"))
@@ -1520,7 +1562,33 @@ def derive_role_eligibility(state: Json, actor_id: str) -> Json:
     reduced = reduce_reputation_events(events)
     actor = _as_dict(_as_dict(reduced.get("actors")).get(_as_str(actor_id)))
     dimensions = _as_dict(actor.get("dimensions"))
-    return derive_role_eligibility_from_dimensions(dimensions, events)
+    out = derive_role_eligibility_from_dimensions(dimensions, events)
+    rep = _as_dict(state.get("reputation"))
+    role_root = _as_dict(rep.get("role_eligibility"))
+    rec = _as_dict(role_root.get(_as_str(actor_id)))
+    explicit = _as_dict(rec.get("roles"))
+    mapping = {
+        "juror": "juror_assignment",
+        "dispute_juror": "juror_assignment",
+        "validator": "validator_operator",
+        "storage": "storage_assignment",
+        "helper": "helper_assignment",
+        "poh_reviewer": "poh_reviewer",
+        "governance": "governance_voting",
+    }
+    for raw_role, value in explicit.items():
+        target = mapping.get(str(raw_role), str(raw_role))
+        if target in out:
+            out[target] = dict(out[target])
+            out[target]["eligible"] = bool(value)
+            out[target]["reasons"] = ["explicit_role_eligibility_override"]
+    for alias, target in ROLE_ALIASES.items():
+        if target in out:
+            aliased = dict(out[target])
+            aliased["role"] = alias
+            aliased["canonical_role"] = target
+            out[alias] = aliased
+    return out
 
 
 def matrix_contract_payload() -> Json:

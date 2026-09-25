@@ -17,6 +17,7 @@ def _all_green_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -30,6 +31,7 @@ def _not_ready_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -76,7 +78,7 @@ def test_helper_startup_blocks_helper_mode_when_release_gate_fails() -> None:
     assert status.startup_mode == "blocked"
     assert status.helper_mode_active is False
     assert status.code == "helper_release_gate_failed"
-    assert status.helper_release_score == 87
+    assert status.helper_release_score == 88
 
 
 def test_helper_startup_blocks_on_core_runtime_failure_even_without_helpers() -> None:

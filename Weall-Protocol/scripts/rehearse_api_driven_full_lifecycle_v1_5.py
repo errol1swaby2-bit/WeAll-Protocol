@@ -12,6 +12,8 @@ from fastapi.testclient import TestClient
 # module-level FastAPI app must never boot the repository default runtime DB.
 os.environ.setdefault("WEALL_API_BOOT_RUNTIME", "0")
 
+from rehearse_storage_operator_durability_v1_5 import _enable_storage_responsibility
+
 from weall.api.app import create_app
 from weall.runtime.apply.content import apply_content
 from weall.runtime.apply.dispute import apply_dispute
@@ -377,11 +379,21 @@ def run_harness() -> dict[str, Any]:
             parent="dispute:resolve",
         ),
     )
-    state.setdefault("storage", {}).setdefault("operators", {})["opA"] = {
+    _enable_storage_responsibility(state, "opA", capacity=1000)
+    _enable_storage_responsibility(state, "opB", capacity=1000)
+    state.setdefault("storage", {})
+    state["storage"].setdefault("operators", {})["opA"] = {
         "enabled": True,
         "capacity_bytes": 1000,
+        "used_bytes": 0,
+        "allocated_bytes": 0,
     }
-    state["storage"]["operators"]["opB"] = {"enabled": True, "capacity_bytes": 1000}
+    state["storage"]["operators"]["opB"] = {
+        "enabled": True,
+        "capacity_bytes": 1000,
+        "used_bytes": 0,
+        "allocated_bytes": 0,
+    }
     state["storage"].setdefault("pins", {})["pin-api"] = {
         "pin_id": "pin-api",
         "cid": CID_A,

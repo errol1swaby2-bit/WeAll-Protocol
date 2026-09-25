@@ -17,6 +17,7 @@ def _all_green_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -30,6 +31,7 @@ def _one_red_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -83,7 +85,7 @@ def test_preflight_rejects_enabled_helper_mode_when_release_gate_fails() -> None
     assert decision.code == "helper_release_gate_failed"
     assert decision.helper_required is True
     assert decision.helper_ready is False
-    assert decision.release_score == 87
+    assert decision.release_score == 88
 
 
 def test_preflight_rejects_core_runtime_prereq_before_helper_consideration() -> None:

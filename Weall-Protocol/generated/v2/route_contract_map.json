@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b5288700519b1682f83553d3c4e9c266d130962fb09941246d3f95bbc577ed8"
+    "source_tree_digest": "91b39f1f26dae55f3888c75149601af1708c36dc74d2edbeb6bc39dcbab03fef"
   },
   "required_fields": [
     "stable_id",
@@ -8245,6 +8245,7 @@
         "tests/test_combined_journey_gates.py",
         "tests/test_confirmed_tx_not_reincluded_after_restart.py",
         "tests/test_consensus_attestation_safety.py",
+        "tests/test_consensus_equivocation_slash_execute.py",
         "tests/test_consensus_phase_bootstrap.py",
         "tests/test_constitution_and_public_payload_policy.py",
         "tests/test_constitution_upgrade_height_scheduled_lifecycle.py",
@@ -8300,7 +8301,9 @@
         "tests/test_helper_dispatch_and_receipt_safety.py",
         "tests/test_helper_dispatch_plan_binding.py",
         "tests/test_helper_dispatch_plan_window.py",
+        "tests/test_helper_execution_lane_alignment.py",
         "tests/test_helper_expired_window_rejects_without_manual_close.py",
+        "tests/test_helper_instance_corpus.py",
         "tests/test_helper_merge.py",
         "tests/test_helper_merge_admission.py",
         "tests/test_helper_mixed_bad_traffic_recovery.py",

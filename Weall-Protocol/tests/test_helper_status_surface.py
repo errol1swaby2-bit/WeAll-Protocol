@@ -19,6 +19,7 @@ def _all_green_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -32,6 +33,7 @@ def _not_ready_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 

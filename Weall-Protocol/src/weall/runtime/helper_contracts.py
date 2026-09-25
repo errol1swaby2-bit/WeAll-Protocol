@@ -90,7 +90,7 @@ def _proof_status(
     has_global_barrier_authority: bool,
 ) -> tuple[str, bool, bool]:
     if helper_eligible and not uses_placeholder_keys and not has_global_barrier_authority:
-        return ("PROVEN_PARALLEL_SAFE", True, False)
+        return ("STATIC_CONFLICT_MODEL_ELIGIBLE", False, False)
     if helper_eligible and has_global_barrier_authority:
         return ("GLOBAL_AUTHORITY_RISK", False, False)
     if helper_eligible and uses_placeholder_keys:

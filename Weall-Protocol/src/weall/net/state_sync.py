@@ -233,7 +233,23 @@ def _validate_snapshot_validator_authority(snapshot: Json) -> None:
     if not isinstance(active_raw, list):
         raise StateSyncVerifyError("snapshot_validator_authority_invalid:active_set_not_list")
 
-    active = normalize_validator_ids(active_raw)
+    cleaned_active: list[str] = []
+    for raw_member in active_raw:
+        if not isinstance(raw_member, str):
+            raise StateSyncVerifyError(
+                "snapshot_validator_authority_invalid:active_set_member_not_string"
+            )
+        member = raw_member.strip()
+        if not member:
+            raise StateSyncVerifyError(
+                "snapshot_validator_authority_invalid:active_set_member_empty"
+            )
+        cleaned_active.append(member)
+    if len(set(cleaned_active)) != len(cleaned_active):
+        raise StateSyncVerifyError(
+            "snapshot_validator_authority_invalid:active_set_duplicate_member"
+        )
+    active = normalize_validator_ids(cleaned_active)
     stored_set_hash = _as_str(validator_set.get("set_hash") or "")
     if stored_set_hash and stored_set_hash != validator_set_hash(active):
         raise StateSyncVerifyError("snapshot_validator_authority_invalid:set_hash_mismatch")
@@ -579,6 +595,11 @@ class StateSyncService:
     def verify_response(
         self, resp: StateSyncResponseMsg, trusted_anchor: Json | None = None
     ) -> None:
+        if self.require_trusted_anchor:
+            if not isinstance(trusted_anchor, dict) or not trusted_anchor:
+                raise StateSyncVerifyError("trusted_anchor_required")
+            if not _as_str(trusted_anchor.get("state_root")):
+                raise StateSyncVerifyError("trusted_anchor_missing_state_root")
         if not isinstance(resp, StateSyncResponseMsg):
             raise StateSyncVerifyError("bad_response_type")
         try:

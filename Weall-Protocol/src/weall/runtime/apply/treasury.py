@@ -397,29 +397,30 @@ def _apply_treasury_spend_sign(state: Json, env: TxEnvelope) -> Json:
 
 def _apply_treasury_spend_cancel(state: Json, env: TxEnvelope) -> Json:
     payload = _as_dict(env.payload)
+    treasury_id = _require_treasury_id(payload)
     spend_id = _as_str(payload.get("spend_id")).strip()
     if not spend_id:
         raise TreasuryApplyError("invalid_payload", "missing_spend_id", {"tx_type": env.tx_type})
-
     tre = _ensure_treasury_root(state)
-    spends = tre.get("spends")
-    if not isinstance(spends, dict):
-        spends = {}
-        tre["spends"] = spends
-
+    spends = tre.get("spends") if isinstance(tre.get("spends"), dict) else {}
+    tre["spends"] = spends
     s = spends.get(spend_id)
     if not isinstance(s, dict):
         raise TreasuryApplyError("not_found", "spend_not_found", {"spend_id": spend_id})
-
+    expected = _as_str(s.get("treasury_id")).strip()
+    if not expected or expected != treasury_id:
+        raise TreasuryApplyError(
+            "forbidden",
+            "treasury_id_mismatch",
+            {"spend_id": spend_id, "treasury_id": treasury_id, "expected": expected},
+        )
     status = _as_str(s.get("status")).strip().lower()
     if status in ("executed", "canceled", "cancelled"):
         return {"applied": "TREASURY_SPEND_CANCEL", "spend_id": spend_id, "deduped": True}
-
     s["status"] = "canceled"
     s["canceled_by"] = _as_str(env.signer).strip()
     s["canceled_at_nonce"] = int(env.nonce)
     spends[spend_id] = s
-
     return {"applied": "TREASURY_SPEND_CANCEL", "spend_id": spend_id}
 
 
@@ -589,69 +590,19 @@ def _apply_treasury_wallet_create(state: Json, env: TxEnvelope) -> Json:
 
 
 def _apply_treasury_signer_add(state: Json, env: TxEnvelope) -> Json:
-    payload = _as_dict(env.payload)
-    wallet_id = _as_str(
-        payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")
-    ).strip()
-    signer = _as_str(
-        payload.get("signer") or payload.get("account") or payload.get("account_id")
-    ).strip()
-    if not wallet_id or not signer:
-        raise TreasuryApplyError("invalid_payload", "missing_wallet_or_signer", {})
-
-    wallets = _ensure_wallets(state)
-    w = wallets.get(wallet_id)
-    if not isinstance(w, dict):
-        raise TreasuryApplyError("not_found", "wallet_not_found", {"wallet_id": wallet_id})
-
-    signers = w.get("signers")
-    if not isinstance(signers, list):
-        signers = []
-    had = signer in signers
-    if not had:
-        signers.append(signer)
-    w["signers"] = sorted({str(x).strip() for x in signers if str(x).strip()})
-    w["updated_at_nonce"] = int(env.nonce)
-    wallets[wallet_id] = w
-    return {
-        "applied": "TREASURY_SIGNER_ADD",
-        "wallet_id": wallet_id,
-        "signer": signer,
-        "deduped": had,
-    }
+    raise TreasuryApplyError(
+        "forbidden",
+        "deprecated_split_signer_authority_use_treasury_signers_set",
+        {"tx_type": "TREASURY_SIGNER_ADD"},
+    )
 
 
 def _apply_treasury_signer_remove(state: Json, env: TxEnvelope) -> Json:
-    payload = _as_dict(env.payload)
-    wallet_id = _as_str(
-        payload.get("wallet_id") or payload.get("treasury_id") or payload.get("id")
-    ).strip()
-    signer = _as_str(
-        payload.get("signer") or payload.get("account") or payload.get("account_id")
-    ).strip()
-    if not wallet_id or not signer:
-        raise TreasuryApplyError("invalid_payload", "missing_wallet_or_signer", {})
-
-    wallets = _ensure_wallets(state)
-    w = wallets.get(wallet_id)
-    if not isinstance(w, dict):
-        raise TreasuryApplyError("not_found", "wallet_not_found", {"wallet_id": wallet_id})
-
-    signers = w.get("signers")
-    if not isinstance(signers, list):
-        signers = []
-    had = signer in signers
-    if had:
-        signers = [s for s in signers if _as_str(s).strip() != signer]
-    w["signers"] = sorted({str(x).strip() for x in signers if str(x).strip()})
-    w["updated_at_nonce"] = int(env.nonce)
-    wallets[wallet_id] = w
-    return {
-        "applied": "TREASURY_SIGNER_REMOVE",
-        "wallet_id": wallet_id,
-        "signer": signer,
-        "deduped": (not had),
-    }
+    raise TreasuryApplyError(
+        "forbidden",
+        "deprecated_split_signer_authority_use_treasury_signers_set",
+        {"tx_type": "TREASURY_SIGNER_REMOVE"},
+    )
 
 
 def _apply_treasury_policy_set(state: Json, env: TxEnvelope) -> Json:

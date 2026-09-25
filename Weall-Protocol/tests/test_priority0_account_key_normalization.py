@@ -39,8 +39,16 @@ def test_account_key_add_and_revoke_keep_mirrors_deterministic() -> None:
     assert acct["active_keys"] == ["pk-main", "pk-zed"]
     assert acct["pubkey"] == "pk-main"
 
+    key_id = next(
+        kid
+        for kid, rec in acct["keys"]["by_id"].items()
+        if isinstance(rec, dict)
+        and isinstance(rec.get("pubkeys"), dict)
+        and rec["pubkeys"].get("mldsa") == "pk-main"
+    )
     apply_tx(
-        state, _env("ACCOUNT_KEY_REVOKE", signer="alice", nonce=3, payload={"pubkey": "pk-main"})
+        state,
+        _env("ACCOUNT_KEY_REVOKE", signer="alice", nonce=3, payload={"key_id": key_id}),
     )
     acct = state["accounts"]["alice"]
     assert acct["pubkeys"] == ["pk-zed"]

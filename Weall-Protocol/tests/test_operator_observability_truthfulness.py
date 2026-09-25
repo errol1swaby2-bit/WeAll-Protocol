@@ -20,6 +20,7 @@ def _blocked_release_gate():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 

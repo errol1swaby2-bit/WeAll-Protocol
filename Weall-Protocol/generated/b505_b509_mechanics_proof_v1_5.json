@@ -139,7 +139,10 @@
               "result": {
                 "ok": true,
                 "result": {
-                  "applied": true
+                  "applied": true,
+                  "quorum_policy": {
+                    "quorum_bps": 6700
+                  }
                 }
               },
               "tx_type": "GOV_QUORUM_SET"
@@ -645,7 +648,7 @@
           }
         }
       ],
-      "artifact_hash": "9e2e987e32861203136f8bbd68057aca500a6052bddb7770be5a657f2ca2b83b",
+      "artifact_hash": "d3060aff3d4c5e0be5ca2d0a1d63c1182bcbd93799aa685f2ae18fcf7e197a35",
       "batch509_stdout_compatibility": true,
       "conflict_vectors": [
         {
@@ -660,7 +663,10 @@
               "result": {
                 "ok": true,
                 "result": {
-                  "applied": true
+                  "applied": true,
+                  "quorum_policy": {
+                    "quorum_bps": 5100
+                  }
                 }
               },
               "tx_type": "GOV_QUORUM_SET"
@@ -675,7 +681,10 @@
               "result": {
                 "ok": true,
                 "result": {
-                  "applied": true
+                  "applied": true,
+                  "quorum_policy": {
+                    "quorum_bps": 7500
+                  }
                 }
               },
               "tx_type": "GOV_QUORUM_SET"

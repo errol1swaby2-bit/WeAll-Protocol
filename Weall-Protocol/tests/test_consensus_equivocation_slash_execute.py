@@ -5,7 +5,7 @@ from weall.runtime.domain_dispatch import apply_tx
 from weall.runtime.tx_admission import TxEnvelope
 
 
-def test_equivocation_results_in_slash_execute_event() -> None:
+def test_equivocation_records_unadjudicated_slash_evidence() -> None:
     """If a validator attests two different blocks at same (height, round), we record a SLASH_EXECUTE.
 
     We test this at the apply-layer (not executor block production), so we can deterministically
@@ -66,4 +66,16 @@ def test_equivocation_results_in_slash_execute_event() -> None:
     assert isinstance(execs, dict)
 
     sid = "equivocation:v1:1:0"
-    assert sid in execs
+    assert sid not in execs
+    proposals = sl.get("proposals")
+    assert isinstance(proposals, dict)
+    assert proposals[sid]["status"] == "detected_unadjudicated"
+    assert proposals[sid]["validator"] == "v1"
+    events = sl.get("events")
+    assert isinstance(events, list)
+    assert events[-1] == {
+        "event": "EQUIVOCATION_DETECTED",
+        "slash_id": sid,
+        "validator": "v1",
+        "status": "awaiting_canonical_slash_proposal_vote_execute",
+    }

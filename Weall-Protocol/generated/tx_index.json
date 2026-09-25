@@ -477,10 +477,10 @@
   },
   "meta": {
     "law": "append-only",
-    "source": "WeAll Transaction Canon v1.22.2 \u2014 Full Enforceable Production Canon",
+    "source": "WeAll Transaction Canon v1.25.0 \u2014 Full Enforceable Production Canon",
     "version": "1.25.0"
   },
-  "source_sha256": "9f633dd411ba7ea7b18904105d23238a1f761621039b58b378e3c86377c92fe4",
+  "source_sha256": "3112a2d86cb82c19658c573c9b7e32874f2e2efcd860bea7433bb60602c4be99",
   "tx_types": [
     {
       "context": "mempool",

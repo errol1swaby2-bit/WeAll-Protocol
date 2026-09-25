@@ -1526,7 +1526,10 @@ def _apply_gov_proposal_create(state: Json, env: TxEnvelope) -> dict[str, Any]:
     if proposal_id in root:
         raise ApplyError("conflict", "proposal_already_exists", {"proposal_id": proposal_id})
 
-    rules = _d(p.get("rules"))
+    rules = dict(_d(p.get("rules")))
+    active_quorum = _d(_d(state.get("params")).get("governance_quorum"))
+    for _qk in sorted(active_quorum):
+        rules[_qk] = active_quorum[_qk]
     actions = _extract_actions(p)
     options = _proposal_options_from_payload(p)
     _assert_valid_proposal_options(options, proposal_id=proposal_id)
@@ -2545,25 +2548,27 @@ def _apply_gov_stage_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
     return {"applied": True, "proposal_id": proposal_id}
 
 
+def _merge_governed_mapping(dst: dict[str, Any], src: dict[str, Any]) -> None:
+    for key in sorted(src):
+        value = src[key]
+        if isinstance(value, dict):
+            current = dst.get(key)
+            if not isinstance(current, dict):
+                current = {}
+                dst[key] = current
+            _merge_governed_mapping(current, value)
+        else:
+            dst[key] = value
+
+
 def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
-    """Apply GOV_QUORUM_SET (receipt-only, SYSTEM origin).
-
-    Canon: receipt_only parent=GOV_EXECUTE.
-    Payload may be empty or contain quorum settings blob.
-
-    Minimal behavior:
-      - store quorum blob under state.gov_config["quorum"]
-      - append receipt to gov_quorum_set_receipts
-    """
     _ensure_root(state)
     if not bool(getattr(env, "system", False)) and str(getattr(env, "signer", "")) != "SYSTEM":
         raise ApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type})
-
-    raw_payload = _d(env.payload)
-    p = _governance_action_payload_without_queue_metadata(raw_payload)
+    p = _governance_action_payload_without_queue_metadata(_d(env.payload))
     _validate_gov_quorum_payload(p)
-
-    # Minimal bounds safety: if a quorum numeric field is present, keep it sane.
+    if not p:
+        raise ApplyError("invalid_payload", "empty_quorum_policy", {})
     if "quorum_percent" in p:
         qp = _i(p.get("quorum_percent"), -1)
         if qp < 1 or qp > 100:
@@ -2572,48 +2577,53 @@ def _apply_gov_quorum_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
         qb = _i(p.get("quorum_bps"), -1)
         if qb < 1 or qb > 10_000:
             raise ApplyError("invalid_payload", "quorum_bps_out_of_bounds", {"have": qb})
-
-    rec = _sorted_dict(dict(p))
+    policy = _sorted_dict(dict(p))
+    params = state.get("params")
+    if not isinstance(params, dict):
+        params = {}
+        state["params"] = params
+    params["governance_quorum"] = policy
+    rec = dict(policy)
     rec["_height"] = _height_hint(state, env)
     rec["_parent"] = _s(env.parent) if env.parent is not None else ""
     state["gov_quorum_set_receipts"].append(rec)
-
     cfg = state.get("gov_config")
     if isinstance(cfg, dict):
-        cfg["quorum"] = _sorted_dict(dict(p))
+        cfg["quorum"] = dict(policy)
         cfg["quorum"]["_height"] = int(rec["_height"])
-
-    return {"applied": True}
+    return {"applied": True, "quorum_policy": policy}
 
 
 def _apply_gov_rules_set(state: Json, env: TxEnvelope) -> dict[str, Any]:
-    """Apply GOV_RULES_SET (receipt-only, SYSTEM origin).
-
-    Canon: receipt_only parent=GOV_EXECUTE.
-    Payload may be empty or contain rules/settings blob.
-
-    Minimal behavior:
-      - store rules blob under state.gov_config["rules"]
-      - append receipt to gov_rules_set_receipts
-    """
     _ensure_root(state)
     if not bool(getattr(env, "system", False)) and str(getattr(env, "signer", "")) != "SYSTEM":
         raise ApplyError("forbidden", "system_tx_required", {"tx_type": env.tx_type})
-
-    raw_payload = _d(env.payload)
-    p = _governance_action_payload_without_queue_metadata(raw_payload)
+    p = _governance_action_payload_without_queue_metadata(_d(env.payload))
     _validate_gov_rules_payload(p)
-
+    if not p:
+        raise ApplyError("invalid_payload", "empty_governance_rules", {})
+    params_blob = p.get("params")
+    if isinstance(params_blob, dict):
+        params = state.get("params")
+        if not isinstance(params, dict):
+            params = {}
+            state["params"] = params
+        _merge_governed_mapping(params, params_blob)
+    treasury_blob = p.get("treasury")
+    if isinstance(treasury_blob, dict):
+        treasury = state.get("treasury")
+        if not isinstance(treasury, dict):
+            treasury = {}
+            state["treasury"] = treasury
+        _merge_governed_mapping(treasury, treasury_blob)
     rec = _sorted_dict(dict(p))
     rec["_height"] = _height_hint(state, env)
     rec["_parent"] = _s(env.parent) if env.parent is not None else ""
     state["gov_rules_set_receipts"].append(rec)
-
     cfg = state.get("gov_config")
     if isinstance(cfg, dict):
         cfg["rules"] = _sorted_dict(dict(p))
         cfg["rules"]["_height"] = int(rec["_height"])
-
     return {"applied": True}
 
 

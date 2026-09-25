@@ -432,30 +432,19 @@ def _apply_account_key_add(state: Json, env: TxEnvelope) -> Json:
 def _apply_account_key_revoke(state: Json, env: TxEnvelope) -> Json:
     a = _require_not_banned_or_locked(state, env.signer)
     _expect_nonce(a, env)
-    p = _payload(env)
-
-    pubkey = _as_str(p.get("pubkey") or "").strip()
-    if not pubkey:
-        raise ApplyError("invalid_tx", "missing_pubkey", {})
-
+    payload = _payload(env)
+    key_id = _as_str(payload.get("key_id") or "").strip()
+    if not key_id:
+        raise ApplyError("invalid_tx", "missing_key_id", {})
     keys = a.get("keys")
     if not isinstance(keys, dict) or not isinstance(keys.get("by_id"), dict):
         raise ApplyError("invalid_state", "keys_not_configured", {})
-
     by_id = keys["by_id"]
-    match_kid: str | None = None
-    for kid, rec in by_id.items():
-        if not isinstance(rec, dict):
-            continue
-        if account_key_pubkey(rec) == pubkey and rec.get("revoked") is not True:
-            match_kid = kid
-            break
-
-    if not match_kid:
-        raise ApplyError("invalid_tx", "unknown_key", {"pubkey": pubkey})
-
-    by_id[match_kid]["revoked"] = True
-    by_id[match_kid]["revoked_at"] = _as_int(state.get("height"), 0)
+    rec = by_id.get(key_id)
+    if not isinstance(rec, dict) or rec.get("revoked") is True:
+        raise ApplyError("invalid_tx", "unknown_key", {"key_id": key_id})
+    rec["revoked"] = True
+    rec["revoked_at"] = _as_int(state.get("height"), 0)
     a["nonce"] = _as_int(a.get("nonce"), 0) + 1
     _sync_account_key_views(a)
     return state
@@ -585,6 +574,12 @@ def _apply_account_session_key_issue(state: Json, env: TxEnvelope) -> Json:
             ttl_s = max(0, int((ex_ms - now_ms) // 1000))
 
     ttl_s = max(0, int(ttl_s))
+    policy = a.get("security_policy") if isinstance(a.get("security_policy"), dict) else {}
+    policy_ttl = _as_int(policy.get("session_ttl_s"), 0)
+    if policy_ttl > 0:
+        ttl_s = policy_ttl if ttl_s <= 0 else min(ttl_s, policy_ttl)
+    if ttl_s <= 0:
+        ttl_s = 3600
 
     sessions = a.get("session_keys")
     if not isinstance(sessions, dict):
@@ -685,24 +680,12 @@ def _apply_account_unlock(state: Json, env: TxEnvelope) -> Json:
     return state
 
 
-def _apply_account_ban(state: Json, env: TxEnvelope) -> Json:
-    p = _payload(env)
-    target = _as_str(p.get("target") or "").strip()
-    if not target:
-        raise ApplyError("invalid_tx", "missing_target", {})
-
-    accounts = _ensure(state, "accounts", {})
-    if not isinstance(accounts, dict):
-        raise ApplyError("invalid_state", "accounts_not_dict", {})
-
-    a = accounts.get(target)
-    if not isinstance(a, dict):
-        raise ApplyError("invalid_tx", "unknown_account", {"account_id": target})
-
-    exp = _expect_nonce(a, env)
-    a["banned"] = True
-    a["nonce"] = exp
-    return state
+def _legacy_account_ban_removed_from_identity(state: Json, env: TxEnvelope) -> Json:
+    raise ApplyError(
+        "invalid_state",
+        "legacy_identity_account_ban_removed_use_reputation_domain",
+        {"tx_type": str(env.tx_type or "")},
+    )
 
 
 def _apply_account_unban(state: Json, env: TxEnvelope) -> Json:
@@ -793,9 +776,18 @@ def _apply_account_security_policy_set(state: Json, env: TxEnvelope) -> Json:
 
     for key in ("lock_on_recovery_request", "require_guardian_threshold_for_unlock"):
         if key in p and p.get(key) is not None:
-            policy[key] = bool(p.get(key))
+            if p.get(key) is False:
+                raise ApplyError(
+                    "forbidden",
+                    f"{key}_cannot_disable_mandatory_security_control",
+                    {"field": key},
+                )
+            policy[key] = True
     if p.get("session_ttl_s") is not None:
-        policy["session_ttl_s"] = _as_int(p.get("session_ttl_s"), 0)
+        ttl = _as_int(p.get("session_ttl_s"), 0)
+        if ttl <= 0:
+            raise ApplyError("invalid_tx", "session_ttl_s_must_be_positive", {"session_ttl_s": ttl})
+        policy["session_ttl_s"] = ttl
     evidence_kem_pubkey = _validate_evidence_kem_pubkey(
         p.get("evidence_kem_pubkey"), required=False
     )
@@ -2084,9 +2076,6 @@ def apply_identity(state: Json, env: TxEnvelope) -> Json | None:
 
     if tx == "ACCOUNT_UNLOCK":
         return _apply_account_unlock(state, env)
-
-    if tx == "ACCOUNT_BAN":
-        return _apply_account_ban(state, env)
 
     if tx == "ACCOUNT_RECOVERY_CONFIG_SET":
         return _apply_account_recovery_config_set(state, env)

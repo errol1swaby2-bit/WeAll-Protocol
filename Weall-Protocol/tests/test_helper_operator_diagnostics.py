@@ -18,6 +18,7 @@ def _all_green_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -31,6 +32,7 @@ def _not_ready_report():
         fail_closed_ok=True,
         serial_degrade_ok=True,
         soak_ok=True,
+        post_state_equivalence_ok=True,
     )
 
 
@@ -74,7 +76,7 @@ def test_helper_operator_diagnostic_for_blocked_startup() -> None:
     assert diagnostic.startup_mode == "blocked"
     assert diagnostic.helper_mode_active is False
     assert diagnostic.severity == "error"
-    assert diagnostic.helper_release_score == 87
+    assert diagnostic.helper_release_score == 88
     assert diagnostic.summary == "startup blocked: helper_release_gate_failed"
 
 

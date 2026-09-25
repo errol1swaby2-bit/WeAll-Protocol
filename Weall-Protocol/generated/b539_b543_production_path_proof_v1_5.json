@@ -13,22 +13,21 @@
     "batch": "542",
     "confirmation_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 1,
       "ok": true,
+      "operator_id": "op-b",
       "pin_id": "pin-live",
       "reassignment": {
-        "failed_operator_id": "op-a",
-        "reassigned": true,
-        "replacement_operator_id": "op-b",
-        "targets": [
-          "op-b"
-        ]
+        "reassigned": false
       },
-      "receipt": true
+      "status": "confirmed"
     },
     "failed_operator": "op-a",
     "failure_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 0,
       "ok": false,
+      "operator_id": "op-a",
       "pin_id": "pin-live",
       "reassignment": {
         "failed_operator_id": "op-a",
@@ -38,7 +37,7 @@
           "op-b"
         ]
       },
-      "receipt": true
+      "status": "reassigned"
     },
     "initial_targets": [
       "op-a"
@@ -144,7 +143,7 @@
     "committed_state_unchanged_by_direct_apply": true,
     "direct_apply_persisted": false,
     "direct_apply_simulation_source": "copy_of_committed_executor_state",
-    "direct_apply_state_root": "411ba744c85cf6bce3835f509a8b9f05e668206a46293ac02035128c47aa410d",
+    "direct_apply_state_root": "44610afc7dc6d303a2623809c94791848b36f4d8d710f3b16d7562377e167979",
     "direct_apply_write_domains_remaining": [
       "poh_challenge",
       "dispute_final_receipt",
@@ -154,7 +153,7 @@
     "dispute_remedy_applied": true,
     "feed_items": 1,
     "feed_rank_mode": "production",
-    "final_state_root": "b1b7e5ed25882bec539df8147e8e6518e4b2c1c289365fecf6a9883e9b3c9f6a",
+    "final_state_root": "f7f2bb9ac090a900481fb61ebc4dc6bd35910f1142a3a0800b4279c08ea5370e",
     "ok": true,
     "poh_challenge_status": "resolved",
     "protocol_upgrade_record_only": true,

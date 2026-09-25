@@ -33,7 +33,7 @@
       "uses_reputation_weighting": true
     },
     "final_enforcement_count": 4,
-    "final_state_root": "8442f35e6a5f9adb838fcb76999e8bf74137f63d5749f13974c16a83be8d84ee",
+    "final_state_root": "159b8f91e4218fc6a9e3619d3b8844988442b2da51b20a82eadec0fb8f593e52",
     "group_id": "g-life",
     "ok": true,
     "poh": {
@@ -139,7 +139,7 @@
     "source_state_root": "abd625e729ba84f151a9d1c174345132fcd50d782e5e48477aac104cb6e818f4"
   },
   "freshness": {
-    "input_digest_sha256": "4803266a2761c21ac6cc77f20be0760d490ab71d2a2c5f2c3d81a43e19e607bf",
+    "input_digest_sha256": "5d110a5d1c33e683bac03cabdbf387ce64b7ec36e143a9c38171755b461f542b",
     "mode": "deterministic_input_digest_v1"
   },
   "locked_boundaries": {

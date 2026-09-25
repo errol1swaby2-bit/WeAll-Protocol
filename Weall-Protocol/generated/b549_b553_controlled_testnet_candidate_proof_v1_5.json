@@ -95,16 +95,16 @@
     "restart_exercised": true,
     "restart_root_matches": true,
     "roots_after": [
-      "8d894f29af77af1cecc319a199da503c743225c0daf967f4b82c219bc030e41e",
-      "8d894f29af77af1cecc319a199da503c743225c0daf967f4b82c219bc030e41e",
-      "8d894f29af77af1cecc319a199da503c743225c0daf967f4b82c219bc030e41e",
-      "8d894f29af77af1cecc319a199da503c743225c0daf967f4b82c219bc030e41e"
+      "647d8b197e75b0f532501a098ba48599ef8d72bc33d076cf11c6056a9892988f",
+      "647d8b197e75b0f532501a098ba48599ef8d72bc33d076cf11c6056a9892988f",
+      "647d8b197e75b0f532501a098ba48599ef8d72bc33d076cf11c6056a9892988f",
+      "647d8b197e75b0f532501a098ba48599ef8d72bc33d076cf11c6056a9892988f"
     ],
     "roots_before": [
-      "8d894f29af77af1cecc319a199da503c743225c0daf967f4b82c219bc030e41e",
-      "8d894f29af77af1cecc319a199da503c743225c0daf967f4b82c219bc030e41e",
-      "8d894f29af77af1cecc319a199da503c743225c0daf967f4b82c219bc030e41e",
-      "8d894f29af77af1cecc319a199da503c743225c0daf967f4b82c219bc030e41e"
+      "647d8b197e75b0f532501a098ba48599ef8d72bc33d076cf11c6056a9892988f",
+      "647d8b197e75b0f532501a098ba48599ef8d72bc33d076cf11c6056a9892988f",
+      "647d8b197e75b0f532501a098ba48599ef8d72bc33d076cf11c6056a9892988f",
+      "647d8b197e75b0f532501a098ba48599ef8d72bc33d076cf11c6056a9892988f"
     ],
     "transport": "tcp://127.0.0.1"
   },
@@ -115,17 +115,14 @@
       "batch": "546",
       "confirmation_receipt": {
         "applied": "IPFS_PIN_CONFIRM",
+        "confirmed_target_count": 1,
         "ok": true,
+        "operator_id": "op-b",
         "pin_id": "pin-b546",
         "reassignment": {
-          "failed_operator_id": "op-a",
-          "reassigned": true,
-          "replacement_operator_id": "op-b",
-          "targets": [
-            "op-b"
-          ]
+          "reassigned": false
         },
-        "receipt": true
+        "status": "confirmed"
       },
       "enqueue_initial": {
         "cid": "QmYwAPJzv5CZsnAzt8auVTLuRtKfXVDRzi4PhN6dZm8D8h",
@@ -155,7 +152,9 @@
       "failure_api_requests": 1,
       "failure_receipt": {
         "applied": "IPFS_PIN_CONFIRM",
+        "confirmed_target_count": 0,
         "ok": false,
+        "operator_id": "op-a",
         "pin_id": "pin-b546",
         "reassignment": {
           "failed_operator_id": "op-a",
@@ -165,7 +164,7 @@
             "op-b"
           ]
         },
-        "receipt": true
+        "status": "reassigned"
       },
       "ipfs_enabled": true,
       "ok": true,

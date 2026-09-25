@@ -202,7 +202,12 @@ def test_dispute_verdict_opens_appeal_window_and_engine_finalizes_after_deadline
     st["height"] = 10
     st["finalized_height"] = 10
     st["disputes_by_id"] = {
-        "d1": {"dispute_id": "d1", "stage": "review", "appeal_window_blocks": 3}
+        "d1": {
+            "dispute_id": "d1",
+            "stage": "review",
+            "appeal_window_blocks": 3,
+            "appeal_allowed_accounts": ["alice"],
+        }
     }
 
     apply_dispute(

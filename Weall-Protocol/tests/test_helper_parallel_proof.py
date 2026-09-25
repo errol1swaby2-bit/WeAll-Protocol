@@ -17,15 +17,19 @@ def test_every_canon_tx_has_helper_proof_status() -> None:
         assert item["proof_status"]
 
 
-def test_proven_parallel_subset_is_strict() -> None:
+def test_static_parallel_subset_is_truth_bounded() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
-    proven = [item for item in contract_map["contracts"] if item["proven_helper_eligible"]]
-    assert proven, "expected at least one proven helper-eligible tx in current snapshot"
-    for item in proven:
+    static_eligible = [
+        item
+        for item in contract_map["contracts"]
+        if item["proof_status"] == "STATIC_CONFLICT_MODEL_ELIGIBLE"
+    ]
+    assert static_eligible, "expected statically helper-eligible txs in current snapshot"
+    for item in static_eligible:
         assert item["helper_eligible"] is True
+        assert item["proven_helper_eligible"] is False
         assert item["uses_placeholder_keys"] is False
         assert item["has_global_barrier_authority"] is False
-        assert item["proof_status"] == "PROVEN_PARALLEL_SAFE"
 
 
 def test_placeholder_parallel_contracts_require_concrete_instances() -> None:
@@ -93,5 +97,5 @@ def test_helper_proof_contract_for_concrete_tx_is_deterministic() -> None:
     c1 = helper_contract_for_tx(tx)
     c2 = helper_contract_for_tx(dict(tx))
     assert c1 == c2
-    assert c1.proven_helper_eligible is True
-    assert c1.proof_status == "PROVEN_PARALLEL_SAFE"
+    assert c1.proven_helper_eligible is False
+    assert c1.proof_status == "STATIC_CONFLICT_MODEL_ELIGIBLE"

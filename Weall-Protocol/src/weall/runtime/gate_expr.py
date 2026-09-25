@@ -698,7 +698,36 @@ def _is_node_operator(ledger: Json, signer: str) -> bool:
     return False
 
 
+def _scope_enriched_payload(ledger: Json, payload: Json) -> Json:
+    out = dict(_as_dict(payload))
+    if not _payload_scope_id(out, "group_id", "groupId", "groupID", "gid", "group"):
+        election_id = _payload_scope_id(out, "election_id")
+        if election_id:
+            election = _as_dict(_as_dict(ledger.get("group_emissary_elections")).get(election_id))
+            gid = str(election.get("group_id") or "").strip()
+            if gid:
+                out["group_id"] = gid
+        spend_id = _payload_scope_id(out, "spend_id")
+        if spend_id:
+            spend = _as_dict(_as_dict(ledger.get("group_treasury_spends")).get(spend_id))
+            gid = str(spend.get("group_id") or "").strip()
+            if gid:
+                out["group_id"] = gid
+    if not _payload_scope_id(
+        out, "treasury_id", "treasuryId", "treasuryID", "wallet_id", "walletId"
+    ):
+        spend_id = _payload_scope_id(out, "spend_id")
+        if spend_id:
+            tre = _as_dict(ledger.get("treasury"))
+            spend = _as_dict(_as_dict(tre.get("spends")).get(spend_id))
+            tid = str(spend.get("treasury_id") or "").strip()
+            if tid:
+                out["treasury_id"] = tid
+    return out
+
+
 def _is_group_signer(ledger: Json, signer: str, payload: Json) -> bool:
+    payload = _scope_enriched_payload(ledger, payload)
     if not _account_available_for_authority(ledger, signer, min_tier=2):
         return False
     roles = _as_dict(ledger.get("roles"))
@@ -712,6 +741,7 @@ def _is_group_signer(ledger: Json, signer: str, payload: Json) -> bool:
 
 
 def _is_group_moderator(ledger: Json, signer: str, payload: Json) -> bool:
+    payload = _scope_enriched_payload(ledger, payload)
     if not _account_available_for_authority(ledger, signer, min_tier=2):
         return False
     roles = _as_dict(ledger.get("roles"))
@@ -730,6 +760,7 @@ def _is_group_moderator(ledger: Json, signer: str, payload: Json) -> bool:
 
 
 def _is_scoped_signer(ledger: Json, signer: str, payload: Json) -> bool:
+    payload = _scope_enriched_payload(ledger, payload)
     if not _account_available_for_authority(ledger, signer, min_tier=2):
         return False
 
@@ -764,6 +795,7 @@ def _is_scoped_signer(ledger: Json, signer: str, payload: Json) -> bool:
 
 
 def _is_emissary(ledger: Json, signer: str, payload: Json) -> bool:
+    payload = _scope_enriched_payload(ledger, payload)
     if not _account_available_for_authority(ledger, signer, min_tier=2):
         return False
 

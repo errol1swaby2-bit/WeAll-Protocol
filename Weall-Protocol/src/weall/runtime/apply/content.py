@@ -1272,6 +1272,46 @@ def _apply_content_media_declare(state: Json, env: TxEnvelope) -> Json:
     return {"applied": "CONTENT_MEDIA_DECLARE", "media_id": media_id, "deduped": False}
 
 
+def _require_user_media_authority(
+    state: Json,
+    env: TxEnvelope,
+    *,
+    media_id: str,
+    target_id: str = "",
+) -> None:
+    if bool(getattr(env, "system", False)):
+        return
+    content = _ensure_root(state)
+    media = _as_dict(content.get("media"))
+    rec = _as_dict(media.get(media_id))
+    owner = _as_str(rec.get("declared_by") or rec.get("owner") or rec.get("account_id")).strip()
+    if not owner or owner != _as_str(env.signer).strip():
+        raise ContentApplyError(
+            "forbidden",
+            "media_owner_required",
+            {"media_id": media_id, "signer": env.signer, "owner": owner},
+        )
+    if not target_id:
+        return
+    target: Json = {}
+    for bucket_name in ("posts", "comments"):
+        bucket = _as_dict(content.get(bucket_name))
+        candidate = bucket.get(target_id)
+        if isinstance(candidate, dict):
+            target = candidate
+            break
+    if target:
+        target_owner = _as_str(
+            target.get("author") or target.get("owner") or target.get("account_id")
+        ).strip()
+        if not target_owner or target_owner != _as_str(env.signer).strip():
+            raise ContentApplyError(
+                "forbidden",
+                "content_target_owner_required",
+                {"target_id": target_id, "signer": env.signer, "owner": target_owner},
+            )
+
+
 def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
     if not env.system:
         _require_min_poh_tier(state, signer=env.signer, min_tier=2, action="content_media_action")
@@ -1290,6 +1330,7 @@ def _apply_content_media_bind(state: Json, env: TxEnvelope) -> Json:
 
     if media_id not in media:
         raise ContentApplyError("not_found", "media_not_found", {"media_id": media_id})
+    _require_user_media_authority(state, env, media_id=media_id, target_id=target_id)
 
     bind_id = _as_str(payload.get("binding_id")).strip() or f"bind:{media_id}:{target_id}"
     bindings[bind_id] = {
@@ -1351,6 +1392,7 @@ def _apply_content_media_unbind(state: Json, env: TxEnvelope) -> Json:
     rec = bindings[binding_id]
     media_id = _as_str(rec.get("media_id")).strip()
     target_id = _as_str(rec.get("target_id")).strip()
+    _require_user_media_authority(state, env, media_id=media_id, target_id=target_id)
 
     del bindings[binding_id]
 
@@ -1393,6 +1435,7 @@ def _apply_content_media_replace(state: Json, env: TxEnvelope) -> Json:
 
     if media_id not in media:
         raise ContentApplyError("not_found", "media_not_found", {"media_id": media_id})
+    _require_user_media_authority(state, env, media_id=media_id)
 
     rec = media[media_id]
     rec["cid"] = new_cid

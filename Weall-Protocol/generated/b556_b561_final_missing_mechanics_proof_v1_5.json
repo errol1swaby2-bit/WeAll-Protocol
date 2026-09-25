@@ -143,7 +143,9 @@
     "failed_operator": "op-b",
     "failure_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 0,
       "ok": false,
+      "operator_id": "op-b",
       "pin_id": "pin-b558",
       "reassignment": {
         "failed_operator_id": "op-b",
@@ -154,7 +156,7 @@
           "op-c"
         ]
       },
-      "receipt": true
+      "status": "reassigned"
     },
     "initial_targets": [
       "op-b",
@@ -169,18 +171,14 @@
     ],
     "replacement_confirm_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 1,
       "ok": true,
+      "operator_id": "op-a",
       "pin_id": "pin-b558",
       "reassignment": {
-        "failed_operator_id": "op-b",
-        "reassigned": true,
-        "replacement_operator_id": "op-a",
-        "targets": [
-          "op-a",
-          "op-c"
-        ]
+        "reassigned": false
       },
-      "receipt": true
+      "status": "confirming"
     },
     "replacement_operator": "op-a",
     "retrieval_confirmed": true,

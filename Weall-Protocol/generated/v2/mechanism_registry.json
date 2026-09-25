@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b5288700519b1682f83553d3c4e9c266d130962fb09941246d3f95bbc577ed8"
+    "source_tree_digest": "91b39f1f26dae55f3888c75149601af1708c36dc74d2edbeb6bc39dcbab03fef"
   },
   "rows": [
     {
@@ -3703,6 +3703,7 @@
         "scripts/priority4_invariant_fuzz.py",
         "scripts/prod_smoke.py",
         "scripts/production_block_production_rehearsal_gate.py",
+        "scripts/r20_post_transform_repair.patch.gz.b64",
         "scripts/rehearse_anti_sybil_adjudication_deletion_v1_5.py",
         "scripts/rehearse_anti_sybil_collusion_accountability_v1_5.py",
         "scripts/rehearse_anti_sybil_conflict_appeal_recovery_v1_5.py",

@@ -12,6 +12,8 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 os.environ.setdefault("WEALL_API_BOOT_RUNTIME", "0")
+from rehearse_storage_operator_durability_v1_5 import _enable_storage_responsibility
+
 from weall.api.app import create_app
 from weall.runtime.apply.dispute import apply_dispute
 from weall.runtime.apply.poh import apply_poh
@@ -259,19 +261,27 @@ def run_harness() -> dict[str, Any]:
                     parent="d-api",
                 ),
             )
-            simulated.setdefault("storage", {}).setdefault("operators", {})["op-a"] = {
-                "enabled": True,
-                "capacity_bytes": 1000,
-                "used_bytes": 0,
-                "allocated_bytes": 0,
-            }
-            simulated["storage"]["operators"]["op-b"] = {
-                "enabled": True,
-                "capacity_bytes": 1000,
-                "used_bytes": 0,
-                "allocated_bytes": 0,
-            }
+            _enable_storage_responsibility(simulated, "op-a", capacity=1000)
+            _enable_storage_responsibility(simulated, "op-b", capacity=1000)
             apply_storage(
+                simulated,
+                _env(
+                    "STORAGE_OFFER_CREATE",
+                    "op-a",
+                    1,
+                    {"offer_id": "offer-api-a", "operator_id": "op-a", "capacity_bytes": 1000},
+                ),
+            )
+            apply_storage(
+                simulated,
+                _env(
+                    "STORAGE_OFFER_CREATE",
+                    "op-b",
+                    1,
+                    {"offer_id": "offer-api-b", "operator_id": "op-b", "capacity_bytes": 1000},
+                ),
+            )
+            pin_result = apply_storage(
                 simulated,
                 _env(
                     "IPFS_PIN_REQUEST",
@@ -281,20 +291,25 @@ def run_harness() -> dict[str, Any]:
                         "pin_id": "pin-api",
                         "cid": "QmYwAPJzv5CZsnAzt8auVTLuRtKfXVDRzi4PhN6dZm8D8h",
                         "size_bytes": 10,
+                        "replication_factor": 1,
                     },
                 ),
             )
-            apply_storage(
+            failed_operator = pin_result["targets"][0]
+            failed = apply_storage(
                 simulated,
                 _env(
                     "IPFS_PIN_CONFIRM",
                     "SYSTEM",
                     5,
-                    {"pin_id": "pin-api", "operator_id": "op-a", "ok": False},
+                    {"pin_id": "pin-api", "operator_id": failed_operator, "ok": False},
                     system=True,
                     parent="pin-api",
                 ),
             )
+            replacement = failed.get("reassignment", {}).get("replacement_operator_id")
+            if not replacement:
+                raise RuntimeError("storage_rehearsal_expected_replacement_target")
             apply_storage(
                 simulated,
                 _env(
@@ -303,7 +318,7 @@ def run_harness() -> dict[str, Any]:
                     6,
                     {
                         "pin_id": "pin-api",
-                        "operator_id": "op-b",
+                        "operator_id": replacement,
                         "ok": True,
                         "retrieval_ok": True,
                     },

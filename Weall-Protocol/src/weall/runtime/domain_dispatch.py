@@ -137,9 +137,10 @@ def _tx_type(env: Any) -> str:
 
 @lru_cache(maxsize=1)
 def _load_index() -> TxIndex:
-    """Load TxIndex once for apply-time canon enforcement.
+    """Load the required generated TxIndex once for apply-time canon enforcement.
 
-    We prefer the generated artifact; TxIndex has a fallback to YAML in dev/test.
+    The YAML canon is the upstream generation source; runtime dispatch intentionally
+    fails closed when the generated JSON artifact is missing or invalid.
     """
     # Typical layout: repo/generated/tx_index.json
     here = Path(__file__).resolve()
@@ -147,7 +148,7 @@ def _load_index() -> TxIndex:
         cand = root / "generated" / "tx_index.json"
         if cand.exists():
             return TxIndex.load_from_file(cand)
-    # Fall back: TxIndex.load_from_file will attempt YAML fallback.
+    # No runtime YAML fallback: the generated index is a required reviewed artifact.
     return TxIndex.load_from_file(Path("generated/tx_index.json"))
 
 

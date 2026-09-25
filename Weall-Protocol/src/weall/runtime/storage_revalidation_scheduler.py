@@ -221,6 +221,41 @@ def apply_storage_revalidation_status(state: Json) -> Json:
     does not allocate capacity and does not create challenge records.
     """
     updated: list[Json] = []
+    current = _height(state)
+    storage_root = state.get("storage") if isinstance(state.get("storage"), dict) else {}
+    leases = storage_root.get("leases") if isinstance(storage_root.get("leases"), dict) else {}
+    for lease_id in sorted(leases):
+        lease = leases.get(lease_id)
+        if not isinstance(lease, dict) or str(lease.get("status") or "") != "active":
+            continue
+        end_height = _as_int(lease.get("end_height"), 0)
+        if end_height <= 0 or current <= end_height:
+            continue
+        operator_id = _as_str(lease.get("operator_id") or lease.get("operator"))
+        size_bytes = max(0, _as_int(lease.get("size_bytes"), 0))
+        lease["status"] = "expired"
+        lease["expired_at_height"] = int(current)
+        if operator_id and size_bytes:
+            roles = state.get("roles") if isinstance(state.get("roles"), dict) else {}
+            node_ops = (
+                roles.get("node_operators") if isinstance(roles.get("node_operators"), dict) else {}
+            )
+            by_ops = node_ops.get("by_id") if isinstance(node_ops.get("by_id"), dict) else {}
+            op_rec = by_ops.get(operator_id) if isinstance(by_ops.get(operator_id), dict) else {}
+            resp = (
+                op_rec.get("responsibilities")
+                if isinstance(op_rec.get("responsibilities"), dict)
+                else {}
+            )
+            srec = resp.get("storage") if isinstance(resp.get("storage"), dict) else {}
+            srec["allocated_capacity_bytes"] = max(
+                0, _as_int(srec.get("allocated_capacity_bytes"), 0) - size_bytes
+            )
+            resp["storage"] = srec
+            op_rec["responsibilities"] = resp
+            if operator_id in by_ops:
+                by_ops[operator_id] = op_rec
+        updated.append({"lease_id": lease_id, "status": "expired", "reason": "lease_end_height"})
     by_id = _node_operator_records(state)
     for account_id_raw, rec_any in by_id.items():
         account_id = _as_str(account_id_raw)

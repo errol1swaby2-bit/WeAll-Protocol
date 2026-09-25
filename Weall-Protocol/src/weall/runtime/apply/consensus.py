@@ -25,7 +25,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from weall.ledger.roles_schema import canonicalize_account_set, ensure_roles_schema
-from weall.runtime.apply.reputation import apply_reputation_delta_system
 from weall.runtime.bft_hotstuff import (
     BFT_MIN_VALIDATORS,
     CONSENSUS_PHASE_BFT_ACTIVE,
@@ -984,6 +983,16 @@ def _set_pending_validator_set(
     activate_at_epoch: int,
     pending_phase: str = "",
 ) -> str:
+    c0 = _ensure_consensus(state)
+    vs0 = c0.get("validator_set") if isinstance(c0.get("validator_set"), dict) else {}
+    epochs0 = c0.get("epochs") if isinstance(c0.get("epochs"), dict) else {}
+    current_epoch0 = max(_as_int(epochs0.get("current"), 0), _as_int(vs0.get("epoch"), 0))
+    if int(activate_at_epoch) <= int(current_epoch0):
+        raise ConsensusApplyError(
+            "invalid_payload",
+            "validator_set_activate_at_epoch_must_be_future",
+            {"activate_at_epoch": int(activate_at_epoch), "current_epoch": int(current_epoch0)},
+        )
     c = _ensure_consensus(state)
     vs = c.get("validator_set")
     if not isinstance(vs, dict):
@@ -1451,64 +1460,34 @@ def _apply_block_attest(state: Json, env: TxEnvelope) -> Json:
             execs = sl.get("executions")
             execs = _require_dict_invariant(execs, field="execs")
 
-            if sid not in execs:
-                execs[sid] = {
+            proposals = sl.get("proposals")
+            proposals = _require_dict_invariant(proposals, field="proposals")
+            if sid not in proposals:
+                proposals[sid] = {
                     "slash_id": sid,
                     "type": "equivocation",
+                    "subject": validator,
                     "validator": validator,
                     "height": int(height),
                     "round": int(rnd),
                     "block_id_1": prior,
                     "block_id_2": block_id,
-                    "at_nonce": int(env.nonce),
+                    "status": "detected_unadjudicated",
+                    "detected_at_nonce": int(env.nonce),
                     "payload": payload,
                 }
                 ev = sl.get("events")
                 ev = _require_list_invariant(ev, field="ev")
-                ev.append({"tx_type": "SLASH_EXECUTE", "slash_id": sid, "type": "equivocation"})
+                ev.append(
+                    {
+                        "event": "EQUIVOCATION_DETECTED",
+                        "slash_id": sid,
+                        "validator": validator,
+                        "status": "awaiting_canonical_slash_proposal_vote_execute",
+                    }
+                )
                 sl["events"] = ev
-                sl["executions"] = execs
-
-                # Executor boundary: also queue an explicit SYSTEM receipt for SLASH_EXECUTE.
-                # This does not replace the immediate recording above (tests rely on it),
-                # but provides a clean production path for the block/system phase.
-                due = (
-                    int(height) + 1 if int(height) > 0 else int(_as_int(state.get("height"), 0)) + 1
-                )
-                if due <= 0:
-                    due = 1
-                enqueue_system_tx(
-                    state,
-                    tx_type="SLASH_EXECUTE",
-                    payload={
-                        "slash_id": sid,
-                        "account": validator,
-                        "reason": "equivocation",
-                        "height": int(height),
-                        "round": int(rnd),
-                        "block_id_1": prior,
-                        "block_id_2": block_id,
-                    },
-                    due_height=int(due),
-                    signer="SYSTEM",
-                    once=True,
-                    parent=sid,
-                    phase="post",
-                )
-
-                apply_reputation_delta_system(
-                    state,
-                    account_id=validator,
-                    delta=-25.0,
-                    reason="equivocation",
-                    evidence={
-                        "source": "consensus",
-                        "event": "EQUIVOCATION",
-                        "slash_id": sid,
-                        "payload": payload,
-                    },
-                    at_nonce=int(env.nonce),
-                )
+                sl["proposals"] = proposals
         else:
             per_v[key] = block_id
             av[validator] = per_v

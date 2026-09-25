@@ -507,11 +507,18 @@ def _apply_node_helper_responsibility_opt_in(
     if not is_node_operator_active(ledger, acct):
         raise RolesApplyError("forbidden", "node_operator_status_required", {"account_id": acct})
 
-    reputation_required = _as_int(
-        _payload_helper_field(payload, "reputation_required_milli", 2000), 2000
-    )
-    if reputation_required < 0:
-        reputation_required = 2000
+    params = _as_dict(ledger.get("params"))
+    reputation_required = max(0, _as_int(params.get("helper_reputation_required_milli"), 2000))
+    requested_reputation = _payload_helper_field(payload, "reputation_required_milli", None)
+    if (
+        requested_reputation is not None
+        and _as_int(requested_reputation, reputation_required) != reputation_required
+    ):
+        raise RolesApplyError(
+            "forbidden",
+            "helper_reputation_threshold_is_protocol_owned",
+            {"required_milli": int(reputation_required)},
+        )
     reputation_actual = account_reputation_units(account, default=0)
     if reputation_actual < reputation_required:
         raise RolesApplyError(
@@ -1480,6 +1487,7 @@ def _apply_role_node_operator_suspend(ledger: Json, env: TxEnvelope) -> Json:
 
     already = not bool(rec.get("active", False))
     rec["active"] = False
+    rec["suspended"] = True
     rec["status"] = "paused"
     rec["suspended_at_nonce"] = int(env.nonce)
     by_id[acct] = rec

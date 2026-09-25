@@ -208,7 +208,7 @@ def test_content_creator_can_appeal_but_reviewer_cannot() -> None:
                 nonce=3,
             ),
         )
-    assert exc.value.reason == "appeal_not_target_owner"
+    assert exc.value.reason == "appeal_actor_not_affected_party"
 
     apply_tx(
         st,

@@ -1,5 +1,5 @@
 {
-  "count": 1112,
+  "count": 1118,
   "provenance": {
     "active_profile_set": [
       "dev_local",
@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b5288700519b1682f83553d3c4e9c266d130962fb09941246d3f95bbc577ed8"
+    "source_tree_digest": "91b39f1f26dae55f3888c75149601af1708c36dc74d2edbeb6bc39dcbab03fef"
   },
   "rows": [
     {
@@ -3201,6 +3201,36 @@
       "writes_by": []
     },
     {
+      "creation_contracts": [],
+      "domain": "Content",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-0321",
+        "TX-0322",
+        "TX-0323"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/content.py",
+      "stable_id": "STATE-47E618BD7C1C1376",
+      "state_key_or_namespace": "account_id",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [
         "TX-0300",
         "TX-0301",
@@ -3428,7 +3458,10 @@
         "TX-0301",
         "TX-0302",
         "TX-0304",
-        "TX-0309"
+        "TX-0309",
+        "TX-0321",
+        "TX-0322",
+        "TX-0323"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
@@ -3972,6 +4005,36 @@
       "source": "specs/v2/source/protocol_registry.json",
       "stable_id": "STATE-681780129ABA6D8C",
       "state_key_or_namespace": "content_flags",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Content",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-0321",
+        "TX-0322",
+        "TX-0323"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/content.py",
+      "stable_id": "STATE-3C85D4A9A7E940B0",
+      "state_key_or_namespace": "declared_by",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -5270,6 +5333,36 @@
         "TX-0322",
         "TX-0323"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Content",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-0321",
+        "TX-0322",
+        "TX-0323"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/content.py",
+      "stable_id": "STATE-F2E8B1E3A0D4B350",
+      "state_key_or_namespace": "owner",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [],
@@ -12459,6 +12552,34 @@
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/economics.py",
+      "stable_id": "STATE-2C3E5397EDD6B9C5",
+      "state_key_or_namespace": "economics_lineage_v2_ready",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Economics",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-063",
+      "reads_by": [
+        "TX-1301"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/economics.py",
       "stable_id": "STATE-1413C379B1F57FA1",
       "state_key_or_namespace": "enable",
       "status": "current_partial",
@@ -17666,6 +17787,42 @@
     },
     {
       "creation_contracts": [
+        "TX-1714"
+      ],
+      "domain": "Groups",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/groups.py#apply_groups"
+      ],
+      "primary_mechanism_id": "M-039",
+      "reads_by": [
+        "TX-1714"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/groups.py",
+      "stable_id": "STATE-E12E9CCF4BCA3242",
+      "state_key_or_namespace": "treasury_audit_anchors",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1714"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1714"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-1713",
         "TX-1714"
       ],
@@ -19694,6 +19851,7 @@
       "reads_by": [
         "TX-0001",
         "TX-0002",
+        "TX-0003",
         "TX-2100"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -20415,7 +20573,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-028",
       "reads_by": [
-        "TX-0003",
         "TX-0004",
         "TX-2100",
         "TX-2103"
@@ -21267,6 +21424,7 @@
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
+        "TX-0006",
         "TX-0008"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -21427,6 +21585,7 @@
       ],
       "primary_mechanism_id": "M-028",
       "reads_by": [
+        "TX-0006",
         "TX-0008"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -33262,6 +33421,34 @@
       "mutators": [],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-0705"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/rewards.py",
+      "stable_id": "STATE-F5F15A9DF6E37E88",
+      "state_key_or_namespace": "actual_forfeited",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Rewards",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-063",
+      "reads_by": [
         "TX-0703",
         "TX-0704"
       ],
@@ -36085,6 +36272,36 @@
       ]
     },
     {
+      "creation_contracts": [],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-1106",
+        "TX-2619",
+        "TX-2626"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-F7E1B65C56D84E6E",
+      "state_key_or_namespace": "helper_reputation_required_milli",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [
         "TX-1100",
         "TX-1101",
@@ -36575,6 +36792,36 @@
         "TX-2624",
         "TX-2625"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [
+        "TX-1106",
+        "TX-2619",
+        "TX-2626"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-39AD9EF90072894E",
+      "state_key_or_namespace": "params",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -37844,6 +38091,40 @@
     },
     {
       "creation_contracts": [
+        "TX-1108"
+      ],
+      "domain": "Roles",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/roles.py#_apply_role_node_operator_suspend"
+      ],
+      "primary_mechanism_id": "M-028",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-BBC0E78FB17523E3",
+      "state_key_or_namespace": "suspended",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-1108"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-1108"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-1102",
         "TX-1108"
       ],
@@ -38870,6 +39151,40 @@
     },
     {
       "creation_contracts": [
+        "TX-0801"
+      ],
+      "domain": "Storage",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [
+        "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
+      ],
+      "primary_mechanism_id": "M-065",
+      "reads_by": [],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/storage.py",
+      "stable_id": "STATE-D7B75274B7AE5DED",
+      "state_key_or_namespace": "<pop:dynamic>",
+      "status": "current_partial",
+      "transition_contracts": [
+        "TX-0801"
+      ],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": [
+        "TX-0801"
+      ]
+    },
+    {
+      "creation_contracts": [
         "TX-0808",
         "TX-0809",
         "TX-2620"
@@ -39367,6 +39682,34 @@
       ]
     },
     {
+      "creation_contracts": [],
+      "domain": "Storage",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-065",
+      "reads_by": [
+        "TX-0801"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/storage.py",
+      "stable_id": "STATE-7A690E38D4DCE99D",
+      "state_key_or_namespace": "cid",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
       "creation_contracts": [
         "TX-0801"
       ],
@@ -39388,8 +39731,8 @@
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-7A690E38D4DCE99D",
-      "state_key_or_namespace": "cid",
+      "stable_id": "STATE-4FDE62FE4D791CB4",
+      "state_key_or_namespace": "confirmations",
       "status": "current_partial",
       "transition_contracts": [
         "TX-0801"
@@ -39418,80 +39761,14 @@
         "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
       ],
       "primary_mechanism_id": "M-065",
-      "reads_by": [],
+      "reads_by": [
+        "TX-0801"
+      ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-402B56AECE3B0FD6",
-      "state_key_or_namespace": "confirm_payload",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0801"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0801"
-      ]
-    },
-    {
-      "creation_contracts": [
-        "TX-0801"
-      ],
-      "domain": "Storage",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
-      ],
-      "primary_mechanism_id": "M-065",
-      "reads_by": [],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-36CC6B90515051CA",
-      "state_key_or_namespace": "confirmed_at_height",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0801"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0801"
-      ]
-    },
-    {
-      "creation_contracts": [
-        "TX-0801"
-      ],
-      "domain": "Storage",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
-      ],
-      "primary_mechanism_id": "M-065",
-      "reads_by": [],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-CD49635ACA3BF7E1",
-      "state_key_or_namespace": "confirmed_at_nonce",
+      "stable_id": "STATE-62B8291368648D29",
+      "state_key_or_namespace": "confirmed_target_count",
       "status": "current_partial",
       "transition_contracts": [
         "TX-0801"
@@ -39692,74 +39969,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0801"
-      ],
-      "domain": "Storage",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
-      ],
-      "primary_mechanism_id": "M-065",
-      "reads_by": [],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-D3F9235522611C69",
-      "state_key_or_namespace": "failed_at_height",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0801"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0801"
-      ]
-    },
-    {
-      "creation_contracts": [
-        "TX-0801"
-      ],
-      "domain": "Storage",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
-      ],
-      "primary_mechanism_id": "M-065",
-      "reads_by": [],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-FFB3F50F6E505C02",
-      "state_key_or_namespace": "failed_at_nonce",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0801"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0801"
-      ]
-    },
-    {
-      "creation_contracts": [
         "TX-0809",
         "TX-2620"
       ],
@@ -39891,9 +40100,7 @@
         "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
       ],
       "primary_mechanism_id": "M-065",
-      "reads_by": [
-        "TX-0801"
-      ],
+      "reads_by": [],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/storage.py",
@@ -40344,7 +40551,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-065",
       "reads_by": [
-        "TX-0801",
         "TX-0803",
         "TX-0804",
         "TX-0806",
@@ -40681,34 +40887,6 @@
         "TX-0811",
         "TX-2620"
       ]
-    },
-    {
-      "creation_contracts": [],
-      "domain": "Storage",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [],
-      "primary_mechanism_id": "M-065",
-      "reads_by": [
-        "TX-0801"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-C3EB36BA54D94BC5",
-      "state_key_or_namespace": "pin_id",
-      "status": "current_partial",
-      "transition_contracts": [],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -41135,8 +41313,8 @@
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-AC92AE553F5581E5",
-      "state_key_or_namespace": "release",
+      "stable_id": "STATE-878383D78A5EBBC1",
+      "state_key_or_namespace": "reassigned",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -41146,9 +41324,7 @@
       "writes_by": []
     },
     {
-      "creation_contracts": [
-        "TX-0801"
-      ],
+      "creation_contracts": [],
       "domain": "Storage",
       "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
       "invariants": [
@@ -41157,61 +41333,23 @@
       ],
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
-      ],
+      "mutators": [],
       "primary_mechanism_id": "M-065",
-      "reads_by": [],
+      "reads_by": [
+        "TX-0801"
+      ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
       "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-CEDF1B933EE53D1E",
-      "state_key_or_namespace": "released_at_height",
+      "stable_id": "STATE-AC92AE553F5581E5",
+      "state_key_or_namespace": "release",
       "status": "current_partial",
-      "transition_contracts": [
-        "TX-0801"
-      ],
+      "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
       "vector_ids": [
         "VEC-W1-COMPILER"
       ],
-      "writes_by": [
-        "TX-0801"
-      ]
-    },
-    {
-      "creation_contracts": [
-        "TX-0801"
-      ],
-      "domain": "Storage",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/storage.py#_apply_ipfs_pin_confirm"
-      ],
-      "primary_mechanism_id": "M-065",
-      "reads_by": [],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/storage.py",
-      "stable_id": "STATE-F469CC6B7E02091D",
-      "state_key_or_namespace": "released_at_nonce",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0801"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0801"
-      ]
+      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -41280,6 +41418,34 @@
       "writes_by": [
         "TX-0805"
       ]
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Storage",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-065",
+      "reads_by": [
+        "TX-0801"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/storage.py",
+      "stable_id": "STATE-6BC8D5FB6730EBB2",
+      "state_key_or_namespace": "replication_factor",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
     },
     {
       "creation_contracts": [
@@ -42027,6 +42193,34 @@
       "mutators": [],
       "primary_mechanism_id": "M-065",
       "reads_by": [
+        "TX-0801"
+      ],
+      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
+      "semantic_precision": "explicit_maintainer_reviewed_contract",
+      "source": "src/weall/runtime/apply/storage.py",
+      "stable_id": "STATE-1BF1149590175564",
+      "state_key_or_namespace": "targets",
+      "status": "current_partial",
+      "transition_contracts": [],
+      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
+      "vector_ids": [
+        "VEC-W1-COMPILER"
+      ],
+      "writes_by": []
+    },
+    {
+      "creation_contracts": [],
+      "domain": "Storage",
+      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
+      "invariants": [
+        "identical_pre_state_and_canonical_input_produce_identical_post_state",
+        "failed_transition_must_not_leave_partial_state"
+      ],
+      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
+      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
+      "mutators": [],
+      "primary_mechanism_id": "M-065",
+      "reads_by": [
         "TX-0809"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -42140,7 +42334,6 @@
     },
     {
       "creation_contracts": [
-        "TX-0501",
         "TX-0507",
         "TX-0512"
       ],
@@ -42154,7 +42347,6 @@
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
         "src/weall/runtime/apply/treasury.py#_apply_treasury_audit_anchor_set",
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_add",
         "src/weall/runtime/apply/treasury.py#_apply_treasury_spend_expire"
       ],
       "primary_mechanism_id": "M-063",
@@ -42166,7 +42358,6 @@
       "state_key_or_namespace": "<append:dynamic>",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0501",
         "TX-0507",
         "TX-0512"
       ],
@@ -42175,7 +42366,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0501",
         "TX-0507",
         "TX-0512"
       ]
@@ -42193,8 +42383,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-063",
       "reads_by": [
-        "TX-0501",
-        "TX-0502",
         "TX-0504"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -42223,8 +42411,6 @@
       "mutators": [],
       "primary_mechanism_id": "M-063",
       "reads_by": [
-        "TX-0501",
-        "TX-0502",
         "TX-0504"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -42603,10 +42789,9 @@
       "primary_mechanism_id": "M-063",
       "reads_by": [
         "TX-0500",
-        "TX-0501",
-        "TX-0502",
         "TX-0504",
         "TX-0505",
+        "TX-0506",
         "TX-0508",
         "TX-2503",
         "TX-2504"
@@ -42999,14 +43184,13 @@
       "mutators": [],
       "primary_mechanism_id": "M-063",
       "reads_by": [
-        "TX-0501",
-        "TX-0502"
+        "TX-2504"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/treasury.py",
-      "stable_id": "STATE-3B667A466047E314",
-      "state_key_or_namespace": "signer",
+      "source": "src/weall/runtime/apply/roles.py",
+      "stable_id": "STATE-EE96EB7B8EF4D04C",
+      "state_key_or_namespace": "signers",
       "status": "current_partial",
       "transition_contracts": [],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -43014,48 +43198,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": []
-    },
-    {
-      "creation_contracts": [
-        "TX-0501",
-        "TX-0502"
-      ],
-      "domain": "Treasury",
-      "failure_semantics": "typed_transaction_failure_with_atomic_rollback",
-      "invariants": [
-        "identical_pre_state_and_canonical_input_produce_identical_post_state",
-        "failed_transition_must_not_leave_partial_state"
-      ],
-      "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
-      "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
-      "mutators": [
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_add",
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_remove"
-      ],
-      "primary_mechanism_id": "M-063",
-      "reads_by": [
-        "TX-0501",
-        "TX-0502",
-        "TX-2504"
-      ],
-      "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
-      "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/treasury.py",
-      "stable_id": "STATE-EE96EB7B8EF4D04C",
-      "state_key_or_namespace": "signers",
-      "status": "current_partial",
-      "transition_contracts": [
-        "TX-0501",
-        "TX-0502"
-      ],
-      "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
-      "vector_ids": [
-        "VEC-W1-COMPILER"
-      ],
-      "writes_by": [
-        "TX-0501",
-        "TX-0502"
-      ]
     },
     {
       "creation_contracts": [],
@@ -43352,6 +43494,8 @@
     },
     {
       "creation_contracts": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43367,10 +43511,14 @@
       "mutators": [
         "src/weall/runtime/apply/treasury.py#_apply_treasury_program_close",
         "src/weall/runtime/apply/treasury.py#_apply_treasury_program_create",
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_program_update"
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_program_update",
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_add",
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_remove"
       ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43382,6 +43530,8 @@
       "state_key_or_namespace": "treasuries",
       "status": "current_partial",
       "transition_contracts": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43391,6 +43541,8 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43542,11 +43694,10 @@
       "primary_mechanism_id": "M-063",
       "reads_by": [
         "TX-0500",
-        "TX-0501",
-        "TX-0502",
         "TX-0503",
         "TX-0504",
         "TX-0505",
+        "TX-0506",
         "TX-0508",
         "TX-2503",
         "TX-2504"
@@ -43602,6 +43753,8 @@
     },
     {
       "creation_contracts": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43617,10 +43770,14 @@
       "mutators": [
         "src/weall/runtime/apply/treasury.py#_apply_treasury_program_close",
         "src/weall/runtime/apply/treasury.py#_apply_treasury_program_create",
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_program_update"
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_program_update",
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_add",
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_remove"
       ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43632,6 +43789,8 @@
       "state_key_or_namespace": "treasury_programs",
       "status": "current_partial",
       "transition_contracts": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43641,6 +43800,8 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43648,6 +43809,8 @@
     },
     {
       "creation_contracts": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43663,10 +43826,14 @@
       "mutators": [
         "src/weall/runtime/apply/treasury.py#_apply_treasury_program_close",
         "src/weall/runtime/apply/treasury.py#_apply_treasury_program_create",
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_program_update"
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_program_update",
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_add",
+        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_remove"
       ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43678,6 +43845,8 @@
       "state_key_or_namespace": "treasury_spends",
       "status": "current_partial",
       "transition_contracts": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43687,6 +43856,8 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
+        "TX-0501",
+        "TX-0502",
         "TX-0509",
         "TX-0510",
         "TX-0511"
@@ -43731,8 +43902,6 @@
     {
       "creation_contracts": [
         "TX-0500",
-        "TX-0501",
-        "TX-0502",
         "TX-0508"
       ],
       "domain": "Treasury",
@@ -43744,16 +43913,12 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_add",
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_remove",
         "src/weall/runtime/apply/treasury.py#_apply_treasury_spend_execute",
         "src/weall/runtime/apply/treasury.py#_apply_treasury_wallet_create"
       ],
       "primary_mechanism_id": "M-063",
       "reads_by": [
         "TX-0500",
-        "TX-0501",
-        "TX-0502",
         "TX-0508"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
@@ -43764,8 +43929,6 @@
       "status": "current_partial",
       "transition_contracts": [
         "TX-0500",
-        "TX-0501",
-        "TX-0502",
         "TX-0508"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -43774,15 +43937,11 @@
       ],
       "writes_by": [
         "TX-0500",
-        "TX-0501",
-        "TX-0502",
         "TX-0508"
       ]
     },
     {
       "creation_contracts": [
-        "TX-0501",
-        "TX-0502",
         "TX-2504"
       ],
       "domain": "Treasury",
@@ -43794,21 +43953,17 @@
       "key_encoding": "canonical_utf8_namespace_or_runtime_declared_composite_key",
       "migration_behavior": "versioned_migration_or_forward_repair_required_for_shape_change",
       "mutators": [
-        "src/weall/runtime/apply/roles.py#_apply_treasury_signers_set",
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_add",
-        "src/weall/runtime/apply/treasury.py#_apply_treasury_signer_remove"
+        "src/weall/runtime/apply/roles.py#_apply_treasury_signers_set"
       ],
       "primary_mechanism_id": "M-063",
       "reads_by": [],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",
       "semantic_precision": "explicit_maintainer_reviewed_contract",
-      "source": "src/weall/runtime/apply/treasury.py",
+      "source": "src/weall/runtime/apply/roles.py",
       "stable_id": "STATE-C51D7E2E1F39864D",
       "state_key_or_namespace": "updated_at_nonce",
       "status": "current_partial",
       "transition_contracts": [
-        "TX-0501",
-        "TX-0502",
         "TX-2504"
       ],
       "value_schema": "runtime_state_schema_current_snapshot; exact versioned schema review required",
@@ -43816,8 +43971,6 @@
         "VEC-W1-COMPILER"
       ],
       "writes_by": [
-        "TX-0501",
-        "TX-0502",
         "TX-2504"
       ]
     },
@@ -43873,10 +44026,9 @@
       "primary_mechanism_id": "M-063",
       "reads_by": [
         "TX-0500",
-        "TX-0501",
-        "TX-0502",
         "TX-0504",
         "TX-0505",
+        "TX-0506",
         "TX-0508"
       ],
       "replay_behavior": "canonical_block_replay_must_reproduce_identical_value_bytes",

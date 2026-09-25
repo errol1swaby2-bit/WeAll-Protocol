@@ -15,7 +15,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "4b5288700519b1682f83553d3c4e9c266d130962fb09941246d3f95bbc577ed8"
+    "source_tree_digest": "91b39f1f26dae55f3888c75149601af1708c36dc74d2edbeb6bc39dcbab03fef"
   },
   "rows": [
     {
@@ -1562,12 +1562,7 @@
     {
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
-      "fields": [
-        "applied",
-        "deduped",
-        "signer",
-        "wallet_id"
-      ],
+      "fields": [],
       "kind": "receipt_only_parent_bound",
       "parent": "GOV_EXECUTE",
       "primary_mechanism_id": "M-063",
@@ -1583,12 +1578,7 @@
     {
       "domain_separation": "chain_id_protocol_profile_tx_type_parent_or_block_context",
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
-      "fields": [
-        "applied",
-        "deduped",
-        "signer",
-        "wallet_id"
-      ],
+      "fields": [],
       "kind": "receipt_only_parent_bound",
       "parent": "GOV_EXECUTE",
       "primary_mechanism_id": "M-063",
@@ -2202,10 +2192,12 @@
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
         "account_id",
+        "actual_forfeited",
         "amount",
         "applied",
         "deduped",
-        "forfeit_id"
+        "forfeit_id",
+        "requested_amount"
       ],
       "kind": "receipt_only_parent_bound",
       "parent": "SLASH_EXECUTE",
@@ -2248,10 +2240,12 @@
       "failure_representation": "typed_failure_contract_reference_or_success_payload",
       "fields": [
         "applied",
+        "confirmed_target_count",
         "ok",
+        "operator_id",
         "pin_id",
         "reassignment",
-        "receipt"
+        "status"
       ],
       "kind": "receipt_only_parent_bound",
       "parent": "IPFS_PIN_REQUEST",

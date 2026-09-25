@@ -103,24 +103,18 @@ class SqliteDB:
 
     @staticmethod
     def _sqlite_synchronous_pragma() -> str:
-        """Return a safe PRAGMA synchronous value.
-
-        SQLite durability is a production-critical knob.
-
-        Defaults:
-          - prod        -> FULL
-          - dev/testnet -> NORMAL
-
-        Override with WEALL_SQLITE_SYNCHRONOUS in {OFF,NORMAL,FULL,EXTRA}.
-        """
         mode = (os.environ.get("WEALL_MODE") or "prod").strip().lower()
         default = "FULL" if mode == "prod" else "NORMAL"
         raw = (os.environ.get("WEALL_SQLITE_SYNCHRONOUS") or default).strip().upper()
-
         allowed = {"OFF", "NORMAL", "FULL", "EXTRA"}
         if raw not in allowed:
-            # Fail-safe: never accept unknown values.
-            raw = default
+            if mode == "prod":
+                raise ValueError(f"invalid WEALL_SQLITE_SYNCHRONOUS for production: {raw}")
+            return default
+        if mode == "prod" and raw not in {"FULL", "EXTRA"}:
+            raise ValueError(
+                "unsafe production SQLite synchronous mode; production requires FULL or EXTRA"
+            )
         return raw
 
     def ensure_parent_dir(self) -> None:

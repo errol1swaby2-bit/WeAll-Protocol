@@ -85,7 +85,7 @@ def test_live_economics_stays_locked_without_governance_preconditions() -> None:
                 parent="gov:econ-activation",
             ),
         )
-    assert missing_preconditions.value.reason == "economics_activation_preconditions_not_satisfied"
+    assert missing_preconditions.value.reason == "economics_lineage_v2_not_proven"
 
     assert state["params"].get("economics_enabled") is False
     assert state["accounts"]["@alice"]["balance"] == 100

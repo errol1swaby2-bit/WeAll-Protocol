@@ -76,17 +76,14 @@
     "batch": "546",
     "confirmation_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 1,
       "ok": true,
+      "operator_id": "op-b",
       "pin_id": "pin-b546",
       "reassignment": {
-        "failed_operator_id": "op-a",
-        "reassigned": true,
-        "replacement_operator_id": "op-b",
-        "targets": [
-          "op-b"
-        ]
+        "reassigned": false
       },
-      "receipt": true
+      "status": "confirmed"
     },
     "enqueue_initial": {
       "cid": "QmYwAPJzv5CZsnAzt8auVTLuRtKfXVDRzi4PhN6dZm8D8h",
@@ -116,7 +113,9 @@
     "failure_api_requests": 1,
     "failure_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 0,
       "ok": false,
+      "operator_id": "op-a",
       "pin_id": "pin-b546",
       "reassignment": {
         "failed_operator_id": "op-a",
@@ -126,7 +125,7 @@
           "op-b"
         ]
       },
-      "receipt": true
+      "status": "reassigned"
     },
     "ipfs_enabled": true,
     "ok": true,

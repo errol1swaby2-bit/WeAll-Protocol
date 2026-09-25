@@ -81,7 +81,7 @@ def test_tier2_post_matures_into_system_reputation_delta() -> None:
     payload = _queued_reputation_payloads(state)[0]
     assert payload == {
         "account_id": "@alice",
-        "delta": 0.01,
+        "delta_milli": 10,
         "delta_id": "repaccrual:post:post:1",
         "reason": "content_post_matured",
     }
@@ -147,6 +147,6 @@ def test_media_declare_matures_into_capped_system_reputation_delta() -> None:
     assert schedule_reputation_accrual_system_txs(state, next_height=13) == 1
     payload = _queued_reputation_payloads(state)[0]
     assert payload["account_id"] == "@alice"
-    assert payload["delta"] == 0.025
+    assert payload["delta_milli"] == 25
     assert payload["delta_id"] == "repaccrual:media:media:1"
     assert payload["reason"] == "content_media_matured"

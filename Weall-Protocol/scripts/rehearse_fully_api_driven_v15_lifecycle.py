@@ -466,7 +466,7 @@ def run_harness() -> dict[str, Any]:
         state,
         _env(
             "STORAGE_OFFER_CREATE",
-            "@alice",
+            "op-a",
             70,
             {"offer_id": "offer-a", "operator_id": "op-a", "capacity_bytes": 1024},
         ),
@@ -475,12 +475,12 @@ def run_harness() -> dict[str, Any]:
         state,
         _env(
             "STORAGE_OFFER_CREATE",
-            "@bob",
+            "op-b",
             71,
             {"offer_id": "offer-b", "operator_id": "op-b", "capacity_bytes": 1024},
         ),
     )
-    apply_storage(
+    pin = apply_storage(
         state,
         _env(
             "IPFS_PIN_REQUEST",
@@ -491,13 +491,14 @@ def run_harness() -> dict[str, Any]:
             parent="storage",
         ),
     )
+    failed_operator = pin["targets"][0]
     failed = apply_storage(
         state,
         _env(
             "IPFS_PIN_CONFIRM",
             "SYSTEM",
             73,
-            {"pin_id": "pin-1", "cid": cid, "operator_id": "op-a", "ok": False},
+            {"pin_id": "pin-1", "cid": cid, "operator_id": failed_operator, "ok": False},
             system=True,
             parent="storage",
         ),

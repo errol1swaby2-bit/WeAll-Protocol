@@ -891,8 +891,10 @@ def collect_reputation_matrix_events(state: Json, account_id: str) -> list[Json]
     if not acct:
         return []
     events: list[MatrixEvent] = []
-    events.extend(_canonical_ledger_events(state, acct))
-    events.extend(_scalar_reputation_events(state, acct))
+    canonical = _canonical_ledger_events(state, acct)
+    events.extend(canonical)
+    if not canonical:
+        events.extend(_scalar_reputation_events(state, acct))
     events.extend(_dispute_events(state, acct))
     events.extend(_governance_events(state, acct))
     events.extend(_identity_poh_events(state, acct))

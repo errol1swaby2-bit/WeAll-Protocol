@@ -44,7 +44,9 @@ def test_helper_instance_summary_promotes_all_corpus_samples() -> None:
     contract_map = build_helper_contract_map(TX_INDEX)
     summary = contract_map["instance_summary"]
     assert summary["sample_count"] == 13
-    assert summary["proven_helper_eligible_count"] == 13
+    assert summary["proven_helper_eligible_count"] == 0
+    assert summary["helper_eligible_count"] == 13
+    assert summary["proof_status_counts"] == {"STATIC_CONFLICT_MODEL_ELIGIBLE": 13}
     assert summary["degraded_to_serial_count"] == 0
 
 

@@ -70,7 +70,7 @@ def test_schema_models_registered() -> None:
         ("STORAGE_PAYOUT_EXECUTE", {"payout_id": "payout-1", "operator_id": "alice", "amount": 25}),
         ("STORAGE_REPORT_ANCHOR", {"report_id": "report-1", "report_cid": VALID_CID}),
         ("IPFS_PIN_REQUEST", {"cid": VALID_CID, "pin_id": "pin-1", "size_bytes": 64}),
-        ("IPFS_PIN_CONFIRM", {"pin_id": "pin-1", "ok": True}),
+        ("IPFS_PIN_CONFIRM", {"pin_id": "pin-1", "operator_id": "op-1", "ok": True}),
     ],
 )
 def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
@@ -97,7 +97,11 @@ def test_valid_payloads_are_accepted(tx_type: str, payload: dict) -> None:
         ("STORAGE_CHALLENGE_RESPOND", {}, "challenge_id"),
         ("IPFS_PIN_REQUEST", {}, "cid"),
         ("IPFS_PIN_REQUEST", {"cid": "not-a-cid"}, "invalid_cid_format"),
-        ("IPFS_PIN_CONFIRM", {"pin_id": "pin-1", "cid": "not-a-cid"}, "invalid_cid_format"),
+        (
+            "IPFS_PIN_CONFIRM",
+            {"pin_id": "pin-1", "operator_id": "op-1", "cid": "not-a-cid"},
+            "invalid_cid_format",
+        ),
         (
             "STORAGE_REPORT_ANCHOR",
             {"report_id": "report-1", "report_cid": "not-a-cid"},

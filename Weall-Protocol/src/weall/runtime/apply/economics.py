@@ -752,6 +752,22 @@ def _apply_economics_activation(state: Json, env: TxEnvelope) -> Json:
     - Idempotent: if the requested enabled state is already in effect, reject with a clear reason
       so downstream logic doesn't treat "re-apply" as a meaningful event.
     """
+    params0 = _ensure_params(state)
+    payload0 = _as_dict(env.payload)
+    wants_enable = _as_bool(
+        payload0.get("enable") if "enable" in payload0 else payload0.get("enabled"),
+        True,
+    )
+    if (
+        wants_enable
+        and bool(params0.get("economics_activation_preconditions_required", False))
+        and not bool(params0.get("economics_lineage_v2_ready", False))
+    ):
+        raise EconomicsApplyError(
+            "forbidden",
+            "economics_lineage_v2_not_proven",
+            {"required": "finalized authority -> mint instance -> exact distribution lineage"},
+        )
     _require_system_env(env)
     _wrap_time_lock(state)
 
@@ -957,6 +973,9 @@ def _apply_balance_transfer(state: Json, env: TxEnvelope) -> Json:
             "from_account_must_match_signer",
             {"signer": frm, "from_account_id": claimed_from},
         )
+
+    if to == frm:
+        raise EconomicsApplyError("invalid_payload", "self_transfer_forbidden", {"account_id": frm})
 
     econ = _ensure_econ_root(state)
     transfers = econ.get("transfers")

@@ -40,21 +40,11 @@ def _load_supported_from_tx_index(path: Path) -> set[str]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise ValueError("tx_index must be a JSON object")
-
-    out: set[str] = set()
     by_name = raw.get("by_name")
-    if isinstance(by_name, dict):
-        out.update(_as_str(k).upper() for k in by_name if _as_str(k))
-
-    if not out:
-        by_id = raw.get("by_id")
-        if isinstance(by_id, dict):
-            for obj in by_id.values():
-                if isinstance(obj, dict):
-                    name = _as_str(obj.get("name")).upper()
-                    if name:
-                        out.add(name)
-
+    tx_types = raw.get("tx_types")
+    if not isinstance(by_name, dict) or not isinstance(tx_types, list):
+        raise ValueError("tx_index current shape requires by_name + tx_types")
+    out = {_as_str(k).upper() for k in by_name if _as_str(k)}
     if not out:
         raise ValueError(f"tx_index contains no canonical transaction names: {path}")
     return out

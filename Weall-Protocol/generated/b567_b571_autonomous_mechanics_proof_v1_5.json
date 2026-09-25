@@ -320,7 +320,7 @@
     "wrong_chain_rejected": true
   },
   "freshness": {
-    "input_digest_sha256": "3cf77c98bf3a68614c14a3b733df166430933e63b77e7f0e9f36da4bdab57b8f",
+    "input_digest_sha256": "80cf953567d8f1bb8489105fa79977bd523e956d00275d21bd83ae5217d588d3",
     "mode": "deterministic_input_digest_v1"
   },
   "multiprocess_ipfs_operator_durability": {
@@ -328,24 +328,22 @@
     "batch": "569",
     "confirm_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 1,
       "ok": true,
+      "operator_id": "op-a",
       "pin_id": "pin-b569",
       "reassignment": {
-        "failed_operator_id": "op-b",
-        "reassigned": true,
-        "replacement_operator_id": "op-a",
-        "targets": [
-          "op-a",
-          "op-c"
-        ]
+        "reassigned": false
       },
-      "receipt": true
+      "status": "confirming"
     },
     "failed_operator": "op-b",
     "failed_process_exitcode": -15,
     "failure_receipt": {
       "applied": "IPFS_PIN_CONFIRM",
+      "confirmed_target_count": 0,
       "ok": false,
+      "operator_id": "op-b",
       "pin_id": "pin-b569",
       "reassignment": {
         "failed_operator_id": "op-b",
@@ -356,7 +354,7 @@
           "op-c"
         ]
       },
-      "receipt": true
+      "status": "reassigned"
     },
     "ok": true,
     "operator_count": 4,

@@ -888,14 +888,24 @@ def _vote_choice_tally(votes: dict[str, dict[str, Any]]) -> dict[str, int]:
 
 
 def _select_resolution_from_votes(votes: dict[str, dict[str, Any]]) -> Json:
-    for signer in sorted(votes.keys()):
+    buckets: dict[str, tuple[int, Json]] = {}
+    for signer in sorted(votes):
         rec = votes.get(signer)
         if not isinstance(rec, dict):
             continue
         resolution = rec.get("resolution")
-        if isinstance(resolution, dict) and resolution:
-            return dict(resolution)
-    return {}
+        if not isinstance(resolution, dict) or not resolution:
+            continue
+        key = _canonical_hash(resolution)
+        count, _prior = buckets.get(key, (0, {}))
+        buckets[key] = (count + 1, dict(resolution))
+    if not buckets:
+        return {}
+    required = int(quorum_threshold(len(votes))) if votes else 1
+    winners = [item for item in buckets.values() if int(item[0]) >= required]
+    if len(winners) != 1:
+        return {}
+    return dict(winners[0][1])
 
 
 def _system_env(tx_type: str, payload: Json, *, height: int, parent_ref: str | None) -> TxEnvelope:
@@ -1517,11 +1527,18 @@ def _appeal_allowed_accounts(state: Json, d: Json) -> list[str]:
     if isinstance(raw, list):
         out.extend(_as_str(x).strip() for x in raw if _as_str(x).strip())
     owner = _as_str(d.get("target_owner") or d.get("target_author") or "").strip()
+    target_type = _as_str(d.get("target_type") or "content").strip().lower()
+    target_id = _as_str(d.get("target_id") or "").strip()
+    if not owner and target_type in {"account", "accounts", "user", "profile"} and target_id:
+        # For an account-targeted dispute, the target account is itself the
+        # directly affected party. This is explicit authority derivation, not a
+        # permissive fallback for ownerless records.
+        owner = target_id
     if not owner:
         owner = _content_target_owner(
             state,
-            target_type=_as_str(d.get("target_type") or "content"),
-            target_id=_as_str(d.get("target_id") or ""),
+            target_type=target_type,
+            target_id=target_id,
         )
     if owner:
         out.append(owner)
@@ -1537,25 +1554,21 @@ def _appeal_allowed_accounts(state: Json, d: Json) -> list[str]:
 
 
 def _require_dispute_appeal_actor(state: Json, d: Json, signer: str) -> None:
-    """Appeals are for the person directly affected by the outcome.
-
-    For content moderation outcomes, that is the content creator/owner, not the
-    reviewer who voted on the report and not every Tier 2 account that can see
-    the appeal window.  Older non-content dispute records without an owner keep
-    their historical permissive behavior until a dedicated subject field exists.
-    """
-
     allowed = _appeal_allowed_accounts(state, d)
     if not allowed:
-        return
-    if not any(_same_account(signer, acct) for acct in allowed):
         raise DisputeApplyError(
             "forbidden",
-            "appeal_not_target_owner",
+            "appeal_actor_authority_unresolved",
+            {"dispute_id": _as_str(d.get("id") or d.get("dispute_id")), "signer": signer},
+        )
+    if not any(_same_account(signer, account) for account in allowed):
+        raise DisputeApplyError(
+            "forbidden",
+            "appeal_actor_not_affected_party",
             {
                 "dispute_id": _as_str(d.get("id") or d.get("dispute_id")),
                 "signer": signer,
-                "allowed_accounts": allowed,
+                "allowed_accounts": sorted(allowed),
             },
         )
 

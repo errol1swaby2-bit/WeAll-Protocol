@@ -30446,6 +30446,223 @@
       "kind": "message",
       "stable_id": "MSG-E65D3916D735CB5D",
       "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:pin_cid_mismatch",
+      "kind": "failure",
+      "stable_id": "FAIL-EA9FB9C08DFE7F23",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:storage_offer_operator_must_match_signer",
+      "kind": "failure",
+      "stable_id": "FAIL-2A1CB3AF55A41A07",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:missing_pin_or_operator",
+      "kind": "failure",
+      "stable_id": "FAIL-3B49DB21C4ED0B7C",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_payload:self_transfer_forbidden",
+      "kind": "failure",
+      "stable_id": "FAIL-5B5956453E3B2F2E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:missing_key_id",
+      "kind": "failure",
+      "stable_id": "FAIL-B57D98F1582AA8F4",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "invalid_tx:session_ttl_s_must_be_positive",
+      "kind": "failure",
+      "stable_id": "FAIL-D40A4DAB3F037D44",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "not_found:pin_not_found",
+      "kind": "failure",
+      "stable_id": "FAIL-8DC2F2AAA82257FB",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Content:account_id",
+      "kind": "state",
+      "stable_id": "STATE-47E618BD7C1C1376",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Content:declared_by",
+      "kind": "state",
+      "stable_id": "STATE-3C85D4A9A7E940B0",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Content:owner",
+      "kind": "state",
+      "stable_id": "STATE-F2E8B1E3A0D4B350",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Economics:economics_lineage_v2_ready",
+      "kind": "state",
+      "stable_id": "STATE-2C3E5397EDD6B9C5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Groups:treasury_audit_anchors",
+      "kind": "state",
+      "stable_id": "STATE-E12E9CCF4BCA3242",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Rewards:actual_forfeited",
+      "kind": "state",
+      "stable_id": "STATE-F5F15A9DF6E37E88",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Roles:helper_reputation_required_milli",
+      "kind": "state",
+      "stable_id": "STATE-F7E1B65C56D84E6E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Roles:params",
+      "kind": "state",
+      "stable_id": "STATE-39AD9EF90072894E",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Roles:suspended",
+      "kind": "state",
+      "stable_id": "STATE-BBC0E78FB17523E3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:<pop:dynamic>",
+      "kind": "state",
+      "stable_id": "STATE-D7B75274B7AE5DED",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:confirmations",
+      "kind": "state",
+      "stable_id": "STATE-4FDE62FE4D791CB4",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:confirmed_target_count",
+      "kind": "state",
+      "stable_id": "STATE-62B8291368648D29",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:replication_factor",
+      "kind": "state",
+      "stable_id": "STATE-6BC8D5FB6730EBB2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:targets",
+      "kind": "state",
+      "stable_id": "STATE-1BF1149590175564",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:appeal_actor_authority_unresolved",
+      "kind": "failure",
+      "stable_id": "FAIL-8A7CFE4E7D9903C2",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:appeal_actor_not_affected_party",
+      "kind": "failure",
+      "stable_id": "FAIL-E8C381EE45A91D42",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:content_target_owner_required",
+      "kind": "failure",
+      "stable_id": "FAIL-CE3C4B98063C93ED",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:deprecated_split_signer_authority_use_treasury_signers_set",
+      "kind": "failure",
+      "stable_id": "FAIL-2261B8189A0ACA51",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:economics_lineage_v2_not_proven",
+      "kind": "failure",
+      "stable_id": "FAIL-3924260089539A8F",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:forfeiture_exceeds_balance",
+      "kind": "failure",
+      "stable_id": "FAIL-41F00A8CA5B99AC5",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:helper_reputation_threshold_is_protocol_owned",
+      "kind": "failure",
+      "stable_id": "FAIL-58E062374D87F9F3",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:media_owner_required",
+      "kind": "failure",
+      "stable_id": "FAIL-988045E4EE6DF5DA",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "forbidden:operator_not_current_pin_target",
+      "kind": "failure",
+      "stable_id": "FAIL-82489B18198EDDFE",
+      "status": "active"
+    },
+    {
+      "aliases": [],
+      "canonical_key": "Storage:reassigned",
+      "kind": "state",
+      "stable_id": "STATE-878383D78A5EBBC1",
+      "status": "active"
     }
   ],
   "reuse_forbidden": true,

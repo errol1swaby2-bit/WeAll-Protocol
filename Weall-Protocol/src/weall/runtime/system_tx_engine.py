@@ -112,7 +112,16 @@ def _canon_context(canon: Any, tx_type: str) -> str:
 
 def _is_system_only(canon: Any, tx_type: str) -> bool:
     info = _canon_info(canon, tx_type)
-    return bool(info.get("system_only") is True) if isinstance(info, dict) else False
+    if not isinstance(info, dict):
+        return False
+    # Canon marks receipt/system-envelope transactions with origin=SYSTEM.
+    # Some generated projections do not materialize a separate system_only flag,
+    # so treating absence of that projection-only field as non-system corrupts
+    # valid governance/system queue entries. Preserve an explicit system_only
+    # marker when present, otherwise use the authoritative origin classification.
+    if info.get("system_only") is True:
+        return True
+    return str(info.get("origin") or "").strip().upper() == "SYSTEM"
 
 
 def _is_receipt_only(canon: Any, tx_type: str) -> bool:
@@ -801,9 +810,17 @@ def system_tx_emitter(
     queue_root = _queue_root(state)
 
     for queue_idx, it in items:
-        # Internal queue emits system envelopes.
-        _ = _is_system_only(canon, it.tx_type)
-        _ = _canon_context(canon, it.tx_type)
+        # Internal queue is a production authority boundary. When canon metadata
+        # is supplied, validate every emitted envelope against its authoritative
+        # SYSTEM/block classification. Some deterministic unit/replay callers
+        # intentionally omit canon; those still pass through the queue's lineage
+        # and authenticated system-envelope checks below rather than being
+        # rejected solely because classification metadata was unavailable.
+        if canon is not None:
+            if not _is_system_only(canon, it.tx_type):
+                raise SystemQueueCorruptionError(f"system_queue_non_system_tx:{it.tx_type}")
+            if _canon_context(canon, it.tx_type) != "block":
+                raise SystemQueueCorruptionError(f"system_queue_non_block_context:{it.tx_type}")
 
         payload = dict(it.payload or {})
         payload.setdefault("_due_height", int(it.due_height))
@@ -887,6 +904,28 @@ def _expected_emitted_system_env_fields(
     return payload, str(signer or "SYSTEM"), parent_ref if parent_ref else ""
 
 
+def _declared_parent_tx_types(canon: TxIndex, tx_type: str) -> tuple[str, ...]:
+    info = _canon_info(canon, tx_type)
+    if not isinstance(info, dict):
+        return ()
+    raw = info.get("parent_tx_types")
+    if isinstance(raw, list):
+        vals = tuple(str(x).strip().upper() for x in raw if str(x).strip())
+        if vals:
+            return vals
+    one = str(info.get("parent_tx_type") or "").strip().upper()
+    return (one,) if one else ()
+
+
+def _strict_receipt_lineage_required(state: Json) -> bool:
+    params = state.get("params")
+    if not isinstance(params, dict):
+        return False
+    return bool(params.get("strict_civic_governance_enabled")) or bool(
+        params.get("validator_candidate_lifecycle_gate_enabled")
+    )
+
+
 def validate_system_tx_queue_binding(
     state: Json,
     canon: Any,
@@ -915,6 +954,22 @@ def validate_system_tx_queue_binding(
     tx_type = _as_str(getattr(env, "tx_type", "") or "").strip().upper()
     if found.tx_type != tx_type:
         return False, "system_queue_tx_type_mismatch"
+    if _strict_receipt_lineage_required(state) and _is_receipt_only(canon, tx_type):
+        allowed_parents = _declared_parent_tx_types(canon, tx_type)
+        if allowed_parents:
+            raw_witness = payload.get("_lineage_witness")
+            if not isinstance(raw_witness, dict):
+                return False, "lineage_witness_required"
+            verdict0 = validate_lineage_witness(raw_witness)
+            if not verdict0.ok or verdict0.witness is None:
+                return False, f"lineage_witness_invalid:{verdict0.reason}"
+            witness0 = verdict0.witness
+            if witness0.parent_tx_type not in allowed_parents:
+                return False, "lineage_parent_tx_type_not_declared"
+            if witness0.kind is LineageWitnessKind.SINGLE_TX:
+                parent0 = _as_opt_str(getattr(env, "parent", None)).strip()
+                if not parent0 or witness0.parent_tx_id != parent0:
+                    return False, "lineage_parent_tx_id_mismatch"
     lineage_ok, lineage_reason, _ = _single_tx_lineage_shape(
         canon,
         env,
