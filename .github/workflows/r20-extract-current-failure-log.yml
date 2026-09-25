@@ -35,3 +35,5 @@ jobs:
           name: r20-current-exact-backend-diagnostics
           path: diagnostics/
           if-no-files-found: error
+
+# Registered on the prior push; this follow-up push triggers collection.
