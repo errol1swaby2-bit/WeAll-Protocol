@@ -131,7 +131,7 @@ def _repair_storage_lifecycle_regressions() -> None:
 
 
 TX0801_PREVIOUS_REBIND_HASH = "d3dd66310a6210918c9eb3ec9e106a6a517e2bd5ce08d2efd787c8a0c91ff821"
-TX0801_CURRENT_REBIND_HASH = "cd2229977648e23eca379ea7656cbc3f58d65155e9d852cbb5564689505b4e14"
+TX0801_CURRENT_REBIND_HASH = "edf91aa05e3993dab529cdbb8a21770394c3ee93598763e0657dbdcd7078f683"
 
 
 def _prepare_tx0801_semantic_rebind(previous_main):
