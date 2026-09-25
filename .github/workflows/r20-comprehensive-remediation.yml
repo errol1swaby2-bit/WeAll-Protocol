@@ -196,6 +196,78 @@ jobs:
           python scripts/gen_public_testnet_v1_chain_identity.py
           python scripts/gen_public_testnet_v1_chain_identity.py --check
 
+      - name: Stage fail-closed public testnet registry rotation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest_path = Path("configs/chains/weall-testnet-v1.json")
+          trust_path = Path("configs/public_testnet_trust_roots.json")
+          registry_path = Path("configs/public_testnet_seed_registry.json")
+
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          trust = json.loads(trust_path.read_text(encoding="utf-8"))
+          registry = json.loads(registry_path.read_text(encoding="utf-8"))
+
+          identity_keys = (
+              "network_id",
+              "chain_id",
+              "genesis_hash",
+              "genesis_state_root",
+              "protocol_profile_hash",
+              "tx_index_hash",
+          )
+          expected = {key: manifest[key] for key in identity_keys}
+          registry_identity_changed = any(registry.get(key) != value for key, value in expected.items())
+
+          for key, value in expected.items():
+              trust[key] = value
+              registry[key] = value
+
+          if registry_identity_changed:
+              registry["seed_registry_rotation_required"] = True
+              registry["seed_registry_rotation_reason"] = "r20_public_testnet_chain_identity_refresh"
+              registry["pq_resign_required_before_public_testnet"] = True
+              registry["seed_registry_signature"] = ""
+
+          if registry.get("seed_registry_rotation_required") is True:
+              registry["seed_registry_rotation_commitment"] = {
+                  "genesis_hash": manifest["genesis_hash"],
+                  "genesis_state_root": manifest["genesis_state_root"],
+                  "protocol_profile_hash": manifest["protocol_profile_hash"],
+                  "tx_index_hash": manifest["tx_index_hash"],
+              }
+              registry["pq_resign_required_before_public_testnet"] = True
+              registry["seed_registry_signature"] = ""
+
+          note = (
+              "R20 remediation refreshed the public-testnet chain identity; public observer "
+              "bootstrap remains fail-closed until the seed registry is re-signed with the "
+              "operator-held ML-DSA key."
+          )
+          notes = trust.get("notes")
+          if isinstance(notes, list) and note not in notes:
+              notes.append(note)
+
+          trust_path.write_text(json.dumps(trust, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+          registry_path.write_text(
+              json.dumps(registry, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+          )
+
+          for key, value in expected.items():
+              if trust.get(key) != value:
+                  raise SystemExit(f"trust_root_commitment_mismatch_after_stage:{key}")
+              if registry.get(key) != value:
+                  raise SystemExit(f"seed_registry_commitment_mismatch_after_stage:{key}")
+          if registry.get("seed_registry_rotation_required") is not True:
+              raise SystemExit("seed_registry_rotation_must_remain_fail_closed")
+          if str(registry.get("seed_registry_signature") or "").strip():
+              raise SystemExit("stale_seed_registry_signature_must_be_cleared")
+          print("staged current public-testnet commitments with fail-closed ML-DSA re-sign requirement")
+          PY
+          pytest -q tests/prod/test_public_testnet_v1_chain_identity.py
+
       - name: Regenerate deterministic v1.5 proof artifacts
         run: |
           generators=(
