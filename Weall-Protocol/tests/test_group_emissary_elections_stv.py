@@ -78,7 +78,13 @@ def test_group_emissary_election_stv_min_five_and_sets_treasury_signers() -> Non
 
     # Finalize
     meta = apply_groups(
-        state, _mk_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 99, {"election_id": "e1"})
+        state,
+        _mk_env(
+            "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "@alice",
+            99,
+            {"group_id": "g1", "election_id": "e1"},
+        ),
     )
     assert meta and meta["applied"] == "GROUP_EMISSARY_ELECTION_FINALIZE"
 
@@ -149,7 +155,13 @@ def test_gate_emissary_accepts_group_emissary_after_election() -> None:
     state["height"] = 202
 
     apply_groups(
-        state, _mk_env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 99, {"election_id": "e2"})
+        state,
+        _mk_env(
+            "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "@alice",
+            99,
+            {"group_id": "g2", "election_id": "e2"},
+        ),
     )
 
     winners = state["roles"]["groups_by_id"]["g2"]["emissaries"]

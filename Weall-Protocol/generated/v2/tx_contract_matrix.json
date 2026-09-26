@@ -14,7 +14,7 @@
     "normative_pdf_sha256": "c15d51574c5402fd8b57bc571df971be80c0c26963180f58306f2a57dc5e740a",
     "repository_snapshot": "63629d71a2447abf314f8914a808b565c7c75d70",
     "repository_url": "https://github.com/errol1swaby2-bit/WeAll-Protocol",
-    "source_tree_digest": "1344ae401eea2cc99c1ee17c2644a8774507af13bb42c13b88c2d2a57e86e3cb"
+    "source_tree_digest": "ad4ab502db775aa1d88c363439811702a2c1b9f409d4425cd0b32bfaace456fe"
   },
   "required_fields": [
     "stable_id",
@@ -12001,6 +12001,7 @@
       "tests": [
         "tests/test_fail_closed_group_treasury.py",
         "tests/test_lineage_witness_contract.py",
+        "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_priority4_invariant_fuzz.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_treasury_stale_state_safety.py",
@@ -12104,6 +12105,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "TREASURY_SPEND_CANCEL",
@@ -21567,9 +21569,9 @@
         "authority_effect": "Adds explicit membership policy and canonical creator moderator authority; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "58ed26960c6a850f68f66809682f9af6e3c8de8e76d6ccbcec4f0580158b53ba",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1700",
@@ -21676,9 +21678,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "2fee11d6189713161022c5698bf6813ce534fbcccba51873a023a2181bbf940e",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1701",
@@ -21769,9 +21771,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "3431b9f3c73e716c3aadccce79bd9a0765669f8692184fee1644d0f5823a1919",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1702",
@@ -21859,9 +21861,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "4fd3a0d6f047a1f3e1a2010833f9d9d2073331157e61b73b593848edf8801856",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1703",
@@ -21955,9 +21957,9 @@
         "authority_effect": "Open groups retain immediate admission; approval-required groups create pending requests; no launch activation",
         "independent_review": false,
         "review_digest": "6a130ffac5131a0609fd2448780b35ca80af13e9a1733fba3f4e97554d19b39c",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1704",
@@ -22073,9 +22075,9 @@
         "authority_effect": "Requires canonical GroupModerator authority plus a matching pending request; no launch activation",
         "independent_review": false,
         "review_digest": "93277a02fe2121c4426988d803cd92c12bf6cecf9055f2953cabc3659cdf96eb",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1705",
@@ -22170,9 +22172,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "2c79cbf961fb0bbccd9a30f5cd98f9a851fb8373f87b9822fcb89072ddb0cbb3",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1706",
@@ -22262,9 +22264,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "01b1367990aaf7ddbd4a1c70dbff43a43e3435f50a888f6f14167742101afc50",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1707",
@@ -22332,7 +22334,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_policy_set",
         "handler": "groups",
-        "line": 1313,
+        "line": 1333,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22358,9 +22360,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "61d8ccce79bf9f2e90c88c9a1bcd88fec0258e350e6b84830ca0576fabf77f41",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1708",
@@ -22493,9 +22495,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "bc94493265654401780163133b35d7b4ed9e6635383a9507233a36071988e1e8",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1709",
@@ -22556,6 +22558,10 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "group_scope_mismatch"
+        },
+        {
+          "code": "forbidden",
           "reason": "not_authorized_signer"
         },
         {
@@ -22614,15 +22620,16 @@
       "semantic_review": {
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "6891e6c0e664b3587d2cd67540e50587a54584c4ebaa356d27ae13f3ae2118a3",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "958c0ca36ba121903d4cb362fc861dee3355b6e1dc441517e29692c96c940745",
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1710",
       "state_reads": [
         "key:allowed_signers",
+        "key:group_id",
         "key:group_treasury_spends",
         "key:signatures",
         "key:spend_id",
@@ -22637,6 +22644,7 @@
       ],
       "tests": [
         "tests/test_fail_closed_group_treasury.py",
+        "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_system_queue_lifecycle_integrity.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -22673,6 +22681,10 @@
       "failure_codes": [
         {
           "code": "forbidden",
+          "reason": "group_scope_mismatch"
+        },
+        {
+          "code": "forbidden",
           "reason": "spend_executed"
         },
         {
@@ -22681,7 +22693,7 @@
         },
         {
           "code": "invalid_payload",
-          "reason": "missing_spend_id"
+          "reason": "missing_group_or_spend_id"
         },
         {
           "code": "not_found",
@@ -22692,7 +22704,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_cancel",
         "handler": "groups",
-        "line": 1177,
+        "line": 1186,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22718,14 +22730,15 @@
       "semantic_review": {
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "a927e5a9419b55408057c8c11b5698e9d3a492319f7c28203f0923569a096ee9",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "bc966d825d992559354450a245330f52e61332631dd02e94b68a9d629b26fef0",
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1711",
       "state_reads": [
+        "key:group_id",
         "key:group_treasury_spends",
         "key:spend_id",
         "key:status"
@@ -22738,6 +22751,7 @@
       ],
       "system_followups": [],
       "tests": [
+        "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
       "tx_type": "GROUP_TREASURY_SPEND_CANCEL",
@@ -22784,7 +22798,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_expire",
         "handler": "groups",
-        "line": 1351,
+        "line": 1371,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22811,9 +22825,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "e485db0ee18dfe4cf9c16724e875fd1800804f776ecbcb2cae1cfc9ea793242b",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1712",
@@ -22928,7 +22942,7 @@
       "implementation_source": {
         "function": "_apply_group_treasury_spend_execute",
         "handler": "groups",
-        "line": 1203,
+        "line": 1223,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -22957,9 +22971,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "efc2d3931533d875c8e488ed873ee9b8dfb8ce725388ec2ccdba05b8784c078b",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1713",
@@ -23079,6 +23093,10 @@
         },
         {
           "code": "forbidden",
+          "reason": "group_scope_mismatch"
+        },
+        {
+          "code": "forbidden",
           "reason": "group_treasury_spend_open"
         },
         {
@@ -23167,6 +23185,10 @@
         },
         {
           "code": "invalid_payload",
+          "reason": "missing_group_or_election_id"
+        },
+        {
+          "code": "invalid_payload",
           "reason": "missing_group_or_spend_id"
         },
         {
@@ -23222,7 +23244,7 @@
       "implementation_source": {
         "function": "apply_groups",
         "handler": "groups",
-        "line": 1755,
+        "line": 1785,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23275,10 +23297,10 @@
       "semantic_review": {
         "authority_effect": "none; broad dispatcher-derived static contract changed because group membership behavior changed; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "cf897d6eb2af1bbf8cc7e4745fdb4fbf72179ba10ad24aebab6b714efb001c53",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "9bbcffedf786b11845805c3be8167e8a347ba531feaa36c52264f8d7f9676b0c",
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "SYSTEM",
       "stable_id": "TX-1714",
@@ -23438,7 +23460,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_election_create",
         "handler": "groups",
-        "line": 1382,
+        "line": 1402,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23470,9 +23492,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "3a54a47ca0ffb7bf9ce4bb4c2d1117754f3081851d10a2a9b219031b42530f02",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1715",
@@ -23580,7 +23602,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_ballot_cast",
         "handler": "groups",
-        "line": 1459,
+        "line": 1479,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23610,9 +23632,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "44579c2e5d3d612b68c453cadcb9847162bf42809e3329990c09973b7f5bed0b",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1716",
@@ -23690,8 +23712,12 @@
           "reason": "election_still_open"
         },
         {
+          "code": "forbidden",
+          "reason": "group_scope_mismatch"
+        },
+        {
           "code": "invalid_payload",
-          "reason": "missing_election_id"
+          "reason": "missing_group_or_election_id"
         },
         {
           "code": "not_found",
@@ -23706,7 +23732,7 @@
       "implementation_source": {
         "function": "_apply_group_emissary_election_finalize",
         "handler": "groups",
-        "line": 1633,
+        "line": 1653,
         "path": "src/weall/runtime/apply/groups.py"
       },
       "migration_treatment": "preserve append-only numeric ID and canonical name; semantic changes require explicit versioned migration and replay vectors",
@@ -23738,10 +23764,10 @@
       "semantic_review": {
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
-        "review_digest": "2865964df98bf7dbf825b41894360b280a927173bd47ac9c217f418932e9aaa4",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_digest": "427902c61bef127ca7d74f0728e8348ebddfd7d2deb37e2b6af3b4ed949a1349",
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-1717",
@@ -23790,6 +23816,7 @@
         "tests/test_group_emissary_election_windows.py",
         "tests/test_group_emissary_elections_stv.py",
         "tests/test_group_policy_transition_safety.py",
+        "tests/test_p1_group001_scoped_reference_authority.py",
         "tests/test_tx_conflict_matrix.py",
         "tests/test_tx_schema_treasury_groups.py"
       ],
@@ -27568,9 +27595,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "513cef4799399713e4e317bec4995b2de80610a313efca64601d6934560e2f9c",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2505",
@@ -27672,9 +27699,9 @@
         "authority_effect": "none; implementation-source line binding only; does not activate public testnet or Mainnet",
         "independent_review": false,
         "review_digest": "f8421211581f87f3402315b387dd1ded3756fd2e57de2142aacfa6e6fcbb273f",
-        "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-        "reviewed_at": "2026-08-01T18:11:24Z",
-        "reviewer": "WeAll Protocol Maintainer-directed acceptance snapshot (AI-assisted); independent launch review deferred"
+        "review_method": "confirmed_audit_finding_repair_with_adversarial_regression",
+        "reviewed_at": "2026-09-26T19:00:00Z",
+        "reviewer": "WeAll Protocol P1-GROUP-001 audit remediation; independent launch review deferred"
       },
       "signer": "envelope_signer",
       "stable_id": "TX-2506",
