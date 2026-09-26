@@ -146,6 +146,15 @@ jobs:
 
           python scripts/gen_current_verified_claims.py
 
+      - name: Rematerialize V2 derivatives after v1.5 evidence closure
+        working-directory: Weall-Protocol
+        run: |
+          # V2 evidence/source fingerprints include the generated readiness
+          # surfaces above. Compile only after all v1.5/current-claim writers
+          # have reached their final deterministic state.
+          PYTHONPATH=src python scripts/compile_v2_spec.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
       - name: Validate repository-wide formatting lint and focused regressions
         working-directory: Weall-Protocol
         run: |
