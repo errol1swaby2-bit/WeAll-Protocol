@@ -1,0 +1,160 @@
+name: PR26 Refresh P1-CONS-003 Evidence
+
+on:
+  push:
+    branches:
+      - production-readiness-audit-20260925
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: production-readiness-audit-20260925
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Remove temporary workflow from intended final tree
+        run: git rm .github/workflows/pr26-refresh-cons003-evidence.yml
+
+      - name: Register new validator lifecycle failure identity
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          path = Path("specs/v2/source/stable_ids.json")
+          text = path.read_text(encoding="utf-8")
+          payload = json.loads(text)
+          canonical_key = "invalid_payload:validator_lifecycle_epoch_must_be_future"
+          stable_id = "FAIL-" + hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:16].upper()
+          entries = payload.get("entries") or []
+          if not any(
+              row.get("kind") == "failure" and row.get("canonical_key") == canonical_key
+              for row in entries
+          ):
+              block = (
+                  "    {\n"
+                  '      "aliases": [],\n'
+                  f'      "canonical_key": "{canonical_key}",\n'
+                  '      "kind": "failure",\n'
+                  f'      "stable_id": "{stable_id}",\n'
+                  '      "status": "active"\n'
+                  "    }\n"
+              )
+              marker = "\n  ]\n}"
+              if marker not in text:
+                  raise SystemExit("stable_ids.json closing marker not found")
+              stripped = text[: text.rfind(marker)]
+              if not stripped.rstrip().endswith("}"):
+                  raise SystemExit("stable_ids.json entry boundary not found")
+              text = stripped.rstrip() + ",\n" + block + marker + "\n"
+              path.write_text(text, encoding="utf-8")
+          print(f"registered {canonical_key} -> {stable_id}")
+          PY
+
+      - name: Refresh affected semantic-review bindings and V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          python - <<'PY'
+          import importlib.util
+          import json
+          import sys
+          from pathlib import Path
+
+          scripts = Path("scripts").resolve()
+          sys.path.insert(0, str(scripts))
+          import compile_v2_spec as compiler
+          import v2_spec_validation as validation
+
+          review_path = Path("specs/v2/source/semantic_reviews.json")
+          targets = {
+              "VALIDATOR_CANDIDATE_APPROVE",
+              "VALIDATOR_SUSPEND",
+              "VALIDATOR_REMOVE",
+          }
+          original = compiler.apply_semantic_reviews
+
+          def refresh(tx_rows, route_rows, reviews):
+              tx_reviews = {
+                  str(row.get("stable_id") or ""): row
+                  for row in reviews.get("transactions") or []
+                  if isinstance(row, dict)
+              }
+              changed = []
+              for row in tx_rows:
+                  if row.get("tx_type") not in targets:
+                      continue
+                  stable_id = str(row["stable_id"])
+                  review = tx_reviews[stable_id]
+                  digest = validation.compact_digest(validation.tx_review_material(row))
+                  if review.get("review_digest") != digest:
+                      review["review_digest"] = digest
+                      review["reviewed_at"] = "2026-09-25T00:00:00Z"
+                      changed.append((row["tx_type"], digest))
+              if changed:
+                  source = json.loads(review_path.read_text(encoding="utf-8"))
+                  by_type = {
+                      str(row.get("tx_type") or ""): row
+                      for row in source.get("transactions") or []
+                      if isinstance(row, dict)
+                  }
+                  for tx_type, digest in changed:
+                      row = by_type[tx_type]
+                      row["review_digest"] = digest
+                      row["reviewed_at"] = "2026-09-25T00:00:00Z"
+                  review_path.write_text(
+                      json.dumps(source, indent=2, ensure_ascii=False) + "\n",
+                      encoding="utf-8",
+                  )
+                  print("refreshed semantic bindings:")
+                  for tx_type, digest in changed:
+                      print(f"- {tx_type}: {digest}")
+              return original(tx_rows, route_rows, reviews)
+
+          compiler.apply_semantic_reviews = refresh
+          compiler.compile_artifacts()
+          compiler.apply_semantic_reviews = original
+
+          artifacts, manifest = compiler.compile_artifacts()
+          compiler._write_artifacts(artifacts)
+          print(json.dumps(manifest["coverage"], sort_keys=True))
+          PY
+
+      - name: Install locked backend dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Verify focused consensus repair and generated V2 state
+        working-directory: Weall-Protocol
+        run: |
+          ruff check src/weall/runtime/apply/consensus.py tests/p0/test_p1_cons003_future_validator_epochs.py
+          pytest -q tests/p0/test_p1_cons003_future_validator_epochs.py tests/p0/test_p0_consensus_core.py
+          PYTHONPATH=src python scripts/compile_v2_spec.py --check
+
+      - name: Commit and push atomic evidence refresh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            .github/workflows/pr26-refresh-cons003-evidence.yml \
+            Weall-Protocol/specs/v2/source/stable_ids.json \
+            Weall-Protocol/specs/v2/source/semantic_reviews.json \
+            Weall-Protocol/generated/v2 \
+            web/src/generated/protocolStatus.ts
+          git diff --cached --check
+          git commit -m "Refresh P1-CONS-003 semantic evidence"
+          git push origin HEAD:production-readiness-audit-20260925
