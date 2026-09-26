@@ -509,7 +509,13 @@ def test_group_emissary_election_finalize_syncs_group_and_treasury_signers() -> 
 
     st["height"] = 12
     final = apply_groups(
-        st, _env("GROUP_EMISSARY_ELECTION_FINALIZE", "@owner", 2, {"election_id": "ge1"})
+        st,
+        _env(
+            "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "@owner",
+            2,
+            {"group_id": "g1", "election_id": "ge1"},
+        ),
     )
     winners = final["winners"]
     assert winners == sorted(candidates)

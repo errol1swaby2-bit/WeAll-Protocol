@@ -76,7 +76,13 @@ def test_group_signers_set_allowed_after_election_finalize() -> None:
     state = _prepare_group_with_open_election()
     state["height"] = 109
     meta = apply_groups(
-        state, _env("GROUP_EMISSARY_ELECTION_FINALIZE", "@alice", 10, {"election_id": "e-open"})
+        state,
+        _env(
+            "GROUP_EMISSARY_ELECTION_FINALIZE",
+            "@alice",
+            10,
+            {"group_id": "g-open", "election_id": "e-open"},
+        ),
     )
     assert meta and meta["applied"] == "GROUP_EMISSARY_ELECTION_FINALIZE"
 
