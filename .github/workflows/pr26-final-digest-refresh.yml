@@ -53,8 +53,34 @@ jobs:
           export PYTHONPATH=src:scripts
           python scripts/gen_release_evidence_manifest_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
+
+          # These two writers intentionally return 1 when the bounded readiness
+          # verdict is NO-GO. That is a protocol verdict, not a generation
+          # failure. Remove the old file first, require a newly written artifact,
+          # then use --check (which validates freshness/integrity independently
+          # of the readiness verdict).
+          rm -f generated/controlled_testnet_go_gate_v1_5.json
+          set +e
           python scripts/run_controlled_testnet_go_gate_v1_5.py
+          controlled_rc=$?
+          set -e
+          if [[ "$controlled_rc" -ne 0 && "$controlled_rc" -ne 1 ]]; then
+            exit "$controlled_rc"
+          fi
+          test -s generated/controlled_testnet_go_gate_v1_5.json
+          python scripts/run_controlled_testnet_go_gate_v1_5.py --check
+
+          rm -f generated/final_public_observer_controlled_testnet_go_gate_v1_5.json
+          set +e
           python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py
+          final_rc=$?
+          set -e
+          if [[ "$final_rc" -ne 0 && "$final_rc" -ne 1 ]]; then
+            exit "$final_rc"
+          fi
+          test -s generated/final_public_observer_controlled_testnet_go_gate_v1_5.json
+          python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check
+
           python scripts/gen_release_evidence_manifest_v1_5.py
           python scripts/gen_public_beta_blocker_report_v1_5.py
           python scripts/gen_current_verified_claims.py
