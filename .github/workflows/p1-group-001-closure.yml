@@ -206,13 +206,39 @@ jobs:
           path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
           PY
 
-      - name: Refresh changed semantic contracts and V2 derivatives
+      - name: Refresh affected group semantic contracts and V2 derivatives
         working-directory: Weall-Protocol
         run: |
+          mapfile -t GROUP_TX_TYPES < <(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("specs/v2/source/tx_appliers.json").read_text(encoding="utf-8"))
+          rows = payload.get("rows")
+          if not isinstance(rows, list):
+              raise SystemExit("tx_appliers.json rows must be a list")
+          tx_types = sorted(
+              {
+                  str(row.get("tx_type") or "")
+                  for row in rows
+                  if isinstance(row, dict)
+                  and row.get("path") == "src/weall/runtime/apply/groups.py"
+                  and str(row.get("tx_type") or "")
+              }
+          )
+          if not tx_types:
+              raise SystemExit("no group transaction types discovered")
+          print("\n".join(tx_types))
+          PY
+          )
+
+          TX_ARGS=()
+          for tx_type in "${GROUP_TX_TYPES[@]}"; do
+            TX_ARGS+=(--tx-type "$tx_type")
+          done
+
           PYTHONPATH=src python scripts/refresh_v2_semantic_reviews.py \
-            --tx-type GROUP_TREASURY_SPEND_SIGN \
-            --tx-type GROUP_TREASURY_SPEND_CANCEL \
-            --tx-type GROUP_EMISSARY_ELECTION_FINALIZE \
+            "${TX_ARGS[@]}" \
             --register-failure forbidden:group_scope_mismatch \
             --register-failure invalid_payload:missing_group_or_election_id \
             --register-failure invalid_payload:missing_group_or_spend_id \
