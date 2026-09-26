@@ -31,7 +31,7 @@
       "reason": "May exist in a developer workspace but is ignored by Git and is not declared release evidence. The compiler excludes only this exact path; new undeclared generated artifacts still fail closed."
     }
   ],
-  "file_count": 1947,
+  "file_count": 1948,
   "files": [
     {
       "affected_registers": [
@@ -58,6 +58,19 @@
       "primary_mechanism_id": "M-075",
       "sha256": "4bda2b630f489a8872c5ab142863906c89624cb637d73131023c6fe08d935730",
       "source_id": "SRC-D13941269967924D"
+    },
+    {
+      "affected_registers": [
+        "non_protocol_utility"
+      ],
+      "classification": "ci_release_control",
+      "mappings": [
+        "M-075"
+      ],
+      "path": "../.github/workflows/pr26-refresh-v2-derivatives.yml",
+      "primary_mechanism_id": "M-075",
+      "sha256": "08a85b2bb936987e9e8a8ecba34f7b03d994d1814d24efa9df59b11d24a2e7ef",
+      "source_id": "SRC-0D52576160CC9924"
     },
     {
       "affected_registers": [
@@ -3002,7 +3015,7 @@
       ],
       "path": "generated/b528_b532_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "8ebd45f285599ede3669f50994918259d09ecb5f89b9a4b650537995f2c1e38d",
+      "sha256": "ac0e9b3c232c855c4599e30b27a79d7877e6c0366d7abc0773a4707d23feb7ef",
       "source_id": "SRC-D01357C7600DACB4"
     },
     {
@@ -3016,7 +3029,7 @@
       ],
       "path": "generated/b534_b538_completion_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "60d68ec023a0ea90171cb8583b75be9ff74f5e01f4d94997221d0cc32f0e0983",
+      "sha256": "1403928d222e21fd9d7e931f8b6c54d299141e0b9521ae355d8b9faf4bb4db63",
       "source_id": "SRC-3D6DB963CB2B1ECB"
     },
     {
@@ -3100,7 +3113,7 @@
       ],
       "path": "generated/b567_b571_autonomous_mechanics_proof_v1_5.json",
       "primary_mechanism_id": "M-076",
-      "sha256": "a7f238e61dadfffa1f46c6b00af3513f8cf64d4aee6927222d49b6e2c981faf0",
+      "sha256": "006d03f6f55f5db9c057d8cfb74a87fbee1df091b7b46ac4e34d407bb089c001",
       "source_id": "SRC-014AE7A3258C314F"
     },
     {
