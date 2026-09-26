@@ -1,0 +1,66 @@
+name: PR26 Generate V2 Derivatives
+
+on:
+  push:
+    branches:
+      - production-readiness-audit-20260925
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend locked dependencies
+        working-directory: Weall-Protocol
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements-dev.lock
+          pip install -e . --no-deps
+
+      - name: Generate V2 derivatives
+        working-directory: Weall-Protocol
+        run: |
+          python scripts/compile_v2_spec.py
+
+      - name: Upload generated derivatives
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr26-v2-derivatives
+          if-no-files-found: error
+          path: |
+            web/src/generated/protocolStatus.ts
+            Weall-Protocol/generated/v2/current_tx_canon.json
+            Weall-Protocol/generated/v2/divergence_registry.json
+            Weall-Protocol/generated/v2/evidence_index.json
+            Weall-Protocol/generated/v2/failure_contract_index.json
+            Weall-Protocol/generated/v2/mechanism_registry.json
+            Weall-Protocol/generated/v2/message_contract_index.json
+            Weall-Protocol/generated/v2/parameter_registry.json
+            Weall-Protocol/generated/v2/pdf_identity_manifest.json
+            Weall-Protocol/generated/v2/receipt_contract_index.json
+            Weall-Protocol/generated/v2/register_fingerprint_manifest.json
+            Weall-Protocol/generated/v2/requirement_traceability.json
+            Weall-Protocol/generated/v2/route_contract_map.json
+            Weall-Protocol/generated/v2/runtime_state_inventory.json
+            Weall-Protocol/generated/v2/scheduler_contract_index.json
+            Weall-Protocol/generated/v2/source_coverage_map.json
+            Weall-Protocol/generated/v2/spec_compilation_manifest.json
+            Weall-Protocol/generated/v2/spec_derivative.md
+            Weall-Protocol/generated/v2/state_contract_index.json
+            Weall-Protocol/generated/v2/target_contract_canon.json
+            Weall-Protocol/generated/v2/target_contract_schema_index.json
+            Weall-Protocol/generated/v2/target_failure_contract_index.json
+            Weall-Protocol/generated/v2/target_tx_canon.json
+            Weall-Protocol/generated/v2/tx_contract_matrix.json
+            Weall-Protocol/generated/v2/vector_registry.json
+            Weall-Protocol/generated/v2/w1_closure_validation_manifest.json
