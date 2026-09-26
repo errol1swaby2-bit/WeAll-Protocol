@@ -70,8 +70,6 @@ jobs:
       - name: Sweep and safely repair Ruff-detectable Python defects repository-wide
         working-directory: Weall-Protocol
         run: |
-          # Apply only Ruff's safe fixes across the complete Python surface so
-          # equivalent defects are not left behind outside the PR26 file list.
           ruff check --fix .
           ruff format .
           ruff format --check .
@@ -90,6 +88,64 @@ jobs:
             --reviewer "WeAll Protocol maintainer-directed production-readiness remediation; independent launch review deferred" \
             --review-method "maintainer_reviewed_semantic_change_with_regression_evidence"
 
+      - name: Regenerate complete dependent v1.5 readiness artifact closure
+        working-directory: Weall-Protocol
+        run: |
+          PYTHONPATH=src:scripts python - <<'PY'
+          import json
+          from pathlib import Path
+
+          from gen_failure_code_registry_v1_5 import build_payload as build_failure_registry
+          from gen_api_response_vectors_v1_5 import build as build_api_vectors
+          from gen_b587_b594_testnet_mechanism_completion_v1_5 import build as build_b587
+          from gen_release_evidence_manifest_v1_5 import build as build_release_manifest
+          from gen_public_beta_blocker_report_v1_5 import build as build_public_beta
+          from run_controlled_testnet_go_gate_v1_5 import build as build_controlled_gate
+          from gen_final_public_observer_controlled_testnet_go_gate_v1_5 import (
+              build as build_final_gate,
+          )
+
+          ROOT = Path.cwd()
+
+          def write(rel: str, payload: dict) -> None:
+              path = ROOT / rel
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(
+                  json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+                  encoding="utf-8",
+              )
+              print(f"regenerated {rel}")
+
+          # Source-derived leaf first.
+          write("generated/failure_code_registry_v1_5.json", build_failure_registry())
+          write("generated/api_response_vectors_v1_5.json", build_api_vectors())
+          write("generated/b587_b594_testnet_mechanism_completion_v1_5.json", build_b587())
+
+          # Close the readiness/evidence dependency graph. Recursive artifacts
+          # intentionally summarize one another without hashing themselves.
+          write("generated/release_evidence_manifest_v1_5.json", build_release_manifest())
+          write("generated/public_beta_blocker_report_v1_5.json", build_public_beta())
+          write("generated/controlled_testnet_go_gate_v1_5.json", build_controlled_gate())
+          write(
+              "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+              build_final_gate(),
+          )
+
+          # The release manifest hashes the final gate; refresh it after final-gate
+          # materialization, then refresh the downstream advisory summaries.
+          write("generated/release_evidence_manifest_v1_5.json", build_release_manifest())
+          write("generated/public_beta_blocker_report_v1_5.json", build_public_beta())
+          write("generated/controlled_testnet_go_gate_v1_5.json", build_controlled_gate())
+          write(
+              "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
+              build_final_gate(),
+          )
+          write("generated/release_evidence_manifest_v1_5.json", build_release_manifest())
+          write("generated/public_beta_blocker_report_v1_5.json", build_public_beta())
+          PY
+
+          python scripts/gen_current_verified_claims.py
+
       - name: Validate repository-wide formatting lint and focused regressions
         working-directory: Weall-Protocol
         run: |
@@ -101,13 +157,19 @@ jobs:
             tests/p0/test_p1_cons003_future_validator_epochs.py \
             tests/p0/test_p0_consensus_core.py
 
-      - name: Validate all V2 semantic and generated surfaces
+      - name: Validate all generated and readiness surfaces
         working-directory: Weall-Protocol
         run: |
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
           python scripts/check_generated.py
           python scripts/check_v2_spec_clean_checkout.py
-          PYTHONDONTWRITEBYTECODE=1 python scripts/check_v15_public_readiness_artifacts.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py
+          PYTHONPATH=src:scripts python scripts/gen_failure_code_registry_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_api_response_vectors_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_b587_b594_testnet_mechanism_completion_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_release_evidence_manifest_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_public_beta_blocker_report_v1_5.py --check
+          PYTHONPATH=src:scripts python scripts/gen_final_public_observer_controlled_testnet_go_gate_v1_5.py --check
           python scripts/check_public_claim_freshness.py
           python scripts/gen_current_verified_claims.py --check
 
@@ -127,12 +189,14 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit; final tree already materialized."
           else
-            git commit -m "Repair PR26 CI freshness and source coverage comprehensively"
+            git commit -m "Repair PR26 CI freshness and dependent artifact closure"
           fi
 
       - name: Verify committed clean archive
         working-directory: Weall-Protocol
-        run: python scripts/check_v2_spec_clean_checkout.py
+        run: |
+          python scripts/check_v2_spec_clean_checkout.py
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src:scripts python scripts/check_v15_public_readiness_artifacts.py
 
       - name: Push validated final tree
         run: |
@@ -141,6 +205,3 @@ jobs:
           else
             git push origin HEAD:production-readiness-audit-20260925
           fi
-
-# Direct audit retrigger: 2026-09-26. The repair job above is intentionally
-# self-deleting and pushes only after its full validation sequence succeeds.
