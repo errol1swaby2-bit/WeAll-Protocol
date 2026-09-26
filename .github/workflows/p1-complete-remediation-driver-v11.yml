@@ -17,20 +17,17 @@ jobs:
         with:
           ref: p1-complete-remediation-20260926
           fetch-depth: 0
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Execute v10 pipeline with complete bounded P1 failure registration
+      - name: Execute consolidated P1 remediation pipeline
         run: |
           python - <<'PY'
           from pathlib import Path
           import subprocess
 
-          harness_path = Path('.github/workflows/p1-complete-remediation-20260926.yml')
+          harness_path = Path('.github/p1-remediation/p1-complete-remediation-harness-20260926.yml')
           harness = harness_path.read_text()
-
           old_failures = ''.join([
               '          for failure in (\n',
               '              "forbidden:node_operator_suspended",\n',
@@ -64,32 +61,62 @@ jobs:
               raise SystemExit(f'canonical refresh failure tuple match count={harness.count(old_failures)}')
           harness_path.write_text(harness.replace(old_failures, new_failures, 1))
 
-          source = Path('.github/workflows/p1-complete-remediation-driver-v10.yml').read_text()
-          lines = source.splitlines()
-          marker = '- name: Execute corrected v9 remediation pipeline'
-          start = next((i for i, line in enumerate(lines) if line.strip() == marker), None)
-          if start is None:
-              raise SystemExit('missing v10 execution step')
-          run_i = next((i for i in range(start + 1, len(lines)) if lines[i].strip() == 'run: |'), None)
-          if run_i is None:
-              raise SystemExit('missing v10 run block')
-          body = []
-          for line in lines[run_i + 1:]:
-              if line.startswith('      - name: ') or line.startswith('      - uses: '):
-                  break
-              if line.startswith('          '):
-                  body.append(line[10:])
-              elif not line.strip():
-                  body.append('')
-              else:
-                  break
-          script = '\n'.join(body) + '\n'
+          source = Path('.github/p1-remediation/p1-complete-remediation-driver-v9-source.yml').read_text()
 
-          old_cleanup = "addition = anchor + 'git rm -f .github/workflows/p1-complete-remediation-driver-v10.yml\\n'"
-          new_cleanup = "addition = anchor + 'git rm -f .github/workflows/p1-complete-remediation-driver-v10.yml\\n' + 'git rm -f .github/workflows/p1-complete-remediation-driver-v11.yml\\n'"
-          if script.count(old_cleanup) != 1:
-              raise SystemExit(f'v10 cleanup expression match count={script.count(old_cleanup)}')
-          script = script.replace(old_cleanup, new_cleanup, 1)
+          def step_script(name: str) -> str:
+              lines = source.splitlines()
+              marker = f'- name: {name}'
+              start = next((i for i, line in enumerate(lines) if line.strip() == marker), None)
+              if start is None:
+                  raise SystemExit(f'missing v9 step: {name}')
+              run_i = next((i for i in range(start + 1, len(lines)) if lines[i].strip() == 'run: |'), None)
+              if run_i is None:
+                  raise SystemExit(f'missing v9 run block: {name}')
+              body = []
+              for line in lines[run_i + 1:]:
+                  if line.startswith('      - name: ') or line.startswith('      - uses: '):
+                      break
+                  if line.startswith('          '):
+                      body.append(line[10:])
+                  elif not line.strip():
+                      body.append('')
+                  else:
+                      break
+              return '\n'.join(body) + '\n'
 
-          subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script], check=True)
+          pipeline = [
+              ('Apply corrected P1 source repairs and regression tests', '.'),
+              ('Install locked dependencies', 'Weall-Protocol'),
+              ('Run focused P1 validation and refresh derivatives', '.'),
+              ('Remove temporary workflows and commit exact candidate', '.'),
+              ('Exact-commit generated and readiness validation', 'Weall-Protocol'),
+              ('Full backend regression suite', 'Weall-Protocol'),
+              ('Verify validation left tracked state clean', '.'),
+              ('Push validated P1 closure', '.'),
+          ]
+          old_harness_path = '.github/workflows/p1-complete-remediation-20260926.yml'
+          new_harness_path = '.github/p1-remediation/p1-complete-remediation-harness-20260926.yml'
+
+          for name, cwd in pipeline:
+              print(f'=== {name} ===', flush=True)
+              script = step_script(name).replace(old_harness_path, new_harness_path)
+              if name == 'Run focused P1 validation and refresh derivatives':
+                  bad = r'canonical_key=([^\\s]+)'
+                  good = r'canonical_key=(\S+)'
+                  if script.count(bad) != 1:
+                      raise SystemExit(f'v9 stable-state regex match count={script.count(bad)}')
+                  script = script.replace(bad, good, 1)
+              if name == 'Remove temporary workflows and commit exact candidate':
+                  script = script.replace('git rm -f .github/workflows/', 'git rm -f --ignore-unmatch .github/workflows/')
+                  anchor = "git config user.name 'github-actions[bot]'\n"
+                  addition = ''.join([
+                      'git rm -f --ignore-unmatch .github/p1-remediation/p1-complete-remediation-harness-20260926.yml\n',
+                      'git rm -f --ignore-unmatch .github/p1-remediation/p1-complete-remediation-driver-v9-source.yml\n',
+                      'git rm -f --ignore-unmatch .github/workflows/p1-complete-remediation-driver-v11.yml\n',
+                      anchor,
+                  ])
+                  if script.count(anchor) != 1:
+                      raise SystemExit(f'candidate cleanup config anchor count={script.count(anchor)}')
+                  script = script.replace(anchor, addition, 1)
+              subprocess.run(['bash', '-Eeuo', 'pipefail', '-c', script], cwd=cwd, check=True)
           PY
