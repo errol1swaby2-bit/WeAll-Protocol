@@ -116,42 +116,25 @@ jobs:
               )
               print(f"regenerated {rel}")
 
-          # Source-derived leaf first.
           write("generated/failure_code_registry_v1_5.json", build_failure_registry())
           write("generated/api_response_vectors_v1_5.json", build_api_vectors())
           write("generated/b587_b594_testnet_mechanism_completion_v1_5.json", build_b587())
-
-          # Close the readiness/evidence dependency graph. Recursive artifacts
-          # intentionally summarize one another without hashing themselves.
           write("generated/release_evidence_manifest_v1_5.json", build_release_manifest())
           write("generated/public_beta_blocker_report_v1_5.json", build_public_beta())
           write("generated/controlled_testnet_go_gate_v1_5.json", build_controlled_gate())
-          write(
-              "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
-              build_final_gate(),
-          )
-
-          # The release manifest hashes the final gate; refresh it after final-gate
-          # materialization, then refresh the downstream advisory summaries.
+          write("generated/final_public_observer_controlled_testnet_go_gate_v1_5.json", build_final_gate())
           write("generated/release_evidence_manifest_v1_5.json", build_release_manifest())
           write("generated/public_beta_blocker_report_v1_5.json", build_public_beta())
           write("generated/controlled_testnet_go_gate_v1_5.json", build_controlled_gate())
-          write(
-              "generated/final_public_observer_controlled_testnet_go_gate_v1_5.json",
-              build_final_gate(),
-          )
+          write("generated/final_public_observer_controlled_testnet_go_gate_v1_5.json", build_final_gate())
           write("generated/release_evidence_manifest_v1_5.json", build_release_manifest())
           write("generated/public_beta_blocker_report_v1_5.json", build_public_beta())
           PY
-
           python scripts/gen_current_verified_claims.py
 
       - name: Rematerialize V2 derivatives after v1.5 evidence closure
         working-directory: Weall-Protocol
         run: |
-          # V2 evidence/source fingerprints include the generated readiness
-          # surfaces above. Compile only after all v1.5/current-claim writers
-          # have reached their final deterministic state.
           PYTHONPATH=src python scripts/compile_v2_spec.py
           PYTHONPATH=src python scripts/compile_v2_spec.py --check
 
@@ -185,10 +168,6 @@ jobs:
       - name: Remove validation-only local artifacts before release verification
         working-directory: Weall-Protocol
         run: |
-          # Dependency installation, imports and pytest legitimately create these
-          # local-only paths. They are forbidden in the release tree, so remove
-          # every occurrence after validation rather than special-casing the
-          # first paths reported by verify_release_tree.sh.
           find . -type d \( \
             -name '__pycache__' -o \
             -name '.pytest_cache' -o \
@@ -196,8 +175,6 @@ jobs:
             -name '*.egg-info' \
           \) -prune -exec rm -rf {} +
           find . -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
-
-          # Fail closed if any equivalent Python validation residue remains.
           if find . \( \
             -type d \( -name '__pycache__' -o -name '.pytest_cache' -o -name '*.egg-info' \) -o \
             -type f \( -name '*.pyc' -o -name '*.pyo' \) \
@@ -207,10 +184,12 @@ jobs:
           fi
 
       - name: Validate production reviewer gate before committing
-        working-directory: Weall-Protocol
         run: |
+          cd Weall-Protocol
           bash scripts/verify_release_tree.sh
+          cd ..
           bash scripts/restore_m2_m3_evidence_from_git.sh --destination "${GITHUB_WORKSPACE}"
+          cd Weall-Protocol
           WEALL_RELEASE_TREE_ALREADY_VERIFIED=1 bash scripts/reviewer_production_readiness_gate.sh
 
       - name: Commit validated final tree
