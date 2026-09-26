@@ -4555,9 +4555,9 @@
       "authority_effect": "none; does not activate public testnet or Mainnet",
       "disposition": "accepted_current_semantic_contract",
       "independent_review": false,
-      "review_digest": "f5789a057e1104b87f2a96089aa0cd8083a3efa17227733e8971b83496a8e0ad",
+      "review_digest": "9ba59de792a8a81eff9ad5c9d44c1e3350856c2712f75741c84c0484715755d9",
       "review_method": "row_by_row_semantic_snapshot_bound_to_stable_implementation_identity",
-      "reviewed_at": "2026-07-22T00:00:00Z",
+      "reviewed_at": "2026-09-25T00:00:00Z",
       "reviewer": "WeAll Protocol Maintainer acceptance snapshot (AI-assisted); independent launch review deferred",
       "stable_id": "TX-1300",
       "tx_type": "BALANCE_TRANSFER"
