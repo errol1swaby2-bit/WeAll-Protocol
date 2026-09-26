@@ -67,30 +67,15 @@ jobs:
           pip install --require-hashes -r requirements-dev.lock
           pip install -e . --no-deps
 
-      - name: Format and lint every Python file changed by PR26
+      - name: Sweep and safely repair Ruff-detectable Python defects repository-wide
         working-directory: Weall-Protocol
         run: |
-          ruff format \
-            scripts/refresh_v2_semantic_reviews.py \
-            src/weall/runtime/apply/consensus.py \
-            src/weall/runtime/apply/economics.py \
-            tests/p0/test_p1_cons003_future_validator_epochs.py \
-            tests/test_balance_transfer_self_transfer_regression.py \
-            tests/test_refresh_v2_semantic_reviews.py
-          ruff format --check \
-            scripts/refresh_v2_semantic_reviews.py \
-            src/weall/runtime/apply/consensus.py \
-            src/weall/runtime/apply/economics.py \
-            tests/p0/test_p1_cons003_future_validator_epochs.py \
-            tests/test_balance_transfer_self_transfer_regression.py \
-            tests/test_refresh_v2_semantic_reviews.py
-          ruff check \
-            scripts/refresh_v2_semantic_reviews.py \
-            src/weall/runtime/apply/consensus.py \
-            src/weall/runtime/apply/economics.py \
-            tests/p0/test_p1_cons003_future_validator_epochs.py \
-            tests/test_balance_transfer_self_transfer_regression.py \
-            tests/test_refresh_v2_semantic_reviews.py
+          # Apply only Ruff's safe fixes across the complete Python surface so
+          # equivalent defects are not left behind outside the PR26 file list.
+          ruff check --fix .
+          ruff format .
+          ruff format --check .
+          ruff check .
 
       - name: Refresh every semantic contract changed by PR26 runtime patches
         working-directory: Weall-Protocol
